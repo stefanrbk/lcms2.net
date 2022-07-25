@@ -2,9 +2,9 @@
 
 using lcms2.plugins;
 
-namespace lcms2.state;
+namespace lcms2.state.chunks;
 
-internal class CurvesPluginChunk
+internal class CurvesPlugin
 {
     private ParametricCurvesCollection? parametricCurves = null;
 
@@ -16,16 +16,16 @@ internal class CurvesPluginChunk
             ctx.chunks[(int)Chunks.InterpPlugin] = curvesPluginChunk;
     }
 
-    private CurvesPluginChunk() { }
+    private CurvesPlugin() { }
 
-    internal static CurvesPluginChunk global = new();
-    private readonly static CurvesPluginChunk curvesPluginChunk = new();
+    internal static CurvesPlugin global = new();
+    private readonly static CurvesPlugin curvesPluginChunk = new();
 
     private static void DupPluginCurvesList(ref Context ctx, in Context src)
     {
-        CurvesPluginChunk newHead = new();
+        CurvesPlugin newHead = new();
         ParametricCurvesCollection? anterior = null;
-        var head = (CurvesPluginChunk?)src.chunks[(int)Chunks.CurvesPlugin];
+        var head = (CurvesPlugin?)src.chunks[(int)Chunks.CurvesPlugin];
 
         Debug.Assert(head is not null);
 
