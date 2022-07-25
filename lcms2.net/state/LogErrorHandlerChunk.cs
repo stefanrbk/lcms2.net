@@ -20,21 +20,21 @@ public enum ErrorCode
     NotSuitable,
 }
 
-internal class LogErrorHandler
+internal class LogErrorHandlerChunk
 {
     private LogErrorHandlerFunction? handler = null; // Set to null for global fallback
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (LogErrorHandler?)src.chunks[(int)Chunks.Logger] : logErrorChunk;
+        var from = src is not null ? (LogErrorHandlerChunk?)src.chunks[(int)Chunks.Logger] : logErrorChunk;
 
         ctx.chunks[(int)Chunks.Logger] = from;
     }
 
-    private LogErrorHandler() { }
+    private LogErrorHandlerChunk() { }
 
-    internal static LogErrorHandler global = new() { handler = DefaultLogErrorHandlerFunction };
-    private readonly static LogErrorHandler logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
+    internal static LogErrorHandlerChunk global = new() { handler = DefaultLogErrorHandlerFunction };
+    private readonly static LogErrorHandlerChunk logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
 
     internal static void DefaultLogErrorHandlerFunction(ref Context _context, ErrorCode _errorCode, string _text) { }
 }
