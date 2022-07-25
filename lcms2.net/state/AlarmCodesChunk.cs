@@ -8,7 +8,7 @@ internal class AlarmCodesChunk
     {
         var from = src is not null ? (AlarmCodesChunk?)src.chunks[(int)Chunks.AlarmCodesContext] : alarmCodesChunk;
 
-        ctx.chunks[(int)Chunks.Logger] = from;
+        ctx.chunks[(int)Chunks.AlarmCodesContext] = from;
     }
 
     private AlarmCodesChunk() { }

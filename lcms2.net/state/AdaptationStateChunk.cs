@@ -8,7 +8,7 @@ internal class AdaptationStateChunk
     {
         var from = src is not null ? (AdaptationStateChunk?)src.chunks[(int)Chunks.AdaptationStateContext] : adaptationStateChunk;
 
-        ctx.chunks[(int)Chunks.Logger] = from;
+        ctx.chunks[(int)Chunks.AdaptationStateContext] = from;
     }
 
     private AdaptationStateChunk(double value) =>
