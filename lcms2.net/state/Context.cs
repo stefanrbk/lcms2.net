@@ -8,13 +8,14 @@ public unsafe sealed class Context
     internal object?[] chunks = new object[(int)Chunks.Max];
     private readonly object mutex = new();
 
-    internal static Context Create(object? plugin, object? userData)
+    // TODO add plugin support
+    public static Context Create(object? plugin, object? userData)
     {
         var ctx = new Context();
 
         lock (ctx.mutex)
         {
-            lock (globalContext)
+            lock (poolHeadMutex)
             {
                 ctx.next = poolHead;
                 poolHead = ctx;
@@ -40,7 +41,129 @@ public unsafe sealed class Context
         return ctx;
     }
 
+    public static object? GetClientChunk(Context? context, Chunks chunk)
+    {
+        if (chunk is < 0 or >= Chunks.Max)
+        {
+            SignalError(context, ErrorCode.Internal, "Bad context chunk -- possible corruption");
+
+            return globalContext.chunks[(int)Chunks.UserPtr]!;
+        }
+
+        var ctx = Get(context);
+        var ptr = ctx.chunks[(int)chunk];
+
+        if (ptr is not null)
+            return ptr;
+
+        // A null ptr means no special settings for that context, and this
+        // reverts to globals
+        return globalContext.chunks[(int)chunk];
+    }
+
+    public static void SignalError(Context? context, ErrorCode errorCode, string errorText)
+    {
+        // Check for the context, if specified go there. If not, go for the global
+        LogErrorHandler lhg = (LogErrorHandler)GetClientChunk(context, Chunks.Logger)!;
+        if (lhg.handler is not null)
+            lhg.handler(context, errorCode, errorText);
+    }
+
+    // Helps prevent deleted contexts from being used by searching for the context in the list of active contexts and returning the global context if not found.
+    internal static Context Get(Context? context)
+    {
+        // On null, use global settings
+        if (context is null)
+            return globalContext;
+
+        // Search
+        lock (poolHeadMutex)
+        {
+            for (var ctx = poolHead; ctx is not null; ctx = ctx.next)
+            {
+                // Found it?
+                if (context == ctx)
+                {
+                    return ctx;
+                }
+            }
+        }
+        return globalContext;
+    }
+
     private Context() { }
+
+    public void Delete()
+    {
+        lock (mutex)
+        {
+            // TODO Unregister plugins
+
+            // Maintain list
+            lock (poolHeadMutex)
+            {
+                if (poolHead == this)
+                {
+                    poolHead = next;
+                } else
+                {
+                    // Search for previous
+                    for (var prev = poolHead; prev is not null; prev = prev.next)
+                    {
+                        if (prev.next == this)
+                        {
+                            prev.next = this.next;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public Context? Duplicate(object? newUserData)
+    {
+        var ctx = new Context();
+
+        lock (ctx.mutex)
+        {
+            lock (poolHeadMutex)
+            {
+                ctx.next = poolHead;
+                poolHead = ctx;
+            }
+
+            ctx.chunks[(int)Chunks.UserPtr] = newUserData ?? chunks[(int)Chunks.UserPtr];
+
+            LogErrorHandler.Alloc(ref ctx, this);
+            AlarmCodes.Alloc(ref ctx, this);
+            AdaptationState.Alloc(ref ctx, this);
+            InterpPlugin.Alloc(ref ctx, this);
+            CurvesPlugin.Alloc(ref ctx, this);
+            FormattersPlugin.Alloc(ref ctx, this);
+            TagTypePlugin.TagType.Alloc(ref ctx, this);
+            TagPlugin.Alloc(ref ctx, this);
+            IntentsPlugin.Alloc(ref ctx, this);
+            TagTypePlugin.MPE.Alloc(ref ctx, this);
+            OptimizationPlugin.Alloc(ref ctx, this);
+            TransformPlugin.Alloc(ref ctx, this);
+            MutexPlugin.Alloc(ref ctx, this);
+
+            // Make sure no one failed
+            for (var i = Chunks.Logger; i < Chunks.Max; i++)
+            {
+                if (ctx.chunks[(int)i] is null)
+                {
+                    ctx.Delete();
+                    return null;
+                }
+            }
+        }
+
+        return ctx;
+    }
+
+    public object? UserData => chunks[(int)Chunks.UserPtr];
 
     private static Context globalContext = new()
     {
@@ -63,8 +186,9 @@ public unsafe sealed class Context
         }
     };
     private static Context? poolHead = null;
+    private static readonly object poolHeadMutex = new object();
 }
-internal enum Chunks
+public enum Chunks
 {
     UserPtr,
     Logger,
