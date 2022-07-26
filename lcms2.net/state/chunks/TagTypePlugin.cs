@@ -8,24 +8,39 @@ internal class TagTypePlugin
 {
     private TagTypeLinkedList? tagTypes = null;
 
-    internal static void Alloc(ref Context ctx, in Context? src)
+    internal static class TagType
     {
-        if (src is not null)
-            DupTagTypeList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.TagTypePlugin] = curvesPluginChunk;
+        internal static void Alloc(ref Context ctx, in Context? src)
+        {
+            if (src is not null)
+                DupTagTypeList(ref ctx, src, Chunks.TagTypePlugin);
+            else
+                ctx.chunks[(int)Chunks.TagTypePlugin] = tagTypePluginChunk;
+        }
+
+        internal static TagTypePlugin global = new();
+    }
+    internal static class MPE
+    {
+        internal static void Alloc(ref Context ctx, in Context? src)
+        {
+            if (src is not null)
+                DupTagTypeList(ref ctx, src, Chunks.MPEPlugin);
+            else
+                ctx.chunks[(int)Chunks.MPEPlugin] = tagTypePluginChunk;
+        }
+
+        internal static TagTypePlugin global = new();
     }
 
     private TagTypePlugin() { }
 
-    internal static TagTypePlugin global = new();
-    private readonly static TagTypePlugin curvesPluginChunk = new();
-
-    private static void DupTagTypeList(ref Context ctx, in Context src)
+    private readonly static TagTypePlugin tagTypePluginChunk = new();
+    private static void DupTagTypeList(ref Context ctx, in Context src, Chunks loc)
     {
         TagTypePlugin newHead = new();
         TagTypeLinkedList? anterior = null;
-        var head = (TagTypePlugin?)src.chunks[(int)Chunks.TagTypePlugin];
+        var head = (TagTypePlugin?)src.chunks[(int)loc];
 
         Debug.Assert(head is not null);
 
@@ -46,6 +61,7 @@ internal class TagTypePlugin
                 newHead.tagTypes = newEntry;
         }
 
-        ctx.chunks[(int)Chunks.TagTypePlugin] = newHead;
+        ctx.chunks[(int)loc] = newHead;
     }
+
 }
