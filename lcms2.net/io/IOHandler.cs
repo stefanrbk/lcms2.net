@@ -434,6 +434,18 @@ public static class IOHandler
         return true;
     }
 
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static void IOPrintf(this Stream io, string frm, params object?[] args)
+    {
+        var resultString = string.Format(frm, args);
+        var bytes = Encoding.UTF8.GetBytes(resultString);
+        io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
+    }
+
 
     private static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
