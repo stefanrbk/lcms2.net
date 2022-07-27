@@ -321,7 +321,12 @@ public static class IOHandler
         static bool Write(this Stream io, XYZ xyz) =>
         io.Write(xyz.X) && io.Write(xyz.Y) && io.Write(xyz.Z);
 
-    private static double S15Fixed16toDouble(int value)
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static double S15Fixed16toDouble(int value)
     {
         var sign = value < 0 ? -1 : 1;
         value = Math.Abs(value);
@@ -334,6 +339,11 @@ public static class IOHandler
 
         return sign * floater;
     }
-    private static int DoubleToS15Fixed16(double value) =>
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static int DoubleToS15Fixed16(double value) =>
         (int)Math.Floor((value * 65536.0) + 0.5);
 }
