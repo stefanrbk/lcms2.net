@@ -1,4 +1,5 @@
-﻿using lcms2.types;
+﻿using lcms2.state;
+using lcms2.types;
 
 namespace lcms2;
 public static class Lcms2
@@ -14,3 +15,16 @@ public static class Lcms2
     public readonly static XYZ PerceptualBlack = (0.00336, 0.0034731, 0.00287);
     internal const int TypesInLcmsPlugin = 20;
 }
+
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    delegate void FreeUserDataFn(Context? context, ref object data);
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    delegate object? DupUserDataFn(Context? context, in object? data);
