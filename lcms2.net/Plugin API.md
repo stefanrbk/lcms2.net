@@ -1,11 +1,19 @@
 ﻿# Plugin API
 
-## Functions
+## Structs/Typedefs
 
-|      Original API | New C# API               |
-|------------------:|:-------------------------|
-| `_cms_io_handler` | Refactored into `Stream` |
-|                   |                          |
+|           Original API | New C# API                |
+| ---------------------: | :------------------------ |
+|   `cmsInterpFnFactory` | `plugins.InterpFnFactory` |
+|    `cmsInterpFunction` | `plugins.InterpFunction`  |
+|      `cmsInterpParams` | `plugins.InterpParams`    |
+|        `cmsPluginBase` | `plugins.PluginBase`      |
+|    `_cms_interp_struc` | `plugins.InterpParams`    |
+|      `_cms_io_handler` | Refactored into `Stream`  |
+|       `_cmsInterpFn16` | `plugins.InterpFn16`      |
+|    `_cmsInterpFnFloat` | `plugins.InterpFnFloat`   |
+| `_cmsPluginBaseStruct` | `plugins.PluginBase`      |
+|                        |                           |
 
 ## Functions
 

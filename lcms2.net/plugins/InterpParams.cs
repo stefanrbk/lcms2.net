@@ -4,13 +4,34 @@ using lcms2.state;
 
 namespace lcms2.plugins;
 
-public delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);
-public delegate void InterpFnFloat(in float[] input, float[] output, in InterpParams p);
 
-public delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    delegate void InterpFnFloat(in float[] input, float[] output, in InterpParams p);
+
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
 
 [Flags]
-public enum LerpFlag
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    enum LerpFlag
 {
     Ushort = 0,
     Float = 1,
@@ -18,7 +39,12 @@ public enum LerpFlag
 }
 
 [StructLayout(LayoutKind.Explicit)]
-public struct InterpFunction
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    struct InterpFunction
 {
     [FieldOffset(0)]
     public InterpFn16 Lerp16;
@@ -26,7 +52,12 @@ public struct InterpFunction
     public InterpFnFloat LerpFloat;
 }
 
-public class InterpParams
+#if PLUGIN
+    public
+#else
+internal
+#endif
+    class InterpParams
 {
     internal Context context;
 

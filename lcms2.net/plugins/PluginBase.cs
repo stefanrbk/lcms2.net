@@ -13,10 +13,17 @@ namespace lcms2.plugins;
 #else
 internal
 #endif
-    class PluginBase
+    abstract class PluginBase
 {
     public Signature Magic;
     public uint ExpectedVersion;
     public Signature Type;
     public PluginBase? Next = null;
+
+    protected internal PluginBase(Signature magic, uint expectedVersion, Signature type)
+    {
+        Magic = magic;
+        ExpectedVersion = expectedVersion;
+        Type = type;
+    }
 }
