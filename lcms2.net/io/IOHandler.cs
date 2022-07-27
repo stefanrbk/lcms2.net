@@ -11,6 +11,14 @@ using System.Threading.Tasks;
 namespace lcms2.io;
 public static class IOHandler
 {
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static long Tell(this Stream io) =>
+        io.Seek(0, SeekOrigin.Current);
 #if PLUGIN
     public
 #else
@@ -366,4 +374,67 @@ public static class IOHandler
 #endif
         static ushort DoubleToU8Fixed8(double value) =>
         (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static Signature ReadTypeBase(this Stream io)
+    {
+        var sig = io.ReadUInt32Number();
+        var res = io.ReadUInt32Number();
+
+        return sig is null || res is null
+            ? new Signature(0)
+            : new Signature((uint)sig);
+    }
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static bool Write(this Stream io, Signature sig) =>
+        io.Write(sig) && io.Write((uint)0);
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static bool ReadAlignment(this Stream io)
+    {
+        var buffer = new byte[4];
+        var at = io.Tell();
+        var nextAligned = AlignLong(at);
+        var bytesToNextAlignedPos = nextAligned - at;
+
+        return bytesToNextAlignedPos == 0
+            || (bytesToNextAlignedPos <= 4 && io.Read(buffer, 0, (int)bytesToNextAlignedPos) != (int)bytesToNextAlignedPos);
+    }
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static bool WriteAlignment(this Stream io)
+    {
+        var buffer = new byte[4];
+        var at = io.Tell();
+        var nextAligned = AlignLong(at);
+        var bytesToNextAlignedPos = nextAligned - at;
+
+        if (bytesToNextAlignedPos == 0) return true;
+        if (bytesToNextAlignedPos > 4) return false;
+
+        io.Write(buffer, 0, (int)bytesToNextAlignedPos);
+
+        return true;
+    }
+
+
+    private static long AlignLong(long x) =>
+        (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
 }

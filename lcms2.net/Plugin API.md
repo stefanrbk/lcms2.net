@@ -10,7 +10,7 @@
 ## Functions
 
 |               Original API | New C# API                                       |
-|---------------------------:|:-------------------------------------------------|
+| -------------------------: | :----------------------------------------------- |
 |   `_cmsAdjustEndianness16` | `io.IOHandler.AdjustEndianness` static method    |
 |   `_cmsAdjustEndianness32` | `io.IOHandler.AdjustEndianness` static method    |
 |   `_cmsAdjustEndianness64` | `io.IOHandler.AdjustEndianness` static method    |
@@ -36,4 +36,8 @@
 |      `_cmsDoubleTo8Fixed8` | `io.IOHandler.DoubleToU8Fixed8` static method    |
 | `_cmsEncodeDateTimeNumber` | `types.DateTimeNumber` explicit cast operator    |
 | `_cmsDecodeDateTimeNumber` | `types.DateTimeNumber` implicit cast operator    |
+|         `_cmsReadTypeBase` | `io.IOHandler.ReadTypeBase` static method        |
+|        `_cmsWriteTypeBase` | `io.IOHandler.Write` static method               |
+|        `_cmsReadAlignment` | `io.IOHandler.ReadAlignment` static method       |
+|       `_cmsWriteAlignment` | `io.IOHandler.WriteAlignment` static method      |
 |                            |                                                  |
