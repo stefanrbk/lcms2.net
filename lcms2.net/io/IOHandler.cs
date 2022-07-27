@@ -346,4 +346,24 @@ public static class IOHandler
 #endif
         static int DoubleToS15Fixed16(double value) =>
         (int)Math.Floor((value * 65536.0) + 0.5);
+
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static double U8Fixed8toDouble(ushort value)
+    {
+        var lsb = (byte)(value & 0xff);
+        var msb = (byte)((value >> 8) & 0xff);
+
+        return msb + (lsb / 256.0);
+    }
+#if PLUGIN
+    public
+#else
+    internal
+#endif
+        static ushort DoubleToU8Fixed8(double value) =>
+        (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
 }
