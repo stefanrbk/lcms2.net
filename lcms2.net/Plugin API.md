@@ -2,18 +2,49 @@
 
 ## Structs/Typedefs
 
-|           Original API | New C# API                |
-| ---------------------: | :------------------------ |
-|   `cmsInterpFnFactory` | `plugins.InterpFnFactory` |
-|    `cmsInterpFunction` | `plugins.InterpFunction`  |
-|      `cmsInterpParams` | `plugins.InterpParams`    |
-|        `cmsPluginBase` | `plugins.PluginBase`      |
-|    `_cms_interp_struc` | `plugins.InterpParams`    |
-|      `_cms_io_handler` | Refactored into `Stream`  |
-|       `_cmsInterpFn16` | `plugins.InterpFn16`      |
-|    `_cmsInterpFnFloat` | `plugins.InterpFnFloat`   |
-| `_cmsPluginBaseStruct` | `plugins.PluginBase`      |
-|                        |                           |
+### cmsInterpFnFactory ⇆ InterpFnFactory
+```C
+typedef cmsInterpFunction *cmsInterpFnFactory(cmsUInt32Number nInputChannels, cmsUInt32Number nOutputChannels, cmsUInt32Number dwFlags);
+```
+```csharp
+namespace lcms2.plugins;
+public delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
+```
+### cmsInterpFunction ⇆ InterpFunction
+
+```c
+typedef union {
+    _cmsInterpFn16       Lerp16;
+    _cmsInterpFnFloat    LerpFloat;
+} cmsInterpFunction;
+```
+```csharp
+[StructLayout(LayoutKind.Explicit)]
+public struct InterpFunction
+{
+    [FieldOffset(0)]
+    public InterpFn16 Lerp16;
+    [FieldOffset(0)]
+    public InterpFnFloat LerpFloat;
+}
+
+```
+
+|                  Original API | New C# API                         |
+| ----------------------------: | :--------------------------------- |
+|           `_cms_interp_struc` | `plugins.InterpParams`             |
+|             `_cms_io_handler` | Refactored into `Stream`           |
+|              `_cmsInterpFn16` | `plugins.InterpFn16`               |
+|           `_cmsInterpFnFloat` | `plugins.InterpFnFloat`            |
+|        `_cmsPluginBaseStruct` | `plugins.PluginBase`               |
+|        `_cmstransform_struct` | `plugins.Transform`                |
+|                               |                                    |
+|             `cmsInterpParams` | `plugins.InterpParams`             |
+| `cmsParametricCurveEvaluator` | `plugins.ParametricCurveEvaluator` |
+|               `cmsPluginBase` | `plugins.PluginBase`               |
+|      `cmsPluginInterpolation` | `plugins.PluginInterpolation`      |
+|   `cmsPluginParametricCurves` | `plugins.PluginParametricCurves`   |
+|                               |                                    |
 
 ## Functions
 
