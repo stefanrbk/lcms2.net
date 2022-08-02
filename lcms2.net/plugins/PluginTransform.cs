@@ -87,3 +87,7 @@ public class Transform
 
     internal TransformFn? OldXform;
 }
+public class TransformCollection
+{
+    internal TransformCollection? next = null;
+}
