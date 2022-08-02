@@ -8,7 +8,7 @@ public delegate void DestroyMutexFunction(ref Context context, ref object mtx);
 public delegate bool LockMutexFunction(ref Context context, ref object mtx);
 public delegate void UnlockMutexFunction(ref Context context, ref object mtx);
 
-public sealed class PluginMutex : PluginBase
+public sealed class PluginMutex : Plugin
 {
     public CreateMutexFunction CreateMutex;
     public DestroyMutexFunction DestroyMutex;

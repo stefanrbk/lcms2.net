@@ -5,7 +5,7 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-public sealed class PluginTransform : PluginBase
+public sealed class PluginTransform : Plugin
 {
     public TransformFactories Factories;
 

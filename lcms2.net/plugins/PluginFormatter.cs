@@ -4,7 +4,7 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-public sealed class PluginFormatter : PluginBase
+public sealed class PluginFormatter : Plugin
 {
     public FormatterFactory FormattersFactory;
 

@@ -2,7 +2,7 @@
 
 namespace lcms2.plugins;
 
-public sealed class PluginMultiProcessElement : PluginBase
+public sealed class PluginMultiProcessElement : Plugin
 {
     public ITagTypeHandler Handler;
 

@@ -10,7 +10,7 @@ namespace lcms2.plugins;
 
 public delegate bool OptimizationFn(Pipeline lut, Signature intent, Signature[] inputFormat, Signature[] outputFormat, uint[] flags);
 
-public sealed class PluginOptimization : PluginBase
+public sealed class PluginOptimization : Plugin
 {
     public OptimizationFn Function;
     public PluginOptimization(Signature magic, uint expectedVersion, Signature type, OptimizationFn function)

@@ -3,7 +3,7 @@
 namespace lcms2.plugins;
 
 public delegate double ParametricCurveEvaluator(Signature type, in double[] @params, double r);
-public sealed class PluginParametricCurves : PluginBase
+public sealed class PluginParametricCurves : Plugin
 {
     public int NumFunctions;
     public int[] FunctionTypes;

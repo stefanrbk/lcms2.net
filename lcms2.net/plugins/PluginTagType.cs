@@ -4,7 +4,7 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-public sealed class PluginTagType : PluginBase
+public sealed class PluginTagType : Plugin
 {
     public ITagTypeHandler handler;
     public PluginTagType(Signature magic, uint expectedVersion, Signature type, ITagTypeHandler handler)

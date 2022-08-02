@@ -5,7 +5,7 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-public sealed class PluginInterpolation : PluginBase
+public sealed class PluginInterpolation : Plugin
 {
     public InterpFnFactory? InterpolatorsFactory;
 

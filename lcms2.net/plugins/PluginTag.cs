@@ -5,7 +5,7 @@ namespace lcms2.plugins;
 public delegate Signature TagTypeDecider(double iccVersion, ref object data);
 
 public sealed class PluginTag
-    : PluginBase
+    : Plugin
 {
     public Signature Signature;
     public TagDescriptor Descriptor;

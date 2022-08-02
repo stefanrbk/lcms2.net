@@ -11,7 +11,7 @@ namespace lcms2.plugins;
 
 public delegate Pipeline IntentFn(Context? context, int numProfiles, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags);
 
-public sealed class PluginRenderingIntent : PluginBase
+public sealed class PluginRenderingIntent : Plugin
 {
     public Signature Intent;
     public IntentFn Link;
