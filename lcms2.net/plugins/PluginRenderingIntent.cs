@@ -25,3 +25,10 @@ public sealed class PluginRenderingIntent : PluginBase
         Description = description;
     }
 }
+public class IntentsList
+{
+    internal Signature intent;
+    internal string description;
+
+    internal IntentsList? next = null;
+}
