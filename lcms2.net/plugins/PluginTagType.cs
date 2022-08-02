@@ -1,20 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
 
-#if PLUGIN
-public sealed class PluginTagType
-#else
-internal sealed class PluginTagType
-#endif
-    : PluginBase
+public sealed class PluginTagType : PluginBase
 {
     public ITagTypeHandler handler;
     public PluginTagType(Signature magic, uint expectedVersion, Signature type, ITagTypeHandler handler)
@@ -24,11 +14,7 @@ internal sealed class PluginTagType
     }
 }
 
-#if PLUGIN
 public interface ITagTypeHandler
-#else
-internal interface ITagTypeHandler
-#endif
 {
     Signature Signature { get; }
     Context Context { get; }

@@ -5,12 +5,7 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-#if PLUGIN
-public sealed class PluginInterpolation
-#else
-internal sealed class PluginInterpolation
-#endif
-: PluginBase
+public sealed class PluginInterpolation : PluginBase
 {
     public InterpFnFactory? InterpolatorsFactory;
 
@@ -19,48 +14,22 @@ internal sealed class PluginInterpolation
         InterpolatorsFactory = interpolatorsFactory;
 }
 
-#if PLUGIN
-public delegate void InterpFn16(
-#else
-internal delegate void InterpFn16(
-#endif
-    in ushort[] input, ushort[] output, in InterpParams p);
+public delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);
 
-#if PLUGIN
-public delegate void InterpFnFloat(
-#else
-internal delegate void InterpFnFloat(
-#endif
-    in float[] input, float[] output, in InterpParams p);
+public delegate void InterpFnFloat(in float[] input, float[] output, in InterpParams p);
 
-#if PLUGIN
-public delegate InterpFunction InterpFnFactory(
-#else
-internal delegate InterpFunction InterpFnFactory(
-#endif
-    int numInputChannels, int numOutputChannels, LerpFlag flags);
+public delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
 
-#if PLUGIN
 [Flags]
 public enum LerpFlag
-#else
-[Flags]
-internal enum LerpFlag
-#endif
 {
     Ushort = 0,
     Float = 1,
     Trilinear = 4
 }
 
-#if PLUGIN
 [StructLayout(LayoutKind.Explicit)]
 public struct InterpFunction
-#else
-[StructLayout(LayoutKind.Explicit)]
-internal struct InterpFunction
-#endif
-
 {
     [FieldOffset(0)]
     public InterpFn16 Lerp16;
@@ -68,12 +37,7 @@ internal struct InterpFunction
     public InterpFnFloat LerpFloat;
 }
 
-#if PLUGIN
 public class InterpParams
-#else
-internal class InterpParams
-#endif
-
 {
     internal Context context;
 

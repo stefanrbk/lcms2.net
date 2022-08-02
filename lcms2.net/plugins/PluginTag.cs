@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -24,7 +18,7 @@ public sealed class PluginTag
     }
 }
 public class TagDescriptor
-{ 
+{
     public int ElementCount;
     public Signature[] SupportedTypes;
     public TagTypeDecider DecideType;

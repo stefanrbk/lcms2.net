@@ -2,18 +2,8 @@
 
 namespace lcms2.plugins;
 
-#if PLUGIN
-public delegate double ParametricCurveEvaluator(
-#else
-internal delegate double ParametricCurveEvaluator(
-#endif
-    Signature type, in double[] @params, double r);
-#if PLUGIN
-public sealed class PluginParametricCurves
-#else
-internal sealed class PluginParametricCurves
-#endif
-    : PluginBase
+public delegate double ParametricCurveEvaluator(Signature type, in double[] @params, double r);
+public sealed class PluginParametricCurves : PluginBase
 {
     public int NumFunctions;
     public int[] FunctionTypes;
@@ -28,11 +18,7 @@ internal sealed class PluginParametricCurves
     }
 }
 
-#if PLUGIN
 public class ParametricCurvesCollection
-#else
-internal class ParametricCurvesCollection
-#endif
 {
     internal int numFunctions;
     internal int[] functionTypes = new int[Lcms2.MaxTypesInPlugin];

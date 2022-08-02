@@ -5,15 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Configurations>Debug;Release;Debug (Plugin Exposed);Release (Plugin Exposed)</Configurations>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Plugin Exposed)|AnyCPU'">
-    <DefineConstants>$(DefineConstants)TRACE;PLUGIN</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (Plugin Exposed)|AnyCPU'">
-    <DefineConstants>$(DefineConstants)TRACE;PLUGIN</DefineConstants>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
