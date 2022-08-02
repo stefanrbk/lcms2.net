@@ -2,24 +2,9 @@
 
 namespace lcms2.types;
 
-#if PLUGIN
-public
-#else
-internal
-#endif
-delegate void StageEvalFn(in float[] @in, float[] @out, in Stage mpe);
-#if PLUGIN
-public
-#else
-internal
-#endif
-delegate Stage? StageDupElemFn(ref Stage mpe);
-#if PLUGIN
-public
-#else
-internal
-#endif
-delegate void StageFreeElemFn(ref Stage mpe);
+public delegate void StageEvalFn(in float[] @in, float[] @out, in Stage mpe);
+public delegate Stage? StageDupElemFn(ref Stage mpe);
+public delegate void StageFreeElemFn(ref Stage mpe);
 
 public class Stage
 {
