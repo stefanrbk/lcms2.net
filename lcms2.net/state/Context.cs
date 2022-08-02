@@ -172,6 +172,9 @@ public sealed unsafe class Context
         return globalContext.chunks[(int)chunk];
     }
 
+    public static void SignalError(Context? context, ErrorCode errorCode, string errorText, params object?[] args) =>
+        SignalError(context, errorCode, String.Format(errorText, args));
+
     public static void SignalError(Context? context, ErrorCode errorCode, string errorText)
     {
         // Check for the context, if specified go there. If not, go for the global
