@@ -12,6 +12,11 @@ public sealed class PluginTransform : Plugin
     public PluginTransform( Signature magic, uint expectedVersion, Signature type, TransformFactories factories)
         : base(magic, expectedVersion, type) =>
         Factories = factories;
+
+    internal static bool RegisterPlugin(Context? context, PluginTransform? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 [StructLayout(LayoutKind.Explicit)]

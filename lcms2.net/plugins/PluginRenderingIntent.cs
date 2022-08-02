@@ -24,6 +24,11 @@ public sealed class PluginRenderingIntent : Plugin
         Link = link;
         Description = description;
     }
+
+    internal static bool RegisterPlugin(Context? context, PluginRenderingIntent? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }
 public class IntentsList
 {

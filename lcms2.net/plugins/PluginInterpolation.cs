@@ -12,6 +12,11 @@ public sealed class PluginInterpolation : Plugin
     public PluginInterpolation(Signature magic, uint expectedVersion, Signature type, InterpFnFactory? interpolatorsFactory)
         : base(magic, expectedVersion, type) =>
         InterpolatorsFactory = interpolatorsFactory;
+
+    internal static bool RegisterPlugin(Context? context, PluginInterpolation? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);

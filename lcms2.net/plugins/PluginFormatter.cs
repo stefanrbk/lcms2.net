@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -11,6 +12,11 @@ public sealed class PluginFormatter : Plugin
     public PluginFormatter(Signature magic, uint expectedVersion, Signature type, FormatterFactory formatterFactory)
         : base(magic, expectedVersion, type) =>
         FormattersFactory = formatterFactory;
+
+    internal static bool RegisterPlugin(Context?context, PluginFormatter? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public delegate byte[] Formatter16(ref Transform cmmCargo, ushort[] values, out byte[] buffer, int stride);

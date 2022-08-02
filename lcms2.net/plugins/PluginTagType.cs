@@ -12,6 +12,11 @@ public sealed class PluginTagType : Plugin
     {
         this.handler = handler;
     }
+
+    internal static bool RegisterPlugin(Context? context, PluginTagType? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public interface ITagTypeHandler

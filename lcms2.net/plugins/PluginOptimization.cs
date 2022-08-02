@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -17,6 +18,11 @@ public sealed class PluginOptimization : Plugin
         : base(magic, expectedVersion, type)
     {
         Function = function;
+    }
+
+    internal static bool RegisterPlugin(Context? context, PluginOptimization? plugin)
+    {
+        throw new NotImplementedException();
     }
 }
 public class OptimizationCollection

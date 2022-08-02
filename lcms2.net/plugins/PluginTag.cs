@@ -1,4 +1,5 @@
-﻿using lcms2.types;
+﻿using lcms2.state;
+using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -15,6 +16,11 @@ public sealed class PluginTag
     {
         Signature = signature;
         Descriptor = descriptor;
+    }
+
+    internal static bool RegisterPlugin(Context? context, PluginTag? plugin)
+    {
+        throw new NotImplementedException();
     }
 }
 public class TagDescriptor

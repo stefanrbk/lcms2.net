@@ -1,4 +1,5 @@
-﻿using lcms2.types;
+﻿using lcms2.state;
+using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -15,6 +16,11 @@ public sealed class PluginParametricCurves : Plugin
         NumFunctions = numFunctions;
         FunctionTypes = functionTypes;
         ParameterCount = parameterCount;
+    }
+
+    internal static bool RegisterPlugin(Context? context, PluginParametricCurves? plugin)
+    {
+        throw new NotImplementedException();
     }
 }
 

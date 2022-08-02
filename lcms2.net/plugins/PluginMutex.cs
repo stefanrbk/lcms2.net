@@ -23,4 +23,9 @@ public sealed class PluginMutex : Plugin
         LockMutex = @lock;
         UnlockMutex = unlock;
     }
+
+    internal static bool RegisterPlugin(Context? context, PluginMutex? plugin)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -1,4 +1,5 @@
-﻿using lcms2.types;
+﻿using lcms2.state;
+using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -10,5 +11,10 @@ public sealed class PluginMultiProcessElement : Plugin
         : base(magic, expectedVersion, type)
     {
         Handler = handler;
+    }
+
+    internal static bool RegisterPlugin(Context? context, PluginMultiProcessElement? plugin)
+    {
+        throw new NotImplementedException();
     }
 }
