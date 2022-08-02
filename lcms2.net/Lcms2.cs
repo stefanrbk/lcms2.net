@@ -16,15 +16,5 @@ public static class Lcms2
     internal const int TypesInLcmsPlugin = 20;
 }
 
-#if PLUGIN
-public delegate void FreeUserDataFn
-#else
-internal delegate void FreeUserDataFn
-#endif
-(Context? context, ref object data);
-#if PLUGIN
-public delegate object? DupUserDataFn
-#else
-internal delegate object? DupUserDataFn
-#endif
-(Context? context, in object? data);
+public delegate void FreeUserDataFn(Context? context, ref object data);
+public delegate object? DupUserDataFn(Context? context, in object? data);
