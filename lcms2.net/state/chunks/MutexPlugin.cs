@@ -2,12 +2,12 @@
 
 namespace lcms2.state.chunks;
 
-internal class MutexPlugin
+public class MutexPlugin
 {
-    private CreateMutexFunction create = DefaultMutexCreate;
-    private DestroyMutexFunction destroy = DefaultMutexDestroy;
-    private LockMutexFunction @lock = DefaultMutexLock;
-    private UnlockMutexFunction unlock = DefaultMutexUnlock;
+    internal CreateMutexFunction create = DefaultMutexCreate;
+    internal DestroyMutexFunction destroy = DefaultMutexDestroy;
+    internal LockMutexFunction @lock = DefaultMutexLock;
+    internal UnlockMutexFunction unlock = DefaultMutexUnlock;
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
