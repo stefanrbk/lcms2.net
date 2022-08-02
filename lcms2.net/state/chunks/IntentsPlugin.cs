@@ -16,10 +16,11 @@ internal class IntentsPlugin
             ctx.chunks[(int)Chunks.IntentPlugin] = intentsPluginChunk;
     }
 
-    private IntentsPlugin() { }
+    private IntentsPlugin()
+    { }
 
     internal static IntentsPlugin global = new();
-    private readonly static IntentsPlugin intentsPluginChunk = new();
+    private static readonly IntentsPlugin intentsPluginChunk = new();
 
     private static void DupIntentsList(ref Context ctx, in Context src)
     {

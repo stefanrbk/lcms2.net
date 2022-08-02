@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 using lcms2.state;
 using lcms2.types;
@@ -11,11 +6,11 @@ using lcms2.types;
 namespace lcms2.plugins;
 
 #if PLUGIN
-    public
+public sealed class PluginInterpolation
 #else
-internal
+internal sealed class PluginInterpolation
 #endif
-sealed class PluginInterpolation : PluginBase
+: PluginBase
 {
     public InterpFnFactory? InterpolatorsFactory;
 
@@ -23,46 +18,49 @@ sealed class PluginInterpolation : PluginBase
         : base(magic, expectedVersion, type) =>
         InterpolatorsFactory = interpolatorsFactory;
 }
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void InterpFnFloat(in float[] input, float[] output, in InterpParams p);
 
 #if PLUGIN
-    public
+public delegate void InterpFn16(
 #else
-internal
+internal delegate void InterpFn16(
 #endif
-    delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
+    in ushort[] input, ushort[] output, in InterpParams p);
 
+#if PLUGIN
+public delegate void InterpFnFloat(
+#else
+internal delegate void InterpFnFloat(
+#endif
+    in float[] input, float[] output, in InterpParams p);
+
+#if PLUGIN
+public delegate InterpFunction InterpFnFactory(
+#else
+internal delegate InterpFunction InterpFnFactory(
+#endif
+    int numInputChannels, int numOutputChannels, LerpFlag flags);
+
+#if PLUGIN
 [Flags]
-#if PLUGIN
-    public
+public enum LerpFlag
 #else
-internal
+[Flags]
+internal enum LerpFlag
 #endif
-    enum LerpFlag
 {
     Ushort = 0,
     Float = 1,
     Trilinear = 4
 }
 
-[StructLayout(LayoutKind.Explicit)]
 #if PLUGIN
-    public
+[StructLayout(LayoutKind.Explicit)]
+public struct InterpFunction
 #else
-internal
+[StructLayout(LayoutKind.Explicit)]
+internal struct InterpFunction
 #endif
-    struct InterpFunction
+
 {
     [FieldOffset(0)]
     public InterpFn16 Lerp16;
@@ -71,11 +69,11 @@ internal
 }
 
 #if PLUGIN
-    public
+public class InterpParams
 #else
-internal
+internal class InterpParams
 #endif
-    class InterpParams
+
 {
     internal Context context;
 

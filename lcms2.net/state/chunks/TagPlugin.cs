@@ -16,10 +16,11 @@ internal class TagPlugin
             ctx.chunks[(int)Chunks.TagPlugin] = tagsPluginChunk;
     }
 
-    private TagPlugin() { }
+    private TagPlugin()
+    { }
 
     internal static TagPlugin global = new();
-    private readonly static TagPlugin tagsPluginChunk = new();
+    private static readonly TagPlugin tagsPluginChunk = new();
 
     private static void DupTagList(ref Context ctx, in Context src)
     {

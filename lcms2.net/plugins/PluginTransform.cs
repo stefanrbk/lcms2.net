@@ -1,98 +1,100 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
 #if PLUGIN
-    public
+public sealed class PluginTransform
 #else
-internal
+internal sealed class PluginTransform
 #endif
-sealed class PluginTransform : PluginBase
+    : PluginBase
 {
     internal TransformFactories Factories;
 
 #if PLUGIN
-    public
+    public PluginTransform(
 #else
-    internal
+    internal PluginTransform(
 #endif
-        PluginTransform(Signature magic, uint expectedVersion, Signature type, TransformFactories factories)
+        Signature magic, uint expectedVersion, Signature type, TransformFactories factories)
         : base(magic, expectedVersion, type) =>
         Factories = factories;
 }
-[StructLayout(LayoutKind.Explicit)]
+
 #if PLUGIN
-    public
+[StructLayout(LayoutKind.Explicit)]
+public unsafe struct TransformFactories
 #else
-internal
+[StructLayout(LayoutKind.Explicit)]
+internal unsafe struct TransformFactories
 #endif
-    unsafe struct TransformFactories
 {
     [FieldOffset(0)]
     internal TransformFactory legacy_xform;
+
     [FieldOffset(0)]
     internal Transform2Factory xform;
 }
+
 #if PLUGIN
-    public
+public class Cache
 #else
-internal
+internal class Cache
 #endif
-    class Cache
+
 {
     public ushort[] CacheIn = new ushort[Lcms2.MaxChannels];
     public ushort[] CacheOut = new ushort[Lcms2.MaxChannels];
 }
+
 #if PLUGIN
-    public
+public struct Stride
 #else
-internal
+internal struct Stride
 #endif
-    struct Stride
+
 {
     public int BytesPerLineIn;
     public int BytesPerLineOut;
     public int BytesPerPlaneIn;
     public int BytesPerPlaneOut;
 }
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void TransformFn(Transform cargo, object inputBuffer, object outputBuffer, int size, int stride);
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void Transform2Fn(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void TransformFactory(TransformFn xform, object? userData, object inputBuffer, object outputBuffer, int size, int stride);
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate void Transform2Factory(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
 
 #if PLUGIN
-    public
+public delegate void TransformFn(
 #else
-internal
+internal delegate void TransformFn(
 #endif
-    class Transform
+    Transform cargo, object inputBuffer, object outputBuffer, int size, int stride);
+
+#if PLUGIN
+public delegate void Transform2Fn(
+#else
+internal delegate void Transform2Fn(
+#endif
+    Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
+
+#if PLUGIN
+public delegate void TransformFactory(
+#else
+internal delegate void TransformFactory(
+#endif
+    TransformFn xform, object? userData, object inputBuffer, object outputBuffer, int size, int stride);
+
+#if PLUGIN
+public delegate void Transform2Factory(
+#else
+internal delegate void Transform2Factory(
+#endif
+    Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
+
+#if PLUGIN
+public class Transform
+#else
+internal class Transform
+#endif
 {
     internal Signature InputFormat, OutputFormat;
 

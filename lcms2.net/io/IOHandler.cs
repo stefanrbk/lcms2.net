@@ -1,73 +1,73 @@
-﻿using lcms2.state;
-using lcms2.types;
-
-using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Buffers.Binary;
 using System.Text;
-using System.Threading.Tasks;
+
+using lcms2.types;
 
 namespace lcms2.io;
 public static class IOHandler
 {
+#if PLUGIN
+    public static long Tell(
+#else
+    internal static long Tell(
+#endif
+            this Stream io) =>
+            io.Seek(0, SeekOrigin.Current);
 
 #if PLUGIN
-    public
+    public static ushort AdjustEndianness(
 #else
-    internal
+    internal static ushort AdjustEndianness(
 #endif
-        static long Tell(this Stream io) =>
-        io.Seek(0, SeekOrigin.Current);
-#if PLUGIN
-    public
-#else
-    internal
-#endif
-        static ushort AdjustEndianness(ushort word) =>
+        ushort word) =>
     BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(word) : word;
+
 #if PLUGIN
-    public
+    public static uint AdjustEndianness(
 #else
-    internal
-#endif
-        static uint AdjustEndianness(uint dWord) =>
+    internal static uint AdjustEndianness(
+# endif
+        uint dWord) =>
         BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(dWord) : dWord;
+
 #if PLUGIN
-    public
+    public static ulong AdjustEndianness(
 #else
-    internal
+    internal static ulong AdjustEndianness(
 #endif
-        static ulong AdjustEndianness(ulong qWord) =>
-        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(qWord) : qWord;
-#if PLUGIN
-    public
-#else
-    internal
-#endif
-        static short AdjustEndianness(short word) =>
-        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(word) : word;
-#if PLUGIN
-    public
-#else
-    internal
-#endif
-        static int AdjustEndianness(int dWord) =>
-        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(dWord) : dWord;
-#if PLUGIN
-    public
-#else
-    internal
-#endif
-        static long AdjustEndianness(long qWord) =>
+        ulong qWord) =>
         BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(qWord) : qWord;
 
 #if PLUGIN
-    public
+    public static short AdjustEndianness(
 #else
-    internal
+    internal static short AdjustEndianness(
 #endif
-        static byte? ReadUInt8Number(this Stream io)
+        short word) =>
+        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(word) : word;
+
+#if PLUGIN
+    public static int AdjustEndianness(
+#else
+    internal static int AdjustEndianness(
+#endif
+        int dWord) =>
+        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(dWord) : dWord;
+
+#if PLUGIN
+    public static long AdjustEndianness(
+#else
+    internal static long AdjustEndianness(
+#endif
+        long qWord) =>
+        BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(qWord) : qWord;
+
+#if PLUGIN
+    public static byte? ReadUInt8Number(
+#else
+    internal static byte? ReadUInt8Number(
+#endif
+        this Stream io)
     {
         var value = io.ReadByte();
         return value is > byte.MaxValue or < byte.MinValue
@@ -76,11 +76,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static ushort? ReadUInt16Number(
 #else
-    internal
+    internal static ushort? ReadUInt16Number(
 #endif
-        static ushort? ReadUInt16Number(this Stream io)
+        this Stream io)
     {
         var tmp = new byte[sizeof(ushort)];
         return io.Read(tmp.AsSpan()) == sizeof(ushort)
@@ -89,11 +89,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static ushort[]? ReadUInt16Array(
 #else
-    internal
+    internal static ushort[]? ReadUInt16Array(
 #endif
-        static ushort[]? ReadUInt16Array(this Stream io, int count)
+    this Stream io, int count)
     {
         var tmp = new ushort[count];
         for (var i = 0; i < count; i++)
@@ -107,11 +107,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static uint? ReadUInt32Number(
 #else
-    internal
+    internal static uint? ReadUInt32Number(
 #endif
-        static uint? ReadUInt32Number(this Stream io)
+        this Stream io)
     {
         var tmp = new byte[sizeof(uint)];
         return io.Read(tmp.AsSpan()) == sizeof(uint)
@@ -120,11 +120,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static int? ReadInt32Number(
 #else
-    internal
+    internal static int? ReadInt32Number(
 #endif
-        static int? ReadInt32Number(this Stream io)
+    this Stream io)
     {
         var tmp = new byte[sizeof(int)];
         return io.Read(tmp.AsSpan()) == sizeof(int)
@@ -133,11 +133,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static float? ReadFloat32Number(
 #else
-    internal
+    internal static float? ReadFloat32Number(
 #endif
-        static float? ReadFloat32Number(this Stream io)
+    this Stream io)
     {
         var tmp = new byte[sizeof(float)];
         return io.Read(tmp.AsSpan()) == sizeof(float)
@@ -146,11 +146,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static ulong? ReadUInt64Number(
 #else
-    internal
+    internal static ulong? ReadUInt64Number(
 #endif
-        static ulong? ReadUInt64Number(this Stream io)
+    this Stream io)
     {
         var tmp = new byte[sizeof(ulong)];
         return io.Read(tmp.AsSpan()) == sizeof(ulong)
@@ -159,11 +159,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static double? Read15Fixed16Number(
 #else
-    internal
+    internal static double? Read15Fixed16Number(
 #endif
-        static double? Read15Fixed16Number(this Stream io)
+    this Stream io)
     {
         var tmp = ReadInt32Number(io);
         return tmp is not null
@@ -172,11 +172,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static XYZ? ReadXYZNumber(
 #else
-    internal
+    internal static XYZ? ReadXYZNumber(
 #endif
-        static XYZ? ReadXYZNumber(this Stream io)
+    this Stream io)
     {
         var x = Read15Fixed16Number(io);
         var y = Read15Fixed16Number(io);
@@ -187,28 +187,29 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, byte n)
+    this Stream io, byte n)
     {
         try
         {
             io.WriteByte(n);
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, ushort n)
+    this Stream io, ushort n)
     {
         try
         {
@@ -216,18 +217,19 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt16BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, int n, ushort[] array)
+    this Stream io, int n, ushort[] array)
     {
         for (var i = 0; i < n; i++)
         {
@@ -238,11 +240,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, uint n)
+    this Stream io, uint n)
     {
         try
         {
@@ -250,18 +252,19 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, int n)
+    this Stream io, int n)
     {
         try
         {
@@ -269,18 +272,19 @@ public static class IOHandler
             BinaryPrimitives.WriteInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, float n)
+    this Stream io, float n)
     {
         try
         {
@@ -288,18 +292,19 @@ public static class IOHandler
             BinaryPrimitives.WriteSingleBigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, ulong n)
+    this Stream io, ulong n)
     {
         try
         {
@@ -307,34 +312,35 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt64BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, double n) =>
+    this Stream io, double n) =>
         io.Write(DoubleToS15Fixed16(n));
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, XYZ xyz) =>
+    this Stream io, XYZ xyz) =>
         io.Write(xyz.X) && io.Write(xyz.Y) && io.Write(xyz.Z);
 
 #if PLUGIN
-    public
+    public static double S15Fixed16toDouble(
 #else
-    internal
+    internal static double S15Fixed16toDouble(
 #endif
-        static double S15Fixed16toDouble(int value)
+    int value)
     {
         var sign = value < 0 ? -1 : 1;
         value = Math.Abs(value);
@@ -347,20 +353,21 @@ public static class IOHandler
 
         return sign * floater;
     }
+
 #if PLUGIN
-    public
+    public static int DoubleToS15Fixed16(
 #else
-    internal
+    internal static int DoubleToS15Fixed16(
 #endif
-        static int DoubleToS15Fixed16(double value) =>
+    double value) =>
         (int)Math.Floor((value * 65536.0) + 0.5);
 
 #if PLUGIN
-    public
+    public static double U8Fixed8toDouble(
 #else
-    internal
+    internal static double U8Fixed8toDouble(
 #endif
-        static double U8Fixed8toDouble(ushort value)
+    ushort value)
     {
         var lsb = (byte)(value & 0xff);
         var msb = (byte)((value >> 8) & 0xff);
@@ -368,19 +375,20 @@ public static class IOHandler
         return msb + (lsb / 256.0);
     }
 #if PLUGIN
-    public
+
+    public static ushort DoubleToU8Fixed8(
 #else
-    internal
+    internal static ushort DoubleToU8Fixed8(
 #endif
-        static ushort DoubleToU8Fixed8(double value) =>
+    double value) =>
         (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
 
 #if PLUGIN
-    public
+    public static Signature ReadTypeBase(
 #else
-    internal
+    internal static Signature ReadTypeBase(
 #endif
-        static Signature ReadTypeBase(this Stream io)
+    this Stream io)
     {
         var sig = io.ReadUInt32Number();
         var res = io.ReadUInt32Number();
@@ -391,19 +399,19 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static bool Write(
 #else
-    internal
+    internal static bool Write(
 #endif
-        static bool Write(this Stream io, Signature sig) =>
+    this Stream io, Signature sig) =>
         io.Write(sig) && io.Write((uint)0);
 
 #if PLUGIN
-    public
+    public static bool ReadAlignment(
 #else
-    internal
+    internal static bool ReadAlignment(
 #endif
-        static bool ReadAlignment(this Stream io)
+    this Stream io)
     {
         var buffer = new byte[4];
         var at = io.Tell();
@@ -415,11 +423,11 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static bool WriteAlignment(
 #else
-    internal
+    internal static bool WriteAlignment(
 #endif
-        static bool WriteAlignment(this Stream io)
+    this Stream io)
     {
         var buffer = new byte[4];
         var at = io.Tell();
@@ -435,17 +443,16 @@ public static class IOHandler
     }
 
 #if PLUGIN
-    public
+    public static void IOPrintf(
 #else
-    internal
+    internal static void IOPrintf(
 #endif
-        static void IOPrintf(this Stream io, string frm, params object?[] args)
+    this Stream io, string frm, params object?[] args)
     {
         var resultString = string.Format(frm, args);
         var bytes = Encoding.UTF8.GetBytes(resultString);
         io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
     }
-
 
     private static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);

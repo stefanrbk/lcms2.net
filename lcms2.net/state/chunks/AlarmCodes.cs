@@ -11,10 +11,11 @@ internal class AlarmCodes
         ctx.chunks[(int)Chunks.AlarmCodesContext] = from;
     }
 
-    private AlarmCodes() { }
+    private AlarmCodes()
+    { }
 
     internal static AlarmCodes global = new() { alarmCodes = (ushort[])DefaultAlarmCodes!.Clone() };
-    private readonly static AlarmCodes alarmCodesChunk = new() { alarmCodes = DefaultAlarmCodes };
+    private static readonly AlarmCodes alarmCodesChunk = new() { alarmCodes = DefaultAlarmCodes };
 
     internal static readonly ushort[] DefaultAlarmCodes = new ushort[Lcms2.MaxChannels] { 0x7F00, 0x7F00, 0x7F00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 }

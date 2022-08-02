@@ -16,10 +16,11 @@ internal class CurvesPlugin
             ctx.chunks[(int)Chunks.InterpPlugin] = curvesPluginChunk;
     }
 
-    private CurvesPlugin() { }
+    private CurvesPlugin()
+    { }
 
     internal static CurvesPlugin global = new();
-    private readonly static CurvesPlugin curvesPluginChunk = new();
+    private static readonly CurvesPlugin curvesPluginChunk = new();
 
     private static void DupPluginCurvesList(ref Context ctx, in Context src)
     {

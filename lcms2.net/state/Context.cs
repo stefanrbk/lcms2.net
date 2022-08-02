@@ -2,7 +2,7 @@
 
 namespace lcms2.state;
 
-public unsafe sealed class Context
+public sealed unsafe class Context
 {
     #region Fields
 
@@ -13,7 +13,8 @@ public unsafe sealed class Context
 
     #region Constructors
 
-    private Context() { }
+    private Context()
+    { }
 
     #endregion Constructors
 
@@ -29,7 +30,8 @@ public unsafe sealed class Context
             if (poolHead == this)
             {
                 poolHead = next;
-            } else
+            }
+            else
             {
                 // Search for previous
                 for (var prev = poolHead; prev is not null; prev = prev.next)
@@ -47,7 +49,6 @@ public unsafe sealed class Context
     public Context? Duplicate(object? newUserData)
     {
         var ctx = new Context();
-
 
         lock (poolHeadMutex)
         {

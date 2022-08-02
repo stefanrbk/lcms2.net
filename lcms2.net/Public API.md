@@ -1,6 +1,6 @@
 ﻿# Public API
 
-## Constants/Defines
+#### Constants/Defines
 |            Original API | New C# API              |
 | ----------------------: | :---------------------- |
 |          `LCMS_VERSION` | `Lcms2.Version`         |

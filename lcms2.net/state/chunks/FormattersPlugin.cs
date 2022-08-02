@@ -16,10 +16,11 @@ internal class FormattersPlugin
             ctx.chunks[(int)Chunks.FormattersPlugin] = curvesPluginChunk;
     }
 
-    private FormattersPlugin() { }
+    private FormattersPlugin()
+    { }
 
     internal static FormattersPlugin global = new();
-    private readonly static FormattersPlugin curvesPluginChunk = new();
+    private static readonly FormattersPlugin curvesPluginChunk = new();
 
     private static void DupFormatterFactoryList(ref Context ctx, in Context src)
     {

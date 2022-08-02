@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-using lcms2.plugins;
+﻿using lcms2.plugins;
 
 namespace lcms2.state.chunks;
 
@@ -21,7 +19,7 @@ internal class MutexPlugin
     }
 
     internal static MutexPlugin global = new();
-    private readonly static MutexPlugin mutexPluginChunk = new();
+    private static readonly MutexPlugin mutexPluginChunk = new();
 
     private static object? DefaultMutexCreate(ref Context context)
     {

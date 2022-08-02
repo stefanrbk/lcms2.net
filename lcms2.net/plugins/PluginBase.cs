@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2.plugins;
 
 #if PLUGIN
-    public
+public abstract class PluginBase
 #else
-internal
+internal abstract class PluginBase
 #endif
-    abstract class PluginBase
+
 {
     public Signature Magic;
     public uint ExpectedVersion;

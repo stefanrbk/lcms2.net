@@ -31,10 +31,12 @@ internal class LogErrorHandler
         ctx.chunks[(int)Chunks.Logger] = from;
     }
 
-    private LogErrorHandler() { }
+    private LogErrorHandler()
+    { }
 
     internal static LogErrorHandler global = new() { handler = DefaultLogErrorHandlerFunction };
-    private readonly static LogErrorHandler logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
+    private static readonly LogErrorHandler logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
 
-    internal static void DefaultLogErrorHandlerFunction(Context? _context, ErrorCode _errorCode, string _text) { }
+    internal static void DefaultLogErrorHandlerFunction(Context? _context, ErrorCode _errorCode, string _text)
+    { }
 }

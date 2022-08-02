@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-
-namespace lcms2.types;
+﻿namespace lcms2.types;
 
 public class ICCData
 {

@@ -16,10 +16,11 @@ internal class OptimizationPlugin
             ctx.chunks[(int)Chunks.OptimizationPlugin] = tagsPluginChunk;
     }
 
-    private OptimizationPlugin() { }
+    private OptimizationPlugin()
+    { }
 
     internal static OptimizationPlugin global = new();
-    private readonly static OptimizationPlugin tagsPluginChunk = new();
+    private static readonly OptimizationPlugin tagsPluginChunk = new();
 
     private static void DupOptimizationList(ref Context ctx, in Context src)
     {

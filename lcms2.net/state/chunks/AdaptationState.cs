@@ -15,7 +15,7 @@ internal class AdaptationState
         adaptationState = value;
 
     internal static AdaptationState global = new(DefaultAdaptationState);
-    private readonly static AdaptationState adaptationStateChunk = new(DefaultAdaptationState);
+    private static readonly AdaptationState adaptationStateChunk = new(DefaultAdaptationState);
 
     internal static readonly double DefaultAdaptationState = 1.0;
 }

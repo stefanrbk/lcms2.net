@@ -1,31 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.state;
+﻿using lcms2.state;
 
 namespace lcms2.types;
 
 #if PLUGIN
-    public
+public
 #else
 internal
 #endif
-    delegate void StageEvalFn(in float[] @in, float[] @out, in Stage mpe);
+delegate void StageEvalFn(in float[] @in, float[] @out, in Stage mpe);
 #if PLUGIN
-    public
+public
 #else
 internal
 #endif
-    delegate Stage? StageDupElemFn(ref Stage mpe);
+delegate Stage? StageDupElemFn(ref Stage mpe);
 #if PLUGIN
-    public
+public
 #else
 internal
 #endif
-    delegate void StageFreeElemFn(ref Stage mpe);
+delegate void StageFreeElemFn(ref Stage mpe);
 
 public class Stage
 {

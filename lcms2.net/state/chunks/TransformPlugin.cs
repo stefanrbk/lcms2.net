@@ -16,10 +16,11 @@ internal class TransformPlugin
             ctx.chunks[(int)Chunks.TransformPlugin] = transformChunk;
     }
 
-    private TransformPlugin() { }
+    private TransformPlugin()
+    { }
 
     internal static TransformPlugin global = new();
-    private readonly static TransformPlugin transformChunk = new();
+    private static readonly TransformPlugin transformChunk = new();
 
     private static void DupTransformList(ref Context ctx, in Context src)
     {

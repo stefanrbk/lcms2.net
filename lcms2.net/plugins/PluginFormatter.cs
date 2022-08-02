@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 using lcms2.types;
 
 namespace lcms2.plugins;
 
 #if PLUGIN
-    public
+public sealed class PluginFormatter
 #else
-internal
+internal sealed class PluginFormatter
 #endif
-    sealed class PluginFormatter : PluginBase
+    : PluginBase
 {
     public FormatterFactory FormattersFactory;
 
@@ -24,58 +19,55 @@ internal
 }
 
 #if PLUGIN
-    public
+public delegate byte[] Formatter16(
 #else
-internal
+internal delegate byte[] Formatter16(
 #endif
-    delegate byte[] Formatter16(ref Transform cmmCargo, ushort[] values, out byte[] buffer, int stride);
-#if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate byte[] FormatterFloat(ref Transform cmmCargo, float[] values, out byte[] buffer, int stride);
+    ref Transform cmmCargo, ushort[] values, out byte[] buffer, int stride);
 
+#if PLUGIN
+public delegate byte[] FormatterFloat(
+#else
+internal delegate byte[] FormatterFloat(
+#endif
+    ref Transform cmmCargo, float[] values, out byte[] buffer, int stride);
+
+#if PLUGIN
 [Flags]
-
-#if PLUGIN
-    public
+public enum PackFlag
 #else
-internal
+[Flags]
+internal enum PackFlag
 #endif
-    enum PackFlag
 {
     Ushort = 0,
     Float = 1,
 }
 
 #if PLUGIN
-    public
+public enum FormatterDirection
 #else
-internal
+internal enum FormatterDirection
 #endif
-    enum FormatterDirection
 {
     Input,
     Output,
 }
 
+#if PLUGIN
+public delegate Formatter FormatterFactory(
+#else
+internal delegate Formatter FormatterFactory(
+#endif
+    Signature type, FormatterDirection dir, PackFlag flags);
 
 #if PLUGIN
-    public
-#else
-internal
-#endif
-    delegate Formatter FormatterFactory(Signature type, FormatterDirection dir, PackFlag flags);
-
 [StructLayout(LayoutKind.Explicit)]
-
-#if PLUGIN
-    public
+public struct Formatter
 #else
-internal
+[StructLayout(LayoutKind.Explicit)]
+internal struct Formatter
 #endif
-    struct Formatter
 {
     [FieldOffset(0)]
     public Formatter16 Fmt16;
@@ -83,13 +75,11 @@ internal
     public FormatterFloat FmtFloat;
 }
 
-
 #if PLUGIN
-    public
+public class FormattersFactoryList
 #else
-internal
+internal class FormattersFactoryList
 #endif
-    class FormattersFactoryList
 {
     internal FormatterFactory? factory;
 

@@ -13,10 +13,11 @@ internal class InterpPlugin
         ctx.chunks[(int)Chunks.InterpPlugin] = from;
     }
 
-    private InterpPlugin() { }
+    private InterpPlugin()
+    { }
 
     internal static InterpPlugin global = new() { interpolators = null };
-    private readonly static InterpPlugin interpPluginChunk = new() { interpolators = null };
+    private static readonly InterpPlugin interpPluginChunk = new() { interpolators = null };
 
     internal static InterpFunction DefaultInterpolatorsFactory(int _numInputChannels, int _numOutputChannels, LerpFlag _flags) =>
         throw new NotImplementedException();

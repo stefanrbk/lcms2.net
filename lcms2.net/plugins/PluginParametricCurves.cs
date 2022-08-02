@@ -1,23 +1,19 @@
-﻿using System.Runtime.InteropServices;
-
-using lcms2.state;
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2.plugins;
 
-
 #if PLUGIN
-    public
+public delegate double ParametricCurveEvaluator(
 #else
-internal
+internal delegate double ParametricCurveEvaluator(
 #endif
-    delegate double ParametricCurveEvaluator(Signature type, in double[] @params, double r);
+    Signature type, in double[] @params, double r);
 #if PLUGIN
-    public
+public sealed class PluginParametricCurves
 #else
-internal
+internal sealed class PluginParametricCurves
 #endif
-    sealed class PluginParametricCurves : PluginBase
+    : PluginBase
 {
     public int NumFunctions;
     public int[] FunctionTypes;
@@ -32,7 +28,11 @@ internal
     }
 }
 
-class ParametricCurvesCollection
+#if PLUGIN
+public class ParametricCurvesCollection
+#else
+internal class ParametricCurvesCollection
+#endif
 {
     internal int numFunctions;
     internal int[] functionTypes = new int[Lcms2.MaxTypesInPlugin];

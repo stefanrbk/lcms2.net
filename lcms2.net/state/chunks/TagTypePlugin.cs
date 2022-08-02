@@ -33,9 +33,10 @@ internal class TagTypePlugin
         internal static TagTypePlugin global = new();
     }
 
-    private TagTypePlugin() { }
+    private TagTypePlugin()
+    { }
 
-    private readonly static TagTypePlugin tagTypePluginChunk = new();
+    private static readonly TagTypePlugin tagTypePluginChunk = new();
     private static void DupTagTypeList(ref Context ctx, in Context src, Chunks loc)
     {
         TagTypePlugin newHead = new();
@@ -63,5 +64,4 @@ internal class TagTypePlugin
 
         ctx.chunks[(int)loc] = newHead;
     }
-
 }
