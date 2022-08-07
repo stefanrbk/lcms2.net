@@ -9,7 +9,7 @@ public abstract class Plugin
     public Signature Magic;
     public uint ExpectedVersion;
     public Signature Type;
-    public Plugin? Next = null;
+    public Plugin? Next;
 
     protected internal Plugin(Signature magic, uint expectedVersion, Signature type)
     {

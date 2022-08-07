@@ -5,6 +5,10 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
+/// <summary>
+/// The plugin representing an interpolation
+/// </summary>
+/// <remarks>Implements the <c>cmsPluginInterpolation</c> struct.</remarks>
 public sealed class PluginInterpolation : Plugin
 {
     public InterpFnFactory? InterpolatorsFactory;
@@ -19,10 +23,26 @@ public sealed class PluginInterpolation : Plugin
     }
 }
 
+/// <summary>
+/// 16 bits forward interpolation. This function performs precision-limited linear interpolation
+/// and is supposed to be quite fast. Implementation may be tetrahedral or trilinear, and plug-ins may
+/// choose to implement any other interpolation algorithm.
+/// </summary>
+/// <remarks>Implements the <c>_cmsInterpFn16</c> typedef.</remarks>
 public delegate void InterpFn16(in ushort[] input, ushort[] output, in InterpParams p);
 
+/// <summary>
+/// Floating point forward interpolation. Full precision interpolation using floats. This is not a
+/// time critical function. Implementation may be tetrahedral or trilinear, and plug-ins may
+/// choose to implement any other interpolation algorithm.
+/// </summary>
+/// <remarks>Implements the <c>_cmsInterpFnFloat</c> typedef.</remarks>
 public delegate void InterpFnFloat(in float[] input, float[] output, in InterpParams p);
 
+/// <summary>
+/// Interpolators factory
+/// </summary>
+/// <remarks>Implements the <c>cmsInterpFnFactory</c> typedef.</remarks>
 public delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
 
 [Flags]
@@ -33,6 +53,10 @@ public enum LerpFlag
     Trilinear = 4
 }
 
+/// <summary>
+/// This type holds a pointer to an interpolator that can be either 16 bits or float
+/// </summary>
+/// <remarks>Implements the <c>cmsInterpFunction</c> union.</remarks>
 [StructLayout(LayoutKind.Explicit)]
 public struct InterpFunction
 {
@@ -42,21 +66,67 @@ public struct InterpFunction
     public InterpFnFloat LerpFloat;
 }
 
+/// <summary>
+/// Used on all interpolations. Supplied by lcms2 when calling the interpolation function
+/// </summary>
+/// <remarks>Implements the <c>cmsInterpParams</c> struct.</remarks>
 public class InterpParams
 {
-    internal Context context;
+    /// <summary>
+    /// The calling thread
+    /// </summary>
+    public Context context;
 
-    internal LerpFlag flags;
-    internal int numInputs;
-    internal int numOutputs;
+    /// <summary>
+    /// Keep original flags
+    /// </summary>
+    public LerpFlag flags;
+    /// <summary>
+    /// != 1 only in 3D interpolation
+    /// </summary>
+    public int numInputs;
+    /// <summary>
+    /// != 1 only in 3D interpolation
+    /// </summary>
+    public int numOutputs;
 
-    internal int[] numSamples;
-    internal int[] domain;
+    /// <summary>
+    /// Valid on all kinds of tables
+    /// </summary>
+    public int[] numSamples;
+    /// <summary>
+    /// Domain = numSamples - 1
+    /// </summary>
+    public int[] domain;
 
-    internal int[] opta;
+    /// <summary>
+    /// Optimization for 3D CLUT. This is the number of nodes premultiplied for each
+    /// dimension. For example, in 7 nodes, 7, 7^2 , 7^3, 7^4, etc. On non-regular
+    /// Samplings may vary according of the number of nodes for each dimension.
+    /// </summary>
+    public int[] opta;
 
-    internal object table;
-    internal InterpFunction interpolation;
+    /// <summary>
+    /// "Points" to the actual interpolation table.
+    /// </summary>
+    public object table;
+    /// <summary>
+    /// Points to the function to do the interpolation
+    /// </summary>
+    public InterpFunction interpolation;
 
     public const int MaxInputDimensions = 15;
+
+    public InterpParams(Context context, LerpFlag flags, int numInputs, int numOutputs, int[] numSamples, int[] domain, int[] opta, object table, InterpFunction interpolation)
+    {
+        this.context = context;
+        this.flags = flags;
+        this.numInputs = numInputs;
+        this.numOutputs = numOutputs;
+        this.numSamples = numSamples;
+        this.domain = domain;
+        this.opta = opta;
+        this.table = table;
+        this.interpolation = interpolation;
+    }
 }
