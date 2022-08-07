@@ -5,6 +5,12 @@ namespace lcms2.plugins;
 
 public delegate Signature TagTypeDecider(double iccVersion, ref object data);
 
+/// <summary>
+///     Tag identification plugin
+/// </summary>
+/// <remarks>
+///     Plugin implements a single tag<br />
+///     Implements the <c>cmsPluginTag</c> struct.</remarks>
 public sealed class PluginTag
     : Plugin
 {
@@ -23,6 +29,12 @@ public sealed class PluginTag
         throw new NotImplementedException();
     }
 }
+
+/// <summary>
+///     Tag identification plugin descriptor
+/// </summary>
+/// <remarks>
+///     Implements the <c>cmsTagDescriptor</c> struct.</remarks>
 public class TagDescriptor
 {
     public int ElementCount;
