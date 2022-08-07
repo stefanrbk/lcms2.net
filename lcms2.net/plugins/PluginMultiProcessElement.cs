@@ -3,6 +3,11 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
+/// <summary>
+///     Pipelines, Multi Process Elements
+/// </summary>
+/// <remarks>
+///     Implements the <c>cmsPluginMultiProcessElement</c> struct.</remarks>
 public sealed class PluginMultiProcessElement : Plugin
 {
     public ITagTypeHandler Handler;
