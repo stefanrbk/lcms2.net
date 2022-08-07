@@ -1,16 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.state;
+﻿using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
 
+/// <summary>
+///     This function should join all profiles specified in the array into a single LUT.
+/// </summary>
+/// <remarks>
+///     Implements the <c>cmsIntentFn</c> typedef.</remarks>
 public delegate Pipeline IntentFn(Context? context, int numProfiles, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags);
 
+/// <summary>
+///     Custom intent plugin
+/// </summary>
+/// <remarks>
+///     Each plugin defines a single intent number.<br />
+///     Implements the <c>cmsPluginTag</c> struct.</remarks>
 public sealed class PluginRenderingIntent : Plugin
 {
     public Signature Intent;
@@ -26,6 +31,16 @@ public sealed class PluginRenderingIntent : Plugin
     }
 
     internal static bool RegisterPlugin(Context? context, PluginRenderingIntent? plugin)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    ///     The default ICC intents (perceptual, saturation, rel.col, and abs.col)
+    /// </summary>
+    /// <remarks>
+    ///     Implements the <c>_cmsDefaultICCintents</c> function.</remarks>
+    public static Pipeline DefaultIccIntents(Context? context, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags)
     {
         throw new NotImplementedException();
     }
