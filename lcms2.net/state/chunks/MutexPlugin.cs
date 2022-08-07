@@ -21,21 +21,21 @@ public class MutexPlugin
     internal static MutexPlugin global = new();
     private static readonly MutexPlugin mutexPluginChunk = new();
 
-    private static object? DefaultMutexCreate(ref Context context)
+    private static object? DefaultMutexCreate(Context? context)
     {
         return new Mutex();
     }
-    private static void DefaultMutexDestroy(ref Context _context, ref object mtx)
+    private static void DefaultMutexDestroy(Context? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         mutex.Dispose();
     }
-    private static bool DefaultMutexLock(ref Context _context, ref object mtx)
+    private static bool DefaultMutexLock(Context? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         return mutex.WaitOne();
     }
-    private static void DefaultMutexUnlock(ref Context _context, ref object mtx)
+    private static void DefaultMutexUnlock(Context? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         mutex.ReleaseMutex();
