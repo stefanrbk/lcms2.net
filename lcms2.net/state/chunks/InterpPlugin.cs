@@ -4,7 +4,7 @@ namespace lcms2.state.chunks;
 
 internal class InterpPlugin
 {
-    private InterpFnFactory? interpolators = null;
+    internal InterpFnFactory? interpolators = null;
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {

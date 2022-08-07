@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 
 using lcms2.state;
+using lcms2.state.chunks;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -19,7 +20,17 @@ public sealed class PluginInterpolation : Plugin
 
     internal static bool RegisterPlugin(Context? context, PluginInterpolation? plugin)
     {
-        throw new NotImplementedException();
+        var ptr = (InterpPlugin)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
+
+        if (plugin is null)
+        {
+            ptr.interpolators = null;
+            return true;
+        }
+
+        // Set replacement functions
+        ptr.interpolators = plugin.InterpolatorsFactory;
+        return true;
     }
 }
 

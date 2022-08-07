@@ -1,4 +1,5 @@
-﻿using lcms2.state.chunks;
+﻿using lcms2.plugins;
+using lcms2.state.chunks;
 
 namespace lcms2.state;
 
@@ -118,7 +119,7 @@ public sealed class Context
 
     #region Static Methods
 
-    public static Context Create(object? plugin, object? userData)
+    public static Context? Create(Plugin? plugin, object? userData)
     {
         var ctx = new Context();
 
@@ -145,8 +146,9 @@ public sealed class Context
         MutexPlugin.Alloc(ref ctx, null);
 
         // TODO add plugin support
-
-        return ctx;
+        return !Plugin.Register(ctx, plugin)
+            ? null
+            : ctx;
     }
 
     public static object? GetUserData(Context? context) =>
