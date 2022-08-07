@@ -62,7 +62,7 @@ public sealed class Context
         LogErrorHandler.Alloc(ref ctx, this);
         AlarmCodes.Alloc(ref ctx, this);
         AdaptationState.Alloc(ref ctx, this);
-        InterpPlugin.Alloc(ref ctx, this);
+        InterpolationPluginChunk.Alloc(ref ctx, this);
         CurvesPlugin.Alloc(ref ctx, this);
         FormattersPlugin.Alloc(ref ctx, this);
         TagTypePlugin.TagType.Alloc(ref ctx, this);
@@ -100,7 +100,7 @@ public sealed class Context
             LogErrorHandler.global,
             AlarmCodes.global,
             AdaptationState.global,
-            InterpPlugin.global,
+            InterpolationPluginChunk.global,
             CurvesPlugin.global,
             FormattersPlugin.global,
             TagTypePlugin.TagType.global,
@@ -134,7 +134,7 @@ public sealed class Context
         LogErrorHandler.Alloc(ref ctx, null);
         AlarmCodes.Alloc(ref ctx, null);
         AdaptationState.Alloc(ref ctx, null);
-        InterpPlugin.Alloc(ref ctx, null);
+        InterpolationPluginChunk.Alloc(ref ctx, null);
         CurvesPlugin.Alloc(ref ctx, null);
         FormattersPlugin.Alloc(ref ctx, null);
         TagTypePlugin.TagType.Alloc(ref ctx, null);

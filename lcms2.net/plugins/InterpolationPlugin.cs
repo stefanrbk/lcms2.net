@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
 using lcms2.state;
-using lcms2.state.chunks;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -10,17 +9,17 @@ namespace lcms2.plugins;
 /// The plugin representing an interpolation
 /// </summary>
 /// <remarks>Implements the <c>cmsPluginInterpolation</c> struct.</remarks>
-public sealed class PluginInterpolation : Plugin
+public sealed class InterpolationPlugin : Plugin
 {
     public InterpFnFactory? InterpolatorsFactory;
 
-    public PluginInterpolation(Signature magic, uint expectedVersion, Signature type, InterpFnFactory? interpolatorsFactory)
+    public InterpolationPlugin(Signature magic, uint expectedVersion, Signature type, InterpFnFactory? interpolatorsFactory)
         : base(magic, expectedVersion, type) =>
         InterpolatorsFactory = interpolatorsFactory;
 
-    internal static bool RegisterPlugin(Context? context, PluginInterpolation? plugin)
+    internal static bool RegisterPlugin(Context? context, InterpolationPlugin? plugin)
     {
-        var ptr = (InterpPlugin)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
+        var ptr = (InterpolationPluginChunk)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
 
         if (plugin is null)
         {
@@ -140,4 +139,22 @@ public class InterpParams
         this.table = table;
         this.interpolation = interpolation;
     }
+}
+
+internal sealed class InterpolationPluginChunk
+{
+    internal InterpFnFactory? interpolators;
+
+    internal static void Alloc(ref Context ctx, in Context? src) =>
+        ctx.chunks[(int)Chunks.InterpPlugin] =
+            (InterpolationPluginChunk?)src?.chunks[(int)Chunks.InterpPlugin] ?? interpPluginChunk;
+
+    private InterpolationPluginChunk()
+    { }
+
+    internal static InterpolationPluginChunk global = new() { interpolators = null };
+    private static readonly InterpolationPluginChunk interpPluginChunk = new() { interpolators = null };
+
+    internal static InterpFunction DefaultInterpolatorsFactory(int _numInputChannels, int _numOutputChannels, LerpFlag _flags) =>
+        throw new NotImplementedException();
 }

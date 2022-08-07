@@ -40,7 +40,7 @@ public abstract class Plugin
 
             if (plugin.Type == Signature.Plugin.Interpolation)
             {
-                return PluginInterpolation.RegisterPlugin(context, plugin as PluginInterpolation);
+                return InterpolationPlugin.RegisterPlugin(context, plugin as InterpolationPlugin);
             }
             else if (plugin.Type == Signature.Plugin.TagType)
             {
@@ -93,7 +93,7 @@ public abstract class Plugin
 
     public static void UnregisterAll(Context? context)
     {
-        PluginInterpolation.RegisterPlugin(context, null);
+        InterpolationPlugin.RegisterPlugin(context, null);
         PluginTagType.RegisterPlugin(context, null);
         PluginTag.RegisterPlugin(context, null);
         PluginFormatter.RegisterPlugin(context, null);
