@@ -84,7 +84,7 @@ public class Stage
 
         internal ToneCurveData(ToneCurve[] theCurves)
         {
-            this.theCurves = theCurves;
+            this.TheCurves = theCurves;
         }
     }
 
