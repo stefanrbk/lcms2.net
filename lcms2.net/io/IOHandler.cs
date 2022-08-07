@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using lcms2.types;
@@ -359,6 +360,10 @@ public static class IOHandler
     public static bool Write(this Stream io, XYZ xyz) =>
         io.Write(xyz.X) && io.Write(xyz.Y) && io.Write(xyz.Z);
 
+    /// <summary>
+    /// Converts a Q15.16 signed fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms15Fixed16toDouble</c> function.</remarks>
     public static double S15Fixed16toDouble(int value)
     {
         var sign = value < 0 ? -1 : 1;
@@ -373,9 +378,17 @@ public static class IOHandler
         return sign * floater;
     }
 
+    /// <summary>
+    /// Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo15Fixed16</c> function.</remarks>
     public static int DoubleToS15Fixed16(double value) =>
         (int)Math.Floor((value * 65536.0) + 0.5);
 
+    /// <summary>
+    /// Converts a Q8.8 unsigned fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms8Fixed8toDouble</c> function.</remarks>
     public static double U8Fixed8toDouble(ushort value)
     {
         var lsb = (byte)(value & 0xff);
@@ -384,29 +397,72 @@ public static class IOHandler
         return msb + (lsb / 256.0);
     }
 
+    /// <summary>
+    /// Converts a double-precision floating-point number into a Q8.8 unsigned fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo8Fixed8</c> function.</remarks>
     public static ushort DoubleToU8Fixed8(double value) =>
         (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
 
+    /// <summary>
+    /// Reads a <see cref="TagBase"/> from the <see cref="Stream"/>.
+    /// </summary>
+    /// <param name="io"><see cref="Stream"/> to read from</param>
+    /// <remarks>Implements the <c>_cmsReadTypeBase</c> function.</remarks>
+    /// <returns>The <see cref="Signature"/> part converted from big endian into native endian.</returns>
     public static Signature ReadTypeBase(this Stream io)
     {
-        var sig = io.ReadUInt32Number();
-        var res = io.ReadUInt32Number();
+        try
+        {
+            unsafe
+            {
+                var buf = new byte[sizeof(TagBase)];
+                if (io.Read(buf) != sizeof(TagBase))
+                    return new Signature(0);
+                var tb = MemoryMarshal.Read<TagBase>(buf);
 
-        return sig is null || res is null
-            ? new Signature(0)
-            : new Signature((uint)sig);
+                return new Signature(AdjustEndianness((uint)tb.Signature));
+            }
+        }
+        catch
+        {
+            return new Signature(0);
+        }
     }
 
     /// <summary>
-    /// Writes a <see cref="byte"/> value to the <see cref="Stream"/>.
+    /// Writes a <see cref="TagBase"/> to the <see cref="Stream"/>.
     /// </summary>
     /// <param name="io">The <see cref="Stream"/> to write to</param>
-    /// <param name="n">The value to write</param>
-    /// <remarks>Implements the <c>_cmsWriteUInt8Number</c> function.</remarks>
+    /// <param name="sig">The <see cref="Signature"/> part to write</param>
+    /// <remarks>Implements the <c>_cmsWriteTypeBase</c> function.</remarks>
     /// <returns>Whether the write operation was successful</returns>
-    public static bool Write(this Stream io, Signature sig) =>
-        io.Write(sig) && io.Write((uint)0);
+    public static bool Write(this Stream io, Signature sig)
+    {
+        try
+        {
+            unsafe
+            {
+                TagBase tagBase;
 
+                tagBase.Signature = new Signature(AdjustEndianness(sig));
+                var buf = new byte[sizeof(TagBase)];
+                MemoryMarshal.Write(buf, ref tagBase);
+                io.Write(buf);
+            }
+        }
+        catch
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Aligns the <see cref="Stream"/> on the next 4-byte boundary for reading.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsReadAlignment</c> function.</remarks>
+    /// <returns>Whether the alignment operation was successful</returns>
     public static bool ReadAlignment(this Stream io)
     {
         var buffer = new byte[4];
@@ -419,12 +475,10 @@ public static class IOHandler
     }
 
     /// <summary>
-    /// Writes a <see cref="byte"/> value to the <see cref="Stream"/>.
+    /// Aligns the <see cref="Stream"/> on the next 4-byte boundary for reading.
     /// </summary>
-    /// <param name="io">The <see cref="Stream"/> to write to</param>
-    /// <param name="n">The value to write</param>
-    /// <remarks>Implements the <c>_cmsWriteUInt8Number</c> function.</remarks>
-    /// <returns>Whether the write operation was successful</returns>
+    /// <remarks>Implements the <c>_cmsReadAlignment</c> function.</remarks>
+    /// <returns>Whether the alignment operation was successful</returns>
     public static bool WriteAlignment(this Stream io)
     {
         var buffer = new byte[4];
@@ -440,11 +494,25 @@ public static class IOHandler
         return true;
     }
 
-    public static void IOPrintf(this Stream io, string frm, params object?[] args)
+    /// <summary>
+    /// Writes a <see cref="string"/> to the <see cref="Stream"/> (up to 2K).
+    /// </summary>
+    /// <param name="io"><see cref="Stream"/> to write to</param>
+    /// <remarks>Implements the <c>_cmsIOPrintf</c> function.</remarks>
+    /// <returns>Whether the write operation was successful</returns>
+    public static bool IOPrintf(this Stream io, string frm, params object?[] args)
     {
-        var resultString = string.Format(frm, args);
-        var bytes = Encoding.UTF8.GetBytes(resultString);
-        io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
+        try
+        {
+            var resultString = string.Format(frm, args);
+            var bytes = Encoding.UTF8.GetBytes(resultString);
+            io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
+        }
+        catch
+        {
+            return false;
+        }
+        return true;
     }
 
     private static long AlignLong(long x) =>

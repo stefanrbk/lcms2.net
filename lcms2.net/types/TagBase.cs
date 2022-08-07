@@ -1,10 +1,8 @@
 ﻿namespace lcms2.types;
 
-#if PLUGIN
-public
-#else
-internal
-#endif
-    record TagBase(Signature Sig, byte[] Reserved)
+
+public unsafe struct TagBase
 {
+    public Signature Signature;
+    public fixed byte Reserved[4];
 }

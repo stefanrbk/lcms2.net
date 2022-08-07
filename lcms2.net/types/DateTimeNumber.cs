@@ -8,8 +8,17 @@ public record DateTimeNumber
     public ushort Minutes;
     public ushort Seconds;
 
+    /// <summary>
+    /// Converts a <see cref="DateTimeNumber"/> into a <see cref="DateTime"/>.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDecodeDateTimeNumber</c> function.</remarks>
     public static implicit operator DateTime(DateTimeNumber value) =>
         new(value.Year, value.Month, value.Day, value.Hours, value.Minutes, value.Seconds);
+
+    /// <summary>
+    /// Converts a <see cref="DateTime"/> into a <see cref="DateTimeNumber"/>.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsEncodeDateTimeNumber</c> function.</remarks>
     public static explicit operator DateTimeNumber(DateTime value) =>
         new()
         {
