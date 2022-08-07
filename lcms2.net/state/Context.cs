@@ -2,7 +2,7 @@
 
 namespace lcms2.state;
 
-public sealed unsafe class Context
+public sealed class Context
 {
     #region Fields
 
@@ -172,9 +172,18 @@ public sealed unsafe class Context
         return globalContext.chunks[(int)chunk];
     }
 
+    /// <summary>
+    /// Log an error.
+    /// </summary>
+    /// <param name="errorText">English description of the error.</param>
+    /// <remarks>Implements the <c>cmsSignalError</c> function.</remarks>
     public static void SignalError(Context? context, ErrorCode errorCode, string errorText, params object?[] args) =>
         SignalError(context, errorCode, String.Format(errorText, args));
 
+    /// <summary>
+    /// Log an error.
+    /// </summary>
+    /// <param name="errorText">English description of the error.</param>
     public static void SignalError(Context? context, ErrorCode errorCode, string errorText)
     {
         // Check for the context, if specified go there. If not, go for the global
