@@ -37,8 +37,17 @@ public sealed class PluginTag
 ///     Implements the <c>cmsTagDescriptor</c> struct.</remarks>
 public class TagDescriptor
 {
+    /// <summary>
+    ///     If this tag needs an array, how many elements should be kept
+    /// </summary>
     public int ElementCount;
+    /// <summary>
+    ///     For reading
+    /// </summary>
     public Signature[] SupportedTypes;
+    /// <summary>
+    ///     For writing
+    /// </summary>
     public TagTypeDecider DecideType;
 
     public TagDescriptor(int elementCount, int numSupportedTypes, TagTypeDecider decider)
