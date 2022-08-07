@@ -9,8 +9,20 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
+/// <summary>
+///     Defines an additional optimization strategy. The function should return <see cref="true"/> if any
+///     optimization is done on the LUT, as this terminates the optimization search. Or <see cref="false"/>
+///     if it is unable to optimize and wants to give a chance to the rest of the optimizers.
+/// </summary>
+/// <remarks>
+///     Implements the <c>_cmsOPToptimizeFn</c> typedef.</remarks>
 public delegate bool OptimizationFn(Pipeline lut, Signature intent, Signature[] inputFormat, Signature[] outputFormat, uint[] flags);
 
+/// <summary>
+///     Optimization plugin
+/// </summary>
+/// <remarks>
+///     Implements the <c>cmsPluginOptimization</c> struct.</remarks>
 public sealed class PluginOptimization : Plugin
 {
     public OptimizationFn Function;
