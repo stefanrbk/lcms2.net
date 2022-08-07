@@ -10,8 +10,8 @@ using lcms2.types;
 namespace lcms2.plugins;
 
 /// <summary>
-///     Defines an additional optimization strategy. The function should return <see cref="true"/> if any
-///     optimization is done on the LUT, as this terminates the optimization search. Or <see cref="false"/>
+///     Defines an additional optimization strategy. The function should return <see langword="true"/> if any
+///     optimization is done on the LUT, as this terminates the optimization search. Or <see langword="false"/>
 ///     if it is unable to optimize and wants to give a chance to the rest of the optimizers.
 /// </summary>
 /// <remarks>
