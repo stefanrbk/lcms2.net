@@ -52,7 +52,7 @@ public abstract class Plugin
             }
             else if (plugin.Type == Signature.Plugin.Formatters)
             {
-                return PluginFormatter.RegisterPlugin(context, plugin as PluginFormatter);
+                return FormattersPlugin.RegisterPlugin(context, plugin as FormattersPlugin);
             }
             else if (plugin.Type == Signature.Plugin.RenderingIntent)
             {
@@ -96,7 +96,7 @@ public abstract class Plugin
         InterpolationPlugin.RegisterPlugin(context, null);
         TagTypePlugin.RegisterPlugin(context, null);
         TagPlugin.RegisterPlugin(context, null);
-        PluginFormatter.RegisterPlugin(context, null);
+        FormattersPlugin.RegisterPlugin(context, null);
         PluginRenderingIntent.RegisterPlugin(context, null);
         PluginParametricCurves.RegisterPlugin(context, null);
         PluginMultiProcessElement.RegisterPlugin(context, null);

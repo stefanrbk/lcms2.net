@@ -64,7 +64,7 @@ public sealed class Context
         AdaptationState.Alloc(ref ctx, this);
         InterpolationPluginChunk.Alloc(ref ctx, this);
         CurvesPlugin.Alloc(ref ctx, this);
-        FormattersPlugin.Alloc(ref ctx, this);
+        FormattersPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.TagType.Alloc(ref ctx, this);
         TagPluginChunk.Alloc(ref ctx, this);
         IntentsPlugin.Alloc(ref ctx, this);
@@ -102,7 +102,7 @@ public sealed class Context
             AdaptationState.global,
             InterpolationPluginChunk.global,
             CurvesPlugin.global,
-            FormattersPlugin.global,
+            FormattersPluginChunk.global,
             TagTypePluginChunk.TagType.global,
             TagPluginChunk.global,
             IntentsPlugin.global,
@@ -136,7 +136,7 @@ public sealed class Context
         AdaptationState.Alloc(ref ctx, null);
         InterpolationPluginChunk.Alloc(ref ctx, null);
         CurvesPlugin.Alloc(ref ctx, null);
-        FormattersPlugin.Alloc(ref ctx, null);
+        FormattersPluginChunk.Alloc(ref ctx, null);
         TagTypePluginChunk.TagType.Alloc(ref ctx, null);
         TagTypePluginChunk.MPE.Alloc(ref ctx, null);
         TagPluginChunk.Alloc(ref ctx, null);
@@ -163,8 +163,8 @@ public sealed class Context
     internal static TagPluginChunk GetTagPlugin(Context? context) =>
         (TagPluginChunk)GetClientChunk(context, Chunks.TagPlugin)!;
 
-    internal static FormattersPlugin GetFormattersPlugin(Context? context) =>
-        (FormattersPlugin)GetClientChunk(context, Chunks.FormattersPlugin)!;
+    internal static FormattersPluginChunk GetFormattersPlugin(Context? context) =>
+        (FormattersPluginChunk)GetClientChunk(context, Chunks.FormattersPlugin)!;
 
     internal static IntentsPlugin GetIntentsPlugin(Context? context) =>
         (IntentsPlugin)GetClientChunk(context, Chunks.IntentPlugin)!;
