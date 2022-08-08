@@ -70,7 +70,7 @@ public sealed class Context
         RenderingIntentsPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.MPE.Alloc(ref ctx, this);
         OptimizationPluginChunk.Alloc(ref ctx, this);
-        TransformPlugin.Alloc(ref ctx, this);
+        TransformPluginChunk.Alloc(ref ctx, this);
         MutexPlugin.Alloc(ref ctx, this);
 
         // Make sure no one failed
@@ -108,7 +108,7 @@ public sealed class Context
             RenderingIntentsPluginChunk.global,
             TagTypePluginChunk.MPE.global,
             OptimizationPluginChunk.global,
-            TransformPlugin.global,
+            TransformPluginChunk.global,
             MutexPlugin.global,
         }
     };
@@ -142,7 +142,7 @@ public sealed class Context
         TagPluginChunk.Alloc(ref ctx, null);
         RenderingIntentsPluginChunk.Alloc(ref ctx, null);
         OptimizationPluginChunk.Alloc(ref ctx, null);
-        TransformPlugin.Alloc(ref ctx, null);
+        TransformPluginChunk.Alloc(ref ctx, null);
         MutexPlugin.Alloc(ref ctx, null);
 
         // TODO add plugin support
@@ -178,8 +178,8 @@ public sealed class Context
     internal static OptimizationPluginChunk GetOptimizationPlugin(Context? context) =>
         (OptimizationPluginChunk)GetClientChunk(context, Chunks.OptimizationPlugin)!;
 
-    internal static TransformPlugin GetTransformPlugin(Context? context) =>
-        (TransformPlugin)GetClientChunk(context, Chunks.TransformPlugin)!;
+    internal static TransformPluginChunk GetTransformPlugin(Context? context) =>
+        (TransformPluginChunk)GetClientChunk(context, Chunks.TransformPlugin)!;
 
     internal static MutexPlugin GetMutexPlugin(Context? context) =>
         (MutexPlugin)GetClientChunk(context, Chunks.MutexPlugin)!;

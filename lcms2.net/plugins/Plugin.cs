@@ -72,7 +72,7 @@ public abstract class Plugin
             }
             else if (plugin.Type == Signature.Plugin.Translform)
             {
-                return PluginTransform.RegisterPlugin(context, plugin as PluginTransform);
+                return TransformPlugin.RegisterPlugin(context, plugin as TransformPlugin);
             }
             else if (plugin.Type == Signature.Plugin.Mutex)
             {
@@ -101,7 +101,7 @@ public abstract class Plugin
         ParametricCurvesPlugin.RegisterPlugin(context, null);
         MultiProcessElementPlugin.RegisterPlugin(context, null);
         OptimizationPlugin.RegisterPlugin(context, null);
-        PluginTransform.RegisterPlugin(context, null);
+        TransformPlugin.RegisterPlugin(context, null);
         PluginMutex.RegisterPlugin(context, null);
     }
 }

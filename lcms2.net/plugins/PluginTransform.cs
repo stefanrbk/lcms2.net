@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using lcms2.state;
 using lcms2.types;
@@ -10,27 +11,30 @@ namespace lcms2.plugins;
 /// </summary>
 /// <remarks>
 ///     Implements the <c>cmsPluginTransform</c> typedef.</remarks>
-public sealed class PluginTransform : Plugin
+public sealed class TransformPlugin : Plugin
 {
-    public Factory Factories;
+    public Transform.Factory Factories;
 
-    public PluginTransform( Signature magic, uint expectedVersion, Signature type, Factory factories)
+    public TransformPlugin(Signature magic, uint expectedVersion, Signature type, Transform.Factory factories)
         : base(magic, expectedVersion, type) =>
         Factories = factories;
 
-    internal static bool RegisterPlugin(Context? context, PluginTransform? plugin)
+    internal static bool RegisterPlugin(Context? context, TransformPlugin? plugin)
     {
-        throw new NotImplementedException();
-    }
+        var ctx = Context.GetTransformPlugin(context);
 
-    [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct Factory
-    {
-        [FieldOffset(0)]
-        public TransformFactory LegacyXform;
+        if (plugin is null)
+        {
+            ctx.transformCollection = null;
+            return true;
+        }
 
-        [FieldOffset(0)]
-        public Transform2Factory Xform;
+        // Check for full xform plugins previous to 2.8, we would need an adapter in that case
+        var old = plugin.ExpectedVersion < 2080;
+
+        ctx.transformCollection = new(plugin.Factories, old, ctx.transformCollection);
+
+        return true;
     }
 }
 
@@ -147,8 +151,82 @@ public class Transform
     ///     Implements the <c>_cmsGetTransformFormattersFloat</c> function.</remarks>
     public (FormatterFloat? FromInput, FormatterFloat? ToOutput) FormattersFloat =>
         (FromInputFloat, ToOutputFloat);
+
+
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct Factory
+    {
+        [FieldOffset(0)]
+        public TransformFactory LegacyXform;
+
+        [FieldOffset(0)]
+        public Transform2Factory Xform;
+    }
 }
-public class TransformCollection
+
+internal class TransformCollection
 {
-    internal TransformCollection? next = null;
+    internal Transform.Factory Factory;
+    internal bool OldXform;
+
+    internal TransformCollection? Next;
+
+    public TransformCollection(Transform.Factory factory, bool oldXform, TransformCollection? next)
+    {
+        Factory = factory;
+        OldXform = oldXform;
+        Next = next;
+    }
+
+    public TransformCollection(TransformCollection other, TransformCollection? next = null)
+    {
+        Factory = other.Factory;
+        OldXform = other.OldXform;
+        Next = next;
+    }
+}
+
+internal sealed class TransformPluginChunk
+{
+    internal TransformCollection? transformCollection;
+
+    internal static void Alloc(ref Context ctx, in Context? src)
+    {
+        if (src is not null)
+            DupTransformList(ref ctx, src);
+        else
+            ctx.chunks[(int)Chunks.TransformPlugin] = transformChunk;
+    }
+
+    private TransformPluginChunk()
+    { }
+
+    internal static TransformPluginChunk global = new();
+    private static readonly TransformPluginChunk transformChunk = new();
+
+    private static void DupTransformList(ref Context ctx, in Context src)
+    {
+        TransformPluginChunk newHead = new();
+        TransformCollection? anterior = null;
+        var head = (TransformPluginChunk?)src.chunks[(int)Chunks.TransformPlugin];
+
+        Debug.Assert(head is not null);
+
+        // Walk the list copying all nodes
+        for (var entry = head.transformCollection; entry is not null; entry = entry.Next)
+        {
+            // We want to keep the linked list order, so this is a little bit tricky
+            TransformCollection newEntry = new(entry);
+
+            if (anterior is not null)
+                anterior.Next = newEntry;
+
+            anterior = newEntry;
+
+            if (newHead.transformCollection is null)
+                newHead.transformCollection = newEntry;
+        }
+
+        ctx.chunks[(int)Chunks.TransformPlugin] = newHead;
+    }
 }
