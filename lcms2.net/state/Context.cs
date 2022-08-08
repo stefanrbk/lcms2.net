@@ -71,7 +71,7 @@ public sealed class Context
         TagTypePluginChunk.MPE.Alloc(ref ctx, this);
         OptimizationPluginChunk.Alloc(ref ctx, this);
         TransformPluginChunk.Alloc(ref ctx, this);
-        MutexPlugin.Alloc(ref ctx, this);
+        MutexPluginChunk.Alloc(ref ctx, this);
 
         // Make sure no one failed
         for (var i = Chunks.Logger; i < Chunks.Max; i++)
@@ -109,7 +109,7 @@ public sealed class Context
             TagTypePluginChunk.MPE.global,
             OptimizationPluginChunk.global,
             TransformPluginChunk.global,
-            MutexPlugin.global,
+            MutexPluginChunk.global,
         }
     };
     private static Context? poolHead = null;
@@ -143,7 +143,7 @@ public sealed class Context
         RenderingIntentsPluginChunk.Alloc(ref ctx, null);
         OptimizationPluginChunk.Alloc(ref ctx, null);
         TransformPluginChunk.Alloc(ref ctx, null);
-        MutexPlugin.Alloc(ref ctx, null);
+        MutexPluginChunk.Alloc(ref ctx, null);
 
         // TODO add plugin support
         return !Plugin.Register(ctx, plugin)
@@ -181,8 +181,8 @@ public sealed class Context
     internal static TransformPluginChunk GetTransformPlugin(Context? context) =>
         (TransformPluginChunk)GetClientChunk(context, Chunks.TransformPlugin)!;
 
-    internal static MutexPlugin GetMutexPlugin(Context? context) =>
-        (MutexPlugin)GetClientChunk(context, Chunks.MutexPlugin)!;
+    internal static MutexPluginChunk GetMutexPlugin(Context? context) =>
+        (MutexPluginChunk)GetClientChunk(context, Chunks.MutexPlugin)!;
 
     public static object? GetClientChunk(Context? context, Chunks chunk)
     {

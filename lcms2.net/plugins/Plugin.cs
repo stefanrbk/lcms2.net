@@ -76,7 +76,7 @@ public abstract class Plugin
             }
             else if (plugin.Type == Signature.Plugin.Mutex)
             {
-                return PluginMutex.RegisterPlugin(context, plugin as PluginMutex);
+                return MutexPlugin.RegisterPlugin(context, plugin as MutexPlugin);
             }
             else
             {
@@ -102,6 +102,6 @@ public abstract class Plugin
         MultiProcessElementPlugin.RegisterPlugin(context, null);
         OptimizationPlugin.RegisterPlugin(context, null);
         TransformPlugin.RegisterPlugin(context, null);
-        PluginMutex.RegisterPlugin(context, null);
+        MutexPlugin.RegisterPlugin(context, null);
     }
 }
