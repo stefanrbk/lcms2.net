@@ -1,9 +1,55 @@
 ﻿using System.Runtime.InteropServices;
 
-using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types;
+
+public unsafe struct Cache
+{
+    public fixed ushort CacheIn[Lcms2.MaxChannels];
+    public fixed ushort CacheOut[Lcms2.MaxChannels];
+}
+
+/// <summary>
+///     Stride info for a transform.
+/// </summary>
+/// <remarks>
+///     Implements the <c>cmsStride</c> struct.</remarks>
+public struct Stride
+{
+    public int BytesPerLineIn;
+    public int BytesPerLineOut;
+    public int BytesPerPlaneIn;
+    public int BytesPerPlaneOut;
+}
+
+/// <summary>
+///     Legacy function, handles just ONE scanline.
+/// </summary>
+/// <remarks>
+///     Implements the <c>_cmsTransformFn</c> typedef.</remarks>
+public delegate void TransformFn(Transform cargo, object inputBuffer, object outputBuffer, int size, int stride);
+
+/// <summary>
+///     Transform function
+/// </summary>
+/// <remarks>
+///     Implements the <c>_cmsTransform2Fn</c> typedef.</remarks>
+public delegate void Transform2Fn(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
+
+/// <summary>
+///     Transform factory
+/// </summary>
+/// <remarks>
+///     Implements the <c>_cmsTransformFactory</c> typedef.</remarks>
+public delegate void TransformFactory(TransformFn xform, object? userData, object inputBuffer, object outputBuffer, int size, int stride);
+
+/// <summary>
+///     Transform factory
+/// </summary>
+/// <remarks>
+///     Implements the <c>_cmsTransform2Factory</c> typedef.</remarks>
+public delegate void Transform2Factory(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
 
 public class Transform
 {
