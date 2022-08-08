@@ -1,5 +1,4 @@
 ﻿using lcms2.state;
-using lcms2.state.chunks;
 using lcms2.types;
 
 namespace lcms2.plugins;
