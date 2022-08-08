@@ -69,7 +69,7 @@ public sealed class Context
         TagPluginChunk.Alloc(ref ctx, this);
         RenderingIntentsPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.MPE.Alloc(ref ctx, this);
-        OptimizationPlugin.Alloc(ref ctx, this);
+        OptimizationPluginChunk.Alloc(ref ctx, this);
         TransformPlugin.Alloc(ref ctx, this);
         MutexPlugin.Alloc(ref ctx, this);
 
@@ -107,7 +107,7 @@ public sealed class Context
             TagPluginChunk.global,
             RenderingIntentsPluginChunk.global,
             TagTypePluginChunk.MPE.global,
-            OptimizationPlugin.global,
+            OptimizationPluginChunk.global,
             TransformPlugin.global,
             MutexPlugin.global,
         }
@@ -141,7 +141,7 @@ public sealed class Context
         TagTypePluginChunk.MPE.Alloc(ref ctx, null);
         TagPluginChunk.Alloc(ref ctx, null);
         RenderingIntentsPluginChunk.Alloc(ref ctx, null);
-        OptimizationPlugin.Alloc(ref ctx, null);
+        OptimizationPluginChunk.Alloc(ref ctx, null);
         TransformPlugin.Alloc(ref ctx, null);
         MutexPlugin.Alloc(ref ctx, null);
 
@@ -175,8 +175,8 @@ public sealed class Context
     internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
         (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;
 
-    internal static OptimizationPlugin GetOptimizationPlugin(Context? context) =>
-        (OptimizationPlugin)GetClientChunk(context, Chunks.OptimizationPlugin)!;
+    internal static OptimizationPluginChunk GetOptimizationPlugin(Context? context) =>
+        (OptimizationPluginChunk)GetClientChunk(context, Chunks.OptimizationPlugin)!;
 
     internal static TransformPlugin GetTransformPlugin(Context? context) =>
         (TransformPlugin)GetClientChunk(context, Chunks.TransformPlugin)!;
