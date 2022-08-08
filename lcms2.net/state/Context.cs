@@ -67,7 +67,7 @@ public sealed class Context
         FormattersPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.TagType.Alloc(ref ctx, this);
         TagPluginChunk.Alloc(ref ctx, this);
-        IntentsPlugin.Alloc(ref ctx, this);
+        RenderingIntentsPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.MPE.Alloc(ref ctx, this);
         OptimizationPlugin.Alloc(ref ctx, this);
         TransformPlugin.Alloc(ref ctx, this);
@@ -105,7 +105,7 @@ public sealed class Context
             FormattersPluginChunk.global,
             TagTypePluginChunk.TagType.global,
             TagPluginChunk.global,
-            IntentsPlugin.global,
+            RenderingIntentsPluginChunk.global,
             TagTypePluginChunk.MPE.global,
             OptimizationPlugin.global,
             TransformPlugin.global,
@@ -140,7 +140,7 @@ public sealed class Context
         TagTypePluginChunk.TagType.Alloc(ref ctx, null);
         TagTypePluginChunk.MPE.Alloc(ref ctx, null);
         TagPluginChunk.Alloc(ref ctx, null);
-        IntentsPlugin.Alloc(ref ctx, null);
+        RenderingIntentsPluginChunk.Alloc(ref ctx, null);
         OptimizationPlugin.Alloc(ref ctx, null);
         TransformPlugin.Alloc(ref ctx, null);
         MutexPlugin.Alloc(ref ctx, null);
@@ -166,8 +166,8 @@ public sealed class Context
     internal static FormattersPluginChunk GetFormattersPlugin(Context? context) =>
         (FormattersPluginChunk)GetClientChunk(context, Chunks.FormattersPlugin)!;
 
-    internal static IntentsPlugin GetIntentsPlugin(Context? context) =>
-        (IntentsPlugin)GetClientChunk(context, Chunks.IntentPlugin)!;
+    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(Context? context) =>
+        (RenderingIntentsPluginChunk)GetClientChunk(context, Chunks.IntentPlugin)!;
 
     internal static CurvesPlugin GetCurvesPlugin(Context? context) =>
         (CurvesPlugin)GetClientChunk(context, Chunks.CurvesPlugin)!;
