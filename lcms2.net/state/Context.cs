@@ -63,7 +63,7 @@ public sealed class Context
         AlarmCodes.Alloc(ref ctx, this);
         AdaptationState.Alloc(ref ctx, this);
         InterpolationPluginChunk.Alloc(ref ctx, this);
-        CurvesPlugin.Alloc(ref ctx, this);
+        ParametricCurvesPluginChunk.Alloc(ref ctx, this);
         FormattersPluginChunk.Alloc(ref ctx, this);
         TagTypePluginChunk.TagType.Alloc(ref ctx, this);
         TagPluginChunk.Alloc(ref ctx, this);
@@ -101,7 +101,7 @@ public sealed class Context
             AlarmCodes.global,
             AdaptationState.global,
             InterpolationPluginChunk.global,
-            CurvesPlugin.global,
+            ParametricCurvesPluginChunk.global,
             FormattersPluginChunk.global,
             TagTypePluginChunk.TagType.global,
             TagPluginChunk.global,
@@ -135,7 +135,7 @@ public sealed class Context
         AlarmCodes.Alloc(ref ctx, null);
         AdaptationState.Alloc(ref ctx, null);
         InterpolationPluginChunk.Alloc(ref ctx, null);
-        CurvesPlugin.Alloc(ref ctx, null);
+        ParametricCurvesPluginChunk.Alloc(ref ctx, null);
         FormattersPluginChunk.Alloc(ref ctx, null);
         TagTypePluginChunk.TagType.Alloc(ref ctx, null);
         TagTypePluginChunk.MPE.Alloc(ref ctx, null);
@@ -169,8 +169,8 @@ public sealed class Context
     internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(Context? context) =>
         (RenderingIntentsPluginChunk)GetClientChunk(context, Chunks.IntentPlugin)!;
 
-    internal static CurvesPlugin GetCurvesPlugin(Context? context) =>
-        (CurvesPlugin)GetClientChunk(context, Chunks.CurvesPlugin)!;
+    internal static ParametricCurvesPluginChunk GetCurvesPlugin(Context? context) =>
+        (ParametricCurvesPluginChunk)GetClientChunk(context, Chunks.CurvesPlugin)!;
 
     internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
         (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;

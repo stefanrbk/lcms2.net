@@ -60,7 +60,7 @@ public abstract class Plugin
             }
             else if (plugin.Type == Signature.Plugin.ParametricCurve)
             {
-                return PluginParametricCurves.RegisterPlugin(context, plugin as PluginParametricCurves);
+                return ParametricCurvesPlugin.RegisterPlugin(context, plugin as ParametricCurvesPlugin);
             }
             else if (plugin.Type == Signature.Plugin.MultiProcessElement)
             {
@@ -98,7 +98,7 @@ public abstract class Plugin
         TagPlugin.RegisterPlugin(context, null);
         FormattersPlugin.RegisterPlugin(context, null);
         RenderingIntentPlugin.RegisterPlugin(context, null);
-        PluginParametricCurves.RegisterPlugin(context, null);
+        ParametricCurvesPlugin.RegisterPlugin(context, null);
         PluginMultiProcessElement.RegisterPlugin(context, null);
         PluginOptimization.RegisterPlugin(context, null);
         PluginTransform.RegisterPlugin(context, null);
