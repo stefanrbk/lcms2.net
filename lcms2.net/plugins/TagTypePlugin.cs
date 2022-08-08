@@ -98,7 +98,7 @@ internal sealed class TagTypePluginChunk
         var pt = new TagTypeLinkedList(data switch
         {
             TagTypePlugin p => p.handler,
-            PluginMultiProcessElement p => p.Handler,
+            MultiProcessElementPlugin p => p.Handler,
             _ => null
         }, ctx.tagTypes);
 
