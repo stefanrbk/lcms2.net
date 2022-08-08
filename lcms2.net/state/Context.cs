@@ -65,10 +65,10 @@ public sealed class Context
         InterpolationPluginChunk.Alloc(ref ctx, this);
         CurvesPlugin.Alloc(ref ctx, this);
         FormattersPlugin.Alloc(ref ctx, this);
-        TagTypePlugin.TagType.Alloc(ref ctx, this);
+        TagTypePluginChunk.TagType.Alloc(ref ctx, this);
         TagPlugin.Alloc(ref ctx, this);
         IntentsPlugin.Alloc(ref ctx, this);
-        TagTypePlugin.MPE.Alloc(ref ctx, this);
+        TagTypePluginChunk.MPE.Alloc(ref ctx, this);
         OptimizationPlugin.Alloc(ref ctx, this);
         TransformPlugin.Alloc(ref ctx, this);
         MutexPlugin.Alloc(ref ctx, this);
@@ -103,10 +103,10 @@ public sealed class Context
             InterpolationPluginChunk.global,
             CurvesPlugin.global,
             FormattersPlugin.global,
-            TagTypePlugin.TagType.global,
+            TagTypePluginChunk.TagType.global,
             TagPlugin.global,
             IntentsPlugin.global,
-            TagTypePlugin.MPE.global,
+            TagTypePluginChunk.MPE.global,
             OptimizationPlugin.global,
             TransformPlugin.global,
             MutexPlugin.global,
@@ -137,8 +137,8 @@ public sealed class Context
         InterpolationPluginChunk.Alloc(ref ctx, null);
         CurvesPlugin.Alloc(ref ctx, null);
         FormattersPlugin.Alloc(ref ctx, null);
-        TagTypePlugin.TagType.Alloc(ref ctx, null);
-        TagTypePlugin.MPE.Alloc(ref ctx, null);
+        TagTypePluginChunk.TagType.Alloc(ref ctx, null);
+        TagTypePluginChunk.MPE.Alloc(ref ctx, null);
         TagPlugin.Alloc(ref ctx, null);
         IntentsPlugin.Alloc(ref ctx, null);
         OptimizationPlugin.Alloc(ref ctx, null);
