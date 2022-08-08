@@ -1,8 +1,8 @@
-﻿namespace lcms2.state.chunks;
+﻿namespace lcms2.state;
 
-internal class AlarmCodes
+internal sealed class AlarmCodes
 {
-    private ushort[] alarmCodes = new ushort[Lcms2.MaxChannels];
+    internal ushort[] alarmCodes = new ushort[Lcms2.MaxChannels];
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {

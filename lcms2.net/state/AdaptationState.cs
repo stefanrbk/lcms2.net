@@ -1,8 +1,8 @@
-﻿namespace lcms2.state.chunks;
+﻿namespace lcms2.state;
 
-internal class AdaptationState
+internal sealed class AdaptationState
 {
-    private double adaptationState;
+    internal double adaptationState;
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
