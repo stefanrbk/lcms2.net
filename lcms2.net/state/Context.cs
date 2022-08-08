@@ -7,7 +7,7 @@ public sealed class Context
 {
     #region Fields
 
-    private Context? next = null;
+    private Context? next;
     internal object?[] chunks = new object[(int)Chunks.Max];
 
     #endregion Fields
@@ -153,6 +153,36 @@ public sealed class Context
 
     public static object? GetUserData(Context? context) =>
         GetClientChunk(context, Chunks.UserPtr);
+
+    internal static InterpolationPluginChunk GetInterpolationPlugin(Context? context) =>
+        (InterpolationPluginChunk)GetClientChunk(context, Chunks.InterpPlugin)!;
+
+    internal static TagTypePluginChunk GetTagTypePlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.TagTypePlugin)!;
+
+    internal static TagPluginChunk GetTagPlugin(Context? context) =>
+        (TagPluginChunk)GetClientChunk(context, Chunks.TagPlugin)!;
+
+    internal static FormattersPlugin GetFormattersPlugin(Context? context) =>
+        (FormattersPlugin)GetClientChunk(context, Chunks.FormattersPlugin)!;
+
+    internal static IntentsPlugin GetIntentsPlugin(Context? context) =>
+        (IntentsPlugin)GetClientChunk(context, Chunks.IntentPlugin)!;
+
+    internal static CurvesPlugin GetCurvesPlugin(Context? context) =>
+        (CurvesPlugin)GetClientChunk(context, Chunks.CurvesPlugin)!;
+
+    internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;
+
+    internal static OptimizationPlugin GetOptimizationPlugin(Context? context) =>
+        (OptimizationPlugin)GetClientChunk(context, Chunks.OptimizationPlugin)!;
+
+    internal static TransformPlugin GetTransformPlugin(Context? context) =>
+        (TransformPlugin)GetClientChunk(context, Chunks.TransformPlugin)!;
+
+    internal static MutexPlugin GetMutexPlugin(Context? context) =>
+        (MutexPlugin)GetClientChunk(context, Chunks.MutexPlugin)!;
 
     public static object? GetClientChunk(Context? context, Chunks chunk)
     {
