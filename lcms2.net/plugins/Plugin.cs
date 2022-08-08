@@ -48,7 +48,7 @@ public abstract class Plugin
             }
             else if (plugin.Type == Signature.Plugin.Tag)
             {
-                return PluginTag.RegisterPlugin(context, plugin as PluginTag);
+                return TagPlugin.RegisterPlugin(context, plugin as TagPlugin);
             }
             else if (plugin.Type == Signature.Plugin.Formatters)
             {
@@ -95,7 +95,7 @@ public abstract class Plugin
     {
         InterpolationPlugin.RegisterPlugin(context, null);
         TagTypePlugin.RegisterPlugin(context, null);
-        PluginTag.RegisterPlugin(context, null);
+        TagPlugin.RegisterPlugin(context, null);
         PluginFormatter.RegisterPlugin(context, null);
         PluginRenderingIntent.RegisterPlugin(context, null);
         PluginParametricCurves.RegisterPlugin(context, null);

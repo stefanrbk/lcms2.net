@@ -66,7 +66,7 @@ public sealed class Context
         CurvesPlugin.Alloc(ref ctx, this);
         FormattersPlugin.Alloc(ref ctx, this);
         TagTypePluginChunk.TagType.Alloc(ref ctx, this);
-        TagPlugin.Alloc(ref ctx, this);
+        TagPluginChunk.Alloc(ref ctx, this);
         IntentsPlugin.Alloc(ref ctx, this);
         TagTypePluginChunk.MPE.Alloc(ref ctx, this);
         OptimizationPlugin.Alloc(ref ctx, this);
@@ -104,7 +104,7 @@ public sealed class Context
             CurvesPlugin.global,
             FormattersPlugin.global,
             TagTypePluginChunk.TagType.global,
-            TagPlugin.global,
+            TagPluginChunk.global,
             IntentsPlugin.global,
             TagTypePluginChunk.MPE.global,
             OptimizationPlugin.global,
@@ -139,7 +139,7 @@ public sealed class Context
         FormattersPlugin.Alloc(ref ctx, null);
         TagTypePluginChunk.TagType.Alloc(ref ctx, null);
         TagTypePluginChunk.MPE.Alloc(ref ctx, null);
-        TagPlugin.Alloc(ref ctx, null);
+        TagPluginChunk.Alloc(ref ctx, null);
         IntentsPlugin.Alloc(ref ctx, null);
         OptimizationPlugin.Alloc(ref ctx, null);
         TransformPlugin.Alloc(ref ctx, null);
