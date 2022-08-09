@@ -60,17 +60,17 @@ public class CurveHandler : ITagTypeHandler
     {
         var curve = (ToneCurve)value;
 
-        if (curve.Segments.Length == 1 && curve.Segments[0].Segment.Type == 1)
+        if (curve.NumSegments == 1 && curve.Segments[0].Type == 1)
         {
             // Single gamma, preserve number
-            var singleGammaFixed = IOHandler.DoubleToU8Fixed8(curve.Segments[0].Segment.Params![0]);
+            var singleGammaFixed = IOHandler.DoubleToU8Fixed8(curve.Segments[0].Params![0]);
 
             if (!io.Write((uint)1)) return false;
             if (!io.Write(singleGammaFixed)) return false;
             return true;
         }
 
-        if (!io.Write((uint)curve.Table16.Length))return false;
-        return io.Write(curve.Table16.Length, curve.Table16);
+        if (!io.Write((uint)curve.NumEntries))return false;
+        return io.Write(curve.NumEntries, curve.Table16);
     }
 }
