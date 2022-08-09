@@ -171,6 +171,7 @@ internal sealed class TagTypePluginChunk
         new CurveHandler(),
         new DataHandler(),
         new DateTimeHandler(),
+        new MeasurementHandler(),
         new ParametricCurveHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),
