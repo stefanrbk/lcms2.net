@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace lcms2.types;
 
-public unsafe struct ICCProfile
+public unsafe struct IccProfile
 {
     /// <summary>
     /// Assuming io points to an ICC profile, compute and store MD5 checksum

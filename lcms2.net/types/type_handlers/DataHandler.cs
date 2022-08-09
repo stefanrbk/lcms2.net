@@ -10,10 +10,10 @@ public class DataHandler : ITagTypeHandler
     public uint ICCVersion => 0;
 
     public object? Duplicate(ITagTypeHandler handler, object value, int num) =>
-        ((ICCData)value).Clone();
+        ((IccData)value).Clone();
 
     public void Free(ITagTypeHandler handler, object value) =>
-        ((ICCData)value).Dispose();
+        ((IccData)value).Dispose();
 
     public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
     {
@@ -31,12 +31,12 @@ public class DataHandler : ITagTypeHandler
 
         numItems = 1;
 
-        return new ICCData((uint)lenOfData, flag, buf);
+        return new IccData((uint)lenOfData, flag, buf);
     }
 
     public bool Write(ITagTypeHandler handler, Stream io, object value, int numItems)
     {
-        var binData = (ICCData)value;
+        var binData = (IccData)value;
 
         if (!io.Write(binData.Flag)) return false;
 

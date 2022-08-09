@@ -1,13 +1,13 @@
 ﻿namespace lcms2.types;
 
-public class ICCData : ICloneable, IDisposable
+public class IccData : ICloneable, IDisposable
 {
     internal uint Length;
     internal uint Flag;
     internal byte[] Data;
     private bool disposed = false;
 
-    internal ICCData(uint length, uint flag, byte[] data)
+    internal IccData(uint length, uint flag, byte[] data)
     {
         Length = length;
         Flag = flag;
@@ -15,7 +15,7 @@ public class ICCData : ICloneable, IDisposable
     }
 
     public object Clone() =>
-        new ICCData(Length, Flag, (byte[])Data.Clone());
+        new IccData(Length, Flag, (byte[])Data.Clone());
 
     public void Dispose()
     {
