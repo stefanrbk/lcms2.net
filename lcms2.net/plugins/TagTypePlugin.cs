@@ -166,15 +166,16 @@ internal sealed class TagTypePluginChunk
     { }
 
     internal static readonly TagTypeLinkedList SupportedTagTypes = new(new ITagTypeHandler[] {
-        new XYZHandler(),
         new ChromaticityHandler(),
         new ColorantOrderHandler(),
-        new S15Fixed16Handler(),
-        new U16Fixed16Handler(),
-        new SignatureHandler(),
-        new TextHandler(),
+        new CurveHandler(),
         new DataHandler(),
+        new S15Fixed16Handler(),
+        new SignatureHandler(),
         new TextDescriptionHandler(),
+        new TextHandler(),
+        new U16Fixed16Handler(),
+        new XYZHandler(),
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
