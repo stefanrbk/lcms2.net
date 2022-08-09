@@ -5,6 +5,7 @@ public class Mlu : ICloneable, IDisposable
 {
     internal Context? Context;
 
+    internal uint UsedEntries => (uint)Entries.Count;
     internal List<MluEntry> Entries = new();
 
     internal uint PoolSize;

@@ -9,8 +9,12 @@ public class MluHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
-    public object? Duplicate(object value, int num) => throw new NotImplementedException();
-    public void Free(object value) => throw new NotImplementedException();
+    public object? Duplicate(object value, int num) =>
+        (value as Mlu)?.Clone();
+
+    public void Free(object value) =>
+        (value as Mlu)?.Dispose();
+
     public object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         byte[] buf;
@@ -28,7 +32,7 @@ public class MluHandler : ITagTypeHandler
         }
 
         Mlu mlu = new(Context);
-        
+
         unsafe
         {
             var sizeOfHeader = (12 * count) + sizeof(TagBase);
@@ -95,5 +99,40 @@ public class MluHandler : ITagTypeHandler
         return null;
     }
 
-    public bool Write(Stream io, object value, int numItems) => throw new NotImplementedException();
+    public bool Write(Stream io, object value, int numItems)
+    {
+        if (value is null)
+        {
+            // Empty placeholder
+            if (!io.Write((uint)0)) return false;
+            if (!io.Write((uint)12)) return false;
+            return true;
+        }
+
+        var mlu = (Mlu)value;
+
+        if (!io.Write(mlu.UsedEntries)) return false;
+        if (!io.Write((uint)12)) return false;
+
+        unsafe {
+            var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
+
+            for (var i = 0; i < mlu.UsedEntries; i++)
+            {
+                var len = mlu.Entries[i].Len;
+                var offset = mlu.Entries[i].OffsetToStr;
+
+                offset += headerSize + 8;
+
+                if (!io.Write(mlu.Entries[i].Language)) return false;
+                if (!io.Write(mlu.Entries[i].Country)) return false;
+                if (!io.Write(len)) return false;
+                if (!io.Write(offset)) return false;
+            }
+            var buf = new char[mlu.PoolUsed / sizeof(char)];
+            Buffer.BlockCopy(mlu.MemPool, 0, buf, 0, (int)mlu.PoolUsed);
+
+            return io.Write(buf);
+        }
+    }
 }
