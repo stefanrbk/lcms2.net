@@ -3,7 +3,7 @@
 namespace lcms2.types;
 public class Mlu : ICloneable, IDisposable
 {
-    internal Context Context;
+    internal Context? Context;
 
     internal List<MluEntry> Entries = new();
 
@@ -35,7 +35,7 @@ public class Mlu : ICloneable, IDisposable
         return true;
     }
 
-    internal Mlu(Context context) =>
+    internal Mlu(Context? context) =>
         Context = context;
 
     internal int SearchEntry(ushort languageCode, ushort countryCode)

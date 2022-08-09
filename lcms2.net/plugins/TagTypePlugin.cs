@@ -52,22 +52,22 @@ public interface ITagTypeHandler
     /// <summary>
     ///     Allocates and reads items.
     /// </summary>
-    object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems);
+    object? Read(Stream io, int sizeOfTag, out int numItems);
 
     /// <summary>
     ///     Writes n Items
     /// </summary>
-    bool Write(ITagTypeHandler handler, Stream io, object value, int numItems);
+    bool Write(Stream io, object value, int numItems);
 
     /// <summary>
     ///     Duplicate an item or array of items
     /// </summary>
-    object? Duplicate(ITagTypeHandler handler, object value, int num);
+    object? Duplicate(object value, int num);
 
     /// <summary>
     ///     Free all resources
     /// </summary>
-    void Free(ITagTypeHandler handler, object value);
+    void Free(object value);
 }
 
 internal class TagTypeLinkedList

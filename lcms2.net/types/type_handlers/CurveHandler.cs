@@ -9,13 +9,13 @@ public class CurveHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
-    public object? Duplicate(ITagTypeHandler handler, object value, int num) =>
+    public object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
 
-    public void Free(ITagTypeHandler handler, object value) =>
+    public void Free(object value) =>
         (value as ToneCurve)?.Dispose();
 
-    public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
+    public object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         double singleGamma;
         ToneCurve? newGamma;
@@ -56,7 +56,7 @@ public class CurveHandler : ITagTypeHandler
         }
     }
 
-    public bool Write(ITagTypeHandler handler, Stream io, object value, int numItems)
+    public bool Write(Stream io, object value, int numItems)
     {
         var curve = (ToneCurve)value;
 

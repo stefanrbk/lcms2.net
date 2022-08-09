@@ -9,13 +9,13 @@ public class TextDescriptionHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion { get; }
 
-    public object? Duplicate(ITagTypeHandler handler, object value, int num) =>
+    public object? Duplicate(object value, int num) =>
         ((Mlu)value).Clone();
 
-    public void Free(ITagTypeHandler handler, object value) =>
+    public void Free(object value) =>
         ((Mlu)value).Dispose();
 
-    public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
+    public object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -30,7 +30,7 @@ public class TextDescriptionHandler : ITagTypeHandler
         if (sizeOfTag < asciiCount) return null;
 
         // All seems Ok, create the container
-        Mlu mlu = new(Context.Get(handler.Context));
+        Mlu mlu = new(Context);
 
         // As many memory as size of tag
         var text = new byte[asciiCount + 1];
@@ -81,7 +81,7 @@ public class TextDescriptionHandler : ITagTypeHandler
         mlu.Dispose();
         return null;
     }
-    public bool Write(ITagTypeHandler handler, Stream io, object value, int numItems)
+    public bool Write(Stream io, object value, int numItems)
     {
         byte[]? text;
         char[]? wide;

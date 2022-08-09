@@ -9,12 +9,12 @@ public class U16Fixed16Handler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
-    public object? Duplicate(ITagTypeHandler handler, object value, int num) =>
+    public object? Duplicate(object value, int num) =>
         ((double[])value).Clone();
 
-    public void Free(ITagTypeHandler handler, object value) { }
+    public void Free(object value) { }
 
-    public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
+    public object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
         var num = sizeOfTag / sizeof(uint);
@@ -32,7 +32,7 @@ public class U16Fixed16Handler : ITagTypeHandler
         return array_double;
     }
 
-    public bool Write(ITagTypeHandler handler, Stream io, object ptr, int numItems)
+    public bool Write(Stream io, object ptr, int numItems)
     {
         var value = (double[])ptr;
 
