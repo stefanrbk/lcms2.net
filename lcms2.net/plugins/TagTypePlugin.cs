@@ -185,4 +185,4 @@ internal sealed class TagTypePluginChunk
     }
 }
 
-internal delegate bool PositionTableEntryFn(ITagTypeHandler self, Stream io, object? cargo, int n, int sizeOfTag);
+public delegate bool PositionTableEntryFn(ITagTypeHandler self, Stream io, ref object cargo, int n, int sizeOfTag);

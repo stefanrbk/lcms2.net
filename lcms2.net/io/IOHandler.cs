@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
+using lcms2.plugins;
 using lcms2.types;
 
 namespace lcms2.io;
@@ -194,6 +195,77 @@ public static class IOHandler
     }
 
     /// <summary>
+    ///     Reads a <see cref="string"/> value from the <see cref="Stream"/>.
+    /// </summary>
+    /// <param name="io">
+    ///     <see cref="Stream"/> to read from</param>
+    /// <param name="n">
+    ///     Length of the string to read.</param>
+    /// <returns>
+    ///     The <see cref="string"/> value converted from UTF16 big endian into a native endian UTF16 string or
+    ///     <see langword="null"/> if there was a problem.</returns>
+    public static string? ReadString(this Stream io, int n)
+    {
+        var sb = new StringBuilder(n);
+
+        for (var i = 0; i < n; i++)
+        {
+            var value = io.ReadUInt16Number();
+            if (value is null)
+                return null;
+            sb.Append((char)value);
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    ///     Reads a position table as described in ICC spec 4.3.<br />
+    ///     A table of n elements is read, where first comes n records containing offsets and sizes and
+    ///     then a block containing the data itself. This allows to reuse same data in more than one entry.
+    /// </summary>
+    /// <param name="io">
+    ///     <see cref="Stream"/> to read from</param>
+    /// <returns>
+    ///     Whether the read operation was successful.</returns>
+    public static bool ReadPositionTable(this Stream io, ITagTypeHandler self, int count, uint baseOffset, ref object cargo, PositionTableEntryFn elementFn)
+    {
+        var currentPos = io.Tell();
+
+        // Verify there is enough space left to read at least two int items for count items.
+        if (((io.Length - currentPos) / (2 * sizeof(uint))) < count)
+            return false;
+
+        // Let's take the offsets to each element
+        var offsets = new uint[count];
+        var sizes = new uint[count];
+
+        for (var i = 0; i < count; i++)
+        {
+            var offset = io.ReadUInt32Number();
+            if (offset is null) return false;
+
+            var size = io.ReadUInt32Number();
+            if (size is null) return false;
+
+            offsets[i] = (uint)offset + baseOffset;
+            sizes[i] = (uint)size;
+        }
+
+        // Seek to each element and read it
+        for (var i = 0; i < count; i++)
+        {
+            if (io.Seek(offsets[i], SeekOrigin.Begin) != offsets[i])
+                return false;
+
+            // This is the reader callback
+            if (!elementFn(self, io, ref cargo, i, (int)sizes[i])) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Writes a <see cref="byte"/> value to the <see cref="Stream"/>.
     /// </summary>
     /// <param name="io">The <see cref="Stream"/> to write to</param>
@@ -359,6 +431,76 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, XYZ xyz) =>
         io.Write(xyz.X) && io.Write(xyz.Y) && io.Write(xyz.Z);
+
+    /// <summary>
+    ///     Writes a <see cref="string"/> to the <see cref="Stream"/>.
+    /// </summary>
+    /// <param name="io">
+    ///     The <see cref="Stream"/> to write to</param>
+    /// <param name="str">
+    ///     The string to write</param>
+    /// <returns>
+    ///     Whether the write operation was successful</returns>
+    public static bool Write(this Stream io, string str)
+    {
+        for (var i = 0; i < str.Length; i++)
+        {
+            if (!io.Write(str[i]))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    ///     Writes a position table as described in ICC spec 4.3.<br />
+    ///     A table of n elements is read, where first comes n records containing offsets and sizes and
+    ///     then a block containing the data itself. This allows to reuse same data in more than one entry.
+    /// </summary>
+    /// <param name="io">
+    ///     <see cref="Stream"/> to write to</param>
+    /// <returns>
+    ///     Whether the read operation was successful.</returns>
+    public static bool Write(this Stream io, ITagTypeHandler self, int sizeOfTag, int count, uint baseOffset, ref object cargo, PositionTableEntryFn elementFn)
+    {
+        // Create table
+        var offsets = new uint[count];
+        var sizes = new uint[count];
+
+        // Keep starting position of curve offsets
+        var dirPos = io.Tell();
+
+        // Write a fake directory to be filled later on
+        for (var i = 0; i < count; i++)
+        {
+            if (!io.Write((uint)0)) return false; // Offset
+            if (!io.Write((uint)0)) return false; // Size
+        }
+
+        // Write each element. Keep track of the size as well.
+        for (var i = 0; i < count; i++)
+        {
+            var before = (uint)io.Tell();
+            offsets[i] = before - baseOffset;
+
+            // Callback to write...
+            if (!elementFn(self, io, ref cargo, i, sizeOfTag)) return false;
+
+            // Now the size
+            sizes[i] = (uint)io.Tell() - before;
+        }
+
+        // Write the directory
+        var curPos = io.Tell();
+        if (io.Seek(dirPos, SeekOrigin.Begin) != dirPos) return false;
+
+        for (var i = 0; i < count; i++)
+        {
+            if (!io.Write(offsets[i])) return false;
+            if (!io.Write(sizes[i])) return false;
+        }
+
+        return io.Seek(curPos, SeekOrigin.Begin) == curPos; // Make sure we end up at the end of the table
+    }
 
     /// <summary>
     /// Converts a Q15.16 signed fixed-point number into a double-precision floating-point number.
