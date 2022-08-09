@@ -6,7 +6,7 @@ internal sealed class AlarmCodes
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (AlarmCodes?)src.chunks[(int)Chunks.AlarmCodesContext] : alarmCodesChunk;
+        AlarmCodes from = (AlarmCodes?)src?.chunks[(int)Chunks.AlarmCodesContext] ?? alarmCodesChunk;
 
         ctx.chunks[(int)Chunks.AlarmCodesContext] = from;
     }

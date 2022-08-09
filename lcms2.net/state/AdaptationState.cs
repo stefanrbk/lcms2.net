@@ -6,7 +6,7 @@ internal sealed class AdaptationState
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (AdaptationState?)src.chunks[(int)Chunks.AdaptationStateContext] : adaptationStateChunk;
+        AdaptationState from = (AdaptationState?)src?.chunks[(int)Chunks.AdaptationStateContext] ?? adaptationStateChunk;
 
         ctx.chunks[(int)Chunks.AdaptationStateContext] = from;
     }

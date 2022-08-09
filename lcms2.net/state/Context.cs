@@ -18,75 +18,6 @@ public sealed class Context
 
     #endregion Constructors
 
-    #region Methods
-
-    public void Delete()
-    {
-        // TODO Unregister plugins
-
-        // Maintain list
-        lock (poolHeadMutex)
-        {
-            if (poolHead == this)
-            {
-                poolHead = next;
-            }
-            else
-            {
-                // Search for previous
-                for (var prev = poolHead; prev is not null; prev = prev.next)
-                {
-                    if (prev.next == this)
-                    {
-                        prev.next = this.next;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    public Context? Duplicate(object? newUserData)
-    {
-        var ctx = new Context();
-
-        lock (poolHeadMutex)
-        {
-            ctx.next = poolHead;
-            poolHead = ctx;
-        }
-
-        ctx.chunks[(int)Chunks.UserPtr] = newUserData ?? chunks[(int)Chunks.UserPtr];
-
-        LogErrorHandler.Alloc(ref ctx, this);
-        AlarmCodes.Alloc(ref ctx, this);
-        AdaptationState.Alloc(ref ctx, this);
-        InterpolationPluginChunk.Alloc(ref ctx, this);
-        ParametricCurvesPluginChunk.Alloc(ref ctx, this);
-        FormattersPluginChunk.Alloc(ref ctx, this);
-        TagTypePluginChunk.TagType.Alloc(ref ctx, this);
-        TagPluginChunk.Alloc(ref ctx, this);
-        RenderingIntentsPluginChunk.Alloc(ref ctx, this);
-        TagTypePluginChunk.MPE.Alloc(ref ctx, this);
-        OptimizationPluginChunk.Alloc(ref ctx, this);
-        TransformPluginChunk.Alloc(ref ctx, this);
-        MutexPluginChunk.Alloc(ref ctx, this);
-
-        // Make sure no one failed
-        for (var i = Chunks.Logger; i < Chunks.Max; i++)
-        {
-            if (ctx.chunks[(int)i] is null)
-            {
-                ctx.Delete();
-                return null;
-            }
-        }
-
-        return ctx;
-    }
-
-    #endregion Methods
-
     #region Statics
 
     #region Variables
@@ -148,6 +79,78 @@ public sealed class Context
         return !Plugin.Register(ctx, plugin)
             ? null
             : ctx;
+    }
+
+    public static void Delete(Context? ctx)
+    {
+        if (ctx is not null)
+        {
+            Plugin.UnregisterAll(ctx);
+
+            // Maintain list
+            lock (poolHeadMutex)
+            {
+                if (poolHead == ctx)
+                {
+                    poolHead = ctx.next;
+                }
+                else
+                {
+                    // Search for previous
+                    for (var prev = poolHead; prev is not null; prev = prev.next)
+                    {
+                        if (prev.next == ctx)
+                        {
+                            prev.next = ctx.next;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static Context? Duplicate(Context? context, object? newUserData)
+    {
+        var src = Get(context);
+
+        var userData = newUserData ?? src.chunks[(int)Chunks.UserPtr];
+
+        var ctx = new Context();
+
+        lock (poolHeadMutex)
+        {
+            ctx.next = poolHead;
+            poolHead = ctx;
+        }
+
+        ctx.chunks[(int)Chunks.UserPtr] = userData;
+
+        LogErrorHandler.Alloc(ref ctx, src);
+        AlarmCodes.Alloc(ref ctx, src);
+        AdaptationState.Alloc(ref ctx, src);
+        InterpolationPluginChunk.Alloc(ref ctx, src);
+        ParametricCurvesPluginChunk.Alloc(ref ctx, src);
+        FormattersPluginChunk.Alloc(ref ctx, src);
+        TagTypePluginChunk.TagType.Alloc(ref ctx, src);
+        TagPluginChunk.Alloc(ref ctx, src);
+        RenderingIntentsPluginChunk.Alloc(ref ctx, src);
+        TagTypePluginChunk.MPE.Alloc(ref ctx, src);
+        OptimizationPluginChunk.Alloc(ref ctx, src);
+        TransformPluginChunk.Alloc(ref ctx, src);
+        MutexPluginChunk.Alloc(ref ctx, src);
+
+        // Make sure no one failed
+        for (var i = Chunks.Logger; i < Chunks.Max; i++)
+        {
+            if (ctx.chunks[(int)i] is null)
+            {
+                Delete(ctx);
+                return null;
+            }
+        }
+
+        return ctx;
     }
 
     public static object? GetUserData(Context? context) =>

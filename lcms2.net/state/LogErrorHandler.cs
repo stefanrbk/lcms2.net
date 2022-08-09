@@ -26,7 +26,7 @@ internal sealed class LogErrorHandler
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (LogErrorHandler?)src.chunks[(int)Chunks.Logger] : logErrorChunk;
+        LogErrorHandler from = (LogErrorHandler?)src?.chunks[(int)Chunks.Logger] ?? logErrorChunk;
 
         ctx.chunks[(int)Chunks.Logger] = from;
     }
