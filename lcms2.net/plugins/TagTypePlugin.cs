@@ -170,6 +170,7 @@ internal sealed class TagTypePluginChunk
         new ChromaticityHandler(),
         new ColorantOrderHandler(),
         new S15Fixed16Handler(),
+        new U16Fixed16Handler(),
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
