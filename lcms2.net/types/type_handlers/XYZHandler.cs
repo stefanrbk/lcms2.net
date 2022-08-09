@@ -18,11 +18,13 @@ public class XYZHandler : ITagTypeHandler
 
     public void Free(ITagTypeHandler handler, object value) { }
 
-    public (object Value, int Count)? Read(ITagTypeHandler handler, Stream io, int sizeOfTag)
+    public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
     {
-        var value = io.ReadXYZNumber();
+        numItems = 0;
+        if (!io.ReadXYZNumber(out var xyz)) return null;
 
-        return value is null ? null : ((XYZ)value, 1);
+        numItems = 1;
+        return xyz;
     }
 
     public bool Write(ITagTypeHandler handler, Stream io, object value, int numItems) =>

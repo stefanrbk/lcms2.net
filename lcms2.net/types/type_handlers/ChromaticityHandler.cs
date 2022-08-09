@@ -9,56 +9,46 @@ public class ChromaticityHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
-    public object? Duplicate(ITagTypeHandler handler, object value, int num) => throw new NotImplementedException();
-    public void Free(ITagTypeHandler handler, object value) => throw new NotImplementedException();
-    public (object Value, int Count)? Read(ITagTypeHandler handler, Stream io, int sizeOfTag)
+    public object? Duplicate(ITagTypeHandler handler, object value, int num) =>
+        ((xyYTripple)value).Clone();
+
+    public void Free(ITagTypeHandler handler, object value) { }
+
+    public object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems)
     {
+        numItems = 0;
         var chrm = new xyYTripple();
 
-        var numChans = io.ReadUInt16Number();
-        if (numChans is null) return null;
+        if (!io.ReadUInt16Number(out var numChans)) return null;
 
         // Let's recover from a bug introduced in early versions of lcms1
         if (numChans == 0 && sizeOfTag == 32)
         {
-            if (io.ReadUInt16Number() is null) return null;
-            numChans = io.ReadUInt16Number();
-            if (numChans is null) return null;
+            if (!io.ReadUInt16Number(out _)) return null;
+            if (!io.ReadUInt16Number(out numChans)) return null;
         }
 
         if (numChans != 3) return null;
 
-        var table = io.ReadUInt16Number();
-        if (table is null) return null;
+        if (!io.ReadUInt16Number(out _)) return null; // Table
 
-        var value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Red.x = (double)value;
-        value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Red.y = (double)value;
+        if (!io.Read15Fixed16Number(out chrm.Red.x)) return null;
+        if (!io.Read15Fixed16Number(out chrm.Red.y)) return null;
 
         chrm.Red.Y = 1.0;
 
-        value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Green.x = (double)value;
-        value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Green.y = (double)value;
+        if (!io.Read15Fixed16Number(out chrm.Green.x)) return null;
+        if (!io.Read15Fixed16Number(out chrm.Green.y)) return null;
 
         chrm.Green.Y = 1.0;
 
-        value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Blue.x = (double)value;
-        value = io.Read15Fixed16Number();
-        if (value is null) return null;
-        chrm.Blue.y = (double)value;
+        if (!io.Read15Fixed16Number(out chrm.Blue.x)) return null;
+        if (!io.Read15Fixed16Number(out chrm.Blue.y)) return null;
 
         chrm.Blue.Y = 1.0;
 
-        return (chrm, 1);
+        numItems = 1;
+        return chrm;
     }
 
     private static bool SaveOne(double x, double y, Stream io)

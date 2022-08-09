@@ -52,7 +52,7 @@ public interface ITagTypeHandler
     /// <summary>
     ///     Allocates and reads items.
     /// </summary>
-    (object Value, int Count)? Read(ITagTypeHandler handler, Stream io, int sizeOfTag);
+    object? Read(ITagTypeHandler handler, Stream io, int sizeOfTag, out int numItems);
 
     /// <summary>
     ///     Writes n Items

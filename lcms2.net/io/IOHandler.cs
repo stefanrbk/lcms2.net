@@ -67,12 +67,12 @@ public static class IOHandler
     /// </summary>
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadUInt8Number</c> function.</remarks>
-    public static byte? ReadUInt8Number(this Stream io)
+    public static bool ReadUInt8Number(this Stream io, out byte value)
     {
-        var value = io.ReadByte();
-        return value is > byte.MaxValue or < byte.MinValue
-            ? null
-            : (byte)value;
+        var x = io.ReadByte();
+        value = (byte)x;
+
+        return x is not (> Byte.MaxValue or < Byte.MinValue);
     }
 
     /// <summary>
@@ -81,12 +81,13 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadUInt16Number</c> function.</remarks>
     /// <returns>The <see cref="ushort"/> value converted from big endian into native endian.</returns>
-    public static ushort? ReadUInt16Number(this Stream io)
+    public static bool ReadUInt16Number(this Stream io, out ushort value)
     {
         var tmp = new byte[sizeof(ushort)];
-        return io.Read(tmp.AsSpan()) == sizeof(ushort)
-            ? BinaryPrimitives.ReadUInt16BigEndian(tmp)
-            : null;
+        var len = io.Read(tmp.AsSpan());
+        value = BinaryPrimitives.ReadUInt16BigEndian(tmp);
+
+        return len == sizeof(ushort);
     }
 
     /// <summary>
@@ -96,17 +97,13 @@ public static class IOHandler
     /// <param name="count">The length of the array to read.</param>
     /// <remarks>Implements the <c>_cmsReadUInt16Array</c> function.</remarks>
     /// <returns>The <see cref="ushort"/> array converted from big endian into native endian.</returns>
-    public static ushort[]? ReadUInt16Array(this Stream io, int count)
+    public static bool ReadUInt16Array(this Stream io, int count, out ushort[] array)
     {
-        var tmp = new ushort[count];
+        array = new ushort[count];
         for (var i = 0; i < count; i++)
-        {
-            var value = ReadUInt16Number(io);
-            if (value is null)
-                return null;
-            tmp[i] = (ushort)value;
-        }
-        return tmp;
+            if (!io.ReadUInt16Number(out array[i])) return false;
+
+        return true;
     }
 
     /// <summary>
@@ -115,12 +112,13 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadUInt32Number</c> function.</remarks>
     /// <returns>The <see cref="uint"/> value converted from big endian into native endian.</returns>
-    public static uint? ReadUInt32Number(this Stream io)
+    public static bool ReadUInt32Number(this Stream io, out uint value)
     {
         var tmp = new byte[sizeof(uint)];
-        return io.Read(tmp.AsSpan()) == sizeof(uint)
-            ? BinaryPrimitives.ReadUInt32BigEndian(tmp)
-            : null;
+        var len = io.Read(tmp.AsSpan());
+        value = BinaryPrimitives.ReadUInt32BigEndian(tmp);
+
+        return len == sizeof(uint);
     }
 
     /// <summary>
@@ -128,12 +126,13 @@ public static class IOHandler
     /// </summary>
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <returns>The <see cref="int"/> value converted from big endian into native endian.</returns>
-    public static int? ReadInt32Number(this Stream io)
+    public static bool ReadInt32Number(this Stream io, out int value)
     {
         var tmp = new byte[sizeof(int)];
-        return io.Read(tmp.AsSpan()) == sizeof(int)
-            ? BinaryPrimitives.ReadInt32BigEndian(tmp)
-            : null;
+        var len = io.Read(tmp.AsSpan());
+        value = BinaryPrimitives.ReadInt32BigEndian(tmp);
+
+        return len == sizeof(int);
     }
 
     /// <summary>
@@ -142,12 +141,13 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadFloat32Number</c> function.</remarks>
     /// <returns>The <see cref="float"/> value converted from big endian into native endian.</returns>
-    public static float? ReadFloat32Number(this Stream io)
+    public static bool ReadFloat32Number(this Stream io, out float value)
     {
         var tmp = new byte[sizeof(float)];
-        return io.Read(tmp.AsSpan()) == sizeof(float)
-            ? BinaryPrimitives.ReadSingleBigEndian(tmp)
-            : null;
+        var len = io.Read(tmp.AsSpan());
+        value = BinaryPrimitives.ReadSingleBigEndian(tmp);
+
+        return len == sizeof(float);
     }
 
     /// <summary>
@@ -156,12 +156,13 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadUInt64Number</c> function.</remarks>
     /// <returns>The <see cref="ulong"/> value converted from big endian into native endian.</returns>
-    public static ulong? ReadUInt64Number(this Stream io)
+    public static bool ReadUInt64Number(this Stream io, out ulong value)
     {
         var tmp = new byte[sizeof(ulong)];
-        return io.Read(tmp.AsSpan()) == sizeof(ulong)
-            ? BinaryPrimitives.ReadUInt64BigEndian(tmp)
-            : null;
+        var len = io.Read(tmp.AsSpan());
+        value = BinaryPrimitives.ReadUInt64BigEndian(tmp);
+
+        return len == sizeof(ulong);
     }
 
     /// <summary>
@@ -170,12 +171,13 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsRead15Fixed16Number</c> function.</remarks>
     /// <returns>The fixed point value represented as a <see cref="double"/> in native endian.</returns>
-    public static double? Read15Fixed16Number(this Stream io)
+    public static bool Read15Fixed16Number(this Stream io, out double value)
     {
-        var tmp = ReadInt32Number(io);
-        return tmp is not null
-            ? S15Fixed16toDouble((int)tmp)
-            : null;
+        value = 0;
+        if (!io.ReadInt32Number(out var tmp)) return false;
+
+        value = S15Fixed16toDouble(tmp);
+        return true;
     }
 
     /// <summary>
@@ -184,14 +186,16 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadXYZNumber</c> function.</remarks>
     /// <returns>The <see cref="XYZ"/> value converted from big endian into native endian.</returns>
-    public static XYZ? ReadXYZNumber(this Stream io)
+    public static bool ReadXYZNumber(this Stream io, out XYZ value)
     {
-        var x = Read15Fixed16Number(io);
-        var y = Read15Fixed16Number(io);
-        var z = Read15Fixed16Number(io);
-        return (x != null && y != null && z != null)
-            ? ((double)x, (double)y, (double)z)
-            : null;
+        value = default;
+
+        if (!io.Read15Fixed16Number(out var x)) return false;
+        if (!io.Read15Fixed16Number(out var y)) return false;
+        if (!io.Read15Fixed16Number(out var z)) return false;
+
+        value = (x, y, z);
+        return true;
     }
 
     /// <summary>
@@ -204,19 +208,19 @@ public static class IOHandler
     /// <returns>
     ///     The <see cref="string"/> value converted from UTF16 big endian into a native endian UTF16 string or
     ///     <see langword="null"/> if there was a problem.</returns>
-    public static string? ReadString(this Stream io, int n)
+    public static bool ReadString(this Stream io, int n, out string str)
     {
+        str = String.Empty;
         var sb = new StringBuilder(n);
 
         for (var i = 0; i < n; i++)
         {
-            var value = io.ReadUInt16Number();
-            if (value is null)
-                return null;
+            if (!io.ReadUInt16Number(out var value)) return false;
             sb.Append((char)value);
         }
 
-        return sb.ToString();
+        str = sb.ToString();
+        return true;
     }
 
     /// <summary>
@@ -242,14 +246,11 @@ public static class IOHandler
 
         for (var i = 0; i < count; i++)
         {
-            var offset = io.ReadUInt32Number();
-            if (offset is null) return false;
+            if (!io.ReadUInt32Number(out var offset)) return false;
+            if (!io.ReadUInt32Number(out var size)) return false;
 
-            var size = io.ReadUInt32Number();
-            if (size is null) return false;
-
-            offsets[i] = (uint)offset + baseOffset;
-            sizes[i] = (uint)size;
+            offsets[i] = offset + baseOffset;
+            sizes[i] = size;
         }
 
         // Seek to each element and read it
