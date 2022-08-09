@@ -1,5 +1,5 @@
 ﻿namespace lcms2.types;
-public record DateTimeNumber
+public struct DateTimeNumber : ICloneable
 {
     public ushort Year;
     public ushort Month;
@@ -7,6 +7,19 @@ public record DateTimeNumber
     public ushort Hours;
     public ushort Minutes;
     public ushort Seconds;
+
+    public DateTimeNumber(ushort year, ushort month, ushort day, ushort hours, ushort minutes, ushort seconds)
+    {
+        Year = year;
+        Month = month;
+        Day = day;
+        Hours = hours;
+        Minutes = minutes;
+        Seconds = seconds;
+    }
+
+    public object Clone() =>
+        new DateTimeNumber(Year, Month, Day, Hours, Minutes, Seconds);
 
     /// <summary>
     /// Converts a <see cref="DateTimeNumber"/> into a <see cref="DateTime"/>.
@@ -20,13 +33,10 @@ public record DateTimeNumber
     /// </summary>
     /// <remarks>Implements the <c>_cmsEncodeDateTimeNumber</c> function.</remarks>
     public static explicit operator DateTimeNumber(DateTime value) =>
-        new()
-        {
-            Year = (ushort)value.Year,
-            Month = (ushort)value.Month,
-            Day = (ushort)value.Day,
-            Hours = (ushort)value.Hour,
-            Minutes = (ushort)value.Minute,
-            Seconds = (ushort)value.Second
-        };
+        new((ushort)value.Year,
+            (ushort)value.Month,
+            (ushort)value.Day,
+            (ushort)value.Hour,
+            (ushort)value.Minute,
+            (ushort)value.Second);
 }

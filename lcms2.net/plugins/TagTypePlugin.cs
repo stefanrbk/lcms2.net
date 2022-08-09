@@ -170,6 +170,8 @@ internal sealed class TagTypePluginChunk
         new ColorantOrderHandler(),
         new CurveHandler(),
         new DataHandler(),
+        new DateTimeHandler(),
+        new ParametricCurveHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),
         new TextDescriptionHandler(),
