@@ -3,6 +3,7 @@
 using lcms2.io;
 using lcms2.state;
 using lcms2.types;
+using lcms2.types.type_handlers;
 
 namespace lcms2.plugins;
 
@@ -41,7 +42,7 @@ public interface ITagTypeHandler
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
-    Context Context { get; }
+    Context? Context { get; }
 
     /// <summary>
     ///     Additional parameter used by the calling thread
@@ -79,6 +80,12 @@ internal class TagTypeLinkedList
     {
         Handler = handler;
         Next = next;
+    }
+
+    internal TagTypeLinkedList(ReadOnlySpan<ITagTypeHandler> list)
+    {
+        Handler = list[0];
+        Next = list.Length > 1 ? new(list[1..]) : null;
     }
 
     public static ITagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
@@ -157,6 +164,10 @@ internal sealed class TagTypePluginChunk
 
     private TagTypePluginChunk()
     { }
+
+    internal static readonly TagTypeLinkedList SupportedTagTypes = new(new ITagTypeHandler[] {
+        new XYZHandler(),
+    });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
     private static void DupTagTypeList(ref Context ctx, in Context src, Chunks loc)
