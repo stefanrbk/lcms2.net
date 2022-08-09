@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 
+using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
@@ -68,16 +69,32 @@ public interface ITagTypeHandler
     void Free(ITagTypeHandler handler, object value);
 }
 
-public class TagTypeLinkedList
+internal class TagTypeLinkedList
 {
-    internal ITagTypeHandler? factory;
+    internal ITagTypeHandler Handler;
 
-    internal TagTypeLinkedList? next;
+    internal TagTypeLinkedList? Next;
 
-    internal TagTypeLinkedList(ITagTypeHandler? factory, TagTypeLinkedList? next)
+    internal TagTypeLinkedList(ITagTypeHandler handler, TagTypeLinkedList? next)
     {
-        this.factory = factory;
-        this.next = next;
+        Handler = handler;
+        Next = next;
+    }
+
+    public static ITagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
+    {
+        for (var pt = pluginList; pt is not null; pt = pt.Next)
+        {
+            if (sig == pt.Handler.Signature)
+                return pt.Handler;
+        }
+        for (var pt = defaultList; pt is not null; pt = pt.Next)
+        {
+            if (sig == pt.Handler.Signature)
+                return pt.Handler;
+        }
+
+        return null;
     }
 }
 
@@ -102,7 +119,7 @@ internal sealed class TagTypePluginChunk
             _ => null
         }, ctx.tagTypes);
 
-        if (pt.factory is null)
+        if (pt.Handler is null)
             return false;
 
         ctx.tagTypes = pt;
@@ -151,12 +168,12 @@ internal sealed class TagTypePluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.tagTypes; entry is not null; entry = entry.next)
+        for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
         {
-            TagTypeLinkedList newEntry = new(entry.factory, null);
+            TagTypeLinkedList newEntry = new(entry.Handler, null);
 
             if (anterior is not null)
-                anterior.next = newEntry;
+                anterior.Next = newEntry;
 
             anterior = newEntry;
 
@@ -167,3 +184,5 @@ internal sealed class TagTypePluginChunk
         ctx.chunks[(int)loc] = newHead;
     }
 }
+
+internal delegate bool PositionTableEntryFn(ITagTypeHandler self, Stream io, object? cargo, int n, int sizeOfTag);
