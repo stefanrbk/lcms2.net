@@ -172,6 +172,7 @@ internal sealed class TagTypePluginChunk
         new DataHandler(),
         new DateTimeHandler(),
         new MeasurementHandler(),
+        new MluHandler(),
         new ParametricCurveHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),

@@ -10,7 +10,7 @@ public class Mlu : ICloneable, IDisposable
     internal uint PoolSize;
     internal uint PoolUsed;
 
-    private byte[] MemPool = Array.Empty<byte>();
+    internal byte[] MemPool = Array.Empty<byte>();
     private bool disposedValue;
 
     internal const string NoLanguage = "\0\0";

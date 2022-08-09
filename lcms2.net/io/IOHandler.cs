@@ -211,16 +211,21 @@ public static class IOHandler
     ///     <see langword="null"/> if there was a problem.</returns>
     public static bool ReadString(this Stream io, int n, out string str)
     {
-        str = String.Empty;
-        var sb = new StringBuilder(n);
+        var result = ReadCharArray(io, n, out var value);
+        str = new string(value);
+
+        return result;
+    }
+    public static bool ReadCharArray(this Stream io, int n, out char[] str)
+    {
+        str = new char[n];
 
         for (var i = 0; i < n; i++)
         {
             if (!io.ReadUInt16Number(out var value)) return false;
-            sb.Append((char)value);
+            str[i] = (char)value;
         }
 
-        str = sb.ToString();
         return true;
     }
 
