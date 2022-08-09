@@ -155,7 +155,7 @@ public class Mlu : ICloneable, IDisposable
         return asciiLen + 1;
     }
 
-    internal char[] GetUtf16(ushort languageCode, ushort countryCode, out uint len, out ushort usedLanguageCode, out ushort usedCountryCode)
+    private char[] GetUtf16(ushort languageCode, ushort countryCode, out uint len, out ushort usedLanguageCode, out ushort usedCountryCode)
     {
         int best = -1;
         MluEntry v;
@@ -199,6 +199,29 @@ public class Mlu : ICloneable, IDisposable
 
         // Found exact match
         return result;
+    }
+
+    internal uint GetUtf16(string languageCode, string countryCode, ref char[]? buffer)
+    {
+        var lang = StrTo16(languageCode);
+        var cntry = StrTo16(countryCode);
+
+        var wide = GetUtf16(lang, cntry, out var strLen, out _, out _);
+
+        // Maybe we want only to know the len?
+        if (buffer is null) return strLen + sizeof(char);
+
+        // No buffer size means no data
+        if (buffer.Length == 0) return 0;
+
+        // Some clipping may be required
+        if (buffer.Length < strLen + sizeof(char))
+            strLen = (uint)(buffer.Length - sizeof(char));
+
+        Buffer.BlockCopy(wide, 0, buffer, 0, (int)strLen);
+        buffer[strLen / sizeof(char)] = (char)0;
+
+        return strLen + sizeof(char);
     }
 
     internal static Mlu? Duplicate(Mlu? mlu)

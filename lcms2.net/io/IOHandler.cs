@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -442,7 +443,9 @@ public static class IOHandler
     ///     The string to write</param>
     /// <returns>
     ///     Whether the write operation was successful</returns>
-    public static bool Write(this Stream io, string str)
+    public static bool Write(this Stream io, string str) =>
+        io.Write(str.ToCharArray());
+    public static bool Write(this Stream io, char[] str)
     {
         for (var i = 0; i < str.Length; i++)
         {
@@ -656,6 +659,17 @@ public static class IOHandler
         return true;
     }
 
-    private static long AlignLong(long x) =>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static long AlignPtr()
+    {
+        unsafe { return sizeof(nuint); }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static long AlignMem(long x) =>
+        (x + (AlignPtr() - 1)) & ~(AlignPtr() - 1);
 }

@@ -174,6 +174,7 @@ internal sealed class TagTypePluginChunk
         new SignatureHandler(),
         new TextHandler(),
         new DataHandler(),
+        new TextDescriptionHandler(),
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
