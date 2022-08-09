@@ -1,4 +1,4 @@
-﻿namespace lcms2.state.chunks;
+﻿namespace lcms2.state;
 
 public delegate void LogErrorHandlerFunction(Context? context, ErrorCode errorCode, string text);
 
@@ -20,21 +20,23 @@ public enum ErrorCode
     NotSuitable,
 }
 
-internal class LogErrorHandler
+internal sealed class LogErrorHandler
 {
-    internal LogErrorHandlerFunction? handler = null; // Set to null for global fallback
+    internal LogErrorHandlerFunction? handler; // Set to null for global fallback
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (LogErrorHandler?)src.chunks[(int)Chunks.Logger] : logErrorChunk;
+        LogErrorHandler from = (LogErrorHandler?)src?.chunks[(int)Chunks.Logger] ?? logErrorChunk;
 
         ctx.chunks[(int)Chunks.Logger] = from;
     }
 
-    private LogErrorHandler() { }
+    private LogErrorHandler()
+    { }
 
     internal static LogErrorHandler global = new() { handler = DefaultLogErrorHandlerFunction };
-    private readonly static LogErrorHandler logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
+    private static readonly LogErrorHandler logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
 
-    internal static void DefaultLogErrorHandlerFunction(Context? _context, ErrorCode _errorCode, string _text) { }
+    internal static void DefaultLogErrorHandlerFunction(Context? _context, ErrorCode _errorCode, string _text)
+    { }
 }

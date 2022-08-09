@@ -1,6 +1,6 @@
 ﻿# Public API
 
-## Constants/Defines
+#### Constants/Defines
 |            Original API | New C# API              |
 | ----------------------: | :---------------------- |
 |          `LCMS_VERSION` | `Lcms2.Version`         |
@@ -16,17 +16,18 @@
 
 ## Structs/Typedefs
 
-|                Original API | New C# API                 |
-| --------------------------: | :------------------------- |
-|              `cmsSignature` | `types.Signature`          |
-|         `cmsU8Fixed8Number` | `types.FixedPoint` methods |
-|       `cmsS15Fixed16Number` | `types.FixedPoint` methods |
-|       `cmsU16Fixed16Number` | `types.FixedPoint` methods |
-|     `cmsICCData` and fields | `types.ICCData`            |
-|      `cmsCIEXYZ` and fields | `types.XYZ`                |
-|   `cmsProfileID` and fields | `types.ProfileID`          |
-| `cmsContext` without fields | `state.Context`            |
-|                             |                            |
+|                  Original API | New C# API                 |
+| ----------------------------: | :------------------------- |
+|                `cmsSignature` | `types.Signature`          |
+|           `cmsU8Fixed8Number` | `types.FixedPoint` methods |
+|         `cmsS15Fixed16Number` | `types.FixedPoint` methods |
+|         `cmsU16Fixed16Number` | `types.FixedPoint` methods |
+|       `cmsICCData` and fields | `types.ICCData`            |
+|        `cmsCIEXYZ` and fields | `types.XYZ`                |
+|     `cmsProfileID` and fields | `types.ProfileID`          |
+|   `cmsContext` without fields | `state.Context`            |
+| `cmsIOHANDLER` without fields | `io.IOHandler`             |
+|                               |                            |
 
 ## Functions
 

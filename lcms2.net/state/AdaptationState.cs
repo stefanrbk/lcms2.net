@@ -1,12 +1,12 @@
-﻿namespace lcms2.state.chunks;
+﻿namespace lcms2.state;
 
-internal class AdaptationState
+internal sealed class AdaptationState
 {
-    private double adaptationState;
+    internal double adaptationState;
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
-        var from = src is not null ? (AdaptationState?)src.chunks[(int)Chunks.AdaptationStateContext] : adaptationStateChunk;
+        AdaptationState from = (AdaptationState?)src?.chunks[(int)Chunks.AdaptationStateContext] ?? adaptationStateChunk;
 
         ctx.chunks[(int)Chunks.AdaptationStateContext] = from;
     }
@@ -15,7 +15,7 @@ internal class AdaptationState
         adaptationState = value;
 
     internal static AdaptationState global = new(DefaultAdaptationState);
-    private readonly static AdaptationState adaptationStateChunk = new(DefaultAdaptationState);
+    private static readonly AdaptationState adaptationStateChunk = new(DefaultAdaptationState);
 
     internal static readonly double DefaultAdaptationState = 1.0;
 }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace lcms2.types;
+﻿namespace lcms2.types;
 public record XYZ(double X, double Y, double Z)
 {
     public static implicit operator XYZ((double, double, double) v)

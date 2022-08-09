@@ -1,90 +1,22 @@
-﻿using lcms2.state.chunks;
+﻿using lcms2.plugins;
 
 namespace lcms2.state;
 
-public unsafe sealed class Context
+public sealed class Context
 {
     #region Fields
 
-    private Context? next = null;
+    private Context? next;
     internal object?[] chunks = new object[(int)Chunks.Max];
 
     #endregion Fields
 
     #region Constructors
 
-    private Context() { }
+    private Context()
+    { }
 
     #endregion Constructors
-
-    #region Methods
-
-    public void Delete()
-    {
-        // TODO Unregister plugins
-
-        // Maintain list
-        lock (poolHeadMutex)
-        {
-            if (poolHead == this)
-            {
-                poolHead = next;
-            } else
-            {
-                // Search for previous
-                for (var prev = poolHead; prev is not null; prev = prev.next)
-                {
-                    if (prev.next == this)
-                    {
-                        prev.next = this.next;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    public Context? Duplicate(object? newUserData)
-    {
-        var ctx = new Context();
-
-
-        lock (poolHeadMutex)
-        {
-            ctx.next = poolHead;
-            poolHead = ctx;
-        }
-
-        ctx.chunks[(int)Chunks.UserPtr] = newUserData ?? chunks[(int)Chunks.UserPtr];
-
-        LogErrorHandler.Alloc(ref ctx, this);
-        AlarmCodes.Alloc(ref ctx, this);
-        AdaptationState.Alloc(ref ctx, this);
-        InterpPlugin.Alloc(ref ctx, this);
-        CurvesPlugin.Alloc(ref ctx, this);
-        FormattersPlugin.Alloc(ref ctx, this);
-        TagTypePlugin.TagType.Alloc(ref ctx, this);
-        TagPlugin.Alloc(ref ctx, this);
-        IntentsPlugin.Alloc(ref ctx, this);
-        TagTypePlugin.MPE.Alloc(ref ctx, this);
-        OptimizationPlugin.Alloc(ref ctx, this);
-        TransformPlugin.Alloc(ref ctx, this);
-        MutexPlugin.Alloc(ref ctx, this);
-
-        // Make sure no one failed
-        for (var i = Chunks.Logger; i < Chunks.Max; i++)
-        {
-            if (ctx.chunks[(int)i] is null)
-            {
-                ctx.Delete();
-                return null;
-            }
-        }
-
-        return ctx;
-    }
-
-    #endregion Methods
 
     #region Statics
 
@@ -98,16 +30,16 @@ public unsafe sealed class Context
             LogErrorHandler.global,
             AlarmCodes.global,
             AdaptationState.global,
-            InterpPlugin.global,
-            CurvesPlugin.global,
-            FormattersPlugin.global,
-            TagTypePlugin.TagType.global,
-            TagPlugin.global,
-            IntentsPlugin.global,
-            TagTypePlugin.MPE.global,
-            OptimizationPlugin.global,
-            TransformPlugin.global,
-            MutexPlugin.global,
+            InterpolationPluginChunk.global,
+            ParametricCurvesPluginChunk.global,
+            FormattersPluginChunk.global,
+            TagTypePluginChunk.TagType.global,
+            TagPluginChunk.global,
+            RenderingIntentsPluginChunk.global,
+            TagTypePluginChunk.MPE.global,
+            OptimizationPluginChunk.global,
+            TransformPluginChunk.global,
+            MutexPluginChunk.global,
         }
     };
     private static Context? poolHead = null;
@@ -117,7 +49,7 @@ public unsafe sealed class Context
 
     #region Static Methods
 
-    public static Context Create(object? plugin, object? userData)
+    public static Context? Create(Plugin? plugin, object? userData)
     {
         var ctx = new Context();
 
@@ -132,24 +64,127 @@ public unsafe sealed class Context
         LogErrorHandler.Alloc(ref ctx, null);
         AlarmCodes.Alloc(ref ctx, null);
         AdaptationState.Alloc(ref ctx, null);
-        InterpPlugin.Alloc(ref ctx, null);
-        CurvesPlugin.Alloc(ref ctx, null);
-        FormattersPlugin.Alloc(ref ctx, null);
-        TagTypePlugin.TagType.Alloc(ref ctx, null);
-        TagTypePlugin.MPE.Alloc(ref ctx, null);
-        TagPlugin.Alloc(ref ctx, null);
-        IntentsPlugin.Alloc(ref ctx, null);
-        OptimizationPlugin.Alloc(ref ctx, null);
-        TransformPlugin.Alloc(ref ctx, null);
-        MutexPlugin.Alloc(ref ctx, null);
+        InterpolationPluginChunk.Alloc(ref ctx, null);
+        ParametricCurvesPluginChunk.Alloc(ref ctx, null);
+        FormattersPluginChunk.Alloc(ref ctx, null);
+        TagTypePluginChunk.TagType.Alloc(ref ctx, null);
+        TagTypePluginChunk.MPE.Alloc(ref ctx, null);
+        TagPluginChunk.Alloc(ref ctx, null);
+        RenderingIntentsPluginChunk.Alloc(ref ctx, null);
+        OptimizationPluginChunk.Alloc(ref ctx, null);
+        TransformPluginChunk.Alloc(ref ctx, null);
+        MutexPluginChunk.Alloc(ref ctx, null);
 
         // TODO add plugin support
+        return !Plugin.Register(ctx, plugin)
+            ? null
+            : ctx;
+    }
+
+    public static void Delete(Context? ctx)
+    {
+        if (ctx is not null)
+        {
+            Plugin.UnregisterAll(ctx);
+
+            // Maintain list
+            lock (poolHeadMutex)
+            {
+                if (poolHead == ctx)
+                {
+                    poolHead = ctx.next;
+                }
+                else
+                {
+                    // Search for previous
+                    for (var prev = poolHead; prev is not null; prev = prev.next)
+                    {
+                        if (prev.next == ctx)
+                        {
+                            prev.next = ctx.next;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static Context? Duplicate(Context? context, object? newUserData)
+    {
+        var src = Get(context);
+
+        var userData = newUserData ?? src.chunks[(int)Chunks.UserPtr];
+
+        var ctx = new Context();
+
+        lock (poolHeadMutex)
+        {
+            ctx.next = poolHead;
+            poolHead = ctx;
+        }
+
+        ctx.chunks[(int)Chunks.UserPtr] = userData;
+
+        LogErrorHandler.Alloc(ref ctx, src);
+        AlarmCodes.Alloc(ref ctx, src);
+        AdaptationState.Alloc(ref ctx, src);
+        InterpolationPluginChunk.Alloc(ref ctx, src);
+        ParametricCurvesPluginChunk.Alloc(ref ctx, src);
+        FormattersPluginChunk.Alloc(ref ctx, src);
+        TagTypePluginChunk.TagType.Alloc(ref ctx, src);
+        TagPluginChunk.Alloc(ref ctx, src);
+        RenderingIntentsPluginChunk.Alloc(ref ctx, src);
+        TagTypePluginChunk.MPE.Alloc(ref ctx, src);
+        OptimizationPluginChunk.Alloc(ref ctx, src);
+        TransformPluginChunk.Alloc(ref ctx, src);
+        MutexPluginChunk.Alloc(ref ctx, src);
+
+        // Make sure no one failed
+        for (var i = Chunks.Logger; i < Chunks.Max; i++)
+        {
+            if (ctx.chunks[(int)i] is null)
+            {
+                Delete(ctx);
+                return null;
+            }
+        }
 
         return ctx;
     }
 
     public static object? GetUserData(Context? context) =>
         GetClientChunk(context, Chunks.UserPtr);
+
+    internal static InterpolationPluginChunk GetInterpolationPlugin(Context? context) =>
+        (InterpolationPluginChunk)GetClientChunk(context, Chunks.InterpPlugin)!;
+
+    internal static TagTypePluginChunk GetTagTypePlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.TagTypePlugin)!;
+
+    internal static TagPluginChunk GetTagPlugin(Context? context) =>
+        (TagPluginChunk)GetClientChunk(context, Chunks.TagPlugin)!;
+
+    internal static FormattersPluginChunk GetFormattersPlugin(Context? context) =>
+        (FormattersPluginChunk)GetClientChunk(context, Chunks.FormattersPlugin)!;
+
+    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(Context? context) =>
+        (RenderingIntentsPluginChunk)GetClientChunk(context, Chunks.IntentPlugin)!;
+
+    internal static ParametricCurvesPluginChunk GetCurvesPlugin(Context? context) =>
+        (ParametricCurvesPluginChunk)GetClientChunk(context, Chunks.CurvesPlugin)!;
+
+    internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;
+
+    internal static OptimizationPluginChunk GetOptimizationPlugin(Context? context) =>
+        (OptimizationPluginChunk)GetClientChunk(context, Chunks.OptimizationPlugin)!;
+
+    internal static TransformPluginChunk GetTransformPlugin(Context? context) =>
+        (TransformPluginChunk)GetClientChunk(context, Chunks.TransformPlugin)!;
+
+    internal static MutexPluginChunk GetMutexPlugin(Context? context) =>
+        (MutexPluginChunk)GetClientChunk(context, Chunks.MutexPlugin)!;
 
     public static object? GetClientChunk(Context? context, Chunks chunk)
     {
@@ -171,6 +206,18 @@ public unsafe sealed class Context
         return globalContext.chunks[(int)chunk];
     }
 
+    /// <summary>
+    /// Log an error.
+    /// </summary>
+    /// <param name="errorText">English description of the error.</param>
+    /// <remarks>Implements the <c>cmsSignalError</c> function.</remarks>
+    public static void SignalError(Context? context, ErrorCode errorCode, string errorText, params object?[] args) =>
+        SignalError(context, errorCode, String.Format(errorText, args));
+
+    /// <summary>
+    /// Log an error.
+    /// </summary>
+    /// <param name="errorText">English description of the error.</param>
     public static void SignalError(Context? context, ErrorCode errorCode, string errorText)
     {
         // Check for the context, if specified go there. If not, go for the global
