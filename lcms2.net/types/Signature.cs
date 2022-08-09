@@ -1,7 +1,7 @@
 ﻿using System.Text;
 
 namespace lcms2.types;
-public partial struct Signature
+public partial struct Signature : ICloneable
 {
     private readonly uint value;
 
@@ -40,5 +40,6 @@ public partial struct Signature
     public static readonly Signature MagicNumber = new("ascp");
     public static readonly Signature LcmsSignature = new("lcms");
 
-    
+    public object Clone() =>
+        new Signature(value);
 }

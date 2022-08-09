@@ -552,8 +552,8 @@ public static class IOHandler
     /// </summary>
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadTypeBase</c> function.</remarks>
-    /// <returns>The <see cref="Signature"/> part converted from big endian into native endian.</returns>
-    public static Signature ReadTypeBase(this Stream io)
+    /// <returns>The <see cref="TagBase"/> converted from big endian into native endian.</returns>
+    public static TagBase ReadTypeBase(this Stream io)
     {
         try
         {
@@ -561,15 +561,15 @@ public static class IOHandler
             {
                 var buf = new byte[sizeof(TagBase)];
                 if (io.Read(buf) != sizeof(TagBase))
-                    return new Signature(0);
+                    return default;
                 var tb = MemoryMarshal.Read<TagBase>(buf);
 
-                return new Signature(AdjustEndianness((uint)tb.Signature));
+                return tb;
             }
         }
         catch
         {
-            return new Signature(0);
+            return default;
         }
     }
 
@@ -577,18 +577,16 @@ public static class IOHandler
     /// Writes a <see cref="TagBase"/> to the <see cref="Stream"/>.
     /// </summary>
     /// <param name="io">The <see cref="Stream"/> to write to</param>
-    /// <param name="sig">The <see cref="Signature"/> part to write</param>
+    /// <param name="tagBase">The <see cref="TagBase"/> to write</param>
     /// <remarks>Implements the <c>_cmsWriteTypeBase</c> function.</remarks>
     /// <returns>Whether the write operation was successful</returns>
-    public static bool Write(this Stream io, Signature sig)
+    public static bool Write(this Stream io, TagBase tagBase)
     {
         try
         {
             unsafe
             {
-                TagBase tagBase;
-
-                tagBase.Signature = new Signature(AdjustEndianness(sig));
+                tagBase.Signature = new Signature(AdjustEndianness(tagBase.Signature));
                 var buf = new byte[sizeof(TagBase)];
                 MemoryMarshal.Write(buf, ref tagBase);
                 io.Write(buf);
