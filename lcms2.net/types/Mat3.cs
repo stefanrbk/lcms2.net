@@ -13,7 +13,8 @@ public struct Mat3
     public Mat3(Vec3 x, Vec3 y, Vec3 z) =>
         (X, Y, Z) = (x, y, z);
 
-    public Vec3 this[int index] {
+    public Vec3 this[int index]
+    {
         get
         {
             return index switch
@@ -26,8 +27,7 @@ public struct Mat3
         }
         set
         {
-            switch (index)
-            {
+            switch (index) {
                 case 0: X = value; break;
                 case 1: Y = value; break;
                 case 2: Z = value; break;
@@ -56,10 +56,8 @@ public struct Mat3
     {
         get
         {
-            for (var i = 0; i < 3; i++)
-            {
-                for (var j = 0; j < 3; j++)
-                {
+            for (var i = 0; i < 3; i++) {
+                for (var j = 0; j < 3; j++) {
                     if (!CloseEnough(this[i][j], Identity[i][j]))
                         return false;
                 }

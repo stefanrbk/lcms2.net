@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 using lcms2.plugins;
 using lcms2.state;
 
@@ -31,7 +26,7 @@ public class ToneCurve : ICloneable, IDisposable
     }
 
     internal static ToneCurve? BuildTabulated16(Context? context, uint numEntries, ushort[]? values)
-    { 
+    {
         throw new NotImplementedException();
     }
 

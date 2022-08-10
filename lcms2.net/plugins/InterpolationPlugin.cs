@@ -21,8 +21,7 @@ public sealed class InterpolationPlugin : Plugin
     {
         var ptr = (InterpolationPluginChunk)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ptr.interpolators = null;
             return true;
         }

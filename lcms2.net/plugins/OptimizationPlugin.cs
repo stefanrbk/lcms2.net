@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 using lcms2.state;
 using lcms2.types;
@@ -37,8 +32,7 @@ public sealed class OptimizationPlugin : Plugin
     {
         var ctx = Context.GetOptimizationPlugin(context);
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ctx.OptimizationCollection = null;
             return true;
         }
@@ -98,8 +92,7 @@ internal sealed class OptimizationPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.OptimizationCollection; entry is not null; entry = entry.Next)
-        {
+        for (var entry = head.OptimizationCollection; entry is not null; entry = entry.Next) {
             // We want to keep the linked list order, so this is a little bit tricky
             OptimizationCollection newEntry = new(entry);
 

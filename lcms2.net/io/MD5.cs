@@ -17,10 +17,8 @@ public unsafe struct MD5
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ByteReverse(byte* buf, uint longs)
     {
-        if (!BitConverter.IsLittleEndian)
-        {
-            do
-            {
+        if (!BitConverter.IsLittleEndian) {
+            do {
                 var t = IOHandler.AdjustEndianness(*(uint*)buf);
                 *(uint*)buf = t;
                 buf += sizeof(uint);
@@ -171,15 +169,12 @@ public unsafe struct MD5
 
         t = (t >> 3) & 0x3f;
 
-        if (t != 0)
-        {
-            fixed (byte* ptr = ctx.@in)
-            {
+        if (t != 0) {
+            fixed (byte* ptr = ctx.@in) {
                 var p = ptr + t;
 
                 t = 64 - t;
-                if (len < t)
-                {
+                if (len < t) {
                     Buffer.MemoryCopy(buf, p, len, len);
                     return;
                 }
@@ -187,8 +182,7 @@ public unsafe struct MD5
                 Buffer.MemoryCopy(buf, p, t, t);
                 ByteReverse(ptr, 16);
 
-                fixed (uint* ctxbuf = ctx.buf)
-                {
+                fixed (uint* ctxbuf = ctx.buf) {
                     Transform(ctxbuf, (uint*)ptr);
                 }
                 buf += t;
@@ -196,12 +190,9 @@ public unsafe struct MD5
             }
         }
 
-        fixed(byte* ctxin = ctx.@in)
-        {
-            fixed(uint* ctxbuf = ctx.buf)
-            {
-                while (len >= 64)
-                {
+        fixed (byte* ctxin = ctx.@in) {
+            fixed (uint* ctxbuf = ctx.buf) {
+                while (len >= 64) {
                     Buffer.MemoryCopy(buf, ctxin, 64, 64);
                     ByteReverse(ctxin, 16);
                     Transform(ctxbuf, (uint*)ctxin);
@@ -222,10 +213,8 @@ public unsafe struct MD5
     {
         ref var ctx = ref this;
 
-        fixed(uint* ctxbits = ctx.bits, ctxbuf = ctx.buf)
-        {
-            fixed(byte* ctxin = ctx.@in)
-            {
+        fixed (uint* ctxbits = ctx.bits, ctxbuf = ctx.buf) {
+            fixed (byte* ctxin = ctx.@in) {
                 var count = (ctxbits[0] >> 3) & 0x3f;
 
                 var p = ctxin + count;
@@ -233,8 +222,7 @@ public unsafe struct MD5
 
                 count = 64 - 1 - count;
 
-                if (count < 8)
-                {
+                if (count < 8) {
                     for (var i = p; i < p + count; i++)
                         *i = 0;
                     ByteReverse(ctxin, 16);
@@ -242,8 +230,7 @@ public unsafe struct MD5
 
                     for (var i = ctxin; i < ctxin + 56; i++)
                         *i = 0;
-                } else
-                {
+                } else {
                     for (var i = p; i < p + (count - 8); i++)
                         *i = 0;
                 }

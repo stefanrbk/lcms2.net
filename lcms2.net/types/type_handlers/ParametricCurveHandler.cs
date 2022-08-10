@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
+﻿
 using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
@@ -26,8 +25,7 @@ public class ParametricCurveHandler : ITagTypeHandler
         if (!io.ReadUInt16Number(out var type)) return null;
         if (!io.ReadUInt16Number(out _)) return null; // Reserved
 
-        if (type > 4)
-        {
+        if (type > 4) {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
             return null;
         }
@@ -48,14 +46,12 @@ public class ParametricCurveHandler : ITagTypeHandler
 
         var typeN = curve.Segments[0].Type;
 
-        if (curve.NumSegments > 1 || typeN < 1)
-        {
+        if (curve.NumSegments > 1 || typeN < 1) {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
         }
 
-        if (typeN > 5)
-        {
+        if (typeN > 5) {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported parametric curve");
             return false;
         }

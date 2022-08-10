@@ -221,8 +221,7 @@ public static class IOHandler
     {
         str = new char[n];
 
-        for (var i = 0; i < n; i++)
-        {
+        for (var i = 0; i < n; i++) {
             if (!io.ReadUInt16Number(out var value)) return false;
             str[i] = (char)value;
         }
@@ -251,8 +250,7 @@ public static class IOHandler
         var offsets = new uint[count];
         var sizes = new uint[count];
 
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             if (!io.ReadUInt32Number(out var offset)) return false;
             if (!io.ReadUInt32Number(out var size)) return false;
 
@@ -261,8 +259,7 @@ public static class IOHandler
         }
 
         // Seek to each element and read it
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             if (io.Seek(offsets[i], SeekOrigin.Begin) != offsets[i])
                 return false;
 
@@ -282,13 +279,10 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, byte n)
     {
-        try
-        {
+        try {
             io.WriteByte(n);
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -302,15 +296,12 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, ushort n)
     {
-        try
-        {
+        try {
             var tmp = new byte[sizeof(ushort)];
             BinaryPrimitives.WriteUInt16BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -325,8 +316,7 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, int n, ushort[] array)
     {
-        for (var i = 0; i < n; i++)
-        {
+        for (var i = 0; i < n; i++) {
             if (!io.Write(array[i]))
                 return false;
         }
@@ -342,15 +332,12 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, uint n)
     {
-        try
-        {
+        try {
             var tmp = new byte[sizeof(uint)];
             BinaryPrimitives.WriteUInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -363,15 +350,12 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, int n)
     {
-        try
-        {
+        try {
             var tmp = new byte[sizeof(int)];
             BinaryPrimitives.WriteInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -385,15 +369,12 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, float n)
     {
-        try
-        {
+        try {
             var tmp = new byte[sizeof(float)];
             BinaryPrimitives.WriteSingleBigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -407,15 +388,12 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, ulong n)
     {
-        try
-        {
+        try {
             var tmp = new byte[sizeof(ulong)];
             BinaryPrimitives.WriteUInt64BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        }
-        catch
-        {
+        } catch {
             return false;
         }
     }
@@ -453,8 +431,7 @@ public static class IOHandler
         io.Write(str.ToCharArray());
     public static bool Write(this Stream io, char[] str)
     {
-        for (var i = 0; i < str.Length; i++)
-        {
+        for (var i = 0; i < str.Length; i++) {
             if (!io.Write(str[i]))
                 return false;
         }
@@ -480,15 +457,13 @@ public static class IOHandler
         var dirPos = io.Tell();
 
         // Write a fake directory to be filled later on
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             if (!io.Write((uint)0)) return false; // Offset
             if (!io.Write((uint)0)) return false; // Size
         }
 
         // Write each element. Keep track of the size as well.
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             var before = (uint)io.Tell();
             offsets[i] = before - baseOffset;
 
@@ -503,8 +478,7 @@ public static class IOHandler
         var curPos = io.Tell();
         if (io.Seek(dirPos, SeekOrigin.Begin) != dirPos) return false;
 
-        for (var i = 0; i < count; i++)
-        {
+        for (var i = 0; i < count; i++) {
             if (!io.Write(offsets[i])) return false;
             if (!io.Write(sizes[i])) return false;
         }
@@ -564,10 +538,8 @@ public static class IOHandler
     /// <returns>The <see cref="TagBase"/> converted from big endian into native endian.</returns>
     public static TagBase ReadTypeBase(this Stream io)
     {
-        try
-        {
-            unsafe
-            {
+        try {
+            unsafe {
                 var buf = new byte[sizeof(TagBase)];
                 if (io.Read(buf) != sizeof(TagBase))
                     return default;
@@ -575,9 +547,7 @@ public static class IOHandler
 
                 return tb;
             }
-        }
-        catch
-        {
+        } catch {
             return default;
         }
     }
@@ -591,18 +561,14 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, TagBase tagBase)
     {
-        try
-        {
-            unsafe
-            {
+        try {
+            unsafe {
                 tagBase.Signature = new Signature(AdjustEndianness(tagBase.Signature));
                 var buf = new byte[sizeof(TagBase)];
                 MemoryMarshal.Write(buf, ref tagBase);
                 io.Write(buf);
             }
-        }
-        catch
-        {
+        } catch {
             return false;
         }
         return true;
@@ -652,15 +618,13 @@ public static class IOHandler
 
         var temp = new byte[256];
 
-        for (var i = 0; i < numChannels; i++)
-        {
+        for (var i = 0; i < numChannels; i++) {
             var tab = ToneCurve.BuildTabulated16(context, 256, null);
             if (tab is null) goto Error;
             tables[i] = tab;
         }
 
-        for (var i = 0; i < numChannels; i++)
-        {
+        for (var i = 0; i < numChannels; i++) {
             if (io.Read(temp) != 256) goto Error;
 
             for (var j = 0; j < 256; j++)
@@ -682,24 +646,19 @@ public static class IOHandler
 
     internal static bool Write8bitTables(this Stream io, Context? context, uint num, ref Stage.ToneCurveData tables)
     {
-        for (var i = 0; i < num; i++)
-        {
+        for (var i = 0; i < num; i++) {
             // Usual case of identity curves
             if ((tables.TheCurves[i].NumEntries == 2) &&
                 (tables.TheCurves[i].Table16[0] == 0) &&
-                (tables.TheCurves[i].Table16[1] == 65535))
-            {
+                (tables.TheCurves[i].Table16[1] == 65535)) {
                 for (var j = 0; j < 256; j++)
                     if (!io.Write((byte)j)) return false;
-            } else
-            {
-                if (tables.TheCurves[i].NumEntries != 256)
-                {
+            } else {
+                if (tables.TheCurves[i].NumEntries != 256) {
                     Context.SignalError(context, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
                     return false;
                 } else
-                    for (var j = 0; j < 256; j++)
-                    {
+                    for (var j = 0; j < 256; j++) {
                         var val = From16to8(tables.TheCurves[i].Table16[j]);
 
                         if (!io.Write(val)) return false;
@@ -724,14 +683,11 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool IOPrintf(this Stream io, string frm, params object?[] args)
     {
-        try
-        {
+        try {
             var resultString = string.Format(frm, args);
             var bytes = Encoding.UTF8.GetBytes(resultString);
             io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
-        }
-        catch
-        {
+        } catch {
             return false;
         }
         return true;

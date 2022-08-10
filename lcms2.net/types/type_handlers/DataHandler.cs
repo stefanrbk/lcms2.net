@@ -25,7 +25,7 @@ public class DataHandler : ITagTypeHandler
         if (lenOfData < 0) return null;
 
         if (!io.ReadUInt32Number(out var flag)) return null;
-        
+
         var buf = new byte[lenOfData];
         if (io.Read(buf) != lenOfData) return null;
 

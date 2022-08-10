@@ -22,8 +22,7 @@ public class ChromaticityHandler : ITagTypeHandler
         if (!io.ReadUInt16Number(out var numChans)) return null;
 
         // Let's recover from a bug introduced in early versions of lcms1
-        if (numChans == 0 && sizeOfTag == 32)
-        {
+        if (numChans == 0 && sizeOfTag == 32) {
             if (!io.ReadUInt16Number(out _)) return null;
             if (!io.ReadUInt16Number(out numChans)) return null;
         }

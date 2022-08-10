@@ -23,8 +23,7 @@ public class CurveHandler : ITagTypeHandler
         numItems = 0;
         if (!io.ReadUInt32Number(out var count)) return null;
 
-        switch (count)
-        {
+        switch (count) {
             case 0: // Linear
                 singleGamma = 1.0;
 
@@ -45,8 +44,7 @@ public class CurveHandler : ITagTypeHandler
                 newGamma = ToneCurve.BuildTabulated16(Context, count, null);
                 if (newGamma is null) return null;
 
-                if (!io.ReadUInt16Array((int)count, out newGamma.Table16))
-                {
+                if (!io.ReadUInt16Array((int)count, out newGamma.Table16)) {
                     newGamma.Dispose();
                     return null;
                 }
@@ -60,8 +58,7 @@ public class CurveHandler : ITagTypeHandler
     {
         var curve = (ToneCurve)value;
 
-        if (curve.NumSegments == 1 && curve.Segments[0].Type == 1)
-        {
+        if (curve.NumSegments == 1 && curve.Segments[0].Type == 1) {
             // Single gamma, preserve number
             var singleGammaFixed = IOHandler.DoubleToU8Fixed8(curve.Segments[0].Params![0]);
 
@@ -70,7 +67,7 @@ public class CurveHandler : ITagTypeHandler
             return true;
         }
 
-        if (!io.Write((uint)curve.NumEntries))return false;
+        if (!io.Write((uint)curve.NumEntries)) return false;
         return io.Write(curve.NumEntries, curve.Table16);
     }
 }

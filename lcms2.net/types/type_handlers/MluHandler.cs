@@ -25,21 +25,18 @@ public class MluHandler : ITagTypeHandler
         if (!io.ReadUInt32Number(out var count)) return null;
         if (!io.ReadUInt32Number(out var recLen)) return null;
 
-        if (recLen != 12)
-        {
+        if (recLen != 12) {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported.");
             return null;
         }
 
         Mlu mlu = new(Context);
 
-        unsafe
-        {
+        unsafe {
             var sizeOfHeader = (12 * count) + sizeof(TagBase);
             var largestPosition = (long)0;
 
-            for (var i = 0; i < count; i++)
-            {
+            for (var i = 0; i < count; i++) {
                 if (!io.ReadUInt16Number(out var lang)) goto Error;
                 if (!io.ReadUInt16Number(out var cntry)) goto Error;
 
@@ -71,13 +68,11 @@ public class MluHandler : ITagTypeHandler
 
             // Now read the remaining of tag and fill all strings. Subtract the directory
             sizeOfTag = (int)largestPosition;
-            if (sizeOfTag == 0)
-            {
+            if (sizeOfTag == 0) {
                 block = null;
                 numOfChar = 0;
                 buf = Array.Empty<byte>();
-            } else
-            {
+            } else {
                 numOfChar = (uint)(sizeOfTag / sizeof(char));
                 if (!io.ReadCharArray((int)numOfChar, out block)) goto Error;
                 buf = new byte[sizeOfTag];
@@ -101,8 +96,7 @@ public class MluHandler : ITagTypeHandler
 
     public bool Write(Stream io, object value, int numItems)
     {
-        if (value is null)
-        {
+        if (value is null) {
             // Empty placeholder
             if (!io.Write((uint)0)) return false;
             if (!io.Write((uint)12)) return false;
@@ -117,8 +111,7 @@ public class MluHandler : ITagTypeHandler
         unsafe {
             var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
 
-            for (var i = 0; i < mlu.UsedEntries; i++)
-            {
+            for (var i = 0; i < mlu.UsedEntries; i++) {
                 var len = mlu.Entries[i].Len;
                 var offset = mlu.Entries[i].OffsetToStr;
 

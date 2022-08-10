@@ -63,8 +63,7 @@ public class TextDescriptionHandler : ITagTypeHandler
         // data that is strictly required. We need to skip it as this type may come
         // embedded in other types.
 
-        if (sizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
-        {
+        if (sizeOfTag >= sizeof(ushort) + sizeof(byte) + 67) {
             if (!io.ReadUInt16Number(out _)) goto Done;
             if (!io.ReadUInt8Number(out _)) goto Done;
 
@@ -108,12 +107,10 @@ public class TextDescriptionHandler : ITagTypeHandler
         // size, with the same text size in ASCII and Unicode.
 
         // Null strings
-        if (len <= 0)
-        {
+        if (len <= 0) {
             text = new byte[1];
             wide = new char[1];
-        } else
-        {
+        } else {
             // Create independent buffers
             text = new byte[len];
             wide = new char[len];

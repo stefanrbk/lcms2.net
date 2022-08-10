@@ -11,8 +11,7 @@ public partial struct Signature : ICloneable
     {
         byte[] bytes = { 0x20, 0x20, 0x20, 0x20 };
         var s = Encoding.ASCII.GetBytes(value);
-        switch (s.Length)
-        {
+        switch (s.Length) {
             case 0:
                 break;
 

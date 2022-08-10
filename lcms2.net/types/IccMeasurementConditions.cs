@@ -13,7 +13,7 @@ public class IccMeasurementConditions : ICloneable
 
     public object Clone() =>
         new IccMeasurementConditions()
-        { 
+        {
             Observer = Observer,
             Backing = Backing,
             Geometry = Geometry,

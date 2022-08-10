@@ -53,8 +53,7 @@ public sealed class Context
     {
         var ctx = new Context();
 
-        lock (poolHeadMutex)
-        {
+        lock (poolHeadMutex) {
             ctx.next = poolHead;
             poolHead = ctx;
         }
@@ -83,24 +82,17 @@ public sealed class Context
 
     public static void Delete(Context? ctx)
     {
-        if (ctx is not null)
-        {
+        if (ctx is not null) {
             Plugin.UnregisterAll(ctx);
 
             // Maintain list
-            lock (poolHeadMutex)
-            {
-                if (poolHead == ctx)
-                {
+            lock (poolHeadMutex) {
+                if (poolHead == ctx) {
                     poolHead = ctx.next;
-                }
-                else
-                {
+                } else {
                     // Search for previous
-                    for (var prev = poolHead; prev is not null; prev = prev.next)
-                    {
-                        if (prev.next == ctx)
-                        {
+                    for (var prev = poolHead; prev is not null; prev = prev.next) {
+                        if (prev.next == ctx) {
                             prev.next = ctx.next;
                             break;
                         }
@@ -118,8 +110,7 @@ public sealed class Context
 
         var ctx = new Context();
 
-        lock (poolHeadMutex)
-        {
+        lock (poolHeadMutex) {
             ctx.next = poolHead;
             poolHead = ctx;
         }
@@ -141,10 +132,8 @@ public sealed class Context
         MutexPluginChunk.Alloc(ref ctx, src);
 
         // Make sure no one failed
-        for (var i = Chunks.Logger; i < Chunks.Max; i++)
-        {
-            if (ctx.chunks[(int)i] is null)
-            {
+        for (var i = Chunks.Logger; i < Chunks.Max; i++) {
+            if (ctx.chunks[(int)i] is null) {
                 Delete(ctx);
                 return null;
             }
@@ -188,8 +177,7 @@ public sealed class Context
 
     public static object? GetClientChunk(Context? context, Chunks chunk)
     {
-        if (chunk is < 0 or >= Chunks.Max)
-        {
+        if (chunk is < 0 or >= Chunks.Max) {
             SignalError(context, ErrorCode.Internal, "Bad context chunk -- possible corruption");
 
             return globalContext.chunks[(int)Chunks.UserPtr]!;
@@ -234,13 +222,10 @@ public sealed class Context
             return globalContext;
 
         // Search
-        lock (poolHeadMutex)
-        {
-            for (var ctx = poolHead; ctx is not null; ctx = ctx.next)
-            {
+        lock (poolHeadMutex) {
+            for (var ctx = poolHead; ctx is not null; ctx = ctx.next) {
                 // Found it?
-                if (context == ctx)
-                {
+                if (context == ctx) {
                     return ctx;
                 }
             }

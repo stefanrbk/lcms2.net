@@ -20,8 +20,7 @@ public class U16Fixed16Handler : ITagTypeHandler
         var num = sizeOfTag / sizeof(uint);
         double[] array_double = new double[num];
 
-        for (var i = 0; i < num; i++)
-        {
+        for (var i = 0; i < num; i++) {
             if (!io.ReadUInt32Number(out var v)) return null;
 
             // Convert to double
@@ -36,8 +35,7 @@ public class U16Fixed16Handler : ITagTypeHandler
     {
         var value = (double[])ptr;
 
-        for (var i = 0; i < numItems; i++)
-        {
+        for (var i = 0; i < numItems; i++) {
             var v = (uint)Math.Floor((value[i] * 65536.0) + 0.5);
 
             if (!io.Write(v)) return false;

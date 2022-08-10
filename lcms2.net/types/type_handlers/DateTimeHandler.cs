@@ -19,10 +19,8 @@ public class DateTimeHandler : ITagTypeHandler
     {
         numItems = 0;
 
-        try
-        {
-            unsafe
-            {
+        try {
+            unsafe {
                 var buf = new byte[sizeof(DateTimeNumber)];
                 if (io.Read(buf) != sizeof(DateTimeNumber)) return null;
                 var dt = MemoryMarshal.Read<DateTimeNumber>(buf);
@@ -30,9 +28,7 @@ public class DateTimeHandler : ITagTypeHandler
                 numItems = 1;
                 return (DateTime)dt;
             }
-        }
-        catch
-        {
+        } catch {
             return null;
         }
     }
@@ -40,17 +36,13 @@ public class DateTimeHandler : ITagTypeHandler
     {
         var dt = (DateTime)value;
         var timestamp = (DateTimeNumber)dt;
-        try
-        {
-            unsafe
-            {
+        try {
+            unsafe {
                 var buf = new byte[sizeof(DateTimeNumber)];
                 MemoryMarshal.Write(buf, ref timestamp);
                 io.Write(buf);
             }
-        }
-        catch
-        {
+        } catch {
             return false;
         }
         return true;

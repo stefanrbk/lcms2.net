@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 
-using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 using lcms2.types.type_handlers;
@@ -90,13 +89,11 @@ internal class TagTypeLinkedList
 
     public static ITagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
     {
-        for (var pt = pluginList; pt is not null; pt = pt.Next)
-        {
+        for (var pt = pluginList; pt is not null; pt = pt.Next) {
             if (sig == pt.Handler.Signature)
                 return pt.Handler;
         }
-        for (var pt = defaultList; pt is not null; pt = pt.Next)
-        {
+        for (var pt = defaultList; pt is not null; pt = pt.Next) {
             if (sig == pt.Handler.Signature)
                 return pt.Handler;
         }
@@ -113,8 +110,7 @@ internal sealed class TagTypePluginChunk
     {
         var ctx = (TagTypePluginChunk)Context.GetClientChunk(context, type)!;
 
-        if (data is null)
-        {
+        if (data is null) {
             ctx.tagTypes = null;
             return true;
         }
@@ -193,8 +189,7 @@ internal sealed class TagTypePluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
-        {
+        for (var entry = head.tagTypes; entry is not null; entry = entry.Next) {
             TagTypeLinkedList newEntry = new(entry.Handler, null);
 
             if (anterior is not null)

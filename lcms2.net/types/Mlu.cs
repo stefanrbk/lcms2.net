@@ -144,8 +144,7 @@ public class Mlu : ICloneable, IDisposable
             asciiLen = (uint)(buffer.Length - 1);
 
         // Process each character
-        for (var i = 0; i < asciiLen; i++)
-        {
+        for (var i = 0; i < asciiLen; i++) {
             buffer[i] = wide[i] == 0
                 ? (byte)0
                 : (byte)wide[i];
@@ -162,15 +161,12 @@ public class Mlu : ICloneable, IDisposable
         MluEntry v;
         char[] result;
 
-        for (var i = 0; i < Entries.Count; i++)
-        {
+        for (var i = 0; i < Entries.Count; i++) {
             v = Entries[i];
 
-            if (v.Language == languageCode)
-            {
+            if (v.Language == languageCode) {
                 if (best == -1) best = i;
-                if (v.Country == countryCode)
-                {
+                if (v.Country == countryCode) {
                     usedLanguageCode = v.Language;
                     usedCountryCode = v.Country;
 
@@ -238,7 +234,7 @@ public class Mlu : ICloneable, IDisposable
         Mlu newMlu = new(Context);
 
         newMlu.Entries.AddRange(mlu.Entries);
-        
+
         // The MLU may be empty
         if (mlu.PoolUsed != 0)
             newMlu.MemPool = new byte[mlu.PoolUsed];
@@ -253,8 +249,7 @@ public class Mlu : ICloneable, IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
-        {
+        if (!disposedValue) {
             Entries = null!;
             MemPool = null!;
 
