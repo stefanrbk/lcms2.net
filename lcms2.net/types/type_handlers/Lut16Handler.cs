@@ -5,7 +5,7 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class Lut8Handler : ITagTypeHandler
+public class Lut16Handler : ITagTypeHandler
 {
     public Signature Signature { get; }
     public Context? Context { get; }
@@ -26,9 +26,7 @@ public class Lut8Handler : ITagTypeHandler
 
         if (!io.ReadUInt8Number(out var inputChannels)) goto Error;
         if (!io.ReadUInt8Number(out var outputChannels)) goto Error;
-        if (!io.ReadUInt8Number(out var clutPoints)) goto Error;
-
-        if (clutPoints == 1) goto Error; // Impossible value, 0 for not CLUT and at least 2 for anything else
+        if (!io.ReadUInt8Number(out var clutPoints)) goto Error; // 255 maximum
 
         // Padding
         if (!io.ReadUInt8Number(out _)) goto Error;
@@ -45,37 +43,33 @@ public class Lut8Handler : ITagTypeHandler
         for (var i = 0; i < 9; i++)
             if (!io.Read15Fixed16Number(out matrix[i])) goto Error;
 
-        // Only operates if not identity...
+        // Only operates on 3 channels
         if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity) {
-            if (!newLut.InsertStage(StageLoc.AtBegin, Stage.AllocMatrix(Context, 3, 3, in matrix, null)))
+            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(Context, 3, 3, in matrix, null)))
                 goto Error;
         }
 
+        if (!io.ReadUInt16Number(out var inputEntries)) goto Error;
+        if (!io.ReadUInt16Number(out var outputEntries)) goto Error;
+
+        if (inputEntries > 0x7FFF || outputEntries > 0x7FFF) goto Error;
+        if (clutPoints == 1) goto Error; // Impossible value, 0 for not CLUT and at least 2 for anything else
+
         // Get input tables
-        if (!io.Read8bitTables(Context, ref newLut, inputChannels)) goto Error;
+        if (!io.Read16bitTables(Context, ref newLut, inputChannels, inputEntries)) goto Error;
 
         // Get 3D CLUT. Check the overflow...
         var numTabSize = Uipow(outputChannels, clutPoints, inputChannels);
         if (numTabSize == unchecked((uint)-1)) goto Error;
         if (numTabSize > 0) {
-            var t = new ushort[numTabSize];
-            var ptrW = t.AsSpan();
-
-            var temp = new byte[numTabSize];
-
-            if (io.Read(temp) != numTabSize) goto Error;
-
-            for (var i = 0; i < numTabSize; i++) {
-                ptrW[0] = From8to16(temp[i]);
-                ptrW = ptrW[1..];
-            }
+            if (!io.ReadUInt16Array((int)numTabSize, out var t)) goto Error;
 
             if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(Context, clutPoints, inputChannels, outputChannels, in t)))
                 goto Error;
         }
 
         // Get output tables
-        if (!io.Read8bitTables(Context, ref newLut, outputChannels)) goto Error;
+        if (!io.Read16bitTables(Context, ref newLut, outputChannels, outputEntries)) goto Error;
 
         numItems = 1;
         return newLut;
@@ -93,8 +87,7 @@ public class Lut8Handler : ITagTypeHandler
 
         var newLut = (Pipeline)value;
         var mpe = newLut.Elements;
-        if (mpe is null) return false;
-        if (mpe.Type == Signature.Stage.MatrixElem) {
+        if (mpe is not null && mpe.Type == Signature.Stage.MatrixElem) {
             if (mpe.InputChannels != 3 || mpe.OutputChannels != 3 || mpe.Data is null) return false;
             matMpe = (Stage.MatrixData)mpe.Data;
             mpe = mpe.Next;
@@ -120,7 +113,7 @@ public class Lut8Handler : ITagTypeHandler
 
         // That should be all
         if (mpe is not null) {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT8");
+            Context.SignalError(Context, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT16");
             return false;
         }
 
@@ -142,22 +135,46 @@ public class Lut8Handler : ITagTypeHandler
             }
         }
 
+        if (preMpe is not null) {
+            if (!io.Write((ushort)preMpe.TheCurves[0].NumEntries)) return false;
+        } else {
+            if (!io.Write((ushort)2)) return false;
+        }
+
+        if (postMpe is not null) {
+            if (!io.Write((ushort)postMpe.TheCurves[0].NumEntries)) return false;
+        } else {
+            if (!io.Write((ushort)2)) return false;
+        }
+
         // The prelinearization table
-        if (preMpe is not null && !io.Write8bitTables(Context, newLut.InputChannels, ref preMpe))
-            return false;
+        if (preMpe is not null) {
+            if (!io.Write16bitTables(Context, ref preMpe)) return false;
+        } else {
+            for (var i = 0; i < newLut.InputChannels; i++) {
+                if (!io.Write((ushort)0)) return false;
+                if (!io.Write((ushort)0xFFFF)) return false;
+            }
+        }
 
         var numTabSize = Uipow(newLut.OutputChannels, clutPoints, newLut.InputChannels);
         if (numTabSize == unchecked((uint)-1)) return false;
         if (numTabSize > 0) {
             // The 3D CLUT.
-            if (clut is not null)
-                for (var j = 0; j < numTabSize; j++) {
-                    var val = From16to8(clut.Table.T[j]);
-                    if (!io.Write(val)) return false;
-                }
+            if (clut is not null && !io.Write((int)numTabSize, clut.Table.T))
+                return false;
         }
 
         // The postlinearization table
-        return postMpe is not null && io.Write8bitTables(Context, newLut.OutputChannels, ref postMpe);
+        if (postMpe is not null) {
+            if (!io.Write16bitTables(Context, ref postMpe)) return false;
+        } else {
+            for (var i = 0; i < newLut.OutputChannels; i++) {
+                if (!io.Write((ushort)0)) return false;
+                if (!io.Write((ushort)0xFFFF)) return false;
+            }
+        }
+
+        return true;
     }
 }

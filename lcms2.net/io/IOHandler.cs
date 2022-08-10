@@ -1,11 +1,12 @@
 ﻿using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 using lcms2.plugins;
 using lcms2.state;
 using lcms2.types;
+
+using static lcms2.Helpers;
 
 namespace lcms2.io;
 public static class IOHandler
@@ -669,11 +670,54 @@ public static class IOHandler
         return true;
     }
 
-    internal static ushort From8to16(byte rgb) =>
-        (ushort)((rgb << 8) | rgb);
+    internal static bool Read16bitTables(this Stream io, Context? context, ref Pipeline lut, uint numChannels, uint numEntries)
+    {
+        var tables = new ToneCurve[Lcms2.MaxChannels];
 
-    internal static byte From16to8(ushort rgb) =>
-        (byte)((((rgb * (uint)65281) + 8388608) >> 24) & 0xFF);
+        // Maybe an empty table? (this is a lcms extension)
+        if (numEntries == 0) return true;
+
+        // Check for malicious profiles
+        if (numChannels is > Lcms2.MaxChannels || numEntries < 2) return false;
+
+        for (var i = 0; i < numChannels; i++) {
+            var tab = ToneCurve.BuildTabulated16(context, numEntries, null);
+            if (tab is null) goto Error;
+            tables[i] = tab;
+
+            if (!io.ReadUInt16Array((int)numEntries, out tables[i].Table16)) goto Error;
+        }
+
+        // Add the table (which may certainly be an identity, but this is up to the optimizer, not the reading code)
+        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(context, numChannels, tables)))
+            goto Error;
+
+        for (var i = 0; i < numChannels; i++)
+            tables[i].Dispose();
+
+        return true;
+
+    Error:
+        for (var i = 0; i < numChannels; i++)
+            if (tables[i] is not null)
+                tables[i].Dispose();
+
+        return false;
+    }
+
+    internal static bool Write16bitTables(this Stream io, Context? context, ref Stage.ToneCurveData tables)
+    {
+        var numEntries = tables.TheCurves[0].NumEntries;
+
+        for (var i = 0; i < tables.NumCurves; i++) {
+            for (var j = 0; j < numEntries; j++) {
+                var val = tables.TheCurves[i].Table16[j];
+                if (!io.Write(val)) return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Writes a <see cref="string"/> to the <see cref="Stream"/> (up to 2K).
@@ -691,40 +735,5 @@ public static class IOHandler
             return false;
         }
         return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignLong(long x) =>
-        (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignPtr()
-    {
-        unsafe { return sizeof(nuint); }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignMem(long x) =>
-        (x + (AlignPtr() - 1)) & ~(AlignPtr() - 1);
-
-    /// <summary>Check overflow</summary>
-    internal static uint Uipow(uint n, uint a, uint b)
-    {
-        var rv = (uint)1;
-
-        if (a == 0) return 0;
-        if (n == 0) return 0;
-
-        for (; b > 0; b--) {
-            rv *= a;
-
-            // Check for overflow
-            if (rv > UInt32.MaxValue / a) return unchecked((uint)-1);
-        }
-
-        var rc = rv * n;
-
-        if (rv != rc / n) return unchecked((uint)-1);
-        return rc;
     }
 }

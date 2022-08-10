@@ -2,6 +2,8 @@
 using lcms2.plugins;
 using lcms2.state;
 
+using static lcms2.Helpers;
+
 namespace lcms2.types.type_handlers;
 public class TextDescriptionHandler : ITagTypeHandler
 {
@@ -124,7 +126,7 @@ public class TextDescriptionHandler : ITagTypeHandler
         var lenText = text!.Length + 1;
         // Compute a total tag size requirement
         var lenTagRequirement = 8 + 4 + lenText + 4 + 4 + (2 * lenText) + 2 + 1 + 67;
-        var lenAligned = (uint)IOHandler.AlignLong(lenTagRequirement);
+        var lenAligned = (uint)AlignLong(lenTagRequirement);
 
         // * uint          count;          * Description length
         // * sbyte         desc[count]     * NULL terminated ascii string

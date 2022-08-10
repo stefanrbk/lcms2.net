@@ -96,6 +96,7 @@ public class Stage
     public class ToneCurveData
     {
         public ToneCurve[] TheCurves;
+        public int NumCurves => TheCurves.Length;
 
         internal ToneCurveData(ToneCurve[] theCurves)
         {
