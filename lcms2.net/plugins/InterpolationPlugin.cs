@@ -103,7 +103,7 @@ public class InterpParams
     /// <summary>
     /// Valid on all kinds of tables
     /// </summary>
-    public int[] numSamples;
+    public uint[] numSamples;
     /// <summary>
     /// Domain = numSamples - 1
     /// </summary>
@@ -127,7 +127,7 @@ public class InterpParams
 
     public const int MaxInputDimensions = 15;
 
-    public InterpParams(Context context, LerpFlag flags, int numInputs, int numOutputs, int[] numSamples, int[] domain, int[] opta, object table, InterpFunction interpolation)
+    public InterpParams(Context context, LerpFlag flags, int numInputs, int numOutputs, uint[] numSamples, int[] domain, int[] opta, object table, InterpFunction interpolation)
     {
         this.context = context;
         this.flags = flags;

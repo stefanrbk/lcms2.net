@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using lcms2.plugins;
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.io;
@@ -643,6 +644,78 @@ public static class IOHandler
         return true;
     }
 
+    internal static bool Read8bitTables(this Stream io, Context? context, ref Pipeline lut, uint numChannels)
+    {
+        var tables = new ToneCurve[Lcms2.MaxChannels];
+
+        if (numChannels is > Lcms2.MaxChannels or <= 0) return false;
+
+        var temp = new byte[256];
+
+        for (var i = 0; i < numChannels; i++)
+        {
+            var tab = ToneCurve.BuildTabulated16(context, 256, null);
+            if (tab is null) goto Error;
+            tables[i] = tab;
+        }
+
+        for (var i = 0; i < numChannels; i++)
+        {
+            if (io.Read(temp) != 256) goto Error;
+
+            for (var j = 0; j < 256; j++)
+                tables[i].Table16[j] = From8to16(temp[j]);
+        }
+        temp = null;
+
+        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(context, numChannels, tables)))
+            goto Error;
+
+        for (var i = 0; i < numChannels; i++)
+            tables[i].Dispose();
+
+        return true;
+
+    Error:
+        return false;
+    }
+
+    internal static bool Write8bitTables(this Stream io, Context? context, uint num, ref Stage.ToneCurveData tables)
+    {
+        for (var i = 0; i < num; i++)
+        {
+            // Usual case of identity curves
+            if ((tables.TheCurves[i].NumEntries == 2) &&
+                (tables.TheCurves[i].Table16[0] == 0) &&
+                (tables.TheCurves[i].Table16[1] == 65535))
+            {
+                for (var j = 0; j < 256; j++)
+                    if (!io.Write((byte)j)) return false;
+            } else
+            {
+                if (tables.TheCurves[i].NumEntries != 256)
+                {
+                    Context.SignalError(context, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
+                    return false;
+                } else
+                    for (var j = 0; j < 256; j++)
+                    {
+                        var val = From16to8(tables.TheCurves[i].Table16[j]);
+
+                        if (!io.Write(val)) return false;
+                    }
+            }
+        }
+
+        return true;
+    }
+
+    internal static ushort From8to16(byte rgb) =>
+        (ushort)((rgb << 8) | rgb);
+
+    internal static byte From16to8(ushort rgb) =>
+        (byte)((((rgb * (uint)65281) + 8388608) >> 24) & 0xFF);
+
     /// <summary>
     /// Writes a <see cref="string"/> to the <see cref="Stream"/> (up to 2K).
     /// </summary>
@@ -677,4 +750,25 @@ public static class IOHandler
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignMem(long x) =>
         (x + (AlignPtr() - 1)) & ~(AlignPtr() - 1);
+
+    /// <summary>Check overflow</summary>
+    internal static uint Uipow(uint n, uint a, uint b)
+    {
+        var rv = (uint)1;
+
+        if (a == 0) return 0;
+        if (n == 0) return 0;
+
+        for (; b > 0; b--) {
+            rv *= a;
+
+            // Check for overflow
+            if (rv > UInt32.MaxValue / a) return unchecked((uint)-1);
+        }
+
+        var rc = rv * n;
+
+        if (rv != rc / n) return unchecked((uint)-1);
+        return rc;
+    }
 }

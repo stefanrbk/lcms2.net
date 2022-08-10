@@ -73,6 +73,21 @@ public class Stage
     public static Stage AllocPlaceholder(Context? context, Signature type, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freePtr, object? data) =>
         new(Context.Get(context), type, type, inputChannels, outputChannels, evalPtr, dupElemPtr, freePtr, data);
 
+    public static Stage AllocToneCurves(Context? context, uint numChannels, ToneCurve[] curves)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static Stage AllocMatrix(Context? context, uint rows, uint cols, in double[] matrix, double[]? offset)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static Stage AllocCLut16bit(Context? context, uint numGridPoints, uint inputChan, uint outputChan, in ushort[] table)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     ///     Data kept in "Element" member of <see cref="Stage"/>
     /// </summary>
@@ -135,4 +150,10 @@ public class Stage
             public float[] TFloat;
         }
     }
+}
+
+public enum StageLoc
+{
+    AtBegin,
+    AtEnd,
 }

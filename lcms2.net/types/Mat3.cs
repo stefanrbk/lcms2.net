@@ -135,4 +135,24 @@ public struct Mat3
 
     public static Mat3 operator *(Mat3 left, Mat3 right) =>
         Multiply(left, right);
+
+    public static explicit operator double[](Mat3 mat) =>
+        new double[]
+        {
+            mat.X.X,
+            mat.X.Y,
+            mat.X.Z,
+            mat.Y.X,
+            mat.Y.Y,
+            mat.Y.Z,
+            mat.Z.X,
+            mat.Z.Y,
+            mat.Z.Z,
+        };
+
+    public static explicit operator Mat3(double[] d) =>
+        new(
+            new(d[0], d[1], d[2]),
+            new(d[3], d[4], d[5]),
+            new(d[6], d[7], d[8]));
 }
