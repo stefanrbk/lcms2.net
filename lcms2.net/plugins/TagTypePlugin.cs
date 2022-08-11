@@ -164,6 +164,7 @@ internal sealed class TagTypePluginChunk
     internal static readonly TagTypeLinkedList SupportedTagTypes = new(new ITagTypeHandler[] {
         new ChromaticityHandler(),
         new ColorantOrderHandler(),
+        new ColorantTableHandler(),
         new CurveHandler(),
         new DataHandler(),
         new DateTimeHandler(),
