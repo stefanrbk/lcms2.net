@@ -3,7 +3,7 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class LutA2BHandler : ITagTypeHandler
+public class LutB2AHandler : ITagTypeHandler
 {
     public Signature Signature { get; }
     public Context? Context { get; }
@@ -39,7 +39,7 @@ public class LutA2BHandler : ITagTypeHandler
         var newLut = Pipeline.Alloc(Context, inputChan, outputChan);
         if (newLut is null) return null;
 
-        if (offsetA is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetA, inputChan)))
+        if (offsetB is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetB, outputChan)))
             goto Error;
 
         if (offsetC is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadClut(Context, (uint)baseOffset + offsetC, inputChan, outputChan)))
@@ -51,7 +51,7 @@ public class LutA2BHandler : ITagTypeHandler
         if (offsetMat is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadMatrix(Context, (uint)baseOffset + offsetM)))
             goto Error;
 
-        if (offsetB is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetB, outputChan)))
+        if (offsetA is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetA, inputChan)))
             goto Error;
 
         numItems = 1;
@@ -72,9 +72,9 @@ public class LutA2BHandler : ITagTypeHandler
         var baseOffset = io.Tell() - TagBase.SizeOf;
 
         if (lut.Elements is not null &&
-            !lut.CheckAndRetreiveStagesAtoB(out a, out clut, out m, out matrix, out b)) {
+            !lut.CheckAndRetrieveStagesBtoA(out b, out matrix, out m, out clut, out a)) {
 
-            Context.SignalError(Context, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutAToB");
+            Context.SignalError(Context, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutBToA");
             return false;
         }
 

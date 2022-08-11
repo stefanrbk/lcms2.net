@@ -108,7 +108,7 @@ public class Pipeline : ICloneable, IDisposable
         throw new NotImplementedException();
     }
 
-    public bool CheckAndRetreiveStages(out Stage? a, out Stage? clut, out Stage? m, out Stage? matrix, out Stage? b)
+    public bool CheckAndRetreiveStagesAtoB(out Stage? a, out Stage? clut, out Stage? m, out Stage? matrix, out Stage? b)
     {
         a = null;
         clut = null;
@@ -172,6 +172,83 @@ public class Pipeline : ICloneable, IDisposable
                     m = stages[2];
                     matrix = stages[3];
                     b = stages[4];
+
+                    return true;
+
+                } else {
+                    return false;
+                }
+
+            default:
+
+                return false;
+        }
+    }
+
+    public bool CheckAndRetrieveStagesBtoA(out Stage? b, out Stage? matrix, out Stage? m, out Stage? clut, out Stage? a)
+    {
+        a = null;
+        clut = null;
+        m = null;
+        matrix = null;
+        b = null;
+
+        var stages = new List<Stage>(5);
+
+        for (var mpe = Elements; mpe is not null; mpe = mpe.Next)
+            stages.Add(mpe);
+
+        switch (stages.Count) {
+            case 1:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem) {
+
+                    b = stages[0];
+                    return true;
+                } else {
+
+                    return false;
+                }
+
+            case 3:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.MatrixElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem) {
+
+                    b = stages[0];
+                    matrix = stages[1];
+                    m = stages[2];
+
+                    return true;
+
+                } else if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem) {
+
+                    b = stages[0];
+                    clut = stages[1];
+                    a = stages[2];
+
+                    return true;
+
+                } else {
+                    return false;
+                }
+
+            case 5:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem &&
+                    stages[3].Type == Signature.Stage.MatrixElem &&
+                    stages[4].Type == Signature.Stage.CurveSetElem) {
+
+                    b = stages[0];
+                    matrix = stages[1];
+                    m = stages[2];
+                    clut = stages[3];
+                    a = stages[4];
 
                     return true;
 
