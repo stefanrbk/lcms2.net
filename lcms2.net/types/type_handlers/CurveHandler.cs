@@ -9,6 +9,9 @@ public class CurveHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
+    internal CurveHandler(Context? context = null) =>
+        Context = context;
+
     public object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
 

@@ -117,7 +117,7 @@ public class Lut16Handler : ITagTypeHandler
             return false;
         }
 
-        var clutPoints = clut?.Params[0].numSamples[0] ?? 0;
+        var clutPoints = clut?.Params[0].NumSamples[0] ?? 0;
 
         if (!io.Write((byte)newLut.InputChannels)) return false;
         if (!io.Write((byte)newLut.OutputChannels)) return false;
@@ -149,7 +149,7 @@ public class Lut16Handler : ITagTypeHandler
 
         // The prelinearization table
         if (preMpe is not null) {
-            if (!io.Write16bitTables(Context, ref preMpe)) return false;
+            if (!io.Write16bitTables(ref preMpe)) return false;
         } else {
             for (var i = 0; i < newLut.InputChannels; i++) {
                 if (!io.Write((ushort)0)) return false;
@@ -167,7 +167,7 @@ public class Lut16Handler : ITagTypeHandler
 
         // The postlinearization table
         if (postMpe is not null) {
-            if (!io.Write16bitTables(Context, ref postMpe)) return false;
+            if (!io.Write16bitTables(ref postMpe)) return false;
         } else {
             for (var i = 0; i < newLut.OutputChannels; i++) {
                 if (!io.Write((ushort)0)) return false;

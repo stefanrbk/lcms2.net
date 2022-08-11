@@ -124,7 +124,7 @@ public class Lut8Handler : ITagTypeHandler
             return false;
         }
 
-        var clutPoints = clut?.Params[0].numSamples[0] ?? 0;
+        var clutPoints = clut?.Params[0].NumSamples[0] ?? 0;
 
         if (!io.Write((byte)newLut.InputChannels)) return false;
         if (!io.Write((byte)newLut.OutputChannels)) return false;

@@ -41,4 +41,16 @@ public partial struct Signature : ICloneable
 
     public object Clone() =>
         new Signature(value);
+
+    public override string ToString()
+    {
+        var str = new char[4];
+
+        str[0] = (char)((value >> 24) & 0xFF);
+        str[1] = (char)((value >> 16) & 0xFF);
+        str[2] = (char)((value >> 8) & 0xFF);
+        str[3] = (char)(value & 0xFF);
+
+        return new string(str);
+    }
 }

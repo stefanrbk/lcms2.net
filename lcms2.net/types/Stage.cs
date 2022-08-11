@@ -26,7 +26,7 @@ public delegate Stage? StageDupElemFn(ref Stage mpe);
 ///     Implements the <c>_cmsStageFreeElemFn</c> typedef.</remarks>
 public delegate void StageFreeElemFn(ref Stage mpe);
 
-public class Stage
+public class Stage : ICloneable, IDisposable
 {
     internal Context Context;
 
@@ -40,11 +40,14 @@ public class Stage
     internal StageDupElemFn DupElemPtr;
     internal StageFreeElemFn FreeElemPtr;
 
-    internal object? Data;
+    internal object Data;
 
     internal Stage? Next;
 
-    private Stage(Context context, Signature type, Signature implements, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freeElemPtr, object? data)
+    internal ToneCurve[] CurveSet =>
+        (Data as ToneCurveData)?.TheCurves ?? throw new InvalidOperationException();
+
+    private Stage(Context context, Signature type, Signature implements, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freeElemPtr, object data)
     {
         Context = context;
         Type = type;
@@ -70,10 +73,10 @@ public class Stage
     ///     A generic pointer to whatever memory needed by the element</param>
     /// <remarks>
     ///     Implements the <c>_cmsStageAllocPlaceholder</c> function.</remarks>
-    public static Stage AllocPlaceholder(Context? context, Signature type, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freePtr, object? data) =>
+    public static Stage AllocPlaceholder(Context? context, Signature type, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freePtr, object data) =>
         new(Context.Get(context), type, type, inputChannels, outputChannels, evalPtr, dupElemPtr, freePtr, data);
 
-    public static Stage AllocToneCurves(Context? context, uint numChannels, ToneCurve[] curves)
+    public static Stage AllocToneCurves(Context? context, uint numChannels, ToneCurve?[] curves)
     {
         throw new NotImplementedException();
     }
@@ -83,10 +86,18 @@ public class Stage
         throw new NotImplementedException();
     }
 
-    public static Stage AllocCLut16bit(Context? context, uint numGridPoints, uint inputChan, uint outputChan, in ushort[] table)
+    public static Stage AllocCLut16bit(Context? context, uint numGridPoints, uint inputChan, uint outputChan, in ushort[]? table)
     {
         throw new NotImplementedException();
     }
+
+    public static Stage AllocCLut16bitGranular(Context? context, uint[]clutPoints, uint inputChan, uint outputChan, in ushort[]? table)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Dispose() => throw new NotImplementedException();
+    public object Clone() => throw new NotImplementedException();
 
     /// <summary>
     ///     Data kept in "Element" member of <see cref="Stage"/>

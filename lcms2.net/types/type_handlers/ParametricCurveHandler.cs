@@ -10,6 +10,9 @@ public class ParametricCurveHandler : ITagTypeHandler
     public Context? Context { get; }
     public uint ICCVersion => 0;
 
+    internal ParametricCurveHandler(Context? context = null) =>
+        Context = context;
+
     public object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
 
