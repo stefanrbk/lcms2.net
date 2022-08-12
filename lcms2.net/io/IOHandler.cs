@@ -212,13 +212,29 @@ public static class IOHandler
     /// <returns>
     ///     The <see cref="string"/> value converted from UTF16 big endian into a native endian UTF16 string or
     ///     <see langword="null"/> if there was a problem.</returns>
-    public static bool ReadString(this Stream io, int n, out string str)
+    public static bool ReadUtf16String(this Stream io, int n, out string str)
     {
         var result = ReadCharArray(io, n, out var value);
         str = new string(value);
 
         return result;
     }
+
+    public static bool ReadAsciiString(this Stream io, int n, out string str)
+    {
+        str = String.Empty;
+        var buf = new byte[n];
+        var chars = new char[n];
+
+        if (io.Read(buf) != n) return false;
+
+        for (var i = 0; i < n; i++)
+            chars[i] = (char)buf[i];
+
+        str = new string(chars);
+        return true;
+    }
+
     public static bool ReadCharArray(this Stream io, int n, out char[] str)
     {
         str = new char[n];
@@ -429,8 +445,26 @@ public static class IOHandler
     ///     The string to write</param>
     /// <returns>
     ///     Whether the write operation was successful</returns>
-    public static bool Write(this Stream io, string str) =>
+    public static bool WriteUtf16String(this Stream io, string str) =>
         io.Write(str.ToCharArray());
+
+    public static bool WriteAsciiString(this Stream io, string str, int len = -1)
+    {
+        if (len == -1) len = str.Length;
+
+        try {
+            var buf = new byte[len];
+            for (var i = 0; i < str.Length; i++)
+                buf[i] = (byte)str[i];
+
+            io.Write(buf);
+
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     public static bool Write(this Stream io, char[] str)
     {
         for (var i = 0; i < str.Length; i++) {

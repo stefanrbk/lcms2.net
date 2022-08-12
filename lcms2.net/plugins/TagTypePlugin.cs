@@ -174,6 +174,7 @@ internal sealed class TagTypePluginChunk
         new LutB2AHandler(),
         new MeasurementHandler(),
         new MluHandler(),
+        new NamedColorHandler(),
         new ParametricCurveHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),
