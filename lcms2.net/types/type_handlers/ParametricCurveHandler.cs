@@ -4,22 +4,18 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ParametricCurveHandler : ITagTypeHandler
+public class ParametricCurveHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public ParametricCurveHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    internal ParametricCurveHandler(Context? context = null) =>
-        Context = context;
-
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         (value as ToneCurve)?.Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         var @params = new double[10];
 
@@ -43,7 +39,7 @@ public class ParametricCurveHandler : ITagTypeHandler
         return newGamma;
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         var curve = (ToneCurve)value;
 

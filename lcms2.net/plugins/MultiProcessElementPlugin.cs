@@ -10,9 +10,9 @@ namespace lcms2.plugins;
 ///     Implements the <c>cmsPluginMultiProcessElement</c> struct.</remarks>
 public sealed class MultiProcessElementPlugin : Plugin
 {
-    public ITagTypeHandler Handler;
+    public TagTypeHandler Handler;
 
-    public MultiProcessElementPlugin(Signature magic, uint expectedVersion, Signature type, ITagTypeHandler handler)
+    public MultiProcessElementPlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
         : base(magic, expectedVersion, type)
     {
         Handler = handler;

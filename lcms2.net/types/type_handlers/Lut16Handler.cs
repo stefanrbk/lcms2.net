@@ -5,19 +5,18 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class Lut16Handler : ITagTypeHandler
+public class Lut16Handler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public Lut16Handler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         (value as Pipeline)?.Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         Pipeline? newLut = null;
         var matrix = new double[9];
@@ -56,7 +55,7 @@ public class Lut16Handler : ITagTypeHandler
         if (clutPoints == 1) goto Error; // Impossible value, 0 for not CLUT and at least 2 for anything else
 
         // Get input tables
-        if (!io.Read16bitTables(Context, ref newLut, inputChannels, inputEntries)) goto Error;
+        if (!((TagTypeHandler)this).Read16bitTables(io, ref newLut, inputChannels, inputEntries)) goto Error;
 
         // Get 3D CLUT. Check the overflow...
         var numTabSize = Uipow(outputChannels, clutPoints, inputChannels);
@@ -69,7 +68,7 @@ public class Lut16Handler : ITagTypeHandler
         }
 
         // Get output tables
-        if (!io.Read16bitTables(Context, ref newLut, outputChannels, outputEntries)) goto Error;
+        if (!Read16bitTables(io, ref newLut, outputChannels, outputEntries)) goto Error;
 
         numItems = 1;
         return newLut;
@@ -79,7 +78,7 @@ public class Lut16Handler : ITagTypeHandler
         return null;
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         Stage.ToneCurveData? preMpe = null, postMpe = null;
         Stage.MatrixData? matMpe = null;
@@ -149,7 +148,7 @@ public class Lut16Handler : ITagTypeHandler
 
         // The prelinearization table
         if (preMpe is not null) {
-            if (!io.Write16bitTables(ref preMpe)) return false;
+            if (!Write16bitTables(io, ref preMpe)) return false;
         } else {
             for (var i = 0; i < newLut.InputChannels; i++) {
                 if (!io.Write((ushort)0)) return false;
@@ -167,7 +166,7 @@ public class Lut16Handler : ITagTypeHandler
 
         // The postlinearization table
         if (postMpe is not null) {
-            if (!io.Write16bitTables(ref postMpe)) return false;
+            if (!Write16bitTables(io, ref postMpe)) return false;
         } else {
             for (var i = 0; i < newLut.OutputChannels; i++) {
                 if (!io.Write((ushort)0)) return false;

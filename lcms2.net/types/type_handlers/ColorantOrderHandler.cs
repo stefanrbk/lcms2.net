@@ -4,16 +4,15 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ColorantOrderHandler : ITagTypeHandler
+public class ColorantOrderHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public ColorantOrderHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         ((byte[])value).Clone();
-    public void Free(object value) { }
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override void Free(object value) { }
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
         if (!io.ReadUInt32Number(out var count)) return null;
@@ -30,7 +29,7 @@ public class ColorantOrderHandler : ITagTypeHandler
         numItems = 1;
         return colorantOrder;
     }
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         var colorantOrder = (byte[])value;
         int count;

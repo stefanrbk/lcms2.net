@@ -7,19 +7,18 @@ using lcms2.state;
 using static lcms2.Lcms2;
 
 namespace lcms2.types.type_handlers;
-public class NamedColorHandler : ITagTypeHandler
+public class NamedColorHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public NamedColorHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         (value as NamedColorList)?.Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         (value as NamedColorList)?.Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -58,7 +57,7 @@ public class NamedColorHandler : ITagTypeHandler
         return null;
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         var namedColorList = (NamedColorList)value;
 

@@ -13,81 +13,34 @@ namespace lcms2.plugins;
 ///     Implements the <c>cmsPluginTagType</c> struct.</remarks>
 public sealed class TagTypePlugin : Plugin
 {
-    public ITagTypeHandler handler;
-    public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, ITagTypeHandler handler)
-        : base(magic, expectedVersion, type)
-    {
+    public TagTypeHandler handler;
+    public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
+        : base(magic, expectedVersion, type) =>
         this.handler = handler;
-    }
 
     internal static bool RegisterPlugin(Context? context, TagTypePlugin? plugin) =>
         TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
 }
 
-/// <summary>
-///     Tag type handler
-/// </summary>
-/// <remarks>
-///     Each type is free to return anything it wants, and it is up to the caller to
-///     know in advance what is the type contained in the tag.<br />
-///     Implements the <c>cmsTagTypeHandler</c> struct.</remarks>
-public interface ITagTypeHandler
-{
-    /// <summary>
-    ///     Signature of the type
-    /// </summary>
-    Signature Signature { get; }
-
-    /// <summary>
-    ///     Additional parameter used by the calling thread
-    /// </summary>
-    Context? Context { get; }
-
-    /// <summary>
-    ///     Additional parameter used by the calling thread
-    /// </summary>
-    uint ICCVersion { get; }
-
-    /// <summary>
-    ///     Allocates and reads items.
-    /// </summary>
-    object? Read(Stream io, int sizeOfTag, out int numItems);
-
-    /// <summary>
-    ///     Writes n Items
-    /// </summary>
-    bool Write(Stream io, object value, int numItems);
-
-    /// <summary>
-    ///     Duplicate an item or array of items
-    /// </summary>
-    object? Duplicate(object value, int num);
-
-    /// <summary>
-    ///     Free all resources
-    /// </summary>
-    void Free(object value);
-}
-
 internal class TagTypeLinkedList
 {
-    internal ITagTypeHandler Handler;
+    internal TagTypeHandler Handler;
 
     internal TagTypeLinkedList? Next;
 
-    internal TagTypeLinkedList(ITagTypeHandler handler, TagTypeLinkedList? next)
+    internal TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next)
     {
         Handler = handler;
         Next = next;
     }
 
-    internal TagTypeLinkedList(ReadOnlySpan<ITagTypeHandler> list)
+    internal TagTypeLinkedList(ReadOnlySpan<TagTypeHandler> list)
     {
         Handler = list[0];
         Next = list.Length > 1 ? new(list[1..]) : null;
     }
 
-    public static ITagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
+    public static TagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
     {
         for (var pt = pluginList; pt is not null; pt = pt.Next) {
             if (sig == pt.Handler.Signature)
@@ -161,7 +114,7 @@ internal sealed class TagTypePluginChunk
     private TagTypePluginChunk()
     { }
 
-    internal static readonly TagTypeLinkedList SupportedTagTypes = new(new ITagTypeHandler[] {
+    internal static readonly TagTypeLinkedList SupportedTagTypes = new(new TagTypeHandler[] {
         new ChromaticityHandler(),
         new ColorantOrderHandler(),
         new ColorantTableHandler(),
@@ -210,4 +163,4 @@ internal sealed class TagTypePluginChunk
     }
 }
 
-public delegate bool PositionTableEntryFn(ITagTypeHandler self, Stream io, ref object cargo, int n, int sizeOfTag);
+public delegate bool PositionTableEntryFn(TagTypeHandler self, Stream io, ref object cargo, int n, int sizeOfTag);

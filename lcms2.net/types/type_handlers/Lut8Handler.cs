@@ -5,19 +5,18 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class Lut8Handler : ITagTypeHandler
+public class Lut8Handler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public Lut8Handler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         (value as Pipeline)?.Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         Pipeline? newLut = null;
         var matrix = new double[9];
@@ -52,7 +51,7 @@ public class Lut8Handler : ITagTypeHandler
         }
 
         // Get input tables
-        if (!io.Read8bitTables(Context, ref newLut, inputChannels)) goto Error;
+        if (!Read8bitTables(io, ref newLut, inputChannels)) goto Error;
 
         // Get 3D CLUT. Check the overflow...
         var numTabSize = Uipow(outputChannels, clutPoints, inputChannels);
@@ -75,7 +74,7 @@ public class Lut8Handler : ITagTypeHandler
         }
 
         // Get output tables
-        if (!io.Read8bitTables(Context, ref newLut, outputChannels)) goto Error;
+        if (!Read8bitTables(io, ref newLut, outputChannels)) goto Error;
 
         numItems = 1;
         return newLut;
@@ -85,7 +84,7 @@ public class Lut8Handler : ITagTypeHandler
         return null;
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         Stage.ToneCurveData? preMpe = null, postMpe = null;
         Stage.MatrixData? matMpe = null;
@@ -143,7 +142,7 @@ public class Lut8Handler : ITagTypeHandler
         }
 
         // The prelinearization table
-        if (preMpe is not null && !io.Write8bitTables(Context, newLut.InputChannels, ref preMpe))
+        if (preMpe is not null && !Write8bitTables(io, newLut.InputChannels, ref preMpe))
             return false;
 
         var numTabSize = Uipow(newLut.OutputChannels, clutPoints, newLut.InputChannels);
@@ -158,6 +157,6 @@ public class Lut8Handler : ITagTypeHandler
         }
 
         // The postlinearization table
-        return postMpe is not null && io.Write8bitTables(Context, newLut.OutputChannels, ref postMpe);
+        return postMpe is not null && Write8bitTables(io, newLut.OutputChannels, ref postMpe);
     }
 }

@@ -3,19 +3,18 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class LutA2BHandler : ITagTypeHandler
+public class LutA2BHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public LutA2BHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         (value as Pipeline)?.Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -39,19 +38,19 @@ public class LutA2BHandler : ITagTypeHandler
         var newLut = Pipeline.Alloc(Context, inputChan, outputChan);
         if (newLut is null) return null;
 
-        if (offsetA is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetA, inputChan)))
+        if (offsetA is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadSetOfCurves(io, (uint)baseOffset + offsetA, inputChan)))
             goto Error;
 
-        if (offsetC is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadClut(Context, (uint)baseOffset + offsetC, inputChan, outputChan)))
+        if (offsetC is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadClut(io, (uint)baseOffset + offsetC, inputChan, outputChan)))
             goto Error;
 
-        if (offsetM is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetM, inputChan)))
+        if (offsetM is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadSetOfCurves(io, (uint)baseOffset + offsetM, inputChan)))
             goto Error;
 
-        if (offsetMat is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadMatrix(Context, (uint)baseOffset + offsetM)))
+        if (offsetMat is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadMatrix(io, (uint)baseOffset + offsetM)))
             goto Error;
 
-        if (offsetB is not 0 && !newLut.InsertStage(StageLoc.AtEnd, io.ReadSetOfCurves(Context, (uint)baseOffset + offsetB, outputChan)))
+        if (offsetB is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadSetOfCurves(io, (uint)baseOffset + offsetB, outputChan)))
             goto Error;
 
         numItems = 1;
@@ -62,7 +61,7 @@ public class LutA2BHandler : ITagTypeHandler
         return null;
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         Stage? a = null, clut = null, m = null, matrix = null, b = null;
         long offsetA = 0, offsetClut = 0, offsetM = 0, offsetMatrix = 0, offsetB = 0;
@@ -97,31 +96,31 @@ public class LutA2BHandler : ITagTypeHandler
         if (a is not null) {
 
             offsetA = io.Tell() - baseOffset;
-            if (!io.WriteSetOfCurves(Context, Signature.TagType.ParametricCurve, a)) return false;
+            if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, a)) return false;
         }
 
         if (clut is not null) {
 
             offsetClut = io.Tell() - baseOffset;
-            if (!io.WriteClut(Context, lut.SaveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
+            if (!WriteClut(io, lut.SaveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
         }
 
         if (m is not null) {
 
             offsetM = io.Tell() - baseOffset;
-            if (!io.WriteSetOfCurves(Context, Signature.TagType.ParametricCurve, m)) return false;
+            if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, m)) return false;
         }
 
         if (matrix is not null) {
 
             offsetMatrix = io.Tell() - baseOffset;
-            if (!io.WriteMatrix(matrix)) return false;
+            if (!WriteMatrix(io, matrix)) return false;
         }
 
         if (b is not null) {
 
             offsetB = io.Tell() - baseOffset;
-            if (!io.WriteSetOfCurves(Context, Signature.TagType.ParametricCurve, b)) return false;
+            if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, b)) return false;
         }
 
         var curPos = io.Tell();

@@ -5,19 +5,18 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class TextDescriptionHandler : ITagTypeHandler
+public class TextDescriptionHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion { get; }
+    public TextDescriptionHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         ((Mlu)value).Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         ((Mlu)value).Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -82,7 +81,8 @@ public class TextDescriptionHandler : ITagTypeHandler
         mlu.Dispose();
         return null;
     }
-    public bool Write(Stream io, object value, int numItems)
+
+    public override bool Write(Stream io, object value, int numItems)
     {
         byte[]? text;
         char[]? wide;

@@ -3,19 +3,18 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class DataHandler : ITagTypeHandler
+public class DataHandler : TagTypeHandler
 {
-    public Signature Signature { get; }
-    public Context? Context { get; }
-    public uint ICCVersion => 0;
+    public DataHandler(Context? context = null)
+        : base(default, context, 0) { }
 
-    public object? Duplicate(object value, int num) =>
+    public override object? Duplicate(object value, int num) =>
         ((IccData)value).Clone();
 
-    public void Free(object value) =>
+    public override void Free(object value) =>
         ((IccData)value).Dispose();
 
-    public object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -34,7 +33,7 @@ public class DataHandler : ITagTypeHandler
         return new IccData((uint)lenOfData, flag, buf);
     }
 
-    public bool Write(Stream io, object value, int numItems)
+    public override bool Write(Stream io, object value, int numItems)
     {
         var binData = (IccData)value;
 
