@@ -124,6 +124,13 @@ public class Mlu : ICloneable, IDisposable
         return AddBlock((uint)len, str.ToCharArray(), lang, cntry);
     }
 
+    internal uint GetAscii(string languageCode, string countryCode)
+    {
+        byte[]? nullBuff = null;
+
+        return GetAscii(languageCode, countryCode, ref nullBuff);
+    }
+
     internal uint GetAscii(string languageCode, string countryCode, ref byte[]? buffer)
     {
         var lang = StrTo16(languageCode);

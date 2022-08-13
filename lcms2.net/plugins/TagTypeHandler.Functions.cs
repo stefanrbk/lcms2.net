@@ -191,7 +191,7 @@ public abstract partial class TagTypeHandler
         return false;
     }
 
-    internal bool Write16bitTables(Stream io, ref Stage.ToneCurveData tables)
+    internal static bool Write16bitTables(Stream io, ref Stage.ToneCurveData tables)
     {
         var numEntries = tables.TheCurves[0].NumEntries;
 
@@ -308,7 +308,7 @@ public abstract partial class TagTypeHandler
         return lin;
     }
 
-    internal bool WriteMatrix(Stream io, Stage mpe)
+    internal static bool WriteMatrix(Stream io, Stage mpe)
     {
         var m = (Stage.MatrixData)mpe.Data;
 
@@ -472,5 +472,38 @@ public abstract partial class TagTypeHandler
 
         // Store the MLU here
         return self.SaveDescription(io, seq.Seq[index].Description);
+    }
+
+    internal static bool ReadCountAndString(Stream io, Mlu mlu, ref int sizeOfTag, string section)
+    {
+        if (sizeOfTag < sizeof(uint)) return false;
+
+        if (!io.ReadUInt32Number(out var count)) return false;
+
+        if (count > UInt32.MaxValue - sizeof(uint)) return false;
+        if (sizeOfTag < count + sizeof(uint)) return false;
+
+        var text = new byte[count];
+
+        if (io.Read(text) != count) return false;
+
+        if (!mlu.SetAscii("PS", section, text)) return false;
+
+        sizeOfTag -= (int)count + sizeof(uint);
+        return true;
+    }
+
+    internal static bool WriteCountAndString(Stream io, Mlu mlu, string section)
+    {
+        var textSize = mlu.GetAscii("PS", section);
+        var text = new byte[textSize];
+
+        if (!io.Write(textSize)) return false;
+
+        if (mlu.GetAscii("PS", section, ref text) == 0) return false;
+
+        io.Write(text);
+
+        return true;
     }
 }

@@ -118,6 +118,7 @@ internal sealed class TagTypePluginChunk
         new ChromaticityHandler(),
         new ColorantOrderHandler(),
         new ColorantTableHandler(),
+        new CrdInfoHandler(),
         new CurveHandler(),
         new DataHandler(),
         new DateTimeHandler(),
