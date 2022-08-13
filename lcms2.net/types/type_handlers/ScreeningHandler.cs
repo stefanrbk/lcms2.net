@@ -1,0 +1,63 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using lcms2.io;
+using lcms2.plugins;
+using lcms2.state;
+
+using static lcms2.Lcms2;
+
+namespace lcms2.types.type_handlers;
+public class ScreeningHandler : TagTypeHandler
+{
+    public ScreeningHandler(Context? context = null)
+        : base(default, context, 0) { }
+
+    public override object? Duplicate(object value, int num) =>
+        (value as Screening)?.Clone();
+
+    public override void Free(object value) { }
+
+    public override object? Read(Stream io, int sizeOfTag, out int numItems)
+    {
+        numItems = 0;
+
+        if (!io.ReadUInt32Number(out var flag)) return null;
+        if (!io.ReadUInt32Number(out var count)) return null;
+
+        Screening sc = new(flag, (int)count);
+        if (sc.NumChannels > MaxChannels - 1)
+            sc.NumChannels = MaxChannels - 1;
+
+        for (var i = 0; i < sc.NumChannels; i++) {
+
+            if (!io.Read15Fixed16Number(out sc.Channels[i].Frequency)) return null;
+            if (!io.Read15Fixed16Number(out sc.Channels[i].ScreenAngle)) return null;
+            if (!io.ReadUInt32Number(out var shape)) return null;
+            sc.Channels[i].SpotShape = (SpotShape)shape;
+        }
+
+        numItems = 1;
+        return sc;
+    }
+
+    public override bool Write(Stream io, object value, int numItems)
+    {
+        var sc = (Screening)value;
+
+        if (!io.Write(sc.Flags)) return false;
+        if (!io.Write(sc.NumChannels)) return false;
+
+        for (var i = 0; i < sc.NumChannels; i++) {
+
+            if (!io.Write(sc.Channels[i].Frequency)) return false;
+            if (!io.Write(sc.Channels[i].ScreenAngle)) return false;
+            if (!io.Write((uint)sc.Channels[i].SpotShape)) return false;
+        }
+
+        return true;
+    }
+}

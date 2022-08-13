@@ -133,6 +133,7 @@ internal sealed class TagTypePluginChunk
         new ProfileSequenceDescriptionHandler(),
         new ProfileSequenceIdHandler(),
         new S15Fixed16Handler(),
+        new ScreeningHandler(),
         new SignatureHandler(),
         new TextDescriptionHandler(),
         new TextHandler(),
