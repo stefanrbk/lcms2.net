@@ -139,6 +139,7 @@ internal sealed class TagTypePluginChunk
         new TextHandler(),
         new U16Fixed16Handler(),
         new UcrBgHandler(),
+        new ViewingConditionsHandler(),
         new XYZHandler(),
     });
 
