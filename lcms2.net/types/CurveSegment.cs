@@ -6,9 +6,10 @@ public class CurveSegment
     // Parametric type, Type == 0 means sampled segment. Negative values are reserved
     public int Type;
     // Parameters if Type != 0;
-    public double[]? Params;
+    public double[] Params = new double[10];
     // Number of grid points if Type == 0
-    public uint? NumGridPoints;
+    public uint NumGridPoints =>
+        (uint)(SampledPoints?.Length ?? 0);
     // Points to an array of floats if Type == 0;
-    public float[]? SampledPoints;
+    public float[] SampledPoints = Array.Empty<float>();
 }

@@ -20,7 +20,17 @@ public class ToneCurve : ICloneable, IDisposable
     internal int NumEntries =>
         Table16.Length;
 
+    internal float Eval(float v)
+    {
+        throw new NotImplementedException();
+    }
+
     internal static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal static ToneCurve? BuildSegmented(Context? context, CurveSegment[] segments)
     {
         throw new NotImplementedException();
     }
@@ -50,17 +60,13 @@ public class ToneCurve : ICloneable, IDisposable
             get => Segment.Type;
             set => Segment.Type = value;
         }
-        internal double[]? Params
+        internal double[] Params
         {
             get => Segment.Params;
             set => Segment.Params = value;
         }
-        internal uint? NumGridPoints
-        {
-            get => Segment.NumGridPoints;
-            set => Segment.NumGridPoints = value;
-        }
-        internal float[]? SampledPoints
+        internal uint NumGridPoints => Segment.NumGridPoints;
+        internal float[] SampledPoints
         {
             get => Segment.SampledPoints;
             set => Segment.SampledPoints = value;

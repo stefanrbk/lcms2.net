@@ -506,4 +506,153 @@ public abstract partial class TagTypeHandler
 
         return true;
     }
+
+    internal ToneCurve? ReadSegmentedCurve(Stream io)
+    {
+        var paramsByType = new uint[] { 4, 5, 5 };
+        var prevBreak = MinusInf;
+
+        // Take signature and channels for each element.
+        if (!io.ReadUInt32Number(out var rawElementSig)) return null;
+        var elementSig = new Signature(rawElementSig);
+
+        // That should be a segmented curve
+        if (elementSig == Signature.CurveSegment.Segmented) return null;
+
+        if (!io.ReadUInt32Number(out _)) return null;
+        if (!io.ReadUInt16Number(out var numSegments)) return null;
+        if (!io.ReadUInt16Number(out _)) return null;
+
+        if (numSegments < 1) return null;
+        var segments = new CurveSegment[numSegments];
+
+        // Read breakpoints
+        for (var i = 0; i < numSegments - 1; i++) {
+
+            segments[i] = new();
+            segments[i].X0 = prevBreak;
+            if (!io.ReadFloat32Number(out segments[i].X1)) return null;
+            prevBreak = segments[i].X1;
+        }
+
+        segments[numSegments - 1].X0 = prevBreak;
+        segments[numSegments - 1].X1 = PlusInf;
+
+        // Read segments
+        for (var i = 0; i < numSegments; i++) {
+
+            if (!io.ReadUInt32Number(out rawElementSig)) return null;
+            elementSig = new Signature(rawElementSig);
+            if (!io.ReadUInt32Number(out _)) return null;
+
+            if (elementSig == Signature.CurveSegment.Formula) {
+
+                if (!io.ReadUInt16Number(out var type)) return null;
+                if (!io.ReadUInt16Number(out _)) return null;
+
+                segments[i].Type = type + 6;
+                if (type > 2) return null;
+
+                for (var j = 0; j < paramsByType[type]; j++) {
+
+                    if (!io.ReadFloat32Number(out var f)) return null;
+                    segments[i].Params[j] = f;
+                }
+            } else if (elementSig == Signature.CurveSegment.Sampled) {
+
+                if (!io.ReadUInt32Number(out var count)) return null;
+
+                // The first point is implicit in the last stage, we allocate an extra note to be populated later on
+                count++;
+                var sp = new float[count];
+
+                sp[0] = 0;
+                for (var j = 1; j < count; j++)
+                    if (!io.ReadFloat32Number(out sp[j])) return null;
+                segments[i].SampledPoints = sp;
+            } else {
+
+                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown curve element type '{0}' found.", elementSig);
+                return null;
+            }
+        }
+
+        ToneCurve? curve = ToneCurve.BuildSegmented(Context, segments);
+        if (curve is null) return null;
+
+        // Explore for missing implicit points
+        for (var i = 0; i < numSegments; i++)
+            // If sampled curve, fix it
+            if (curve.Segments[i].Type == 0)
+                curve.Segments[i].SampledPoints![0] = curve.Eval(curve.Segments[i].X0);
+
+        return curve;
+    }
+
+    internal static bool WriteSegmentedCurve(Stream io, ToneCurve g)
+    {
+        var paramsByType = new uint[] { 4, 5, 5 };
+        ref var segments = ref g.Segments;
+        var numSegments = g.NumSegments;
+
+        if (!io.Write((uint)Signature.CurveSegment.Segmented)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((ushort)numSegments)) return false;
+        if (!io.Write((ushort)0)) return false;
+
+        // Write the break-points
+        for (var i = 0; i < numSegments - 1; i++)
+            if (!io.Write(segments[i].X1)) return false;
+
+        // Write the segments
+        for (var i = 0; i < numSegments; i++) {
+
+            ref var actualSeg = ref segments[i];
+
+            if (actualSeg.Type == 0) {
+
+                // This is a sampled curve. First point is implicit in the ICC format, but not in our representation
+                if (!io.Write((uint)Signature.CurveSegment.Sampled)) return false;
+                if (!io.Write((uint)0)) return false;
+                if (!io.Write(actualSeg.NumGridPoints - 1)) return false;
+
+                for (var j = 1; j < actualSeg.NumGridPoints; j++)
+                    if (!io.Write(actualSeg.SampledPoints[j])) return false;
+            } else {
+
+                // This is a formula-based curve.
+                if (!io.Write((uint)Signature.CurveSegment.Formula)) return false;
+                if (!io.Write((uint)0)) return false;
+
+                // We only allow 1, 2 and 3 as types
+                var type = actualSeg.Type - 6;
+                if (type is > 2 or < 0) return false;
+
+                if (!io.Write((ushort)type)) return false;
+                if (!io.Write((ushort)0)) return false;
+
+                for (var j = 0; j < paramsByType[type]; j++)
+                    if (!io.Write((float)actualSeg.Params[j])) return false;
+            }
+
+            // It seems there is no need to align. Code is here, and for safety commented out
+            if (!io.WriteAlignment()) return false;
+        }
+
+        return true;
+    }
+
+    internal static bool ReadMpeCurve(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag)
+    {
+        var gammaTables = (ToneCurve[])cargo;
+
+        var table = self.ReadSegmentedCurve(io);
+        if (table is null) return false;
+        gammaTables[index] = table;
+
+        return true;
+    }
+
+    internal static bool WriteMpeCurve(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag) =>
+        WriteSegmentedCurve(io, ((Stage.ToneCurveData)cargo).TheCurves[index]);
 }

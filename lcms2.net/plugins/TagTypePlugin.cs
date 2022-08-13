@@ -143,6 +143,10 @@ internal sealed class TagTypePluginChunk
         new XYZHandler(),
     });
 
+    internal static readonly TagTypeLinkedList SupportedMpeTypes = new(new TagTypeHandler[] {
+        new MpeCurveHandler(),
+    });
+
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
     private static void DupTagTypeList(ref Context ctx, in Context src, Chunks loc)
     {
