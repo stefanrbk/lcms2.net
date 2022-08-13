@@ -313,7 +313,7 @@ public abstract partial class TagTypeHandler
         return io.WriteAlignment();
     }
 
-    internal bool ReadEmbeddedText(Stream io, ref Mlu? mlu, int sizeOfTag)
+    internal bool ReadEmbeddedText(Stream io, ref Mlu mlu, int sizeOfTag)
     {
         var baseType = io.ReadTypeBase();
 
@@ -329,8 +329,13 @@ public abstract partial class TagTypeHandler
             return false;
 
         if (mlu is not null) mlu.Dispose();
-        mlu = (Mlu?)h.Read(io, sizeOfTag, out _);
-        return mlu is not null;
+        var temp = (Mlu?)h.Read(io, sizeOfTag, out _);
+        if (temp is not null)
+            mlu = temp;
+        else
+            return false;
+
+        return true;
     }
 
     internal bool SaveDescription(Stream io, Mlu text)

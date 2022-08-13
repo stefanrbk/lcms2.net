@@ -129,6 +129,7 @@ internal sealed class TagTypePluginChunk
         new MluHandler(),
         new NamedColorHandler(),
         new ParametricCurveHandler(),
+        new ProfileSequenceDescriptionHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),
         new TextDescriptionHandler(),
