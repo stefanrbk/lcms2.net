@@ -248,47 +248,6 @@ public static class IOHandler
     }
 
     /// <summary>
-    ///     Reads a position table as described in ICC spec 4.3.<br />
-    ///     A table of n elements is read, where first comes n records containing offsets and sizes and
-    ///     then a block containing the data itself. This allows to reuse same data in more than one entry.
-    /// </summary>
-    /// <param name="io">
-    ///     <see cref="Stream"/> to read from</param>
-    /// <returns>
-    ///     Whether the read operation was successful.</returns>
-    public static bool ReadPositionTable(this Stream io, TagTypeHandler self, int count, uint baseOffset, ref object cargo, PositionTableEntryFn elementFn)
-    {
-        var currentPos = io.Tell();
-
-        // Verify there is enough space left to read at least two int items for count items.
-        if (((io.Length - currentPos) / (2 * sizeof(uint))) < count)
-            return false;
-
-        // Let's take the offsets to each element
-        var offsets = new uint[count];
-        var sizes = new uint[count];
-
-        for (var i = 0; i < count; i++) {
-            if (!io.ReadUInt32Number(out var offset)) return false;
-            if (!io.ReadUInt32Number(out var size)) return false;
-
-            offsets[i] = offset + baseOffset;
-            sizes[i] = size;
-        }
-
-        // Seek to each element and read it
-        for (var i = 0; i < count; i++) {
-            if (io.Seek(offsets[i], SeekOrigin.Begin) != offsets[i])
-                return false;
-
-            // This is the reader callback
-            if (!elementFn(self, io, ref cargo, i, (int)sizes[i])) return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// Writes a <see cref="byte"/> value to the <see cref="Stream"/>.
     /// </summary>
     /// <param name="io">The <see cref="Stream"/> to write to</param>
@@ -472,54 +431,6 @@ public static class IOHandler
                 return false;
         }
         return true;
-    }
-
-    /// <summary>
-    ///     Writes a position table as described in ICC spec 4.3.<br />
-    ///     A table of n elements is read, where first comes n records containing offsets and sizes and
-    ///     then a block containing the data itself. This allows to reuse same data in more than one entry.
-    /// </summary>
-    /// <param name="io">
-    ///     <see cref="Stream"/> to write to</param>
-    /// <returns>
-    ///     Whether the read operation was successful.</returns>
-    public static bool Write(this Stream io, TagTypeHandler self, int sizeOfTag, int count, uint baseOffset, ref object cargo, PositionTableEntryFn elementFn)
-    {
-        // Create table
-        var offsets = new uint[count];
-        var sizes = new uint[count];
-
-        // Keep starting position of curve offsets
-        var dirPos = io.Tell();
-
-        // Write a fake directory to be filled later on
-        for (var i = 0; i < count; i++) {
-            if (!io.Write((uint)0)) return false; // Offset
-            if (!io.Write((uint)0)) return false; // Size
-        }
-
-        // Write each element. Keep track of the size as well.
-        for (var i = 0; i < count; i++) {
-            var before = (uint)io.Tell();
-            offsets[i] = before - baseOffset;
-
-            // Callback to write...
-            if (!elementFn(self, io, ref cargo, i, sizeOfTag)) return false;
-
-            // Now the size
-            sizes[i] = (uint)io.Tell() - before;
-        }
-
-        // Write the directory
-        var curPos = io.Tell();
-        if (io.Seek(dirPos, SeekOrigin.Begin) != dirPos) return false;
-
-        for (var i = 0; i < count; i++) {
-            if (!io.Write(offsets[i])) return false;
-            if (!io.Write(sizes[i])) return false;
-        }
-
-        return io.Seek(curPos, SeekOrigin.Begin) == curPos; // Make sure we end up at the end of the table
     }
 
     /// <summary>

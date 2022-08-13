@@ -130,6 +130,7 @@ internal sealed class TagTypePluginChunk
         new NamedColorHandler(),
         new ParametricCurveHandler(),
         new ProfileSequenceDescriptionHandler(),
+        new ProfileSequenceIdHandler(),
         new S15Fixed16Handler(),
         new SignatureHandler(),
         new TextDescriptionHandler(),
