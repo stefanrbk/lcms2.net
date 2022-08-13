@@ -27,15 +27,11 @@ internal static class Helpers
     internal static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignPtr()
-    {
-        unsafe { return sizeof(nuint); }
-    }
+    internal static Lazy<long> AlignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignMem(long x) =>
-        (x + (AlignPtr() - 1)) & ~(AlignPtr() - 1);
+        (x + (AlignPtr.Value - 1)) & ~(AlignPtr.Value - 1);
 
     internal static ushort From8to16(byte rgb) =>
         (ushort)((rgb << 8) | rgb);

@@ -14,7 +14,7 @@ public class MluHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Mlu)?.Dispose();
 
-    public override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         byte[] buf;
         char[]? block;
@@ -31,60 +31,58 @@ public class MluHandler : TagTypeHandler
 
         Mlu mlu = new(Context);
 
-        unsafe {
-            var sizeOfHeader = (12 * count) + sizeof(TagBase);
-            var largestPosition = (long)0;
+        var sizeOfHeader = (12 * count) + sizeof(TagBase);
+        var largestPosition = (long)0;
 
-            for (var i = 0; i < count; i++) {
-                if (!io.ReadUInt16Number(out var lang)) goto Error;
-                if (!io.ReadUInt16Number(out var cntry)) goto Error;
+        for (var i = 0; i < count; i++) {
+            if (!io.ReadUInt16Number(out var lang)) goto Error;
+            if (!io.ReadUInt16Number(out var cntry)) goto Error;
 
-                // Now deal with len and offset.
-                if (!io.ReadUInt32Number(out var len)) goto Error;
-                if (!io.ReadUInt32Number(out var offset)) goto Error;
+            // Now deal with len and offset.
+            if (!io.ReadUInt32Number(out var len)) goto Error;
+            if (!io.ReadUInt32Number(out var offset)) goto Error;
 
-                // Check for overflow
-                if (offset < (sizeOfHeader + 8)) goto Error;
-                if (((offset + len) < len) || ((offset + len) > sizeOfTag + 8)) goto Error;
+            // Check for overflow
+            if (offset < (sizeOfHeader + 8)) goto Error;
+            if (((offset + len) < len) || ((offset + len) > sizeOfTag + 8)) goto Error;
 
-                // True begin of the string
-                var beginOfThisString = offset - sizeOfHeader - 8;
+            // True begin of the string
+            var beginOfThisString = offset - sizeOfHeader - 8;
 
-                // To guess maximum size, add offset + len
-                var endOfThisString = beginOfThisString + len;
-                if (endOfThisString > largestPosition)
-                    largestPosition = endOfThisString;
+            // To guess maximum size, add offset + len
+            var endOfThisString = beginOfThisString + len;
+            if (endOfThisString > largestPosition)
+                largestPosition = endOfThisString;
 
-                // Save this info into the mlu
-                mlu.Entries.Add(new()
-                {
-                    Language = lang,
-                    Country = cntry,
-                    Len = len,
-                    OffsetToStr = offset,
-                });
-            }
-
-            // Now read the remaining of tag and fill all strings. Subtract the directory
-            sizeOfTag = (int)largestPosition;
-            if (sizeOfTag == 0) {
-                block = null;
-                numOfChar = 0;
-                buf = Array.Empty<byte>();
-            } else {
-                numOfChar = (uint)(sizeOfTag / sizeof(char));
-                if (!io.ReadCharArray((int)numOfChar, out block)) goto Error;
-                buf = new byte[sizeOfTag];
-                Buffer.BlockCopy(block, 0, buf, 0, sizeOfTag);
-            }
-
-            mlu.MemPool = buf;
-            mlu.PoolSize = (uint)sizeOfTag;
-            mlu.PoolUsed = (uint)sizeOfTag;
-
-            numItems = 1;
-            return mlu;
+            // Save this info into the mlu
+            mlu.Entries.Add(new()
+            {
+                Language = lang,
+                Country = cntry,
+                Len = len,
+                OffsetToStr = offset,
+            });
         }
+
+        // Now read the remaining of tag and fill all strings. Subtract the directory
+        sizeOfTag = (int)largestPosition;
+        if (sizeOfTag == 0) {
+            block = null;
+            numOfChar = 0;
+            buf = Array.Empty<byte>();
+        } else {
+            numOfChar = (uint)(sizeOfTag / sizeof(char));
+            if (!io.ReadCharArray((int)numOfChar, out block)) goto Error;
+            buf = new byte[sizeOfTag];
+            Buffer.BlockCopy(block, 0, buf, 0, sizeOfTag);
+        }
+
+        mlu.MemPool = buf;
+        mlu.PoolSize = (uint)sizeOfTag;
+        mlu.PoolUsed = (uint)sizeOfTag;
+
+        numItems = 1;
+        return mlu;
 
     Error:
         if (mlu is not null)
@@ -93,7 +91,7 @@ public class MluHandler : TagTypeHandler
         return null;
     }
 
-    public override bool Write(Stream io, object value, int numItems)
+    public unsafe override bool Write(Stream io, object value, int numItems)
     {
         if (value is null) {
             // Empty placeholder
@@ -107,24 +105,23 @@ public class MluHandler : TagTypeHandler
         if (!io.Write(mlu.UsedEntries)) return false;
         if (!io.Write((uint)12)) return false;
 
-        unsafe {
-            var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
+        
+        var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
 
-            for (var i = 0; i < mlu.UsedEntries; i++) {
-                var len = mlu.Entries[i].Len;
-                var offset = mlu.Entries[i].OffsetToStr;
+        for (var i = 0; i < mlu.UsedEntries; i++) {
+            var len = mlu.Entries[i].Len;
+            var offset = mlu.Entries[i].OffsetToStr;
 
-                offset += headerSize + 8;
+            offset += headerSize + 8;
 
-                if (!io.Write(mlu.Entries[i].Language)) return false;
-                if (!io.Write(mlu.Entries[i].Country)) return false;
-                if (!io.Write(len)) return false;
-                if (!io.Write(offset)) return false;
-            }
-            var buf = new char[mlu.PoolUsed / sizeof(char)];
-            Buffer.BlockCopy(mlu.MemPool, 0, buf, 0, (int)mlu.PoolUsed);
-
-            return io.Write(buf);
+            if (!io.Write(mlu.Entries[i].Language)) return false;
+            if (!io.Write(mlu.Entries[i].Country)) return false;
+            if (!io.Write(len)) return false;
+            if (!io.Write(offset)) return false;
         }
+        var buf = new char[mlu.PoolUsed / sizeof(char)];
+        Buffer.BlockCopy(mlu.MemPool, 0, buf, 0, (int)mlu.PoolUsed);
+
+        return io.Write(buf);
     }
 }

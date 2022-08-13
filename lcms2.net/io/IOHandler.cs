@@ -572,17 +572,15 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadTypeBase</c> function.</remarks>
     /// <returns>The <see cref="TagBase"/> converted from big endian into native endian.</returns>
-    public static TagBase ReadTypeBase(this Stream io)
+    public unsafe static TagBase ReadTypeBase(this Stream io)
     {
         try {
-            unsafe {
-                var buf = new byte[sizeof(TagBase)];
-                if (io.Read(buf) != sizeof(TagBase))
-                    return default;
-                var tb = MemoryMarshal.Read<TagBase>(buf);
+            var buf = new byte[sizeof(TagBase)];
+            if (io.Read(buf) != sizeof(TagBase))
+                return default;
+            var tb = MemoryMarshal.Read<TagBase>(buf);
 
-                return tb;
-            }
+            return tb;
         } catch {
             return default;
         }
@@ -595,15 +593,13 @@ public static class IOHandler
     /// <param name="tagBase">The <see cref="TagBase"/> to write</param>
     /// <remarks>Implements the <c>_cmsWriteTypeBase</c> function.</remarks>
     /// <returns>Whether the write operation was successful</returns>
-    public static bool Write(this Stream io, TagBase tagBase)
+    public unsafe static bool Write(this Stream io, TagBase tagBase)
     {
         try {
-            unsafe {
-                tagBase.Signature = new Signature(AdjustEndianness(tagBase.Signature));
-                var buf = new byte[sizeof(TagBase)];
-                MemoryMarshal.Write(buf, ref tagBase);
-                io.Write(buf);
-            }
+            tagBase.Signature = new Signature(AdjustEndianness(tagBase.Signature));
+            var buf = new byte[sizeof(TagBase)];
+            MemoryMarshal.Write(buf, ref tagBase);
+            io.Write(buf);
         } catch {
             return false;
         }

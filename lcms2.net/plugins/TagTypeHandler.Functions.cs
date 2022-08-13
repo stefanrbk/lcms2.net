@@ -352,4 +352,19 @@ public abstract partial class TagTypeHandler
 
         return h.Write(io, text, 1);
     }
+
+    internal unsafe bool ReadSequenceId(Stream io, Sequence outSeq, int index, int sizeOfTag)
+    {
+        var seq = outSeq.Seq[index];
+        var b = new byte[16];
+        if (io.Read(b) != 16) return false;
+        if (!ReadEmbeddedText(io, ref seq.Description, sizeOfTag)) return false;
+
+        fixed (byte* profileId = seq.ProfileID.ID8, buf = &b[0]) {
+
+            Buffer.MemoryCopy(buf, profileId, 16, 16);
+        }
+
+        return true;
+    }
 }
