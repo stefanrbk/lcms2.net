@@ -123,9 +123,9 @@ public class Stage : ICloneable, IDisposable
     public class MatrixData
     {
         public double[] Double;
-        public double[] Offset;
+        public double[]? Offset;
 
-        internal MatrixData(double[] @double, double[] offset)
+        internal MatrixData(double[] @double, double[]? offset)
         {
             Double = @double;
             Offset = offset;
