@@ -108,6 +108,7 @@ internal sealed class TagTypePluginChunk
         new CurveHandler(),
         new DataHandler(),
         new DateTimeHandler(),
+        new DictionaryHandler(),
         new Lut16Handler(),
         new Lut8Handler(),
         new LutA2BHandler(),
