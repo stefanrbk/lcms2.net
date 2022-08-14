@@ -146,6 +146,7 @@ internal sealed class TagTypePluginChunk
     internal static readonly TagTypeLinkedList SupportedMpeTypes = new(new TagTypeHandler[] {
         new MpeCurveHandler(),
         new MpeMatrixHandler(),
+        new MpeClutHandler(),
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();

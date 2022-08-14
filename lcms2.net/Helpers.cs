@@ -6,6 +6,8 @@ internal static class Helpers
     internal const float MinusInf = -1e22f;
     internal const float PlusInf = 1e22f;
 
+    internal const int MaxInputDimensions = 15;
+
     internal static uint Uipow(uint n, uint a, uint b)
     {
         var rv = (uint)1;

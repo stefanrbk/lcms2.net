@@ -96,6 +96,11 @@ public class Stage : ICloneable, IDisposable
         throw new NotImplementedException();
     }
 
+    public static Stage AllocCLutFloatGranular(Context? context, uint[] clutPoints, uint inputChan, uint outputChan, in float[]? table)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Dispose() => throw new NotImplementedException();
     public object Clone() => throw new NotImplementedException();
 
