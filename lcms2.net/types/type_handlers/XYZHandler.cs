@@ -5,8 +5,11 @@ using lcms2.state;
 namespace lcms2.types.type_handlers;
 public class XYZHandler : TagTypeHandler
 {
+    public XYZHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public XYZHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         ((XYZ)value).Clone();

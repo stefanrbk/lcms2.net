@@ -5,8 +5,11 @@ using lcms2.state;
 namespace lcms2.types.type_handlers;
 public class ChromaticityHandler : TagTypeHandler
 {
+    public ChromaticityHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public ChromaticityHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         ((xyYTripple)value).Clone();

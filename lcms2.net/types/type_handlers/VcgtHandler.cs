@@ -7,8 +7,11 @@ using static lcms2.Helpers;
 namespace lcms2.types.type_handlers;
 public class VcgtHandler : TagTypeHandler
 {
+    public VcgtHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public VcgtHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as ToneCurve[])?.Select(v => v.Clone()).ToArray();

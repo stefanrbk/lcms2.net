@@ -41,5 +41,8 @@ public partial struct Signature
         public static readonly Signature Vcgt = new("vcgt");
         public static readonly Signature ViewingConditions = new("view");
         public static readonly Signature XYZ = new("XYZ ");
+
+        public static readonly Signature CorbisBrokenXYZ = new(0x17A505B8);
+        public static readonly Signature MonacoBrokenCurve = new(0x9478EE00);
     }
 }

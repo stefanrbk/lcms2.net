@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.plugins;
+﻿using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 public class CrdInfoHandler : TagTypeHandler
 {
+    public CrdInfoHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public CrdInfoHandler(Context? context = null)
         : base(default, context, 0) { }
 

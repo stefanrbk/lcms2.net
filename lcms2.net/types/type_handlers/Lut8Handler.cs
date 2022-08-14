@@ -7,8 +7,11 @@ using static lcms2.Helpers;
 namespace lcms2.types.type_handlers;
 public class Lut8Handler : TagTypeHandler
 {
+    public Lut8Handler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public Lut8Handler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();

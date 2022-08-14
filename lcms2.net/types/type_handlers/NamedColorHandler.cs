@@ -9,8 +9,11 @@ using static lcms2.Lcms2;
 namespace lcms2.types.type_handlers;
 public class NamedColorHandler : TagTypeHandler
 {
+    public NamedColorHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public NamedColorHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as NamedColorList)?.Clone();

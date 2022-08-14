@@ -1,13 +1,15 @@
-﻿
-using lcms2.io;
+﻿using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 public class ParametricCurveHandler : TagTypeHandler
 {
+    public ParametricCurveHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public ParametricCurveHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
