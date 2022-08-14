@@ -1,4 +1,6 @@
 ﻿
+using System.Diagnostics;
+
 using lcms2.plugins;
 using lcms2.state;
 
@@ -19,6 +21,11 @@ public class ToneCurve : ICloneable, IDisposable
 
     internal int NumEntries =>
         Table16.Length;
+
+    internal int ParametricType =>
+        NumSegments == 1
+            ? Segments[0].Type
+            : 0;
 
     internal float Eval(float v)
     {
@@ -42,6 +49,15 @@ public class ToneCurve : ICloneable, IDisposable
 
     public object Clone() => throw new NotImplementedException();
     public void Dispose() => throw new NotImplementedException();
+
+    public static void DisposeTriple(ToneCurve[] curves)
+    {
+        Trace.Assert(curves is not null && curves.Length == 3);
+
+        curves![0]?.Dispose();
+        curves![1]?.Dispose();
+        curves![2]?.Dispose();
+    }
 
     internal record Seg(CurveSegment Segment, InterpParams[] Interp, ParametricCurveEvaluator Eval)
     {

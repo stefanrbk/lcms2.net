@@ -43,4 +43,48 @@ internal static class Helpers
 
     internal static byte From16to8(ushort rgb) =>
         (byte)((((rgb * (uint)65281) + 8388608) >> 24) & 0xFF);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int FixedToInt(int x) =>
+        x >> 16;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int FixedRestToInt(int x) =>
+        x & 0xFFFF;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int RoundFixedToInt(int x) =>
+        (x + 0x8000) >> 16;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int QuickFloor(double val)
+    {
+#if DONT_USE_FAST_FLOOR
+        return (int)Math.Floor(val);
+#else
+        const double magic = 68719476736.0 * 1.5;
+        unsafe {
+            val += magic;
+            if (BitConverter.IsLittleEndian)
+                return *(int*)&val >> 16; // take val, a double, and pretend the first half is an int and shift
+            else {
+                int* ptr = (int*)&val;
+                return *++ptr >> 16;
+            }
+        }
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ushort QuickFloorWord(double d) =>
+        (ushort)(QuickFloor(d - 32767.0) + 32767);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ushort QuickSaturateWord(double d) =>
+        (d + 0.5) switch
+        {
+            <= 0 => 0,
+            >= 65535.0 => 0xFFFF,
+            _ => QuickFloorWord(d),
+        };
 }
