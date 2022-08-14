@@ -20,8 +20,7 @@ public class NullStream : Stream
     }
     public override long Seek(long offset, SeekOrigin origin)
     {
-        switch (origin)
-        {
+        switch (origin) {
             case SeekOrigin.Begin:
                 pointer = offset;
                 break;

@@ -36,8 +36,7 @@ public sealed class RenderingIntentPlugin : Plugin
     {
         var ctx = Context.GetRenderingIntentsPlugin(context);
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ctx.intents = null;
             return true;
         }
@@ -101,8 +100,7 @@ internal sealed class RenderingIntentsPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.intents; entry is not null; entry = entry.Next)
-        {
+        for (var entry = head.intents; entry is not null; entry = entry.Next) {
             // We want to keep the linked list order, so this is a little bit tricky
             IntentsList newEntry = new(entry.Intent, entry.Description, entry.Link, null);
 

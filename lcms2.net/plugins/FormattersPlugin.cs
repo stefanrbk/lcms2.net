@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 using lcms2.state;
 using lcms2.types;
@@ -23,8 +22,7 @@ public sealed class FormattersPlugin : Plugin
     {
         var ctx = Context.GetFormattersPlugin(context);
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ctx.FactoryList = null;
             return true;
         }
@@ -75,8 +73,7 @@ internal sealed class FormattersPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.FactoryList; entry is not null; entry = entry.Next)
-        {
+        for (var entry = head.FactoryList; entry is not null; entry = entry.Next) {
             // We want to keep the linked list order, so this is a little bit tricky
             FormattersFactoryList newEntry = new(entry.Factory, null);
 

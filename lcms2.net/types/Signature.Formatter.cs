@@ -12,11 +12,9 @@ public partial struct Signature
             if (obj is null)
                 return string.Empty;
 
-            if (obj is Signature value)
-            {
+            if (obj is Signature value) {
                 // Text output
-                if (format?.ToUpper().StartsWith("T") ?? false)
-                {
+                if (format?.ToUpper().StartsWith("T") ?? false) {
                     var sb = new StringBuilder(4);
                     sb.Append((char)((value.value >> 24) & 0xFF));
                     sb.Append((char)((value.value >> 16) & 0xFF));

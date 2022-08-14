@@ -21,8 +21,7 @@ public sealed class InterpolationPlugin : Plugin
     {
         var ptr = (InterpolationPluginChunk)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ptr.interpolators = null;
             return true;
         }
@@ -85,59 +84,59 @@ public class InterpParams
     /// <summary>
     /// The calling thread
     /// </summary>
-    public Context context;
+    public Context Context;
 
     /// <summary>
     /// Keep original flags
     /// </summary>
-    public LerpFlag flags;
+    public LerpFlag Flags;
     /// <summary>
     /// != 1 only in 3D interpolation
     /// </summary>
-    public int numInputs;
+    public int NumInputs;
     /// <summary>
     /// != 1 only in 3D interpolation
     /// </summary>
-    public int numOutputs;
+    public int NumOutputs;
 
     /// <summary>
     /// Valid on all kinds of tables
     /// </summary>
-    public int[] numSamples;
+    public uint[] NumSamples;
     /// <summary>
     /// Domain = numSamples - 1
     /// </summary>
-    public int[] domain;
+    public int[] Domain;
 
     /// <summary>
     /// Optimization for 3D CLUT. This is the number of nodes premultiplied for each
     /// dimension. For example, in 7 nodes, 7, 7^2 , 7^3, 7^4, etc. On non-regular
     /// Samplings may vary according of the number of nodes for each dimension.
     /// </summary>
-    public int[] opta;
+    public int[] Opta;
 
     /// <summary>
     /// "Points" to the actual interpolation table.
     /// </summary>
-    public object table;
+    public object Table;
     /// <summary>
     /// Points to the function to do the interpolation
     /// </summary>
-    public InterpFunction interpolation;
+    public InterpFunction Interpolation;
 
     public const int MaxInputDimensions = 15;
 
-    public InterpParams(Context context, LerpFlag flags, int numInputs, int numOutputs, int[] numSamples, int[] domain, int[] opta, object table, InterpFunction interpolation)
+    public InterpParams(Context context, LerpFlag flags, int numInputs, int numOutputs, uint[] numSamples, int[] domain, int[] opta, object table, InterpFunction interpolation)
     {
-        this.context = context;
-        this.flags = flags;
-        this.numInputs = numInputs;
-        this.numOutputs = numOutputs;
-        this.numSamples = numSamples;
-        this.domain = domain;
-        this.opta = opta;
-        this.table = table;
-        this.interpolation = interpolation;
+        Context = context;
+        Flags = flags;
+        NumInputs = numInputs;
+        NumOutputs = numOutputs;
+        NumSamples = numSamples;
+        Domain = domain;
+        Opta = opta;
+        Table = table;
+        Interpolation = interpolation;
     }
 }
 

@@ -39,8 +39,7 @@ public sealed class ParametricCurvesPlugin : Plugin
     {
         var ctx = Context.GetCurvesPlugin(context);
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ctx.parametricCurves = null;
             return true;
         }
@@ -103,8 +102,7 @@ internal sealed class ParametricCurvesPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.parametricCurves; entry is not null; entry = entry.Next)
-        {
+        for (var entry = head.parametricCurves; entry is not null; entry = entry.Next) {
             // We want to keep the linked list order, so this is a little bit tricky
             ParametricCurvesCollection newEntry = new(entry);
 

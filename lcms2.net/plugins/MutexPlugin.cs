@@ -99,8 +99,7 @@ public sealed class MutexPlugin : Plugin
     {
         var ctx = Context.GetMutexPlugin(context);
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             ctx.Create = DefaultCreate;
             ctx.Destroy = DefaultDestroy;
             ctx.Lock = DefaultLock;

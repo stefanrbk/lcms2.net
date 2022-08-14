@@ -15,7 +15,8 @@ public struct Vec3
     public Vec3(double x, double y, double z) =>
         (X, Y, Z) = (x, y, z);
 
-    public double this[int index] {
+    public double this[int index]
+    {
         get
         {
             return index switch
@@ -28,8 +29,7 @@ public struct Vec3
         }
         set
         {
-            switch (index)
-            {
+            switch (index) {
                 case 0: X = value; break;
                 case 1: Y = value; break;
                 case 2: Z = value; break;

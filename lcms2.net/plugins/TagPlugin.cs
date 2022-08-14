@@ -30,8 +30,7 @@ public sealed class TagPlugin
     {
         var chunk = (TagPluginChunk)Context.GetClientChunk(context, Chunks.TagPlugin)!;
 
-        if (plugin is null)
-        {
+        if (plugin is null) {
             chunk.tags = null;
             return true;
         }
@@ -112,11 +111,10 @@ internal sealed class TagPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.tags; entry is not null; entry = entry.next)
-        {
+        for (var entry = head.tags; entry is not null; entry = entry.next) {
             // We want to keep the linked list order, so this is a little bit tricky
             TagLinkedList newEntry = new(entry.signature, entry.descriptor, null);
-            
+
             if (anterior is not null)
                 anterior.next = newEntry;
 
