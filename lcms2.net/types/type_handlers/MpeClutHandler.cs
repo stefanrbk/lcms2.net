@@ -7,8 +7,11 @@ using static lcms2.Helpers;
 namespace lcms2.types.type_handlers;
 public class MpeClutHandler : TagTypeHandler
 {
+    public MpeClutHandler(Signature sig, Context? context = null)
+        : base(sig, context, 0) { }
+
     public MpeClutHandler(Context? context = null)
-        : base(default, context, 0) { }
+        : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();

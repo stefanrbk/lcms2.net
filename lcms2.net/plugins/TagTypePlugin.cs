@@ -139,9 +139,9 @@ internal sealed class TagTypePluginChunk
         new MpeStubHandler(Signature.Stage.BAcsElem),
         new MpeStubHandler(Signature.Stage.EAcsElem),
 
-        new MpeCurveHandler(),
-        new MpeMatrixHandler(),
-        new MpeClutHandler(),
+        new MpeCurveHandler(Signature.Stage.CurveSetElem),
+        new MpeMatrixHandler(Signature.Stage.MatrixElem),
+        new MpeClutHandler(Signature.Stage.CLutElem),
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
