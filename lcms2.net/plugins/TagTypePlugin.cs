@@ -144,6 +144,10 @@ internal sealed class TagTypePluginChunk
     });
 
     internal static readonly TagTypeLinkedList SupportedMpeTypes = new(new TagTypeHandler[] {
+        // Ignore these elements for now (That's what the spec says)
+        new MpeStubHandler(Signature.Stage.BAcsElem),
+        new MpeStubHandler(Signature.Stage.EAcsElem),
+
         new MpeCurveHandler(),
         new MpeMatrixHandler(),
         new MpeClutHandler(),
