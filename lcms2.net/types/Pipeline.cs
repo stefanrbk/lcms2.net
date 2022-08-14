@@ -73,6 +73,20 @@ public class Pipeline : ICloneable, IDisposable
         return newLut;
     }
 
+    public uint StageCount
+    {
+        get
+        {
+            Stage? mpe;
+            uint n;
+
+            for (n = 0, mpe = Elements; mpe is not null; mpe = mpe.Next)
+                n++;
+
+            return n;
+        }
+    }
+
     /// <summary>
     ///     This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
     ///     duplicator and free functions should also be specified in order to duplicate the LUT construct. Use <see langword="null"/> to

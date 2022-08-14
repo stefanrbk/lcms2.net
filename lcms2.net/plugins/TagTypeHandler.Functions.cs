@@ -655,4 +655,47 @@ public abstract partial class TagTypeHandler
 
     internal static bool WriteMpeCurve(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag) =>
         WriteSegmentedCurve(io, ((Stage.ToneCurveData)cargo).TheCurves[index]);
+
+    internal static bool ReadMpeElem(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag)
+    {
+        var newLut = (Pipeline)cargo;
+        var mpeChunk = Context.GetMultiProcessElementPlugin(self.Context);
+
+        // Take signature and channels for each element.
+        if (!io.ReadUInt32Number(out var rawSig)) return false;
+        var elementSig = new Signature(rawSig);
+
+        // The reserved placeholder
+        if (!io.ReadUInt32Number(out _)) return false;
+
+        // Read diverse MPE types
+        var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
+        if (typeHandler is null) {
+            Context.SignalError(self.Context, ErrorCode.UnknownExtension, "Unknown MPE type '{0}' found.", elementSig);
+            return false;
+        }
+
+        if (typeHandler is not MpeStubHandler &&
+            !newLut.InsertStage(StageLoc.AtEnd, (Stage?)typeHandler.Read(io, sizeOfTag, out _)))
+
+            return false;
+
+        return true;
+    }
+
+    protected static TagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList? pluginList)
+    {
+        if (pluginList is null) return null;
+
+        for (var pt = pluginList; pt is not null; pt = pt.Next)
+            if (sig == pt.Handler.Signature) return pt.Handler;
+
+        for (var pt = TagTypePluginChunk.SupportedTagTypes; pt is not null; pt = pt.Next)
+            if (sig == pt.Handler.Signature) return pt.Handler;
+
+        for (var pt = TagTypePluginChunk.SupportedMpeTypes; pt is not null; pt = pt.Next)
+            if (sig == pt.Handler.Signature) return pt.Handler;
+
+        return null;
+    }
 }

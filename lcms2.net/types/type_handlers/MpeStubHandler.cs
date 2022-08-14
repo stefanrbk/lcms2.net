@@ -17,6 +17,7 @@ public class MpeStubHandler : TagTypeHandler
         numItems = 0;
         return null;
     }
+
     public override bool Write(Stream io, object value, int numItems) =>
-        false;
+        true;
 }
