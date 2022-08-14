@@ -66,8 +66,8 @@ public sealed class Context
         InterpolationPluginChunk.Alloc(ref ctx, null);
         ParametricCurvesPluginChunk.Alloc(ref ctx, null);
         FormattersPluginChunk.Alloc(ref ctx, null);
-        TagTypePluginChunk.TagType.Alloc(ref ctx, null);
-        TagTypePluginChunk.MPE.Alloc(ref ctx, null);
+        TagTypePluginChunk.TagType.Alloc(ctx, null);
+        TagTypePluginChunk.MPE.Alloc(ctx, null);
         TagPluginChunk.Alloc(ref ctx, null);
         RenderingIntentsPluginChunk.Alloc(ref ctx, null);
         OptimizationPluginChunk.Alloc(ref ctx, null);
@@ -123,10 +123,10 @@ public sealed class Context
         InterpolationPluginChunk.Alloc(ref ctx, src);
         ParametricCurvesPluginChunk.Alloc(ref ctx, src);
         FormattersPluginChunk.Alloc(ref ctx, src);
-        TagTypePluginChunk.TagType.Alloc(ref ctx, src);
+        TagTypePluginChunk.TagType.Alloc(ctx, src);
         TagPluginChunk.Alloc(ref ctx, src);
         RenderingIntentsPluginChunk.Alloc(ref ctx, src);
-        TagTypePluginChunk.MPE.Alloc(ref ctx, src);
+        TagTypePluginChunk.MPE.Alloc(ctx, src);
         OptimizationPluginChunk.Alloc(ref ctx, src);
         TransformPluginChunk.Alloc(ref ctx, src);
         MutexPluginChunk.Alloc(ref ctx, src);

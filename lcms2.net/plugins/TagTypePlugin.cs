@@ -70,10 +70,10 @@ internal sealed class TagTypePluginChunk
 
     internal static class TagType
     {
-        internal static void Alloc(ref Context ctx, in Context? src)
+        internal static void Alloc(Context ctx, in Context? src)
         {
             if (src is not null)
-                DupTagTypeList(ref ctx, src, Chunks.TagTypePlugin);
+                DupTagTypeList(ctx, src, Chunks.TagTypePlugin);
             else
                 ctx.chunks[(int)Chunks.TagTypePlugin] = tagTypePluginChunk;
         }
@@ -84,10 +84,10 @@ internal sealed class TagTypePluginChunk
     }
     internal static class MPE
     {
-        internal static void Alloc(ref Context ctx, in Context? src)
+        internal static void Alloc(Context ctx, in Context? src)
         {
             if (src is not null)
-                DupTagTypeList(ref ctx, src, Chunks.MPEPlugin);
+                DupTagTypeList(ctx, src, Chunks.MPEPlugin);
             else
                 ctx.chunks[(int)Chunks.MPEPlugin] = tagTypePluginChunk;
         }
@@ -145,7 +145,7 @@ internal sealed class TagTypePluginChunk
     });
 
     private static readonly TagTypePluginChunk tagTypePluginChunk = new();
-    private static void DupTagTypeList(ref Context ctx, in Context src, Chunks loc)
+    private static void DupTagTypeList(Context ctx, in Context src, Chunks loc)
     {
         TagTypePluginChunk newHead = new();
         TagTypeLinkedList? anterior = null;

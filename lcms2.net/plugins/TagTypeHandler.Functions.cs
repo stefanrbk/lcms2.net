@@ -698,4 +698,7 @@ public abstract partial class TagTypeHandler
 
         return null;
     }
+
+    public static TagTypeHandler? GetHandler(Context? context, Signature sig) =>
+        GetHandler(sig, Context.GetTagTypePlugin(context).tagTypes);
 }
