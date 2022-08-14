@@ -22,36 +22,22 @@ public sealed class TagTypePlugin : Plugin
         TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
 }
 
-internal class TagTypeLinkedList
+public class TagTypeLinkedList
 {
-    internal TagTypeHandler Handler;
+    public TagTypeHandler Handler;
 
-    internal TagTypeLinkedList? Next;
+    public TagTypeLinkedList? Next;
 
-    internal TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next)
+    public TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next)
     {
         Handler = handler;
         Next = next;
     }
 
-    internal TagTypeLinkedList(ReadOnlySpan<TagTypeHandler> list)
+    public TagTypeLinkedList(ReadOnlySpan<TagTypeHandler> list)
     {
         Handler = list[0];
         Next = list.Length > 1 ? new(list[1..]) : null;
-    }
-
-    public static TagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList pluginList, TagTypeLinkedList defaultList)
-    {
-        for (var pt = pluginList; pt is not null; pt = pt.Next) {
-            if (sig == pt.Handler.Signature)
-                return pt.Handler;
-        }
-        for (var pt = defaultList; pt is not null; pt = pt.Next) {
-            if (sig == pt.Handler.Signature)
-                return pt.Handler;
-        }
-
-        return null;
     }
 }
 
