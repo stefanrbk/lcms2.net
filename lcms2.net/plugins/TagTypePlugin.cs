@@ -13,10 +13,10 @@ namespace lcms2.plugins;
 ///     Implements the <c>cmsPluginTagType</c> struct.</remarks>
 public sealed class TagTypePlugin : Plugin
 {
-    public TagTypeHandler handler;
+    public TagTypeHandler Handler;
     public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
         : base(magic, expectedVersion, type) =>
-        this.handler = handler;
+        this.Handler = handler;
 
     internal static bool RegisterPlugin(Context? context, TagTypePlugin? plugin) =>
         TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
@@ -47,19 +47,32 @@ internal sealed class TagTypePluginChunk
 
     private static bool RegisterTypesPlugin(Context? context, Plugin? data, Chunks type)
     {
-        var ctx = (TagTypePluginChunk)Context.GetClientChunk(context, type)!;
+        TagTypePluginChunk ctx;
+        TagTypeHandler handler;
+
+        if (data is null) return false;
+
+        switch(type) {
+            case Chunks.TagTypePlugin:
+                ctx = Context.GetTagTypePlugin(context);
+                handler = ((TagTypePlugin)data).Handler;
+                break;
+
+            case Chunks.MPEPlugin:
+                ctx = Context.GetMultiProcessElementPlugin(context);
+                handler = ((MultiProcessElementPlugin)data).Handler;
+                break;
+
+            default:
+                return false;
+        }
 
         if (data is null) {
             ctx.tagTypes = null;
             return true;
         }
 
-        var pt = new TagTypeLinkedList(data switch
-        {
-            TagTypePlugin p => p.handler,
-            MultiProcessElementPlugin p => p.Handler,
-            _ => null
-        }, ctx.tagTypes);
+        var pt = new TagTypeLinkedList(handler, ctx.tagTypes);
 
         if (pt.Handler is null)
             return false;
