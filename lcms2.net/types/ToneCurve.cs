@@ -1,5 +1,6 @@
 ﻿
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 using lcms2.plugins;
 using lcms2.state;
@@ -95,6 +96,30 @@ public class ToneCurve : ICloneable, IDisposable
         }
 
         return null;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double SigmoidBase(double k, double t) =>
+        (1.0 / (1.0 + Math.Exp(-k * t))) - 0.5;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double InvertedSigmoidBase(double k, double t) =>
+        -Math.Log((1.0 / (t + 0.5)) - 1.0) / k;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double SigmoidFactory(double k, double t)
+    {
+        var correction = 0.5 / SigmoidBase(k, 1);
+
+        return (correction * SigmoidBase(k, (2.0 * t) - 1.0)) + 0.5;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double InverseSigmoidFactory(double k, double t)
+    {
+        var correction = 0.5 / SigmoidBase(k, 1);
+
+        return (InvertedSigmoidBase(k, (t - 0.5) / correction) + 1.0) / 2.0;
     }
 
     internal int ParametricType =>
