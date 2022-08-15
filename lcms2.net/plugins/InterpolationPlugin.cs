@@ -125,6 +125,12 @@ public class InterpParams
     /// </summary>
     public object Table;
 
+    public float[] TableFloat =>
+        (float[])Table;
+
+    public ushort[] Table16 =>
+        (ushort[])Table;
+
     /// <summary>
     /// Points to the function to do the interpolation
     /// </summary>
@@ -247,16 +253,24 @@ public class InterpParams
         (ushort)(l + RoundFixedToInt((h - l) * a));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float dens(float[] table, int i, int j, int outChan) =>
+    private static float dens(Span<float> table, int i, int j, int outChan) =>
         table[i + j + outChan];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort dens(ushort[] table, int i, int j, int outChan) =>
+    private static ushort dens(Span<ushort> table, int i, int j, int outChan) =>
         table[i + j + outChan];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float dens(Span<float> table, int i, int j, int k, int outChan) =>
+        table[i + j + k + outChan];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort dens(Span<ushort> table, int i, int j, int k, int outChan) =>
+        table[i + j + k + outChan];
 
     private void LinLerp1D(in float[] value, ref float[] output)
     {
-        var lutTable = (float[])Table;
+        var lutTable = TableFloat;
 
         var val2 = fclamp(value[0]);
 
@@ -281,7 +295,7 @@ public class InterpParams
     private void Eval1Input(in ushort[] input, ref ushort[] output)
     {
         var p16 = this;
-        var lutTable = (ushort[])p16.Table;
+        var lutTable = p16.Table16;
 
         if (input[0] == 0xFFFF || p16.Domain[0] == 0) {
 
@@ -310,7 +324,7 @@ public class InterpParams
     private void Eval1Input(in float[] value, ref float[] output)
     {
         var p = this;
-        var lutTable = (float[])p.Table;
+        var lutTable = p.TableFloat;
 
         var val2 = fclamp(value[0]);
 
@@ -345,7 +359,7 @@ public class InterpParams
     private void BilinearInterp(in float[] input, ref float[] output)
     {
         var p = this;
-        var lutTable = (float[])Table;
+        var lutTable = TableFloat;
 
         var totalOut = p.NumOutputs;
         var px = fclamp(input[0]) * p.Domain[0];
@@ -364,8 +378,8 @@ public class InterpParams
 
             var d00 = dens(lutTable, x0, y0, outChan);
             var d01 = dens(lutTable, x0, y1, outChan);
-            var d10 = dens(lutTable, x1, y0, outChan);
-            var d11 = dens(lutTable, x1, y1, outChan);
+            var d10 = dens(lutTable, x1, y0, outChan, outChan);
+            var d11 = dens(lutTable, x1, y1, outChan, outChan);
 
             var dx0 = lerp(fx, d00, d10);
             var dx1 = lerp(fx, d01, d11);
@@ -377,7 +391,7 @@ public class InterpParams
     private void BilinearInterp(in ushort[] input, ref ushort[] output)
     {
         var p = this;
-        var lutTable = (ushort[])Table;
+        var lutTable = Table16;
 
         var totalOut = p.NumOutputs;
 
@@ -399,13 +413,504 @@ public class InterpParams
 
             var d00 = dens(lutTable, x0, y0, outChan);
             var d01 = dens(lutTable, x0, y1, outChan);
-            var d10 = dens(lutTable, x1, y0, outChan);
-            var d11 = dens(lutTable, x1, y1, outChan);
+            var d10 = dens(lutTable, x1, y0, outChan, outChan);
+            var d11 = dens(lutTable, x1, y1, outChan, outChan);
 
             var dx0 = lerp(rx, d00, d10);
             var dx1 = lerp(rx, d01, d11);
 
             output[outChan] = lerp(ry, dx0, dx1);
+        }
+    }
+
+    private void TrilinearInterp(in float[] input, ref float[] output)
+    {
+        var p = this;
+        var lutTable = TableFloat;
+
+        var totalOut = p.NumOutputs;
+
+        var px = fclamp(input[0]) * p.Domain[0];
+        var py = fclamp(input[1]) * p.Domain[1];
+        var pz = fclamp(input[2]) * p.Domain[2];
+
+        // We need full floor functionality here
+        var x0 = (int)MathF.Floor(px); var fx = px - x0;
+        var y0 = (int)MathF.Floor(py); var fy = py - y0;
+        var z0 = (int)MathF.Floor(pz); var fz = pz - z0;
+
+        x0 *= p.Opta[2];
+        var x1 = x0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[2]);
+
+        y0 *= p.Opta[1];
+        var y1 = y0 + (fclamp(input[1]) >= 1.0 ? 0 : p.Opta[1]);
+
+        z0 *= p.Opta[0];
+        var z1 = z0 + (fclamp(input[2]) >= 1.0 ? 0 : p.Opta[0]);
+
+        for (var outChan = 0; outChan < totalOut; outChan++) {
+
+            var d000 = dens(lutTable, x0, y0, z0, outChan);
+            var d001 = dens(lutTable, x0, y0, z1, outChan);
+            var d010 = dens(lutTable, x0, y1, z0, outChan);
+            var d011 = dens(lutTable, x0, y1, z1, outChan);
+
+            var d100 = dens(lutTable, x1, y0, z0, outChan);
+            var d101 = dens(lutTable, x1, y0, z1, outChan);
+            var d110 = dens(lutTable, x1, y1, z0, outChan);
+            var d111 = dens(lutTable, x1, y1, z1, outChan);
+
+            var dx00 = lerp(fx, d000, d100);
+            var dx01 = lerp(fx, d001, d101);
+            var dx10 = lerp(fx, d010, d110);
+            var dx11 = lerp(fx, d011, d111);
+
+            var dxy0 = lerp(fy, dx00, dx10);
+            var dxy1 = lerp(fy, dx01, dx11);
+
+            output[outChan] = lerp(fz, dxy0, dxy1);
+        }
+    }
+
+    private void TrilinearInterp(in ushort[] input, ref ushort[] output)
+    {
+        var p = this;
+        var lutTable = Table16;
+
+        var totalOut = p.NumOutputs;
+
+        var fx = ToFixedDomain(input[0]) * p.Domain[0];
+        var x0 = FixedToInt(fx);
+        var rx = FixedRestToInt(fx);
+
+        var fy = ToFixedDomain(input[1]) * p.Domain[1];
+        var y0 = FixedToInt(fy);
+        var ry = FixedRestToInt(fy);
+
+        var fz = ToFixedDomain(input[2]) * p.Domain[2];
+        var z0 = FixedToInt(fz);
+        var rz = FixedRestToInt(fz);
+
+        x0 *= p.Opta[2];
+        var x1 = x0 + (input[0] == 0xFFFF ? 0 : p.Opta[2]);
+
+        y0 *= p.Opta[1];
+        var y1 = y0 + (input[1] == 0xFFFF ? 0 : p.Opta[1]);
+
+        z0 *= p.Opta[0];
+        var z1 = z0 + (input[2] == 0xFFFF ? 0 : p.Opta[0]);
+
+        for (var outChan = 0; outChan < totalOut; outChan++) {
+
+            var d000 = dens(lutTable, x0, y0, z0, outChan);
+            var d001 = dens(lutTable, x0, y0, z1, outChan);
+            var d010 = dens(lutTable, x0, y1, z0, outChan);
+            var d011 = dens(lutTable, x0, y1, z1, outChan);
+
+            var d100 = dens(lutTable, x1, y0, z0, outChan);
+            var d101 = dens(lutTable, x1, y0, z1, outChan);
+            var d110 = dens(lutTable, x1, y1, z0, outChan);
+            var d111 = dens(lutTable, x1, y1, z1, outChan);
+
+            var dx00 = lerp(rx, d000, d100);
+            var dx01 = lerp(rx, d001, d101);
+            var dx10 = lerp(rx, d010, d110);
+            var dx11 = lerp(rx, d011, d111);
+
+            var dxy0 = lerp(ry, dx00, dx10);
+            var dxy1 = lerp(ry, dx01, dx11);
+
+            output[outChan] = lerp(rz, dxy0, dxy1);
+        }
+    }
+
+    // Tetrahedral interpolation, using Sakamoto algorithm.
+    private void TetrahedralInterp(in float[] input, ref float[] output)
+    {
+        var p = this;
+        var lutTable = TableFloat;
+        float c1 = 0, c2 = 0, c3 = 0;
+
+        var totalOut = p.NumOutputs;
+
+        var px = fclamp(input[0]) * p.Domain[0];
+        var py = fclamp(input[1]) * p.Domain[1];
+        var pz = fclamp(input[2]) * p.Domain[2];
+
+        // We need full floor functionality here
+        var x0 = (int)MathF.Floor(px); var rx = px - x0;
+        var y0 = (int)MathF.Floor(py); var ry = py - y0;
+        var z0 = (int)MathF.Floor(pz); var rz = pz - z0;
+
+        x0 *= p.Opta[2];
+        var x1 = x0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[2]);
+
+        y0 *= p.Opta[1];
+        var y1 = y0 + (fclamp(input[1]) >= 1.0 ? 0 : p.Opta[1]);
+
+        z0 *= p.Opta[0];
+        var z1 = z0 + (fclamp(input[2]) >= 1.0 ? 0 : p.Opta[0]);
+
+        for (var outChan = 0; outChan < totalOut; outChan++) {
+
+
+            var c0 = dens(lutTable, x0, y0, z0, outChan);
+
+            if (rx >= ry && ry >= rz) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x1, y0, z0, outChan);
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (rx >= rz && rz >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x1, y0, z0, outChan);
+
+            } else if (rz >= rx && rx >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else if (ry >= rx && rx >= rz) {
+
+                c1 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x0, y1, z0, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (ry >= rz && rz >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y1, z0, outChan);
+
+            } else if (rz >= ry && ry >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else {
+                c1 = c2 = c3 = 0;
+            }
+
+            output[outChan] = c0 + (c1 * rx) + (c2 * ry) + (c3 * rz);
+        }
+    }
+
+    private void TetrahedralInterp(in ushort[] input, ref ushort[] output)
+    {
+        var p = this;
+        var lutTable = Table16;
+        int rest, c0, c1 = 0, c2 = 0, c3 = 0;
+        var o = output.AsSpan();
+
+        var totalOut = p.NumOutputs;
+
+        var fx = ToFixedDomain(input[0] * p.Domain[0]);
+        var fy = ToFixedDomain(input[1] * p.Domain[1]);
+        var fz = ToFixedDomain(input[2] * p.Domain[2]);
+
+        // We need full floor functionality here
+        var x0 = FixedToInt(fx); 
+        var y0 = FixedToInt(fy); 
+        var z0 = FixedToInt(fz);
+
+        var rx = FixedRestToInt(fx);
+        var ry = FixedRestToInt(fy);
+        var rz = FixedRestToInt(fz);
+
+        x0 *= p.Opta[2];
+        var x1 = input[0] == 0xFFFF ? 0 : p.Opta[2];
+
+        y0 *= p.Opta[1];
+        var y1 = input[1] == 0xFFFF ? 0 : p.Opta[1];
+
+        z0 *= p.Opta[0];
+        var z1 = input[2] == 0xFFFF ? 0 : p.Opta[0];
+
+        lutTable = lutTable[(x0 + y0 + z0)..];
+        if (rx >= ry) {
+            if (ry >= rz) {
+                y1 += x1;
+                z1 += y1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c3 -= c2;
+                    c2 -= c1;
+                    c1 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            } else if (rz >= rx) {
+                x1 += z1;
+                y1 += x1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c2 -= c1;
+                    c1 -= c3;
+                    c3 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            } else {
+                z1 += x1;
+                y1 += z1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c2 -= c3;
+                    c3 -= c1;
+                    c1 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            }
+        } else {
+            if (rx >= rz) {
+                x1 += y1;
+                z1 += x1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c3 -= c1;
+                    c1 -= c2;
+                    c2 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            } else if (ry >= rz) {
+                z1 += y1;
+                x1 += z1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c1 -= c3;
+                    c3 -= c2;
+                    c2 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            } else {
+                y1 += z1;
+                x1 += y1;
+                for (; totalOut > 0; totalOut--) {
+                    c1 = lutTable[x1];
+                    c2 = lutTable[y1];
+                    c3 = lutTable[z1];
+                    c0 = lutTable[0];
+                    c1 -= c2;
+                    c2 -= c3;
+                    c3 -= c0;
+                    rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
+                    o[0] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable[1..];
+                    o = o[1..];
+                }
+            }
+        }
+    }
+
+    private void Eval4Inputs(in ushort[] input, ref ushort[] output)
+    {
+        var p = this;
+
+        var tmp1 = new ushort[MaxStageChannels];
+        var tmp2 = new ushort[MaxStageChannels];
+        
+        int c0, rest, c1 = 0, c2 = 0, c3 = 0;
+
+        var totalOut = p.NumOutputs;
+
+        var fk = ToFixedDomain(input[0] * p.Domain[0]);
+        var fx = ToFixedDomain(input[1] * p.Domain[1]);
+        var fy = ToFixedDomain(input[2] * p.Domain[2]);
+        var fz = ToFixedDomain(input[3] * p.Domain[3]);
+
+        var k0 = FixedToInt(fk);
+        var x0 = FixedToInt(fx);
+        var y0 = FixedToInt(fy);
+        var z0 = FixedToInt(fz);
+
+        var rk = FixedRestToInt(fk);
+        var rx = FixedRestToInt(fx);
+        var ry = FixedRestToInt(fy);
+        var rz = FixedRestToInt(fz);
+
+        k0 *= p.Opta[3];
+        var k1 = k0 + (input[0] == 0xFFFF ? 0 : p.Opta[3]);
+
+        x0 *= p.Opta[2];
+        var x1 = x0 + (input[1] == 0xFFFF ? 0 : p.Opta[2]);
+
+        y0 *= p.Opta[1];
+        var y1 = y0 + (input[2] == 0xFFFF ? 0 : p.Opta[1]);
+
+        z0 *= p.Opta[0];
+        var z1 = z0 + (input[3] == 0xFFFF ? 0 : p.Opta[0]);
+
+        var lutTable = Table16.AsSpan()[k0..];
+
+        for (var outChan = 0; outChan < totalOut; outChan++) {
+
+            c0 = dens(lutTable, x0, y0, z0, outChan);
+
+            if (rx >= ry && ry >= rz) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x1, y0, z0, outChan);
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (rx >= rz && rz >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x1, y0, z0, outChan);
+
+            } else if (rz >= rx && rx >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else if (ry >= rx && rx >= rz) {
+
+                c1 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x0, y1, z0, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (ry >= rz && rz >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y1, z0, outChan);
+
+            } else if (rz >= ry && ry >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else {
+                c1 = c2 = c3 = 0;
+            }
+
+            rest = (c1 * rx) + (c2 * ry) + (c3 * rz);
+            tmp1[outChan] = (ushort)(c0 + RoundFixedToInt(ToFixedDomain(rest)));
+        }
+
+        lutTable = Table16.AsSpan()[k1..];
+
+        for (var outChan = 0; outChan < totalOut; outChan++) {
+
+            c0 = dens(lutTable, x0, y0, z0, outChan);
+
+            if (rx >= ry && ry >= rz) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x1, y0, z0, outChan);
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (rx >= rz && rz >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z0, outChan) - c0;
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x1, y0, z0, outChan);
+
+            } else if (rz >= rx && rx >= ry) {
+
+                c1 = dens(lutTable, x1, y0, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c2 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else if (ry >= rx && rx >= rz) {
+
+                c1 = dens(lutTable, x1, y1, z0, outChan) - dens(lutTable, x0, y1, z0, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x1, y1, z0, outChan);
+
+            } else if (ry >= rz && rz >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z0, outChan) - c0;
+                c3 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y1, z0, outChan);
+
+            } else if (rz >= ry && ry >= rx) {
+
+                c1 = dens(lutTable, x1, y1, z1, outChan) - dens(lutTable, x0, y1, z1, outChan);
+                c2 = dens(lutTable, x0, y1, z1, outChan) - dens(lutTable, x0, y0, z1, outChan);
+                c3 = dens(lutTable, x0, y0, z1, outChan) - c0;
+
+            } else {
+                c1 = c2 = c3 = 0;
+            }
+
+            rest = (c1 * rx) + (c2 * ry) + (c3 * rz);
+            tmp2[outChan] = (ushort)(c0 + RoundFixedToInt(ToFixedDomain(rest)));
+        }
+
+        for (var i = 0; i < NumOutputs; i++)
+            output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
+    }
+
+    private void Eval4Inputs(in float[] input, ref float[] output)
+    {
+        var p = this;
+
+        var lutTable = TableFloat;
+        var tmp1 = new float[MaxStageChannels];
+        var tmp2 = new float[MaxStageChannels];
+
+        var pk = fclamp(input[0]) * p.Domain[0];
+        var k0 = QuickFloor(pk);
+        var rest = pk - k0;
+
+        k0 *= p.Opta[3];
+        var k1 = k0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[3]);
+
+        var t = lutTable[k0..];
+        var p1 = new InterpParams(Context, Flags, NumInputs, NumOutputs, t);
+
+        p.Domain[1..3].CopyTo(p1.Domain.AsSpan());
+
+        var inp = input[1..];
+        p1.TetrahedralInterp(inp, ref tmp1);
+
+        t = lutTable[k1..];
+        p1.Table = t;
+
+        p1.TetrahedralInterp(inp, ref tmp2);
+
+        for (var i = 0; i < p.NumOutputs; i++) {
+
+            var y0 = tmp1[i];
+            var y1 = tmp2[i];
+
+            output[i] = lerp(rest, y0, y1);
         }
     }
 }
