@@ -510,7 +510,7 @@ public class ToneCurve : ICloneable, IDisposable
         return g;
     }
 
-    internal static ToneCurve? BuildTabulatedFloat(Context? context, int numEntries, float[] values)
+    public static ToneCurve? BuildTabulatedFloat(Context? context, int numEntries, float[] values)
     {
         var seg = new CurveSegment[3];
 
@@ -554,7 +554,7 @@ public class ToneCurve : ICloneable, IDisposable
         throw new NotImplementedException();
     }
 
-    internal static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
+    public static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
     {
         var c = ParametricCurvesCollection.GetByType(context, type, out var pos);
 
