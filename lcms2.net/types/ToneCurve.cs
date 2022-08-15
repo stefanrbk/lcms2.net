@@ -475,7 +475,7 @@ public class ToneCurve : ICloneable, IDisposable
         return MinusInf;
     }
 
-    public static ToneCurve? BuildTabulated(Context? context, int numEntries, in ushort[]? values) =>
+    public static ToneCurve? BuildTabulated16(Context? context, int numEntries, ushort[]? values) =>
         Alloc(context, numEntries, 0, null, values);
 
     private static int EntriesByGamma(double gamma) =>
@@ -510,7 +510,7 @@ public class ToneCurve : ICloneable, IDisposable
         return g;
     }
 
-    internal static ToneCurve? BuildTabulated(Context? context, uint numEntries, float[] values)
+    internal static ToneCurve? BuildTabulatedFloat(Context? context, int numEntries, float[] values)
     {
         var seg = new CurveSegment[3];
 
