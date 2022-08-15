@@ -31,9 +31,11 @@ public partial struct Signature
         public static readonly Signature DToB0 = new("D2B0");
         public static readonly Signature DToB1 = new("D2B1");
         public static readonly Signature DToB2 = new("D2B2");
+        public static readonly Signature DToB3 = new("D2B3");
         public static readonly Signature BToD0 = new("B2D0");
         public static readonly Signature BToD1 = new("B2D1");
         public static readonly Signature BToD2 = new("B2D2");
+        public static readonly Signature BToD3 = new("B2D3");
         public static readonly Signature Gamut = new("gamt");
         public static readonly Signature GrayTRC = new("kTRC");
         public static readonly Signature GreenColorant = new("gXYZ");
