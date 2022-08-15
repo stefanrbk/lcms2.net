@@ -30,7 +30,6 @@ public class ToneCurve : ICloneable, IDisposable
         Table16.Length;
     internal ushort[] Table16 = Array.Empty<ushort>();
 
-
     private ToneCurve(CurveSegment[] segments, ParametricCurveEvaluator[] evals, InterpParams? interpParams = null)
     {
         InterpParams = interpParams;
@@ -576,17 +575,39 @@ public class ToneCurve : ICloneable, IDisposable
         return BuildSegmented(context, new CurveSegment[] { seg0 });
     }
 
-    public object Clone() => throw new NotImplementedException();
-    public void Dispose() => throw new NotImplementedException();
+    public static ToneCurve? BuildGamma(Context? context, double gamma) =>
+        BuildParametric(context, 1, gamma);
+
+    private bool disposed = false;
+    public void Dispose()
+    {
+        if (!disposed) {
+            Table16 = null!;
+
+            if (Segments is not null) {
+                for (var i = 0; i < NumSegments; i++) {
+                    Segments[i].SampledPoints = null;
+                    SegInterp[i] = null!;
+                }
+            }
+            Evals = null!;
+
+            GC.SuppressFinalize(this);
+            disposed = true;
+        }
+    }
 
     public static void DisposeTriple(ToneCurve[] curves)
     {
-        Trace.Assert(curves is not null && curves.Length == 3);
+        Debug.Assert(curves is not null && curves.Length == 3);
 
         curves![0]?.Dispose();
         curves![1]?.Dispose();
         curves![2]?.Dispose();
     }
+
+    public object Clone() =>
+        Alloc(InterpParams?.Context, NumEntries, NumSegments, Segments, Table16)!;
 
     internal static ParametricCurvesCollection DefaultCurves = new(
         new (int Types, int Count)[]
