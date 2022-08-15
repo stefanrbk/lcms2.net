@@ -11,6 +11,8 @@ internal static class Helpers
     internal const int MaxInputDimensions = 15;
     internal const int MaxStageChannels = 128;
 
+    internal const double DeterminantTolerance = 0.0001;
+
     internal static uint Uipow(uint n, uint a, uint b)
     {
         var rv = (uint)1;

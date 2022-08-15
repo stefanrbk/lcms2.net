@@ -8,8 +8,8 @@ public class CurveSegment
     // Parameters if Type != 0;
     public double[] Params = new double[10];
     // Number of grid points if Type == 0
-    public uint NumGridPoints =>
-        (uint)(SampledPoints?.Length ?? 0);
+    public int NumGridPoints =>
+        SampledPoints?.Length ?? 0;
     // Points to an array of floats if Type == 0;
     public float[]? SampledPoints;
 }

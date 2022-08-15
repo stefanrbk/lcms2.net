@@ -34,7 +34,7 @@ public partial class InterpParams
     /// <summary>
     /// Valid on all kinds of tables
     /// </summary>
-    public uint[] NumSamples = new uint[MaxInputDimensions];
+    public int[] NumSamples = new int[MaxInputDimensions];
 
     /// <summary>
     /// Domain = numSamples - 1
@@ -95,7 +95,7 @@ public partial class InterpParams
         return Interpolation.Lerp16 is not null;
     }
 
-    internal static InterpParams? Compute(Context? context, in uint[] numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    internal static InterpParams? Compute(Context? context, in int[] numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
     {
         // Check for maximum inputs
         if (inputChan > MaxInputDimensions) {
@@ -127,9 +127,9 @@ public partial class InterpParams
         return p;
     }
 
-    internal static InterpParams? Compute(Context? context, uint numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    internal static InterpParams? Compute(Context? context, int numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
     {
-        var samples = new uint[MaxInputDimensions];
+        var samples = new int[MaxInputDimensions];
 
         for (var i = 0; i < MaxInputDimensions; i++)
             samples[i] = numSamples;
@@ -1040,7 +1040,7 @@ public enum LerpFlag
 public struct InterpFunction
 {
     [FieldOffset(0)]
-    public InterpFn16? Lerp16;
+    public InterpFn16 Lerp16;
     [FieldOffset(0)]
-    public InterpFnFloat? LerpFloat;
+    public InterpFnFloat LerpFloat;
 }
