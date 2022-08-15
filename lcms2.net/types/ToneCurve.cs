@@ -556,7 +556,24 @@ public class ToneCurve : ICloneable, IDisposable
 
     internal static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
     {
-        throw new NotImplementedException();
+        var c = ParametricCurvesCollection.GetByType(context, type, out var pos);
+
+        if (c is null) {
+            Context.SignalError(context, ErrorCode.UnknownExtension, "Invalid parametric curve type {0}", type);
+            return null;
+        }
+
+        var seg0 = new CurveSegment()
+        {
+            X0 = MinusInf,
+            X1 = PlusInf,
+            Type = type,
+        };
+
+        var size = c.Functions[pos].Count * sizeof(double);
+        @params[..size].CopyTo(seg0.Params, 0);
+
+        return BuildSegmented(context, new CurveSegment[] { seg0 });
     }
 
     public object Clone() => throw new NotImplementedException();
