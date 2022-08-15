@@ -7,6 +7,7 @@ internal static class Helpers
     internal const float PlusInf = 1e22f;
 
     internal const int MaxInputDimensions = 15;
+    internal const int MaxStageChannels = 128;
 
     internal static uint Uipow(uint n, uint a, uint b)
     {
@@ -51,6 +52,14 @@ internal static class Helpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int FixedRestToInt(int x) =>
         x & 0xFFFF;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int ToFixedDomain(int a) =>
+        a + ((a + 0x7FFF) / 0xFFFF);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int FromFixedDomain(int a) =>
+        a - ((a + 0x7FFF) >> 16);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int RoundFixedToInt(int x) =>

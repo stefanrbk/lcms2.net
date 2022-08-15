@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -10,6 +10,12 @@
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <ProjectReference Include="..\CodeGen\CodeGen.csproj"
+                        OutputItemType="Analyzer"
+                        ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
