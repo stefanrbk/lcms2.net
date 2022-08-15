@@ -475,7 +475,7 @@ public class ToneCurve : ICloneable, IDisposable
         return MinusInf;
     }
 
-    public static ToneCurve? BuildTabulated16(Context? context, int numEntries, in ushort[]? values) =>
+    public static ToneCurve? BuildTabulated(Context? context, int numEntries, in ushort[]? values) =>
         Alloc(context, numEntries, 0, null, values);
 
     private static int EntriesByGamma(double gamma) =>
@@ -510,17 +510,51 @@ public class ToneCurve : ICloneable, IDisposable
         return g;
     }
 
+    internal static ToneCurve? BuildTabulated(Context? context, uint numEntries, float[] values)
+    {
+        var seg = new CurveSegment[3];
+
+        seg[0] = new()
+        {
+            X0 = MinusInf,
+            X1 = 0f,
+            Type = 6,
+        };
+        seg[0].Params[0] = 1;
+        seg[0].Params[1] = 0;
+        seg[0].Params[2] = 0;
+        seg[0].Params[3] = values[0];
+        seg[0].Params[4] = 0;
+
+        seg[1] = new()
+        {
+            X0 = 0f,
+            X1 = 1f,
+            Type = 0,
+            SampledPoints = values,
+        };
+
+        seg[2] = new()
+        {
+            X0 = 1f,
+            X1 = PlusInf,
+            Type = 6,
+        };
+        seg[2].Params[0] = 1;
+        seg[2].Params[1] = 0;
+        seg[2].Params[2] = 0;
+        seg[2].Params[3] = values[numEntries - 1];
+        seg[2].Params[4] = 0;
+
+        return BuildSegmented(context, seg);
+    }
+
     internal float Eval(float v)
     {
         throw new NotImplementedException();
     }
 
     internal static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
-    {
-        throw new NotImplementedException();
-    }
-
-    internal static ToneCurve? BuildTabulated16(Context? context, uint numEntries, ushort[]? values)
     {
         throw new NotImplementedException();
     }
