@@ -53,6 +53,14 @@ internal static class Helpers
         x & 0xFFFF;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int ToFixedDomain(int a) =>
+        a + ((a + 0x7FFF) / 0xFFFF);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int FromFixedDomain(int a) =>
+        a - ((a + 0x7FFF) >> 16);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int RoundFixedToInt(int x) =>
         (x + 0x8000) >> 16;
 
