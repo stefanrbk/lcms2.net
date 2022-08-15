@@ -6,6 +6,8 @@ internal static class Helpers
     internal const float MinusInf = -1e22f;
     internal const float PlusInf = 1e22f;
 
+    internal const ushort MaxNodesInCurve = 4097;
+
     internal const int MaxInputDimensions = 15;
     internal const int MaxStageChannels = 128;
 

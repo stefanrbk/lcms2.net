@@ -11,5 +11,5 @@ public class CurveSegment
     public uint NumGridPoints =>
         (uint)(SampledPoints?.Length ?? 0);
     // Points to an array of floats if Type == 0;
-    public float[] SampledPoints = Array.Empty<float>();
+    public float[]? SampledPoints;
 }
