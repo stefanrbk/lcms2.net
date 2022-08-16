@@ -100,4 +100,7 @@ internal static class Helpers
             >= 65535.0 => 0xFFFF,
             _ => QuickFloorWord(d),
         };
+
+    internal static ushort QuantizeValue(double i, int maxSamples) =>
+        QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 }

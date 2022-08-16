@@ -46,6 +46,57 @@ public class ToneCurve : ICloneable, IDisposable
     public ushort[] EstimatedTable =>
         Table16;
 
+    public bool IsLinear
+    {
+        get
+        {
+            for (var i = 0; i < NumEntries; i++) {
+
+                var diff = Abs(Table16[i] - QuantizeValue(i, NumEntries));
+                if (diff > 0x0F)
+                    return false;
+            }
+
+            return true;
+        }
+    }
+
+    public bool IsMonotonic
+    {
+        get
+        {
+            // Degenerated curves are monotonic? Ok, let's pass them
+            var n = NumEntries;
+            if (n < 2) return true;
+
+            // Curve direction
+            var lDesc = IsDescending;
+
+            if (lDesc) {
+
+                var last = Table16[0];
+
+                for (var i = 1; i < n; i++) {
+                    if (Table16[i] - last > 2) // We allow some ripple
+                        return false;
+                    else
+                        last = Table16[i];
+                }
+            } else {
+                var last = Table16[n - 1];
+
+                for (var i = n - 2; i >= 0; i--) {
+                    if (Table16[i] - last > 2)
+                        return false;
+                    else
+                        last = Table16[i];
+                }
+
+            }
+            return true;
+        }
+    }
+
     public bool IsDescending =>
         Table16[0] > Table16[NumEntries - 1];
 
@@ -56,6 +107,9 @@ public class ToneCurve : ICloneable, IDisposable
         NumSegments == 1
             ? Segments[0].Type
             : 0;
+
+    public double[] Params =>
+        Segments[0].Params;
 
     internal static ToneCurve? Alloc(Context? context, int numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
     {
@@ -554,11 +608,6 @@ public class ToneCurve : ICloneable, IDisposable
         return BuildSegmented(context, seg);
     }
 
-    internal float Eval(float v)
-    {
-        throw new NotImplementedException();
-    }
-
     public static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
     {
         var c = ParametricCurvesCollection.GetByType(context, type, out var pos);
@@ -737,6 +786,179 @@ public class ToneCurve : ICloneable, IDisposable
 
     public ToneCurve? Reverse() =>
         Reverse(4096);
+
+    private static bool Smooth2(float[] w, float[] y, float[] z, float lambda, int m)
+    {
+        int i, i1, i2;
+
+        var c = new float[MaxNodesInCurve];
+        var d = new float[MaxNodesInCurve];
+        var e = new float[MaxNodesInCurve];
+
+        d[1] = w[1] + lambda;
+        c[1] = -2 * lambda / d[1];
+        e[1] = lambda / d[1];
+        z[1] = w[1] * y[1];
+        d[2] = w[2] + 5 * lambda - d[1] * c[1] * c[1];
+        c[2] = (-4 * lambda - d[1] * c[1] * e[1]) / d[2];
+        e[2] = lambda / d[2];
+        z[2] = w[2] * y[2] - c[1] * z[1];
+
+        for (i = 3; i < m - 1; i++) {
+            i1 = i - 1; i2 = i - 2;
+            d[i] = w[i] + 6 * lambda - c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+            c[i] = (-4 * lambda - d[i1] * c[i1] * e[i1]) / d[i];
+            e[i] = lambda / d[i];
+            z[i] = w[i] * y[i] - c[i1] * z[i1] - e[i2] * z[i2];
+        }
+
+        i1 = m - 2; i2 = m - 3;
+
+        d[m - 1] = w[m - 1] + 5 * lambda - c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+        c[m - 1] = (-2 * lambda - d[i1] * c[i1] * e[i1]) / d[m - 1];
+        z[m - 1] = w[m - 1] * y[m - 1] - c[i1] * z[i1] - e[i2] * z[i2];
+        i1 = m - 1; i2 = m - 2;
+
+        d[m] = w[m] + lambda - c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+        z[m] = (w[m] * y[m] - c[i1] * z[i1] - e[i2] * z[i2]) / d[m];
+        z[m - 1] = z[m - 1] / d[m - 1] - c[m - 1] * z[m];
+
+        for (i = m - 2; 1 <= i; i--)
+            z[i] = z[i] / d[i] - c[i] * z[i + 1] - e[i] * z[i + 2];
+
+        return true;
+    }
+
+    public bool Smooth(double lambda)
+    {
+        var successStatus = true;
+
+        if (InterpParams is not null) {
+
+            var context = InterpParams.Context;
+
+            if (!IsLinear) { // Only non-linear curves need smoothing
+
+                var numItems = NumEntries;
+                if (numItems < MaxNodesInCurve) {
+
+                    // Allocate one more item than needed
+                    var w = new float[numItems + 1];
+                    var y = new float[numItems + 1];
+                    var z = new float[numItems + 1];
+
+                    {
+                        for (var i = 0; i < numItems; i++) {
+                            y[i + 1] = Table16[i];
+                            w[i + 1] = 1f;
+                        }
+
+                        var notCheck = false;
+
+                        if (lambda < 0) {
+                            notCheck = true;
+                            lambda = -lambda;
+                        }
+
+                        if (Smooth2(w, y, z, (float)lambda, numItems)) {
+
+                            // Do some reality checking...
+
+                            var zeros = 0;
+                            var poles = 0;
+                            for (var i = numItems; i > 1; i--) {
+
+                                if (z[i] == 0f) zeros++;
+                                if (z[i] >= 65535f) poles++;
+                                if (z[i] < z[i - 1]) {
+                                    Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Non-Monotonic.");
+                                    successStatus = notCheck;
+                                    break;
+                                }
+                            }
+
+                            if (successStatus && zeros > (numItems / 3)) {
+                                Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly zeros.");
+                                successStatus = notCheck;
+                            }
+
+                            if (successStatus && poles > (numItems / 3)) {
+                                Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly poles.");
+                                successStatus = notCheck;
+                            }
+
+                            if (successStatus) { // Seems ok
+                                for (var i = 0; i < numItems; i++)
+                                    // Clamp to ushort
+                                    Table16[i] = QuickSaturateWord(z[i + 1]);
+                            }
+                        } else { // Could not smooth
+                            Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Function Smooth2 failed.");
+                            successStatus = false;
+                        }
+                    }
+                } else {
+                    Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Too many points.");
+                    successStatus=false;
+                }
+            }
+        }
+
+        return successStatus;
+    }
+
+    public float Eval(float v)
+    {
+        // Check for 16 bit table. If so, this is a limited-precision tone curve
+        if (NumSegments == 0) {
+            var i = QuickSaturateWord(v * 65535.0);
+            var o = Eval(i);
+
+            return o / 65535.0f;
+        }
+
+        return (float)EvalSegmentedFn(v);
+    }
+
+    public ushort Eval(ushort v)
+    {
+        var i = new ushort[] { v };
+        var o = new ushort[1];
+
+        InterpParams!.Interpolation.Lerp16(i, ref o, InterpParams!);
+
+        return o[0];
+    }
+
+    public double EstimateGamma(double precision)
+    {
+        var sum = 0d;
+        var sum2 = 0d;
+        var n = 0d;
+
+        // Excluding endpoints
+        for (var i = 1; i < MaxNodesInCurve - 1; i++) {
+
+            var x = (double)i / (MaxNodesInCurve - 1);
+            var y = (double)Eval((float)x);
+
+            // Avoid 7% on lower part to prevent
+            // artifacts due to linear ramps
+            if (y > 0 && y < 1 && x > 0.07) {
+                var gamma = Log(y) / Log(x);
+                sum += gamma;
+                sum2 += gamma * gamma;
+                n++;
+            }
+        }
+
+        // Take a look on SD to see if gamma isn't exponential at all
+        var std = Sqrt(((n * sum2) - (sum * sum)) / (n * (n - 1)));
+
+        return (std > precision)
+            ? -1d
+            : sum / n; // The mean
+    }
 
     internal static ParametricCurvesCollection DefaultCurves = new(
         new (int Types, int Count)[]
