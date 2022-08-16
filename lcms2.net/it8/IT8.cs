@@ -602,6 +602,9 @@ public class IT8 : IDisposable
             disposed = true;
         }
     }
+
+    public KeyValue AddAvailableProperty(string key) =>
+        KeyValue.AddToList(ref ValidSampleId, key, "", "", WriteMode.Uncooked);
 }
 
 public enum WriteMode
