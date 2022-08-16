@@ -9,9 +9,9 @@ using Microsoft.VisualBasic;
 namespace lcms2.it8;
 public class Table
 {
-    public string SheetType;
+    public string? SheetType;
     public int NumSamples, NumPatches;
     public KeyValue? HeaderList;
-    public object DataFormat;
-    public object Data;
+    public object? DataFormat;
+    public object? Data;
 }

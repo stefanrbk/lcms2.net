@@ -56,6 +56,44 @@ public class IT8 : IDisposable
         }
     }
 
+    public string? SheetType
+    {
+        get =>
+            Table.SheetType;
+        set =>
+            Table.SheetType = value;
+    }
+
+    public void AllocTable() =>
+        Tables[TablesCount++] = new Table();
+
+    public static IT8 Alloc(Context? context)
+    {
+        var it8 = new IT8();
+
+        it8.AllocTable();
+
+        it8.Context = context;
+        it8.Sy = Symbol.Undefined;
+        it8.Ch = ' ';
+        it8.LineNo = 1;
+
+        it8.Id = new String(it8, MaxStr);
+        it8.Str = new String(it8, MaxStr);
+
+        it8.SheetType = "CGATS.17";
+
+        // Initialize predefined properties & data
+
+        for (var i = 0; i < Property.NumPredefinedProperties; i++)
+            it8.AddAvailableProperty(Property.PredefinedProperties[i].Id, Property.PredefinedProperties[i].As);
+
+        for (var i = 0; i < NumPredefinedSampleId; i++)
+            it8.AddAvailableSampleId(PredefinedSampleId[i]);
+
+        return it8;
+    }
+
     public static readonly string[] PredefinedSampleId = new string[]
     {
         "SAMPLE_ID",      // Identifies sample that data represents
@@ -603,8 +641,27 @@ public class IT8 : IDisposable
         }
     }
 
-    public KeyValue AddAvailableProperty(string key) =>
+    public KeyValue AddAvailableProperty(string key, WriteMode @as) =>
+        KeyValue.AddToList(ref ValidKeywords, key, "", "", @as);
+
+    public KeyValue AddAvailableSampleId(string key) =>
         KeyValue.AddToList(ref ValidSampleId, key, "", "", WriteMode.Uncooked);
+
+    public int SetTable(int numTable)
+    {
+        if (numTable >= TablesCount) {
+            if (numTable == TablesCount) {
+                if (numTable < MaxTables)
+                    Tables[TablesCount++] = new Table();
+            } else {
+                SynError($"Table {NumTable} is out of sequence");
+                return -1;
+            }
+        }
+
+        NumTable = numTable;
+        return numTable;
+    }
 }
 
 public enum WriteMode
