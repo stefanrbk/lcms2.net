@@ -2,7 +2,7 @@
 using lcms2.state;
 
 namespace lcms2.it8;
-public class IT8
+public class IT8 : IDisposable
 {
     public const int MaxId = 128;
     public const int MaxStr = 1024;
@@ -29,8 +29,8 @@ public class IT8
     public String Str;
 
     // Allowed keywords & datasets. They have visibility on whole stream
-    public KeyValue[] ValidKeywords;
-    public KeyValue[] ValidSampleId;
+    public KeyValue? ValidKeywords;
+    public KeyValue? ValidSampleId;
 
     public Memory<char> Source;
     public int LineNo;
@@ -43,6 +43,18 @@ public class IT8
     public byte[] DoubleFormatter = new byte[MaxId];
 
     public Context? Context;
+
+    public Table Table
+    {
+        get
+        {
+            if (NumTable >= TablesCount) {
+                SynError($"Table {NumTable} out of sequence");
+                return Tables[0];
+            }
+            return Tables[NumTable];
+        }
+    }
 
     public static readonly string[] PredefinedSampleId = new string[]
     {
@@ -573,6 +585,22 @@ public class IT8
         }
 
         return true;
+    }
+
+    private bool disposed = false;
+    public void Dispose()
+    {
+        if (!disposed) {
+            Tables = null!;
+            Id.IT8 = null!;
+            Str.IT8 = null!;
+            
+            for (var i = 0; i < MaxInclude; i++) {
+                FileStack?[i].Stream?.Dispose();
+            }
+            GC.SuppressFinalize(this);
+            disposed = true;
+        }
     }
 }
 
