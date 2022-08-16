@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using Stri = System.String;
 using lcms2.state;
 
 namespace lcms2.it8;
@@ -37,7 +32,7 @@ public class IT8
     public KeyValue[] ValidKeywords;
     public KeyValue[] ValidSampleId;
 
-    public byte[] Source;
+    public Memory<char> Source;
     public int LineNo;
 
     public FileContext[] FileStack = new FileContext[MaxInclude];
@@ -100,6 +95,485 @@ public class IT8
 
     public static int NumPredefinedSampleId =>
         PredefinedSampleId.Length;
+
+    public bool SynError(ReadOnlySpan<char> txt)
+    {
+        var errMsg = $"{FileStack[IncludeStackPointer].FileName}: Line {LineNo}, {new string(txt)}";
+        Context.SignalError(Context, ErrorCode.CorruptionDetected, errMsg);
+        return false;
+    }
+
+    public bool Check(Symbol sy, ReadOnlySpan<char> err) =>
+        Sy == sy || SynError(String.NoMeta(err));
+
+    public void NextChar()
+    {
+        var stream = FileStack[IncludeStackPointer].Stream;
+
+        if (stream is not null) {
+            Ch = stream.Read();
+            if (Ch < 0) {
+                if (IncludeStackPointer > 0) {
+                    stream.Dispose();
+                    IncludeStackPointer--;
+                    Ch = ' ';                   // Whitespace to be ignored
+                } else
+                    Ch = 0;
+            }
+        } else {
+            var span = Source.Span;
+            Ch = span[0];
+            Source = Source[1..];
+        }
+    }
+
+    public static Symbol BinSrchKey(ReadOnlySpan<char> id)
+    {
+        var l = 1;
+        var r = Keyword.NumKeys;
+
+        while (r >= l) {
+
+            var x = (l + r) / 2;
+            var res = Stri.Compare(new string(id), Keyword.TabKeys[x - 1].Id);
+            if (res == 0) return Keyword.TabKeys[x - 1].Symbol;
+            if (res < 0) r = x - 1;
+            else l = x + 1;
+        }
+
+        return Symbol.Undefined;
+    }
+
+    public static double XPow10(int n) =>
+        Math.Pow(10, n);
+
+    public void ReadReal(int inum)
+    {
+        Dnum = inum;
+
+        while (Char.IsDigit((char)Ch)) {
+
+            Dnum = (Dnum * 10) + (Ch - '0');
+            NextChar();
+        }
+
+        if (Ch == '.') {         // Decimal point
+
+            var frac = 0d;     // Fraction
+            var prec = 0;        // Precision
+
+            NextChar();          // Eats dec. point
+
+            while (Char.IsDigit((char)Ch)) {
+
+                frac = (frac * 10) + (Ch - '0');
+                prec++;
+                NextChar();
+            }
+
+            Dnum += frac / XPow10(prec);
+        }
+
+        // Exponent, example 34.00E+20
+        if (Char.ToUpper((char)Ch) == 'E') {
+
+            NextChar();
+
+            var sgn = 1;
+            if (Ch == '-') {
+                sgn = -1;
+                NextChar();
+            } else if (Ch == '+') {
+                sgn = +1;
+                NextChar();
+            }
+
+            var e = 0;
+            while (Char.IsDigit((char)Ch)) {
+
+                var digit = Ch - '0';
+
+                if ((e * 10.0) + digit < +2147483647.0)
+                    e = (e * 10) + digit;
+
+                NextChar();
+            }
+            e *= sgn;
+            Dnum *= XPow10(e);
+        }
+    }
+
+    public static double ParseFloatNumber(ReadOnlySpan<char> buffer)
+    {
+        var dnum = 0d;
+        var sign = 1;
+
+        // keep safe
+        if (buffer.Length == 0) return 0.0;
+
+        if (buffer[0] is '-' or '+') {
+
+            sign = buffer[0] == '-' ? -1 : 1;
+            buffer = buffer[1..];
+        }
+
+        while (buffer.Length > 0 && buffer[0] != 0 && Char.IsDigit((char)buffer[0])) {
+
+            dnum = (dnum * 10.0) + (buffer[0] - '0');
+
+            buffer = buffer[1..];
+        }
+
+        if (buffer.Length > 0 && buffer[0] == '.') {
+
+            var frac = 0d;
+            var prec = 0;
+
+            buffer = buffer[1..];
+
+            while (buffer.Length > 0 && Char.IsDigit(buffer[0])) {
+
+                frac = (frac * 10.0) + (buffer[0] - '0');
+                prec++;
+
+                buffer = buffer[1..];
+            }
+
+            dnum += frac / XPow10(prec);
+        }
+
+        if (buffer.Length > 0 && Char.ToUpper(buffer[0]) == 'E') {
+
+            buffer = buffer[1..];
+            int sgn = 1;
+
+            if (buffer.Length > 0 && buffer[0] == '-') {
+                sgn = -1;
+                buffer = buffer[1..];
+            } else if (buffer.Length > 0 && buffer[0] == '+') {
+                sgn = +1;
+                buffer = buffer[1..];
+            }
+
+            var e = 0;
+            while (buffer.Length > 0 && Char.IsDigit(buffer[0])) {
+
+                var digit = buffer[0] - '0';
+
+                if ((e * 10.0) + digit < +2147483647.0) {
+                    e = (e * 10) + digit;
+                }
+                buffer = buffer[1..];
+            }
+
+            e *= sgn;
+            dnum *= XPow10(e);
+        }
+
+        return sign * dnum;
+    }
+
+    public void InStringSymbol()
+    {
+        while (String.IsSeparator(Ch))
+            NextChar();
+
+        if (Ch is '\'' or '\"') {
+
+            var sng = Ch;
+            Str.Clear();
+
+            NextChar();
+
+            while (Ch != sng) {
+
+                if (Ch is '\n' or '\r' or 0) break;
+                else {
+                    Str.Append((char)Ch);
+                    NextChar();
+                }
+            }
+
+            Sy = Symbol.String;
+            NextChar();
+        } else
+            SynError("String expected");
+    }
+
+    public void InSymbol()
+    {
+        do {
+
+            while (String.IsSeparator(Ch)) {
+                NextChar();
+            }
+
+            if (String.IsFirstIdChar(Ch)) {                                     // Identifier?
+                Id.Clear();
+
+                do {
+
+                    Id.Append((char)Ch);
+
+                    NextChar();
+
+                } while (String.IsIdChar(Ch));
+
+                var key = BinSrchKey(Id.Begin.ToString());
+                Sy = key == Symbol.Undefined
+                    ? Symbol.Ident
+                    : key;
+            } else if (Char.IsDigit((char)Ch) || Ch is '.' or '-' or '+') {     // Is a number?
+
+                var sign = 1;
+
+                if (Ch == '-') {
+                    sign = -1;
+                    NextChar();
+                }
+
+                Inum = 0;
+                Sy = Symbol.Inum;
+
+                if (Ch == '0') {                // 0xnnnn (Hex) or 0bnnnn (Bin)
+
+                    NextChar();
+                    if (Char.ToUpper((char)Ch) == 'X') {
+
+                        NextChar();
+                        while (Char.IsDigit((char)Ch) || Char.ToUpper((char)Ch) is >= 'A' and <= 'F') {
+
+                            Ch = Char.ToUpper((char)Ch);
+                            var j = Ch is >= 'A' and <= 'F'
+                                ? Ch - 'A' + 10
+                                : Ch - '0';
+
+                            if ((Inum * 16.0) + j > +2147483647.0) {
+                                SynError("Invalid hexadecimal number");
+                                return;
+                            }
+
+                            Inum = (Inum * 16) + j;
+                            NextChar();
+                        }
+
+                        return;
+                    }
+
+                    if (Char.ToUpper((char)Ch) == 'B') {
+
+                        NextChar();
+                        while (Ch is '0' or '1') {
+
+                            var j = Ch - '0';
+
+                            if ((Inum * 2.0) + j > +2147483647.0) {
+                                SynError("Invalid binary number");
+                                return;
+                            }
+
+                            Inum = (Inum * 2) + j;
+                            NextChar();
+                        }
+
+                        return;
+                    }
+                }
+
+                while (Char.IsDigit((char)Ch)) {
+
+                    var digit = Ch - '0';
+
+                    if ((Inum * 10.0) + digit > +2147483647.0) {
+
+                        ReadReal(Inum);
+                        Sy = Symbol.Dnum;
+                        Dnum *= sign;
+                        return;
+                    }
+
+                    Inum = (Inum * 10) + digit;
+                    NextChar();
+                }
+
+                if (Ch is '.') {
+
+                    ReadReal(Inum);
+                    Sy = Symbol.Dnum;
+                    Dnum *= sign;
+                    return;
+                }
+
+                Inum *= sign;
+
+                // Special case. Numbers followed by letters are taken as identifiers
+
+                if (String.IsIdChar(Ch)) {
+
+                    var buf = Sy == Symbol.Inum
+                        ? Inum.ToString()
+                        : Dnum.ToString();
+
+                    Id.Concat(buf);
+
+                    do {
+                        Id.Append((char)Ch);
+
+                        NextChar();
+                    } while (String.IsIdChar(Ch));
+
+                    Sy = Symbol.Ident;
+                }
+                return;
+            } else {
+                switch (Ch) {
+                    // Eof marker -- ignore it
+                    case '\x1a':
+                        NextChar();
+
+                        break;
+
+                    // Eof stream markers
+                    case 0:
+                    case -1:
+                        Sy = Symbol.EOF;
+
+                        break;
+
+                    // Next line
+                    case '\r':
+                        NextChar();
+                        if (Ch is '\n')
+                            NextChar();
+                        Sy = Symbol.EOL;
+                        LineNo++;
+
+                        break;
+
+                    case '\n':
+                        NextChar();
+                        Sy = Symbol.EOL;
+                        LineNo++;
+
+                        break;
+
+                    // Comment
+                    case '#':
+                        NextChar();
+                        while (Ch is not 0 and not '\n' and not '\r')
+                            NextChar();
+
+                        Sy = Symbol.Comment;
+                        break;
+
+                    // String
+                    case '\'':
+                    case '\"':
+                        InStringSymbol();
+
+                        break;
+
+                    default:
+                        SynError($"Unrecognized character: 0x{Ch:x}");
+
+                        return;
+                }
+            }
+
+        } while (Sy == Symbol.Comment);
+
+        // Handle the include special token
+        if (Sy == Symbol.Include) {
+
+            if (IncludeStackPointer >= MaxInclude - 1) {
+                SynError("Too many recursion levels");
+
+                return;
+            }
+
+            InStringSymbol();
+            if (!Check(Symbol.String, "Filename expected")) return;
+
+            ref var fileNest = ref FileStack[IncludeStackPointer + 1];
+            if (fileNest is null) {
+                fileNest = new();
+            }
+
+            var buffer = new char[255];
+            if (!String.BuildAbsolutePath(Str.Begin.ToString(), FileStack[IncludeStackPointer].FileName, buffer.AsSpan(), 255)) {
+                SynError("File path too long");
+                return;
+            }
+            unsafe {
+                fixed (char* ptr = buffer) {
+                    fileNest.FileName = new Stri(ptr);
+                }
+            }
+
+            try {
+                fileNest.Stream = File.OpenText(fileNest.FileName);
+            } catch {
+                SynError($"An error occured while trying to open {fileNest.FileName}");
+                return;
+            }
+            IncludeStackPointer++;
+
+            Ch = ' ';
+            InSymbol();
+        }
+    }
+
+    public bool CheckEOL()
+    {
+        if (!Check(Symbol.EOL, "Expected separator")) return false;
+        while (Sy == Symbol.EOL) {
+            InSymbol();
+        }
+        return true;
+    }
+
+    public void Skip(Symbol sy)
+    {
+        if (Sy == sy && Sy != Symbol.EOF)
+            InSymbol();
+    }
+
+    public void SkipEOL()
+    {
+        while (Sy == Symbol.EOL)
+            InSymbol();
+    }
+
+    public bool GetValue(out Span<char> buffer, int max, ReadOnlySpan<char> errorTitle)
+    {
+        switch (Sy) {
+            case Symbol.EOL:
+                buffer = Array.Empty<char>();
+                break;
+
+            case Symbol.Ident:
+                buffer = Id.Begin.ToString().ToCharArray();
+                break;
+
+            case Symbol.Inum:
+                buffer = $"{Inum}".ToCharArray();
+                break;
+
+            case Symbol.Dnum:
+                buffer = $"{Dnum}".ToCharArray();
+                break;
+
+            case Symbol.String:
+                buffer = Str.Begin.ToString().ToCharArray();
+                break;
+
+            default:
+                buffer = Array.Empty<char>();
+                return SynError(errorTitle);
+        }
+
+        return true;
+    }
 }
 
 public enum WriteMode

@@ -8,5 +8,5 @@ namespace lcms2.it8;
 public class FileContext
 {
     public string FileName;
-    public Stream? Stream;
+    public StreamReader? Stream;
 }

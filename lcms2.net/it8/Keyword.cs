@@ -26,7 +26,7 @@ public struct Keyword
         new("KEYWORD", Symbol.Keyword),
     };
 
-    public static int NumTabKeys =>
+    public static int NumKeys =>
         TabKeys.Length;
 }
 
