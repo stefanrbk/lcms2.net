@@ -167,7 +167,7 @@ public abstract partial class TagTypeHandler
         if (numChannels is > Lcms2.MaxChannels || numEntries < 2) return false;
 
         for (var i = 0; i < numChannels; i++) {
-            var tab = ToneCurve.BuildTabulated16(Context, numEntries, null);
+            var tab = ToneCurve.BuildTabulated16(Context, (int)numEntries, null);
             if (tab is null) goto Error;
             tables[i] = tab;
 

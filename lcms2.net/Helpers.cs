@@ -6,8 +6,12 @@ internal static class Helpers
     internal const float MinusInf = -1e22f;
     internal const float PlusInf = 1e22f;
 
+    internal const ushort MaxNodesInCurve = 4097;
+
     internal const int MaxInputDimensions = 15;
     internal const int MaxStageChannels = 128;
+
+    internal const double DeterminantTolerance = 0.0001;
 
     internal static uint Uipow(uint n, uint a, uint b)
     {
@@ -96,4 +100,7 @@ internal static class Helpers
             >= 65535.0 => 0xFFFF,
             _ => QuickFloorWord(d),
         };
+
+    internal static ushort QuantizeValue(double i, int maxSamples) =>
+        QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 }

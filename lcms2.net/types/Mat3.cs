@@ -1,4 +1,7 @@
-﻿namespace lcms2.types;
+﻿using m = System.Math;
+using static lcms2.Helpers;
+
+namespace lcms2.types;
 
 /// <summary>
 /// Represents a 3x3 matrix of double-precision floating-point values.
@@ -8,23 +11,19 @@ public struct Mat3
 {
     public Vec3 X, Y, Z;
 
-    internal const double MatrixDetTolerance = 0.0001;
-
     public Mat3(Vec3 x, Vec3 y, Vec3 z) =>
         (X, Y, Z) = (x, y, z);
 
     public Vec3 this[int index]
     {
-        get
-        {
-            return index switch
+        get =>
+            index switch
             {
                 0 => X,
                 1 => Y,
                 2 => Z,
                 _ => throw new ArgumentOutOfRangeException(nameof(index), "Valid indexes are between 0 and 2 inclusively."),
             };
-        }
         set
         {
             switch (index) {
@@ -46,7 +45,7 @@ public struct Mat3
             new(0, 1, 0),
             new(0, 0, 1));
     private static bool CloseEnough(double a, double b) =>
-        Math.Abs(b - a) < (1.0 / 65535.0);
+        m.Abs(b - a) < (1.0 / 65535.0);
 
     /// <summary>
     /// Checks to see if this matrix is within 1e-4 of the identity matrix.
@@ -79,7 +78,7 @@ public struct Mat3
 
         var det = (this[0][0] * c0) + (this[0][1] * c1) + (this[0][2] * c2);
 
-        return Math.Abs(det) < MatrixDetTolerance
+        return m.Abs(det) < DeterminantTolerance
             ? null
             : (new(
             new(

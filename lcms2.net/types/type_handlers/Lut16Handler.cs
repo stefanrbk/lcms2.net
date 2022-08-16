@@ -119,7 +119,7 @@ public class Lut16Handler : TagTypeHandler
             return false;
         }
 
-        var clutPoints = clut?.Params[0].NumSamples[0] ?? 0;
+        var clutPoints = (uint)(clut?.Params[0].NumSamples[0] ?? 0);
 
         if (!io.Write((byte)newLut.InputChannels)) return false;
         if (!io.Write((byte)newLut.OutputChannels)) return false;

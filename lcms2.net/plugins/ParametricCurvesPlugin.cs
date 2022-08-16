@@ -6,12 +6,6 @@ using lcms2.types;
 namespace lcms2.plugins;
 
 /// <summary>
-///     Evaluator callback for user-supplied parametric curves. May implement more than one type
-/// </summary>
-/// <remarks>Implements the <c>cmsParametricCurveEvaluator</c> typedef.</remarks>
-public delegate double ParametricCurveEvaluator(Signature type, in double[] @params, double r);
-
-/// <summary>
 ///     Parametric Curves
 /// </summary>
 /// <remarks>
@@ -50,31 +44,6 @@ public sealed class ParametricCurvesPlugin : Plugin
     }
 }
 
-internal class ParametricCurvesCollection
-{
-    internal (int Types, int Count)[] Functions = new (int, int)[Lcms2.MaxTypesInPlugin];
-
-    internal ParametricCurveEvaluator? Evaluator;
-
-    internal ParametricCurvesCollection? Next;
-
-    public const int MaxInputDimensions = 15;
-
-    public ParametricCurvesCollection((int Types, int Count)[] functions, ParametricCurveEvaluator? evaluator, ParametricCurvesCollection? next)
-    {
-        functions.CopyTo(Functions.AsSpan());
-        Evaluator = evaluator;
-        Next = next;
-    }
-
-    public ParametricCurvesCollection(ParametricCurvesCollection other, ParametricCurvesCollection? next = null)
-    {
-        other.Functions.CopyTo(Functions.AsSpan());
-        Evaluator = other.Evaluator;
-        Next = next;
-    }
-}
-
 internal sealed class ParametricCurvesPluginChunk
 {
     internal ParametricCurvesCollection? parametricCurves;
@@ -84,14 +53,13 @@ internal sealed class ParametricCurvesPluginChunk
         if (src is not null)
             DupPluginCurvesList(ref ctx, src);
         else
-            ctx.chunks[(int)Chunks.InterpPlugin] = curvesPluginChunk;
+            ctx.chunks[(int)Chunks.InterpPlugin] = new ParametricCurvesPluginChunk();
     }
 
     private ParametricCurvesPluginChunk()
     { }
 
     internal static ParametricCurvesPluginChunk global = new();
-    private static readonly ParametricCurvesPluginChunk curvesPluginChunk = new();
 
     private static void DupPluginCurvesList(ref Context ctx, in Context src)
     {
