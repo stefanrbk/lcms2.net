@@ -46,7 +46,13 @@ public class ToneCurve : ICloneable, IDisposable
     public ushort[] EstimatedTable =>
         Table16;
 
-    internal int ParametricType =>
+    public bool IsDescending =>
+        Table16[0] > Table16[NumEntries - 1];
+
+    public bool IsMultisegment =>
+        NumSegments > 1;
+
+    public int ParametricType =>
         NumSegments == 1
             ? Segments[0].Type
             : 0;
@@ -608,6 +614,129 @@ public class ToneCurve : ICloneable, IDisposable
 
     public object Clone() =>
         Alloc(InterpParams?.Context, NumEntries, NumSegments, Segments, Table16)!;
+
+    public ToneCurve? Join(Context? context, ToneCurve Y, int numResultingPoints)
+    {
+        var X = this;
+        ToneCurve? result = null;
+
+        var Yreversed = Y.Reverse(numResultingPoints);
+        if (Yreversed is null) goto Error;
+
+        var res = new float[numResultingPoints];
+
+        // Iterate
+        for (var i = 0; i < numResultingPoints; i++) {
+            var t = (float)i / (numResultingPoints - 1);
+            var x = X.Eval(t);
+            res[i] = Yreversed.Eval(x);
+        }
+
+        result = BuildTabulatedFloat(context, numResultingPoints, res);
+
+    Error:
+        Yreversed?.Dispose();
+
+        return result;
+    }
+
+    private static int GetInterval(double @in, ushort[] lutTable, InterpParams p)
+    {
+        // A 1 point table is not allowed
+        if (p.Domain[0] < 1) return -1;
+
+        // Let's see if ascending or descending
+        if (lutTable[0] < lutTable[p.Domain[0]]) {
+
+            // Table is overall ascending
+            for (var i = p.Domain[0] - 1; i >= 0; i--) {
+
+                var y0 = lutTable[i];
+                var y1 = lutTable[i + 1];
+
+                if (y0 <= y1) { // Increasing
+                    if (@in >= y0 && @in <= y1) return i;
+                } else { // Decreasing
+                    if (@in >= y1 && @in <= y0) return i;
+                }
+            }
+        } else {
+            // Table is overall descending
+            for (var i = 0; i < p.Domain[0]; i++) {
+
+                var y0 = lutTable[i];
+                var y1 = lutTable[i + 1];
+
+                if (y0 <= y1) {
+                    if (@in >= y0 && @in <= y1) return i;
+                } else {
+                    if (@in >= y1 && @in <= y0) return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    public ToneCurve? Reverse(int numResultSamples)
+    {
+        var a = 0.0;
+        var b = 0.0;
+        
+        // Try to reverse it analytically whatever possible
+
+        if (NumSegments == 1 && Segments[0].Type > 0 &&
+            /* Segments[0].Type <= 5 */
+            ParametricCurvesCollection.GetByType(InterpParams?.Context, Segments[0].Type, out _) is not null) {
+
+            return BuildParametric(InterpParams?.Context, -Segments[0].Type, Segments[0].Params);
+        }
+
+        var result = BuildTabulated16(InterpParams?.Context, numResultSamples, null);
+        if (result is null)
+            return null;
+
+        // We want to know if this is an ascending or descending table
+        var ascending = !IsDescending;
+
+        // Iterate across Y axis
+        for (var i = 0; i < numResultSamples; i++) {
+            var y = i * 65535.0 / (numResultSamples - 1);
+
+            // Find interval in which y is within.
+            var j = GetInterval(y, Table16, InterpParams!);
+            if (j >= 0) {
+
+                // Get limits of interval
+                var x1 = Table16[j];
+                var x2 = Table16[j + 1];
+
+                var y1 = j * 65535.0 / (NumEntries - 1);
+                var y2 = (j + 1) * 65535.0 / (NumEntries - 1);
+
+                // if collapsed, then use any
+                if (x1 == x2) {
+
+                    result.Table16[i] = QuickSaturateWord(ascending ? y2 : y1);
+                    continue;
+
+                } else {
+
+                    // Interpolate
+                    a = (y2 - y1) / (x2 - x1);
+                    b = y2 - (a * x2);
+
+                }
+            }
+
+            result.Table16[i] = QuickSaturateWord((a * y) + b);
+        }
+
+        return result;
+    }
+
+    public ToneCurve? Reverse() =>
+        Reverse(4096);
 
     internal static ParametricCurvesCollection DefaultCurves = new(
         new (int Types, int Count)[]
