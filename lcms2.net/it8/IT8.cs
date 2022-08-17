@@ -1,6 +1,7 @@
 ﻿using Stri = System.String;
 using lcms2.state;
 using System.Text;
+using System.Security.Cryptography.X509Certificates;
 
 namespace lcms2.it8;
 public class IT8 : IDisposable
@@ -597,29 +598,43 @@ public class IT8 : IDisposable
 
     public bool GetValue(out Span<char> buffer, int max, ReadOnlySpan<char> errorTitle)
     {
+        string value;
         switch (Sy) {
             case Symbol.EOL:
                 buffer = Array.Empty<char>();
                 break;
 
             case Symbol.Ident:
-                buffer = Id.Begin.ToString().ToCharArray();
+                value = Id.Begin.ToString();
+                if (value.Length > max) value = value[..max];
+                buffer = value.ToCharArray();
+
                 break;
 
             case Symbol.Inum:
-                buffer = $"{Inum}".ToCharArray();
+                value = Inum.ToString();
+                if (value.Length > max) value = value[..max];
+                buffer = value.ToCharArray();
+
                 break;
 
             case Symbol.Dnum:
-                buffer = $"{Dnum}".ToCharArray();
+                value = Dnum.ToString();
+                if (value.Length > max) value = value[..max];
+                buffer = value.ToCharArray();
+
                 break;
 
             case Symbol.String:
-                buffer = Str.Begin.ToString().ToCharArray();
+                value = Str.Begin.ToString();
+                if (value.Length > max) value = value[..max];
+                buffer = value.ToCharArray();
+
                 break;
 
             default:
                 buffer = Array.Empty<char>();
+
                 return SynError(errorTitle);
         }
 
@@ -963,6 +978,389 @@ public class IT8 : IDisposable
         bytesNeeded = sd.Used;
 
         return true;
+    }
+
+    public bool DataFormatSection()
+    {
+        var t = Table;
+
+        InSymbol();     // Eats "BEGIN_DATA_FORMAT"
+        CheckEOL();
+
+        var iField = 0;
+        while (Sy is not Symbol.SendDataFormat and not Symbol.EOL and not Symbol.EOF and not Symbol.SynError) {
+
+            if (Sy != Symbol.Ident) {
+
+                return SynError("Sample type expected");
+            }
+
+            if (!SetDataFormat(iField, Id.Begin.ToString())) return false;
+            iField++;
+
+            InSymbol();
+            SkipEOL();
+        }
+
+        SkipEOL();
+        Skip(Symbol.SendDataFormat);
+        SkipEOL();
+
+        if (iField != t.NumSamples) {
+            SynError($"Count mismatch. NUMBER_OF_FIELDS was {t.NumSamples}, found {iField}\n");
+        }
+
+        return true;
+    }
+
+    public bool DataSection()
+    {
+        var iField = 0;
+        var iSet = 0;
+        var t = Table;
+
+        InSymbol();     // Eats "BEGIN_DATA"
+        CheckEOL();
+
+        if (t.Data is null)
+            AllocateDataSet();
+
+        while (Sy is not Symbol.SendData and not Symbol.EOF) {
+
+            if (iField >= t.NumSamples) {
+                iField = 0;
+                iSet++;
+            }
+
+            switch (Sy) {
+                case Symbol.Ident:
+                    if (!SetData(iSet, iField, Id.Begin.ToString()))
+                        return false;
+                    break;
+
+                case Symbol.String:
+                    if (!SetData(iSet, iField, Str.Begin.ToString()))
+                        return false;
+                    break;
+
+                default:
+
+                    if (!GetValue(out var buffer, 255, "Sample data expected"))
+                        return false;
+
+                    if (!SetData(iSet, iField, new string(buffer)))
+                        return false;
+                    break;
+            }
+
+            iField++;
+
+            InSymbol();
+            SkipEOL();
+        }
+
+        SkipEOL();
+        Skip(Symbol.SendData);
+        SkipEOL();
+
+        // Check for data completion.
+
+        if ((iSet + 1) != t.NumPatches)
+            return SynError($"Count mismatch. NUMBER_OF_SETS was {t.NumPatches}, found {iSet + 1}\n");
+
+        return true;
+    }
+
+    public bool HeaderSection()
+    {
+        Span<char> buffer;
+
+        while (Sy is not Symbol.EOF and not Symbol.SynError and not Symbol.BeginDataFormat and not Symbol.BeginData) {
+
+            switch (Sy) {
+
+                case Symbol.Keyword:
+
+                    InSymbol();
+                    if (!GetValue(out buffer, MaxStr - 1, "Keyword expected")) return false;
+                    AddAvailableProperty(new string(buffer), WriteMode.Uncooked);
+                    InSymbol();
+
+                    break;
+
+                case Symbol.DataFormatId:
+
+                    InSymbol();
+                    if (!GetValue(out buffer, MaxStr - 1, "Keyword expected")) return false;
+                    AddAvailableSampleId(new string(buffer));
+                    InSymbol();
+
+                    break;
+
+                case Symbol.Ident:
+
+                    var varName = Id.Begin.ToString();
+
+                    if (!KeyValue.IsAvailableOnList(ValidKeywords!, varName, "", out var key)) {
+
+                        key = AddAvailableProperty(varName, WriteMode.Uncooked);
+                    }
+
+                    InSymbol();
+                    if (!GetValue(out buffer, MaxStr - 1, "Property data expected")) return false;
+
+                    if (key.WriteAs != WriteMode.Pair) {
+                        KeyValue.AddToList(ref Table.HeaderList, varName, "", new string(buffer), (Sy == Symbol.String) ? WriteMode.Stringify : WriteMode.Uncooked);
+                    } else {
+                        if (Sy != Symbol.String)
+                            return SynError($"Invalid value '{new string(buffer)}' for property '{varName}'");
+
+                        // chop the string as a list of "subkey, value" pairs, using ';' as a separator
+                        // for each pair, split the subkey and the value
+                        var keys = new string(buffer).Split(';').Select(k => k.Split(',', StringSplitOptions.TrimEntries)).ToArray();
+                        for (var i = 0; i < keys.Length; i++) {
+
+                            if (keys[i].Length != 2)
+                                return SynError($"Invalid value for property '{varName}'");
+
+                            (var subkey, var value) = (keys[i][0], keys[i][1]);
+
+                            if (string.IsNullOrEmpty(subkey) || string.IsNullOrEmpty(value))
+                                return SynError($"Invalid value for property '{varName}'");
+
+                            KeyValue.AddToList(ref Table.HeaderList, varName, subkey, value, WriteMode.Pair);
+                        }
+                    }
+
+                    InSymbol();
+
+                    break;
+
+                case Symbol.EOL: break;
+
+                default:
+                    return SynError("Expected keyword or identifier");
+            }
+
+            SkipEOL();
+        }
+
+        return true;
+    }
+
+    public void ReadType(out string sheetType)
+    {
+        var count = 0;
+
+        // First line is a very special case.
+        var sb = new StringBuilder();
+        while (String.IsSeparator(Ch))
+            NextChar();
+
+        while (Ch is not '\r' and not '\n' and not '\t' and not 0) {
+
+            if (count++ < MaxStr)
+                sb.Append(Ch);
+            NextChar();
+        }
+
+        sheetType = sb.ToString();
+    }
+
+    public bool Parse(bool nosheet)
+    {
+        var sheetType = Tables[0].SheetType;
+
+        if (nosheet)
+            ReadType(out sheetType);
+
+        InSymbol();
+        SkipEOL();
+
+        while(Sy is not Symbol.EOF and not Symbol.SynError) {
+
+            switch (Sy) {
+                case Symbol.BeginDataFormat:
+
+                    if (!DataFormatSection()) return false;
+
+                    break;
+
+                case Symbol.BeginData:
+
+                    if (!DataSection()) return false;
+
+                    if (Sy is not Symbol.EOF) {
+
+                        AllocTable();
+                        NumTable = TablesCount - 1;
+
+                        // Read sheet type if present. We only support identifier and string.
+                        // <ident> <eol> is a type string
+                        // anything else, is not a type string
+                        if (!nosheet) {
+
+                            if (Sy is Symbol.Ident) {
+
+                                // May be a type sheet or may be a prop value statement. We cannot use InSymbol in
+                                // this special case...
+                                while (String.IsSeparator(Ch))
+                                    NextChar();
+
+                                // If a newline is found, then this is a type string
+                                if (Ch is '\n' or '\r') {
+
+                                    SheetType = Id.Begin.ToString();
+                                    InSymbol();
+
+                                } else
+                                    // It is not. Just continue
+                                    SheetType = "";
+                            } else if (Sy is Symbol.String) {   // Validate quoted strings
+
+                                SheetType = Str.Begin.ToString();
+                                InSymbol();
+                            }
+                        }
+                    }
+
+                    break;
+
+                case Symbol.EOL:
+
+                    SkipEOL();
+                    break;
+
+                default:
+                    if (!HeaderSection()) return false;
+                    break;
+            }
+        }
+
+        return Sy is not Symbol.SynError;
+    }
+
+    public void CookPointers()
+    {
+        var numOldTable = NumTable;
+
+        for (var j = 0; j < TablesCount; j++) {
+
+            var t = Tables[j];
+
+            t.SampleId = 0;
+            NumTable = j;
+
+            for (var idField = 0; idField < t.NumSamples; idField++) {
+
+                if (t.DataFormat is null) {
+                    SynError("Undefined DATA_FORMAT");
+                    return;
+                }
+
+                var fld = t.DataFormat[idField];
+                if (string.IsNullOrEmpty(fld)) continue;
+
+                if (string.Compare(fld, "SAMPLE_ID") == 0)
+
+                    t.SampleId = idField;
+
+                // "LABEL" is an extension. It keeps references to forward tables
+
+                if (string.Compare(fld, "LABEL") == 0 || fld[0] == '$') {
+
+                    // Search for table references...
+                    for (var i = 0; i < t.NumPatches; i++) {
+
+                        var label = GetData(i, idField);
+
+                        if (!string.IsNullOrEmpty(label)) {
+
+                            // This is the label, search for a table containing
+                            // this property
+
+                            for (var k = 0; k < TablesCount; k++) {
+
+                                var table = Tables[k];
+
+                                if (KeyValue.IsAvailableOnList(table.HeaderList!, label, "", out var p)) {
+
+                                    // Available, keep type and table
+                                    var type = p.Value;
+                                    var numTable = k;
+
+                                    var s = $"{label} {numTable} {type}";
+                                    if (s.Length > 255)
+                                        s = s[..255];
+                                    SetData(i, idField, s);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        NumTable = numOldTable;
+    }
+
+    public static int IsMyBlock(ReadOnlySpan<char> buffer)
+    {
+        int words = 1, space = 0;
+        var quot = false;
+        var n = buffer.Length;
+
+        if (n < 10) return 0;       // Too small
+
+        if (n > 132) {
+            n = 132;
+            buffer = buffer[..132];
+        }
+
+        for (var i = 0; i < n; i++) {
+
+            switch (buffer[i]) {
+                case '\n':
+                case '\r':
+                    return (quot || (words > 2)) ? 0 : words;
+                case '\t':
+                case ' ':
+                    if (!quot && space == 0)
+                        space = 1;
+                    break;
+                case '\"':
+                    quot = !quot;
+                    break;
+                default:
+                    if (buffer[i] is < (char)32 or > (char)127) return 0;
+                    words += space;
+                    space = 0;
+                    break;
+            }
+        }
+
+        return 0;
+    }
+
+    public static bool IsMyFile(string filename)
+    {
+        try {
+
+            using var fp = File.OpenText(filename);
+
+            var buffer = new char[132];
+            var size = fp.Read(buffer);
+
+            fp.Close();
+
+            return IsMyBlock(buffer) != 0;
+
+        } catch (FileNotFoundException) {
+            Context.SignalError(null, ErrorCode.File, $"File '{filename}' not found");
+            return false;
+        } catch {
+            return false;
+        }
     }
 }
 

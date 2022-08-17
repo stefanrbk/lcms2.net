@@ -14,11 +14,11 @@ public class KeyValue
     public string? Value;           // Points to value
     public WriteMode WriteAs;       // How to write the value
 
-    public static bool IsAvailableOnList(KeyValue? p, string key, string subkey, out KeyValue? lastPtr)
+    public static bool IsAvailableOnList(KeyValue p, string key, string subkey, out KeyValue lastPtr)
     {
         lastPtr = p;
 
-        for (; p is not null; p = p.Next) {
+        for (; p is not null; p = p.Next!) {
 
             lastPtr = p;
 
@@ -34,7 +34,7 @@ public class KeyValue
         if (string.IsNullOrEmpty(subkey))
             return true;
 
-        for (; p is not null; p = p.NextSubkey) {
+        for (; p is not null; p = p.NextSubkey!) {
 
             if (string.IsNullOrEmpty(p.Subkey)) continue;
 
