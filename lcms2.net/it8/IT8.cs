@@ -662,6 +662,33 @@ public class IT8 : IDisposable
         NumTable = numTable;
         return numTable;
     }
+
+    public bool SetComment(string val)
+    {
+        if (string.IsNullOrEmpty(val)) return false;
+
+        return KeyValue.AddToList(ref Table.HeaderList, "# ", "", val, WriteMode.Uncooked) is not null;
+    }
+
+    public bool SetPropertyString(string key, string val)
+    {
+        if (string.IsNullOrEmpty(val)) return false;
+
+        return KeyValue.AddToList(ref Table.HeaderList, key, "", val, WriteMode.Stringify) is not null;
+    }
+
+    public string GetProperty(string key) =>
+        KeyValue.IsAvailableOnList(Table.HeaderList, key, "", out var p)
+            ? (p!.Value ?? "")
+            : "";
+
+    public double GetPropertyDouble(string cProp) =>
+        ParseFloatNumber(GetProperty(cProp));
+
+    public string GetPropertyMulti(string key, string subkey) =>
+        KeyValue.IsAvailableOnList(Table.HeaderList, key, subkey, out var p)
+            ? (p!.Value ?? "")
+            : "";
 }
 
 public enum WriteMode

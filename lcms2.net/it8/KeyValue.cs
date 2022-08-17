@@ -11,7 +11,7 @@ public class KeyValue
     public string Keyword;          // Name of variable
     public KeyValue? NextSubkey;    // If key is a dictionary, points to the next item
     public string? Subkey;          // If key is a dictionary, points to the subkey name
-    public object? Value;           // Points to value
+    public string? Value;           // Points to value
     WriteMode WriteAs;              // How to write the value
 
     public static bool IsAvailableOnList(KeyValue? p, string key, string subkey, out KeyValue? lastPtr)
