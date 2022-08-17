@@ -689,6 +689,114 @@ public class IT8 : IDisposable
         KeyValue.IsAvailableOnList(Table.HeaderList, key, subkey, out var p)
             ? (p!.Value ?? "")
             : "";
+
+    public void AllocateDataFormat()
+    {
+        var t = Table;
+
+        if (t.DataFormat is not null) return;   // Already allocated
+
+        t.NumSamples = (int)GetPropertyDouble("NUMBER_OF_FIELDS");
+
+        if (t.NumSamples <= 0) {
+
+            SynError("AllocateDataFormat: Unknown NUMBER_OF_FIELDS");
+            t.NumSamples = 10;
+        }
+
+        t.DataFormat = new string[t.NumSamples + 1];
+    }
+
+    public string? GetDataFormat(int n) =>
+        Table.DataFormat?[n];
+
+    public bool SetDataFormat(int n, string label)
+    {
+        var t = Table;
+
+        if (t is null)
+            AllocateDataFormat();
+
+        if (n > t!.NumSamples) {
+            SynError("More than NUMBER_OF_FIELDS fields.");
+            return false;
+        }
+
+        if (t.DataFormat is not null)
+            t.DataFormat[n] = label;
+
+        return true;
+    }
+
+    public static int StringToInt(string? b)
+    {
+        try {
+            if (b is null) return 0;
+            return Int32.Parse(b);
+        } catch {
+            return 0;
+        }
+    }
+
+    public static string StringToBinary(string? v)
+    {
+        if (v is null) return "0";
+        var value = StringToInt(v);
+
+        if (value == 0) return "0";
+
+        var chars = new List<char>((int)Math.Floor(Math.Log2(value)));
+
+        for (; value > 0; value /= 2) chars.Add((char)('0' + (value % 2)));
+
+        return new string(((IEnumerable<char>)chars).Reverse().ToArray());
+    }
+
+    public void AllocateDataSet()
+    {
+        var t = Table;
+
+        if (t.Data is not null) return;     // Already allocated
+
+        t.NumSamples = StringToInt(GetProperty("NUMBER_OF_FIELDS"));
+        t.NumPatches = StringToInt(GetProperty("NUMBER_OF_SETS"));
+
+        if (t.NumSamples is < 0 or > 0x7FFE || t.NumPatches is < 0 or > 0x7FFE) {
+            SynError("AllocateDataSet: too much data");
+        } else {
+            t.Data = new string[(t.NumSamples + 1) * (t.NumPatches + 1)];
+        }
+    }
+
+    public string? GetData(int setIndex, int fieldIndex)
+    {
+        var t = Table;
+        var sam = t.NumSamples;
+        var pat = t.NumPatches;
+
+        if (setIndex >= pat || fieldIndex >= sam)
+            return null;
+
+        if (t.Data is null)
+            return null;
+        return t.Data[(setIndex * sam) + fieldIndex];
+    }
+
+    public bool SetData(int setIndex, int fieldIndex, string value)
+    {
+        var t = Table;
+
+        if (t.Data is null) return false;
+
+        if (setIndex > t.NumPatches || setIndex < 0)
+            return SynError($"Patch {setIndex} out of range, there are {t.NumPatches} patches");
+
+        if (fieldIndex > t.NumSamples || fieldIndex < 0)
+            return SynError($"Sample {fieldIndex} out of range, there are {t.NumSamples} samples");
+
+        t.Data[(setIndex * t.NumSamples) + fieldIndex] = value;
+        return true;
+    }
 }
 
 public enum WriteMode

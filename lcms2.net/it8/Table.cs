@@ -12,6 +12,6 @@ public class Table
     public string? SheetType;
     public int NumSamples, NumPatches;
     public KeyValue? HeaderList;
-    public object? DataFormat;
-    public object? Data;
+    public string[]? DataFormat;
+    public string[]? Data;
 }
