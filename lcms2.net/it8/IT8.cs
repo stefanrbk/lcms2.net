@@ -1,5 +1,6 @@
 ﻿using Stri = System.String;
 using lcms2.state;
+using System.Text;
 
 namespace lcms2.it8;
 public class IT8 : IDisposable
@@ -795,6 +796,172 @@ public class IT8 : IDisposable
             return SynError($"Sample {fieldIndex} out of range, there are {t.NumSamples} samples");
 
         t.Data[(setIndex * t.NumSamples) + fieldIndex] = value;
+        return true;
+    }
+
+    public void WriteHeader(SaveStream fp)
+    {
+        var t = Table;
+
+        // Writes the type
+        fp.WriteString(t.SheetType);
+        fp.WriteString("\n");
+
+        for (var p = t.HeaderList; p is not null; p = p.Next) {
+
+            if (p.Keyword[0] == '#') {
+
+                fp.WriteString("#\n# ");
+
+                var pt = new StringBuilder(p.Value);
+                fp.WriteString(pt.Replace("\n", "\n# ").ToString());
+
+                fp.WriteString("\n#\n");
+                continue;
+            }
+
+            if (!KeyValue.IsAvailableOnList(ValidKeywords, p.Keyword, "", out _)) {
+                AddAvailableProperty(p.Keyword, WriteMode.Uncooked);
+            }
+
+            fp.WriteString(p.Keyword);
+            if (p.Value is not null) {
+
+                switch (p.WriteAs) {
+                    case WriteMode.Uncooked:
+                        fp.WriteString($"\t{p.Value}");
+                        break;
+                    case WriteMode.Stringify:
+                        fp.WriteString($"\t\"{p.Value}\"");
+                        break;
+                    case WriteMode.Hexadecimal:
+                        fp.WriteString($"\t0x{StringToInt(p.Value):X}");
+                        break;
+                    case WriteMode.Binary:
+                        fp.WriteString($"\t0b{StringToBinary(p.Value)}");
+                        break;
+                    case WriteMode.Pair:
+                        fp.WriteString($"\t\"{p.Subkey},{p.Value}\"");
+                        break;
+                    default:
+                        SynError($"Unknown write mode {p.WriteAs}");
+                        return;
+                }
+            }
+
+            fp.WriteString("\n");
+        }
+    }
+
+    public void WriteDataFormat(SaveStream fp)
+    {
+        var t = Table;
+
+        if (t.DataFormat is null) return;
+
+        fp.WriteString("BEGIN_DATA_FORMAT\n ");
+        var numSamples = StringToInt(GetProperty("NUMBER_OF_FIELDS"));
+
+        for (var i = 0; i < numSamples; i++) {
+
+            fp.WriteString(t.DataFormat[i]);
+            fp.WriteString((i == (numSamples - 1)) ? "\n" : "\t");
+        }
+
+        fp.WriteString("END_DATA_FORMAT\n");
+    }
+
+    public void WriteData(SaveStream fp)
+    {
+        var t = Table;
+
+        if (t.Data is null) return;
+
+        fp.WriteString("BEGIN_DATA\n");
+
+        t.NumPatches = StringToInt(GetProperty("NUMBER_OF_SETS"));
+
+        for (var i = 0; i < t.NumPatches; i++) {
+
+            fp.WriteString(" ");
+
+            for (var j = 0; j < t.NumSamples; j++) {
+
+                var ptr = t.Data[(i * t.NumSamples) + j];
+
+                if (string.IsNullOrEmpty(ptr)) fp.WriteString("\"\"");
+                else {
+                    // If value contains whitespace, enclose within quote
+
+                    if (ptr.Contains(' ')) {
+
+                        fp.WriteString($"\"{ptr}\"");
+                    } else
+                        fp.WriteString(ptr);
+                }
+
+                fp.WriteString((j == (t.NumSamples - 1)) ? "\n" : "\t");
+            }
+        }
+
+        fp.WriteString("END_DATA\n");
+    }
+
+    public bool SaveToFile(string filename)
+    {
+        var sd = new SaveStream();
+
+        try {
+            using var writer = new StreamWriter(File.OpenWrite(filename));
+            sd.Stream = writer;
+
+            for (var i = 0; i < TablesCount; i++) {
+
+                SetTable(i);
+                WriteHeader(sd);
+                WriteDataFormat(sd);
+                WriteData(sd);
+            }
+
+            sd.Stream = null;
+
+            return true;
+
+        } catch {
+            return false;
+        }
+    }
+
+    public bool SaveToMem(Memory<byte>? memPtr, ref int bytesNeeded)
+    {
+        var sd = new SaveStream
+        {
+            Stream = null,
+            Base = memPtr,
+            Ptr = memPtr,
+
+            Used = 0,
+            Max = (memPtr is not null)
+                ? bytesNeeded
+                : 0
+        };
+
+        for (var i = 0; i < TablesCount; i++) {
+
+            SetTable(i);
+
+            WriteHeader(sd);
+            WriteDataFormat(sd);
+            WriteData(sd);
+        }
+
+        sd.Used++;  // The \0 at the very end
+
+        if (sd.Ptr is not null)
+            sd.Ptr.Value.Span[0] = 0;
+
+        bytesNeeded = sd.Used;
+
         return true;
     }
 }
