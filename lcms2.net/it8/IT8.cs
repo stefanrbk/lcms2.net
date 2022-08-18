@@ -1,7 +1,7 @@
 ﻿using Stri = System.String;
 using lcms2.state;
 using System.Text;
-using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics;
 
 namespace lcms2.it8;
 public class IT8 : IDisposable
@@ -40,7 +40,7 @@ public class IT8 : IDisposable
     public FileContext[] FileStack = new FileContext[MaxInclude];
     public int IncludeStackPointer;
 
-    public byte[]? MemoryBlock;
+    public char[]? MemoryBlock;
 
     public byte[] DoubleFormatter = new byte[MaxId];
 
@@ -1361,6 +1361,271 @@ public class IT8 : IDisposable
         } catch {
             return false;
         }
+    }
+
+    public static IT8? LoadFromMemory(ReadOnlyMemory<char> ptr)
+    {
+        var len = ptr.Length;
+
+        Debug.Assert(len != 0);
+
+        var type = IsMyBlock(ptr.Span);
+        if (type is 0) return null;
+
+        var it8 = new IT8()
+        {
+            MemoryBlock = ptr.ToArray(),
+        };
+        it8.FileStack[0] = new FileContext()
+        {
+            FileName = ""
+        };
+        it8.Source = it8.MemoryBlock;
+
+        if (!it8.Parse(type == 0)) {
+
+            it8.Dispose();
+            return null;
+        }
+
+        it8.CookPointers();
+        it8.NumTable = 0;
+
+        it8.MemoryBlock = null;
+
+        return it8;
+    }
+
+    public static IT8? LoadFromFile(string filename)
+    {
+        Debug.Assert(!string.IsNullOrEmpty(filename));
+
+        var type = IsMyFile(filename);
+        if (!type) return null;
+
+        var it8 = new IT8();
+
+        try {
+            it8.FileStack[0] = new FileContext()
+            {
+                Stream = File.OpenText(filename),
+                FileName = filename,
+            };
+
+            if (!it8.Parse(!type)) {
+
+                it8.FileStack[0].Stream!.Close();
+                it8.Dispose();
+                return null;
+            }
+
+            it8.CookPointers();
+            it8.NumTable = 0;
+
+            return it8;
+
+        } catch {
+            it8.Dispose();
+            return null;
+        }
+    }
+
+    public int EnumDataFormat(out string[]? sampleNames)
+    {
+        var it8 = this;
+
+        var t = it8.Table;
+
+        sampleNames = t.DataFormat;
+        return t.NumSamples;
+    }
+
+    public int EnumProperties(out string[]? propertyNames)
+    {
+        var t = Table;
+
+
+        var props = new List<string>();
+        for (var p = t.HeaderList; p is not null; p = p.Next) {
+            props.Add(p.Keyword);
+        }
+
+        propertyNames = props.ToArray();
+        return props.Count;
+    }
+
+    public int EnumPropertyMulti(string cProp, out string[]? subPropertyNames)
+    {
+        var t = Table;
+
+        if (!KeyValue.IsAvailableOnList(t.HeaderList!, cProp, "", out var p)) {
+            subPropertyNames = null;
+            return 0;
+        }
+
+        var props = new List<string>();
+        for (var tmp = p; tmp is not null; tmp = tmp.NextSubkey) {
+            if (tmp.Subkey is not null)
+                props.Add(tmp.Subkey);
+        }
+
+        subPropertyNames = props.ToArray();
+        return props.Count;
+    }
+
+    public int LocatePatch(string patch)
+    {
+        var t = Table;
+
+        for (var i = 0; i < t.NumPatches; i++) {
+
+            var data = GetData(i, t.SampleId);
+
+            if (data is not null && string.Compare(data, patch) == 0)
+                return i;
+        }
+
+        return -1;
+    }
+
+    public int LocateEmptyPatch()
+    {
+        var t = Table;
+
+        for (var i = 0; i < t.NumPatches; i++) {
+
+            var data = GetData(i, t.SampleId);
+
+            if (string.IsNullOrEmpty(data)) return i;
+        }
+
+        return -1;
+    }
+
+    public int LocateSample(string sample)
+    {
+        var t = Table;
+        for (var i = 0; i < t.NumSamples; i++) {
+
+            var fld = GetDataFormat(i);
+            if (!string.IsNullOrEmpty(fld))
+                if (string.Compare(fld, sample) == 0)
+                    return i;
+        }
+
+        return -1;
+    }
+
+    public int FindDataFormat(string sample) =>
+        LocateSample(sample);
+
+    public string? GetDataRowCol(int row, int col) =>
+        GetData(row, col);
+
+    public double GetDataRowColDouble(int row, int col)
+    {
+        var value = GetDataRowCol(row, col);
+
+        if (string.IsNullOrEmpty(value)) return 0;
+
+        return ParseFloatNumber(value);
+    }
+
+    public bool SetDataRowCol(int row, int col, string value) =>
+        SetData(row, col, value);
+
+    public bool SetDataRowCol(int row, int col, double value) =>
+        SetData(row, col, value.ToString());
+
+    public string? GetData(string patch, string sample)
+    {
+        var iField = LocateSample(sample);
+        if (iField < 0) return null;
+
+        var iSet = LocatePatch(patch);
+        if (iSet < 0) return null;
+
+        return GetData(iSet, iField);
+    }
+
+    public double GetDataDouble(string patch, string sample) =>
+        ParseFloatNumber(GetData(patch, sample));
+
+    public bool SetData(string patch, string sample, string value)
+    {
+        var t = Table;
+
+        var iField = LocateSample(sample);
+
+        if (iField < 0) return false;
+
+        if (t.NumPatches == 0) {
+
+            AllocateDataFormat();
+            AllocateDataSet();
+            CookPointers();
+        }
+
+        int iSet;
+        if (string.Compare(sample, "SAMPLE_ID") == 0) {
+
+            iSet = LocateEmptyPatch();
+            if (iSet < 0)
+                return SynError($"Couldn't add more patches '{patch}'");
+
+            iField = t.SampleId;
+        } else {
+
+            iSet = LocatePatch(patch);
+            if (iSet < 0) return false;
+        }
+
+        return SetData(iSet, iField, value);
+    }
+
+    public bool SetData(string patch, string sample, double value) =>
+        SetData(patch, sample, value.ToString());
+
+    public string? GetPatchName(int patch)
+    {
+        var t = Table;
+        var data = GetData(patch, t.SampleId);
+
+        if (string.IsNullOrEmpty(data)) return null;
+
+        return data;
+    }
+
+    public int GetPatchByName(string patch) =>
+        LocatePatch(patch);
+
+    public int SetTableByLabel(string set, string field, string? expectedType)
+    {
+        if (string.IsNullOrEmpty(field)) field = "LABEL";
+
+        var labelFld = GetData(set, field);
+        if (string.IsNullOrEmpty(labelFld)) return -1;
+
+        var scan = labelFld.Split(' ');
+        if (scan.Length != 3) return -1;
+        if (!UInt32.TryParse(scan[1], out var numTable)) return -1;
+        var type = scan[2];
+
+        if (!string.IsNullOrEmpty(expectedType) &&
+            string.Compare(type, expectedType) != 0)
+
+            return -1;
+
+        return SetTable((int)numTable);
+    }
+
+    public bool SetIndexColumn(string sample)
+    {
+        var pos = LocateSample(sample);
+        if (pos == -1) return false;
+
+        Tables[NumTable].SampleId = pos;
+        return true;
     }
 }
 
