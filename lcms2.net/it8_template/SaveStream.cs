@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 using lcms2.state;
 
-namespace lcms2.it8;
+namespace lcms2.it8_template;
 public class SaveStream
 {
     public StreamWriter? Stream;

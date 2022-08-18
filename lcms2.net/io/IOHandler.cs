@@ -2,10 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-using lcms2.plugins;
-using lcms2.state;
 using lcms2.types;
-using lcms2.types.type_handlers;
 
 using static lcms2.Helpers;
 
@@ -483,7 +480,7 @@ public static class IOHandler
     /// <param name="io"><see cref="Stream"/> to read from</param>
     /// <remarks>Implements the <c>_cmsReadTypeBase</c> function.</remarks>
     /// <returns>The <see cref="TagBase"/> converted from big endian into native endian.</returns>
-    public unsafe static TagBase ReadTypeBase(this Stream io)
+    public static unsafe TagBase ReadTypeBase(this Stream io)
     {
         try {
             var buf = new byte[sizeof(TagBase)];
@@ -504,7 +501,7 @@ public static class IOHandler
     /// <param name="tagBase">The <see cref="TagBase"/> to write</param>
     /// <remarks>Implements the <c>_cmsWriteTypeBase</c> function.</remarks>
     /// <returns>Whether the write operation was successful</returns>
-    public unsafe static bool Write(this Stream io, TagBase tagBase)
+    public static unsafe bool Write(this Stream io, TagBase tagBase)
     {
         try {
             tagBase.Signature = new Signature(AdjustEndianness(tagBase.Signature));

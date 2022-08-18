@@ -110,13 +110,13 @@ public partial class InterpParams
         for (var i = 0; i < inputChan; i++) {
 
             p.NumSamples[i] = numSamples[i];
-            p.Domain[i] = (int)numSamples[i] - 1;
+            p.Domain[i] = numSamples[i] - 1;
         }
 
         // Compute factors to apply to each component to index the grid array
         p.Opta[0] = p.NumOutputs;
         for (var i = 1; i < inputChan; i++)
-            p.Opta[i] = p.Opta[i - 1] * (int)numSamples[inputChan - i];
+            p.Opta[i] = p.Opta[i - 1] * numSamples[inputChan - i];
 
         if (!p.SetInterpolationRoutine(context)) {
             Context.SignalError(context, ErrorCode.UnknownExtension, "Unsupported interpolation ({0}->{1} channels)", inputChan, outputChan);

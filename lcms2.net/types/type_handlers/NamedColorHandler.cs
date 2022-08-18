@@ -1,5 +1,4 @@
-﻿using System.IO.Pipes;
-
+﻿
 using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
@@ -69,7 +68,7 @@ public class NamedColorHandler : TagTypeHandler
         if (!io.Write((uint)0)) return false;
         if (!io.Write(numColors)) return false;
         if (!io.Write(namedColorList.ColorantCount)) return false;
-        
+
         if (!io.WriteAsciiString(namedColorList.Prefix, 32)) return false;
         if (!io.WriteAsciiString(namedColorList.Suffix, 32)) return false;
 

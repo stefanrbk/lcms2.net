@@ -1,5 +1,6 @@
-﻿using m = System.Math;
-using static lcms2.Helpers;
+﻿using static lcms2.Helpers;
+
+using m = System.Math;
 
 namespace lcms2.types;
 

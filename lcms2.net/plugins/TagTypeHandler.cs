@@ -38,12 +38,12 @@ public abstract partial class TagTypeHandler
     /// <summary>
     ///     Allocates and reads items.
     /// </summary>
-    public unsafe abstract object? Read(Stream io, int sizeOfTag, out int numItems);
+    public abstract unsafe object? Read(Stream io, int sizeOfTag, out int numItems);
 
     /// <summary>
     ///     Writes n Items
     /// </summary>
-    public unsafe abstract bool Write(Stream io, object value, int numItems);
+    public abstract unsafe bool Write(Stream io, object value, int numItems);
 
     /// <summary>
     ///     Duplicate an item or array of items

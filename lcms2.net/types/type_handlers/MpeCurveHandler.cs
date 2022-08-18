@@ -17,7 +17,7 @@ public class MpeCurveHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Stage)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -41,7 +41,7 @@ public class MpeCurveHandler : TagTypeHandler
         return mpe;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var mpe = (Stage)value;
 

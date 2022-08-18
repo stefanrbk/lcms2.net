@@ -17,7 +17,7 @@ public class ProfileSequenceIdHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Sequence)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -42,7 +42,7 @@ public class ProfileSequenceIdHandler : TagTypeHandler
         return outSeq;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var seq = (Sequence)value;
 

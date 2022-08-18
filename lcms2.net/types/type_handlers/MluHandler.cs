@@ -17,7 +17,7 @@ public class MluHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Mlu)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         byte[] buf;
         char[]? block;
@@ -94,7 +94,7 @@ public class MluHandler : TagTypeHandler
         return null;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         if (value is null) {
             // Empty placeholder
@@ -108,7 +108,7 @@ public class MluHandler : TagTypeHandler
         if (!io.Write(mlu.UsedEntries)) return false;
         if (!io.Write((uint)12)) return false;
 
-        
+
         var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
 
         for (var i = 0; i < mlu.UsedEntries; i++) {

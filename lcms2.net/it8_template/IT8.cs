@@ -1,9 +1,11 @@
-﻿using Stri = System.String;
-using lcms2.state;
+﻿using System.Diagnostics;
 using System.Text;
-using System.Diagnostics;
 
-namespace lcms2.it8;
+using lcms2.state;
+
+using Stri = System.String;
+
+namespace lcms2.it8_template;
 public class IT8 : IDisposable
 {
     public const int MaxId = 128;
@@ -269,7 +271,7 @@ public class IT8 : IDisposable
             buffer = buffer[1..];
         }
 
-        while (buffer.Length > 0 && buffer[0] != 0 && Char.IsDigit((char)buffer[0])) {
+        while (buffer.Length > 0 && buffer[0] != 0 && Char.IsDigit(buffer[0])) {
 
             dnum = (dnum * 10.0) + (buffer[0] - '0');
 
@@ -648,7 +650,7 @@ public class IT8 : IDisposable
             Tables = null!;
             Id.IT8 = null!;
             Str.IT8 = null!;
-            
+
             for (var i = 0; i < MaxInclude; i++) {
                 FileStack?[i].Stream?.Dispose();
             }
@@ -1177,7 +1179,7 @@ public class IT8 : IDisposable
         InSymbol();
         SkipEOL();
 
-        while(Sy is not Symbol.EOF and not Symbol.SynError) {
+        while (Sy is not Symbol.EOF and not Symbol.SynError) {
 
             switch (Sy) {
                 case Symbol.BeginDataFormat:

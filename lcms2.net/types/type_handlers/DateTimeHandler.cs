@@ -17,7 +17,7 @@ public class DateTimeHandler : TagTypeHandler
 
     public override void Free(object value) { }
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -32,7 +32,7 @@ public class DateTimeHandler : TagTypeHandler
             return null;
         }
     }
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var dt = (DateTime)value;
         var timestamp = (DateTimeNumber)dt;

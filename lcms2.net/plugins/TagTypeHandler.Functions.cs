@@ -1,7 +1,7 @@
 ﻿using lcms2.io;
 using lcms2.state;
-using lcms2.types.type_handlers;
 using lcms2.types;
+using lcms2.types.type_handlers;
 
 using static lcms2.Helpers;
 

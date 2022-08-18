@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 
-using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types;
@@ -91,7 +90,7 @@ public class Stage : ICloneable, IDisposable
         throw new NotImplementedException();
     }
 
-    public static Stage AllocCLut16bitGranular(Context? context, uint[]clutPoints, uint inputChan, uint outputChan, in ushort[]? table)
+    public static Stage AllocCLut16bitGranular(Context? context, uint[] clutPoints, uint inputChan, uint outputChan, in ushort[]? table)
     {
         throw new NotImplementedException();
     }

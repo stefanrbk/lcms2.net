@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace lcms2.it8;
+namespace lcms2.it8_template;
 public class String
 {
     public IT8 IT8;

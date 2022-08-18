@@ -58,7 +58,7 @@ public class Lut16Handler : TagTypeHandler
         if (clutPoints == 1) goto Error; // Impossible value, 0 for not CLUT and at least 2 for anything else
 
         // Get input tables
-        if (!((TagTypeHandler)this).Read16bitTables(io, ref newLut, inputChannels, inputEntries)) goto Error;
+        if (!this.Read16bitTables(io, ref newLut, inputChannels, inputEntries)) goto Error;
 
         // Get 3D CLUT. Check the overflow...
         var numTabSize = Uipow(outputChannels, clutPoints, inputChannels);

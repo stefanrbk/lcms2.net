@@ -65,7 +65,7 @@ internal static class TagHandlers
 
     public static readonly TagDescriptor MultiProcessElement = new(1, new Signature[] { TagType.MultiProcessElement }, null);
 
-    public static readonly TagDescriptor S15Fixed16Array = new (9, new Signature[] { TagType.S15Fixed16Array }, null);
+    public static readonly TagDescriptor S15Fixed16Array = new(9, new Signature[] { TagType.S15Fixed16Array }, null);
 
     public static readonly TagDescriptor Signature = new(1, new Signature[] { TagType.Signature }, null);
 

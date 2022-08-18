@@ -52,7 +52,7 @@ internal sealed class TagTypePluginChunk
 
         if (data is null) return false;
 
-        switch(type) {
+        switch (type) {
             case Chunks.TagTypePlugin:
                 ctx = Context.GetTagTypePlugin(context);
                 handler = ((TagTypePlugin)data).Handler;
