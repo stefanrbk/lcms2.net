@@ -6,22 +6,6 @@ using lcms2.types.type_handlers;
 
 namespace lcms2.plugins;
 
-/// <summary>
-///     Tag type handler
-/// </summary>
-/// <remarks>
-///     Implements the <c>cmsPluginTagType</c> struct.</remarks>
-public sealed class TagTypePlugin : Plugin
-{
-    public TagTypeHandler Handler;
-    public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
-        : base(magic, expectedVersion, type) =>
-        this.Handler = handler;
-
-    internal static bool RegisterPlugin(Context? context, TagTypePlugin? plugin) =>
-        TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
-}
-
 public class TagTypeLinkedList
 {
     public TagTypeHandler Handler;
@@ -41,79 +25,37 @@ public class TagTypeLinkedList
     }
 }
 
+/// <summary>
+///     Tag type handler
+/// </summary>
+/// <remarks>Implements the <c>cmsPluginTagType</c> struct.</remarks>
+public sealed class TagTypePlugin: Plugin
+{
+    public TagTypeHandler Handler;
+
+    public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
+        : base(magic, expectedVersion, type) =>
+        Handler = handler;
+
+    internal static bool RegisterPlugin(Context? context, TagTypePlugin? plugin) =>
+        TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
+}
+
 internal sealed class TagTypePluginChunk
 {
-    internal TagTypeLinkedList? tagTypes;
-
-    private static bool RegisterTypesPlugin(Context? context, Plugin? data, Chunks type)
+    internal static readonly TagTypeLinkedList supportedMpeTypes = new(new TagTypeHandler[]
     {
-        TagTypePluginChunk ctx;
-        TagTypeHandler handler;
+        // Ignore these elements for now (That's what the spec says)
+        new MpeStubHandler(Signature.Stage.BAcsElem),
+        new MpeStubHandler(Signature.Stage.EAcsElem),
 
-        if (data is null) return false;
+        new MpeCurveHandler(Signature.Stage.CurveSetElem),
+        new MpeMatrixHandler(Signature.Stage.MatrixElem),
+        new MpeClutHandler(Signature.Stage.CLutElem),
+    });
 
-        switch (type) {
-            case Chunks.TagTypePlugin:
-                ctx = Context.GetTagTypePlugin(context);
-                handler = ((TagTypePlugin)data).Handler;
-                break;
-
-            case Chunks.MPEPlugin:
-                ctx = Context.GetMultiProcessElementPlugin(context);
-                handler = ((MultiProcessElementPlugin)data).Handler;
-                break;
-
-            default:
-                return false;
-        }
-
-        if (data is null) {
-            ctx.tagTypes = null;
-            return true;
-        }
-
-        var pt = new TagTypeLinkedList(handler, ctx.tagTypes);
-
-        if (pt.Handler is null)
-            return false;
-
-        ctx.tagTypes = pt;
-        return true;
-    }
-
-    internal static class TagType
+    internal static readonly TagTypeLinkedList supportedTagTypes = new(new TagTypeHandler[]
     {
-        internal static void Alloc(Context ctx, in Context? src)
-        {
-            if (src is not null)
-                DupTagTypeList(ctx, src, Chunks.TagTypePlugin);
-            else
-                ctx.chunks[(int)Chunks.TagTypePlugin] = tagTypePluginChunk;
-        }
-        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
-            RegisterTypesPlugin(context, plugin, Chunks.TagTypePlugin);
-
-        internal static TagTypePluginChunk global = new();
-    }
-    internal static class MPE
-    {
-        internal static void Alloc(Context ctx, in Context? src)
-        {
-            if (src is not null)
-                DupTagTypeList(ctx, src, Chunks.MPEPlugin);
-            else
-                ctx.chunks[(int)Chunks.MPEPlugin] = tagTypePluginChunk;
-        }
-        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
-            RegisterTypesPlugin(context, plugin, Chunks.MPEPlugin);
-
-        internal static TagTypePluginChunk global = new();
-    }
-
-    private TagTypePluginChunk()
-    { }
-
-    internal static readonly TagTypeLinkedList SupportedTagTypes = new(new TagTypeHandler[] {
         new ChromaticityHandler(Signature.TagType.Chromaticity),
         new ColorantOrderHandler(Signature.TagType.ColorantOrder),
         new S15Fixed16Handler(Signature.TagType.S15Fixed16Array),
@@ -147,17 +89,13 @@ internal sealed class TagTypePluginChunk
         new VcgtHandler(Signature.TagType.Vcgt),
     });
 
-    internal static readonly TagTypeLinkedList SupportedMpeTypes = new(new TagTypeHandler[] {
-        // Ignore these elements for now (That's what the spec says)
-        new MpeStubHandler(Signature.Stage.BAcsElem),
-        new MpeStubHandler(Signature.Stage.EAcsElem),
+    internal TagTypeLinkedList? tagTypes;
 
-        new MpeCurveHandler(Signature.Stage.CurveSetElem),
-        new MpeMatrixHandler(Signature.Stage.MatrixElem),
-        new MpeClutHandler(Signature.Stage.CLutElem),
-    });
+    private static readonly TagTypePluginChunk _tagTypePluginChunk = new();
 
-    private static readonly TagTypePluginChunk tagTypePluginChunk = new();
+    private TagTypePluginChunk()
+    { }
+
     private static void DupTagTypeList(Context ctx, in Context src, Chunks loc)
     {
         TagTypePluginChunk newHead = new();
@@ -167,7 +105,8 @@ internal sealed class TagTypePluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.tagTypes; entry is not null; entry = entry.Next) {
+        for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
+        {
             TagTypeLinkedList newEntry = new(entry.Handler, null);
 
             if (anterior is not null)
@@ -180,6 +119,76 @@ internal sealed class TagTypePluginChunk
         }
 
         ctx.chunks[(int)loc] = newHead;
+    }
+
+    private static bool RegisterTypesPlugin(Context? context, Plugin? data, Chunks type)
+    {
+        TagTypePluginChunk ctx;
+        TagTypeHandler handler;
+
+        if (data is null) return false;
+
+        switch (type)
+        {
+            case Chunks.TagTypePlugin:
+                ctx = Context.GetTagTypePlugin(context);
+                handler = ((TagTypePlugin)data).Handler;
+                break;
+
+            case Chunks.MPEPlugin:
+                ctx = Context.GetMultiProcessElementPlugin(context);
+                handler = ((MultiProcessElementPlugin)data).Handler;
+                break;
+
+            default:
+                return false;
+        }
+
+        if (data is null)
+        {
+            ctx.tagTypes = null;
+            return true;
+        }
+
+        var pt = new TagTypeLinkedList(handler, ctx.tagTypes);
+
+        if (pt.Handler is null)
+            return false;
+
+        ctx.tagTypes = pt;
+        return true;
+    }
+
+    internal static class MPE
+    {
+        internal static TagTypePluginChunk global = new();
+
+        internal static void Alloc(Context ctx, in Context? src)
+        {
+            if (src is not null)
+                DupTagTypeList(ctx, src, Chunks.MPEPlugin);
+            else
+                ctx.chunks[(int)Chunks.MPEPlugin] = _tagTypePluginChunk;
+        }
+
+        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
+            RegisterTypesPlugin(context, plugin, Chunks.MPEPlugin);
+    }
+
+    internal static class TagType
+    {
+        internal static TagTypePluginChunk global = new();
+
+        internal static void Alloc(Context ctx, in Context? src)
+        {
+            if (src is not null)
+                DupTagTypeList(ctx, src, Chunks.TagTypePlugin);
+            else
+                ctx.chunks[(int)Chunks.TagTypePlugin] = _tagTypePluginChunk;
+        }
+
+        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
+            RegisterTypesPlugin(context, plugin, Chunks.TagTypePlugin);
     }
 }
 

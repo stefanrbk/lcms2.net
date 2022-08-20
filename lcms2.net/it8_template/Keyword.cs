@@ -1,12 +1,7 @@
 ﻿namespace lcms2.it8_template;
+
 public struct Keyword
 {
-    public string Id;
-    public Symbol Symbol;
-
-    public Keyword(string id, Symbol symbol) =>
-        (Id, Symbol) = (id, symbol);
-
     public static readonly Keyword[] TabKeys = new Keyword[]
     {
         new("$INCLUDE", Symbol.Include),    // This is an extension!
@@ -19,6 +14,12 @@ public struct Keyword
         new("END_DATA_FORMAT", Symbol.SendDataFormat),
         new("KEYWORD", Symbol.Keyword),
     };
+
+    public string Id;
+    public Symbol Symbol;
+
+    public Keyword(string id, Symbol symbol) =>
+        (Id, Symbol) = (id, symbol);
 
     public static int NumKeys =>
         TabKeys.Length;

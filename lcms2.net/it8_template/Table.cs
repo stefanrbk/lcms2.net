@@ -1,10 +1,11 @@
 ﻿namespace lcms2.it8_template;
+
 public class Table
 {
-    public string? SheetType;
+    public string[]? Data;
+    public string[]? DataFormat;
+    public KeyValue? HeaderList;
     public int NumSamples, NumPatches;
     public int SampleId;
-    public KeyValue? HeaderList;
-    public string[]? DataFormat;
-    public string[]? Data;
+    public string? SheetType;
 }

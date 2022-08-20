@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class UcrBgHandler : TagTypeHandler
+
+public class UcrBgHandler: TagTypeHandler
 {
     public UcrBgHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -34,7 +35,7 @@ public class UcrBgHandler : TagTypeHandler
         if (ucr is null) return null;
 
         if (sizeOfTag < (countUcr * sizeof(ushort))) goto Error;
-        if (!io.ReadUInt16Array((int)countUcr, out ucr.Table16)) goto Error;
+        if (!io.ReadUInt16Array((int)countUcr, out ucr.table16)) goto Error;
         sizeOfTag -= (int)countUcr * sizeof(ushort);
 
         // Second curve is Black generation
@@ -47,7 +48,7 @@ public class UcrBgHandler : TagTypeHandler
         if (bg is null) goto Error;
 
         if (sizeOfTag < (countBg * sizeof(ushort))) goto Error;
-        if (!io.ReadUInt16Array((int)countBg, out bg.Table16)) goto Error;
+        if (!io.ReadUInt16Array((int)countBg, out bg.table16)) goto Error;
         sizeOfTag -= (int)countBg * sizeof(ushort);
 
         if (sizeOfTag is < 0 or > 32000) goto Error;
@@ -58,7 +59,7 @@ public class UcrBgHandler : TagTypeHandler
         var asciiString = new byte[sizeOfTag];
         if (io.Read(asciiString) != sizeOfTag) goto Error;
 
-        if (!desc.SetAscii(Mlu.NoLanguage, Mlu.NoCountry, asciiString)) goto Error;
+        if (!desc.SetAscii(Mlu.noLanguage, Mlu.noCountry, asciiString)) goto Error;
 
         UcrBg n = new(ucr, bg, desc);
 
@@ -81,16 +82,16 @@ public class UcrBgHandler : TagTypeHandler
 
         // First curve is Under color removal
         if (!io.Write(value.Ucr.NumEntries)) return false;
-        if (!io.Write(value.Ucr.NumEntries, value.Ucr.Table16)) return false;
+        if (!io.Write(value.Ucr.NumEntries, value.Ucr.table16)) return false;
 
         // Then black generation
         if (!io.Write(value.Bg.NumEntries)) return false;
-        if (!io.Write(value.Bg.NumEntries, value.Bg.Table16)) return false;
+        if (!io.Write(value.Bg.NumEntries, value.Bg.table16)) return false;
 
         // Now comes the text. The length is specified by the tab size
-        var textSize = value.Description.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref nullBuffer);
+        var textSize = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref nullBuffer);
         var text = new byte[textSize];
-        _ = value.Description.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref text);
+        _ = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref text);
 
         io.Write(text);
 

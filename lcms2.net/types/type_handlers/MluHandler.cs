@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class MluHandler : TagTypeHandler
+
+public class MluHandler: TagTypeHandler
 {
     public MluHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -27,7 +28,8 @@ public class MluHandler : TagTypeHandler
         if (!io.ReadUInt32Number(out var count)) return null;
         if (!io.ReadUInt32Number(out var recLen)) return null;
 
-        if (recLen != 12) {
+        if (recLen != 12)
+        {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported.");
             return null;
         }
@@ -37,7 +39,8 @@ public class MluHandler : TagTypeHandler
         var sizeOfHeader = (12 * count) + sizeof(TagBase);
         var largestPosition = (long)0;
 
-        for (var i = 0; i < count; i++) {
+        for (var i = 0; i < count; i++)
+        {
             if (!io.ReadUInt16Number(out var lang)) goto Error;
             if (!io.ReadUInt16Number(out var cntry)) goto Error;
 
@@ -58,7 +61,7 @@ public class MluHandler : TagTypeHandler
                 largestPosition = endOfThisString;
 
             // Save this info into the mlu
-            mlu.Entries.Add(new()
+            mlu.entries.Add(new()
             {
                 Language = lang,
                 Country = cntry,
@@ -69,20 +72,22 @@ public class MluHandler : TagTypeHandler
 
         // Now read the remaining of tag and fill all strings. Subtract the directory
         sizeOfTag = (int)largestPosition;
-        if (sizeOfTag == 0) {
+        if (sizeOfTag == 0)
+        {
             block = null;
             numOfChar = 0;
             buf = Array.Empty<byte>();
-        } else {
+        } else
+        {
             numOfChar = (uint)(sizeOfTag / sizeof(char));
             if (!io.ReadCharArray((int)numOfChar, out block)) goto Error;
             buf = new byte[sizeOfTag];
             Buffer.BlockCopy(block, 0, buf, 0, sizeOfTag);
         }
 
-        mlu.MemPool = buf;
-        mlu.PoolSize = (uint)sizeOfTag;
-        mlu.PoolUsed = (uint)sizeOfTag;
+        mlu.memPool = buf;
+        mlu.poolSize = (uint)sizeOfTag;
+        mlu.poolUsed = (uint)sizeOfTag;
 
         numItems = 1;
         return mlu;
@@ -96,7 +101,8 @@ public class MluHandler : TagTypeHandler
 
     public override unsafe bool Write(Stream io, object value, int numItems)
     {
-        if (value is null) {
+        if (value is null)
+        {
             // Empty placeholder
             if (!io.Write((uint)0)) return false;
             if (!io.Write((uint)12)) return false;
@@ -108,22 +114,22 @@ public class MluHandler : TagTypeHandler
         if (!io.Write(mlu.UsedEntries)) return false;
         if (!io.Write((uint)12)) return false;
 
-
         var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
 
-        for (var i = 0; i < mlu.UsedEntries; i++) {
-            var len = mlu.Entries[i].Len;
-            var offset = mlu.Entries[i].OffsetToStr;
+        for (var i = 0; i < mlu.UsedEntries; i++)
+        {
+            var len = mlu.entries[i].Len;
+            var offset = mlu.entries[i].OffsetToStr;
 
             offset += headerSize + 8;
 
-            if (!io.Write(mlu.Entries[i].Language)) return false;
-            if (!io.Write(mlu.Entries[i].Country)) return false;
+            if (!io.Write(mlu.entries[i].Language)) return false;
+            if (!io.Write(mlu.entries[i].Country)) return false;
             if (!io.Write(len)) return false;
             if (!io.Write(offset)) return false;
         }
-        var buf = new char[mlu.PoolUsed / sizeof(char)];
-        Buffer.BlockCopy(mlu.MemPool, 0, buf, 0, (int)mlu.PoolUsed);
+        var buf = new char[mlu.poolUsed / sizeof(char)];
+        Buffer.BlockCopy(mlu.memPool, 0, buf, 0, (int)mlu.poolUsed);
 
         return io.Write(buf);
     }

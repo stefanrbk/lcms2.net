@@ -5,7 +5,8 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class MpeClutHandler : TagTypeHandler
+
+public class MpeClutHandler: TagTypeHandler
 {
     public MpeClutHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -33,11 +34,11 @@ public class MpeClutHandler : TagTypeHandler
         if (io.Read(dimensions8) != 16) return null;
 
         // Copy MaxInputDimensions at most. Expand to uint
-        var numMaxGrids = (uint)Math.Min((ushort)MaxInputDimensions, inputChans);
+        var numMaxGrids = (uint)Math.Min((ushort)maxInputDimensions, inputChans);
         var gridPoints = new uint[numMaxGrids];
 
-        for (var i = 0; i < numMaxGrids; i++) {
-
+        for (var i = 0; i < numMaxGrids; i++)
+        {
             if (dimensions8[i] == 1) return null; // Impossible value, 0 for no CLUT or at least 2
             gridPoints[i] = dimensions8[i];
         }
@@ -47,7 +48,7 @@ public class MpeClutHandler : TagTypeHandler
         if (mpe is null) goto Error;
 
         // Read and sanitize the data
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = (Stage.CLutData)mpe.data;
         for (var i = 0; i < clut.NumEntries; i++)
             if (!io.ReadFloat32Number(out clut.Table.TFloat[i])) goto Error;
 
@@ -64,18 +65,18 @@ public class MpeClutHandler : TagTypeHandler
     {
         var dimensions8 = new byte[16];
         var mpe = (Stage)value;
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = (Stage.CLutData)mpe.data;
 
         // Check for maximum number of channels supported by lcms
-        if (mpe.InputChannels > MaxInputDimensions) return false;
+        if (mpe.inputChannels > maxInputDimensions) return false;
 
         // Only floats are supported in MPE
         if (!clut.HasFloatValues) return false;
 
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
-        if (!io.Write((ushort)mpe.OutputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
+        if (!io.Write((ushort)mpe.outputChannels)) return false;
 
-        for (var i = 0; i < mpe.InputChannels; i++)
+        for (var i = 0; i < mpe.inputChannels; i++)
             dimensions8[i] = (byte)clut.Params[0].NumSamples[i];
 
         io.Write(dimensions8);

@@ -5,21 +5,23 @@ namespace lcms2.types;
 
 public partial struct Signature
 {
-    public class Formatter : IFormatProvider, ICustomFormatter
+    public class Formatter: IFormatProvider, ICustomFormatter
     {
         public string Format(string? format, object? obj, IFormatProvider? provider)
         {
             if (obj is null)
                 return string.Empty;
 
-            if (obj is Signature value) {
+            if (obj is Signature value)
+            {
                 // Text output
-                if (format?.ToUpper().StartsWith("T") ?? false) {
+                if (format?.ToUpper().StartsWith("T") ?? false)
+                {
                     var sb = new StringBuilder(4);
-                    sb.Append((char)((value.value >> 24) & 0xFF));
-                    sb.Append((char)((value.value >> 16) & 0xFF));
-                    sb.Append((char)((value.value >> 8) & 0xFF));
-                    sb.Append((char)(value.value & 0xFF));
+                    sb.Append((char)((value._value >> 24) & 0xFF));
+                    sb.Append((char)((value._value >> 16) & 0xFF));
+                    sb.Append((char)((value._value >> 8) & 0xFF));
+                    sb.Append((char)(value._value & 0xFF));
                     return sb.ToString();
                 }
                 // Hex output

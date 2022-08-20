@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ProfileSequenceDescriptionHandler : TagTypeHandler
+
+public class ProfileSequenceDescriptionHandler: TagTypeHandler
 {
     public ProfileSequenceDescriptionHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -30,8 +31,8 @@ public class ProfileSequenceDescriptionHandler : TagTypeHandler
 
         // Get structures as well
 
-        for (var i = 0; i < count; i++) {
-
+        for (var i = 0; i < count; i++)
+        {
             if (!io.ReadUInt32Number(out var deviceMfg)) goto Error;
             if (sizeOfTag < sizeof(uint)) goto Error;
             sizeOfTag -= sizeof(uint);
@@ -52,7 +53,6 @@ public class ProfileSequenceDescriptionHandler : TagTypeHandler
 
             if (!ReadEmbeddedText(io, ref sec.Manufacturer, sizeOfTag)) goto Error;
             if (!ReadEmbeddedText(io, ref sec.Model, sizeOfTag)) goto Error;
-
         }
 
         numItems = 1;
@@ -71,8 +71,8 @@ public class ProfileSequenceDescriptionHandler : TagTypeHandler
 
         if (!io.Write(seq.SeqCount)) return false;
 
-        for (var i = 0; i < seq.SeqCount; i++) {
-
+        for (var i = 0; i < seq.SeqCount; i++)
+        {
             var sec = seq.Seq[i];
 
             if (!io.Write(sec.DeviceMfg)) return false;

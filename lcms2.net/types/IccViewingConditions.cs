@@ -1,9 +1,10 @@
 ﻿namespace lcms2.types;
-public class IccViewingConditions : ICloneable
+
+public class IccViewingConditions: ICloneable
 {
+    public IlluminantType IlluminantType;
     public XYZ IlluminantXyz;
     public XYZ SurroundXyz;
-    public IlluminantType IlluminantType;
 
     public IccViewingConditions(XYZ illuminantXyz, XYZ surroundXyz, IlluminantType illuminantType)
     {

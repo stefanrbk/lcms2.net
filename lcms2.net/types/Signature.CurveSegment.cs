@@ -1,4 +1,5 @@
 ﻿namespace lcms2.types;
+
 public partial struct Signature
 {
     public static class CurveSegment

@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ProfileSequenceIdHandler : TagTypeHandler
+
+public class ProfileSequenceIdHandler: TagTypeHandler
 {
     public ProfileSequenceIdHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -32,7 +33,8 @@ public class ProfileSequenceIdHandler : TagTypeHandler
         object outSeq = new Sequence(Context, (int)count);
 
         // Read the position table
-        if (!ReadPositionTable(io, (int)count, (uint)baseOffset, ref outSeq, ReadSequenceId)) {
+        if (!ReadPositionTable(io, (int)count, (uint)baseOffset, ref outSeq, ReadSequenceId))
+        {
             ((IDisposable)outSeq)?.Dispose();
             return null;
         }

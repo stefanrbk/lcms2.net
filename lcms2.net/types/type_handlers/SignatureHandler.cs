@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class SignatureHandler : TagTypeHandler
+
+public class SignatureHandler: TagTypeHandler
 {
     public SignatureHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -14,7 +15,8 @@ public class SignatureHandler : TagTypeHandler
     public override object? Duplicate(object value, int num) =>
         ((Signature)value).Clone();
 
-    public override void Free(object value) { }
+    public override void Free(object value)
+    { }
 
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {

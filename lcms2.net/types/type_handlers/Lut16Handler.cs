@@ -5,7 +5,8 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class Lut16Handler : TagTypeHandler
+
+public class Lut16Handler: TagTypeHandler
 {
     public Lut16Handler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -46,7 +47,8 @@ public class Lut16Handler : TagTypeHandler
             if (!io.Read15Fixed16Number(out matrix[i])) goto Error;
 
         // Only operates on 3 channels
-        if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity) {
+        if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity)
+        {
             if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(Context, 3, 3, in matrix, null)))
                 goto Error;
         }
@@ -63,7 +65,8 @@ public class Lut16Handler : TagTypeHandler
         // Get 3D CLUT. Check the overflow...
         var numTabSize = Uipow(outputChannels, clutPoints, inputChannels);
         if (numTabSize == unchecked((uint)-1)) goto Error;
-        if (numTabSize > 0) {
+        if (numTabSize > 0)
+        {
             if (!io.ReadUInt16Array((int)numTabSize, out var t)) goto Error;
 
             if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(Context, clutPoints, inputChannels, outputChannels, in t)))
@@ -88,90 +91,110 @@ public class Lut16Handler : TagTypeHandler
         Stage.CLutData? clut = null;
 
         var newLut = (Pipeline)value;
-        var mpe = newLut.Elements;
-        if (mpe is not null && mpe.Type == Signature.Stage.MatrixElem) {
-            if (mpe.InputChannels != 3 || mpe.OutputChannels != 3 || mpe.Data is null) return false;
-            matMpe = (Stage.MatrixData)mpe.Data;
-            mpe = mpe.Next;
+        var mpe = newLut.elements;
+        if (mpe is not null && mpe.type == Signature.Stage.MatrixElem)
+        {
+            if (mpe.inputChannels != 3 || mpe.outputChannels != 3 || mpe.data is null) return false;
+            matMpe = (Stage.MatrixData)mpe.data;
+            mpe = mpe.next;
         }
 
-        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem) {
-            if (mpe.Data is null) return false;
-            preMpe = (Stage.ToneCurveData)mpe.Data;
-            mpe = mpe.Next;
+        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        {
+            if (mpe.data is null) return false;
+            preMpe = (Stage.ToneCurveData)mpe.data;
+            mpe = mpe.next;
         }
 
-        if (mpe is not null && mpe.Type == Signature.Stage.CLutElem) {
-            if (mpe.Data is null) return false;
-            clut = (Stage.CLutData)mpe.Data;
-            mpe = mpe.Next;
+        if (mpe is not null && mpe.type == Signature.Stage.CLutElem)
+        {
+            if (mpe.data is null) return false;
+            clut = (Stage.CLutData)mpe.data;
+            mpe = mpe.next;
         }
 
-        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem) {
-            if (mpe.Data is null) return false;
-            postMpe = (Stage.ToneCurveData)mpe.Data;
-            mpe = mpe.Next;
+        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        {
+            if (mpe.data is null) return false;
+            postMpe = (Stage.ToneCurveData)mpe.data;
+            mpe = mpe.next;
         }
 
         // That should be all
-        if (mpe is not null) {
+        if (mpe is not null)
+        {
             Context.SignalError(Context, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT16");
             return false;
         }
 
         var clutPoints = (uint)(clut?.Params[0].NumSamples[0] ?? 0);
 
-        if (!io.Write((byte)newLut.InputChannels)) return false;
-        if (!io.Write((byte)newLut.OutputChannels)) return false;
+        if (!io.Write((byte)newLut.inputChannels)) return false;
+        if (!io.Write((byte)newLut.outputChannels)) return false;
         if (!io.Write((byte)clutPoints)) return false;
         if (!io.Write((byte)0)) return false; // Padding
 
-        if (matMpe is not null) {
-            for (var i = 0; i < 9; i++) {
+        if (matMpe is not null)
+        {
+            for (var i = 0; i < 9; i++)
+            {
                 if (!io.Write(matMpe.Double[i])) return false;
             }
-        } else {
+        } else
+        {
             var ident = (double[])Mat3.Identity;
-            for (var i = 0; i < 9; i++) {
+            for (var i = 0; i < 9; i++)
+            {
                 if (!io.Write(ident[i])) return false;
             }
         }
 
-        if (preMpe is not null) {
+        if (preMpe is not null)
+        {
             if (!io.Write((ushort)preMpe.TheCurves[0].NumEntries)) return false;
-        } else {
+        } else
+        {
             if (!io.Write((ushort)2)) return false;
         }
 
-        if (postMpe is not null) {
+        if (postMpe is not null)
+        {
             if (!io.Write((ushort)postMpe.TheCurves[0].NumEntries)) return false;
-        } else {
+        } else
+        {
             if (!io.Write((ushort)2)) return false;
         }
 
         // The prelinearization table
-        if (preMpe is not null) {
+        if (preMpe is not null)
+        {
             if (!Write16bitTables(io, ref preMpe)) return false;
-        } else {
-            for (var i = 0; i < newLut.InputChannels; i++) {
+        } else
+        {
+            for (var i = 0; i < newLut.inputChannels; i++)
+            {
                 if (!io.Write((ushort)0)) return false;
                 if (!io.Write((ushort)0xFFFF)) return false;
             }
         }
 
-        var numTabSize = Uipow(newLut.OutputChannels, clutPoints, newLut.InputChannels);
+        var numTabSize = Uipow(newLut.outputChannels, clutPoints, newLut.inputChannels);
         if (numTabSize == unchecked((uint)-1)) return false;
-        if (numTabSize > 0) {
+        if (numTabSize > 0)
+        {
             // The 3D CLUT.
             if (clut is not null && !io.Write((int)numTabSize, clut.Table.T))
                 return false;
         }
 
         // The postlinearization table
-        if (postMpe is not null) {
+        if (postMpe is not null)
+        {
             if (!Write16bitTables(io, ref postMpe)) return false;
-        } else {
-            for (var i = 0; i < newLut.OutputChannels; i++) {
+        } else
+        {
+            for (var i = 0; i < newLut.outputChannels; i++)
+            {
                 if (!io.Write((ushort)0)) return false;
                 if (!io.Write((ushort)0xFFFF)) return false;
             }

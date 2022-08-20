@@ -6,59 +6,25 @@ using lcms2.types;
 namespace lcms2.plugins;
 
 /// <summary>
-///     Tag identification plugin
-/// </summary>
-/// <remarks>
-///     Plugin implements a single tag<br />
-///     Implements the <c>cmsPluginTag</c> struct.</remarks>
-public sealed class TagPlugin
-    : Plugin
-{
-    public Signature Signature;
-    public TagDescriptor Descriptor;
-
-    public TagPlugin(Signature magic, uint expectedVersion, Signature type, Signature signature, TagDescriptor descriptor)
-        : base(magic, expectedVersion, type)
-    {
-        Signature = signature;
-        Descriptor = descriptor;
-    }
-
-    internal static bool RegisterPlugin(Context? context, TagPlugin? plugin)
-    {
-        var chunk = (TagPluginChunk)Context.GetClientChunk(context, Chunks.TagPlugin)!;
-
-        if (plugin is null) {
-            chunk.tags = null;
-            return true;
-        }
-
-        chunk.tags =
-            new TagLinkedList(plugin.Signature, plugin.Descriptor, chunk.tags);
-
-        return true;
-    }
-}
-
-/// <summary>
 ///     Tag identification plugin descriptor
 /// </summary>
-/// <remarks>
-///     Implements the <c>cmsTagDescriptor</c> struct.</remarks>
+/// <remarks>Implements the <c>cmsTagDescriptor</c> struct.</remarks>
 public class TagDescriptor
 {
-    /// <summary>
-    ///     If this tag needs an array, how many elements should be kept
-    /// </summary>
-    public int ElementCount;
-    /// <summary>
-    ///     For reading
-    /// </summary>
-    public Signature[] SupportedTypes;
     /// <summary>
     ///     For writing
     /// </summary>
     public TagTypeDecider? DecideType;
+
+    /// <summary>
+    ///     If this tag needs an array, how many elements should be kept
+    /// </summary>
+    public int ElementCount;
+
+    /// <summary>
+    ///     For reading
+    /// </summary>
+    public Signature[] SupportedTypes;
 
     public TagDescriptor(int elementCount, int numSupportedTypes, TagTypeDecider? decider)
     {
@@ -74,18 +40,18 @@ public class TagDescriptor
         DecideType = decider;
     }
 }
+
 public class TagLinkedList
 {
-    public Signature Signature;
     public TagDescriptor Descriptor;
-
     public TagLinkedList? Next;
+    public Signature Signature;
 
     public TagLinkedList(Signature signature, TagDescriptor descriptor, TagLinkedList? next)
     {
-        this.Signature = signature;
-        this.Descriptor = descriptor;
-        this.Next = next;
+        Signature = signature;
+        Descriptor = descriptor;
+        Next = next;
     }
 
     public TagLinkedList(ReadOnlySpan<(Signature sig, TagDescriptor desc)> list)
@@ -96,22 +62,43 @@ public class TagLinkedList
     }
 }
 
-internal sealed class TagPluginChunk
+/// <summary>
+///     Tag identification plugin
+/// </summary>
+/// <remarks>Plugin implements a single tag <br/> Implements the <c>cmsPluginTag</c> struct.</remarks>
+public sealed class TagPlugin
+    : Plugin
 {
-    internal TagLinkedList? tags;
+    public TagDescriptor Descriptor;
+    public Signature Signature;
 
-    internal static void Alloc(ref Context ctx, in Context? src)
+    public TagPlugin(Signature magic, uint expectedVersion, Signature type, Signature signature, TagDescriptor descriptor)
+        : base(magic, expectedVersion, type)
     {
-        if (src is not null)
-            DupTagList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.TagPlugin] = new TagPluginChunk();
+        Signature = signature;
+        Descriptor = descriptor;
     }
 
-    private TagPluginChunk()
-    { }
+    internal static bool RegisterPlugin(Context? context, TagPlugin? plugin)
+    {
+        var chunk = (TagPluginChunk)Context.GetClientChunk(context, Chunks.TagPlugin)!;
 
-    internal static readonly TagLinkedList SupportedTags = new(new (Signature sig, TagDescriptor desc)[]
+        if (plugin is null)
+        {
+            chunk.tags = null;
+            return true;
+        }
+
+        chunk.tags =
+            new TagLinkedList(plugin.Signature, plugin.Descriptor, chunk.tags);
+
+        return true;
+    }
+}
+
+internal sealed class TagPluginChunk
+{
+    internal static readonly TagLinkedList supportedTags = new(new (Signature sig, TagDescriptor desc)[]
     {
         (Signature.Tag.AToB0, TagHandlers.AToB),
         (Signature.Tag.AToB1, TagHandlers.AToB),
@@ -210,6 +197,33 @@ internal sealed class TagPluginChunk
     });
 
     internal static TagPluginChunk global = new();
+    internal TagLinkedList? tags;
+
+    private TagPluginChunk()
+    { }
+
+    internal static void Alloc(ref Context ctx, in Context? src)
+    {
+        if (src is not null)
+            DupTagList(ref ctx, src);
+        else
+            ctx.chunks[(int)Chunks.TagPlugin] = new TagPluginChunk();
+    }
+
+    internal TagDescriptor GetTagDescriptor(Context? context, Signature sig)
+    {
+        var chunk = Context.GetTagPlugin(context);
+
+        for (var pt = chunk.tags; pt is not null; pt = pt.Next)
+
+            if (sig == pt.Signature) return pt.Descriptor;
+
+        for (var pt = supportedTags; pt is not null; pt = pt.Next)
+
+            if (sig == pt.Signature) return pt.Descriptor;
+
+        return null;
+    }
 
     private static void DupTagList(ref Context ctx, in Context src)
     {
@@ -220,7 +234,8 @@ internal sealed class TagPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.tags; entry is not null; entry = entry.Next) {
+        for (var entry = head.tags; entry is not null; entry = entry.Next)
+        {
             // We want to keep the linked list order, so this is a little bit tricky
             TagLinkedList newEntry = new(entry.Signature, entry.Descriptor, null);
 
@@ -234,20 +249,5 @@ internal sealed class TagPluginChunk
         }
 
         ctx.chunks[(int)Chunks.TagPlugin] = newHead;
-    }
-
-    internal TagDescriptor GetTagDescriptor(Context? context, Signature sig)
-    {
-        var chunk = Context.GetTagPlugin(context);
-
-        for (var pt = chunk.tags; pt is not null; pt = pt.Next)
-
-            if (sig == pt.Signature) return pt.Descriptor;
-
-        for (var pt = SupportedTags; pt is not null; pt = pt.Next)
-
-            if (sig == pt.Signature) return pt.Descriptor;
-
-        return null;
     }
 }

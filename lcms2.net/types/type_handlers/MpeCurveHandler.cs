@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class MpeCurveHandler : TagTypeHandler
+
+public class MpeCurveHandler: TagTypeHandler
 {
     public MpeCurveHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -48,10 +49,10 @@ public class MpeCurveHandler : TagTypeHandler
         var baseOffset = (uint)(io.Tell() - sizeof(TagBase));
 
         // Write the header. Since those are curves, input and output channels are the same
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
 
-        if (!WritePositionTable(io, 0, mpe.InputChannels, baseOffset, ref mpe.Data, WriteMpeCurve)) return false;
+        if (!WritePositionTable(io, 0, mpe.inputChannels, baseOffset, ref mpe.data, WriteMpeCurve)) return false;
 
         return true;
     }

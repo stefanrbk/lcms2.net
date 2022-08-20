@@ -1,8 +1,16 @@
 ﻿namespace lcms2.types;
-public class Screening : ICloneable
+
+public struct ScreeningChannel
 {
-    public uint Flags;
+    public double Frequency;
+    public double ScreenAngle;
+    public SpotShape SpotShape;
+}
+
+public class Screening: ICloneable
+{
     public ScreeningChannel[] Channels;
+    public uint Flags;
 
     public Screening(uint flags, int numChannels)
     {
@@ -35,13 +43,6 @@ public class Screening : ICloneable
 
         return result;
     }
-}
-
-public struct ScreeningChannel
-{
-    public double Frequency;
-    public double ScreenAngle;
-    public SpotShape SpotShape;
 }
 
 public enum SpotShape

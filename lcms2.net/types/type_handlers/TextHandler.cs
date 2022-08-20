@@ -2,7 +2,8 @@
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class TextHandler : TagTypeHandler
+
+public class TextHandler: TagTypeHandler
 {
     public TextHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -32,7 +33,7 @@ public class TextHandler : TagTypeHandler
         numItems = 1;
 
         // Keep the result
-        if (!mlu.SetAscii(Mlu.NoLanguage, Mlu.NoCountry, text)) goto Error;
+        if (!mlu.SetAscii(Mlu.noLanguage, Mlu.noCountry, text)) goto Error;
         return mlu;
 
     Error:
@@ -46,12 +47,12 @@ public class TextHandler : TagTypeHandler
 
         byte[]? buffer = null;
         // Get the size of the string. Note there is an extra "\0" at the end
-        var size = mlu.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref buffer);
+        var size = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref buffer);
         if (size == 0) return false; // Cannot be zero!
 
         // Create memory
         buffer = new byte[size];
-        mlu.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref buffer);
+        mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref buffer);
 
         // Write it, including separator
         io.Write(buffer!, 0, (int)size);

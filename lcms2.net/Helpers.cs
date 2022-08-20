@@ -1,17 +1,18 @@
 ﻿using System.Runtime.CompilerServices;
 
 namespace lcms2;
+
 internal static class Helpers
 {
-    internal const float MinusInf = -1e22f;
-    internal const float PlusInf = 1e22f;
+    internal const float minusInf = -1e22f;
+    internal const float plusInf = 1e22f;
 
-    internal const ushort MaxNodesInCurve = 4097;
+    internal const ushort maxNodesInCurve = 4097;
 
-    internal const int MaxInputDimensions = 15;
-    internal const int MaxStageChannels = 128;
+    internal const int maxInputDimensions = 15;
+    internal const int maxStageChannels = 128;
 
-    internal const double DeterminantTolerance = 0.0001;
+    internal const double determinantTolerance = 0.0001;
 
     internal static uint Uipow(uint n, uint a, uint b)
     {
@@ -20,7 +21,8 @@ internal static class Helpers
         if (a == 0) return 0;
         if (n == 0) return 0;
 
-        for (; b > 0; b--) {
+        for (; b > 0; b--)
+        {
             rv *= a;
 
             // Check for overflow
@@ -37,11 +39,11 @@ internal static class Helpers
     internal static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
 
-    internal static Lazy<long> AlignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
+    internal static Lazy<long> alignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignMem(long x) =>
-        (x + (AlignPtr.Value - 1)) & ~(AlignPtr.Value - 1);
+        (x + (alignPtr.Value - 1)) & ~(alignPtr.Value - 1);
 
     internal static ushort From8to16(byte rgb) =>
         (ushort)((rgb << 8) | rgb);
@@ -76,11 +78,13 @@ internal static class Helpers
         return (int)Math.Floor(val);
 #else
         const double magic = 68719476736.0 * 1.5;
-        unsafe {
+        unsafe
+        {
             val += magic;
             if (BitConverter.IsLittleEndian)
                 return *(int*)&val >> 16; // take val, a double, and pretend the first half is an int and shift
-            else {
+            else
+            {
                 int* ptr = (int*)&val;
                 return *++ptr >> 16;
             }

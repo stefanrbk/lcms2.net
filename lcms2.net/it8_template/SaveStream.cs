@@ -3,13 +3,20 @@
 using lcms2.state;
 
 namespace lcms2.it8_template;
+
 public class SaveStream
 {
-    public StreamWriter? Stream;
     public Memory<byte>? Base;
-    public Memory<byte>? Ptr;
-    public int Used;
     public int Max;
+    public Memory<byte>? Ptr;
+    public StreamWriter? Stream;
+    public int Used;
+
+    public void WriteFormatted(string? str, params object?[] args)
+    {
+        if (str is null) str = string.Empty;
+        WriteString(string.Format(str, args));
+    }
 
     public void WriteString(string? str)
     {
@@ -22,18 +29,22 @@ public class SaveStream
         var len = str.Length;
         f.Used += len;
 
-        if (f.Stream is not null) {     // Should I write it to a file?
-            try {
+        if (f.Stream is not null)
+        {     // Should I write it to a file?
+            try
+            {
                 f.Stream.Write(str);
-            } catch {
+            } catch
+            {
                 Context.SignalError(null, ErrorCode.Write, "Write to file error in CGATS parser");
                 return;
             }
-        } else {                        // Or to a memory block?
-
-            if (f.Base is not null) {
-
-                if (f.Used > f.Max) {
+        } else
+        {                        // Or to a memory block?
+            if (f.Base is not null)
+            {
+                if (f.Used > f.Max)
+                {
                     Context.SignalError(null, ErrorCode.Write, "Write to memory overflows in CGATS parser");
                     return;
                 }
@@ -47,11 +58,5 @@ public class SaveStream
                 f.Ptr = f.Ptr.Value[len..];
             }
         }
-    }
-
-    public void WriteFormatted(string? str, params object?[] args)
-    {
-        if (str is null) str = string.Empty;
-        WriteString(string.Format(str, args));
     }
 }

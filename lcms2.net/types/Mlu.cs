@@ -1,52 +1,60 @@
 ﻿using lcms2.state;
 
 namespace lcms2.types;
-public class Mlu : ICloneable, IDisposable
+
+public class Mlu: ICloneable, IDisposable
 {
-    internal Context? Context;
+    internal const string noCountry = "\0\0";
 
-    internal uint UsedEntries => (uint)Entries.Count;
-    internal List<MluEntry> Entries = new();
+    internal const string noLanguage = "\0\0";
 
-    internal uint PoolSize;
-    internal uint PoolUsed;
+    internal Context? context;
 
-    internal byte[] MemPool = Array.Empty<byte>();
-    private bool disposedValue;
+    internal List<MluEntry> entries = new();
 
-    internal const string NoLanguage = "\0\0";
-    internal const string NoCountry = "\0\0";
+    internal byte[] memPool = Array.Empty<byte>();
 
-    internal bool GrowPool()
-    {
-        var size = PoolSize == 0
-            ? 256
-            : PoolSize * 2;
+    internal uint poolSize;
 
-        // Check for overflow
-        if (size < PoolSize) return false;
+    internal uint poolUsed;
 
-        // Reallocate the pool
-        var newPool = new byte[size];
-        Buffer.BlockCopy(MemPool, 0, newPool, 0, MemPool.Length);
-
-        MemPool = newPool;
-        PoolSize = size;
-
-        return true;
-    }
+    private bool _disposed;
 
     internal Mlu(Context? context) =>
-        Context = context;
+        this.context = context;
 
-    internal int SearchEntry(ushort languageCode, ushort countryCode)
+    internal uint UsedEntries => (uint)entries.Count;
+
+    public object Clone()
     {
-        // Iterate whole table
-        for (var i = 0; i < Entries.Count; i++)
-            if (Entries[i].Country == countryCode && Entries[i].Language == languageCode) return i;
+        var mlu = this;
+        Mlu newMlu = new(context);
 
-        // Not found
-        return -1;
+        newMlu.entries.AddRange(mlu.entries);
+
+        // The MLU may be empty
+        if (mlu.poolUsed != 0)
+            newMlu.memPool = new byte[mlu.poolUsed];
+
+        newMlu.poolSize = mlu.poolUsed;
+
+        Buffer.BlockCopy(mlu.memPool, 0, newMlu.memPool, 0, (int)mlu.poolUsed);
+        newMlu.poolUsed = mlu.poolUsed;
+
+        return newMlu;
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    internal static Mlu? Duplicate(Mlu? mlu)
+    {
+        if (mlu is null) return null;
+
+        return (Mlu)mlu.Clone();
     }
 
     internal bool AddBlock(uint size, char[] block, ushort languangeCode, ushort countryCode)
@@ -55,15 +63,15 @@ public class Mlu : ICloneable, IDisposable
         if (SearchEntry(languangeCode, countryCode) >= 0) return false; // Only one is allowed
 
         // Check for size
-        while ((PoolSize - PoolUsed) < size)
+        while ((poolSize - poolUsed) < size)
             if (!GrowPool()) return false;
 
-        var offset = PoolUsed;
+        var offset = poolUsed;
 
-        var ptr = MemPool;
+        var ptr = memPool;
         Buffer.BlockCopy(block, 0, ptr, (int)offset, (int)size);
 
-        PoolUsed += size;
+        poolUsed += size;
 
         var entry = new MluEntry()
         {
@@ -72,26 +80,100 @@ public class Mlu : ICloneable, IDisposable
             Country = countryCode,
             Language = languangeCode
         };
-        Entries.Add(entry);
+        entries.Add(entry);
 
         return true;
     }
 
-    private static ushort StrTo16(string str)
+    internal uint GetAscii(string languageCode, string countryCode)
     {
-        if (str.Length < 2) return 0;
+        byte[]? nullBuff = null;
 
-        return (ushort)((str[0] << 8) | str[1]);
+        return GetAscii(languageCode, countryCode, ref nullBuff);
     }
 
-    private static string StrFrom16(ushort n)
+    internal uint GetAscii(string languageCode, string countryCode, ref byte[]? buffer)
     {
-        var str = new char[3];
-        str[0] = (char)(n >> 8);
-        str[1] = (char)(n & 0xff);
-        str[2] = (char)0;
+        var lang = StrTo16(languageCode);
+        var cntry = StrTo16(countryCode);
 
-        return new string(str);
+        var wide = GetUtf16(lang, cntry, out var strLen, out _, out _);
+
+        var asciiLen = strLen / sizeof(char);
+
+        // Maybe we want only to know the len?
+        if (buffer is null) return asciiLen + 1; // Note the zero at the end
+
+        // No buffer means no data
+        if (buffer.Length == 0) return 0;
+
+        // Some clipping may be required
+        if (buffer.Length < asciiLen + 1)
+            asciiLen = (uint)(buffer.Length - 1);
+
+        // Process each character
+        for (var i = 0; i < asciiLen; i++)
+        {
+            buffer[i] = wide[i] == 0
+                ? (byte)0
+                : (byte)wide[i];
+        }
+
+        // We put a termination "\0"
+        buffer[asciiLen] = 0;
+        return asciiLen + 1;
+    }
+
+    internal uint GetUtf16(string languageCode, string countryCode, ref char[]? buffer)
+    {
+        var lang = StrTo16(languageCode);
+        var cntry = StrTo16(countryCode);
+
+        var wide = GetUtf16(lang, cntry, out var strLen, out _, out _);
+
+        // Maybe we want only to know the len?
+        if (buffer is null) return strLen + sizeof(char);
+
+        // No buffer size means no data
+        if (buffer.Length == 0) return 0;
+
+        // Some clipping may be required
+        if (buffer.Length < strLen + sizeof(char))
+            strLen = (uint)(buffer.Length - sizeof(char));
+
+        Buffer.BlockCopy(wide, 0, buffer, 0, (int)strLen);
+        buffer[strLen / sizeof(char)] = (char)0;
+
+        return strLen + sizeof(char);
+    }
+
+    internal bool GrowPool()
+    {
+        var size = poolSize == 0
+            ? 256
+            : poolSize * 2;
+
+        // Check for overflow
+        if (size < poolSize) return false;
+
+        // Reallocate the pool
+        var newPool = new byte[size];
+        Buffer.BlockCopy(memPool, 0, newPool, 0, memPool.Length);
+
+        memPool = newPool;
+        poolSize = size;
+
+        return true;
+    }
+
+    internal int SearchEntry(ushort languageCode, ushort countryCode)
+    {
+        // Iterate whole table
+        for (var i = 0; i < entries.Count; i++)
+            if (entries[i].Country == countryCode && entries[i].Language == languageCode) return i;
+
+        // Not found
+        return -1;
     }
 
     internal bool SetAscii(string languageCode, string countryCode, byte[] asciiString)
@@ -124,42 +206,32 @@ public class Mlu : ICloneable, IDisposable
         return AddBlock((uint)len, str.ToCharArray(), lang, cntry);
     }
 
-    internal uint GetAscii(string languageCode, string countryCode)
+    protected virtual void Dispose(bool disposing)
     {
-        byte[]? nullBuff = null;
+        if (!_disposed)
+        {
+            entries = null!;
+            memPool = null!;
 
-        return GetAscii(languageCode, countryCode, ref nullBuff);
+            _disposed = true;
+        }
     }
 
-    internal uint GetAscii(string languageCode, string countryCode, ref byte[]? buffer)
+    private static string StrFrom16(ushort n)
     {
-        var lang = StrTo16(languageCode);
-        var cntry = StrTo16(countryCode);
+        var str = new char[3];
+        str[0] = (char)(n >> 8);
+        str[1] = (char)(n & 0xff);
+        str[2] = (char)0;
 
-        var wide = GetUtf16(lang, cntry, out var strLen, out _, out _);
+        return new string(str);
+    }
 
-        var asciiLen = strLen / sizeof(char);
+    private static ushort StrTo16(string str)
+    {
+        if (str.Length < 2) return 0;
 
-        // Maybe we want only to know the len?
-        if (buffer is null) return asciiLen + 1; // Note the zero at the end
-
-        // No buffer means no data
-        if (buffer.Length == 0) return 0;
-
-        // Some clipping may be required
-        if (buffer.Length < asciiLen + 1)
-            asciiLen = (uint)(buffer.Length - 1);
-
-        // Process each character
-        for (var i = 0; i < asciiLen; i++) {
-            buffer[i] = wide[i] == 0
-                ? (byte)0
-                : (byte)wide[i];
-        }
-
-        // We put a termination "\0"
-        buffer[asciiLen] = 0;
-        return asciiLen + 1;
+        return (ushort)((str[0] << 8) | str[1]);
     }
 
     private char[] GetUtf16(ushort languageCode, ushort countryCode, out uint len, out ushort usedLanguageCode, out ushort usedCountryCode)
@@ -168,19 +240,22 @@ public class Mlu : ICloneable, IDisposable
         MluEntry v;
         char[] result;
 
-        for (var i = 0; i < Entries.Count; i++) {
-            v = Entries[i];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            v = entries[i];
 
-            if (v.Language == languageCode) {
+            if (v.Language == languageCode)
+            {
                 if (best == -1) best = i;
-                if (v.Country == countryCode) {
+                if (v.Country == countryCode)
+                {
                     usedLanguageCode = v.Language;
                     usedCountryCode = v.Country;
 
                     len = v.Len;
 
                     result = new char[len / sizeof(char)];
-                    Buffer.BlockCopy(MemPool, (int)v.OffsetToStr, result, 0, (int)len);
+                    Buffer.BlockCopy(memPool, (int)v.OffsetToStr, result, 0, (int)len);
 
                     // Found exact match
                     return result;
@@ -192,90 +267,24 @@ public class Mlu : ICloneable, IDisposable
         if (best == -1)
             best = 0;
 
-        v = Entries[best];
+        v = entries[best];
         usedLanguageCode = v.Language;
         usedCountryCode = v.Country;
 
         len = v.Len;
 
         result = new char[len / sizeof(char)];
-        Buffer.BlockCopy(MemPool, (int)v.OffsetToStr, result, 0, (int)len);
+        Buffer.BlockCopy(memPool, (int)v.OffsetToStr, result, 0, (int)len);
 
         // Found exact match
         return result;
-    }
-
-    internal uint GetUtf16(string languageCode, string countryCode, ref char[]? buffer)
-    {
-        var lang = StrTo16(languageCode);
-        var cntry = StrTo16(countryCode);
-
-        var wide = GetUtf16(lang, cntry, out var strLen, out _, out _);
-
-        // Maybe we want only to know the len?
-        if (buffer is null) return strLen + sizeof(char);
-
-        // No buffer size means no data
-        if (buffer.Length == 0) return 0;
-
-        // Some clipping may be required
-        if (buffer.Length < strLen + sizeof(char))
-            strLen = (uint)(buffer.Length - sizeof(char));
-
-        Buffer.BlockCopy(wide, 0, buffer, 0, (int)strLen);
-        buffer[strLen / sizeof(char)] = (char)0;
-
-        return strLen + sizeof(char);
-    }
-
-    internal static Mlu? Duplicate(Mlu? mlu)
-    {
-        if (mlu is null) return null;
-
-        return (Mlu)mlu.Clone();
-    }
-
-    public object Clone()
-    {
-        var mlu = this;
-        Mlu newMlu = new(Context);
-
-        newMlu.Entries.AddRange(mlu.Entries);
-
-        // The MLU may be empty
-        if (mlu.PoolUsed != 0)
-            newMlu.MemPool = new byte[mlu.PoolUsed];
-
-        newMlu.PoolSize = mlu.PoolUsed;
-
-        Buffer.BlockCopy(mlu.MemPool, 0, newMlu.MemPool, 0, (int)mlu.PoolUsed);
-        newMlu.PoolUsed = mlu.PoolUsed;
-
-        return newMlu;
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposedValue) {
-            Entries = null!;
-            MemPool = null!;
-
-            disposedValue = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
     }
 }
 
 internal struct MluEntry
 {
-    public ushort Language;
     public ushort Country;
-
-    public uint OffsetToStr;
+    public ushort Language;
     public uint Len;
+    public uint OffsetToStr;
 }

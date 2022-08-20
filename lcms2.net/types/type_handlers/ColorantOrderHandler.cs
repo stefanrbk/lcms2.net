@@ -1,19 +1,23 @@
-﻿
-using lcms2.io;
+﻿using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ColorantOrderHandler : TagTypeHandler
+
+public class ColorantOrderHandler: TagTypeHandler
 {
     public ColorantOrderHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
+
     public ColorantOrderHandler(Context? context = null)
         : this(default, context) { }
 
     public override object? Duplicate(object value, int num) =>
         ((byte[])value).Clone();
-    public override void Free(object value) { }
+
+    public override void Free(object value)
+    { }
+
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
@@ -31,6 +35,7 @@ public class ColorantOrderHandler : TagTypeHandler
         numItems = 1;
         return colorantOrder;
     }
+
     public override bool Write(Stream io, object value, int numItems)
     {
         var colorantOrder = (byte[])value;

@@ -9,17 +9,17 @@ namespace lcms2.plugins;
 ///     Parametric Curves
 /// </summary>
 /// <remarks>
-///     A plugin may implement an arbitrary number of parametric curves.<br />
-///     Implements the <c>cmsPluginParametricCurves</c> struct.
+///     A plugin may implement an arbitrary number of parametric curves. <br/> Implements the
+///     <c>cmsPluginParametricCurves</c> struct.
 /// </remarks>
-public sealed class ParametricCurvesPlugin : Plugin
+public sealed class ParametricCurvesPlugin: Plugin
 {
-    public (int Types, int Count)[] Functions;
-
     /// <summary>
     ///     The evaluator
     /// </summary>
     public ParametricCurveEvaluator Evaluator;
+
+    public (int Types, int Count)[] Functions;
 
     public ParametricCurvesPlugin(Signature magic, uint expectedVersion, Signature type, (int Types, int Count)[] functions, ParametricCurveEvaluator evaluator)
         : base(magic, expectedVersion, type)
@@ -33,7 +33,8 @@ public sealed class ParametricCurvesPlugin : Plugin
     {
         var ctx = Context.GetCurvesPlugin(context);
 
-        if (plugin is null) {
+        if (plugin is null)
+        {
             ctx.parametricCurves = null;
             return true;
         }
@@ -46,7 +47,11 @@ public sealed class ParametricCurvesPlugin : Plugin
 
 internal sealed class ParametricCurvesPluginChunk
 {
+    internal static ParametricCurvesPluginChunk global = new();
     internal ParametricCurvesCollection? parametricCurves;
+
+    private ParametricCurvesPluginChunk()
+    { }
 
     internal static void Alloc(ref Context ctx, in Context? src)
     {
@@ -55,11 +60,6 @@ internal sealed class ParametricCurvesPluginChunk
         else
             ctx.chunks[(int)Chunks.InterpPlugin] = new ParametricCurvesPluginChunk();
     }
-
-    private ParametricCurvesPluginChunk()
-    { }
-
-    internal static ParametricCurvesPluginChunk global = new();
 
     private static void DupPluginCurvesList(ref Context ctx, in Context src)
     {
@@ -70,12 +70,13 @@ internal sealed class ParametricCurvesPluginChunk
         Debug.Assert(head is not null);
 
         // Walk the list copying all nodes
-        for (var entry = head.parametricCurves; entry is not null; entry = entry.Next) {
+        for (var entry = head.parametricCurves; entry is not null; entry = entry.next)
+        {
             // We want to keep the linked list order, so this is a little bit tricky
             ParametricCurvesCollection newEntry = new(entry);
 
             if (anterior is not null)
-                anterior.Next = newEntry;
+                anterior.next = newEntry;
 
             anterior = newEntry;
 

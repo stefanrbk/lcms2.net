@@ -5,7 +5,8 @@ using lcms2.state;
 using static lcms2.Lcms2;
 
 namespace lcms2.types.type_handlers;
-public class MpeHandler : TagTypeHandler
+
+public class MpeHandler: TagTypeHandler
 {
     public MpeHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -41,8 +42,8 @@ public class MpeHandler : TagTypeHandler
         if (!ReadPositionTable(io, (int)elementCount, baseOffset, ref newLut, ReadMpeElem)) goto Error;
 
         // Check channel count
-        if (inputChans != ((Pipeline)newLut).InputChannels ||
-            outputChans != ((Pipeline)newLut).OutputChannels) goto Error;
+        if (inputChans != ((Pipeline)newLut).inputChannels ||
+            outputChans != ((Pipeline)newLut).outputChannels) goto Error;
 
         // Success
         numItems = 1;
@@ -57,13 +58,13 @@ public class MpeHandler : TagTypeHandler
     public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var lut = (Pipeline)value;
-        var elem = lut.Elements;
+        var elem = lut.elements;
         var mpeChunk = Context.GetMultiProcessElementPlugin(Context);
 
         var baseOffset = (uint)(io.Tell() - sizeof(TagBase));
 
-        var inputChan = lut.InputChannels;
-        var outputChan = lut.OutputChannels;
+        var inputChan = lut.inputChannels;
+        var outputChan = lut.outputChannels;
         var elemCount = lut.StageCount;
 
         var elementOffsets = new uint[elemCount];
@@ -77,20 +78,22 @@ public class MpeHandler : TagTypeHandler
         var dirPos = io.Tell();
 
         // Write a face directory to be filled later on
-        for (var i = 0; i < elemCount; i++) {
+        for (var i = 0; i < elemCount; i++)
+        {
             if (!io.Write((uint)0)) return false;   // Offset
             if (!io.Write((uint)0)) return false;   // Size
         }
 
         // Write each single tag. Keep track of the size as well.
-        for (var i = 0; i < elemCount; i++) {
-
+        for (var i = 0; i < elemCount; i++)
+        {
             elementOffsets[i] = (uint)io.Tell() - baseOffset;
 
-            var elementSig = elem!.Type;
+            var elementSig = elem!.type;
 
             var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
-            if (typeHandler is null) {
+            if (typeHandler is null)
+            {
                 Context.SignalError(Context, ErrorCode.UnknownExtension, "Found unknown MPE type '{0}'", elementSig);
                 return false;
             }
@@ -103,7 +106,7 @@ public class MpeHandler : TagTypeHandler
 
             elementSizes[i] = (uint)io.Tell() - before;
 
-            elem = elem.Next;
+            elem = elem.next;
         }
 
         // Write the directory
@@ -111,7 +114,8 @@ public class MpeHandler : TagTypeHandler
 
         if (io.Seek(dirPos, SeekOrigin.Begin) != dirPos) return false;
 
-        for (var i = 0; i < elemCount; i++) {
+        for (var i = 0; i < elemCount; i++)
+        {
             if (!io.Write(elementOffsets[i])) return false;
             if (!io.Write(elementSizes[i])) return false;
         }

@@ -2,7 +2,8 @@
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class CrdInfoHandler : TagTypeHandler
+
+public class CrdInfoHandler: TagTypeHandler
 {
     public CrdInfoHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }

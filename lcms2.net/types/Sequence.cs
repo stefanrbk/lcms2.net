@@ -1,33 +1,24 @@
 ﻿using lcms2.state;
 
 namespace lcms2.types;
-public class Sequence : ICloneable, IDisposable
+
+public class Sequence: ICloneable, IDisposable
 {
     public Context? Context;
     public ProfileSequenceDescription[] Seq;
-    private bool disposed;
 
-    public int SeqCount =>
-        Seq.Length;
+    private bool _disposed;
 
     public Sequence(Context? context, int count)
     {
         Context = context;
         Seq = new ProfileSequenceDescription[count];
 
-        disposed = false;
+        _disposed = false;
     }
 
-    public void Dispose()
-    {
-        if (!disposed) {
-            foreach (var seq in Seq)
-                seq?.Dispose();
-
-            disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
+    public int SeqCount =>
+        Seq.Length;
 
     public object Clone()
     {
@@ -37,5 +28,17 @@ public class Sequence : ICloneable, IDisposable
             result.Seq[i] = (ProfileSequenceDescription)Seq[i].Clone();
 
         return result;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            foreach (var seq in Seq)
+                seq?.Dispose();
+
+            _disposed = true;
+        }
+        GC.SuppressFinalize(this);
     }
 }

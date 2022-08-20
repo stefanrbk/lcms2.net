@@ -4,25 +4,9 @@ namespace lcms2.state;
 
 public sealed class Context
 {
-    #region Fields
-
-    private Context? next;
     internal object?[] chunks = new object[(int)Chunks.Max];
 
-    #endregion Fields
-
-    #region Constructors
-
-    private Context()
-    { }
-
-    #endregion Constructors
-
-    #region Statics
-
-    #region Variables
-
-    private static readonly Context globalContext = new()
+    private static readonly Context _globalContext = new()
     {
         chunks = new object?[(int)Chunks.Max]
         {
@@ -42,20 +26,24 @@ public sealed class Context
             MutexPluginChunk.global,
         }
     };
-    private static Context? poolHead = null;
-    private static readonly object poolHeadMutex = new();
 
-    #endregion Variables
+    private static readonly object _poolHeadMutex = new();
 
-    #region Static Methods
+    private static Context? _poolHead = null;
+
+    private Context? _next;
+
+    private Context()
+    { }
 
     public static Context? Create(Plugin? plugin, object? userData)
     {
         var ctx = new Context();
 
-        lock (poolHeadMutex) {
-            ctx.next = poolHead;
-            poolHead = ctx;
+        lock (_poolHeadMutex)
+        {
+            ctx._next = _poolHead;
+            _poolHead = ctx;
         }
 
         ctx.chunks[(int)Chunks.UserPtr] = userData;
@@ -82,18 +70,24 @@ public sealed class Context
 
     public static void Delete(Context? ctx)
     {
-        if (ctx is not null) {
+        if (ctx is not null)
+        {
             Plugin.UnregisterAll(ctx);
 
             // Maintain list
-            lock (poolHeadMutex) {
-                if (poolHead == ctx) {
-                    poolHead = ctx.next;
-                } else {
+            lock (_poolHeadMutex)
+            {
+                if (_poolHead == ctx)
+                {
+                    _poolHead = ctx._next;
+                } else
+                {
                     // Search for previous
-                    for (var prev = poolHead; prev is not null; prev = prev.next) {
-                        if (prev.next == ctx) {
-                            prev.next = ctx.next;
+                    for (var prev = _poolHead; prev is not null; prev = prev._next)
+                    {
+                        if (prev._next == ctx)
+                        {
+                            prev._next = ctx._next;
                             break;
                         }
                     }
@@ -110,9 +104,10 @@ public sealed class Context
 
         var ctx = new Context();
 
-        lock (poolHeadMutex) {
-            ctx.next = poolHead;
-            poolHead = ctx;
+        lock (_poolHeadMutex)
+        {
+            ctx._next = _poolHead;
+            _poolHead = ctx;
         }
 
         ctx.chunks[(int)Chunks.UserPtr] = userData;
@@ -132,8 +127,10 @@ public sealed class Context
         MutexPluginChunk.Alloc(ref ctx, src);
 
         // Make sure no one failed
-        for (var i = Chunks.Logger; i < Chunks.Max; i++) {
-            if (ctx.chunks[(int)i] is null) {
+        for (var i = Chunks.Logger; i < Chunks.Max; i++)
+        {
+            if (ctx.chunks[(int)i] is null)
+            {
                 Delete(ctx);
                 return null;
             }
@@ -142,45 +139,13 @@ public sealed class Context
         return ctx;
     }
 
-    public static object? GetUserData(Context? context) =>
-        GetClientChunk(context, Chunks.UserPtr);
-
-    internal static InterpolationPluginChunk GetInterpolationPlugin(Context? context) =>
-        (InterpolationPluginChunk)GetClientChunk(context, Chunks.InterpPlugin)!;
-
-    internal static TagTypePluginChunk GetTagTypePlugin(Context? context) =>
-        (TagTypePluginChunk)GetClientChunk(context, Chunks.TagTypePlugin)!;
-
-    internal static TagPluginChunk GetTagPlugin(Context? context) =>
-        (TagPluginChunk)GetClientChunk(context, Chunks.TagPlugin)!;
-
-    internal static FormattersPluginChunk GetFormattersPlugin(Context? context) =>
-        (FormattersPluginChunk)GetClientChunk(context, Chunks.FormattersPlugin)!;
-
-    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(Context? context) =>
-        (RenderingIntentsPluginChunk)GetClientChunk(context, Chunks.IntentPlugin)!;
-
-    internal static ParametricCurvesPluginChunk GetCurvesPlugin(Context? context) =>
-        (ParametricCurvesPluginChunk)GetClientChunk(context, Chunks.CurvesPlugin)!;
-
-    internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
-        (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;
-
-    internal static OptimizationPluginChunk GetOptimizationPlugin(Context? context) =>
-        (OptimizationPluginChunk)GetClientChunk(context, Chunks.OptimizationPlugin)!;
-
-    internal static TransformPluginChunk GetTransformPlugin(Context? context) =>
-        (TransformPluginChunk)GetClientChunk(context, Chunks.TransformPlugin)!;
-
-    internal static MutexPluginChunk GetMutexPlugin(Context? context) =>
-        (MutexPluginChunk)GetClientChunk(context, Chunks.MutexPlugin)!;
-
     public static object? GetClientChunk(Context? context, Chunks chunk)
     {
-        if (chunk is < 0 or >= Chunks.Max) {
+        if (chunk is < 0 or >= Chunks.Max)
+        {
             SignalError(context, ErrorCode.Internal, "Bad context chunk -- possible corruption");
 
-            return globalContext.chunks[(int)Chunks.UserPtr]!;
+            return _globalContext.chunks[(int)Chunks.UserPtr]!;
         }
 
         var ctx = Get(context);
@@ -189,13 +154,15 @@ public sealed class Context
         if (ptr is not null)
             return ptr;
 
-        // A null ptr means no special settings for that context, and this
-        // reverts to globals
-        return globalContext.chunks[(int)chunk];
+        // A null ptr means no special settings for that context, and this reverts to globals
+        return _globalContext.chunks[(int)chunk];
     }
 
+    public static object? GetUserData(Context? context) =>
+        GetClientChunk(context, Chunks.UserPtr);
+
     /// <summary>
-    /// Log an error.
+    ///     Log an error.
     /// </summary>
     /// <param name="errorText">English description of the error.</param>
     /// <remarks>Implements the <c>cmsSignalError</c> function.</remarks>
@@ -203,7 +170,7 @@ public sealed class Context
         SignalError(context, errorCode, String.Format(errorText, args));
 
     /// <summary>
-    /// Log an error.
+    ///     Log an error.
     /// </summary>
     /// <param name="errorText">English description of the error.</param>
     public static void SignalError(Context? context, ErrorCode errorCode, string errorText)
@@ -214,29 +181,60 @@ public sealed class Context
             lhg.handler(context, errorCode, errorText);
     }
 
-    // Helps prevent deleted contexts from being used by searching for the context in the list of active contexts and returning the global context if not found.
+    // Helps prevent deleted contexts from being used by searching for the context in the list of
+    // active contexts and returning the global context if not found.
     internal static Context Get(Context? context)
     {
         // On null, use global settings
         if (context is null)
-            return globalContext;
+            return _globalContext;
 
         // Search
-        lock (poolHeadMutex) {
-            for (var ctx = poolHead; ctx is not null; ctx = ctx.next) {
+        lock (_poolHeadMutex)
+        {
+            for (var ctx = _poolHead; ctx is not null; ctx = ctx._next)
+            {
                 // Found it?
-                if (context == ctx) {
+                if (context == ctx)
+                {
                     return ctx;
                 }
             }
         }
-        return globalContext;
+        return _globalContext;
     }
 
-    #endregion Static Methods
+    internal static ParametricCurvesPluginChunk GetCurvesPlugin(Context? context) =>
+        (ParametricCurvesPluginChunk)GetClientChunk(context, Chunks.CurvesPlugin)!;
 
-    #endregion Statics
+    internal static FormattersPluginChunk GetFormattersPlugin(Context? context) =>
+        (FormattersPluginChunk)GetClientChunk(context, Chunks.FormattersPlugin)!;
+
+    internal static InterpolationPluginChunk GetInterpolationPlugin(Context? context) =>
+        (InterpolationPluginChunk)GetClientChunk(context, Chunks.InterpPlugin)!;
+
+    internal static TagTypePluginChunk GetMultiProcessElementPlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.MPEPlugin)!;
+
+    internal static MutexPluginChunk GetMutexPlugin(Context? context) =>
+        (MutexPluginChunk)GetClientChunk(context, Chunks.MutexPlugin)!;
+
+    internal static OptimizationPluginChunk GetOptimizationPlugin(Context? context) =>
+        (OptimizationPluginChunk)GetClientChunk(context, Chunks.OptimizationPlugin)!;
+
+    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(Context? context) =>
+        (RenderingIntentsPluginChunk)GetClientChunk(context, Chunks.IntentPlugin)!;
+
+    internal static TagPluginChunk GetTagPlugin(Context? context) =>
+        (TagPluginChunk)GetClientChunk(context, Chunks.TagPlugin)!;
+
+    internal static TagTypePluginChunk GetTagTypePlugin(Context? context) =>
+        (TagTypePluginChunk)GetClientChunk(context, Chunks.TagTypePlugin)!;
+
+    internal static TransformPluginChunk GetTransformPlugin(Context? context) =>
+        (TransformPluginChunk)GetClientChunk(context, Chunks.TransformPlugin)!;
 }
+
 public enum Chunks
 {
     UserPtr,

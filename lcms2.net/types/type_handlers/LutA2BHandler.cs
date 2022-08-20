@@ -3,7 +3,8 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class LutA2BHandler : TagTypeHandler
+
+public class LutA2BHandler: TagTypeHandler
 {
     public LutA2BHandler(Signature sig, Context? context = null)
         : base(sig, context, 0) { }
@@ -73,16 +74,16 @@ public class LutA2BHandler : TagTypeHandler
 
         var baseOffset = io.Tell() - TagBase.SizeOf;
 
-        if (lut.Elements is not null &&
-            !lut.CheckAndRetreiveStagesAtoB(out a, out clut, out m, out matrix, out b)) {
-
+        if (lut.elements is not null &&
+            !lut.CheckAndRetreiveStagesAtoB(out a, out clut, out m, out matrix, out b))
+        {
             Context.SignalError(Context, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutAToB");
             return false;
         }
 
         // Get input, output channels
-        var inputChan = lut.InputChannels;
-        var outputChan = lut.OutputChannels;
+        var inputChan = lut.inputChannels;
+        var outputChan = lut.outputChannels;
 
         // Write channel count
         if (!io.Write((byte)inputChan)) return false;
@@ -96,32 +97,32 @@ public class LutA2BHandler : TagTypeHandler
         for (var i = 0; i < 5; i++)
             if (!io.Write((uint)0)) return false;
 
-        if (a is not null) {
-
+        if (a is not null)
+        {
             offsetA = io.Tell() - baseOffset;
             if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, a)) return false;
         }
 
-        if (clut is not null) {
-
+        if (clut is not null)
+        {
             offsetClut = io.Tell() - baseOffset;
-            if (!WriteClut(io, lut.SaveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
+            if (!WriteClut(io, lut.saveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
         }
 
-        if (m is not null) {
-
+        if (m is not null)
+        {
             offsetM = io.Tell() - baseOffset;
             if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, m)) return false;
         }
 
-        if (matrix is not null) {
-
+        if (matrix is not null)
+        {
             offsetMatrix = io.Tell() - baseOffset;
             if (!WriteMatrix(io, matrix)) return false;
         }
 
-        if (b is not null) {
-
+        if (b is not null)
+        {
             offsetB = io.Tell() - baseOffset;
             if (!WriteSetOfCurves(io, Signature.TagType.ParametricCurve, b)) return false;
         }
