@@ -1,6 +1,6 @@
-﻿namespace lcms2.it8_template;
+﻿namespace lcms2.it8;
 
-public struct Property
+internal struct Property
 {
     public static readonly Property[] PredefinedProperties = new Property[]
     {

@@ -1,17 +1,9 @@
 ﻿namespace lcms2.it8;
-internal struct Keyword
-{
-    public string Id;
-    public Symbol Symbol;
-
-    public Keyword(string id, Symbol symbol) =>
-        (Id, Symbol) = (id, symbol);
-}
 
 internal static class Keywords
 {
-    public static readonly Keyword[] List = new Keyword[]
-    {
+    public static readonly Dictionary<string, Symbol> List = new(new KeyValuePair<string, Symbol>[]
+        {
         new("$INCLUDE", Symbol.Include),    // This is an extension!
         new(".INCLUDE", Symbol.Include),    // This is an extension!
 
@@ -21,8 +13,8 @@ internal static class Keywords
         new("END_DATA", Symbol.SendData),
         new("END_DATA_FORMAT", Symbol.SendDataFormat),
         new("KEYWORD", Symbol.Keyword),
-    };
+    });
 
     public static int Count =>
-        List.Length;
+        List.Count;
 }

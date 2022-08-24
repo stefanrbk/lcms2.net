@@ -251,6 +251,9 @@ dotnet_naming_style.underscored_camel_case.capitalization = camel_case
 # RCS1003: Add braces to if-else (when expression spans over multiple lines).
 dotnet_diagnostic.RCS1003.severity = none
 
+# RCS1194: Implement exception constructors.
+dotnet_diagnostic.RCS1194.severity = none
+
 [*.{cs,vb}]
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4
