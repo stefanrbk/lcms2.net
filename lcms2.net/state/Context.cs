@@ -139,7 +139,13 @@ public sealed class Context
         return ctx;
     }
 
-    public static object? GetClientChunk(Context? context, Chunks chunk)
+    public static double GetAdaptionState(Context? context) =>
+        ((AdaptationState)GetClientChunk(context, Chunks.AdaptationStateContext)!).adaptationState;
+
+    public static ushort[] GetAlarmCodes(Context? context) =>
+        ((AlarmCodes)GetClientChunk(context, Chunks.AlarmCodesContext)!).alarmCodes;
+
+    internal static object? GetClientChunk(Context? context, Chunks chunk)
     {
         if (chunk is < 0 or >= Chunks.Max)
         {
@@ -160,6 +166,29 @@ public sealed class Context
 
     public static object? GetUserData(Context? context) =>
         GetClientChunk(context, Chunks.UserPtr);
+
+    public static double SetAdaptionState(Context? context, double d)
+    {
+        var p = (AdaptationState)GetClientChunk(context, Chunks.AdaptationStateContext)!;
+
+        // Get previous value for return
+        var prev = p.adaptationState;
+
+        // Set the value if d is positive or zero
+        if (d is >= 0)
+            p.adaptationState = d;
+
+        // Always return previous value
+        return prev;
+    }
+
+    public static void SetAlarmCodes(Context? context, ushort[] codes)
+    {
+        if (codes.Length is not 16) SignalError(context, ErrorCode.Range, "Invalid alarm code array length");
+
+        var alarmCodes = (AlarmCodes)GetClientChunk(context, Chunks.AlarmCodesContext)!;
+        alarmCodes.alarmCodes = codes;
+    }
 
     /// <summary>
     ///     Log an error.
