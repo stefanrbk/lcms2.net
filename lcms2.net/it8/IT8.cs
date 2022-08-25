@@ -11,8 +11,10 @@ public class IT8
     {
         get
         {
-            if (currentTable >= tables.Count)
+            if (currentTable > tables.Count)
                 throw new IT8Exception($"Table {currentTable} out of sequence");
+            else if (currentTable == tables.Count)
+                tables.Add(new Table());
             return tables[currentTable];
         }
     }
