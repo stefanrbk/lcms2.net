@@ -58,7 +58,7 @@ internal sealed class ParametricCurvesPluginChunk
         if (src is not null)
             DupPluginCurvesList(ref ctx, src);
         else
-            ctx.chunks[(int)Chunks.InterpPlugin] = new ParametricCurvesPluginChunk();
+            ctx.chunks[(int)Chunks.CurvesPlugin] = new ParametricCurvesPluginChunk();
     }
 
     private static void DupPluginCurvesList(ref Context ctx, in Context src)
