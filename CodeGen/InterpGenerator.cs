@@ -20,8 +20,8 @@ public partial class InterpParams
     {{
         var lutTable = p.Table16;
 
-        var tmp1 = new ushort[MaxStageChannels];
-        var tmp2 = new ushort[MaxStageChannels];
+        var tmp1 = new ushort[maxStageChannels];
+        var tmp2 = new ushort[maxStageChannels];
 
         var fk = ToFixedDomain(input[0] * p.Domain[0]);
         var k0 = FixedToInt(fk);
@@ -48,8 +48,8 @@ public partial class InterpParams
     private static void Eval{0}Inputs(in float[] input, ref float[] output, InterpParams p)
     {{
         var lutTable = p.TableFloat;
-        var tmp1 = new float[MaxStageChannels];
-        var tmp2 = new float[MaxStageChannels];
+        var tmp1 = new float[maxStageChannels];
+        var tmp2 = new float[maxStageChannels];
 
         var pk = fclamp(input[0]) * p.Domain[0];
         var k0 = QuickFloor(pk);
