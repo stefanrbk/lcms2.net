@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using static lcms2.it8.IT8;
 
 namespace lcms2.it8;
-internal class Reader
+internal class Reader: IDisposable
 {
     private int _ch;
     private readonly Stack<StreamReader> _fileStack = new();
@@ -23,6 +23,7 @@ internal class Reader
     private readonly List<Table> _tables = new();
     private int _currentTable;
     private string? _sheetType;
+    private bool _disposedValue;
 
     private Table Table
     {
@@ -737,5 +738,25 @@ internal class Reader
         it8.availableSampleId.AddRange(_availableSampleIds);
 
         return it8;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                while (_fileStack.Count > 0)
+                    _fileStack.Pop().Dispose();
+            }
+            _disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
