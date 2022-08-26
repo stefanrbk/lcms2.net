@@ -31,7 +31,7 @@ public partial class InterpParams
         var k1 = p.Opta[{1}] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
         var t = lutTable[k0..];
-        var p1 = new InterpParams(p.Context, p.Flags, p.NumInputs, p.NumOutputs, t);
+        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 
         var inp = input[1..];
@@ -59,7 +59,7 @@ public partial class InterpParams
         var k1 = k0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
 
         var t = lutTable[k0..];
-        var p1 = new InterpParams(p.Context, p.Flags, p.NumInputs, p.NumOutputs, t);
+        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
 
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 
