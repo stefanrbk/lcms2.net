@@ -364,7 +364,7 @@ public static class State
             if (src is not null)
                 DupTransformList(ref state, src);
             else
-                state._chunks[(int)Chunks.TransformPlugin] = FormattersPluginChunk.Default;
+                state._chunks[(int)Chunks.TransformPlugin] = TransformPluginChunk.Default;
         }
 
         private static void DupTransformList(ref Context ctx, in Context src)
