@@ -4,8 +4,6 @@ using System.Text;
 
 using lcms2.types;
 
-using static lcms2.Helpers;
-
 namespace lcms2.io;
 
 public static class IOHandler
@@ -60,20 +58,6 @@ public static class IOHandler
     /// <param name="qWord">qWord value to be swapped</param>
     public static long AdjustEndianness(long qWord) =>
         BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(qWord) : qWord;
-
-    /// <summary>
-    ///     Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
-    /// </summary>
-    /// <remarks>Implements the <c>_cmsDoubleTo15Fixed16</c> function.</remarks>
-    public static int DoubleToS15Fixed16(double value) =>
-        (int)Math.Floor((value * 65536.0) + 0.5);
-
-    /// <summary>
-    ///     Converts a double-precision floating-point number into a Q8.8 unsigned fixed-point number.
-    /// </summary>
-    /// <remarks>Implements the <c>_cmsDoubleTo8Fixed8</c> function.</remarks>
-    public static ushort DoubleToU8Fixed8(double value) =>
-        (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
 
     /// <summary>
     ///     Writes a <see cref="string"/> to the <see cref="Stream"/> (up to 2K).
@@ -314,38 +298,9 @@ public static class IOHandler
         return true;
     }
 
-    /// <summary>
-    ///     Converts a Q15.16 signed fixed-point number into a double-precision floating-point number.
-    /// </summary>
-    /// <remarks>Implements the <c>_cms15Fixed16toDouble</c> function.</remarks>
-    public static double S15Fixed16toDouble(int value)
-    {
-        var sign = value < 0 ? -1 : 1;
-        value = Math.Abs(value);
-
-        var whole = (ushort)((value >> 16) & 0xffff);
-        var fracPart = (ushort)(value & 0xffff);
-
-        var mid = fracPart / 65536.0;
-        var floater = whole + mid;
-
-        return sign * floater;
-    }
 
     public static long Tell(this Stream io) =>
                                             io.Seek(0, SeekOrigin.Current);
-
-    /// <summary>
-    ///     Converts a Q8.8 unsigned fixed-point number into a double-precision floating-point number.
-    /// </summary>
-    /// <remarks>Implements the <c>_cms8Fixed8toDouble</c> function.</remarks>
-    public static double U8Fixed8toDouble(ushort value)
-    {
-        var lsb = (byte)(value & 0xff);
-        var msb = (byte)((value >> 8) & 0xff);
-
-        return msb + (lsb / 256.0);
-    }
 
     /// <summary>
     ///     Writes a <see cref="byte"/> value to the <see cref="Stream"/>.

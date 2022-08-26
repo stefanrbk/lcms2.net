@@ -107,4 +107,49 @@ internal static class Helpers
 
     internal static ushort QuantizeValue(double i, int maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
+
+    /// <summary>
+    ///     Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo15Fixed16</c> function.</remarks>
+    public static int DoubleToS15Fixed16(double value) =>
+        (int)Math.Floor((value * 65536.0) + 0.5);
+
+    /// <summary>
+    ///     Converts a double-precision floating-point number into a Q8.8 unsigned fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo8Fixed8</c> function.</remarks>
+    public static ushort DoubleToU8Fixed8(double value) =>
+        (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
+
+    /// <summary>
+    ///     Converts a Q15.16 signed fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms15Fixed16toDouble</c> function.</remarks>
+    /// 
+    public static double S15Fixed16toDouble(int value)
+    {
+        var sign = value < 0 ? -1 : 1;
+        value = Math.Abs(value);
+
+        var whole = (ushort)((value >> 16) & 0xffff);
+        var fracPart = (ushort)(value & 0xffff);
+
+        var mid = fracPart / 65536.0;
+        var floater = whole + mid;
+
+        return sign * floater;
+    }
+
+    /// <summary>
+    ///     Converts a Q8.8 unsigned fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms8Fixed8toDouble</c> function.</remarks>
+    public static double U8Fixed8toDouble(ushort value)
+    {
+        var lsb = (byte)(value & 0xff);
+        var msb = (byte)((value >> 8) & 0xff);
+
+        return msb + (lsb / 256.0);
+    }
 }

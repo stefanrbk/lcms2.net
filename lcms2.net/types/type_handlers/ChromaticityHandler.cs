@@ -70,8 +70,8 @@ public class ChromaticityHandler: TagTypeHandler
 
     private static bool SaveOne(double x, double y, Stream io)
     {
-        if (!io.Write(IOHandler.DoubleToS15Fixed16(x))) return false;
-        if (!io.Write(IOHandler.DoubleToS15Fixed16(y))) return false;
+        if (!io.Write(DoubleToS15Fixed16(x))) return false;
+        if (!io.Write(DoubleToS15Fixed16(y))) return false;
 
         return true;
     }

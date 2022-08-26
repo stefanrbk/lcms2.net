@@ -8,6 +8,10 @@
     <IsPackable>false</IsPackable>
 
     <RootNamespace>lcms2.testing</RootNamespace>
+
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+
+    <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

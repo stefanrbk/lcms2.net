@@ -38,7 +38,7 @@ public class CurveHandler: TagTypeHandler
 
             case 1: // Specified as the exponent of gamma function
                 if (!io.ReadUInt16Number(out var singleGammaFixed)) return null;
-                singleGamma = IOHandler.U8Fixed8toDouble(singleGammaFixed);
+                singleGamma = U8Fixed8toDouble(singleGammaFixed);
 
                 numItems = 1;
                 return ToneCurve.BuildParametric(StateContainer, 1, singleGamma);
@@ -68,7 +68,7 @@ public class CurveHandler: TagTypeHandler
         if (curve.NumSegments == 1 && curve.segments[0].Type == 1)
         {
             // Single gamma, preserve number
-            var singleGammaFixed = IOHandler.DoubleToU8Fixed8(curve.segments[0].Params![0]);
+            var singleGammaFixed = DoubleToU8Fixed8(curve.segments[0].Params![0]);
 
             if (!io.Write((uint)1)) return false;
             if (!io.Write(singleGammaFixed)) return false;

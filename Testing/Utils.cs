@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,5 +33,12 @@ public static class Utils
 
     public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
         Assert.That(actual, Is.EqualTo(expected).Within(delta), "({0}): Must be {1}, But is {2}", title, actual, expected);
+
+    [DoesNotReturn]
+    public static void Die(string reason, params object[] args)
+    {
+        Console.Error.WriteLine(String.Format(reason, args));
+        Environment.Exit(-1);
+    }
 
 }
