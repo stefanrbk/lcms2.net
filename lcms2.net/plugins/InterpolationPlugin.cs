@@ -16,9 +16,9 @@ public sealed class InterpolationPlugin
         : base(magic, expectedVersion, type) =>
         InterpolatorsFactory = interpolatorsFactory;
 
-    internal static bool RegisterPlugin(Context? context, InterpolationPlugin? plugin)
+    internal static bool RegisterPlugin(object? state, InterpolationPlugin? plugin)
     {
-        var ptr = (InterpolationPluginChunk)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
+        var ptr = State.GetInterpolationPlugin(state);
 
         if (plugin is null)
         {
@@ -36,11 +36,8 @@ internal sealed class InterpolationPluginChunk
 {
     internal static InterpolationPluginChunk global = new() { interpolators = null };
     internal InterpFnFactory? interpolators;
+    internal static InterpolationPluginChunk Default => new() { interpolators = null };
 
     private InterpolationPluginChunk()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src) =>
-             ctx.chunks[(int)Chunks.InterpPlugin] =
-             (InterpolationPluginChunk?)src?.chunks[(int)Chunks.InterpPlugin] ?? new InterpolationPluginChunk();
 }

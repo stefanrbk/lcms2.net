@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class ChromaticityHandler: TagTypeHandler
 {
-    public ChromaticityHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public ChromaticityHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public ChromaticityHandler(Context? context = null)
-        : this(default, context) { }
+    public ChromaticityHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((xyYTripple)value).Clone();

@@ -1,5 +1,4 @@
-﻿using lcms2.state;
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -12,17 +11,17 @@ namespace lcms2.plugins;
 /// </remarks>
 public abstract partial class TagTypeHandler
 {
-    protected TagTypeHandler(Signature signature, Context? context, uint iCCVersion)
+    protected TagTypeHandler(Signature signature, object? state, uint iCCVersion)
     {
         Signature = signature;
-        Context = context;
+        StateContainer = state;
         ICCVersion = iCCVersion;
     }
 
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
-    public virtual Context? Context { get; }
+    public virtual object? StateContainer { get; }
 
     /// <summary>
     ///     Additional parameter used by the calling thread

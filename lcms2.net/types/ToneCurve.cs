@@ -136,16 +136,16 @@ public class ToneCurve: ICloneable, IDisposable
     internal int NumSegments =>
                      segments.Length;
 
-    public static ToneCurve? BuildGamma(Context? context, double gamma) =>
-               BuildParametric(context, 1, gamma);
+    public static ToneCurve? BuildGamma(object? state, double gamma) =>
+               BuildParametric(state, 1, gamma);
 
-    public static ToneCurve? BuildParametric(Context? context, int type, params double[] @params)
+    public static ToneCurve? BuildParametric(object? state, int type, params double[] @params)
     {
-        var c = ParametricCurvesCollection.GetByType(context, type, out var pos);
+        var c = ParametricCurvesCollection.GetByType(state, type, out var pos);
 
         if (c is null)
         {
-            Context.SignalError(context, ErrorCode.UnknownExtension, "Invalid parametric curve type {0}", type);
+            State.SignalError(state, ErrorCode.UnknownExtension, "Invalid parametric curve type {0}", type);
             return null;
         }
 
@@ -159,10 +159,10 @@ public class ToneCurve: ICloneable, IDisposable
         var size = c.functions[pos].Count * sizeof(double);
         @params[..size].CopyTo(seg0.Params, 0);
 
-        return BuildSegmented(context, new CurveSegment[] { seg0 });
+        return BuildSegmented(state, new CurveSegment[] { seg0 });
     }
 
-    public static ToneCurve? BuildSegmented(Context? context, CurveSegment[] segments)
+    public static ToneCurve? BuildSegmented(object? state, CurveSegment[] segments)
     {
         var numSegments = segments.Length;
         var numGridPoints = 4096;
@@ -171,7 +171,7 @@ public class ToneCurve: ICloneable, IDisposable
         if (numSegments == 1 && segments[0].Type == 1)
             numGridPoints = EntriesByGamma(segments[0].Params[0]);
 
-        var g = Alloc(context, numGridPoints, numSegments, segments, null);
+        var g = Alloc(state, numGridPoints, numSegments, segments, null);
         if (g is null) return null;
 
         // Once we have the floating point version, we can approximate a 16 bit table of 4096
@@ -189,10 +189,10 @@ public class ToneCurve: ICloneable, IDisposable
         return g;
     }
 
-    public static ToneCurve? BuildTabulated16(Context? context, int numEntries, ushort[]? values) =>
-           Alloc(context, numEntries, 0, null, values);
+    public static ToneCurve? BuildTabulated16(object? state, int numEntries, ushort[]? values) =>
+           Alloc(state, numEntries, 0, null, values);
 
-    public static ToneCurve? BuildTabulatedFloat(Context? context, int numEntries, float[] values)
+    public static ToneCurve? BuildTabulatedFloat(object? state, int numEntries, float[] values)
     {
         var seg = new CurveSegment[3];
 
@@ -228,7 +228,7 @@ public class ToneCurve: ICloneable, IDisposable
         seg[2].Params[3] = values[numEntries - 1];
         seg[2].Params[4] = 0;
 
-        return BuildSegmented(context, seg);
+        return BuildSegmented(state, seg);
     }
 
     public static void DisposeTriple(ToneCurve[] curves)
@@ -241,7 +241,7 @@ public class ToneCurve: ICloneable, IDisposable
     }
 
     public object Clone() =>
-           Alloc(interpParams?.Context, NumEntries, NumSegments, segments, table16)!;
+           Alloc(interpParams?.StateContainer, NumEntries, NumSegments, segments, table16)!;
 
     public void Dispose()
     {
@@ -318,7 +318,7 @@ public class ToneCurve: ICloneable, IDisposable
         return o[0];
     }
 
-    public ToneCurve? Join(Context? context, ToneCurve Y, int numResultingPoints)
+    public ToneCurve? Join(object? state, ToneCurve Y, int numResultingPoints)
     {
         var X = this;
         ToneCurve? result = null;
@@ -336,7 +336,7 @@ public class ToneCurve: ICloneable, IDisposable
             res[i] = Yreversed.Eval(x);
         }
 
-        result = BuildTabulatedFloat(context, numResultingPoints, res);
+        result = BuildTabulatedFloat(state, numResultingPoints, res);
 
     Error:
         Yreversed?.Dispose();
@@ -353,12 +353,12 @@ public class ToneCurve: ICloneable, IDisposable
 
         if (NumSegments == 1 && segments[0].Type > 0 &&
             /* Segments[0].Type <= 5 */
-            ParametricCurvesCollection.GetByType(interpParams?.Context, segments[0].Type, out _) is not null)
+            ParametricCurvesCollection.GetByType(interpParams?.StateContainer, segments[0].Type, out _) is not null)
         {
-            return BuildParametric(interpParams?.Context, -segments[0].Type, segments[0].Params);
+            return BuildParametric(interpParams?.StateContainer, -segments[0].Type, segments[0].Params);
         }
 
-        var result = BuildTabulated16(interpParams?.Context, numResultSamples, null);
+        var result = BuildTabulated16(interpParams?.StateContainer, numResultSamples, null);
         if (result is null)
             return null;
 
@@ -409,7 +409,7 @@ public class ToneCurve: ICloneable, IDisposable
 
         if (interpParams is not null)
         {
-            var context = interpParams.Context;
+            var context = interpParams.StateContainer;
 
             if (!IsLinear)
             { // Only non-linear curves need smoothing
@@ -448,7 +448,7 @@ public class ToneCurve: ICloneable, IDisposable
                                 if (z[i] >= 65535f) poles++;
                                 if (z[i] < z[i - 1])
                                 {
-                                    Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Non-Monotonic.");
+                                    State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Non-Monotonic.");
                                     successStatus = notCheck;
                                     break;
                                 }
@@ -456,13 +456,13 @@ public class ToneCurve: ICloneable, IDisposable
 
                             if (successStatus && zeros > (numItems / 3))
                             {
-                                Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly zeros.");
+                                State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly zeros.");
                                 successStatus = notCheck;
                             }
 
                             if (successStatus && poles > (numItems / 3))
                             {
-                                Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly poles.");
+                                State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly poles.");
                                 successStatus = notCheck;
                             }
 
@@ -474,13 +474,13 @@ public class ToneCurve: ICloneable, IDisposable
                             }
                         } else
                         { // Could not smooth
-                            Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Function Smooth2 failed.");
+                            State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Function Smooth2 failed.");
                             successStatus = false;
                         }
                     }
                 } else
                 {
-                    Context.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Too many points.");
+                    State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Too many points.");
                     successStatus = false;
                 }
             }
@@ -489,20 +489,20 @@ public class ToneCurve: ICloneable, IDisposable
         return successStatus;
     }
 
-    internal static ToneCurve? Alloc(Context? context, int numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
+    internal static ToneCurve? Alloc(object? state, int numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
     {
         InterpParams? interp;
 
         // We allow huge tables, which are then restricted for smoothing operations
         if (numEntries > 65530)
         {
-            Context.SignalError(context, ErrorCode.Range, "Couldn't create tone curve of more than 65530 entries");
+            State.SignalError(state, ErrorCode.Range, "Couldn't create tone curve of more than 65530 entries");
             return null;
         }
 
         if (numEntries == 0 && numSegments == 0)
         {
-            Context.SignalError(context, ErrorCode.Range, "Couldn't create tone curve with zero segments and no table");
+            State.SignalError(state, ErrorCode.Range, "Couldn't create tone curve with zero segments and no table");
             return null;
         }
 
@@ -523,7 +523,7 @@ public class ToneCurve: ICloneable, IDisposable
                 // Type 0 is a special marker for table-based curves
                 if (segments[i].Type == 0)
                 {
-                    interp = InterpParams.Compute(context, segments[i].NumGridPoints, 1, 1, Array.Empty<float>(), LerpFlag.Float);
+                    interp = InterpParams.Compute(state, segments[i].NumGridPoints, 1, 1, Array.Empty<float>(), LerpFlag.Float);
                     if (interp is null) return null;
                     p.segInterp[i] = interp;
                 }
@@ -534,13 +534,13 @@ public class ToneCurve: ICloneable, IDisposable
                     ? (float[]?)segments[i].SampledPoints?.Clone()
                     : null;
 
-                var c = ParametricCurvesCollection.GetByType(context, segments[i].Type, out _);
+                var c = ParametricCurvesCollection.GetByType(state, segments[i].Type, out _);
                 if (c is not null)
                     p.evals[i] = c.evaluator;
             }
         }
 
-        interp = InterpParams.Compute(context, numEntries, 1, 1, p.table16, LerpFlag.Ushort);
+        interp = InterpParams.Compute(state, numEntries, 1, 1, p.table16, LerpFlag.Ushort);
         if (interp is not null)
         {
             p.interpParams = interp;
@@ -1030,9 +1030,9 @@ internal class ParametricCurvesCollection
     internal int NumFunctions =>
         functions.Length;
 
-    internal static ParametricCurvesCollection? GetByType(Context? context, int type, out int index)
+    internal static ParametricCurvesCollection? GetByType(object? state, int type, out int index)
     {
-        var ctx = Context.GetCurvesPlugin(context);
+        var ctx = State.GetCurvesPlugin(state);
 
         for (var c = ctx.parametricCurves; c is not null; c = c.next)
         {

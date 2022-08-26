@@ -24,7 +24,7 @@ public delegate void StageFreeElemFn(ref Stage mpe);
 
 public class Stage: ICloneable, IDisposable
 {
-    internal Context context;
+    internal object? state;
 
     internal object data;
 
@@ -44,9 +44,9 @@ public class Stage: ICloneable, IDisposable
 
     internal Signature type;
 
-    private Stage(Context context, Signature type, Signature implements, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freeElemPtr, object data)
+    private Stage(object? state, Signature type, Signature implements, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freeElemPtr, object data)
     {
-        this.context = context;
+        this.state = state;
         this.type = type;
         this.implements = implements;
         this.inputChannels = inputChannels;
@@ -60,22 +60,22 @@ public class Stage: ICloneable, IDisposable
     internal ToneCurve[] CurveSet =>
         (data as ToneCurveData)?.TheCurves ?? throw new InvalidOperationException();
 
-    public static Stage AllocCLut16bit(Context? context, uint numGridPoints, uint inputChan, uint outputChan, in ushort[]? table)
+    public static Stage AllocCLut16bit(object? state, uint numGridPoints, uint inputChan, uint outputChan, in ushort[]? table)
     {
         throw new NotImplementedException();
     }
 
-    public static Stage AllocCLut16bitGranular(Context? context, uint[] clutPoints, uint inputChan, uint outputChan, in ushort[]? table)
+    public static Stage AllocCLut16bitGranular(object? state, uint[] clutPoints, uint inputChan, uint outputChan, in ushort[]? table)
     {
         throw new NotImplementedException();
     }
 
-    public static Stage AllocCLutFloatGranular(Context? context, uint[] clutPoints, uint inputChan, uint outputChan, in float[]? table)
+    public static Stage AllocCLutFloatGranular(object? state, uint[] clutPoints, uint inputChan, uint outputChan, in float[]? table)
     {
         throw new NotImplementedException();
     }
 
-    public static Stage AllocMatrix(Context? context, uint rows, uint cols, in double[] matrix, double[]? offset)
+    public static Stage AllocMatrix(object? state, uint rows, uint cols, in double[] matrix, double[]? offset)
     {
         throw new NotImplementedException();
     }
@@ -90,10 +90,10 @@ public class Stage: ICloneable, IDisposable
     /// <param name="freePtr">Points to a function that sets the element free</param>
     /// <param name="data">A generic pointer to whatever memory needed by the element</param>
     /// <remarks>Implements the <c>_cmsStageAllocPlaceholder</c> function.</remarks>
-    public static Stage AllocPlaceholder(Context? context, Signature type, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freePtr, object data) =>
-        new(Context.Get(context), type, type, inputChannels, outputChannels, evalPtr, dupElemPtr, freePtr, data);
+    public static Stage AllocPlaceholder(object? state, Signature type, int inputChannels, int outputChannels, StageEvalFn evalPtr, StageDupElemFn dupElemPtr, StageFreeElemFn freePtr, object data) =>
+        new(state, type, type, inputChannels, outputChannels, evalPtr, dupElemPtr, freePtr, data);
 
-    public static Stage AllocToneCurves(Context? context, uint numChannels, ToneCurve?[] curves)
+    public static Stage AllocToneCurves(object? state, uint numChannels, ToneCurve?[] curves)
     {
         throw new NotImplementedException();
     }

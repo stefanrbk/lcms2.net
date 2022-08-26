@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class MpeClutHandler: TagTypeHandler
 {
-    public MpeClutHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MpeClutHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MpeClutHandler(Context? context = null)
-        : this(default, context) { }
+    public MpeClutHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();
@@ -44,7 +44,7 @@ public class MpeClutHandler: TagTypeHandler
         }
 
         // Allocate the true CLUT
-        var mpe = Stage.AllocCLutFloatGranular(Context, gridPoints, inputChans, outputChans, null);
+        var mpe = Stage.AllocCLutFloatGranular(StateContainer, gridPoints, inputChans, outputChans, null);
         if (mpe is null) goto Error;
 
         // Read and sanitize the data

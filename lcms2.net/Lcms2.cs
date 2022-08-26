@@ -1,9 +1,8 @@
-﻿using lcms2.state;
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2;
 
-public delegate void FreeUserDataFn(Context? context, ref object data);
+public delegate void FreeUserDataFn(object? state, ref object data);
 
 public static class Lcms2
 {
@@ -18,4 +17,4 @@ public static class Lcms2
     internal const int typesInLcmsPlugin = 20;
 }
 
-public delegate object? DupUserDataFn(Context? context, in object? data);
+public delegate object? DupUserDataFn(object? state, in object? data);

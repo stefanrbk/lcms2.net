@@ -52,7 +52,7 @@ public class Transform
 
     internal Cache cache;
 
-    internal Context? context;
+    internal object? state;
 
     internal Signature entryColorSpace;
 

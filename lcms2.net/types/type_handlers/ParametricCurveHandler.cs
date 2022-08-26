@@ -10,11 +10,11 @@ public class ParametricCurveHandler: TagTypeHandler
 
     private static readonly int[] _writeParamsByType = new int[] { 0, 1, 3, 4, 5, 7 };
 
-    public ParametricCurveHandler(Signature sig, Context? context = null)
-               : base(sig, context, 0) { }
+    public ParametricCurveHandler(Signature sig, object? state = null)
+               : base(sig, state, 0) { }
 
-    public ParametricCurveHandler(Context? context = null)
-        : this(default, context) { }
+    public ParametricCurveHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
@@ -33,7 +33,7 @@ public class ParametricCurveHandler: TagTypeHandler
 
         if (type > 4)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
             return null;
         }
         var n = _readParamsByType[type];
@@ -41,7 +41,7 @@ public class ParametricCurveHandler: TagTypeHandler
         for (var i = 0; i < n; i++)
             if (!io.Read15Fixed16Number(out @params[i])) return null;
 
-        var newGamma = ToneCurve.BuildParametric(Context, type + 1, @params);
+        var newGamma = ToneCurve.BuildParametric(StateContainer, type + 1, @params);
 
         numItems = 1;
         return newGamma;
@@ -55,13 +55,13 @@ public class ParametricCurveHandler: TagTypeHandler
 
         if (curve.NumSegments > 1 || typeN < 1)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
         }
 
         if (typeN > 5)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported parametric curve");
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported parametric curve");
             return false;
         }
 

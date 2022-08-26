@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class ColorantTableHandler: TagTypeHandler
 {
-    public ColorantTableHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public ColorantTableHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public ColorantTableHandler(Context? context = null)
-        : this(default, context) { }
+    public ColorantTableHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as NamedColorList)?.Clone();
@@ -28,11 +28,11 @@ public class ColorantTableHandler: TagTypeHandler
 
         if (count > Lcms2.MaxChannels)
         {
-            Context.SignalError(Context, ErrorCode.Range, "Too many colorants '{0}'", count);
+            state.State.SignalError(StateContainer, ErrorCode.Range, "Too many colorants '{0}'", count);
             return null;
         }
 
-        NamedColorList list = new(Context, count, "", "");
+        NamedColorList list = new(StateContainer, count, "", "");
 
         for (var i = 0; i < count; i++)
         {

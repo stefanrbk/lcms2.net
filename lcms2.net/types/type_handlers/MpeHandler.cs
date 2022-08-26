@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class MpeHandler: TagTypeHandler
 {
-    public MpeHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MpeHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MpeHandler(Context? context = null)
-        : this(default, context) { }
+    public MpeHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
@@ -35,7 +35,7 @@ public class MpeHandler: TagTypeHandler
             (outputChans is 0 or >= MaxChannels)) return null;
 
         // Allocate an empty LUT
-        object? newLut = Pipeline.Alloc(Context, inputChans, outputChans);
+        object? newLut = Pipeline.Alloc(StateContainer, inputChans, outputChans);
         if (newLut is null) return null;
 
         if (!io.ReadUInt32Number(out var elementCount)) goto Error;
@@ -59,7 +59,7 @@ public class MpeHandler: TagTypeHandler
     {
         var lut = (Pipeline)value;
         var elem = lut.elements;
-        var mpeChunk = Context.GetMultiProcessElementPlugin(Context);
+        var mpeChunk = State.GetMultiProcessElementPlugin(StateContainer);
 
         var baseOffset = (uint)(io.Tell() - sizeof(TagBase));
 
@@ -94,7 +94,7 @@ public class MpeHandler: TagTypeHandler
             var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
             if (typeHandler is null)
             {
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Found unknown MPE type '{0}'", elementSig);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Found unknown MPE type '{0}'", elementSig);
                 return false;
             }
 

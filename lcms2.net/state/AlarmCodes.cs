@@ -6,15 +6,8 @@ internal sealed class AlarmCodes
     internal static AlarmCodes global = new() { alarmCodes = (ushort[])defaultAlarmCodes!.Clone() };
     internal ushort[] alarmCodes = new ushort[Lcms2.MaxChannels];
 
-    private static readonly AlarmCodes _alarmCodesChunk = new() { alarmCodes = defaultAlarmCodes };
+    internal static AlarmCodes Default => new() { alarmCodes = defaultAlarmCodes };
 
     private AlarmCodes()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        AlarmCodes from = (AlarmCodes?)src?.chunks[(int)Chunks.AlarmCodesContext] ?? _alarmCodesChunk;
-
-        ctx.chunks[(int)Chunks.AlarmCodesContext] = from;
-    }
 }

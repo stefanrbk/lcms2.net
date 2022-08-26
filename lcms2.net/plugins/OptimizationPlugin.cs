@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-using lcms2.state;
+﻿using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -28,9 +26,9 @@ public sealed class OptimizationPlugin: Plugin
         Function = function;
     }
 
-    internal static bool RegisterPlugin(Context? context, OptimizationPlugin? plugin)
+    internal static bool RegisterPlugin(object? state, OptimizationPlugin? plugin)
     {
-        var ctx = Context.GetOptimizationPlugin(context);
+        var ctx = State.GetOptimizationPlugin(state);
 
         if (plugin is null)
         {
@@ -71,42 +69,8 @@ internal sealed class OptimizationPluginChunk
     internal static OptimizationPluginChunk global = new();
     internal OptimizationCollection? optimizationCollection;
 
-    private static readonly OptimizationPluginChunk _tagsPluginChunk = new();
+    internal static OptimizationPluginChunk Default => new();
 
     private OptimizationPluginChunk()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        if (src is not null)
-            DupOptimizationList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.OptimizationPlugin] = _tagsPluginChunk;
-    }
-
-    private static void DupOptimizationList(ref Context ctx, in Context src)
-    {
-        OptimizationPluginChunk newHead = new();
-        OptimizationCollection? anterior = null;
-        var head = (OptimizationPluginChunk?)src.chunks[(int)Chunks.OptimizationPlugin];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.optimizationCollection; entry is not null; entry = entry.next)
-        {
-            // We want to keep the linked list order, so this is a little bit tricky
-            OptimizationCollection newEntry = new(entry);
-
-            if (anterior is not null)
-                anterior.next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.optimizationCollection is null)
-                newHead.optimizationCollection = newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.OptimizationPlugin] = newHead;
-    }
 }

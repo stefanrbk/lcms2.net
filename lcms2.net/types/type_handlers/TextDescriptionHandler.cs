@@ -1,6 +1,5 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 using static lcms2.Helpers;
 
@@ -8,11 +7,11 @@ namespace lcms2.types.type_handlers;
 
 public class TextDescriptionHandler: TagTypeHandler
 {
-    public TextDescriptionHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public TextDescriptionHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public TextDescriptionHandler(Context? context = null)
-        : this(default, context) { }
+    public TextDescriptionHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((Mlu)value).Clone();
@@ -35,7 +34,7 @@ public class TextDescriptionHandler: TagTypeHandler
         if (sizeOfTag < asciiCount) return null;
 
         // All seems Ok, create the container
-        Mlu mlu = new(Context);
+        Mlu mlu = new(StateContainer);
 
         // As many memory as size of tag
         var text = new byte[asciiCount + 1];

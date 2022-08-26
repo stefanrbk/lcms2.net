@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class VcgtHandler: TagTypeHandler
 {
-    public VcgtHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public VcgtHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public VcgtHandler(Context? context = null)
-        : this(default, context) { }
+    public VcgtHandler(object? state = null)
+        : this(default, state) { }
 
     private enum VCGType
     {
@@ -51,7 +51,7 @@ public class VcgtHandler: TagTypeHandler
 
                 if (numChannels != 3)
                 {
-                    Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported number of channels for VCGT '{0}'", numChannels);
+                    State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported number of channels for VCGT '{0}'", numChannels);
                     return null;
                 }
 
@@ -66,7 +66,7 @@ public class VcgtHandler: TagTypeHandler
                 // Populate tone curves
                 for (var n = 0; n < 3; n++)
                 {
-                    var tempCurve = ToneCurve.BuildTabulated16(Context, numElems, null);
+                    var tempCurve = ToneCurve.BuildTabulated16(StateContainer, numElems, null);
                     if (tempCurve is null) goto Error;
 
                     curves[n] = tempCurve;
@@ -93,7 +93,7 @@ public class VcgtHandler: TagTypeHandler
                         // Unsupported
                         default:
 
-                            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported bit depth for VCGT '{0}'", numBytes * 8);
+                            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported bit depth for VCGT '{0}'", numBytes * 8);
                             goto Error;
                     }
                 } // For all 3 channels
@@ -118,7 +118,7 @@ public class VcgtHandler: TagTypeHandler
 
                     // So, the translation is a = (Max - Min) ^ ( 1 / Gamma) e = Min b=c=d=f=0
 
-                    var tempCurve = ToneCurve.BuildParametric(Context, 5, colorant[n].Gamma, Math.Pow(colorant[n].Max - colorant[n].Min, 1.0 / colorant[n].Gamma), 0, 0, 0, colorant[n].Min, 0);
+                    var tempCurve = ToneCurve.BuildParametric(StateContainer, 5, colorant[n].Gamma, Math.Pow(colorant[n].Max - colorant[n].Min, 1.0 / colorant[n].Gamma), 0, 0, 0, colorant[n].Min, 0);
                     if (tempCurve is null) goto Error;
 
                     curves[n] = tempCurve;
@@ -129,7 +129,7 @@ public class VcgtHandler: TagTypeHandler
             // Unsupported
             default:
 
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported tag type for VCGT '{0}'", tagType);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported tag type for VCGT '{0}'", tagType);
                 goto Error;
         }
 

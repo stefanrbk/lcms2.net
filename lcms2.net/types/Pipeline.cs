@@ -16,7 +16,7 @@ public delegate void PipelineEvalFloatFn(in float[] @in, float[] @out, in object
 
 public class Pipeline: ICloneable, IDisposable
 {
-    internal Context? context;
+    internal object? state;
 
     internal object? data;
 
@@ -34,7 +34,7 @@ public class Pipeline: ICloneable, IDisposable
 
     internal bool saveAs8Bits;
 
-    internal Pipeline(Stage? elements, uint inputChannels, uint outputChannels, object? data, PipelineEval16Fn? eval16Fn, PipelineEvalFloatFn? evalFloatFn, FreeUserDataFn? freeDataFn, DupUserDataFn? dupDataFn, Context? context, bool saveAs8Bits)
+    internal Pipeline(Stage? elements, uint inputChannels, uint outputChannels, object? data, PipelineEval16Fn? eval16Fn, PipelineEvalFloatFn? evalFloatFn, FreeUserDataFn? freeDataFn, DupUserDataFn? dupDataFn, object? state, bool saveAs8Bits)
     {
         this.elements = elements;
         this.inputChannels = inputChannels;
@@ -44,7 +44,7 @@ public class Pipeline: ICloneable, IDisposable
         this.evalFloatFn = evalFloatFn;
         this.freeDataFn = freeDataFn;
         this.dupDataFn = dupDataFn;
-        this.context = context;
+        this.state = state;
         this.saveAs8Bits = saveAs8Bits;
     }
 
@@ -62,7 +62,7 @@ public class Pipeline: ICloneable, IDisposable
         }
     }
 
-    public static Pipeline? Alloc(Context? context, uint inputChannels, uint outputChannels)
+    public static Pipeline? Alloc(object? context, uint inputChannels, uint outputChannels)
     {
         // A value of zero in channels is allowed as placeholder
         if (inputChannels >= Lcms2.MaxChannels ||

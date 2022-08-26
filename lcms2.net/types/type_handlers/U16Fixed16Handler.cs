@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class U16Fixed16Handler: TagTypeHandler
 {
-    public U16Fixed16Handler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public U16Fixed16Handler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public U16Fixed16Handler(Context? context = null)
-        : this(default, context) { }
+    public U16Fixed16Handler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((double[])value).Clone();

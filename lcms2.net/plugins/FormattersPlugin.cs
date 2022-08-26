@@ -17,9 +17,9 @@ public sealed class FormattersPlugin: Plugin
         : base(magic, expectedVersion, type) =>
         FormattersFactory = formatterFactory;
 
-    internal static bool RegisterPlugin(Context? context, FormattersPlugin? plugin)
+    internal static bool RegisterPlugin(object? state, FormattersPlugin? plugin)
     {
-        var ctx = Context.GetFormattersPlugin(context);
+        var ctx = State.GetFormattersPlugin(state);
 
         if (plugin is null)
         {
@@ -51,42 +51,8 @@ internal sealed class FormattersPluginChunk
     internal static FormattersPluginChunk global = new();
     internal FormattersFactoryList? factoryList;
 
-    private static readonly FormattersPluginChunk _curvesPluginChunk = new();
+    internal static FormattersPluginChunk Default => new();
 
     private FormattersPluginChunk()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        if (src is not null)
-            DupFormatterFactoryList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.FormattersPlugin] = _curvesPluginChunk;
-    }
-
-    private static void DupFormatterFactoryList(ref Context ctx, in Context src)
-    {
-        FormattersPluginChunk newHead = new();
-        FormattersFactoryList? anterior = null;
-        var head = (FormattersPluginChunk?)src.chunks[(int)Chunks.FormattersPlugin];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.factoryList; entry is not null; entry = entry.next)
-        {
-            // We want to keep the linked list order, so this is a little bit tricky
-            FormattersFactoryList newEntry = new(entry.factory, null);
-
-            if (anterior is not null)
-                anterior.next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.factoryList is null)
-                newHead.factoryList = newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.FormattersPlugin] = newHead;
-    }
 }

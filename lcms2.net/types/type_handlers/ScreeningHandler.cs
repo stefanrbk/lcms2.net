@@ -1,6 +1,5 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 using static lcms2.Lcms2;
 
@@ -8,11 +7,11 @@ namespace lcms2.types.type_handlers;
 
 public class ScreeningHandler: TagTypeHandler
 {
-    public ScreeningHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public ScreeningHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public ScreeningHandler(Context? context = null)
-        : this(default, context) { }
+    public ScreeningHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Screening)?.Clone();

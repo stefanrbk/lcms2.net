@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class DataHandler: TagTypeHandler
 {
-    public DataHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public DataHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public DataHandler(Context? context = null)
-        : this(default, context) { }
+    public DataHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((IccData)value).Clone();

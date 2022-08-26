@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class MpeMatrixHandler: TagTypeHandler
 {
-    public MpeMatrixHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MpeMatrixHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MpeMatrixHandler(Context? context = null)
-        : this(default, context) { }
+    public MpeMatrixHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();
@@ -48,7 +48,7 @@ public class MpeMatrixHandler: TagTypeHandler
             offsets[i] = v;
         }
 
-        var mpe = Stage.AllocMatrix(Context, outputChans, inputChans, matrix, offsets);
+        var mpe = Stage.AllocMatrix(StateContainer, outputChans, inputChans, matrix, offsets);
 
         numItems = 1;
         return mpe;

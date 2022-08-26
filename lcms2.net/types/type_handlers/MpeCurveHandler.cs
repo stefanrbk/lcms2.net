@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class MpeCurveHandler: TagTypeHandler
 {
-    public MpeCurveHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MpeCurveHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MpeCurveHandler(Context? context = null)
-        : this(default, context) { }
+    public MpeCurveHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();
@@ -32,7 +31,7 @@ public class MpeCurveHandler: TagTypeHandler
 
         object gammaTables = new ToneCurve[inputChans];
         var mpe = ReadPositionTable(io, inputChans, baseOffset, ref gammaTables, ReadMpeCurve)
-            ? Stage.AllocToneCurves(Context, inputChans, (ToneCurve[])gammaTables)
+            ? Stage.AllocToneCurves(StateContainer, inputChans, (ToneCurve[])gammaTables)
             : null;
 
         for (var i = 0; i < inputChans; i++)

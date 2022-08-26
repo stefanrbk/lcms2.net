@@ -9,7 +9,7 @@ namespace lcms2.plugins;
 ///     This function should join all profiles specified in the array into a single LUT.
 /// </summary>
 /// <remarks>Implements the <c>cmsIntentFn</c> typedef.</remarks>
-public delegate Pipeline IntentFn(Context? context, int numProfiles, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags);
+public delegate Pipeline IntentFn(object? context, int numProfiles, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags);
 
 /// <summary>
 ///     Custom intent plugin
@@ -35,14 +35,14 @@ public sealed class RenderingIntentPlugin: Plugin
     ///     The default ICC intents (perceptual, saturation, rel.col, and abs.col)
     /// </summary>
     /// <remarks>Implements the <c>_cmsDefaultICCintents</c> function.</remarks>
-    public static Pipeline DefaultIccIntents(Context? context, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags)
+    public static Pipeline DefaultIccIntents(object? context, int[] intents, object[] profiles, bool[] bpc, double[] adaptationStates, uint flags)
     {
         throw new NotImplementedException();
     }
 
-    internal static bool RegisterPlugin(Context? context, RenderingIntentPlugin? plugin)
+    internal static bool RegisterPlugin(object? context, RenderingIntentPlugin? plugin)
     {
-        var ctx = Context.GetRenderingIntentsPlugin(context);
+        var ctx = State.GetRenderingIntentsPlugin(context);
 
         if (plugin is null)
         {
@@ -80,42 +80,8 @@ internal sealed class RenderingIntentsPluginChunk
     internal static RenderingIntentsPluginChunk global = new();
     internal IntentsList? intents;
 
-    private static readonly RenderingIntentsPluginChunk _intentsPluginChunk = new();
+    internal static RenderingIntentsPluginChunk Default => new();
 
     private RenderingIntentsPluginChunk()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        if (src is not null)
-            DupIntentsList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.IntentPlugin] = _intentsPluginChunk;
-    }
-
-    private static void DupIntentsList(ref Context ctx, in Context src)
-    {
-        RenderingIntentsPluginChunk newHead = new();
-        IntentsList? anterior = null;
-        var head = (RenderingIntentsPluginChunk?)src.chunks[(int)Chunks.IntentPlugin];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.intents; entry is not null; entry = entry.next)
-        {
-            // We want to keep the linked list order, so this is a little bit tricky
-            IntentsList newEntry = new(entry.intent, entry.description, entry.link, null);
-
-            if (anterior is not null)
-                anterior.next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.intents is null)
-                newHead.intents = newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.IntentPlugin] = newHead;
-    }
 }

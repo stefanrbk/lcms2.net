@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class UcrBgHandler: TagTypeHandler
 {
-    public UcrBgHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public UcrBgHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public UcrBgHandler(Context? context = null)
-        : this(default, context) { }
+    public UcrBgHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as UcrBg)?.Clone();
@@ -31,7 +30,7 @@ public class UcrBgHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var countUcr)) return null;
         sizeOfTag -= sizeof(uint);
 
-        ucr = ToneCurve.BuildTabulated16(Context, (int)countUcr, null);
+        ucr = ToneCurve.BuildTabulated16(StateContainer, (int)countUcr, null);
         if (ucr is null) return null;
 
         if (sizeOfTag < (countUcr * sizeof(ushort))) goto Error;
@@ -44,7 +43,7 @@ public class UcrBgHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var countBg)) goto Error;
         sizeOfTag -= sizeof(uint);
 
-        bg = ToneCurve.BuildTabulated16(Context, (int)countBg, null);
+        bg = ToneCurve.BuildTabulated16(StateContainer, (int)countBg, null);
         if (bg is null) goto Error;
 
         if (sizeOfTag < (countBg * sizeof(ushort))) goto Error;
@@ -54,7 +53,7 @@ public class UcrBgHandler: TagTypeHandler
         if (sizeOfTag is < 0 or > 32000) goto Error;
 
         // Now comes the text. The length is specified by the tag size
-        desc = new Mlu(Context);
+        desc = new Mlu(StateContainer);
 
         var asciiString = new byte[sizeOfTag];
         if (io.Read(asciiString) != sizeOfTag) goto Error;

@@ -1,12 +1,10 @@
-﻿using lcms2.state;
-
-namespace lcms2.types;
+﻿namespace lcms2.types;
 
 public class NamedColorList: ICloneable, IDisposable
 {
     internal uint colorantCount;
 
-    internal Context? context;
+    internal object? state;
 
     internal List<NamedColor> list;
 
@@ -16,9 +14,9 @@ public class NamedColorList: ICloneable, IDisposable
 
     internal string suffix;
 
-    public NamedColorList(Context? context, uint colorantCount, string prefix, string suffix)
+    public NamedColorList(object? state, uint colorantCount, string prefix, string suffix)
     {
-        this.context = context;
+        this.state = state;
         numColors = 0;
         list = new List<NamedColor>();
 

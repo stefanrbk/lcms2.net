@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class MluHandler: TagTypeHandler
 {
-    public MluHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MluHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MluHandler(Context? context = null)
-        : this(default, context) { }
+    public MluHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Mlu)?.Clone();
@@ -30,11 +30,11 @@ public class MluHandler: TagTypeHandler
 
         if (recLen != 12)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported.");
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported.");
             return null;
         }
 
-        Mlu mlu = new(Context);
+        Mlu mlu = new(StateContainer);
 
         var sizeOfHeader = (12 * count) + sizeof(TagBase);
         var largestPosition = (long)0;

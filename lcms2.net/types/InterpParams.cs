@@ -48,7 +48,7 @@ public partial class InterpParams
     /// <summary>
     ///     The calling thread
     /// </summary>
-    public Context? Context;
+    public object? StateContainer;
 
     /// <summary>
     ///     Domain = numSamples - 1
@@ -92,9 +92,9 @@ public partial class InterpParams
     /// </summary>
     public object Table;
 
-    public InterpParams(Context? context, LerpFlag flags, int numInputs, int numOutputs, object table)
+    public InterpParams(object? state, LerpFlag flags, int numInputs, int numOutputs, object table)
     {
-        Context = context;
+        StateContainer = state;
         Flags = flags;
         NumInputs = numInputs;
         NumOutputs = numOutputs;
@@ -108,17 +108,17 @@ public partial class InterpParams
     public float[] TableFloat =>
                (float[])Table;
 
-    internal static InterpParams? Compute(Context? context, in int[] numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    internal static InterpParams? Compute(object? state, in int[] numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
     {
         // Check for maximum inputs
         if (inputChan > MaxInputDimensions)
         {
-            Context.SignalError(context, ErrorCode.Range, "Too many input channels ({0} channels, max={1})", inputChan, MaxInputDimensions);
+            State.SignalError(state, ErrorCode.Range, "Too many input channels ({0} channels, max={1})", inputChan, MaxInputDimensions);
             return null;
         }
 
         // Creates an empty object and keep original parameters
-        var p = new InterpParams(context, flags, inputChan, outputChan, table);
+        var p = new InterpParams(state, flags, inputChan, outputChan, table);
 
         // Fill samples per input direction and domain (which is number of nodes minus one)
         for (var i = 0; i < inputChan; i++)
@@ -132,9 +132,9 @@ public partial class InterpParams
         for (var i = 1; i < inputChan; i++)
             p.Opta[i] = p.Opta[i - 1] * numSamples[inputChan - i];
 
-        if (!p.SetInterpolationRoutine(context))
+        if (!p.SetInterpolationRoutine(state))
         {
-            Context.SignalError(context, ErrorCode.UnknownExtension, "Unsupported interpolation ({0}->{1} channels)", inputChan, outputChan);
+            State.SignalError(state, ErrorCode.UnknownExtension, "Unsupported interpolation ({0}->{1} channels)", inputChan, outputChan);
             return null;
         }
 
@@ -142,14 +142,14 @@ public partial class InterpParams
         return p;
     }
 
-    internal static InterpParams? Compute(Context? context, int numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    internal static InterpParams? Compute(object? state, int numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
     {
         var samples = new int[MaxInputDimensions];
 
         for (var i = 0; i < MaxInputDimensions; i++)
             samples[i] = numSamples;
 
-        return Compute(context, samples, inputChan, outputChan, table, flags);
+        return Compute(state, samples, inputChan, outputChan, table, flags);
     }
 
     internal static InterpFunction DefaultInterpolatorsFactory(int numInputChannels, int numOutputChannels, LerpFlag flags)
@@ -323,9 +323,9 @@ public partial class InterpParams
         return interpolation;
     }
 
-    internal bool SetInterpolationRoutine(Context? context)
+    internal bool SetInterpolationRoutine(object? state)
     {
-        var ptr = Context.GetInterpolationPlugin(context);
+        var ptr = State.GetInterpolationPlugin(state);
 
         Interpolation.Lerp16 = null;
 
@@ -629,7 +629,7 @@ public partial class InterpParams
         var k1 = k0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[3]);
 
         var t = lutTable[k0..];
-        var p1 = new InterpParams(p.Context, p.Flags, p.NumInputs, p.NumOutputs, t);
+        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
 
         p.Domain[1..3].CopyTo(p1.Domain.AsSpan());
 

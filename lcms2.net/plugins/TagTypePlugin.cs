@@ -37,8 +37,8 @@ public sealed class TagTypePlugin: Plugin
         : base(magic, expectedVersion, type) =>
         Handler = handler;
 
-    internal static bool RegisterPlugin(Context? context, TagTypePlugin? plugin) =>
-        TagTypePluginChunk.TagType.RegisterPlugin(context, plugin);
+    internal static bool RegisterPlugin(object? state, TagTypePlugin? plugin) =>
+        TagTypePluginChunk.TagType.RegisterPlugin(state, plugin);
 }
 
 internal sealed class TagTypePluginChunk
@@ -91,71 +91,40 @@ internal sealed class TagTypePluginChunk
 
     internal TagTypeLinkedList? tagTypes;
 
-    private static readonly TagTypePluginChunk _tagTypePluginChunk = new();
+    internal static TagTypePluginChunk Default => new();
 
     private TagTypePluginChunk()
     { }
 
-    private static void DupTagTypeList(Context ctx, in Context src, Chunks loc)
+    private static bool RegisterTypesPlugin(object? state, Plugin? data, bool isMpePlugin)
     {
-        TagTypePluginChunk newHead = new();
-        TagTypeLinkedList? anterior = null;
-        var head = (TagTypePluginChunk?)src.chunks[(int)loc];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
-        {
-            TagTypeLinkedList newEntry = new(entry.Handler, null);
-
-            if (anterior is not null)
-                anterior.Next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.tagTypes is null)
-                newHead.tagTypes = newEntry;
-        }
-
-        ctx.chunks[(int)loc] = newHead;
-    }
-
-    private static bool RegisterTypesPlugin(Context? context, Plugin? data, Chunks type)
-    {
-        TagTypePluginChunk ctx;
+        TagTypePluginChunk sta;
         TagTypeHandler handler;
 
         if (data is null) return false;
 
-        switch (type)
+        if (isMpePlugin)
         {
-            case Chunks.TagTypePlugin:
-                ctx = Context.GetTagTypePlugin(context);
-                handler = ((TagTypePlugin)data).Handler;
-                break;
-
-            case Chunks.MPEPlugin:
-                ctx = Context.GetMultiProcessElementPlugin(context);
+                sta = State.GetMultiProcessElementPlugin(state);
                 handler = ((MultiProcessElementPlugin)data).Handler;
-                break;
-
-            default:
-                return false;
+        } else
+        {
+                sta = State.GetTagTypePlugin(state);
+                handler = ((TagTypePlugin)data).Handler;
         }
 
         if (data is null)
         {
-            ctx.tagTypes = null;
+            sta.tagTypes = null;
             return true;
         }
 
-        var pt = new TagTypeLinkedList(handler, ctx.tagTypes);
+        var pt = new TagTypeLinkedList(handler, sta.tagTypes);
 
         if (pt.Handler is null)
             return false;
 
-        ctx.tagTypes = pt;
+        sta.tagTypes = pt;
         return true;
     }
 
@@ -163,32 +132,16 @@ internal sealed class TagTypePluginChunk
     {
         internal static TagTypePluginChunk global = new();
 
-        internal static void Alloc(Context ctx, in Context? src)
-        {
-            if (src is not null)
-                DupTagTypeList(ctx, src, Chunks.MPEPlugin);
-            else
-                ctx.chunks[(int)Chunks.MPEPlugin] = _tagTypePluginChunk;
-        }
-
-        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
-            RegisterTypesPlugin(context, plugin, Chunks.MPEPlugin);
+        internal static bool RegisterPlugin(object? context, Plugin? plugin) =>
+            RegisterTypesPlugin(context, plugin, isMpePlugin: true);
     }
 
     internal static class TagType
     {
         internal static TagTypePluginChunk global = new();
 
-        internal static void Alloc(Context ctx, in Context? src)
-        {
-            if (src is not null)
-                DupTagTypeList(ctx, src, Chunks.TagTypePlugin);
-            else
-                ctx.chunks[(int)Chunks.TagTypePlugin] = _tagTypePluginChunk;
-        }
-
-        internal static bool RegisterPlugin(Context? context, Plugin? plugin) =>
-            RegisterTypesPlugin(context, plugin, Chunks.TagTypePlugin);
+        internal static bool RegisterPlugin(object? context, Plugin? plugin) =>
+            RegisterTypesPlugin(context, plugin, isMpePlugin: false);
     }
 }
 

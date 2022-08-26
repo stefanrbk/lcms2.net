@@ -1,15 +1,14 @@
 ﻿using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class TextHandler: TagTypeHandler
 {
-    public TextHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public TextHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public TextHandler(Context? context = null)
-        : this(default, context) { }
+    public TextHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((Mlu)value).Clone();
@@ -20,7 +19,7 @@ public class TextHandler: TagTypeHandler
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         // Create a container
-        Mlu mlu = new(Context);
+        Mlu mlu = new(StateContainer);
         numItems = 0;
 
         // We need to store the "\0" at the end, so +1

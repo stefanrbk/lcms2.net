@@ -16,6 +16,6 @@ public sealed class MultiProcessElementPlugin: Plugin
 
         Handler = handler;
 
-    internal static bool RegisterPlugin(Context? context, MultiProcessElementPlugin? plugin) =>
-        TagTypePluginChunk.MPE.RegisterPlugin(context, plugin);
+    internal static bool RegisterPlugin(object? state, MultiProcessElementPlugin? plugin) =>
+        TagTypePluginChunk.MPE.RegisterPlugin(state, plugin);
 }

@@ -4,14 +4,14 @@ namespace lcms2.types;
 
 public class Sequence: ICloneable, IDisposable
 {
-    public Context? Context;
+    public object? StateContainer;
     public ProfileSequenceDescription[] Seq;
 
     private bool _disposed;
 
-    public Sequence(Context? context, int count)
+    public Sequence(object? state, int count)
     {
-        Context = context;
+        StateContainer = state;
         Seq = new ProfileSequenceDescription[count];
 
         _disposed = false;
@@ -22,7 +22,7 @@ public class Sequence: ICloneable, IDisposable
 
     public object Clone()
     {
-        Sequence result = new(Context, SeqCount);
+        Sequence result = new(StateContainer, SeqCount);
 
         for (var i = 0; i < SeqCount; i++)
             result.Seq[i] = (ProfileSequenceDescription)Seq[i].Clone();

@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class XYZHandler: TagTypeHandler
 {
-    public XYZHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public XYZHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public XYZHandler(Context? context = null)
-        : this(default, context) { }
+    public XYZHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((XYZ)value).Clone();

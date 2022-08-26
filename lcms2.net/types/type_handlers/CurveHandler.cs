@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class CurveHandler: TagTypeHandler
 {
-    public CurveHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public CurveHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public CurveHandler(Context? context = null)
-        : this(default, context) { }
+    public CurveHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
@@ -31,7 +31,7 @@ public class CurveHandler: TagTypeHandler
             case 0: // Linear
                 singleGamma = 1.0;
 
-                newGamma = ToneCurve.BuildParametric(Context, 1, singleGamma);
+                newGamma = ToneCurve.BuildParametric(StateContainer, 1, singleGamma);
                 if (newGamma is null) return null;
                 numItems = 1;
                 return newGamma;
@@ -41,13 +41,13 @@ public class CurveHandler: TagTypeHandler
                 singleGamma = IOHandler.U8Fixed8toDouble(singleGammaFixed);
 
                 numItems = 1;
-                return ToneCurve.BuildParametric(Context, 1, singleGamma);
+                return ToneCurve.BuildParametric(StateContainer, 1, singleGamma);
 
             default: // Curve
                 if (count > 0x7FFF)
                     return null; // This is to prevent bad guys for doing bad things.
 
-                newGamma = ToneCurve.BuildTabulated16(Context, (int)count, null);
+                newGamma = ToneCurve.BuildTabulated16(StateContainer, (int)count, null);
                 if (newGamma is null) return null;
 
                 if (!io.ReadUInt16Array((int)count, out newGamma.table16))

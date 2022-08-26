@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class NamedColorHandler: TagTypeHandler
 {
-    public NamedColorHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public NamedColorHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public NamedColorHandler(Context? context = null)
-        : this(default, context) { }
+    public NamedColorHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as NamedColorList)?.Clone();
@@ -31,16 +31,16 @@ public class NamedColorHandler: TagTypeHandler
         if (!io.ReadAsciiString(32, out var prefix)) return null;   // Prefix for each color name
         if (!io.ReadAsciiString(32, out var suffix)) return null;   // Suffix for each color name
 
-        var v = new NamedColorList(Context, count, prefix, suffix);
+        var v = new NamedColorList(StateContainer, count, prefix, suffix);
         if (v is null)
         {
-            Context.SignalError(Context, ErrorCode.Range, "Too many named colors '{0}'", count);
+            State.SignalError(StateContainer, ErrorCode.Range, "Too many named colors '{0}'", count);
             return null;
         }
 
         if (numDeviceCoords > MaxChannels)
         {
-            Context.SignalError(Context, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
+            State.SignalError(StateContainer, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
             goto Error;
         }
 

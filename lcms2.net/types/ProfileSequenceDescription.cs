@@ -15,7 +15,7 @@ public class ProfileSequenceDescription: ICloneable, IDisposable
 
     private bool _disposed;
 
-    public ProfileSequenceDescription(Context? context, Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID)
+    public ProfileSequenceDescription(object? context, Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID)
     {
         DeviceMfg = deviceMfg;
         DeviceModel = deviceModel;

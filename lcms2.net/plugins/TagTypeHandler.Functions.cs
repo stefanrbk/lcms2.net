@@ -9,8 +9,8 @@ namespace lcms2.plugins;
 
 public abstract partial class TagTypeHandler
 {
-    public static TagTypeHandler? GetHandler(Context? context, Signature sig) =>
-           GetHandler(sig, Context.GetTagTypePlugin(context).tagTypes);
+    public static TagTypeHandler? GetHandler(object? state, Signature sig) =>
+           GetHandler(sig, State.GetTagTypePlugin(state).tagTypes);
 
     /// <summary>
     ///     Reads a position table as described in ICC spec 4.3. <br/> A table of n elements is
@@ -135,7 +135,7 @@ public abstract partial class TagTypeHandler
     internal static bool ReadMpeElem(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag)
     {
         var newLut = (Pipeline)cargo;
-        var mpeChunk = Context.GetMultiProcessElementPlugin(self.Context);
+        var mpeChunk = State.GetMultiProcessElementPlugin(self.StateContainer);
 
         // Take signature and channels for each element.
         if (!io.ReadUInt32Number(out var rawSig)) return false;
@@ -148,7 +148,7 @@ public abstract partial class TagTypeHandler
         var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
         if (typeHandler is null)
         {
-            Context.SignalError(self.Context, ErrorCode.UnknownExtension, "Unknown MPE type '{0}' found.", elementSig);
+            State.SignalError(self.StateContainer, ErrorCode.UnknownExtension, "Unknown MPE type '{0}' found.", elementSig);
             return false;
         }
 
@@ -307,7 +307,7 @@ public abstract partial class TagTypeHandler
 
         for (var i = 0; i < numChannels; i++)
         {
-            var tab = ToneCurve.BuildTabulated16(Context, (int)numEntries, null);
+            var tab = ToneCurve.BuildTabulated16(StateContainer, (int)numEntries, null);
             if (tab is null) goto Error;
             tables[i] = tab;
 
@@ -316,7 +316,7 @@ public abstract partial class TagTypeHandler
 
         // Add the table (which may certainly be an identity, but this is up to the optimizer, not
         // the reading code)
-        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(Context, numChannels, tables)))
+        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(StateContainer, numChannels, tables)))
             goto Error;
 
         for (var i = 0; i < numChannels; i++)
@@ -342,7 +342,7 @@ public abstract partial class TagTypeHandler
 
         for (var i = 0; i < numChannels; i++)
         {
-            var tab = ToneCurve.BuildTabulated16(Context, 256, null);
+            var tab = ToneCurve.BuildTabulated16(StateContainer, 256, null);
             if (tab is null) goto Error;
             tables[i] = tab;
         }
@@ -356,7 +356,7 @@ public abstract partial class TagTypeHandler
         }
         temp = null;
 
-        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(Context, numChannels, tables)))
+        if (!lut.InsertStage(StageLoc.AtEnd, Stage.AllocToneCurves(StateContainer, numChannels, tables)))
             goto Error;
 
         for (var i = 0; i < numChannels; i++)
@@ -389,7 +389,7 @@ public abstract partial class TagTypeHandler
         if (!io.ReadUInt8Number(out _)) return null;
         if (!io.ReadUInt8Number(out _)) return null;
 
-        var clut = Stage.AllocCLut16bitGranular(Context, gridPoints, inputChannels, outputChannels, in nullTab);
+        var clut = Stage.AllocCLut16bitGranular(StateContainer, gridPoints, inputChannels, outputChannels, in nullTab);
         if (clut is null || clut.data is null) return null;
 
         var data = (Stage.CLutData)clut.data;
@@ -419,7 +419,7 @@ public abstract partial class TagTypeHandler
 
             default:
                 clut.Dispose();
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
                 return null;
         }
 
@@ -438,7 +438,7 @@ public abstract partial class TagTypeHandler
             var h = new ParametricCurveHandler();
             return (ToneCurve?)h.Read(io, 0, out _);
         } else
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", baseType.Signature);
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", baseType.Signature);
         return null;
     }
 
@@ -449,11 +449,11 @@ public abstract partial class TagTypeHandler
         TagTypeHandler h;
 
         if (baseType.Signature == Signature.TagType.Text)
-            h = new TextHandler(Context);
+            h = new TextHandler(StateContainer);
         else if (baseType.Signature == Signature.TagType.TextDescription)
-            h = new TextDescriptionHandler(Context);
+            h = new TextDescriptionHandler(StateContainer);
         else if (baseType.Signature == Signature.TagType.MultiLocalizedUnicode)
-            h = new MluHandler(Context);
+            h = new MluHandler(StateContainer);
         else
             return false;
 
@@ -479,7 +479,7 @@ public abstract partial class TagTypeHandler
         for (var i = 0; i < 9; i++)
             if (!io.Read15Fixed16Number(out dMat[i])) return null;
 
-        return Stage.AllocMatrix(Context, 3, 3, in dMat, dOff);
+        return Stage.AllocMatrix(StateContainer, 3, 3, in dMat, dOff);
     }
 
     internal ToneCurve? ReadSegmentedCurve(Stream io)
@@ -548,12 +548,12 @@ public abstract partial class TagTypeHandler
                 segments[i].SampledPoints = sp;
             } else
             {
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown curve element type '{0}' found.", elementSig);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve element type '{0}' found.", elementSig);
                 return null;
             }
         }
 
-        ToneCurve? curve = ToneCurve.BuildSegmented(Context, segments);
+        ToneCurve? curve = ToneCurve.BuildSegmented(StateContainer, segments);
         if (curve is null) return null;
 
         // Explore for missing implicit points
@@ -581,7 +581,7 @@ public abstract partial class TagTypeHandler
             if (!io.ReadAlignment()) goto Error;
         }
 
-        lin = Stage.AllocToneCurves(Context, numCurves, curves);
+        lin = Stage.AllocToneCurves(StateContainer, numCurves, curves);
 
     Error:
         for (var i = 0; i < numCurves; i++)
@@ -595,9 +595,9 @@ public abstract partial class TagTypeHandler
         TagBase tb;
 
         if (ICCVersion < 0x40000000)
-            (h, tb) = (new TextDescriptionHandler(Context), new TagBase(Signature.TagType.TextDescription));
+            (h, tb) = (new TextDescriptionHandler(StateContainer), new TagBase(Signature.TagType.TextDescription));
         else
-            (h, tb) = (new MluHandler(Context), new TagBase(Signature.TagType.MultiLocalizedUnicode));
+            (h, tb) = (new MluHandler(StateContainer), new TagBase(Signature.TagType.MultiLocalizedUnicode));
 
         if (!io.Write(tb)) return false;
 
@@ -619,7 +619,7 @@ public abstract partial class TagTypeHandler
             {
                 if (tables.TheCurves[i].NumEntries != 256)
                 {
-                    Context.SignalError(Context, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
+                    State.SignalError(StateContainer, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
                     return false;
                 } else
                     for (var j = 0; j < 256; j++)
@@ -641,7 +641,7 @@ public abstract partial class TagTypeHandler
 
         if (clut.HasFloatValues)
         {
-            Context.SignalError(Context, ErrorCode.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
+            State.SignalError(StateContainer, ErrorCode.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
             return false;
         }
 
@@ -673,7 +673,7 @@ public abstract partial class TagTypeHandler
 
             default:
 
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
                 return false;
         }
 
@@ -700,15 +700,15 @@ public abstract partial class TagTypeHandler
 
             if (currentType == Signature.TagType.Curve)
             {
-                var h = new CurveHandler(Context);
+                var h = new CurveHandler(StateContainer);
                 if (!h.Write(io, curves[i], 1)) return false;
             } else if (currentType == Signature.TagType.ParametricCurve)
             {
-                var h = new ParametricCurveHandler(Context);
+                var h = new ParametricCurveHandler(StateContainer);
                 if (!h.Write(io, curves[i], 1)) return false;
             } else
             {
-                Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", type);
+                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", type);
                 return false;
             }
 

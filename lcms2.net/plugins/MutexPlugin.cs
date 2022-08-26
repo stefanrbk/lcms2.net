@@ -7,25 +7,25 @@ namespace lcms2.plugins;
 ///     Function to create a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsCreateMutexFnPtrType</c> typedef.</remarks>
-public delegate object? CreateMutexFunction(Context? context);
+public delegate object? CreateMutexFunction(object? state);
 
 /// <summary>
 ///     Function to destroy a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsDestroyMutexFnPtrType</c> typedef.</remarks>
-public delegate void DestroyMutexFunction(Context? context, ref object mtx);
+public delegate void DestroyMutexFunction(object? state, ref object mtx);
 
 /// <summary>
 ///     Function to lock a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsLockMutexFnPtrType</c> typedef.</remarks>
-public delegate bool LockMutexFunction(Context? context, ref object mtx);
+public delegate bool LockMutexFunction(object? state, ref object mtx);
 
 /// <summary>
 ///     Function to unlock a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsUnlockMutexFnPtrType</c> typedef.</remarks>
-public delegate void UnlockMutexFunction(Context? context, ref object mtx);
+public delegate void UnlockMutexFunction(object? state, ref object mtx);
 
 /// <summary>
 ///     Mutex plugin
@@ -66,32 +66,32 @@ public sealed class MutexPlugin: Plugin
     /// <remarks>Implements the <c>_cmsUnlockMutex</c> typedef.</remarks>
     public UnlockMutexFunction UnlockMutex { get; internal set; }
 
-    internal static object? DefaultCreate(Context? context)
+    internal static object? DefaultCreate(object? context)
     {
         return new Mutex();
     }
 
-    internal static void DefaultDestroy(Context? _context, ref object mtx)
+    internal static void DefaultDestroy(object? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         mutex.Dispose();
     }
 
-    internal static bool DefaultLock(Context? _context, ref object mtx)
+    internal static bool DefaultLock(object? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         return mutex.WaitOne();
     }
 
-    internal static void DefaultUnlock(Context? _context, ref object mtx)
+    internal static void DefaultUnlock(object? _context, ref object mtx)
     {
         var mutex = (Mutex)mtx;
         mutex.ReleaseMutex();
     }
 
-    internal static bool RegisterPlugin(Context? context, MutexPlugin? plugin)
+    internal static bool RegisterPlugin(object? context, MutexPlugin? plugin)
     {
-        var ctx = Context.GetMutexPlugin(context);
+        var ctx = State.GetMutexPlugin(context);
 
         if (plugin is null)
         {
@@ -121,7 +121,7 @@ internal sealed class MutexPluginChunk
     internal DestroyMutexFunction destroy = MutexPlugin.DefaultDestroy;
     internal UnlockMutexFunction unlock = MutexPlugin.DefaultUnlock;
 
-    private static readonly MutexPluginChunk _mutexPluginChunk = new();
+    internal static MutexPluginChunk Default => new();
 
     public MutexPluginChunk()
     { }
@@ -132,14 +132,5 @@ internal sealed class MutexPluginChunk
         this.destroy = destroy;
         this.@lock = @lock;
         this.unlock = unlock;
-    }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        var from = src is not null
-            ? src.chunks[(int)Chunks.MutexPlugin]
-            : _mutexPluginChunk;
-
-        ctx.chunks[(int)Chunks.MutexPlugin] = from;
     }
 }

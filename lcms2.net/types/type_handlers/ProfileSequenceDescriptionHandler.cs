@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class ProfileSequenceDescriptionHandler: TagTypeHandler
 {
-    public ProfileSequenceDescriptionHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public ProfileSequenceDescriptionHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public ProfileSequenceDescriptionHandler(Context? context = null)
-        : this(default, context) { }
+    public ProfileSequenceDescriptionHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Sequence)?.Clone();
@@ -27,7 +26,7 @@ public class ProfileSequenceDescriptionHandler: TagTypeHandler
         if (sizeOfTag < sizeof(uint)) return null;
         sizeOfTag -= sizeof(uint);
 
-        Sequence outSeq = new(Context, (int)count);
+        Sequence outSeq = new(StateContainer, (int)count);
 
         // Get structures as well
 
@@ -49,7 +48,7 @@ public class ProfileSequenceDescriptionHandler: TagTypeHandler
             if (sizeOfTag < sizeof(uint)) goto Error;
             sizeOfTag -= sizeof(uint);
 
-            var sec = new ProfileSequenceDescription(Context, new Signature(deviceMfg), new Signature(deviceModel), attributes, new Signature(technology), default);
+            var sec = new ProfileSequenceDescription(StateContainer, new Signature(deviceMfg), new Signature(deviceModel), attributes, new Signature(technology), default);
 
             if (!ReadEmbeddedText(io, ref sec.Manufacturer, sizeOfTag)) goto Error;
             if (!ReadEmbeddedText(io, ref sec.Model, sizeOfTag)) goto Error;

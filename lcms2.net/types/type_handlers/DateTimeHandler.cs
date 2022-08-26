@@ -7,11 +7,11 @@ namespace lcms2.types.type_handlers;
 
 public class DateTimeHandler: TagTypeHandler
 {
-    public DateTimeHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public DateTimeHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public DateTimeHandler(Context? context = null)
-        : this(default, context) { }
+    public DateTimeHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (DateTime)value;

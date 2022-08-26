@@ -8,7 +8,7 @@ public class Mlu: ICloneable, IDisposable
 
     internal const string noLanguage = "\0\0";
 
-    internal Context? context;
+    internal object? state;
 
     internal List<MluEntry> entries = new();
 
@@ -20,15 +20,15 @@ public class Mlu: ICloneable, IDisposable
 
     private bool _disposed;
 
-    internal Mlu(Context? context) =>
-        this.context = context;
+    internal Mlu(object? state) =>
+        this.state = state;
 
     internal uint UsedEntries => (uint)entries.Count;
 
     public object Clone()
     {
         var mlu = this;
-        Mlu newMlu = new(context);
+        Mlu newMlu = new(state);
 
         newMlu.entries.AddRange(mlu.entries);
 

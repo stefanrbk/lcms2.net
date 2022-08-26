@@ -1,6 +1,6 @@
 ﻿namespace lcms2.state;
 
-public delegate void LogErrorHandlerFunction(Context? context, ErrorCode errorCode, string text);
+public delegate void LogErrorHandlerFunction(object? context, ErrorCode errorCode, string text);
 
 public enum ErrorCode
 {
@@ -23,22 +23,15 @@ public enum ErrorCode
 internal sealed class LogErrorHandler
 {
     internal static LogErrorHandler global = new() { handler = DefaultLogErrorHandlerFunction };
-    internal LogErrorHandlerFunction? handler;
 
     // Set to null for global fallback
+    internal LogErrorHandlerFunction? handler;
 
-    private static readonly LogErrorHandler _logErrorChunk = new() { handler = DefaultLogErrorHandlerFunction };
+    internal static LogErrorHandler Default => new() { handler = DefaultLogErrorHandlerFunction };
 
     private LogErrorHandler()
     { }
 
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        LogErrorHandler from = (LogErrorHandler?)src?.chunks[(int)Chunks.Logger] ?? _logErrorChunk;
-
-        ctx.chunks[(int)Chunks.Logger] = from;
-    }
-
-    internal static void DefaultLogErrorHandlerFunction(Context? _context, ErrorCode _errorCode, string _text)
+    internal static void DefaultLogErrorHandlerFunction(object? _context, ErrorCode _errorCode, string _text)
     { }
 }

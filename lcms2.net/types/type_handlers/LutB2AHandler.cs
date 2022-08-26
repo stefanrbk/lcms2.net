@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class LutB2AHandler: TagTypeHandler
 {
-    public LutB2AHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public LutB2AHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public LutB2AHandler(Context? context = null)
-        : this(default, context) { }
+    public LutB2AHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
@@ -39,7 +39,7 @@ public class LutB2AHandler: TagTypeHandler
         if (outputChan is 0 or >= Lcms2.MaxChannels) return null;
 
         // Allocates an empty LUT
-        var newLut = Pipeline.Alloc(Context, inputChan, outputChan);
+        var newLut = Pipeline.Alloc(StateContainer, inputChan, outputChan);
         if (newLut is null) return null;
 
         if (offsetB is not 0 && !newLut.InsertStage(StageLoc.AtEnd, ReadSetOfCurves(io, (uint)baseOffset + offsetB, outputChan)))
@@ -77,7 +77,7 @@ public class LutB2AHandler: TagTypeHandler
         if (lut.elements is not null &&
             !lut.CheckAndRetrieveStagesBtoA(out b, out matrix, out m, out clut, out a))
         {
-            Context.SignalError(Context, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutBToA");
+            State.SignalError(StateContainer, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutBToA");
             return false;
         }
 

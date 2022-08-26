@@ -4,13 +4,13 @@ namespace lcms2.types;
 
 public sealed class Dictionary: ICloneable, IDisposable
 {
-    public Dictionary(Context? context = null)
+    public Dictionary(object? state = null)
     {
         Head = null;
-        Context = context;
+        StateContainer = state;
     }
 
-    public Context? Context { get; internal set; }
+    public object? StateContainer { get; internal set; }
     public DictionaryEntry? Head { get; internal set; }
 
     public void AddEntry(string name, string value, in Mlu? displayName, in Mlu? displayValue) =>

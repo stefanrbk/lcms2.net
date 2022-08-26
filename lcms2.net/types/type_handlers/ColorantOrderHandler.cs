@@ -1,16 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
 public class ColorantOrderHandler: TagTypeHandler
 {
-    public ColorantOrderHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public ColorantOrderHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public ColorantOrderHandler(Context? context = null)
-        : this(default, context) { }
+    public ColorantOrderHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((byte[])value).Clone();

@@ -79,9 +79,9 @@ public sealed class TagPlugin
         Descriptor = descriptor;
     }
 
-    internal static bool RegisterPlugin(Context? context, TagPlugin? plugin)
+    internal static bool RegisterPlugin(object? context, TagPlugin? plugin)
     {
-        var chunk = (TagPluginChunk)Context.GetClientChunk(context, Chunks.TagPlugin)!;
+        var chunk = State.GetTagPlugin(context);
 
         if (plugin is null)
         {
@@ -198,21 +198,14 @@ internal sealed class TagPluginChunk
 
     internal static TagPluginChunk global = new();
     internal TagLinkedList? tags;
+    internal static TagPluginChunk Default => new();
 
     private TagPluginChunk()
     { }
 
-    internal static void Alloc(ref Context ctx, in Context? src)
+    internal TagDescriptor GetTagDescriptor(object? state, Signature sig)
     {
-        if (src is not null)
-            DupTagList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.TagPlugin] = new TagPluginChunk();
-    }
-
-    internal TagDescriptor GetTagDescriptor(Context? context, Signature sig)
-    {
-        var chunk = Context.GetTagPlugin(context);
+        var chunk = State.GetTagPlugin(state);
 
         for (var pt = chunk.tags; pt is not null; pt = pt.Next)
 
@@ -223,31 +216,5 @@ internal sealed class TagPluginChunk
             if (sig == pt.Signature) return pt.Descriptor;
 
         return null;
-    }
-
-    private static void DupTagList(ref Context ctx, in Context src)
-    {
-        TagPluginChunk newHead = new();
-        TagLinkedList? anterior = null;
-        var head = (TagPluginChunk?)src.chunks[(int)Chunks.TagPlugin];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.tags; entry is not null; entry = entry.Next)
-        {
-            // We want to keep the linked list order, so this is a little bit tricky
-            TagLinkedList newEntry = new(entry.Signature, entry.Descriptor, null);
-
-            if (anterior is not null)
-                anterior.Next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.tags is null)
-                newHead.tags = newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.TagPlugin] = newHead;
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 
-using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.io;
@@ -9,7 +8,7 @@ public unsafe struct MD5
 {
     private fixed uint _bits[2];
     private fixed uint _buf[4];
-    private Context? _context;
+    private object? _context;
     private fixed byte _in[64];
 
     private delegate uint F_Func(uint x, uint y, uint z);
@@ -18,11 +17,11 @@ public unsafe struct MD5
     ///     Creates a MD5 object.
     /// </summary>
     /// <remarks>Implements the <c>cmsMD5alloc</c> function.</remarks>
-    public static MD5 Create(Context? context)
+    public static MD5 Create(object? state = null)
     {
         var ctx = new MD5
         {
-            _context = context
+            _context = state
         };
 
         ctx._buf[0] = 0x67452301;

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-using lcms2.state;
+﻿using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.plugins;
@@ -29,9 +27,9 @@ public sealed class ParametricCurvesPlugin: Plugin
         Evaluator = evaluator;
     }
 
-    internal static bool RegisterPlugin(Context? context, ParametricCurvesPlugin? plugin)
+    internal static bool RegisterPlugin(object? state, ParametricCurvesPlugin? plugin)
     {
-        var ctx = Context.GetCurvesPlugin(context);
+        var ctx = State.GetCurvesPlugin(state);
 
         if (plugin is null)
         {
@@ -50,40 +48,8 @@ internal sealed class ParametricCurvesPluginChunk
     internal static ParametricCurvesPluginChunk global = new();
     internal ParametricCurvesCollection? parametricCurves;
 
+    internal static ParametricCurvesPluginChunk Default => new();
+
     private ParametricCurvesPluginChunk()
     { }
-
-    internal static void Alloc(ref Context ctx, in Context? src)
-    {
-        if (src is not null)
-            DupPluginCurvesList(ref ctx, src);
-        else
-            ctx.chunks[(int)Chunks.CurvesPlugin] = new ParametricCurvesPluginChunk();
-    }
-
-    private static void DupPluginCurvesList(ref Context ctx, in Context src)
-    {
-        ParametricCurvesPluginChunk newHead = new();
-        ParametricCurvesCollection? anterior = null;
-        var head = (ParametricCurvesPluginChunk?)src.chunks[(int)Chunks.CurvesPlugin];
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = head.parametricCurves; entry is not null; entry = entry.next)
-        {
-            // We want to keep the linked list order, so this is a little bit tricky
-            ParametricCurvesCollection newEntry = new(entry);
-
-            if (anterior is not null)
-                anterior.next = newEntry;
-
-            anterior = newEntry;
-
-            if (newHead.parametricCurves is null)
-                newHead.parametricCurves = newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.CurvesPlugin] = newHead;
-    }
 }

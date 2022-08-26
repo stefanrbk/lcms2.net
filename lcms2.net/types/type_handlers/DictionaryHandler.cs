@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class DictionaryHandler: TagTypeHandler
 {
-    public DictionaryHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public DictionaryHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public DictionaryHandler(Context? context = null)
-        : this(default, context) { }
+    public DictionaryHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Dictionary)?.Clone();
@@ -43,15 +43,15 @@ public class DictionaryHandler: TagTypeHandler
         // Check for valid lengths
         if (length is not 16 and not 24 and not 32)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown record length in dictionary '{0}'", length);
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown record length in dictionary '{0}'", length);
             goto Error;
         }
 
         // Creates an empty dictionary
-        hDict = new Dictionary(Context);
+        hDict = new Dictionary(StateContainer);
 
         // Depending on record size, create column arrays
-        a = new DicArray(Context, count, length);
+        a = new DicArray(StateContainer, count, length);
 
         // Read column arrays
         if (a.ReadOffset(io, count, length, baseOffset, ref sizeOfTag)) goto Error;
@@ -74,7 +74,7 @@ public class DictionaryHandler: TagTypeHandler
 
             if (String.IsNullOrEmpty(nameStr) || String.IsNullOrEmpty(valueStr))
             {
-                Context.SignalError(Context, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
+                State.SignalError(StateContainer, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
                 rc = false;
             } else
             {
@@ -125,7 +125,7 @@ public class DictionaryHandler: TagTypeHandler
         var dirPos = (uint)io.Tell();
 
         // Allocate offsets array
-        var a = new DicArray(Context, count, length);
+        var a = new DicArray(StateContainer, count, length);
 
         // Write a fake directory to be filled later on
         if (!a.WriteOffset(io, count, length)) return false;
@@ -164,7 +164,7 @@ public class DictionaryHandler: TagTypeHandler
         public DicElem? DisplayName, DisplayValue;
         public DicElem Name, Value;
 
-        public DicArray(Context? context, uint count, uint length)
+        public DicArray(object? context, uint count, uint length)
         {
             Name = new DicElem(context, count);
             Value = new DicElem(context, count);
@@ -236,15 +236,15 @@ public class DictionaryHandler: TagTypeHandler
 
     internal struct DicElem
     {
-        public Context? Context;
+        public object? StateContainer;
         public uint[] Offsets;
         public uint[] Sizes;
 
-        public DicElem(Context? context, uint count)
+        public DicElem(object? state, uint count)
         {
             Offsets = new uint[count];
             Sizes = new uint[count];
-            Context = context;
+            StateContainer = state;
         }
 
         public bool ReadOneChar(Stream io, uint index, out string? str)

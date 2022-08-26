@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class Lut16Handler: TagTypeHandler
 {
-    public Lut16Handler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public Lut16Handler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public Lut16Handler(Context? context = null)
-        : this(default, context) { }
+    public Lut16Handler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
@@ -39,7 +39,7 @@ public class Lut16Handler: TagTypeHandler
         if (outputChannels == 0 || outputChannels > Lcms2.MaxChannels) goto Error;
 
         // Allocates an empty Pipeline
-        newLut = Pipeline.Alloc(Context, inputChannels, outputChannels);
+        newLut = Pipeline.Alloc(StateContainer, inputChannels, outputChannels);
         if (newLut is null) goto Error;
 
         // Read the Matrix
@@ -49,7 +49,7 @@ public class Lut16Handler: TagTypeHandler
         // Only operates on 3 channels
         if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity)
         {
-            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(Context, 3, 3, in matrix, null)))
+            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(StateContainer, 3, 3, in matrix, null)))
                 goto Error;
         }
 
@@ -69,7 +69,7 @@ public class Lut16Handler: TagTypeHandler
         {
             if (!io.ReadUInt16Array((int)numTabSize, out var t)) goto Error;
 
-            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(Context, clutPoints, inputChannels, outputChannels, in t)))
+            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(StateContainer, clutPoints, inputChannels, outputChannels, in t)))
                 goto Error;
         }
 
@@ -123,7 +123,7 @@ public class Lut16Handler: TagTypeHandler
         // That should be all
         if (mpe is not null)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT16");
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT16");
             return false;
         }
 

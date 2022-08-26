@@ -6,11 +6,11 @@ namespace lcms2.types.type_handlers;
 
 public class MeasurementHandler: TagTypeHandler
 {
-    public MeasurementHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public MeasurementHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public MeasurementHandler(Context? context = null)
-        : this(default, context) { }
+    public MeasurementHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as IccMeasurementConditions)?.Clone();

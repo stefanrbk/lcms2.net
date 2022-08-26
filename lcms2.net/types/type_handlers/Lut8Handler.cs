@@ -8,11 +8,11 @@ namespace lcms2.types.type_handlers;
 
 public class Lut8Handler: TagTypeHandler
 {
-    public Lut8Handler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
+    public Lut8Handler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
 
-    public Lut8Handler(Context? context = null)
-        : this(default, context) { }
+    public Lut8Handler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Pipeline)?.Clone();
@@ -41,7 +41,7 @@ public class Lut8Handler: TagTypeHandler
         if (outputChannels == 0 || outputChannels > Lcms2.MaxChannels) goto Error;
 
         // Allocates an empty Pipeline
-        newLut = Pipeline.Alloc(Context, inputChannels, outputChannels);
+        newLut = Pipeline.Alloc(StateContainer, inputChannels, outputChannels);
         if (newLut is null) goto Error;
 
         // Read the Matrix
@@ -51,7 +51,7 @@ public class Lut8Handler: TagTypeHandler
         // Only operates if not identity...
         if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity)
         {
-            if (!newLut.InsertStage(StageLoc.AtBegin, Stage.AllocMatrix(Context, 3, 3, in matrix, null)))
+            if (!newLut.InsertStage(StageLoc.AtBegin, Stage.AllocMatrix(StateContainer, 3, 3, in matrix, null)))
                 goto Error;
         }
 
@@ -76,7 +76,7 @@ public class Lut8Handler: TagTypeHandler
                 ptrW = ptrW[1..];
             }
 
-            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(Context, clutPoints, inputChannels, outputChannels, in t)))
+            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocCLut16bit(StateContainer, clutPoints, inputChannels, outputChannels, in t)))
                 goto Error;
         }
 
@@ -131,7 +131,7 @@ public class Lut8Handler: TagTypeHandler
         // That should be all
         if (mpe is not null)
         {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT8");
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT8");
             return false;
         }
 
