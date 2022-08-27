@@ -33,9 +33,9 @@ public class StateTests
         // New user data should be applied to c3
         Assert.Multiple(() =>
         {
-            Assert.That(State.GetUserData(c1), Is.EqualTo(a));
-            Assert.That(State.GetUserData(c2), Is.EqualTo(a));
-            Assert.That(State.GetUserData(c3), Is.EqualTo(b));
+            Assert.That(State.GetUserData(c1), Is.EqualTo(a), "Modification of user data failed");
+            Assert.That(State.GetUserData(c2), Is.EqualTo(a), "Modification of user data failed");
+            Assert.That(State.GetUserData(c3), Is.EqualTo(b), "Modification of user data failed");
         });
     }
 
@@ -45,7 +45,7 @@ public class StateTests
         var codes = new ushort[] {0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888, 0x9999, 0xaaaa, 0xbbbb, 0xcccc, 0xdddd, 0xeeee, 0xffff};
 
         var c1 = State.CreateStateContainer(null, null);
-        State.SetAlarmCodes(c1, codes);
+        State.SetAlarmCodes(c1, (ushort[])codes.Clone());
         var c2 = State.DuplicateStateContainer(c1, null);
         var c3 = State.DuplicateStateContainer(c2, null);
 
@@ -54,7 +54,7 @@ public class StateTests
         Assert.Multiple(() =>
         {
             for (var i = 0; i < 16; i++)
-                Assert.That(values[i], Is.EqualTo(codes[i]));
+                Assert.That(values[i], Is.EqualTo(codes[i]), $"Bad alarm code {values[i]} != {codes[i]}");
         });
     }
 
@@ -79,4 +79,13 @@ public class StateTests
             Assert.That(old1, Is.EqualTo(old2), "Adaptation state has changed");
         });
     }
+
+    internal bool CheckSimpleContext() =>
+        CheckSimpleTest(TestSimpleState);
+
+    internal bool CheckAlarmCodes() =>
+        CheckSimpleTest(TestAlarmCodes);
+
+    internal bool CheckAdatationStateContext() =>
+        CheckSimpleTest(TestAdaptationStateState);
 }

@@ -1,6 +1,4 @@
-﻿using NUnit.Framework;
-
-using static lcms2.Helpers;
+﻿using static lcms2.Helpers;
 
 namespace lcms2.testing;
 

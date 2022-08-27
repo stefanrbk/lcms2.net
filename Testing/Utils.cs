@@ -9,9 +9,16 @@ using lcms2.it8;
 using lcms2.state;
 using lcms2.types;
 
+using Newtonsoft.Json.Linq;
+
 namespace lcms2.testing;
 public static class Utils
 {
+    public static int totalTests = 0;
+    public static int totalFail = 0;
+    public static int simultaneousErrors = 0;
+    public static string subTest = String.Empty;
+    public static string reasonToFail = String.Empty;
     public static void DumpToneCurve(ToneCurve gamma, string filename)
     {
         var it8 = new IT8();
@@ -32,13 +39,70 @@ public static class Utils
     }
 
     public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
-        Assert.That(actual, Is.EqualTo(expected).Within(delta), "({0}): Must be {1}, But is {2}", title, actual, expected);
+        Assert.That(actual, Is.EqualTo(expected).Within(delta), $"({title}): Must be {actual}, But is {expected}");
 
     [DoesNotReturn]
     public static void Die(string reason, params object[] args)
     {
-        Console.Error.WriteLine(String.Format(reason, args));
+        WriteRed(() => Console.Error.WriteLine(String.Format(reason, args)));
         Environment.Exit(-1);
     }
 
+    public static void Check(string title, Func<bool> test)
+    {
+        Console.Write("Checking {0} ... ", title);
+
+        simultaneousErrors = 0;
+        totalTests++;
+
+        if (!test())
+        {
+            WriteRed(() =>
+            {
+                Console.WriteLine("FAIL!");
+                if (!String.IsNullOrEmpty(subTest))
+                    Console.WriteLine("{0}: [{1}]\n\t{2}", title, subTest, reasonToFail);
+                else
+                    Console.WriteLine("{0}:\n\t{1}", title, reasonToFail);
+
+                if (simultaneousErrors > 1)
+                    Console.WriteLine("\tMore than one ({0}) errors were reported", simultaneousErrors);
+
+                totalFail++;
+            });
+        } else
+        {
+            WriteLineGreen("Ok.");
+        }
+    }
+
+    public static bool CheckSimpleTest(Action fn)
+    {
+        try
+        {
+            fn();
+            return true;
+        } catch (Exception ex)
+        {
+            reasonToFail = ex.Message;
+            return false;
+        }
+    }
+
+    public static void WriteLineGreen(string value) =>
+        WriteGreen(() => Console.WriteLine(value));
+
+    public static void WriteGreen(Action fn)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        fn();
+        Console.ForegroundColor = ConsoleColor.White;
+    }
+
+    public static void WriteRed(Action fn)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        fn();
+        Console.ForegroundColor = ConsoleColor.White;
+    }
 }
