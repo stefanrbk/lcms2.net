@@ -13,6 +13,8 @@ using Newtonsoft.Json.Linq;
 
 using NUnit.Framework.Internal;
 
+[assembly: ExcludeFromCodeCoverage]
+
 namespace lcms2.testing;
 public static class Utils
 {
