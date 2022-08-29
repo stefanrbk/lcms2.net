@@ -1,7 +1,5 @@
 using lcms2.state;
 
-using static lcms2.testing.Utils;
-
 namespace lcms2.testing;
 
 public class StateTests
@@ -33,6 +31,8 @@ public class StateTests
         // New user data should be applied to c3
         Assert.Multiple(() =>
         {
+            ClearAssert();
+
             Assert.That(State.GetUserData(c1), Is.EqualTo(a), "Modification of user data failed");
             Assert.That(State.GetUserData(c2), Is.EqualTo(a), "Modification of user data failed");
             Assert.That(State.GetUserData(c3), Is.EqualTo(b), "Modification of user data failed");
@@ -53,6 +53,8 @@ public class StateTests
 
         Assert.Multiple(() =>
         {
+            ClearAssert();
+
             for (var i = 0; i < 16; i++)
                 Assert.That(values[i], Is.EqualTo(codes[i]), $"Bad alarm code {values[i]} != {codes[i]}");
         });
@@ -75,17 +77,10 @@ public class StateTests
 
         Assert.Multiple(() =>
         {
+            ClearAssert();
+
             IsGoodDouble("Adaption state", State.SetAdaptationState(c3, -1), 0.7, 0.001);
             Assert.That(old1, Is.EqualTo(old2), "Adaptation state has changed");
         });
     }
-
-    internal bool CheckSimpleContext() =>
-        CheckSimpleTest(TestSimpleState);
-
-    internal bool CheckAlarmCodes() =>
-        CheckSimpleTest(TestAlarmCodes);
-
-    internal bool CheckAdatationStateContext() =>
-        CheckSimpleTest(TestAdaptationStateState);
 }

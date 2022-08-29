@@ -11,6 +11,8 @@ using lcms2.types;
 
 using Newtonsoft.Json.Linq;
 
+using NUnit.Framework.Internal;
+
 namespace lcms2.testing;
 public static class Utils
 {
@@ -70,6 +72,7 @@ public static class Utils
 
                 totalFail++;
             });
+            reasonToFail = String.Empty;
         } else
         {
             WriteLineGreen("Ok.");
@@ -89,6 +92,17 @@ public static class Utils
         }
     }
 
+    public static bool CheckInterp1D(Func<int, int, bool> fn, bool down)
+    {
+        var result = true;
+        for (int i = 0, j = 1; i < 16; i++, j++)
+            if (!CheckSimpleTest(() => fn(i is 0 ? 10 : 256 * i, 256 * j)))
+                result = false;
+
+        Console.Write("The result is ");
+        return result;
+    }
+
     public static void WriteLineGreen(string value) =>
         WriteGreen(() => Console.WriteLine(value));
 
@@ -104,5 +118,19 @@ public static class Utils
         Console.ForegroundColor = ConsoleColor.Red;
         fn();
         Console.ForegroundColor = ConsoleColor.White;
+    }
+
+    public static void ClearAssert() =>
+        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Clear();
+
+    public static void ProgressBar(int start, int stop, int width, int j)
+    {
+        if ((j % 8) == 0)
+        {
+            var percent = (double)(j - start) / (stop - start);
+            var filled = (int)Math.Round((double)percent * width);
+            var empty = width - filled;
+            Console.Write($"{new string(' ', 8)}{start} {new string('█', filled)}{new string('░', empty)} {stop}\r");
+        }
     }
 }

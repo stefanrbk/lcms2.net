@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace lcms2;
 
@@ -72,6 +73,7 @@ internal static class Helpers
         (x + 0x8000) >> 16;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [ExcludeFromCodeCoverage]
     internal static int QuickFloor(double val)
     {
 #if DONT_USE_FAST_FLOOR
