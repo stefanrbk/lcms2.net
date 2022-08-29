@@ -1,7 +1,7 @@
 ﻿using lcms2.state;
 using lcms2.testing;
 
-var exhaustive = true;
+var exhaustive = false;
 var doSpeedTests = true;
 var doCheckTests = true;
 var doPluginTests = true;
@@ -10,6 +10,31 @@ var doZooTests = false;
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
 
+if (args.Length is 0)
+{
+    Console.Write("Run exhaustive tests? (y/N) ");
+    while (true)
+    {
+        var key = Console.ReadKey(true);
+        if (key.Key is ConsoleKey.Enter or ConsoleKey.N)
+        {
+            exhaustive = false;
+            if (key.Key is ConsoleKey.Enter)
+                Console.WriteLine("N");
+            else
+                Console.WriteLine(key.KeyChar);
+            Console.WriteLine();
+            break;
+        } else if (key.Key is ConsoleKey.Y)
+        {
+            exhaustive = true;
+            Console.WriteLine(key.KeyChar);
+            Console.WriteLine("Running exhaustive tests (will take a while...)");
+            Console.WriteLine();
+            break;
+        }
+    }
+}
 if (args.Contains("--exhaustive", StringComparer.OrdinalIgnoreCase))
 {
     exhaustive = true;
@@ -43,8 +68,21 @@ if (doCheckTests)
 
     if (exhaustive)
     {
-        Check("1D interpolation in n tables", () => CheckInterp1D(interp.ExhaustiveCheck1DTest, false));
-        Check("1D interpolation in descending tables", () => CheckInterp1D(interp.ExhaustiveCheck1DTest, true));
+        Check("1D interpolation in n tables", () => CheckInterp1D(interp.ExhaustiveCheck1DTest));
+        Check("1D interpolation in descending tables", () => CheckInterp1D(interp.ExhaustiveCheck1DDownTest));
+    }
+
+    Check("3D interpolation Tetrahedral (float)", () => CheckSimpleTest(interp.Check3DInterpolationFloatTetrahedralTest));
+    Check("3D interpolation Trilinear (float)", () => CheckSimpleTest(interp.Check3DInterpolationFloatTrilinearTest));
+    Check("3D interpolation Tetrahedral (16)", () => CheckSimpleTest(interp.Check3DInterpolation16TetrahedralTest));
+    Check("3D interpolation Trilinear (16)", () => CheckSimpleTest(interp.Check3DInterpolation16TrilinearTest));
+
+    if (exhaustive)
+    {
+        Check("Exhaustive 3D interpolation Tetrahedral (float)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolationFloatTetrahedralTest));
+        Check("Exhaustive 3D interpolation Trilinear (float)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolationFloatTrilinearTest));
+        Check("Exhaustive 3D interpolation Tetrahedral (16)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolation16TetrahedralTest));
+        Check("Exhaustive 3D interpolation Trilinear (16)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolation16TrilinearTest));
     }
 
     interp.Teardown();
