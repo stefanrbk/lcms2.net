@@ -1,11 +1,12 @@
 ﻿namespace lcms2.types;
-public class UcrBg : ICloneable, IDisposable
+
+public class UcrBg: ICloneable, IDisposable
 {
-    public ToneCurve Ucr;
     public ToneCurve Bg;
     public Mlu Description;
+    public ToneCurve Ucr;
 
-    private bool disposed;
+    private bool _disposed;
 
     public UcrBg(ToneCurve ucr, ToneCurve bg, Mlu description)
     {
@@ -13,7 +14,7 @@ public class UcrBg : ICloneable, IDisposable
         Bg = bg;
         Description = description;
 
-        disposed = false;
+        _disposed = false;
     }
 
     public object Clone() =>
@@ -21,12 +22,13 @@ public class UcrBg : ICloneable, IDisposable
 
     public void Dispose()
     {
-        if (!disposed) {
+        if (!_disposed)
+        {
             Ucr?.Dispose();
             Bg?.Dispose();
             Description?.Dispose();
 
-            disposed = true;
+            _disposed = true;
         }
         GC.SuppressFinalize(this);
     }

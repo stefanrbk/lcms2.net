@@ -1,15 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ProfileSequenceIdHandler : TagTypeHandler
-{
-    public ProfileSequenceIdHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public ProfileSequenceIdHandler(Context? context = null)
-        : this(default, context) { }
+public class ProfileSequenceIdHandler: TagTypeHandler
+{
+    public ProfileSequenceIdHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public ProfileSequenceIdHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Sequence)?.Clone();
@@ -17,7 +17,7 @@ public class ProfileSequenceIdHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Sequence)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -29,10 +29,11 @@ public class ProfileSequenceIdHandler : TagTypeHandler
         sizeOfTag -= sizeof(uint);
 
         // Allocate an empty structure
-        object outSeq = new Sequence(Context, (int)count);
+        object outSeq = new Sequence(StateContainer, (int)count);
 
         // Read the position table
-        if (!ReadPositionTable(io, (int)count, (uint)baseOffset, ref outSeq, ReadSequenceId)) {
+        if (!ReadPositionTable(io, (int)count, (uint)baseOffset, ref outSeq, ReadSequenceId))
+        {
             ((IDisposable)outSeq)?.Dispose();
             return null;
         }
@@ -42,7 +43,7 @@ public class ProfileSequenceIdHandler : TagTypeHandler
         return outSeq;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var seq = (Sequence)value;
 

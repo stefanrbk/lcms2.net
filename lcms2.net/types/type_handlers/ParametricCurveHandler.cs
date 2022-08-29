@@ -3,13 +3,18 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ParametricCurveHandler : TagTypeHandler
-{
-    public ParametricCurveHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public ParametricCurveHandler(Context? context = null)
-        : this(default, context) { }
+public class ParametricCurveHandler: TagTypeHandler
+{
+    private static readonly int[] _readParamsByType = new int[] { 1, 3, 4, 5, 7 };
+
+    private static readonly int[] _writeParamsByType = new int[] { 0, 1, 3, 4, 5, 7 };
+
+    public ParametricCurveHandler(Signature sig, object? state = null)
+               : base(sig, state, 0) { }
+
+    public ParametricCurveHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as ToneCurve)?.Clone();
@@ -26,16 +31,17 @@ public class ParametricCurveHandler : TagTypeHandler
         if (!io.ReadUInt16Number(out var type)) return null;
         if (!io.ReadUInt16Number(out _)) return null; // Reserved
 
-        if (type > 4) {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
+        if (type > 4)
+        {
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
             return null;
         }
-        var n = readParamsByType[type];
+        var n = _readParamsByType[type];
 
         for (var i = 0; i < n; i++)
             if (!io.Read15Fixed16Number(out @params[i])) return null;
 
-        var newGamma = ToneCurve.BuildParametric(Context, type + 1, @params);
+        var newGamma = ToneCurve.BuildParametric(StateContainer, type + 1, @params);
 
         numItems = 1;
         return newGamma;
@@ -45,29 +51,28 @@ public class ParametricCurveHandler : TagTypeHandler
     {
         var curve = (ToneCurve)value;
 
-        var typeN = curve.Segments[0].Type;
+        var typeN = curve.segments[0].Type;
 
-        if (curve.NumSegments > 1 || typeN < 1) {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
+        if (curve.NumSegments > 1 || typeN < 1)
+        {
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
         }
 
-        if (typeN > 5) {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unsupported parametric curve");
+        if (typeN > 5)
+        {
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported parametric curve");
             return false;
         }
 
-        var numParams = writeParamsByType[typeN];
+        var numParams = _writeParamsByType[typeN];
 
-        if (!io.Write((ushort)(curve.Segments[0].Type - 1))) return false;
+        if (!io.Write((ushort)(curve.segments[0].Type - 1))) return false;
         if (!io.Write((ushort)0)) return false; // Reserved
 
         for (var i = 0; i < numParams; i++)
-            if (!io.Write(curve.Segments[0].Params![i])) return false;
+            if (!io.Write(curve.segments[0].Params![i])) return false;
 
         return true;
     }
-
-    private static readonly int[] readParamsByType = new int[] { 1, 3, 4, 5, 7 };
-    private static readonly int[] writeParamsByType = new int[] { 0, 1, 3, 4, 5, 7 };
 }

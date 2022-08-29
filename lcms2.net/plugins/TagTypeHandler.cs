@@ -1,6 +1,4 @@
-﻿
-using lcms2.state;
-using lcms2.types;
+﻿using lcms2.types;
 
 namespace lcms2.plugins;
 
@@ -8,42 +6,32 @@ namespace lcms2.plugins;
 ///     Tag type handler
 /// </summary>
 /// <remarks>
-///     Each type is free to return anything it wants, and it is up to the caller to
-///     know in advance what is the type contained in the tag.<br />
-///     Implements the <c>cmsTagTypeHandler</c> struct.</remarks>
+///     Each type is free to return anything it wants, and it is up to the caller to know in advance
+///     what is the type contained in the tag. <br/> Implements the <c>cmsTagTypeHandler</c> struct.
+/// </remarks>
 public abstract partial class TagTypeHandler
 {
-    /// <summary>
-    ///     Signature of the type
-    /// </summary>
-    public virtual Signature Signature { get; }
+    protected TagTypeHandler(Signature signature, object? state, uint iCCVersion)
+    {
+        Signature = signature;
+        StateContainer = state;
+        ICCVersion = iCCVersion;
+    }
 
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
-    public virtual Context? Context { get; }
+    public virtual object? StateContainer { get; }
 
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
     public virtual uint ICCVersion { get; }
 
-    protected TagTypeHandler(Signature signature, Context? context, uint iCCVersion)
-    {
-        Signature = signature;
-        Context = context;
-        ICCVersion = iCCVersion;
-    }
-
     /// <summary>
-    ///     Allocates and reads items.
+    ///     Signature of the type
     /// </summary>
-    public unsafe abstract object? Read(Stream io, int sizeOfTag, out int numItems);
-
-    /// <summary>
-    ///     Writes n Items
-    /// </summary>
-    public unsafe abstract bool Write(Stream io, object value, int numItems);
+    public virtual Signature Signature { get; }
 
     /// <summary>
     ///     Duplicate an item or array of items
@@ -54,4 +42,14 @@ public abstract partial class TagTypeHandler
     ///     Free all resources
     /// </summary>
     public abstract void Free(object value);
+
+    /// <summary>
+    ///     Allocates and reads items.
+    /// </summary>
+    public abstract unsafe object? Read(Stream io, int sizeOfTag, out int numItems);
+
+    /// <summary>
+    ///     Writes n Items
+    /// </summary>
+    public abstract unsafe bool Write(Stream io, object value, int numItems);
 }

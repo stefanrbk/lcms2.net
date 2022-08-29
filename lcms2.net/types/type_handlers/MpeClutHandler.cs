@@ -5,13 +5,14 @@ using lcms2.state;
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class MpeClutHandler : TagTypeHandler
-{
-    public MpeClutHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public MpeClutHandler(Context? context = null)
-        : this(default, context) { }
+public class MpeClutHandler: TagTypeHandler
+{
+    public MpeClutHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public MpeClutHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();
@@ -19,7 +20,7 @@ public class MpeClutHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Stage)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         var dimensions8 = new byte[16];
 
@@ -33,21 +34,21 @@ public class MpeClutHandler : TagTypeHandler
         if (io.Read(dimensions8) != 16) return null;
 
         // Copy MaxInputDimensions at most. Expand to uint
-        var numMaxGrids = (uint)Math.Min((ushort)MaxInputDimensions, inputChans);
+        var numMaxGrids = (uint)Math.Min((ushort)maxInputDimensions, inputChans);
         var gridPoints = new uint[numMaxGrids];
 
-        for (var i = 0; i < numMaxGrids; i++) {
-
+        for (var i = 0; i < numMaxGrids; i++)
+        {
             if (dimensions8[i] == 1) return null; // Impossible value, 0 for no CLUT or at least 2
             gridPoints[i] = dimensions8[i];
         }
 
         // Allocate the true CLUT
-        var mpe = Stage.AllocCLutFloatGranular(Context, gridPoints, inputChans, outputChans, null);
+        var mpe = Stage.AllocCLutFloatGranular(StateContainer, gridPoints, inputChans, outputChans, null);
         if (mpe is null) goto Error;
 
         // Read and sanitize the data
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = (Stage.CLutData)mpe.data;
         for (var i = 0; i < clut.NumEntries; i++)
             if (!io.ReadFloat32Number(out clut.Table.TFloat[i])) goto Error;
 
@@ -60,22 +61,22 @@ public class MpeClutHandler : TagTypeHandler
         return null;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var dimensions8 = new byte[16];
         var mpe = (Stage)value;
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = (Stage.CLutData)mpe.data;
 
         // Check for maximum number of channels supported by lcms
-        if (mpe.InputChannels > MaxInputDimensions) return false;
+        if (mpe.inputChannels > maxInputDimensions) return false;
 
         // Only floats are supported in MPE
         if (!clut.HasFloatValues) return false;
 
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
-        if (!io.Write((ushort)mpe.OutputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
+        if (!io.Write((ushort)mpe.outputChannels)) return false;
 
-        for (var i = 0; i < mpe.InputChannels; i++)
+        for (var i = 0; i < mpe.inputChannels; i++)
             dimensions8[i] = (byte)clut.Params[0].NumSamples[i];
 
         io.Write(dimensions8);

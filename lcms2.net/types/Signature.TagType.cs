@@ -7,21 +7,25 @@ public partial struct Signature
         public static readonly Signature Chromaticity = new("chrm");
         public static readonly Signature ColorantOrder = new("clro");
         public static readonly Signature ColorantTable = new("clrt");
+        public static readonly Signature CorbisBrokenXYZ = new(0x17A505B8);
         public static readonly Signature CrdInfo = new("crdi");
         public static readonly Signature Curve = new("curv");
         public static readonly Signature Data = new("data");
-        public static readonly Signature Dict = new("dict");
         public static readonly Signature DateTime = new("dtim");
         public static readonly Signature DeviceSettings = new("devs");
+        public static readonly Signature Dict = new("dict");
         public static readonly Signature Lut16 = new("mft2");
         public static readonly Signature Lut8 = new("mft1");
         public static readonly Signature LutAtoB = new("mAB ");
         public static readonly Signature LutBtoA = new("mBA ");
         public static readonly Signature Measurement = new("meas");
+        public static readonly Signature MonacoBrokenCurve = new(0x9478EE00);
         public static readonly Signature MultiLocalizedUnicode = new("mluc");
         public static readonly Signature MultiProcessElement = new("mpet");
+
         [Obsolete("Use NamedColor2")]
         public static readonly Signature NamedColor = new("ncol");
+
         public static readonly Signature NamedColor2 = new("ncl2");
         public static readonly Signature ParametricCurve = new("para");
         public static readonly Signature ProfileSequenceDesc = new("pseq");
@@ -41,8 +45,5 @@ public partial struct Signature
         public static readonly Signature Vcgt = new("vcgt");
         public static readonly Signature ViewingConditions = new("view");
         public static readonly Signature XYZ = new("XYZ ");
-
-        public static readonly Signature CorbisBrokenXYZ = new(0x17A505B8);
-        public static readonly Signature MonacoBrokenCurve = new(0x9478EE00);
     }
 }

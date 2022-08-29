@@ -1,19 +1,21 @@
 ﻿using lcms2.state;
 
 namespace lcms2.types;
-public class ProfileSequenceDescription : ICloneable, IDisposable
+
+public class ProfileSequenceDescription: ICloneable, IDisposable
 {
+    public ulong Attributes;
+    public Mlu Description;
     public Signature DeviceMfg;
     public Signature DeviceModel;
-    public ulong Attributes;
-    public Signature Technology;
-    public ProfileID ProfileID;
     public Mlu Manufacturer;
     public Mlu Model;
-    public Mlu Description;
-    private bool disposed;
+    public ProfileID ProfileID;
+    public Signature Technology;
 
-    public ProfileSequenceDescription(Context? context, Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID)
+    private bool _disposed;
+
+    public ProfileSequenceDescription(object? context, Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID)
     {
         DeviceMfg = deviceMfg;
         DeviceModel = deviceModel;
@@ -23,7 +25,7 @@ public class ProfileSequenceDescription : ICloneable, IDisposable
         Manufacturer = new Mlu(context);
         Model = new Mlu(context);
         Description = new Mlu(context);
-        disposed = false;
+        _disposed = false;
     }
 
     private ProfileSequenceDescription(Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID, Mlu manufacturer, Mlu model, Mlu description)
@@ -36,29 +38,29 @@ public class ProfileSequenceDescription : ICloneable, IDisposable
         Manufacturer = manufacturer;
         Model = model;
         Description = description;
-        disposed = false;
+        _disposed = false;
     }
 
     public object Clone() =>
-        new ProfileSequenceDescription(
-            DeviceMfg,
-            DeviceModel,
-            Attributes,
-            Technology,
-            ProfileID,
-            (Mlu)Manufacturer.Clone(),
+           new ProfileSequenceDescription(
+           DeviceMfg,
+           DeviceModel,
+           Attributes,
+           Technology,
+           ProfileID,
+           (Mlu)Manufacturer.Clone(),
             (Mlu)Model.Clone(),
             (Mlu)Description.Clone());
 
     public void Dispose()
     {
-        if (!disposed) {
-
+        if (!_disposed)
+        {
             Manufacturer?.Dispose();
             Model?.Dispose();
             Description?.Dispose();
 
-            disposed = true;
+            _disposed = true;
         }
         GC.SuppressFinalize(this);
     }

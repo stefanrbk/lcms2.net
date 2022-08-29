@@ -1,20 +1,21 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class SignatureHandler : TagTypeHandler
-{
-    public SignatureHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public SignatureHandler(Context? context = null)
-        : this(default, context) { }
+public class SignatureHandler: TagTypeHandler
+{
+    public SignatureHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public SignatureHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((Signature)value).Clone();
 
-    public override void Free(object value) { }
+    public override void Free(object value)
+    { }
 
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {

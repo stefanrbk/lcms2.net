@@ -1,24 +1,156 @@
 ﻿using System.Runtime.CompilerServices;
 
-using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.io;
 
 public unsafe struct MD5
 {
-    private fixed uint buf[4];
-    private fixed uint bits[2];
-    private fixed byte @in[64];
-    private Context? context;
+    private fixed uint _bits[2];
+    private fixed uint _buf[4];
+    private object? _context;
+    private fixed byte _in[64];
 
     private delegate uint F_Func(uint x, uint y, uint z);
+
+    /// <summary>
+    ///     Creates a MD5 object.
+    /// </summary>
+    /// <remarks>Implements the <c>cmsMD5alloc</c> function.</remarks>
+    public static MD5 Create(object? state = null)
+    {
+        var ctx = new MD5
+        {
+            _context = state
+        };
+
+        ctx._buf[0] = 0x67452301;
+        ctx._buf[1] = 0xefcdab89;
+        ctx._buf[2] = 0x98badcfe;
+        ctx._buf[3] = 0x10325476;
+
+        ctx._bits[0] = 0;
+        ctx._bits[1] = 0;
+
+        return ctx;
+    }
+
+    /// <summary>
+    ///     Adds data to the computation.
+    /// </summary>
+    /// <remarks>Implements the <c>cmsMD5add</c> function.</remarks>
+    public void Add(byte* buf, uint len)
+    {
+        ref var ctx = ref this;
+
+        var t = ctx._bits[0];
+        if ((ctx._bits[0] = t + (len << 3)) < t)
+            ctx._bits[1]++;
+
+        ctx._bits[1] += len >> 29;
+
+        t = (t >> 3) & 0x3f;
+
+        if (t != 0)
+        {
+            fixed (byte* ptr = ctx._in)
+            {
+                var p = ptr + t;
+
+                t = 64 - t;
+                if (len < t)
+                {
+                    Buffer.MemoryCopy(buf, p, len, len);
+                    return;
+                }
+
+                Buffer.MemoryCopy(buf, p, t, t);
+                ByteReverse(ptr, 16);
+
+                fixed (uint* ctxbuf = ctx._buf)
+                {
+                    Transform(ctxbuf, (uint*)ptr);
+                }
+                buf += t;
+                len -= t;
+            }
+        }
+
+        fixed (byte* ctxin = ctx._in)
+        {
+            fixed (uint* ctxbuf = ctx._buf)
+            {
+                while (len >= 64)
+                {
+                    Buffer.MemoryCopy(buf, ctxin, 64, 64);
+                    ByteReverse(ctxin, 16);
+                    Transform(ctxbuf, (uint*)ctxin);
+                    buf += 64;
+                    len -= 64;
+                }
+
+                Buffer.MemoryCopy(buf, ctxin, len, len);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Return the MD5 checksum.
+    /// </summary>
+    /// <remarks>Implements the <c>cmsMD5finish</c> function.</remarks>
+    public ProfileID Finish()
+    {
+        ref var ctx = ref this;
+
+        fixed (uint* ctxbits = ctx._bits, ctxbuf = ctx._buf)
+        {
+            fixed (byte* ctxin = ctx._in)
+            {
+                var count = (ctxbits[0] >> 3) & 0x3f;
+
+                var p = ctxin + count;
+                *p++ = 0x80;
+
+                count = 64 - 1 - count;
+
+                if (count < 8)
+                {
+                    for (var i = p; i < p + count; i++)
+                        *i = 0;
+                    ByteReverse(ctxin, 16);
+                    Transform(ctxbuf, (uint*)ctxin);
+
+                    for (var i = ctxin; i < ctxin + 56; i++)
+                        *i = 0;
+                } else
+                {
+                    for (var i = p; i < p + (count - 8); i++)
+                        *i = 0;
+                }
+                ByteReverse(ctxin, 14);
+
+                ((uint*)ctxin)[14] = ctxbits[0];
+                ((uint*)ctxin)[15] = ctxbits[1];
+
+                Transform(ctxbuf, (uint*)ctxin);
+
+                ByteReverse((byte*)ctxbuf, 4);
+
+                var result = new ProfileID();
+                Buffer.MemoryCopy(ctxbuf, result.id8, 16, 16);
+
+                return result;
+            }
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ByteReverse(byte* buf, uint longs)
     {
-        if (!BitConverter.IsLittleEndian) {
-            do {
+        if (!BitConverter.IsLittleEndian)
+        {
+            do
+            {
                 var t = IOHandler.AdjustEndianness(*(uint*)buf);
                 *(uint*)buf = t;
                 buf += sizeof(uint);
@@ -129,125 +261,5 @@ public unsafe struct MD5
         buf[1] += b;
         buf[2] += c;
         buf[3] += d;
-    }
-
-    /// <summary>
-    /// Creates a MD5 object.
-    /// </summary>
-    /// <remarks>Implements the <c>cmsMD5alloc</c> function.</remarks>
-    public static MD5 Create(Context? context)
-    {
-        var ctx = new MD5
-        {
-            context = context
-        };
-
-        ctx.buf[0] = 0x67452301;
-        ctx.buf[1] = 0xefcdab89;
-        ctx.buf[2] = 0x98badcfe;
-        ctx.buf[3] = 0x10325476;
-
-        ctx.bits[0] = 0;
-        ctx.bits[1] = 0;
-
-        return ctx;
-    }
-
-    /// <summary>
-    /// Adds data to the computation.
-    /// </summary>
-    /// <remarks>Implements the <c>cmsMD5add</c> function.</remarks>
-    public void Add(byte* buf, uint len)
-    {
-        ref var ctx = ref this;
-
-        var t = ctx.bits[0];
-        if ((ctx.bits[0] = t + (len << 3)) < t)
-            ctx.bits[1]++;
-
-        ctx.bits[1] += len >> 29;
-
-        t = (t >> 3) & 0x3f;
-
-        if (t != 0) {
-            fixed (byte* ptr = ctx.@in) {
-                var p = ptr + t;
-
-                t = 64 - t;
-                if (len < t) {
-                    Buffer.MemoryCopy(buf, p, len, len);
-                    return;
-                }
-
-                Buffer.MemoryCopy(buf, p, t, t);
-                ByteReverse(ptr, 16);
-
-                fixed (uint* ctxbuf = ctx.buf) {
-                    Transform(ctxbuf, (uint*)ptr);
-                }
-                buf += t;
-                len -= t;
-            }
-        }
-
-        fixed (byte* ctxin = ctx.@in) {
-            fixed (uint* ctxbuf = ctx.buf) {
-                while (len >= 64) {
-                    Buffer.MemoryCopy(buf, ctxin, 64, 64);
-                    ByteReverse(ctxin, 16);
-                    Transform(ctxbuf, (uint*)ctxin);
-                    buf += 64;
-                    len -= 64;
-                }
-
-                Buffer.MemoryCopy(buf, ctxin, len, len);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Return the MD5 checksum.
-    /// </summary>
-    /// <remarks>Implements the <c>cmsMD5finish</c> function.</remarks>
-    public ProfileID Finish()
-    {
-        ref var ctx = ref this;
-
-        fixed (uint* ctxbits = ctx.bits, ctxbuf = ctx.buf) {
-            fixed (byte* ctxin = ctx.@in) {
-                var count = (ctxbits[0] >> 3) & 0x3f;
-
-                var p = ctxin + count;
-                *p++ = 0x80;
-
-                count = 64 - 1 - count;
-
-                if (count < 8) {
-                    for (var i = p; i < p + count; i++)
-                        *i = 0;
-                    ByteReverse(ctxin, 16);
-                    Transform(ctxbuf, (uint*)ctxin);
-
-                    for (var i = ctxin; i < ctxin + 56; i++)
-                        *i = 0;
-                } else {
-                    for (var i = p; i < p + (count - 8); i++)
-                        *i = 0;
-                }
-                ByteReverse(ctxin, 14);
-
-                ((uint*)ctxin)[14] = ctxbits[0];
-                ((uint*)ctxin)[15] = ctxbits[1];
-
-                Transform(ctxbuf, (uint*)ctxin);
-
-                ByteReverse((byte*)ctxbuf, 4);
-
-                var result = new ProfileID();
-                Buffer.MemoryCopy(ctxbuf, result.ID8, 16, 16);
-
-                return result;
-            }
-        }
     }
 }

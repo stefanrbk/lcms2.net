@@ -3,13 +3,14 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class DataHandler : TagTypeHandler
-{
-    public DataHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public DataHandler(Context? context = null)
-        : this(default, context) { }
+public class DataHandler: TagTypeHandler
+{
+    public DataHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public DataHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((IccData)value).Clone();
@@ -40,9 +41,9 @@ public class DataHandler : TagTypeHandler
     {
         var binData = (IccData)value;
 
-        if (!io.Write(binData.Flag)) return false;
+        if (!io.Write(binData.flag)) return false;
 
-        io.Write(binData.Data, 0, (int)binData.Length);
+        io.Write(binData.data, 0, (int)binData.length);
 
         return true;
     }

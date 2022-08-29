@@ -1,47 +1,52 @@
 ﻿namespace lcms2.io;
-public class NullStream : Stream
-{
-    private long pointer;
-    private long length;
 
-    public override bool CanRead { get => true; }
-    public override bool CanSeek { get => true; }
-    public override bool CanWrite { get => true; }
-    public override long Length { get => length; }
-    public override long Position { get => pointer; set => pointer = value; }
+public class NullStream: Stream
+{
+    private long _length;
+
+    public override bool CanRead => true;
+    public override bool CanSeek => true;
+    public override bool CanWrite => true;
+    public override long Length => _length;
+    public override long Position { get; set; }
 
     public override void Flush()
     { }
+
     public override int Read(byte[] buffer, int offset, int count)
     {
-        length = count;
-        pointer += length;
+        _length = count;
+        Position += _length;
         return count;
     }
+
     public override long Seek(long offset, SeekOrigin origin)
     {
-        switch (origin) {
+        switch (origin)
+        {
             case SeekOrigin.Begin:
-                pointer = offset;
+                Position = offset;
                 break;
 
             case SeekOrigin.Current:
-                pointer += offset;
+                Position += offset;
                 break;
 
             case SeekOrigin.End:
-                pointer = length;
-                pointer -= offset;
+                Position = _length;
+                Position -= offset;
                 break;
         }
-        return pointer;
+        return Position;
     }
+
     public override void SetLength(long value) =>
-        length = value;
+        _length = value;
+
     public override void Write(byte[] buffer, int offset, int count)
     {
-        pointer += count;
-        if (pointer > length)
-            length = pointer;
+        Position += count;
+        if (Position > _length)
+            _length = Position;
     }
 }

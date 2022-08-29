@@ -1,0 +1,624 @@
+﻿using System.Reflection.Metadata.Ecma335;
+
+using lcms2.plugins;
+using lcms2.state;
+using lcms2.types;
+
+namespace lcms2.testing;
+
+[TestFixture(TestOf = typeof(InterpolationPlugin))]
+public class InterpolationTests: ITest
+{
+    private object _state;
+
+    [SetUp]
+    public void Setup()
+    {
+        _state = State.CreateStateContainer()!;
+        try
+        {
+            _ = Console.BufferWidth;
+        } catch
+        {
+            HasConsole = false;
+        }
+    }
+
+    [TearDown]
+    public void Teardown() =>
+        State.DeleteStateContainer(_state);
+
+    // A single function that does check 1D interpolation
+    // nNodesToCheck = number on nodes to check
+    // Down = Create decreasing tables
+    // Reverse = Check reverse interpolation
+    // max_err = max allowed error
+    [TestCase(2, false, 0)]
+    [TestCase(3, false, 1)]
+    [TestCase(4, false, 0)]
+    [TestCase(6, false, 0)]
+    [TestCase(18, false, 0)]
+    [TestCase(2, true, 0)]
+    [TestCase(3, true, 1)]
+    [TestCase(6, true, 0)]
+    [TestCase(18, true, 0)]
+    public void Check1DTest(int numNodesToCheck, bool down, int maxErr)
+    {
+        var tab = new ushort[numNodesToCheck];
+
+        var p = InterpParams.Compute(_state, numNodesToCheck, 1, 1, tab, LerpFlag.Ushort);
+        Assert.That(p, Is.Not.Null);
+
+        BuildTable(numNodesToCheck, ref tab, down);
+
+        for (var i = 0; i <= 0xFFFF; i++)
+        {
+            var @in = new ushort[] { (ushort)i };
+            var @out = new ushort[1];
+
+            p.Interpolation.Lerp16(in @in, ref @out, p);
+
+            if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
+
+            Assert.That(@out[0], Is.EqualTo(@in[0]).Within(maxErr), $"{numNodesToCheck} nodes");
+        }
+    }
+
+    [Explicit("Exhaustive test")]
+    [TestCase(10, 256 * 1)]
+    [TestCase(256 * 1, 256 * 2)]
+    [TestCase(256 * 2, 256 * 3)]
+    [TestCase(256 * 3, 256 * 4)]
+    [TestCase(256 * 4, 256 * 5)]
+    [TestCase(256 * 5, 256 * 6)]
+    [TestCase(256 * 6, 256 * 7)]
+    [TestCase(256 * 7, 256 * 8)]
+    [TestCase(256 * 8, 256 * 9)]
+    [TestCase(256 * 9, 256 * 10)]
+    [TestCase(256 * 10, 256 * 11)]
+    [TestCase(256 * 11, 256 * 12)]
+    [TestCase(256 * 12, 256 * 13)]
+    [TestCase(256 * 13, 256 * 14)]
+    [TestCase(256 * 14, 256 * 15)]
+    [TestCase(256 * 15, 256 * 16)]
+    public void ExhaustiveCheck1DTest(int start, int stop) =>
+        ExhaustiveCheck1D(Check1DTest, false, start, stop);
+
+    [Explicit("Exhaustive test")]
+    [TestCase(10, 256 * 1)]
+    [TestCase(256 * 1, 256 * 2)]
+    [TestCase(256 * 2, 256 * 3)]
+    [TestCase(256 * 3, 256 * 4)]
+    [TestCase(256 * 4, 256 * 5)]
+    [TestCase(256 * 5, 256 * 6)]
+    [TestCase(256 * 6, 256 * 7)]
+    [TestCase(256 * 7, 256 * 8)]
+    [TestCase(256 * 8, 256 * 9)]
+    [TestCase(256 * 9, 256 * 10)]
+    [TestCase(256 * 10, 256 * 11)]
+    [TestCase(256 * 11, 256 * 12)]
+    [TestCase(256 * 12, 256 * 13)]
+    [TestCase(256 * 13, 256 * 14)]
+    [TestCase(256 * 14, 256 * 15)]
+    [TestCase(256 * 15, 256 * 16)]
+    public void ExhaustiveCheck1DDownTest(int start, int stop) =>
+        ExhaustiveCheck1D(Check1DTest, true, start, stop);
+
+    private static void ExhaustiveCheck1D(Action<int, bool, int> fn, bool down, int start, int stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+
+        Assert.Multiple(() =>
+        {
+            ClearAssert();
+
+            for (var j = start; j <= stop; j++)
+            {
+                ProgressBar(start, stop, widthSubtract, j);
+
+                fn(j, down, 1);
+            }
+        });
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+
+    // Since prime factors of 65535 (FFFF) are,
+    //
+    //            0xFFFF = 3 * 5 * 17 * 257
+    //
+    // I test tables of 2, 4, 6, and 18 points, that will be exact.
+    private static void BuildTable(int n, ref ushort[] tab, bool descending)
+    {
+        for (var i = 0; i < n; i++)
+        {
+            var v = 65535.0 * i / (n - 1);
+
+            tab[descending ? (n - i - 1) : i] = (ushort)Math.Floor(v + 0.5);
+        }
+    }
+
+    [Test]
+    public void Check3DInterpolationFloatTetrahedralTest()
+    {
+        var floatTable = new float[]
+        {
+            0, 0, 0,            // B=0, G=0, R=0
+            0, 0, .25f,         // B=1, G=0, R=0
+            
+            0, .5f, 0,          // B=0, G=1, R=0
+            0, .5f, .25f,       // B=1, G=1, R=0
+            
+            1, 0, 0,            // B=0, G=0, R=1
+            1, 0, .25f,         // B=1, G=0, R=1
+            
+            1, .5f, 0,          // B=0, G=1, R=1
+            1, .5f, .25f,       // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
+        Assert.That(p, Is.Not.Null);
+
+        MaxErr = 0.0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
+            var @out = new float[3];
+
+            p.Interpolation.LerpFloat(@in, ref @out, p);
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
+                IsGoodFixed15_16("Channel 2", @out[1], @in[1]/ 2f);
+                IsGoodFixed15_16("Channel 2", @out[2], @in[2]/ 4f);
+
+                if (HasAssertions)
+                    WriteLineRed($"|Err|<{MaxErr}");
+            });
+        }
+    }
+
+    [Test]
+    public void Check3DInterpolationFloatTrilinearTest()
+    {
+        var floatTable = new float[]
+        {
+            0, 0, 0,            // B=0, G=0, R=0
+            0, 0, .25f,         // B=1, G=0, R=0
+            
+            0, .5f, 0,          // B=0, G=1, R=0
+            0, .5f, .25f,       // B=1, G=1, R=0
+            
+            1, 0, 0,            // B=0, G=0, R=1
+            1, 0, .25f,         // B=1, G=0, R=1
+            
+            1, .5f, 0,          // B=0, G=1, R=1
+            1, .5f, .25f,       // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float|LerpFlag.Trilinear);
+        Assert.That(p, Is.Not.Null);
+
+        MaxErr = 0.0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
+            var @out = new float[3];
+
+            p.Interpolation.LerpFloat(@in, ref @out, p);
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
+                IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
+                IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
+
+                if (HasAssertions)
+                    WriteLineRed($"|Err|<{MaxErr}");
+            });
+        }
+    }
+
+    [Test]
+    public void Check3DInterpolation16TetrahedralTest()
+    {
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
+        Assert.That(p, Is.Not.Null);
+
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
+            var @out = new ushort[3];
+
+            p.Interpolation.Lerp16(@in, ref @out, p);
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodWord("Channel 1", @out[0], @in[0]);
+                IsGoodWord("Channel 2", @out[1], @in[1]);
+                IsGoodWord("Channel 2", @out[2], @in[2]);
+            });
+        }
+    }
+
+    [Test]
+    public void Check3DInterpolation16TrilinearTest()
+    {
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
+        Assert.That(p, Is.Not.Null);
+
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
+            var @out = new ushort[3];
+
+            p.Interpolation.Lerp16(@in, ref @out, p);
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodWord("Channel 1", @out[0], @in[0]);
+                IsGoodWord("Channel 2", @out[1], @in[1]);
+                IsGoodWord("Channel 2", @out[2], @in[2]);
+            });
+        }
+    }
+
+    [Explicit]
+    [TestCase(16*0, 16*1)]
+    [TestCase(16*1, 16*2)]
+    [TestCase(16*2, 16*3)]
+    [TestCase(16*3, 16*4)]
+    [TestCase(16*4, 16*5)]
+    [TestCase(16*5, 16*6)]
+    [TestCase(16*6, 16*7)]
+    [TestCase(16*7, 16*8)]
+    [TestCase(16*8, 16*9)]
+    [TestCase(16*9, 16*10)]
+    [TestCase(16*10, 16*11)]
+    [TestCase(16*11, 16*12)]
+    [TestCase(16*12, 16*13)]
+    [TestCase(16*13, 16*14)]
+    [TestCase(16*14, 16*15)]
+    [TestCase(16*15, 16*16)]
+    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(int start, int stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+
+        var floatTable = new float[]
+        {
+            0, 0, 0,            // B=0, G=0, R=0
+            0, 0, .25f,         // B=1, G=0, R=0
+            
+            0, .5f, 0,          // B=0, G=1, R=0
+            0, .5f, .25f,       // B=1, G=1, R=0
+            
+            1, 0, 0,            // B=0, G=0, R=1
+            1, 0, .25f,         // B=1, G=0, R=1
+            
+            1, .5f, 0,          // B=0, G=1, R=1
+            1, .5f, .25f,       // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
+        Assert.That(p, Is.Not.Null);
+
+        MaxErr = 0.0;
+        Assert.Multiple(() =>
+        {
+            for (var r = start; r < stop; r++)
+            {
+                for (var g = 0; g < 0xFF; g++)
+                {
+                    for (var b = 0; b < 0xFF; b++)
+                    {
+                        var @in = new float[] { r / 255f, g / 255f , b / 255f };
+                        var @out = new float[3];
+
+                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        Assert.Multiple(() =>
+                        {
+                            ClearAssert();
+
+                            IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
+                            IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
+                            IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
+
+                            if (HasAssertions)
+                                WriteLineRed($"|Err|<{MaxErr}");
+                        });
+                    }
+                }
+
+                ProgressBar(start, stop, widthSubtract, r);
+            }
+        });
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+
+    [Explicit]
+    [TestCase(16 * 0, 16 * 1)]
+    [TestCase(16 * 1, 16 * 2)]
+    [TestCase(16 * 2, 16 * 3)]
+    [TestCase(16 * 3, 16 * 4)]
+    [TestCase(16 * 4, 16 * 5)]
+    [TestCase(16 * 5, 16 * 6)]
+    [TestCase(16 * 6, 16 * 7)]
+    [TestCase(16 * 7, 16 * 8)]
+    [TestCase(16 * 8, 16 * 9)]
+    [TestCase(16 * 9, 16 * 10)]
+    [TestCase(16 * 10, 16 * 11)]
+    [TestCase(16 * 11, 16 * 12)]
+    [TestCase(16 * 12, 16 * 13)]
+    [TestCase(16 * 13, 16 * 14)]
+    [TestCase(16 * 14, 16 * 15)]
+    [TestCase(16 * 15, 16 * 16)]
+    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(int start, int stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+
+        var floatTable = new float[]
+        {
+            0, 0, 0,            // B=0, G=0, R=0
+            0, 0, .25f,         // B=1, G=0, R=0
+            
+            0, .5f, 0,          // B=0, G=1, R=0
+            0, .5f, .25f,       // B=1, G=1, R=0
+            
+            1, 0, 0,            // B=0, G=0, R=1
+            1, 0, .25f,         // B=1, G=0, R=1
+            
+            1, .5f, 0,          // B=0, G=1, R=1
+            1, .5f, .25f,       // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float|LerpFlag.Trilinear);
+        Assert.That(p, Is.Not.Null);
+
+        MaxErr = 0.0;
+        Assert.Multiple(() =>
+        {
+            for (var r = start; r < stop; r++)
+            {
+                for (var g = 0; g < 0xFF; g++)
+                {
+                    for (var b = 0; b < 0xFF; b++)
+                    {
+                        var @in = new float[] { r / 255f, g / 255f , b / 255f };
+                        var @out = new float[3];
+
+                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        Assert.Multiple(() =>
+                        {
+                            ClearAssert();
+
+                            IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
+                            IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
+                            IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
+
+                            if (HasAssertions)
+                                WriteLineRed($"|Err|<{MaxErr}");
+                        });
+                    }
+                }
+
+                ProgressBar(start, stop, widthSubtract, r);
+            }
+        });
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+
+    [Explicit]
+    [TestCase(16 * 0, 16 * 1)]
+    [TestCase(16 * 1, 16 * 2)]
+    [TestCase(16 * 2, 16 * 3)]
+    [TestCase(16 * 3, 16 * 4)]
+    [TestCase(16 * 4, 16 * 5)]
+    [TestCase(16 * 5, 16 * 6)]
+    [TestCase(16 * 6, 16 * 7)]
+    [TestCase(16 * 7, 16 * 8)]
+    [TestCase(16 * 8, 16 * 9)]
+    [TestCase(16 * 9, 16 * 10)]
+    [TestCase(16 * 10, 16 * 11)]
+    [TestCase(16 * 11, 16 * 12)]
+    [TestCase(16 * 12, 16 * 13)]
+    [TestCase(16 * 13, 16 * 14)]
+    [TestCase(16 * 14, 16 * 15)]
+    [TestCase(16 * 15, 16 * 16)]
+    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(int start, int stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
+        Assert.That(p, Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            for (var r = start; r < stop; r++)
+            {
+                for (var g = 0; g < 0xFF; g++)
+                {
+                    for (var b = 0; b < 0xFF; b++)
+                    {
+                        var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                        var @out = new ushort[3];
+
+                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        Assert.Multiple(() =>
+                        {
+                            ClearAssert();
+
+                            IsGoodWord("Channel 1", @out[0], @in[0]);
+                            IsGoodWord("Channel 2", @out[1], @in[1]);
+                            IsGoodWord("Channel 2", @out[2], @in[2]);
+                        });
+                    }
+                }
+
+                ProgressBar(start, stop, widthSubtract, r);
+            }
+        });
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+
+    [Explicit]
+    [TestCase(16 * 0, 16 * 1)]
+    [TestCase(16 * 1, 16 * 2)]
+    [TestCase(16 * 2, 16 * 3)]
+    [TestCase(16 * 3, 16 * 4)]
+    [TestCase(16 * 4, 16 * 5)]
+    [TestCase(16 * 5, 16 * 6)]
+    [TestCase(16 * 6, 16 * 7)]
+    [TestCase(16 * 7, 16 * 8)]
+    [TestCase(16 * 8, 16 * 9)]
+    [TestCase(16 * 9, 16 * 10)]
+    [TestCase(16 * 10, 16 * 11)]
+    [TestCase(16 * 11, 16 * 12)]
+    [TestCase(16 * 12, 16 * 13)]
+    [TestCase(16 * 13, 16 * 14)]
+    [TestCase(16 * 14, 16 * 15)]
+    [TestCase(16 * 15, 16 * 16)]
+    public void ExhaustiveCheck3DInterpolation16TrilinearTest(int start, int stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
+        Assert.That(p, Is.Not.Null);
+
+        Assert.Multiple(() =>
+        {
+            for (var r = start; r < stop; r++)
+            {
+                for (var g = 0; g < 0xFF; g++)
+                {
+                    for (var b = 0; b < 0xFF; b++)
+                    {
+                        var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                        var @out = new ushort[3];
+
+                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        Assert.Multiple(() =>
+                        {
+                            ClearAssert();
+
+                            IsGoodWord("Channel 1", @out[0], @in[0]);
+                            IsGoodWord("Channel 2", @out[1], @in[1]);
+                            IsGoodWord("Channel 2", @out[2], @in[2]);
+                        });
+                    }
+                }
+
+                ProgressBar(start, stop, widthSubtract, r);
+            }
+        });
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+}

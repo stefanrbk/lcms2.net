@@ -1,17 +1,17 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 using static lcms2.Helpers;
 
 namespace lcms2.types.type_handlers;
-public class TextDescriptionHandler : TagTypeHandler
-{
-    public TextDescriptionHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public TextDescriptionHandler(Context? context = null)
-        : this(default, context) { }
+public class TextDescriptionHandler: TagTypeHandler
+{
+    public TextDescriptionHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public TextDescriptionHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((Mlu)value).Clone();
@@ -34,7 +34,7 @@ public class TextDescriptionHandler : TagTypeHandler
         if (sizeOfTag < asciiCount) return null;
 
         // All seems Ok, create the container
-        Mlu mlu = new(Context);
+        Mlu mlu = new(StateContainer);
 
         // As many memory as size of tag
         var text = new byte[asciiCount + 1];
@@ -47,7 +47,7 @@ public class TextDescriptionHandler : TagTypeHandler
         text[asciiCount] = 0;
 
         // Set the MLU entry. From here we can be tolerant to wrong types
-        if (!mlu.SetAscii(Mlu.NoLanguage, Mlu.NoCountry, text)) goto Error;
+        if (!mlu.SetAscii(Mlu.noLanguage, Mlu.noCountry, text)) goto Error;
         text = null;
 
         // Skip Unicode code
@@ -63,11 +63,11 @@ public class TextDescriptionHandler : TagTypeHandler
             if (io.Read(dummy, 0, sizeof(ushort)) != sizeof(ushort)) goto Done;
         sizeOfTag -= (int)unicodeCount * sizeof(ushort);
 
-        // Skip ScriptCode code if present. Some buggy profiles does nave less
-        // data that is strictly required. We need to skip it as this type may come
-        // embedded in other types.
+        // Skip ScriptCode code if present. Some buggy profiles does nave less data that is strictly
+        // required. We need to skip it as this type may come embedded in other types.
 
-        if (sizeOfTag >= sizeof(ushort) + sizeof(byte) + 67) {
+        if (sizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
+        {
             if (!io.ReadUInt16Number(out _)) goto Done;
             if (!io.ReadUInt8Number(out _)) goto Done;
 
@@ -96,7 +96,7 @@ public class TextDescriptionHandler : TagTypeHandler
         byte[]? nullArray = null;
 
         // Get the len of string
-        var len = mlu.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref nullArray);
+        var len = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref nullArray);
 
         // Specification ICC.1:2001-04 (v2.4.0): It has been found that textDescriptionType can contain misaligned data
         //(see clause 4.1 for the definition of 'aligned'). Because the Unicode language
@@ -107,22 +107,24 @@ public class TextDescriptionHandler : TagTypeHandler
         // problems.
         //
         // The above last sentence suggest to handle alignment issues in the
-        // parser. The provided example (Table 69 on Page 60) makes this clear. 
+        // parser. The provided example (Table 69 on Page 60) makes this clear.
         // The padding only in the ASCII count is not sufficient for a aligned tag
         // size, with the same text size in ASCII and Unicode.
 
         // Null strings
-        if (len <= 0) {
+        if (len <= 0)
+        {
             text = new byte[1];
             wide = new char[1];
-        } else {
+        } else
+        {
             // Create independent buffers
             text = new byte[len];
             wide = new char[len];
 
             // Get both representations
-            mlu.GetAscii(Mlu.NoLanguage, Mlu.NoCountry, ref text);
-            mlu.GetUtf16(Mlu.NoLanguage, Mlu.NoCountry, ref wide);
+            mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref text);
+            mlu.GetUtf16(Mlu.noLanguage, Mlu.noCountry, ref wide);
         }
 
         // Tell the real text len including the null terminator and padding
@@ -131,14 +133,14 @@ public class TextDescriptionHandler : TagTypeHandler
         var lenTagRequirement = 8 + 4 + lenText + 4 + 4 + (2 * lenText) + 2 + 1 + 67;
         var lenAligned = (uint)AlignLong(lenTagRequirement);
 
-        // * uint          count;          * Description length
-        // * sbyte         desc[count]     * NULL terminated ascii string
-        // * uint          ucLangCode;     * UniCode language code
-        // * uint          ucCount;        * UniCode description length
-        // * short         ucDesc[ucCount];* The UniCode description
-        // * ushort        scCode;         * ScriptCode code
-        // * byte          scCount;        * ScriptCode count
-        // * sbyte         scDesc[67];     * ScriptCode Description
+        // * uint count; * Description length
+        // * sbyte desc[count] * NULL terminated ascii string
+        // * uint ucLangCode; * UniCode language code
+        // * uint ucCount; * UniCode description length
+        // * short ucDesc[ucCount];* The UniCode description
+        // * ushort scCode; * ScriptCode code
+        // * byte scCount; * ScriptCode count
+        // * sbyte scDesc[67]; * ScriptCode Description
 
         if (!io.Write(lenText)) goto Error;
         // BUG? lenText might be longer than text.Length

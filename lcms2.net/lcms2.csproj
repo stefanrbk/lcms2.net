@@ -5,7 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Configurations>Debug;Release</Configurations>
+    <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">
+    <Optimize>True</Optimize>
+    <DefineConstants>$(DefineConstants)TRACE;DONT_USE_FAST_FLOOR</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (No Fast Floor)|AnyCPU'">
+    <DefineConstants>$(DefineConstants)TRACE;DONT_USE_FAST_FLOOR</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,9 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\CodeGen\CodeGen.csproj"
-                        OutputItemType="Analyzer"
-                        ReferenceOutputAssembly="false" />
+      <ProjectReference Include="..\CodeGen\CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

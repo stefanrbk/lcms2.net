@@ -2,13 +2,14 @@
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class CrdInfoHandler : TagTypeHandler
-{
-    public CrdInfoHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public CrdInfoHandler(Context? context = null)
-        : base(default, context, 0) { }
+public class CrdInfoHandler: TagTypeHandler
+{
+    public CrdInfoHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public CrdInfoHandler(object? state = null)
+        : base(default, state, 0) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Mlu)?.Clone();
@@ -18,7 +19,7 @@ public class CrdInfoHandler : TagTypeHandler
 
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
-        Mlu mlu = new(Context);
+        Mlu mlu = new(StateContainer);
 
         numItems = 0;
 

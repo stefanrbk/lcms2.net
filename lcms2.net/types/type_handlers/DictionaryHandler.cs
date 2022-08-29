@@ -3,13 +3,14 @@ using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class DictionaryHandler : TagTypeHandler
-{
-    public DictionaryHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public DictionaryHandler(Context? context = null)
-        : this(default, context) { }
+public class DictionaryHandler: TagTypeHandler
+{
+    public DictionaryHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public DictionaryHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Dictionary)?.Clone();
@@ -40,23 +41,24 @@ public class DictionaryHandler : TagTypeHandler
         if (!io.ReadUInt32Number(out var length)) goto Error;
 
         // Check for valid lengths
-        if (length is not 16 and not 24 and not 32) {
-            Context.SignalError(Context, ErrorCode.UnknownExtension, "Unknown record length in dictionary '{0}'", length);
+        if (length is not 16 and not 24 and not 32)
+        {
+            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown record length in dictionary '{0}'", length);
             goto Error;
         }
 
         // Creates an empty dictionary
-        hDict = new Dictionary(Context);
+        hDict = new Dictionary(StateContainer);
 
         // Depending on record size, create column arrays
-        a = new DicArray(Context, count, length);
+        a = new DicArray(StateContainer, count, length);
 
         // Read column arrays
         if (a.ReadOffset(io, count, length, baseOffset, ref sizeOfTag)) goto Error;
 
         // Seek to each element and read it
-        for (var i = 0u; i < count; i++) {
-
+        for (var i = 0u; i < count; i++)
+        {
             if (!a.Name.ReadOneChar(io, i, out var nameStr)) goto Error;
             if (!a.Name.ReadOneChar(io, i, out var valueStr)) goto Error;
 
@@ -70,10 +72,12 @@ public class DictionaryHandler : TagTypeHandler
 
                 goto Error;
 
-            if (String.IsNullOrEmpty(nameStr) || String.IsNullOrEmpty(valueStr)) {
-                Context.SignalError(Context, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
+            if (String.IsNullOrEmpty(nameStr) || String.IsNullOrEmpty(valueStr))
+            {
+                State.SignalError(StateContainer, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
                 rc = false;
-            } else {
+            } else
+            {
                 hDict.AddEntry(nameStr, valueStr, dispNameMlu, dispValueMlu);
                 rc = true;
             }
@@ -103,8 +107,8 @@ public class DictionaryHandler : TagTypeHandler
         var count = 0u;
         var anyName = false;
         var anyValue = false;
-        for (p = dict.Head; p is not null; p = p.Next) {
-
+        for (p = dict.Head; p is not null; p = p.Next)
+        {
             if (p.DisplayName is not null) anyName = true;
             if (p.DisplayValue is not null) anyValue = true;
             count++;
@@ -121,15 +125,15 @@ public class DictionaryHandler : TagTypeHandler
         var dirPos = (uint)io.Tell();
 
         // Allocate offsets array
-        var a = new DicArray(Context, count, length);
+        var a = new DicArray(StateContainer, count, length);
 
         // Write a fake directory to be filled later on
         if (!a.WriteOffset(io, count, length)) return false;
 
         // Write each element. Keep track of the size as well.
         p = dict.Head;
-        for (var i = 0u; i < count; i++) {
-
+        for (var i = 0u; i < count; i++)
+        {
             if (p is null) return false;
 
             if (!a.Name.WriteOneChar(io, i, p.Name, baseOffset)) return false;
@@ -155,117 +159,12 @@ public class DictionaryHandler : TagTypeHandler
         return true;
     }
 
-    internal struct DicElem
-    {
-        public Context? Context;
-        public uint[] Offsets;
-        public uint[] Sizes;
-
-        public DicElem(Context? context, uint count)
-        {
-            Offsets = new uint[count];
-            Sizes = new uint[count];
-            Context = context;
-        }
-
-        public bool ReadOneElem(Stream io, uint index, uint baseOffset)
-        {
-            if (!io.ReadUInt32Number(out Offsets[index])) return false;
-            if (!io.ReadUInt32Number(out Sizes[index])) return false;
-
-            // An offset of zero has special meaning and shall be preserved
-            if (Offsets[index] > 0)
-                Offsets[index] += baseOffset;
-
-            return true;
-        }
-
-        public bool WriteOneElem(Stream io, uint index)
-        {
-            if (!io.Write(Offsets[index])) return false;
-            if (!io.Write(Sizes[index])) return false;
-
-            return true;
-        }
-
-        public bool ReadOneChar(Stream io, uint index, out string? str)
-        {
-            str = null;
-
-            // Special case for undefined strings (see ICC Votable
-            // Proposal Submission, Dictionary Type and Metadata TAG Definition)
-            if (Offsets[index] == 0)
-                return true;
-
-            if (io.Seek(Offsets[index], SeekOrigin.Begin) != Offsets[index]) return false;
-
-            var numChars = Sizes[index] / sizeof(char);
-
-            if (!io.ReadCharArray((int)numChars, out var chars)) return false;
-
-            str = new string(chars);
-            return true;
-        }
-
-        public bool WriteOneChar(Stream io, uint index, string str, uint baseOffset)
-        {
-            var before = (uint)io.Tell();
-
-            Offsets[index] = before - baseOffset;
-
-            if (String.IsNullOrEmpty(str)) {
-                Sizes[index] = 0;
-                Offsets[index] = 0;
-                return true;
-            }
-
-            var n = str.Length;
-            if (!io.Write(str.ToCharArray())) return false;
-
-            Sizes[index] = (uint)io.Tell() - before;
-            return true;
-        }
-
-        public bool ReadOneMluC(TagTypeHandler handler, Stream io, uint index, out Mlu? mlu)
-        {
-            mlu = null;
-
-            // A way to get null MLUCs
-            if (Offsets[index] == 0 || Sizes[index] == 0)
-                return true;
-
-            if (io.Seek(Offsets[index], SeekOrigin.Begin) != Offsets[index]) return false;
-
-            mlu = (Mlu?)handler.Read(io, (int)Sizes[index], out _);
-            return mlu is not null;
-        }
-
-        public bool WriteOneMluC(TagTypeHandler handler, Stream io, uint index, in Mlu? mlu, uint baseOffset)
-        {
-            // Special case for undefined strings (see ICC Votable
-            // Proposal Submission, Dictionary Type and Metadata TAG Definition)
-            if (mlu is null) {
-                Sizes[index] = 0;
-                Offsets[index] = 0;
-                return true;
-            }
-
-            var before = (uint)io.Tell();
-            Offsets[index] = before - baseOffset;
-
-            if (!handler.Write(io, mlu, 1)) return false;
-
-            Sizes[index] = (uint)io.Tell() - before;
-            return true;
-        }
-    }
-
     internal struct DicArray
     {
-        public DicElem Name, Value;
         public DicElem? DisplayName, DisplayValue;
+        public DicElem Name, Value;
 
-        public DicArray(Context? context, uint count, uint length)
+        public DicArray(object? context, uint count, uint length)
         {
             Name = new DicElem(context, count);
             Value = new DicElem(context, count);
@@ -284,24 +183,24 @@ public class DictionaryHandler : TagTypeHandler
             var signedSizeOfTag = signedSizeOfTagPtr;
 
             // Read column arrays
-            for (var i = 0u; i < count; i++) {
-
+            for (var i = 0u; i < count; i++)
+            {
                 if (signedSizeOfTag < 4 * sizeof(uint)) return false;
                 signedSizeOfTag -= 4 * sizeof(uint);
 
                 if (!Name.ReadOneElem(io, i, baseOffset)) return false;
                 if (!Value.ReadOneElem(io, i, baseOffset)) return false;
 
-                if (length > 16) {
-
+                if (length > 16)
+                {
                     if (signedSizeOfTag < 2 * sizeof(uint)) return false;
                     signedSizeOfTag -= 2 * sizeof(uint);
 
                     if (!DisplayName!.Value.ReadOneElem(io, i, baseOffset)) return false;
                 }
 
-                if (length > 24) {
-
+                if (length > 24)
+                {
                     if (signedSizeOfTag < 2 * sizeof(uint)) return false;
                     signedSizeOfTag -= 2 * sizeof(uint);
 
@@ -315,8 +214,8 @@ public class DictionaryHandler : TagTypeHandler
 
         public bool WriteOffset(Stream io, uint count, uint length)
         {
-            for (var i = 0u; i < count; i++) {
-
+            for (var i = 0u; i < count; i++)
+            {
                 if (!Name.WriteOneElem(io, i)) return false;
                 if (!Value.WriteOneElem(io, i)) return false;
 
@@ -331,6 +230,113 @@ public class DictionaryHandler : TagTypeHandler
                     return false;
             }
 
+            return true;
+        }
+    }
+
+    internal struct DicElem
+    {
+        public object? StateContainer;
+        public uint[] Offsets;
+        public uint[] Sizes;
+
+        public DicElem(object? state, uint count)
+        {
+            Offsets = new uint[count];
+            Sizes = new uint[count];
+            StateContainer = state;
+        }
+
+        public bool ReadOneChar(Stream io, uint index, out string? str)
+        {
+            str = null;
+
+            // Special case for undefined strings (see ICC Votable Proposal Submission, Dictionary
+            // Type and Metadata TAG Definition)
+            if (Offsets[index] == 0)
+                return true;
+
+            if (io.Seek(Offsets[index], SeekOrigin.Begin) != Offsets[index]) return false;
+
+            var numChars = Sizes[index] / sizeof(char);
+
+            if (!io.ReadCharArray((int)numChars, out var chars)) return false;
+
+            str = new string(chars);
+            return true;
+        }
+
+        public bool ReadOneElem(Stream io, uint index, uint baseOffset)
+        {
+            if (!io.ReadUInt32Number(out Offsets[index])) return false;
+            if (!io.ReadUInt32Number(out Sizes[index])) return false;
+
+            // An offset of zero has special meaning and shall be preserved
+            if (Offsets[index] > 0)
+                Offsets[index] += baseOffset;
+
+            return true;
+        }
+
+        public bool ReadOneMluC(TagTypeHandler handler, Stream io, uint index, out Mlu? mlu)
+        {
+            mlu = null;
+
+            // A way to get null MLUCs
+            if (Offsets[index] == 0 || Sizes[index] == 0)
+                return true;
+
+            if (io.Seek(Offsets[index], SeekOrigin.Begin) != Offsets[index]) return false;
+
+            mlu = (Mlu?)handler.Read(io, (int)Sizes[index], out _);
+            return mlu is not null;
+        }
+
+        public bool WriteOneChar(Stream io, uint index, string str, uint baseOffset)
+        {
+            var before = (uint)io.Tell();
+
+            Offsets[index] = before - baseOffset;
+
+            if (String.IsNullOrEmpty(str))
+            {
+                Sizes[index] = 0;
+                Offsets[index] = 0;
+                return true;
+            }
+
+            var n = str.Length;
+            if (!io.Write(str.ToCharArray())) return false;
+
+            Sizes[index] = (uint)io.Tell() - before;
+            return true;
+        }
+
+        public bool WriteOneElem(Stream io, uint index)
+        {
+            if (!io.Write(Offsets[index])) return false;
+            if (!io.Write(Sizes[index])) return false;
+
+            return true;
+        }
+
+        public bool WriteOneMluC(TagTypeHandler handler, Stream io, uint index, in Mlu? mlu, uint baseOffset)
+        {
+            // Special case for undefined strings (see ICC Votable Proposal Submission, Dictionary
+            // Type and Metadata TAG Definition)
+            if (mlu is null)
+            {
+                Sizes[index] = 0;
+                Offsets[index] = 0;
+                return true;
+            }
+
+            var before = (uint)io.Tell();
+            Offsets[index] = before - baseOffset;
+
+            if (!handler.Write(io, mlu, 1)) return false;
+
+            Sizes[index] = (uint)io.Tell() - before;
             return true;
         }
     }

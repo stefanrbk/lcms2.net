@@ -1,19 +1,18 @@
-﻿using System.IO.Pipes;
-
-using lcms2.io;
+﻿using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
 
 using static lcms2.Lcms2;
 
 namespace lcms2.types.type_handlers;
-public class NamedColorHandler : TagTypeHandler
-{
-    public NamedColorHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public NamedColorHandler(Context? context = null)
-        : this(default, context) { }
+public class NamedColorHandler: TagTypeHandler
+{
+    public NamedColorHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public NamedColorHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as NamedColorList)?.Clone();
@@ -32,19 +31,21 @@ public class NamedColorHandler : TagTypeHandler
         if (!io.ReadAsciiString(32, out var prefix)) return null;   // Prefix for each color name
         if (!io.ReadAsciiString(32, out var suffix)) return null;   // Suffix for each color name
 
-        var v = new NamedColorList(Context, count, prefix, suffix);
-        if (v is null) {
-            Context.SignalError(Context, ErrorCode.Range, "Too many named colors '{0}'", count);
+        var v = new NamedColorList(StateContainer, count, prefix, suffix);
+        if (v is null)
+        {
+            State.SignalError(StateContainer, ErrorCode.Range, "Too many named colors '{0}'", count);
             return null;
         }
 
-        if (numDeviceCoords > MaxChannels) {
-            Context.SignalError(Context, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
+        if (numDeviceCoords > MaxChannels)
+        {
+            State.SignalError(StateContainer, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
             goto Error;
         }
 
-        for (var i = 0; i < count; i++) {
-
+        for (var i = 0; i < count; i++)
+        {
             if (!io.ReadAsciiString(32, out var root)) goto Error;
 
             if (!io.ReadUInt16Array(3, out var pcs)) goto Error;
@@ -64,22 +65,22 @@ public class NamedColorHandler : TagTypeHandler
     {
         var namedColorList = (NamedColorList)value;
 
-        var numColors = namedColorList.NumColors;
+        var numColors = namedColorList.numColors;
 
         if (!io.Write((uint)0)) return false;
         if (!io.Write(numColors)) return false;
-        if (!io.Write(namedColorList.ColorantCount)) return false;
-        
-        if (!io.WriteAsciiString(namedColorList.Prefix, 32)) return false;
-        if (!io.WriteAsciiString(namedColorList.Suffix, 32)) return false;
+        if (!io.Write(namedColorList.colorantCount)) return false;
 
-        for (var i = 0; i < numColors; i++) {
+        if (!io.WriteAsciiString(namedColorList.prefix, 32)) return false;
+        if (!io.WriteAsciiString(namedColorList.suffix, 32)) return false;
 
+        for (var i = 0; i < numColors; i++)
+        {
             if (!namedColorList.Info((uint)i, out var root, out _, out _, out var pcs, out var colorant)) return false;
 
             if (!io.WriteAsciiString(root, 32)) return false;
             if (!io.Write(3, pcs)) return false;
-            if (!io.Write((int)namedColorList.ColorantCount, colorant)) return false;
+            if (!io.Write((int)namedColorList.colorantCount, colorant)) return false;
         }
 
         return true;

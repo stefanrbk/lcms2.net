@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 
 using Microsoft.CodeAnalysis;
 
@@ -21,8 +20,8 @@ public partial class InterpParams
     {{
         var lutTable = p.Table16;
 
-        var tmp1 = new ushort[MaxStageChannels];
-        var tmp2 = new ushort[MaxStageChannels];
+        var tmp1 = new ushort[maxStageChannels];
+        var tmp2 = new ushort[maxStageChannels];
 
         var fk = ToFixedDomain(input[0] * p.Domain[0]);
         var k0 = FixedToInt(fk);
@@ -32,7 +31,7 @@ public partial class InterpParams
         var k1 = p.Opta[{1}] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
         var t = lutTable[k0..];
-        var p1 = new InterpParams(p.Context, p.Flags, p.NumInputs, p.NumOutputs, t);
+        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 
         var inp = input[1..];
@@ -49,8 +48,8 @@ public partial class InterpParams
     private static void Eval{0}Inputs(in float[] input, ref float[] output, InterpParams p)
     {{
         var lutTable = p.TableFloat;
-        var tmp1 = new float[MaxStageChannels];
-        var tmp2 = new float[MaxStageChannels];
+        var tmp1 = new float[maxStageChannels];
+        var tmp2 = new float[maxStageChannels];
 
         var pk = fclamp(input[0]) * p.Domain[0];
         var k0 = QuickFloor(pk);
@@ -60,7 +59,7 @@ public partial class InterpParams
         var k1 = k0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
 
         var t = lutTable[k0..];
-        var p1 = new InterpParams(p.Context, p.Flags, p.NumInputs, p.NumOutputs, t);
+        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
 
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 

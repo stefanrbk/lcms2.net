@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace lcms2.types;
 
-namespace lcms2.types;
 public partial struct Signature
 {
     public static class CurveSegment

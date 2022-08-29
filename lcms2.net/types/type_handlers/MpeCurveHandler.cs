@@ -1,15 +1,15 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class MpeCurveHandler : TagTypeHandler
-{
-    public MpeCurveHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public MpeCurveHandler(Context? context = null)
-        : this(default, context) { }
+public class MpeCurveHandler: TagTypeHandler
+{
+    public MpeCurveHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public MpeCurveHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         (value as Stage)?.Clone();
@@ -17,7 +17,7 @@ public class MpeCurveHandler : TagTypeHandler
     public override void Free(object value) =>
         (value as Stage)?.Dispose();
 
-    public unsafe override object? Read(Stream io, int sizeOfTag, out int numItems)
+    public override unsafe object? Read(Stream io, int sizeOfTag, out int numItems)
     {
         numItems = 0;
 
@@ -31,7 +31,7 @@ public class MpeCurveHandler : TagTypeHandler
 
         object gammaTables = new ToneCurve[inputChans];
         var mpe = ReadPositionTable(io, inputChans, baseOffset, ref gammaTables, ReadMpeCurve)
-            ? Stage.AllocToneCurves(Context, inputChans, (ToneCurve[])gammaTables)
+            ? Stage.AllocToneCurves(StateContainer, inputChans, (ToneCurve[])gammaTables)
             : null;
 
         for (var i = 0; i < inputChans; i++)
@@ -41,17 +41,17 @@ public class MpeCurveHandler : TagTypeHandler
         return mpe;
     }
 
-    public unsafe override bool Write(Stream io, object value, int numItems)
+    public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var mpe = (Stage)value;
 
         var baseOffset = (uint)(io.Tell() - sizeof(TagBase));
 
         // Write the header. Since those are curves, input and output channels are the same
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
-        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
+        if (!io.Write((ushort)mpe.inputChannels)) return false;
 
-        if (!WritePositionTable(io, 0, mpe.InputChannels, baseOffset, ref mpe.Data, WriteMpeCurve)) return false;
+        if (!WritePositionTable(io, 0, mpe.inputChannels, baseOffset, ref mpe.data, WriteMpeCurve)) return false;
 
         return true;
     }

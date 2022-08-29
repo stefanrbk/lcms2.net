@@ -1,17 +1,19 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace lcms2;
+
 internal static class Helpers
 {
-    internal const float MinusInf = -1e22f;
-    internal const float PlusInf = 1e22f;
+    internal const float minusInf = -1e22f;
+    internal const float plusInf = 1e22f;
 
-    internal const ushort MaxNodesInCurve = 4097;
+    internal const ushort maxNodesInCurve = 4097;
 
-    internal const int MaxInputDimensions = 15;
-    internal const int MaxStageChannels = 128;
+    internal const int maxInputDimensions = 15;
+    internal const int maxStageChannels = 128;
 
-    internal const double DeterminantTolerance = 0.0001;
+    internal const double determinantTolerance = 0.0001;
 
     internal static uint Uipow(uint n, uint a, uint b)
     {
@@ -20,7 +22,8 @@ internal static class Helpers
         if (a == 0) return 0;
         if (n == 0) return 0;
 
-        for (; b > 0; b--) {
+        for (; b > 0; b--)
+        {
             rv *= a;
 
             // Check for overflow
@@ -37,11 +40,11 @@ internal static class Helpers
     internal static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
 
-    internal static Lazy<long> AlignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
+    internal static Lazy<long> alignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignMem(long x) =>
-        (x + (AlignPtr.Value - 1)) & ~(AlignPtr.Value - 1);
+        (x + (alignPtr.Value - 1)) & ~(alignPtr.Value - 1);
 
     internal static ushort From8to16(byte rgb) =>
         (ushort)((rgb << 8) | rgb);
@@ -70,17 +73,20 @@ internal static class Helpers
         (x + 0x8000) >> 16;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [ExcludeFromCodeCoverage]
     internal static int QuickFloor(double val)
     {
 #if DONT_USE_FAST_FLOOR
         return (int)Math.Floor(val);
 #else
         const double magic = 68719476736.0 * 1.5;
-        unsafe {
+        unsafe
+        {
             val += magic;
             if (BitConverter.IsLittleEndian)
                 return *(int*)&val >> 16; // take val, a double, and pretend the first half is an int and shift
-            else {
+            else
+            {
                 int* ptr = (int*)&val;
                 return *++ptr >> 16;
             }
@@ -103,4 +109,49 @@ internal static class Helpers
 
     internal static ushort QuantizeValue(double i, int maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
+
+    /// <summary>
+    ///     Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo15Fixed16</c> function.</remarks>
+    public static int DoubleToS15Fixed16(double value) =>
+        (int)Math.Floor((value * 65536.0) + 0.5);
+
+    /// <summary>
+    ///     Converts a double-precision floating-point number into a Q8.8 unsigned fixed-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cmsDoubleTo8Fixed8</c> function.</remarks>
+    public static ushort DoubleToU8Fixed8(double value) =>
+        (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
+
+    /// <summary>
+    ///     Converts a Q15.16 signed fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms15Fixed16toDouble</c> function.</remarks>
+    /// 
+    public static double S15Fixed16toDouble(int value)
+    {
+        var sign = value < 0 ? -1 : 1;
+        value = Math.Abs(value);
+
+        var whole = (ushort)((value >> 16) & 0xffff);
+        var fracPart = (ushort)(value & 0xffff);
+
+        var mid = fracPart / 65536.0;
+        var floater = whole + mid;
+
+        return sign * floater;
+    }
+
+    /// <summary>
+    ///     Converts a Q8.8 unsigned fixed-point number into a double-precision floating-point number.
+    /// </summary>
+    /// <remarks>Implements the <c>_cms8Fixed8toDouble</c> function.</remarks>
+    public static double U8Fixed8toDouble(ushort value)
+    {
+        var lsb = (byte)(value & 0xff);
+        var msb = (byte)((value >> 8) & 0xff);
+
+        return msb + (lsb / 256.0);
+    }
 }

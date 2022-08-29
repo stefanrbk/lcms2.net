@@ -4,7 +4,7 @@ using lcms2.types;
 namespace lcms2.plugins;
 
 /// <summary>
-/// The plugin representing an interpolation
+///     The plugin representing an interpolation
 /// </summary>
 /// <remarks>Implements the <c>cmsPluginInterpolation</c> struct.</remarks>
 public sealed class InterpolationPlugin
@@ -16,11 +16,12 @@ public sealed class InterpolationPlugin
         : base(magic, expectedVersion, type) =>
         InterpolatorsFactory = interpolatorsFactory;
 
-    internal static bool RegisterPlugin(Context? context, InterpolationPlugin? plugin)
+    internal static bool RegisterPlugin(object? state, InterpolationPlugin? plugin)
     {
-        var ptr = (InterpolationPluginChunk)Context.GetClientChunk(context, Chunks.InterpPlugin)!;
+        var ptr = State.GetInterpolationPlugin(state);
 
-        if (plugin is null) {
+        if (plugin is null)
+        {
             ptr.interpolators = null;
             return true;
         }
@@ -33,14 +34,10 @@ public sealed class InterpolationPlugin
 
 internal sealed class InterpolationPluginChunk
 {
+    internal static InterpolationPluginChunk global = new() { interpolators = null };
     internal InterpFnFactory? interpolators;
-
-    internal static void Alloc(ref Context ctx, in Context? src) =>
-        ctx.chunks[(int)Chunks.InterpPlugin] =
-            (InterpolationPluginChunk?)src?.chunks[(int)Chunks.InterpPlugin] ?? new InterpolationPluginChunk();
+    internal static InterpolationPluginChunk Default => new() { interpolators = null };
 
     private InterpolationPluginChunk()
     { }
-
-    internal static InterpolationPluginChunk global = new() { interpolators = null };
 }

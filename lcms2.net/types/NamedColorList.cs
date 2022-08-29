@@ -1,28 +1,29 @@
-﻿using lcms2.state;
+﻿namespace lcms2.types;
 
-namespace lcms2.types;
-public class NamedColorList : ICloneable, IDisposable
+public class NamedColorList: ICloneable, IDisposable
 {
-    internal uint NumColors;
-    internal uint ColorantCount;
+    internal uint colorantCount;
 
-    internal string Prefix;
-    internal string Suffix;
+    internal object? state;
 
-    internal List<NamedColor> List;
+    internal List<NamedColor> list;
 
-    internal Context? Context;
+    internal uint numColors;
 
-    public NamedColorList(Context? context, uint colorantCount, string prefix, string suffix)
+    internal string prefix;
+
+    internal string suffix;
+
+    public NamedColorList(object? state, uint colorantCount, string prefix, string suffix)
     {
-        Context = context;
-        NumColors = 0;
-        List = new List<NamedColor>();
+        this.state = state;
+        numColors = 0;
+        list = new List<NamedColor>();
 
-        Prefix = prefix;
-        Suffix = suffix;
+        this.prefix = prefix;
+        this.suffix = suffix;
 
-        ColorantCount = colorantCount;
+        this.colorantCount = colorantCount;
     }
 
     public bool Append(string name, ushort[] pcs, ushort[]? colorant)
@@ -30,22 +31,23 @@ public class NamedColorList : ICloneable, IDisposable
         throw new NotImplementedException();
     }
 
+    public object Clone() => throw new NotImplementedException();
+
+    public void Dispose() => throw new NotImplementedException();
+
     public bool Info(uint numColor, out string name, out string prefix, out string suffix, out ushort[] pcs, out ushort[] colorant)
     {
         name = prefix = suffix = String.Empty;
         pcs = colorant = Array.Empty<ushort>();
 
-        if (numColor >= NumColors) return false;
+        if (numColor >= numColors) return false;
 
-        name = List[(int)numColor].Name;
-        prefix = Prefix;
-        suffix = Suffix;
-        pcs = (ushort[])List[(int)numColor].PCS.Clone();
-        colorant = (ushort[])List[(int)numColor].DeviceColorant.Clone();
+        name = list[(int)numColor].name;
+        prefix = this.prefix;
+        suffix = this.suffix;
+        pcs = (ushort[])list[(int)numColor].pcs.Clone();
+        colorant = (ushort[])list[(int)numColor].deviceColorant.Clone();
 
         return true;
     }
-
-    public object Clone() => throw new NotImplementedException();
-    public void Dispose() => throw new NotImplementedException();
 }

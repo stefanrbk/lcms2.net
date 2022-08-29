@@ -6,18 +6,16 @@ namespace lcms2.plugins;
 /// <summary>
 ///     Pipelines, Multi Process Elements
 /// </summary>
-/// <remarks>
-///     Implements the <c>cmsPluginMultiProcessElement</c> struct.</remarks>
-public sealed class MultiProcessElementPlugin : Plugin
+/// <remarks>Implements the <c>cmsPluginMultiProcessElement</c> struct.</remarks>
+public sealed class MultiProcessElementPlugin: Plugin
 {
     public TagTypeHandler Handler;
 
     public MultiProcessElementPlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
-        : base(magic, expectedVersion, type)
-    {
-        Handler = handler;
-    }
+        : base(magic, expectedVersion, type) =>
 
-    internal static bool RegisterPlugin(Context? context, MultiProcessElementPlugin? plugin) =>
-        TagTypePluginChunk.MPE.RegisterPlugin(context, plugin);
+        Handler = handler;
+
+    internal static bool RegisterPlugin(object? state, MultiProcessElementPlugin? plugin) =>
+        TagTypePluginChunk.MPE.RegisterPlugin(state, plugin);
 }

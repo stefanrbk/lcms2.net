@@ -1,16 +1,17 @@
 ﻿using lcms2.state;
 
 namespace lcms2.types;
-public sealed class Dictionary : ICloneable, IDisposable
-{
-    public DictionaryEntry? Head { get; internal set; }
-    public Context? Context { get; internal set; }
 
-    public Dictionary(Context? context = null)
+public sealed class Dictionary: ICloneable, IDisposable
+{
+    public Dictionary(object? state = null)
     {
         Head = null;
-        Context = context;
+        StateContainer = state;
     }
+
+    public object? StateContainer { get; internal set; }
+    public DictionaryEntry? Head { get; internal set; }
 
     public void AddEntry(string name, string value, in Mlu? displayName, in Mlu? displayValue) =>
         Head = new DictionaryEntry(name, value)
@@ -22,5 +23,6 @@ public sealed class Dictionary : ICloneable, IDisposable
         };
 
     public object Clone() => throw new NotImplementedException();
+
     public void Dispose() => throw new NotImplementedException();
 }

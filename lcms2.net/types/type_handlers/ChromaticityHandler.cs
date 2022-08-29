@@ -1,20 +1,21 @@
 ﻿using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
-public class ChromaticityHandler : TagTypeHandler
-{
-    public ChromaticityHandler(Signature sig, Context? context = null)
-        : base(sig, context, 0) { }
 
-    public ChromaticityHandler(Context? context = null)
-        : this(default, context) { }
+public class ChromaticityHandler: TagTypeHandler
+{
+    public ChromaticityHandler(Signature sig, object? state = null)
+        : base(sig, state, 0) { }
+
+    public ChromaticityHandler(object? state = null)
+        : this(default, state) { }
 
     public override object? Duplicate(object value, int num) =>
         ((xyYTripple)value).Clone();
 
-    public override void Free(object value) { }
+    public override void Free(object value)
+    { }
 
     public override object? Read(Stream io, int sizeOfTag, out int numItems)
     {
@@ -24,7 +25,8 @@ public class ChromaticityHandler : TagTypeHandler
         if (!io.ReadUInt16Number(out var numChans)) return null;
 
         // Let's recover from a bug introduced in early versions of lcms1
-        if (numChans == 0 && sizeOfTag == 32) {
+        if (numChans == 0 && sizeOfTag == 32)
+        {
             if (!io.ReadUInt16Number(out _)) return null;
             if (!io.ReadUInt16Number(out numChans)) return null;
         }
@@ -52,14 +54,6 @@ public class ChromaticityHandler : TagTypeHandler
         return chrm;
     }
 
-    private static bool SaveOne(double x, double y, Stream io)
-    {
-        if (!io.Write(IOHandler.DoubleToS15Fixed16(x))) return false;
-        if (!io.Write(IOHandler.DoubleToS15Fixed16(y))) return false;
-
-        return true;
-    }
-
     public override bool Write(Stream io, object value, int numItems)
     {
         xyYTripple chrm = (xyYTripple)value;
@@ -70,6 +64,14 @@ public class ChromaticityHandler : TagTypeHandler
         if (!SaveOne(chrm.Red.x, chrm.Red.y, io)) return false;
         if (!SaveOne(chrm.Green.x, chrm.Green.y, io)) return false;
         if (!SaveOne(chrm.Blue.x, chrm.Blue.y, io)) return false;
+
+        return true;
+    }
+
+    private static bool SaveOne(double x, double y, Stream io)
+    {
+        if (!io.Write(DoubleToS15Fixed16(x))) return false;
+        if (!io.Write(DoubleToS15Fixed16(y))) return false;
 
         return true;
     }
