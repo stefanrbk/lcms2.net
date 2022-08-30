@@ -1,6 +1,4 @@
-﻿using lcms2.types.type_handlers;
-
-namespace lcms2.types;
+﻿namespace lcms2.types;
 
 /// <summary>
 ///     Pipeline evaluator (in 16 bits)
