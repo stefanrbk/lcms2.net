@@ -33,16 +33,16 @@ public class InterpolationTests: ITest
     // Down = Create decreasing tables
     // Reverse = Check reverse interpolation
     // max_err = max allowed error
-    [TestCase(2, false, 0)]
-    [TestCase(3, false, 1)]
-    [TestCase(4, false, 0)]
-    [TestCase(6, false, 0)]
-    [TestCase(18, false, 0)]
-    [TestCase(2, true, 0)]
-    [TestCase(3, true, 1)]
-    [TestCase(6, true, 0)]
-    [TestCase(18, true, 0)]
-    public void Check1DTest(int numNodesToCheck, bool down, int maxErr)
+    [TestCase(2u, false, 0)]
+    [TestCase(3u, false, 1)]
+    [TestCase(4u, false, 0)]
+    [TestCase(6u, false, 0)]
+    [TestCase(18u, false, 0)]
+    [TestCase(2u, true, 0)]
+    [TestCase(3u, true, 1)]
+    [TestCase(6u, true, 0)]
+    [TestCase(18u, true, 0)]
+    public void Check1DTest(uint numNodesToCheck, bool down, int maxErr)
     {
         var tab = new ushort[numNodesToCheck];
 
@@ -65,46 +65,46 @@ public class InterpolationTests: ITest
     }
 
     [Explicit("Exhaustive test")]
-    [TestCase(10, 256 * 1)]
-    [TestCase(256 * 1, 256 * 2)]
-    [TestCase(256 * 2, 256 * 3)]
-    [TestCase(256 * 3, 256 * 4)]
-    [TestCase(256 * 4, 256 * 5)]
-    [TestCase(256 * 5, 256 * 6)]
-    [TestCase(256 * 6, 256 * 7)]
-    [TestCase(256 * 7, 256 * 8)]
-    [TestCase(256 * 8, 256 * 9)]
-    [TestCase(256 * 9, 256 * 10)]
-    [TestCase(256 * 10, 256 * 11)]
-    [TestCase(256 * 11, 256 * 12)]
-    [TestCase(256 * 12, 256 * 13)]
-    [TestCase(256 * 13, 256 * 14)]
-    [TestCase(256 * 14, 256 * 15)]
-    [TestCase(256 * 15, 256 * 16)]
-    public void ExhaustiveCheck1DTest(int start, int stop) =>
+    [TestCase(10u, 256 * 1u)]
+    [TestCase(256 * 1u, 256 * 2u)]
+    [TestCase(256 * 2u, 256 * 3u)]
+    [TestCase(256 * 3u, 256 * 4u)]
+    [TestCase(256 * 4u, 256 * 5u)]
+    [TestCase(256 * 5u, 256 * 6u)]
+    [TestCase(256 * 6u, 256 * 7u)]
+    [TestCase(256 * 7u, 256 * 8u)]
+    [TestCase(256 * 8u, 256 * 9u)]
+    [TestCase(256 * 9u, 256 * 10u)]
+    [TestCase(256 * 10u, 256 * 11u)]
+    [TestCase(256 * 11u, 256 * 12u)]
+    [TestCase(256 * 12u, 256 * 13u)]
+    [TestCase(256 * 13u, 256 * 14u)]
+    [TestCase(256 * 14u, 256 * 15u)]
+    [TestCase(256 * 15u, 256 * 16u)]
+    public void ExhaustiveCheck1DTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, false, start, stop);
 
     [Explicit("Exhaustive test")]
-    [TestCase(10, 256 * 1)]
-    [TestCase(256 * 1, 256 * 2)]
-    [TestCase(256 * 2, 256 * 3)]
-    [TestCase(256 * 3, 256 * 4)]
-    [TestCase(256 * 4, 256 * 5)]
-    [TestCase(256 * 5, 256 * 6)]
-    [TestCase(256 * 6, 256 * 7)]
-    [TestCase(256 * 7, 256 * 8)]
-    [TestCase(256 * 8, 256 * 9)]
-    [TestCase(256 * 9, 256 * 10)]
-    [TestCase(256 * 10, 256 * 11)]
-    [TestCase(256 * 11, 256 * 12)]
-    [TestCase(256 * 12, 256 * 13)]
-    [TestCase(256 * 13, 256 * 14)]
-    [TestCase(256 * 14, 256 * 15)]
-    [TestCase(256 * 15, 256 * 16)]
-    public void ExhaustiveCheck1DDownTest(int start, int stop) =>
+    [TestCase(10u, 256 * 1u)]
+    [TestCase(256 * 1u, 256 * 2u)]
+    [TestCase(256 * 2u, 256 * 3u)]
+    [TestCase(256 * 3u, 256 * 4u)]
+    [TestCase(256 * 4u, 256 * 5u)]
+    [TestCase(256 * 5u, 256 * 6u)]
+    [TestCase(256 * 6u, 256 * 7u)]
+    [TestCase(256 * 7u, 256 * 8u)]
+    [TestCase(256 * 8u, 256 * 9u)]
+    [TestCase(256 * 9u, 256 * 10u)]
+    [TestCase(256 * 10u, 256 * 11u)]
+    [TestCase(256 * 11u, 256 * 12u)]
+    [TestCase(256 * 12u, 256 * 13u)]
+    [TestCase(256 * 13u, 256 * 14u)]
+    [TestCase(256 * 14u, 256 * 15u)]
+    [TestCase(256 * 15u, 256 * 16u)]
+    public void ExhaustiveCheck1DDownTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, true, start, stop);
 
-    private static void ExhaustiveCheck1D(Action<int, bool, int> fn, bool down, int start, int stop)
+    private static void ExhaustiveCheck1D(Action<uint, bool, int> fn, bool down, uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -136,7 +136,7 @@ public class InterpolationTests: ITest
     //            0xFFFF = 3 * 5 * 17 * 257
     //
     // I test tables of 2, 4, 6, and 18 points, that will be exact.
-    private static void BuildTable(int n, ref ushort[] tab, bool descending)
+    private static void BuildTable(uint n, ref ushort[] tab, bool descending)
     {
         for (var i = 0; i < n; i++)
         {
@@ -307,23 +307,23 @@ public class InterpolationTests: ITest
     }
 
     [Explicit]
-    [TestCase(16*0, 16*1)]
-    [TestCase(16*1, 16*2)]
-    [TestCase(16*2, 16*3)]
-    [TestCase(16*3, 16*4)]
-    [TestCase(16*4, 16*5)]
-    [TestCase(16*5, 16*6)]
-    [TestCase(16*6, 16*7)]
-    [TestCase(16*7, 16*8)]
-    [TestCase(16*8, 16*9)]
-    [TestCase(16*9, 16*10)]
-    [TestCase(16*10, 16*11)]
-    [TestCase(16*11, 16*12)]
-    [TestCase(16*12, 16*13)]
-    [TestCase(16*13, 16*14)]
-    [TestCase(16*14, 16*15)]
-    [TestCase(16*15, 16*16)]
-    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(int start, int stop)
+    [TestCase(16*0u, 16*1u)]
+    [TestCase(16*1u, 16*2u)]
+    [TestCase(16*2u, 16*3u)]
+    [TestCase(16*3u, 16*4u)]
+    [TestCase(16*4u, 16*5u)]
+    [TestCase(16*5u, 16*6u)]
+    [TestCase(16*6u, 16*7u)]
+    [TestCase(16*7u, 16*8u)]
+    [TestCase(16*8u, 16*9u)]
+    [TestCase(16*9u, 16*10u)]
+    [TestCase(16*10u, 16*11u)]
+    [TestCase(16*11u, 16*12u)]
+    [TestCase(16*12u, 16*13u)]
+    [TestCase(16*13u, 16*14u)]
+    [TestCase(16*14u, 16*15u)]
+    [TestCase(16*15u, 16*16u)]
+    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -388,23 +388,23 @@ public class InterpolationTests: ITest
     }
 
     [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(int start, int stop)
+    [TestCase(16 * 0u, 16 * 1u)]
+    [TestCase(16 * 1u, 16 * 2u)]
+    [TestCase(16 * 2u, 16 * 3u)]
+    [TestCase(16 * 3u, 16 * 4u)]
+    [TestCase(16 * 4u, 16 * 5u)]
+    [TestCase(16 * 5u, 16 * 6u)]
+    [TestCase(16 * 6u, 16 * 7u)]
+    [TestCase(16 * 7u, 16 * 8u)]
+    [TestCase(16 * 8u, 16 * 9u)]
+    [TestCase(16 * 9u, 16 * 10u)]
+    [TestCase(16 * 10u, 16 * 11u)]
+    [TestCase(16 * 11u, 16 * 12u)]
+    [TestCase(16 * 12u, 16 * 13u)]
+    [TestCase(16 * 13u, 16 * 14u)]
+    [TestCase(16 * 14u, 16 * 15u)]
+    [TestCase(16 * 15u, 16 * 16u)]
+    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -469,23 +469,23 @@ public class InterpolationTests: ITest
     }
 
     [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(int start, int stop)
+    [TestCase(16 * 0u, 16 * 1u)]
+    [TestCase(16 * 1u, 16 * 2u)]
+    [TestCase(16 * 2u, 16 * 3u)]
+    [TestCase(16 * 3u, 16 * 4u)]
+    [TestCase(16 * 4u, 16 * 5u)]
+    [TestCase(16 * 5u, 16 * 6u)]
+    [TestCase(16 * 6u, 16 * 7u)]
+    [TestCase(16 * 7u, 16 * 8u)]
+    [TestCase(16 * 8u, 16 * 9u)]
+    [TestCase(16 * 9u, 16 * 10u)]
+    [TestCase(16 * 10u, 16 * 11u)]
+    [TestCase(16 * 11u, 16 * 12u)]
+    [TestCase(16 * 12u, 16 * 13u)]
+    [TestCase(16 * 13u, 16 * 14u)]
+    [TestCase(16 * 14u, 16 * 15u)]
+    [TestCase(16 * 15u, 16 * 16u)]
+    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -546,23 +546,23 @@ public class InterpolationTests: ITest
     }
 
     [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolation16TrilinearTest(int start, int stop)
+    [TestCase(16 * 0u, 16 * 1u)]
+    [TestCase(16 * 1u, 16 * 2u)]
+    [TestCase(16 * 2u, 16 * 3u)]
+    [TestCase(16 * 3u, 16 * 4u)]
+    [TestCase(16 * 4u, 16 * 5u)]
+    [TestCase(16 * 5u, 16 * 6u)]
+    [TestCase(16 * 6u, 16 * 7u)]
+    [TestCase(16 * 7u, 16 * 8u)]
+    [TestCase(16 * 8u, 16 * 9u)]
+    [TestCase(16 * 9u, 16 * 10u)]
+    [TestCase(16 * 10u, 16 * 11u)]
+    [TestCase(16 * 11u, 16 * 12u)]
+    [TestCase(16 * 12u, 16 * 13u)]
+    [TestCase(16 * 13u, 16 * 14u)]
+    [TestCase(16 * 14u, 16 * 15u)]
+    [TestCase(16 * 15u, 16 * 16u)]
+    public void ExhaustiveCheck3DInterpolation16TrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
         {

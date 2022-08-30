@@ -10,8 +10,16 @@ internal static class Helpers
 
     internal const ushort maxNodesInCurve = 4097;
 
+    internal const int maxChannels = 16;
     internal const int maxInputDimensions = 15;
     internal const int maxStageChannels = 128;
+
+    internal const double maxEncodableXYZ = 1 + (32767.0 /32768.0);
+    internal const double minEncodableAb2 = -128.0;
+    internal const double maxEncodableAb2 = (65535.0 / 256.0) - 128.0;
+    internal const double minEncodableAb4 = -128.0;
+    internal const double maxEncodableAb4 = 127.0;
+
 
     internal const double determinantTolerance = 0.0001;
 
@@ -107,7 +115,7 @@ internal static class Helpers
             _ => QuickFloorWord(d),
         };
 
-    internal static ushort QuantizeValue(double i, int maxSamples) =>
+    internal static ushort QuantizeValue(double i, uint maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 
     /// <summary>
@@ -154,4 +162,31 @@ internal static class Helpers
 
         return msb + (lsb / 256.0);
     }
+    public static double F(double t)
+    {
+        const double limit = 24.0 / 116.0 * (24.0 / 116.0) * (24.0 / 116.0);
+
+        if (t is <= limit)
+            return (841.0 / 108.0 * t) + (16.0 / 116.0);
+
+        return Math.Pow(t, 1.0 / 3.0);
+    }
+    public static double F1(double t)
+    {
+        const double limit = 24.0 / 116.0;
+
+        if (t is <= limit)
+            return 108.0 / 841.0 * (t - (16.0 / 116.0));
+
+        return t * t * t;
+    }
+    public static void FromFloatTo16(in float[] @in, ushort[] @out) =>
+        @in.Select(i => QuickSaturateWord(i * 65535.0))
+           .ToArray()
+           .CopyTo(@out.AsSpan());
+
+    public static void From16ToFloat(in ushort[] @in, float[] @out) =>
+        @in.Select(i => i / 65535f)
+           .ToArray()
+           .CopyTo(@out.AsSpan());
 }

@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using lcms2.state;
 
 using static System.Math;
-using static lcms2.Helpers;
 
 namespace lcms2.types;
 
@@ -14,7 +13,7 @@ namespace lcms2.types;
 /// <remarks>Implements the <c>cmsParametricCurveEvaluator</c> typedef.</remarks>
 public delegate double ParametricCurveEvaluator(int type, in double[] @params, double r);
 
-public class ToneCurve: ICloneable, IDisposable
+public sealed class ToneCurve: ICloneable, IDisposable
 {
     internal static ParametricCurvesCollection defaultCurves = new(
         new (int Types, int Count)[]
@@ -122,8 +121,8 @@ public class ToneCurve: ICloneable, IDisposable
            NumSegments > 1;
 
     // 16 bit Table-based representation follows
-    public int NumEntries =>
-        table16.Length;
+    public uint NumEntries =>
+        (uint)table16.Length;
 
     public int ParametricType =>
            NumSegments == 1
@@ -165,11 +164,11 @@ public class ToneCurve: ICloneable, IDisposable
     public static ToneCurve? BuildSegmented(object? state, CurveSegment[] segments)
     {
         var numSegments = segments.Length;
-        var numGridPoints = 4096;
+        var numGridPoints = 4096u;
 
         // Optimization for identity curves.
         if (numSegments == 1 && segments[0].Type == 1)
-            numGridPoints = EntriesByGamma(segments[0].Params[0]);
+            numGridPoints = (uint)EntriesByGamma(segments[0].Params[0]);
 
         var g = Alloc(state, numGridPoints, numSegments, segments, null);
         if (g is null) return null;
@@ -189,10 +188,10 @@ public class ToneCurve: ICloneable, IDisposable
         return g;
     }
 
-    public static ToneCurve? BuildTabulated16(object? state, int numEntries, ushort[]? values) =>
+    public static ToneCurve? BuildTabulated16(object? state, uint numEntries, ushort[]? values) =>
            Alloc(state, numEntries, 0, null, values);
 
-    public static ToneCurve? BuildTabulatedFloat(object? state, int numEntries, float[] values)
+    public static ToneCurve? BuildTabulatedFloat(object? state, uint numEntries, float[] values)
     {
         var seg = new CurveSegment[3];
 
@@ -231,13 +230,13 @@ public class ToneCurve: ICloneable, IDisposable
         return BuildSegmented(state, seg);
     }
 
-    public static void DisposeTriple(ToneCurve[] curves)
+    public static void DisposeTriple(ToneCurve?[] curves)
     {
-        Debug.Assert(curves is not null && curves.Length == 3);
+        Debug.Assert(curves.Length == 3);
 
-        curves![0]?.Dispose();
-        curves![1]?.Dispose();
-        curves![2]?.Dispose();
+        curves[0]?.Dispose();
+        curves[1]?.Dispose();
+        curves[2]?.Dispose();
     }
 
     public object Clone() =>
@@ -318,7 +317,7 @@ public class ToneCurve: ICloneable, IDisposable
         return o[0];
     }
 
-    public ToneCurve? Join(object? state, ToneCurve Y, int numResultingPoints)
+    public ToneCurve? Join(object? state, ToneCurve Y, uint numResultingPoints)
     {
         var X = this;
         ToneCurve? result = null;
@@ -344,7 +343,7 @@ public class ToneCurve: ICloneable, IDisposable
         return result;
     }
 
-    public ToneCurve? Reverse(int numResultSamples)
+    public ToneCurve? Reverse(uint numResultSamples)
     {
         var a = 0.0;
         var b = 0.0;
@@ -436,7 +435,7 @@ public class ToneCurve: ICloneable, IDisposable
                             lambda = -lambda;
                         }
 
-                        if (Smooth2(w, y, z, (float)lambda, numItems))
+                        if (Smooth2(w, y, z, (float)lambda, (int)numItems))
                         {
                             // Do some reality checking...
 
@@ -489,7 +488,7 @@ public class ToneCurve: ICloneable, IDisposable
         return successStatus;
     }
 
-    internal static ToneCurve? Alloc(object? state, int numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
+    internal static ToneCurve? Alloc(object? state, uint numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
     {
         InterpParams? interp;
 

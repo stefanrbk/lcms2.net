@@ -19,7 +19,7 @@ public delegate void InterpFn16(in ushort[] input, ref ushort[] output, InterpPa
 ///     Interpolators factory
 /// </summary>
 /// <remarks>Implements the <c>cmsInterpFnFactory</c> typedef.</remarks>
-public delegate InterpFunction InterpFnFactory(int numInputChannels, int numOutputChannels, LerpFlag flags);
+public delegate InterpFunction InterpFnFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags);
 
 /// <summary>
 ///     Floating point forward interpolation. Full precision interpolation using floats. This is not
@@ -68,17 +68,17 @@ public partial class InterpParams
     /// <summary>
     ///     != 1 only in 3D interpolation
     /// </summary>
-    public int NumInputs;
+    public uint NumInputs;
 
     /// <summary>
     ///     != 1 only in 3D interpolation
     /// </summary>
-    public int NumOutputs;
+    public uint NumOutputs;
 
     /// <summary>
     ///     Valid on all kinds of tables
     /// </summary>
-    public int[] NumSamples = new int[MaxInputDimensions];
+    public uint[] NumSamples = new uint[MaxInputDimensions];
 
     /// <summary>
     ///     Optimization for 3D CLUT. This is the number of nodes premultiplied for each dimension.
@@ -92,7 +92,7 @@ public partial class InterpParams
     /// </summary>
     public object Table;
 
-    public InterpParams(object? state, LerpFlag flags, int numInputs, int numOutputs, object table)
+    public InterpParams(object? state, LerpFlag flags, uint numInputs, uint numOutputs, object table)
     {
         StateContainer = state;
         Flags = flags;
@@ -103,12 +103,32 @@ public partial class InterpParams
     }
 
     public ushort[] Table16 =>
-        (ushort[])Table;
+        (Flags & LerpFlag.Float) == 0
+            ?(ushort[])Table
+            : throw new InvalidOperationException();
 
     public float[] TableFloat =>
-               (float[])Table;
+        (Flags & LerpFlag.Float) != 0
+            ? (float[])Table
+            : throw new InvalidOperationException();
 
-    internal static InterpParams? Compute(object? state, in int[] numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    public void LerpFloat(in float[] input, ref float[] output)
+    {
+        if ((Flags & LerpFlag.Float) == 0)
+            Interpolation.LerpFloat(in input, ref output, this);
+        else
+            throw new InvalidOperationException();
+    }
+
+    public void Lerp16(in ushort[] input, ref ushort[] output)
+    {
+        if ((Flags & LerpFlag.Float) != 0)
+            Interpolation.Lerp16(in input, ref output, this);
+        else
+            throw new InvalidOperationException();
+    }
+
+    internal static InterpParams? Compute(object? state, in uint[] numSamples, uint inputChan, uint outputChan, object table, LerpFlag flags)
     {
         // Check for maximum inputs
         if (inputChan > MaxInputDimensions)
@@ -124,13 +144,13 @@ public partial class InterpParams
         for (var i = 0; i < inputChan; i++)
         {
             p.NumSamples[i] = numSamples[i];
-            p.Domain[i] = numSamples[i] - 1;
+            p.Domain[i] = (int)numSamples[i] - 1;
         }
 
         // Compute factors to apply to each component to index the grid array
-        p.Opta[0] = p.NumOutputs;
+        p.Opta[0] = (int)p.NumOutputs;
         for (var i = 1; i < inputChan; i++)
-            p.Opta[i] = p.Opta[i - 1] * numSamples[inputChan - i];
+            p.Opta[i] = (int)(p.Opta[i - 1] * numSamples[inputChan - i]);
 
         if (!p.SetInterpolationRoutine(state))
         {
@@ -142,9 +162,9 @@ public partial class InterpParams
         return p;
     }
 
-    internal static InterpParams? Compute(object? state, int numSamples, int inputChan, int outputChan, object table, LerpFlag flags)
+    internal static InterpParams? Compute(object? state, uint numSamples, uint inputChan, uint outputChan, object table, LerpFlag flags)
     {
-        var samples = new int[MaxInputDimensions];
+        var samples = new uint[MaxInputDimensions];
 
         for (var i = 0; i < MaxInputDimensions; i++)
             samples[i] = numSamples;
@@ -152,7 +172,7 @@ public partial class InterpParams
         return Compute(state, samples, inputChan, outputChan, table, flags);
     }
 
-    internal static InterpFunction DefaultInterpolatorsFactory(int numInputChannels, int numOutputChannels, LerpFlag flags)
+    internal static InterpFunction DefaultInterpolatorsFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags)
     {
         InterpFunction interpolation = default;
         var isFloat = (flags & LerpFlag.Float) != 0;

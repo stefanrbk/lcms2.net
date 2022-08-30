@@ -47,7 +47,7 @@ internal static class TagHandlers
         iccVersion switch
         {
             < 4.0 =>
-                ((Pipeline)data).saveAs8Bits
+                ((Pipeline)data).SaveAs8Bits
                     ? TagType.Lut8
                     : TagType.Lut16,
             _ =>
@@ -58,7 +58,7 @@ internal static class TagHandlers
         iccVersion switch
         {
             < 4.0 =>
-                ((Pipeline)data).saveAs8Bits
+                ((Pipeline)data).SaveAs8Bits
                     ? TagType.Lut8
                     : TagType.Lut16,
             _ =>

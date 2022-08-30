@@ -14,4 +14,20 @@ public struct XYZ: ICloneable
 
     public object Clone() =>
            new XYZ(X, Y, Z);
+
+    public Lab ToLab(XYZ? whitePoint = null)
+    {
+        if (whitePoint is null)
+            whitePoint = WhitePoint.D50XYZ;
+
+        var fx = F(X / whitePoint.Value.X);
+        var fy = F(Y / whitePoint.Value.Y);
+        var fz = F(Z / whitePoint.Value.Z);
+
+        var L = (116.0 * fx) - 16.0;
+        var a = 500.0 * (fx - fy);
+        var b = 200.0 * (fy - fz);
+
+        return (L, a, b);
+    }
 }

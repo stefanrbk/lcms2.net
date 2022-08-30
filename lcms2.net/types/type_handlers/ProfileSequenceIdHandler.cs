@@ -54,6 +54,6 @@ public class ProfileSequenceIdHandler: TagTypeHandler
         if (!io.Write(seq.SeqCount)) return false;
 
         // This is the position table and content
-        return WritePositionTable(io, 0, seq.SeqCount, (uint)baseOffset, ref value, WriteSequenceId);
+        return WritePositionTable(io, 0, (uint)seq.SeqCount, (uint)baseOffset, value, WriteSequenceId);
     }
 }

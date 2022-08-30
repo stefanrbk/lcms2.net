@@ -60,7 +60,7 @@ public abstract partial class TagTypeHandler
     /// </summary>
     /// <param name="io"><see cref="Stream"/> to write to</param>
     /// <returns>Whether the read operation was successful.</returns>
-    public bool WritePositionTable(Stream io, int sizeOfTag, int count, uint baseOffset, ref object cargo, PositionTableEntryFn elementFn)
+    public bool WritePositionTable(Stream io, int sizeOfTag, uint count, uint baseOffset, object cargo, PositionTableEntryFn elementFn)
     {
         // Create table
         var offsets = new uint[count];
@@ -208,15 +208,15 @@ public abstract partial class TagTypeHandler
 
     internal static bool WriteMatrix(Stream io, Stage mpe)
     {
-        var m = (Stage.MatrixData)mpe.data;
+        var m = (Stage.MatrixData)mpe.Data;
 
-        var num = mpe.inputChannels * mpe.outputChannels;
+        var num = mpe.InputChannels * mpe.OutputChannels;
 
         // Write the matrix
         for (var i = 0; i < num; i++)
             if (!io.Write(m.Double[i])) return false;
 
-        for (var i = 0; i < mpe.outputChannels; i++)
+        for (var i = 0; i < mpe.OutputChannels; i++)
             if (!io.Write(m.Offset?[i] ?? 0)) return false;
 
         return true;
@@ -297,17 +297,17 @@ public abstract partial class TagTypeHandler
 
     internal bool Read16bitTables(Stream io, ref Pipeline lut, uint numChannels, uint numEntries)
     {
-        var tables = new ToneCurve[Lcms2.MaxChannels];
+        var tables = new ToneCurve[maxChannels];
 
         // Maybe an empty table? (this is a lcms extension)
         if (numEntries == 0) return true;
 
         // Check for malicious profiles
-        if (numChannels is > Lcms2.MaxChannels || numEntries < 2) return false;
+        if (numChannels is > maxChannels || numEntries < 2) return false;
 
         for (var i = 0; i < numChannels; i++)
         {
-            var tab = ToneCurve.BuildTabulated16(StateContainer, (int)numEntries, null);
+            var tab = ToneCurve.BuildTabulated16(StateContainer, numEntries, null);
             if (tab is null) goto Error;
             tables[i] = tab;
 
@@ -334,9 +334,9 @@ public abstract partial class TagTypeHandler
 
     internal bool Read8bitTables(Stream io, ref Pipeline lut, uint numChannels)
     {
-        var tables = new ToneCurve[Lcms2.MaxChannels];
+        var tables = new ToneCurve[maxChannels];
 
-        if (numChannels is > Lcms2.MaxChannels or <= 0) return false;
+        if (numChannels is > maxChannels or <= 0) return false;
 
         var temp = new byte[256];
 
@@ -370,14 +370,14 @@ public abstract partial class TagTypeHandler
 
     internal Stage? ReadClut(Stream io, uint offset, uint inputChannels, uint outputChannels)
     {
-        var gridPoints8 = new byte[Lcms2.MaxChannels]; // Number of grid points in each dimension.
-        var gridPoints = new uint[Lcms2.MaxChannels];
+        var gridPoints8 = new byte[maxChannels]; // Number of grid points in each dimension.
+        var gridPoints = new uint[maxChannels];
         ushort[]? nullTab = null;
 
         if (io.Seek(offset, SeekOrigin.Begin) != offset) return null;
-        if (io.Read(gridPoints8, 0, Lcms2.MaxChannels) != Lcms2.MaxChannels) return null;
+        if (io.Read(gridPoints8, 0, maxChannels) != maxChannels) return null;
 
-        for (var i = 0; i < Lcms2.MaxChannels; i++)
+        for (var i = 0; i < maxChannels; i++)
         {
             if (gridPoints[i] == 1) return null; // Impossible value, 0 for not CLUT and at least 2 for anything else
             gridPoints[i] = gridPoints8[i];
@@ -389,10 +389,10 @@ public abstract partial class TagTypeHandler
         if (!io.ReadUInt8Number(out _)) return null;
         if (!io.ReadUInt8Number(out _)) return null;
 
-        var clut = Stage.AllocCLut16bitGranular(StateContainer, gridPoints, inputChannels, outputChannels, in nullTab);
-        if (clut is null || clut.data is null) return null;
+        var clut = Stage.AllocCLut16bit(StateContainer, gridPoints, inputChannels, outputChannels, in nullTab);
+        if (clut is null) return null;
 
-        var data = (Stage.CLutData)clut.data;
+        var data = (Stage.CLutData)clut.Data;
 
         // Precision can be 1 or 2 bytes
         switch (precision)
@@ -410,7 +410,7 @@ public abstract partial class TagTypeHandler
                 break;
 
             case 2:
-                if (!io.ReadUInt16Array(data.NumEntries, out data.Table.T))
+                if (!io.ReadUInt16Array((int)data.NumEntries, out data.Table.T))
                 {
                     clut.Dispose();
                     return null;
@@ -568,9 +568,9 @@ public abstract partial class TagTypeHandler
     internal Stage? ReadSetOfCurves(Stream io, uint offset, uint numCurves)
     {
         Stage? lin = null;
-        var curves = new ToneCurve?[Lcms2.MaxChannels];
+        var curves = new ToneCurve?[maxChannels];
 
-        if (numCurves > Lcms2.MaxChannels) return null;
+        if (numCurves > maxChannels) return null;
 
         if (io.Seek(offset, SeekOrigin.Begin) != offset) return null;
 
@@ -636,8 +636,8 @@ public abstract partial class TagTypeHandler
 
     internal bool WriteClut(Stream io, byte precision, Stage mpe)
     {
-        var gridPoints = new byte[Lcms2.MaxChannels]; // Number of grid points in each dimension.
-        var clut = (Stage.CLutData)mpe.data;
+        var gridPoints = new byte[maxChannels]; // Number of grid points in each dimension.
+        var clut = (Stage.CLutData)mpe.Data;
 
         if (clut.HasFloatValues)
         {
@@ -645,10 +645,10 @@ public abstract partial class TagTypeHandler
             return false;
         }
 
-        for (var i = 0; i < clut.Params[0].NumInputs; i++)
-            gridPoints[i] = (byte)clut.Params[0].NumSamples[i];
+        for (var i = 0; i < clut.Params.NumInputs; i++)
+            gridPoints[i] = (byte)clut.Params.NumSamples[i];
 
-        io.Write(gridPoints, 0, Lcms2.MaxChannels * sizeof(byte));
+        io.Write(gridPoints, 0, maxChannels * sizeof(byte));
 
         if (!io.Write(precision)) return false;
         if (!io.Write((byte)0)) return false;
@@ -667,7 +667,7 @@ public abstract partial class TagTypeHandler
 
             case 2:
 
-                if (!io.Write(clut.NumEntries, clut.Table.T)) return false;
+                if (!io.Write((int)clut.NumEntries, clut.Table.T)) return false;
 
                 break;
 
@@ -682,7 +682,7 @@ public abstract partial class TagTypeHandler
 
     internal bool WriteSetOfCurves(Stream io, Signature type, Stage mpe)
     {
-        var num = mpe.outputChannels;
+        var num = mpe.OutputChannels;
         var curves = mpe.CurveSet;
 
         for (var i = 0; i < num; i++)

@@ -122,12 +122,12 @@ public static class Utils
         }
     }
 
-    public static bool CheckInterp1D(Action<int, int> fn)
+    public static bool CheckInterp1D(Action<uint, uint> fn)
     {
         if (HasConsole)
             Console.Write("10 - 4096");
         var result = true;
-        for (int i = 0, j = 1; i < 16; i++, j++)
+        for (uint i = 0, j = 1; i < 16; i++, j++)
             if (!CheckSimpleTest(() => fn(i is 0 ? 10 : 256 * i, 256 * j)))
                 result = false;
         if (HasConsole)
@@ -135,12 +135,12 @@ public static class Utils
         return result;
     }
 
-    public static bool CheckInterp3D(Action<int, int> fn)
+    public static bool CheckInterp3D(Action<uint, uint> fn)
     {
         if (HasConsole)
             Console.Write("0 - 256");
         var result = true;
-        for (int i = 0, j = 1; i < 16; i++, j++)
+        for (uint i = 0, j = 1; i < 16; i++, j++)
             if (!CheckSimpleTest(() => fn(16 * i, 16 * j)))
                 result = false;
         if (HasConsole)
@@ -174,12 +174,12 @@ public static class Utils
     public static bool HasAssertions =>
         TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
 
-    public static void ProgressBar(int start, int stop, int widthSubtract, int j)
+    public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
     {
         if (!HasConsole) return;
 
         var width = Console.BufferWidth - widthSubtract;
-        var percent = (double)(j - start) / (stop - start);
+        var percent = (double)(i - start) / (stop - start);
         var filled = (int)Math.Round((double)percent * width);
         var empty = width - filled;
         Console.Write($"{new string(' ', 8)}{start} {new string('█', filled)}{new string('▓', empty)} {stop}\r");

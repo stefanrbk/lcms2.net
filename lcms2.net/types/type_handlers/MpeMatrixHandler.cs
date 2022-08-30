@@ -29,7 +29,7 @@ public class MpeMatrixHandler: TagTypeHandler
 
         // Input and output channels may be ANY (up to 0xFFFF), but we choose to limit to 16
         // channels for now
-        if (inputChans >= MaxChannels || outputChans >= MaxChannels) return null;
+        if (inputChans >= maxChannels || outputChans >= maxChannels) return null;
 
         var numElements = (uint)inputChans * outputChans;
 
@@ -57,17 +57,17 @@ public class MpeMatrixHandler: TagTypeHandler
     public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var mpe = (Stage)value;
-        var matrix = (Stage.MatrixData)mpe.data;
+        var matrix = (Stage.MatrixData)mpe.Data;
 
-        if (!io.Write((ushort)mpe.inputChannels)) return false;
-        if (!io.Write((ushort)mpe.outputChannels)) return false;
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.OutputChannels)) return false;
 
-        var numElements = mpe.inputChannels * mpe.outputChannels;
+        var numElements = mpe.InputChannels * mpe.OutputChannels;
 
         for (var i = 0; i < numElements; i++)
             if (!io.Write((float)matrix.Double[i])) return false;
 
-        for (var i = 0; i < mpe.outputChannels; i++)
+        for (var i = 0; i < mpe.OutputChannels; i++)
         {
             if (!io.Write((float)(matrix.Offset?[i] ?? 0.0f))) return false;
         }

@@ -30,7 +30,7 @@ public class UcrBgHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var countUcr)) return null;
         sizeOfTag -= sizeof(uint);
 
-        ucr = ToneCurve.BuildTabulated16(StateContainer, (int)countUcr, null);
+        ucr = ToneCurve.BuildTabulated16(StateContainer, countUcr, null);
         if (ucr is null) return null;
 
         if (sizeOfTag < (countUcr * sizeof(ushort))) goto Error;
@@ -43,7 +43,7 @@ public class UcrBgHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var countBg)) goto Error;
         sizeOfTag -= sizeof(uint);
 
-        bg = ToneCurve.BuildTabulated16(StateContainer, (int)countBg, null);
+        bg = ToneCurve.BuildTabulated16(StateContainer, countBg, null);
         if (bg is null) goto Error;
 
         if (sizeOfTag < (countBg * sizeof(ushort))) goto Error;
@@ -81,11 +81,11 @@ public class UcrBgHandler: TagTypeHandler
 
         // First curve is Under color removal
         if (!io.Write(value.Ucr.NumEntries)) return false;
-        if (!io.Write(value.Ucr.NumEntries, value.Ucr.table16)) return false;
+        if (!io.Write((int)value.Ucr.NumEntries, value.Ucr.table16)) return false;
 
         // Then black generation
         if (!io.Write(value.Bg.NumEntries)) return false;
-        if (!io.Write(value.Bg.NumEntries, value.Bg.table16)) return false;
+        if (!io.Write((int)value.Bg.NumEntries, value.Bg.table16)) return false;
 
         // Now comes the text. The length is specified by the tab size
         var textSize = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref nullBuffer);

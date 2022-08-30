@@ -35,8 +35,8 @@ public class LutB2AHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var offsetC)) return null;
         if (!io.ReadUInt32Number(out var offsetA)) return null;
 
-        if (inputChan is 0 or >= Lcms2.MaxChannels) return null;
-        if (outputChan is 0 or >= Lcms2.MaxChannels) return null;
+        if (inputChan is 0 or >= maxChannels) return null;
+        if (outputChan is 0 or >= maxChannels) return null;
 
         // Allocates an empty LUT
         var newLut = Pipeline.Alloc(StateContainer, inputChan, outputChan);
@@ -82,8 +82,8 @@ public class LutB2AHandler: TagTypeHandler
         }
 
         // Get input, output channels
-        var inputChan = lut.inputChannels;
-        var outputChan = lut.outputChannels;
+        var inputChan = lut.InputChannels;
+        var outputChan = lut.OutputChannels;
 
         // Write channel count
         if (!io.Write((byte)inputChan)) return false;
@@ -106,7 +106,7 @@ public class LutB2AHandler: TagTypeHandler
         if (clut is not null)
         {
             offsetClut = io.Tell() - baseOffset;
-            if (!WriteClut(io, lut.saveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
+            if (!WriteClut(io, lut.SaveAs8Bits ? (byte)1 : (byte)2, clut)) return false;
         }
 
         if (m is not null)

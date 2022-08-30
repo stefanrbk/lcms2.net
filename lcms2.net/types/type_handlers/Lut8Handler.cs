@@ -37,8 +37,8 @@ public class Lut8Handler: TagTypeHandler
         if (!io.ReadUInt8Number(out _)) goto Error;
 
         // Do some checking
-        if (inputChannels == 0 || inputChannels > Lcms2.MaxChannels) goto Error;
-        if (outputChannels == 0 || outputChannels > Lcms2.MaxChannels) goto Error;
+        if (inputChannels == 0 || inputChannels > maxChannels) goto Error;
+        if (outputChannels == 0 || outputChannels > maxChannels) goto Error;
 
         // Allocates an empty Pipeline
         newLut = Pipeline.Alloc(StateContainer, inputChannels, outputChannels);
@@ -100,32 +100,29 @@ public class Lut8Handler: TagTypeHandler
         var newLut = (Pipeline)value;
         var mpe = newLut.elements;
         if (mpe is null) return false;
-        if (mpe.type == Signature.Stage.MatrixElem)
+        if (mpe.Type == Signature.Stage.MatrixElem)
         {
-            if (mpe.inputChannels != 3 || mpe.outputChannels != 3 || mpe.data is null) return false;
-            matMpe = (Stage.MatrixData)mpe.data;
-            mpe = mpe.next;
+            if (mpe.InputChannels != 3 || mpe.OutputChannels != 3) return false;
+            matMpe = (Stage.MatrixData)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem)
         {
-            if (mpe.data is null) return false;
-            preMpe = (Stage.ToneCurveData)mpe.data;
-            mpe = mpe.next;
+            preMpe = (Stage.ToneCurveData)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CLutElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CLutElem)
         {
-            if (mpe.data is null) return false;
-            clut = (Stage.CLutData)mpe.data;
-            mpe = mpe.next;
+            clut = (Stage.CLutData)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem)
         {
-            if (mpe.data is null) return false;
-            postMpe = (Stage.ToneCurveData)mpe.data;
-            mpe = mpe.next;
+            postMpe = (Stage.ToneCurveData)mpe.Data;
+            mpe = mpe.Next;
         }
 
         // That should be all
@@ -135,10 +132,10 @@ public class Lut8Handler: TagTypeHandler
             return false;
         }
 
-        var clutPoints = (uint)(clut?.Params[0].NumSamples[0] ?? 0);
+        var clutPoints = clut?.Params.NumSamples[0] ?? 0;
 
-        if (!io.Write((byte)newLut.inputChannels)) return false;
-        if (!io.Write((byte)newLut.outputChannels)) return false;
+        if (!io.Write((byte)newLut.InputChannels)) return false;
+        if (!io.Write((byte)newLut.OutputChannels)) return false;
         if (!io.Write((byte)clutPoints)) return false;
         if (!io.Write((byte)0)) return false; // Padding
 
@@ -158,10 +155,10 @@ public class Lut8Handler: TagTypeHandler
         }
 
         // The prelinearization table
-        if (preMpe is not null && !Write8bitTables(io, newLut.inputChannels, ref preMpe))
+        if (preMpe is not null && !Write8bitTables(io, newLut.InputChannels, ref preMpe))
             return false;
 
-        var numTabSize = Uipow(newLut.outputChannels, clutPoints, newLut.inputChannels);
+        var numTabSize = Uipow(newLut.OutputChannels, clutPoints, newLut.InputChannels);
         if (numTabSize == unchecked((uint)-1)) return false;
         if (numTabSize > 0)
         {
@@ -175,6 +172,6 @@ public class Lut8Handler: TagTypeHandler
         }
 
         // The postlinearization table
-        return postMpe is not null && Write8bitTables(io, newLut.outputChannels, ref postMpe);
+        return postMpe is not null && Write8bitTables(io, newLut.OutputChannels, ref postMpe);
     }
 }

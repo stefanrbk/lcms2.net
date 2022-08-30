@@ -6,7 +6,6 @@ public delegate void FreeUserDataFn(object? state, ref object data);
 
 public static class Lcms2
 {
-    public const int MaxChannels = 16;
     public const int MaxPath = 256;
     public const int MaxTypesInPlugin = 20;
     public const int Version = 2131;

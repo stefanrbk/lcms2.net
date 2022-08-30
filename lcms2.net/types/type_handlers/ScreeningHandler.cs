@@ -27,8 +27,8 @@ public class ScreeningHandler: TagTypeHandler
         if (!io.ReadUInt32Number(out var count)) return null;
 
         Screening sc = new(flag, (int)count);
-        if (sc.NumChannels > MaxChannels - 1)
-            sc.NumChannels = MaxChannels - 1;
+        if (sc.NumChannels > maxChannels - 1)
+            sc.NumChannels = maxChannels - 1;
 
         for (var i = 0; i < sc.NumChannels; i++)
         {
