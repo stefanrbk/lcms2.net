@@ -85,6 +85,9 @@ if (doCheckTests)
         Check("Exhaustive 3D interpolation Trilinear (16)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolation16TrilinearTest));
     }
 
+    Check("Reverse interpolation 3 -> 3", () => CheckSimpleTest(interp.CheckReverseInterpolation3x3Test));
+    Check("Reverse interpolation 4 -> 3", () => CheckSimpleTest(interp.CheckReverseInterpolation4x3Test));
+
     interp.Teardown();
 }
 

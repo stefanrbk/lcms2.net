@@ -108,7 +108,7 @@ internal static class Helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ushort QuickSaturateWord(double d) =>
-        (d + 0.5) switch
+        (d += 0.5) switch
         {
             <= 0 => 0,
             >= 65535.0 => 0xFFFF,
@@ -181,12 +181,14 @@ internal static class Helpers
         return t * t * t;
     }
     public static void FromFloatTo16(in float[] @in, ushort[] @out) =>
-        @in.Select(i => QuickSaturateWord(i * 65535.0))
+        @in.Take(Math.Min(@in.Length, @out.Length))
+           .Select(i => QuickSaturateWord(i * 65535.0))
            .ToArray()
            .CopyTo(@out.AsSpan());
 
     public static void From16ToFloat(in ushort[] @in, float[] @out) =>
-        @in.Select(i => i / 65535f)
+        @in.Take(Math.Min(@in.Length, @out.Length))
+           .Select(i => i / 65535f)
            .ToArray()
            .CopyTo(@out.AsSpan());
 }

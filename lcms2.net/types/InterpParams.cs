@@ -114,7 +114,7 @@ public partial class InterpParams
 
     public void LerpFloat(in float[] input, ref float[] output)
     {
-        if ((Flags & LerpFlag.Float) == 0)
+        if ((Flags & LerpFlag.Float) != 0)
             Interpolation.LerpFloat(in input, ref output, this);
         else
             throw new InvalidOperationException();
@@ -122,7 +122,7 @@ public partial class InterpParams
 
     public void Lerp16(in ushort[] input, ref ushort[] output)
     {
-        if ((Flags & LerpFlag.Float) != 0)
+        if ((Flags & LerpFlag.Float) == 0)
             Interpolation.Lerp16(in input, ref output, this);
         else
             throw new InvalidOperationException();

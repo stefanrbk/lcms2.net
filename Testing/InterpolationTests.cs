@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-using lcms2.plugins;
+﻿using lcms2.plugins;
 using lcms2.state;
 using lcms2.types;
 
@@ -620,5 +618,149 @@ public class InterpolationTests: ITest
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+    }
+
+    [Test]
+    public void CheckReverseInterpolation3x3Test()
+    {
+        var target = new float[4];
+        var result = new float[4];
+        var hint = new float[4];
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var lut = Pipeline.Alloc(_state, 3, 3);
+        Assert.That(lut, Is.Not.Null);
+
+        var clut = Stage.AllocCLut16bit(_state, 2, 3, 3, table);
+        lut.InsertStage(StageLoc.AtBegin, clut);
+
+        lut.EvalReverse(target, result, null);
+        Assert.That(result.Take(3).ToArray(), Contains.Item(0), "Reverse interpolation didn't find zero");
+
+        // Transverse identity
+        var max = 0f;
+        for (var i = 0; i <= 100; i++)
+        {
+            var @in = i / 100f;
+
+            target[0] = @in; target[1] = 0; target[2] = 0;
+            lut.EvalReverse(target, result, hint);
+
+            var err = MathF.Abs(@in - result[0]);
+            if (err > max) max = err;
+
+            result.CopyTo(hint, 0);
+        }
+
+        lut.Dispose();
+        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
+    }
+
+    [Test]
+    public void CheckReverseInterpolation4x3Test()
+    {
+        var target = new float[4];
+        var result = new float[4];
+        var hint = new float[4];
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // 0 0 0 0 = ( 0, 0, 0)
+            0, 0, 0,                // 0 0 0 1 = ( 0, 0, 0)
+
+            0, 0, 0xFFFF,           // 0 0 1 0 = ( 0, 0, 1)
+            0, 0, 0xFFFF,           // 0 0 1 1 = ( 0, 0, 1)
+            
+            0, 0xFFFF, 0,           // 0 1 0 0 = ( 0, 1, 0)
+            0, 0xFFFF, 0,           // 0 1 0 1 = ( 0, 1, 0)
+
+            0, 0xFFFF, 0xFFFF,      // 0 1 1 0 = ( 0, 1, 1)
+            0, 0xFFFF, 0xFFFF,      // 0 1 1 1 = ( 0, 1, 1)
+            
+            0xFFFF, 0, 0,           // 1 0 0 0 = ( 1, 0, 0)
+            0xFFFF, 0, 0,           // 1 0 0 1 = ( 1, 0, 0)
+
+            0xFFFF, 0, 0xFFFF,      // 1 0 1 0 = ( 1, 0, 1)
+            0xFFFF, 0, 0xFFFF,      // 1 0 1 1 = ( 1, 0, 1)
+            
+            0xFFFF, 0xFFFF, 0,      // 1 1 0 0 = ( 1, 1, 0)
+            0xFFFF, 0xFFFF, 0,      // 1 1 0 1 = ( 1, 1, 0)
+
+            0xFFFF, 0xFFFF, 0xFFFF, // 1 1 1 0 = ( 1, 1, 1)
+            0xFFFF, 0xFFFF, 0xFFFF, // 1 1 1 1 = ( 1, 1, 1)
+        };
+
+        var lut = Pipeline.Alloc(_state, 4, 3);
+        Assert.That(lut, Is.Not.Null);
+
+        var clut = Stage.AllocCLut16bit(_state, 2, 4, 3, table);
+        lut.InsertStage(StageLoc.AtBegin, clut);
+
+        // Check if the LUT is behaving as expected
+        SubTest("4->3 feasibility");
+        for (var i = 0; i <= 100; i++)
+        {
+            target[0] = i / 100f;
+            target[1] = target[0];
+            target[2] = 0;
+            target[3] = 12;
+
+            lut.Eval(target, result);
+
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodFixed15_16("0", target[0], result[0]);
+                IsGoodFixed15_16("1", target[1], result[1]);
+                IsGoodFixed15_16("2", target[2], result[2]);
+            });
+        }
+
+        SubTest("4->3 zero");
+        target[0] = target[1] = target[2] = 0;
+
+        // This one holds the fixed k
+        target[3] = 0;
+
+        // This is our hint (which is a big lie in this case)
+        Enumerable.Repeat(0.1f, 3).ToArray().CopyTo(hint, 0);
+
+        lut.EvalReverse(target, result, hint);
+
+        Assert.That(result, Contains.Item(0), "Reverse interpolation didn't find zero");
+
+        SubTest("4->3 find CMY");
+
+        var max = 0f;
+        for (var i = 0; i <= 100; i++)
+        {
+            var @in = i / 100f;
+
+            target[0] = @in; target[1] = 0; target[2] = 0;
+            lut.EvalReverse(target, result, hint);
+
+            var err = MathF.Abs(@in - result[0]);
+            if (err > max) max = err;
+
+            result.CopyTo(hint, 0);
+        }
+
+        lut.Dispose();
+        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
     }
 }

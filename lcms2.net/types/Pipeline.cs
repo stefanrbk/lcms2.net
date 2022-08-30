@@ -381,7 +381,7 @@ public class Pipeline: ICloneable, IDisposable
             Eval(x, fx);
 
             // Compute error
-            var error = EuclideanDistance(fx, target, 3);
+            var error = (double)EuclideanDistance(fx, target, 3);
 
             // If not convergent, return last safe value
             if (error >= lastError) break;
@@ -405,9 +405,9 @@ public class Pipeline: ICloneable, IDisposable
 
                 Eval(xd, fxd);
 
-                jacobian.X[0] = (fxd[0] - fx[0]) / _jacobianEpsilon;
-                jacobian.X[1] = (fxd[1] - fx[1]) / _jacobianEpsilon;
-                jacobian.X[2] = (fxd[2] - fx[2]) / _jacobianEpsilon;
+                jacobian.X[j] = (fxd[0] - fx[0]) / _jacobianEpsilon;
+                jacobian.Y[j] = (fxd[1] - fx[1]) / _jacobianEpsilon;
+                jacobian.Z[j] = (fxd[2] - fx[2]) / _jacobianEpsilon;
             }
 
             // Solve system

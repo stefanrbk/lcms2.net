@@ -184,4 +184,13 @@ public static class Utils
         var empty = width - filled;
         Console.Write($"{new string(' ', 8)}{start} {new string('█', filled)}{new string('▓', empty)} {stop}\r");
     }
+
+    public static void Dot() =>
+        Console.Write(".");
+
+    public static void SubTest(string frm)
+    {
+        Dot();
+        subTest = frm;
+    }
 }
