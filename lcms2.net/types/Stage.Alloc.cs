@@ -317,10 +317,10 @@ public partial class Stage
     /// <param name="data">A generic pointer to whatever memory needed by the element</param>
     /// <remarks>Implements the <c>_cmsStageAllocPlaceholder</c> function.</remarks>
     public static Stage? Alloc(object? state,
-                                          Signature type,
-                                          uint inputChannels,
-                                          uint outputChannels,
-                                          StageData? data)
+                               Signature type,
+                               uint inputChannels,
+                               uint outputChannels,
+                               StageData? data)
     {
         if (inputChannels > maxStageChannels ||
             outputChannels > maxStageChannels)
