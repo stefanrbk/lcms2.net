@@ -48,6 +48,22 @@ public static class Utils
         it8.SaveToFile(filename);
     }
 
+    public static ConsoleKeyInfo? WaitForKey(int ms)
+    {
+        var cancel = new CancellationTokenSource(ms);
+        var token = cancel.Token;
+        var task = Task.Run(() => Console.ReadKey(true), token);
+        try
+        {
+            task.Wait(token);
+            var read = task.IsCompletedSuccessfully;
+            if (read) return task.Result;
+        } catch
+        {
+        }
+        return null;
+    }
+
     public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
         Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
 
@@ -82,7 +98,7 @@ public static class Utils
     public static void Check(string title, Func<bool> test)
     {
         if (HasConsole)
-            Console.Write("Checking {0} ... ", title);
+            Console.Write("\tChecking {0} ... ", title);
 
         simultaneousErrors = 0;
         totalTests++;
@@ -93,12 +109,12 @@ public static class Utils
             {
                 Console.Error.WriteLine("FAIL!");
                 if (!String.IsNullOrEmpty(subTest))
-                    Console.Error.WriteLine("{0}: [{1}]\n\t{2}", title, subTest, reasonToFail);
+                    Console.Error.WriteLine("{0}: [{1}]\n\t\t{2}", title, subTest, reasonToFail);
                 else
-                    Console.Error.WriteLine("{0}:\n\t{1}", title, reasonToFail);
+                    Console.Error.WriteLine("{0}:\n\t\t{1}", title, reasonToFail);
 
                 if (simultaneousErrors > 1)
-                    Console.Error.WriteLine("\tMore than one ({0}) errors were reported", simultaneousErrors);
+                    Console.Error.WriteLine("\t\tMore than one ({0}) errors were reported", simultaneousErrors);
 
                 totalFail++;
             });
@@ -158,14 +174,14 @@ public static class Utils
     {
         Console.ForegroundColor = ConsoleColor.Green;
         fn();
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
     }
 
     public static void WriteRed(Action fn)
     {
         Console.ForegroundColor = ConsoleColor.Red;
         fn();
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
     }
 
     public static void ClearAssert() =>

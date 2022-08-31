@@ -41,7 +41,7 @@ public enum LerpFlag
 ///     Used on all interpolations. Supplied by lcms2 when calling the interpolation function
 /// </summary>
 /// <remarks>Implements the <c>cmsInterpParams</c> struct.</remarks>
-public partial class InterpParams
+public partial class InterpParams: ICloneable
 {
     public const int MaxInputDimensions = 15;
 
@@ -1056,6 +1056,15 @@ public partial class InterpParams
             output[outChan] = lerp(rz, dxy0, dxy1);
         }
     }
+
+    public object Clone() =>
+        new InterpParams(StateContainer, Flags, NumInputs, NumOutputs, Table)
+        {
+            NumSamples = (uint[])NumSamples.Clone(),
+            Domain = (int[])Domain.Clone(),
+            Opta = (int[])Opta.Clone(),
+            Interpolation = Interpolation,
+        };
 }
 
 /// <summary>

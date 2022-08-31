@@ -31,6 +31,9 @@ public sealed partial class Stage: ICloneable, IDisposable
     internal ToneCurve[] CurveSet =>
         (Data as ToneCurveData)?.TheCurves ?? throw new InvalidOperationException();
 
+    internal CLutData CLut =>
+        (Data as CLutData) ?? throw new InvalidOperationException();
+
     public object Clone()
     {
         var result = AllocPlaceholder(

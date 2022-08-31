@@ -2,9 +2,9 @@
 
 namespace lcms2.types;
 
-public delegate bool Sampler16(in ushort[] @in, ushort[]? @out, in object cargo);
+public delegate bool Sampler16(in ushort[] @in, ushort[]? @out, in object? cargo);
 
-public delegate bool SamplerFloat(in float[] @in, float[]? @out, in object cargo);
+public delegate bool SamplerFloat(in float[] @in, float[]? @out, in object? cargo);
 
 public partial class Stage
 {
@@ -30,12 +30,12 @@ public partial class Stage
                 ? Table.TFloat
                 : throw new InvalidOperationException();
 
-        public bool Sample(Sampler16 sampler, in object cargo, SamplerFlags flags)
+        public bool Sample(Sampler16 sampler, in object? cargo, SamplerFlags flags)
         {
             if (HasFloatValues) return false;
 
             var @in = new ushort[maxInputDimensions + 1];
-            var @out = new ushort[maxInputDimensions];
+            var @out = new ushort[maxStageChannels];
 
             var numSamples = Params.NumSamples;
             var numInputs = Params.NumInputs;
@@ -54,17 +54,17 @@ public partial class Stage
             for (var i = 0; i < numTotalPoints; i++)
             {
                 var rest = i;
-                for (var t = numInputs - 1; t >= 0; --t)
+                for (var t = (int)numInputs - 1; t >= 0; --t)
                 {
                     var colorant = rest % numSamples[t];
 
-                    rest /= (int)numSamples[i];
+                    rest /= (int)numSamples[t];
 
-                    @in[i] = QuantizeValue(colorant, numSamples[t]);
+                    @in[t] = QuantizeValue(colorant, numSamples[t]);
                 }
 
                 for (var t = 0; t < numOutputs; t++)
-                    @out[i] = Table16[index + t];
+                    @out[t] = Table16[index + t];
 
                 if (!sampler(in @in, @out, in cargo))
                     return false;
@@ -81,7 +81,7 @@ public partial class Stage
             return true;
         }
 
-        public bool Sample(SamplerFloat sampler, in object cargo, SamplerFlags flags)
+        public bool Sample(SamplerFloat sampler, in object? cargo, SamplerFlags flags)
         {
             if (!HasFloatValues) return false;
 

@@ -16,32 +16,35 @@ namespace lcms2.types;
 
 public partial class InterpParams
 {{
-    private static void Eval{0}Inputs(in ushort[] input, ref ushort[] output, InterpParams p)
+    private static void Eval{0}Inputs(in ushort[] input, ref ushort[] output, InterpParams p16)
     {{
-        var lutTable = p.Table16;
+        var lutTable = p16.Table16;
 
         var tmp1 = new ushort[maxStageChannels];
         var tmp2 = new ushort[maxStageChannels];
 
-        var fk = ToFixedDomain(input[0] * p.Domain[0]);
+        var fk = ToFixedDomain(input[0] * p16.Domain[0]);
         var k0 = FixedToInt(fk);
         var rk = FixedRestToInt(fk);
 
-        k0 *= p.Opta[{1}];
-        var k1 = p.Opta[{1}] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
+        var K0 = p16.Opta[{1}] * k0;
+        var K1 = p16.Opta[{1}] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
-        var t = lutTable[k0..];
-        var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
-        p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
+        var p1 = (InterpParams)p16.Clone();
+        p16.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
+
+        var t = lutTable[K0..];
+        p1.Table = t;
 
         var inp = input[1..];
-        Eval{1}Inputs(inp, ref tmp1, p);
+        Eval{1}Inputs(inp, ref tmp1, p1);
 
-        t = lutTable[k1..];
+        t = lutTable[K1..];
         p1.Table = t;
-        Eval{1}Inputs(inp, ref tmp2, p);
 
-        for (var i = 0; i < p.NumOutputs; i++)
+        Eval{1}Inputs(inp, ref tmp2, p1);
+
+        for (var i = 0; i < p16.NumOutputs; i++)
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }}
 
@@ -55,21 +58,21 @@ public partial class InterpParams
         var k0 = QuickFloor(pk);
         var rest = pk - k0;
 
-        k0 *= p.Opta[{1}];
-        var k1 = k0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
+        var K0 = p.Opta[{1}] * k0;
+        var K1 = K0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
 
-        var t = lutTable[k0..];
+        var t = lutTable[K0..];
         var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
 
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 
         var inp = input[1..];
-        Eval{1}Inputs(inp, ref tmp1, p);
+        Eval{1}Inputs(inp, ref tmp1, p1);
 
-        t = lutTable[k1..];
+        t = lutTable[K1..];
         p1.Table = t;
 
-        Eval{1}Inputs(inp, ref tmp2, p);
+        Eval{1}Inputs(inp, ref tmp2, p1);
 
         for (var i = 0; i < p.NumOutputs; i++) {{
 

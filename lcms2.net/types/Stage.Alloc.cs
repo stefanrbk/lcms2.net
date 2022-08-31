@@ -38,22 +38,25 @@ public partial class Stage
             State.SignalError(state, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
             return null;
         }
+
+        uint n = outputChan * CubeSize(clutPoints, inputChan);
+        var newTable = ((ushort[]?)table?.Clone()) ?? new ushort[n];
+
         var p =
             InterpParams.Compute(
                 state,
                 clutPoints,
                 inputChan,
                 outputChan,
-                table ?? Array.Empty<ushort>(),
+                newTable,
                 LerpFlag.Ushort);
         if (p is null) return null;
 
-        uint n;
         var newElem =
             new CLutData(
-                new CLutData.Tab() { T = ((ushort[]?)table?.Clone()) ?? Array.Empty<ushort>()},
+                new CLutData.Tab() { T = newTable },
                 p,
-                n = outputChan * CubeSize(clutPoints, inputChan),
+                n,
                 false);
 
         if (n is 0) return null;
@@ -88,12 +91,12 @@ public partial class Stage
                 LerpFlag.Ushort);
         if (p is null) return null;
 
-        uint n;
+        uint n = outputChan * CubeSize(clutPoints, inputChan);
         var newElem =
             new CLutData(
-                new CLutData.Tab() { TFloat = ((float[]?)table?.Clone()) ?? Array.Empty<float>()},
+                new CLutData.Tab() { TFloat = ((float[]?)table?.Clone()) ?? new float[n]},
                 p,
-                n = outputChan * CubeSize(clutPoints, inputChan),
+                n,
                 true);
 
         if (n is 0) return null;

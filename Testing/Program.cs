@@ -12,27 +12,27 @@ Console.WriteLine();
 
 if (args.Length is 0)
 {
-    Console.Write("Run exhaustive tests? (y/N) ");
-    while (true)
+    Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
+    if (!Console.IsInputRedirected)
     {
-        var key = Console.ReadKey(true);
-        if (key.Key is ConsoleKey.Enter or ConsoleKey.N)
+        var key = WaitForKey(5000);
+        if (key.HasValue)
         {
-            exhaustive = false;
-            if (key.Key is ConsoleKey.Enter)
-                Console.WriteLine("N");
-            else
-                Console.WriteLine(key.KeyChar);
+            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
+            {
+                exhaustive = false;
+                if (key.Value.Key is ConsoleKey.Enter)
+                    Console.WriteLine("N");
+                else
+                    Console.WriteLine(key.Value.KeyChar);
+            } else if (key.Value.Key is ConsoleKey.Y)
+            {
+                exhaustive = true;
+                Console.WriteLine(key.Value.KeyChar);
+                Console.WriteLine("Running exhaustive tests (will take a while...)");
+            }
+        } else
             Console.WriteLine();
-            break;
-        } else if (key.Key is ConsoleKey.Y)
-        {
-            exhaustive = true;
-            Console.WriteLine(key.KeyChar);
-            Console.WriteLine("Running exhaustive tests (will take a while...)");
-            Console.WriteLine();
-            break;
-        }
     }
 }
 if (args.Contains("--exhaustive", StringComparer.OrdinalIgnoreCase))
@@ -42,7 +42,8 @@ if (args.Contains("--exhaustive", StringComparer.OrdinalIgnoreCase))
     Console.WriteLine();
 }
 
-Console.Write("Installing error logger ... ");
+Console.WriteLine();
+Console.Write("\tInstalling error logger ... ");
 State.SetLogErrorHandler((_, __, t) => Die(t));
 WriteLineGreen("done");
 
@@ -56,6 +57,7 @@ if (doCheckTests)
     var interp = new InterpolationTests();
     interp.Setup();
 
+    Console.WriteLine("\nForward 1D interpolation");
     Check("1D interpolation in 2pt tables", () => CheckSimpleTest(() => interp.Check1DTest(2, false, 0)));
     Check("1D interpolation in 3pt tables", () => CheckSimpleTest(() => interp.Check1DTest(3, false, 1)));
     Check("1D interpolation in 4pt tables", () => CheckSimpleTest(() => interp.Check1DTest(4, false, 0)));
@@ -72,6 +74,7 @@ if (doCheckTests)
         Check("1D interpolation in descending tables", () => CheckInterp1D(interp.ExhaustiveCheck1DDownTest));
     }
 
+    Console.WriteLine("\nForward 3D interpolation");
     Check("3D interpolation Tetrahedral (float)", () => CheckSimpleTest(interp.Check3DInterpolationFloatTetrahedralTest));
     Check("3D interpolation Trilinear (float)", () => CheckSimpleTest(interp.Check3DInterpolationFloatTrilinearTest));
     Check("3D interpolation Tetrahedral (16)", () => CheckSimpleTest(interp.Check3DInterpolation16TetrahedralTest));
@@ -88,12 +91,24 @@ if (doCheckTests)
     Check("Reverse interpolation 3 -> 3", () => CheckSimpleTest(interp.CheckReverseInterpolation3x3Test));
     Check("Reverse interpolation 4 -> 3", () => CheckSimpleTest(interp.CheckReverseInterpolation4x3Test));
 
+    Console.WriteLine("\nHigh dimensionality interpolation");
+    Check("3D interpolation", () => CheckSimpleTest(interp.Check3DInterpTest));
+    Check("3D interpolation with granularity", () => CheckSimpleTest(interp.Check3DInterpGranularTest));
+    Check("4D interpolation", () => CheckSimpleTest(interp.Check4DInterpTest));
+    Check("4D interpolation with granularity", () => CheckSimpleTest(interp.Check4DInterpGranularTest));
+    Check("5D interpolation with granularity", () => CheckSimpleTest(interp.Check5DInterpGranularTest));
+    Check("6D interpolation with granularity", () => CheckSimpleTest(interp.Check6DInterpGranularTest));
+    Check("7D interpolation with granularity", () => CheckSimpleTest(interp.Check7DInterpGranularTest));
+    Check("8D interpolation with granularity", () => CheckSimpleTest(interp.Check8DInterpGranularTest));
+
     interp.Teardown();
 }
 
 if (doPluginTests)
 {
     var state = new StateTests();
+
+    Console.WriteLine("\nPlugin tests");
     Check("Simple context functionality", () => CheckSimpleTest(state.TestSimpleState));
     Check("Alarm codes context", () => CheckSimpleTest(state.TestAlarmCodes));
     Check("Adaptation state context", () => CheckSimpleTest(state.TestAdaptationStateState));
