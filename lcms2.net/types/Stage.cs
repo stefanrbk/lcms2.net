@@ -33,7 +33,7 @@ public sealed partial class Stage: ICloneable, IDisposable
 
     public object Clone()
     {
-        var result = AllocPlaceholder(
+        var result = Alloc(
             StateContainer,
             Type,
             InputChannels,

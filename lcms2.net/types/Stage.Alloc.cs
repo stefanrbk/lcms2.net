@@ -15,7 +15,7 @@ public partial class Stage
     }
 
     public static Stage? AllocIdentity(object? state, uint numChannels) =>
-        AllocPlaceholder(state, Signature.Stage.IdentityElem, numChannels, numChannels, new IdentityData());
+        Alloc(state, Signature.Stage.IdentityElem, numChannels, numChannels, new IdentityData());
 
     private static Stage? AllocIdentityCurves(object? state, uint numChannels)
     {
@@ -60,7 +60,7 @@ public partial class Stage
         if (n is 0) return null;
 
         return
-            AllocPlaceholder(
+            Alloc(
                 state,
                 Signature.Stage.CLutElem,
                 inputChan,
@@ -100,7 +100,7 @@ public partial class Stage
         if (n is 0) return null;
 
         return
-            AllocPlaceholder(
+            Alloc(
                 state,
                 Signature.Stage.CLutElem,
                 inputChan,
@@ -126,7 +126,7 @@ public partial class Stage
     }
 
     internal static Stage? AllocLab2XYZ(object? state) =>
-        AllocPlaceholder(state, Signature.Stage.Lab2XYZElem, 3, 3, new Lab2XYZData());
+        Alloc(state, Signature.Stage.Lab2XYZElem, 3, 3, new Lab2XYZData());
 
     internal static Stage? AllocLabPrelin(object? state)
     {
@@ -203,7 +203,7 @@ public partial class Stage
     }
 
     internal static Stage? AllocXyz2Lab(object? state) =>
-        AllocPlaceholder(state, Signature.Stage.XYZ2LabElem, 3, 3, new XYZ2LabData());
+        Alloc(state, Signature.Stage.XYZ2LabElem, 3, 3, new XYZ2LabData());
 
     internal static Stage? NormalizeFromLabFloat(object? state)
     {
@@ -288,7 +288,7 @@ public partial class Stage
     }
 
     internal static Stage? ClipNegatives(object? state, uint numChannels) =>
-        AllocPlaceholder(state, Signature.Stage.ClipNegativesElem, numChannels, numChannels, new ClipperData());
+        Alloc(state, Signature.Stage.ClipNegativesElem, numChannels, numChannels, new ClipperData());
 
     public static Stage? AllocMatrix(object? state, uint rows, uint cols, in double[] matrix, double[]? offset)
     {
@@ -303,7 +303,7 @@ public partial class Stage
         }
 
         var newElem = new MatrixData((double[])matrix.Clone(), (double[]?)offset?.Clone());
-        return AllocPlaceholder(state, Signature.Stage.MatrixElem, cols, rows, newElem);
+        return Alloc(state, Signature.Stage.MatrixElem, cols, rows, newElem);
     }
 
     /// <summary>
@@ -316,7 +316,7 @@ public partial class Stage
     /// <param name="freePtr">Points to a function that sets the element free</param>
     /// <param name="data">A generic pointer to whatever memory needed by the element</param>
     /// <remarks>Implements the <c>_cmsStageAllocPlaceholder</c> function.</remarks>
-    public static Stage? AllocPlaceholder(object? state,
+    public static Stage? Alloc(object? state,
                                           Signature type,
                                           uint inputChannels,
                                           uint outputChannels,
@@ -334,7 +334,7 @@ public partial class Stage
 
     public static Stage? AllocToneCurves(object? state, uint numChannels, ToneCurve[]? curves)
     {
-        var newMpe = AllocPlaceholder(state, Signature.Stage.CurveSetElem, numChannels, numChannels, new ToneCurveData());
+        var newMpe = Alloc(state, Signature.Stage.CurveSetElem, numChannels, numChannels, new ToneCurveData());
         if (newMpe is null) return null;
 
         ToneCurveData newElem;
