@@ -777,7 +777,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler3D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler3D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -812,7 +812,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler3D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler3D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -845,7 +845,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler4D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler4D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -880,7 +880,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler4D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler4D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -915,7 +915,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler5D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler5D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -950,7 +950,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler6D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler6D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -985,7 +985,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler7D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler7D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1020,7 +1020,7 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.CLut.Sample(Sampler8D, null, SamplerFlags.None);
+        mpe!.Sample(Sampler8D, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
