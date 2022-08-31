@@ -118,6 +118,29 @@ internal static class Helpers
     internal static ushort QuantizeValue(double i, uint maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 
+    internal static double Sqr(double v) =>
+        v * v;
+
+    internal static double Atan2Deg(double a, double b)
+    {
+        var h = (a is 0 && b is 0)
+            ? 0
+            : Math.Atan2(a, b);
+
+        h *= 180 / Math.PI;
+
+        while (h > 360.0)
+            h -= 360.0;
+
+        while (h < 0)
+            h += 360.0;
+
+        return h;
+    }
+
+    internal static double Deg2Rad(double deg) =>
+        deg * Math.PI / 180.0;
+
     /// <summary>
     ///     Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
     /// </summary>

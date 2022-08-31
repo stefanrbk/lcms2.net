@@ -102,6 +102,44 @@ if (doCheckTests)
     Check("8D interpolation with granularity", () => CheckSimpleTest(interp.Check8DInterpGranularTest));
 
     interp.Teardown();
+
+    var cs = new ColorspaceTests();
+
+    Console.WriteLine("\nEncoding of colorspaces");
+    ((ITest)cs).Setup();
+
+    Check("Lab to LCh and back (float only)", () => CheckSimpleTest(() =>
+        Assert.Multiple(() =>
+        {
+            for (var b = -16; b <= 16; b++)
+                cs.CheckLab2LCh(b * 8, (b + 1) * 8);
+        })));
+    Check("Lab to XYZ and back (float only)", () => CheckSimpleTest(() =>
+        Assert.Multiple(() =>
+        {
+            for (var b = -16; b <= 16; b++)
+                cs.CheckLab2XYZ(b * 8, (b + 1) * 8);
+        })));
+    Check("Lab to xyY and back (float only)", () => CheckSimpleTest(() =>
+        Assert.Multiple(() =>
+        {
+            for (var b = -16; b <= 16; b++)
+                cs.CheckLab2xyY(b * 8, (b + 1) * 8);
+        })));
+    Check("Lab V2 encoding", () => CheckSimpleTest(() =>
+        Assert.Multiple(() =>
+        {
+            for (var i = 0; i < 64; i++)
+                cs.CheckLabV2EncodingTest(i * 1024, (i + 1) * 1024);
+        })));
+    Check("Lab V4 encoding", () => CheckSimpleTest(() =>
+        Assert.Multiple(() =>
+        {
+            for (var i = 0; i < 64; i++)
+                cs.CheckLabV4EncodingTest(i * 1024, (i + 1) * 1024);
+        })));
+
+    ((ITest)cs).Teardown();
 }
 
 if (doPluginTests)

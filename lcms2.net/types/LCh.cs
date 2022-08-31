@@ -14,4 +14,10 @@ public struct LCh: ICloneable
 
     public object Clone() =>
            new LCh(L, C, h);
+
+    public Lab ToLab() =>
+        new(L, C * Math.Cos(h * Math.PI / 180.0), C * Math.Sin(h * Math.PI / 180.0));
+
+    public static explicit operator Lab(LCh lch) =>
+        lch.ToLab();
 }

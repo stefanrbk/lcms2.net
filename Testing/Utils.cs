@@ -138,6 +138,15 @@ public static class Utils
         }
     }
 
+    public static bool CheckMultiTest(IEnumerable<Action> tests)
+    {
+        foreach (var test in tests)
+            if (!CheckSimpleTest(test))
+                return false;
+
+        return true;
+    }
+
     public static bool CheckInterp1D(Action<uint, uint> fn)
     {
         if (HasConsole)
@@ -208,5 +217,14 @@ public static class Utils
     {
         Dot();
         subTest = frm;
+    }
+
+    public static double DeltaE(Lab lab1, Lab lab2)
+    {
+        var dL = Math.Abs(lab1.L - lab2.L);
+        var da = Math.Abs(lab1.a - lab2.a);
+        var db = Math.Abs(lab1.b - lab2.b);
+
+        return Math.Pow(Sqr(dL) + Sqr(da) + Sqr(db), 0.5);
     }
 }
