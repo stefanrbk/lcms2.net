@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-using lcms2.state;
+﻿using lcms2.state;
 
 namespace lcms2.types;
 
@@ -117,7 +115,7 @@ public partial class Stage
         var mpe = AllocCLut16bit(state, dims, numChan, numChan, null);
         if (mpe is null) return null;
 
-        if (!((CLutData)mpe.Data).Sample(IdentitySampler, numChan, SamplerFlags.None))
+        if (!((CLutData)mpe.Data).Sample(IdentitySampler, (int)numChan, SamplerFlags.None))
         {
             mpe.Dispose();
             return null;
@@ -370,8 +368,9 @@ public partial class Stage
             return result;
         });
 
-    private static bool IdentitySampler(in ushort[] @in, ushort[]? @out, in object cargo)
+    private static bool IdentitySampler(in ushort[] @in, ushort[]? @out, in object? cargo)
     {
+        if (cargo is null) return false;
         var numChan = (int)cargo;
         for (var i = 0; i < numChan; i++)
             @out![i] = @in[i];
