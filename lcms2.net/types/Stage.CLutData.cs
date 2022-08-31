@@ -8,6 +8,11 @@ public delegate bool SamplerFloat(in float[] @in, float[]? @out, in object? carg
 
 public partial class Stage
 {
+    public bool Sample(Sampler16 sampler, in object? cargo, SamplerFlags flags) =>
+        (Data as CLutData)?.Sample(sampler, cargo, flags) ?? throw new InvalidOperationException();
+
+    public bool Sample(SamplerFloat sampler, in object? cargo, SamplerFlags flags) =>
+        (Data as CLutData)?.Sample(sampler, cargo, flags) ?? throw new InvalidOperationException();
 
     /// <summary>
     ///     Data kept in "Element" member of <see cref="Stage"/>
