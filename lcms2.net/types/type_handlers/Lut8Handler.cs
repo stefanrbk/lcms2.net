@@ -51,7 +51,7 @@ public class Lut8Handler: TagTypeHandler
         // Only operates if not identity...
         if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity)
         {
-            if (!newLut.InsertStage(StageLoc.AtBegin, Stage.AllocMatrix(StateContainer, 3, 3, in matrix, null)))
+            if (!newLut.InsertStage(StageLoc.AtBegin, Stage.AllocMatrix(StateContainer, 3, 3, matrix, null)))
                 goto Error;
         }
 
@@ -95,7 +95,7 @@ public class Lut8Handler: TagTypeHandler
     {
         Stage.ToneCurveData? preMpe = null, postMpe = null;
         Stage.MatrixData? matMpe = null;
-        Stage.CLutData? clut = null;
+        Stage.CLut16Data? clut = null;
 
         var newLut = (Pipeline)value;
         var mpe = newLut.elements;
@@ -115,7 +115,7 @@ public class Lut8Handler: TagTypeHandler
 
         if (mpe is not null && mpe.Type == Signature.Stage.CLutElem)
         {
-            clut = (Stage.CLutData)mpe.Data;
+            clut = (Stage.CLut16Data)mpe.Data;
             mpe = mpe.Next;
         }
 
@@ -166,7 +166,7 @@ public class Lut8Handler: TagTypeHandler
             if (clut is not null)
                 for (var j = 0; j < numTabSize; j++)
                 {
-                    var val = From16to8(clut.Table.T[j]);
+                    var val = From16to8(clut.Table[j]);
                     if (!io.Write(val)) return false;
                 }
         }

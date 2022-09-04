@@ -115,6 +115,17 @@ internal static class Helpers
             _ => QuickFloorWord(d),
         };
 
+    /*  Original Code (cmslut.c line: 732)
+     *  
+     *  // Quantize a value 0 <= i < MaxSamples to 0..0xffff
+     *  cmsUInt16Number CMSEXPORT _cmsQuantizeVal(cmsFloat64Number i, cmsUInt32Number MaxSamples)
+     *  {
+     *      cmsFloat64Number x;
+     *
+     *      x = ((cmsFloat64Number) i * 65535.) / (cmsFloat64Number) (MaxSamples - 1);
+     *      return _cmsQuickSaturateWord(x);
+     *  }
+     */
     internal static ushort QuantizeValue(double i, uint maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 
@@ -194,6 +205,7 @@ internal static class Helpers
 
         return Math.Pow(t, 1.0 / 3.0);
     }
+
     public static double F1(double t)
     {
         const double limit = 24.0 / 116.0;
@@ -203,15 +215,83 @@ internal static class Helpers
 
         return t * t * t;
     }
-    public static void FromFloatTo16(in float[] @in, ushort[] @out) =>
-        @in.Take(Math.Min(@in.Length, @out.Length))
-           .Select(i => QuickSaturateWord(i * 65535.0))
-           .ToArray()
-           .CopyTo(@out.AsSpan());
 
-    public static void From16ToFloat(in ushort[] @in, float[] @out) =>
-        @in.Take(Math.Min(@in.Length, @out.Length))
-           .Select(i => i / 65535f)
-           .ToArray()
-           .CopyTo(@out.AsSpan());
+    /*  Original Code (cmslut.c line: 81)
+     * 
+     *  // Conversion functions. From floating point to 16 bits
+     *  static
+     *  void FromFloatTo16(const cmsFloat32Number In[], cmsUInt16Number Out[], cmsUInt32Number n)
+     *  {
+     *      cmsUInt32Number i;
+     *
+     *      for (i=0; i < n; i++) {
+     *          Out[i] = _cmsQuickSaturateWord(In[i] * 65535.0);
+     *      }
+     *  }
+     */
+    public static void FromFloatTo16(ReadOnlySpan<float> @in, Span<ushort> @out, int n)
+    {
+        for (var i = 0; i < n; i++)
+            @out[i] = QuickSaturateWord(@in[i] * 65535);
+    }
+
+    /*  Original Code (cmslut.c line: 92)
+     * 
+     *  // From 16 bits to floating point
+     *  static
+     *  void From16ToFloat(const cmsUInt16Number In[], cmsFloat32Number Out[], cmsUInt32Number n)
+     *  {
+     *      cmsUInt32Number i;
+     *
+     *      for (i=0; i < n; i++) {
+     *          Out[i] = (cmsFloat32Number) In[i] / 65535.0F;
+     *      }
+     *  }
+     */
+    public static void From16ToFloat(ReadOnlySpan<ushort> @in, Span<float> @out, int n)
+    {
+        for (var i = 0; i < n; i++)
+            @out[i] = @in[i] / 65535;
+    }
+
+    /*  Original Code (cmslut.c line: 459)
+     *  
+     *  // Given an hypercube of b dimensions, with Dims[] number of nodes by dimension, calculate the total amount of nodes
+     *  static
+     *  cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
+     *  {
+     *      cmsUInt32Number rv, dim;
+     *
+     *      _cmsAssert(Dims != NULL);
+     *
+     *      for (rv = 1; b > 0; b--) {
+     *
+     *          dim = Dims[b-1];
+     *          if (dim == 0) return 0;  // Error
+     *
+     *          rv *= dim;
+     *
+     *          // Check for overflow
+     *          if (rv > UINT_MAX / dim) return 0;
+     *      }
+     *
+     *      return rv;
+     *  }
+     */
+    public static uint CubeSize(ReadOnlySpan<uint> dims, int b)
+    {
+        uint rv;
+        for (rv = 1; b > 0; b--)
+        {
+            var dim = dims[b-1];
+            if (dim is 0) return 0;     // Error
+
+            rv *= dim;
+
+            // Check for overflow
+            if (rv > UInt32.MaxValue / dim) return 0;
+        }
+
+        return rv;
+    }
 }

@@ -54,7 +54,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i };
             var @out = new ushort[1];
 
-            p.Interpolation.Lerp16(in @in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
 
             if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
 
@@ -171,7 +171,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, ref @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -213,7 +213,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, ref @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -254,7 +254,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -292,7 +292,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -362,7 +362,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f , b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        p.Interpolation.LerpFloat(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -443,7 +443,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f , b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        p.Interpolation.LerpFloat(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -523,7 +523,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        p.Interpolation.Lerp16(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -600,7 +600,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        p.Interpolation.Lerp16(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -1190,7 +1190,7 @@ public class InterpolationTests: ITest
         });
     }
 
-    private static bool Sampler3D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler3D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], 0, 0, 0, 0, 0, 3);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], 0, 0, 0, 0, 0, 3);
@@ -1199,7 +1199,7 @@ public class InterpolationTests: ITest
         return true;
     }
 
-    private static bool Sampler4D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler4D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], 0, 0, 0, 0, 4);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], 0, 0, 0, 0, 4);
@@ -1208,7 +1208,7 @@ public class InterpolationTests: ITest
         return true;
     }
 
-    private static bool Sampler5D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler5D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], 0, 0, 0, 5);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], 0, 0, 0, 5);
@@ -1217,7 +1217,7 @@ public class InterpolationTests: ITest
         return true;
     }
 
-    private static bool Sampler6D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler6D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], 0, 0, 6);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], 0, 0, 6);
@@ -1226,7 +1226,7 @@ public class InterpolationTests: ITest
         return true;
     }
 
-    private static bool Sampler7D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler7D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], 0, 7);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], 0, 7);
@@ -1235,7 +1235,7 @@ public class InterpolationTests: ITest
         return true;
     }
 
-    private static bool Sampler8D(in ushort[] @in, ushort[]? @out, in object? cargo)
+    private static bool Sampler8D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], @in[7], 8);
         @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], @in[7], 8);

@@ -16,7 +16,7 @@ namespace lcms2.types;
 
 public partial class InterpParams
 {{
-    private static void Eval{0}Inputs(in ushort[] input, ref ushort[] output, InterpParams p16)
+    private static void Eval{0}Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p16)
     {{
         var lutTable = p16.Table16;
 
@@ -37,18 +37,18 @@ public partial class InterpParams
         p1.Table = t;
 
         var inp = input[1..];
-        Eval{1}Inputs(inp, ref tmp1, p1);
+        Eval{1}Inputs(inp, tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
-        Eval{1}Inputs(inp, ref tmp2, p1);
+        Eval{1}Inputs(inp, tmp2, p1);
 
         for (var i = 0; i < p16.NumOutputs; i++)
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }}
 
-    private static void Eval{0}Inputs(in float[] input, ref float[] output, InterpParams p)
+    private static void Eval{0}Inputs(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {{
         var lutTable = p.TableFloat;
         var tmp1 = new float[maxStageChannels];
@@ -67,12 +67,12 @@ public partial class InterpParams
         p.Domain[1..{1}].CopyTo(p1.Domain.AsSpan());
 
         var inp = input[1..];
-        Eval{1}Inputs(inp, ref tmp1, p1);
+        Eval{1}Inputs(inp, tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
-        Eval{1}Inputs(inp, ref tmp2, p1);
+        Eval{1}Inputs(inp, tmp2, p1);
 
         for (var i = 0; i < p.NumOutputs; i++) {{
 

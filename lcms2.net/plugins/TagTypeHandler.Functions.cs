@@ -392,7 +392,7 @@ public abstract partial class TagTypeHandler
         var clut = Stage.AllocCLut16bit(StateContainer, gridPoints, inputChannels, outputChannels, in nullTab);
         if (clut is null) return null;
 
-        var data = (Stage.CLutData)clut.Data;
+        var data = (Stage.CLut16Data)clut.Data;
 
         // Precision can be 1 or 2 bytes
         switch (precision)
@@ -405,12 +405,12 @@ public abstract partial class TagTypeHandler
                         clut.Dispose();
                         return null;
                     }
-                    data.Table.T[i] = From8to16(v);
+                    data.Table[i] = From8to16(v);
                 }
                 break;
 
             case 2:
-                if (!io.ReadUInt16Array((int)data.NumEntries, out data.Table.T))
+                if (!io.ReadUInt16Array((int)data.NumEntries, out data.Table))
                 {
                     clut.Dispose();
                     return null;
@@ -479,7 +479,7 @@ public abstract partial class TagTypeHandler
         for (var i = 0; i < 9; i++)
             if (!io.Read15Fixed16Number(out dMat[i])) return null;
 
-        return Stage.AllocMatrix(StateContainer, 3, 3, in dMat, dOff);
+        return Stage.AllocMatrix(StateContainer, 3, 3, dMat, dOff);
     }
 
     internal ToneCurve? ReadSegmentedCurve(Stream io)
@@ -637,9 +637,9 @@ public abstract partial class TagTypeHandler
     internal bool WriteClut(Stream io, byte precision, Stage mpe)
     {
         var gridPoints = new byte[maxChannels]; // Number of grid points in each dimension.
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = mpe.Data as Stage.CLut16Data;
 
-        if (clut.HasFloatValues)
+        if (clut is null)
         {
             State.SignalError(StateContainer, ErrorCode.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
             return false;
@@ -661,13 +661,13 @@ public abstract partial class TagTypeHandler
             case 1:
 
                 for (var i = 0; i < clut.NumEntries; i++)
-                    if (!io.Write(From16to8(clut.Table.T[i]))) return false;
+                    if (!io.Write(From16to8(clut.Table[i]))) return false;
 
                 break;
 
             case 2:
 
-                if (!io.Write((int)clut.NumEntries, clut.Table.T)) return false;
+                if (!io.Write((int)clut.NumEntries, clut.Table)) return false;
 
                 break;
 

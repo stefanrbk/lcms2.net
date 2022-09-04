@@ -48,9 +48,9 @@ public class MpeClutHandler: TagTypeHandler
         if (mpe is null) goto Error;
 
         // Read and sanitize the data
-        var clut = (Stage.CLutData)mpe.Data;
+        var clut = (Stage.CLutFloatData)mpe.Data;
         for (var i = 0; i < clut.NumEntries; i++)
-            if (!io.ReadFloat32Number(out clut.Table.TFloat[i])) goto Error;
+            if (!io.ReadFloat32Number(out clut.Table[i])) goto Error;
 
         numItems = 1;
         return mpe;
@@ -64,14 +64,14 @@ public class MpeClutHandler: TagTypeHandler
     public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var dimensions8 = new byte[16];
+
+        // Only floats are supported in MPE
         var mpe = (Stage)value;
-        var clut = (Stage.CLutData)mpe.Data;
+        if (mpe.Data is not Stage.CLutFloatData clut)
+            return false;
 
         // Check for maximum number of channels supported by lcms
         if (mpe.InputChannels > maxInputDimensions) return false;
-
-        // Only floats are supported in MPE
-        if (!clut.HasFloatValues) return false;
 
         if (!io.Write((ushort)mpe.InputChannels)) return false;
         if (!io.Write((ushort)mpe.OutputChannels)) return false;
@@ -82,7 +82,7 @@ public class MpeClutHandler: TagTypeHandler
         io.Write(dimensions8);
 
         for (var i = 0; i < clut.NumEntries; i++)
-            if (!io.Write(clut.Table.TFloat[i])) return false;
+            if (!io.Write(clut.Table[i])) return false;
 
         return true;
     }
