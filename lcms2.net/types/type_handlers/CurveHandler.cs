@@ -47,7 +47,7 @@ public class CurveHandler: TagTypeHandler
                 if (count > 0x7FFF)
                     return null; // This is to prevent bad guys for doing bad things.
 
-                newGamma = ToneCurve.BuildTabulated16(StateContainer, (int)count, null);
+                newGamma = ToneCurve.BuildTabulated16(StateContainer, count, null);
                 if (newGamma is null) return null;
 
                 if (!io.ReadUInt16Array((int)count, out newGamma.table16))
@@ -75,7 +75,7 @@ public class CurveHandler: TagTypeHandler
             return true;
         }
 
-        if (!io.Write((uint)curve.NumEntries)) return false;
-        return io.Write(curve.NumEntries, curve.table16);
+        if (!io.Write(curve.NumEntries)) return false;
+        return io.Write((int)curve.NumEntries, curve.table16);
     }
 }

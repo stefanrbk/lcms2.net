@@ -31,8 +31,8 @@ public class MpeHandler: TagTypeHandler
         if (!io.ReadUInt16Number(out var inputChans)) return null;
         if (!io.ReadUInt16Number(out var outputChans)) return null;
 
-        if ((inputChans is 0 or >= MaxChannels) ||
-            (outputChans is 0 or >= MaxChannels)) return null;
+        if ((inputChans is 0 or >= maxChannels) ||
+            (outputChans is 0 or >= maxChannels)) return null;
 
         // Allocate an empty LUT
         object? newLut = Pipeline.Alloc(StateContainer, inputChans, outputChans);
@@ -42,8 +42,8 @@ public class MpeHandler: TagTypeHandler
         if (!ReadPositionTable(io, (int)elementCount, baseOffset, ref newLut, ReadMpeElem)) goto Error;
 
         // Check channel count
-        if (inputChans != ((Pipeline)newLut).inputChannels ||
-            outputChans != ((Pipeline)newLut).outputChannels) goto Error;
+        if (inputChans != ((Pipeline)newLut).InputChannels ||
+            outputChans != ((Pipeline)newLut).OutputChannels) goto Error;
 
         // Success
         numItems = 1;
@@ -63,8 +63,8 @@ public class MpeHandler: TagTypeHandler
 
         var baseOffset = (uint)(io.Tell() - sizeof(TagBase));
 
-        var inputChan = lut.inputChannels;
-        var outputChan = lut.outputChannels;
+        var inputChan = lut.InputChannels;
+        var outputChan = lut.OutputChannels;
         var elemCount = lut.StageCount;
 
         var elementOffsets = new uint[elemCount];
@@ -89,7 +89,7 @@ public class MpeHandler: TagTypeHandler
         {
             elementOffsets[i] = (uint)io.Tell() - baseOffset;
 
-            var elementSig = elem!.type;
+            var elementSig = elem!.Type;
 
             var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
             if (typeHandler is null)
@@ -106,7 +106,7 @@ public class MpeHandler: TagTypeHandler
 
             elementSizes[i] = (uint)io.Tell() - before;
 
-            elem = elem.next;
+            elem = elem.Next;
         }
 
         // Write the directory

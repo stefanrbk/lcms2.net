@@ -44,13 +44,13 @@ public class MpeClutHandler: TagTypeHandler
         }
 
         // Allocate the true CLUT
-        var mpe = Stage.AllocCLutFloatGranular(StateContainer, gridPoints, inputChans, outputChans, null);
+        var mpe = Stage.AllocCLutFloat(StateContainer, gridPoints, inputChans, outputChans, null);
         if (mpe is null) goto Error;
 
         // Read and sanitize the data
-        var clut = (Stage.CLutData)mpe.data;
+        var clut = (Stage.CLutFloatData)mpe.Data;
         for (var i = 0; i < clut.NumEntries; i++)
-            if (!io.ReadFloat32Number(out clut.Table.TFloat[i])) goto Error;
+            if (!io.ReadFloat32Number(out clut.Table[i])) goto Error;
 
         numItems = 1;
         return mpe;
@@ -64,25 +64,25 @@ public class MpeClutHandler: TagTypeHandler
     public override unsafe bool Write(Stream io, object value, int numItems)
     {
         var dimensions8 = new byte[16];
-        var mpe = (Stage)value;
-        var clut = (Stage.CLutData)mpe.data;
-
-        // Check for maximum number of channels supported by lcms
-        if (mpe.inputChannels > maxInputDimensions) return false;
 
         // Only floats are supported in MPE
-        if (!clut.HasFloatValues) return false;
+        var mpe = (Stage)value;
+        if (mpe.Data is not Stage.CLutFloatData clut)
+            return false;
 
-        if (!io.Write((ushort)mpe.inputChannels)) return false;
-        if (!io.Write((ushort)mpe.outputChannels)) return false;
+        // Check for maximum number of channels supported by lcms
+        if (mpe.InputChannels > maxInputDimensions) return false;
 
-        for (var i = 0; i < mpe.inputChannels; i++)
-            dimensions8[i] = (byte)clut.Params[0].NumSamples[i];
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.OutputChannels)) return false;
+
+        for (var i = 0; i < mpe.InputChannels; i++)
+            dimensions8[i] = (byte)clut.Params.NumSamples[i];
 
         io.Write(dimensions8);
 
         for (var i = 0; i < clut.NumEntries; i++)
-            if (!io.Write(clut.Table.TFloat[i])) return false;
+            if (!io.Write(clut.Table[i])) return false;
 
         return true;
     }

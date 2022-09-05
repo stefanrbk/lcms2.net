@@ -254,6 +254,9 @@ dotnet_diagnostic.RCS1003.severity = none
 # RCS1194: Implement exception constructors.
 dotnet_diagnostic.RCS1194.severity = none
 
+# CA1806: Do not ignore method results
+dotnet_diagnostic.CA1806.severity = none
+
 [*.{cs,vb}]
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4

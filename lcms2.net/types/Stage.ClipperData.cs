@@ -1,0 +1,30 @@
+﻿namespace lcms2.types;
+
+public sealed partial class Stage
+{
+    internal class ClipperData: StageData
+    {
+        internal override StageData? Duplicate(Stage parent) =>
+            new ClipperData();
+
+        /*  Original Code (cmslut.c line: 1129)
+         *  
+         *  // Clips values smaller than zero
+         *  static
+         *  void Clipper(const cmsFloat32Number In[], cmsFloat32Number Out[], const cmsStage *mpe)
+         *  {
+         *         cmsUInt32Number i;
+         *         for (i = 0; i < mpe->InputChannels; i++) {
+         *
+         *                cmsFloat32Number n = In[i];
+         *                Out[i] = n < 0 ? 0 : n;
+         *         }
+         *  }
+         */
+        internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage parent)
+        {
+            for (var i = 0; i < parent.InputChannels; i++)
+                @out[i] = Math.Max(@in[i], 0);
+        }
+    }
+}

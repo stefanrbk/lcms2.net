@@ -35,8 +35,8 @@ public class Lut16Handler: TagTypeHandler
         if (!io.ReadUInt8Number(out _)) goto Error;
 
         // Do some checking
-        if (inputChannels == 0 || inputChannels > Lcms2.MaxChannels) goto Error;
-        if (outputChannels == 0 || outputChannels > Lcms2.MaxChannels) goto Error;
+        if (inputChannels == 0 || inputChannels > maxChannels) goto Error;
+        if (outputChannels == 0 || outputChannels > maxChannels) goto Error;
 
         // Allocates an empty Pipeline
         newLut = Pipeline.Alloc(StateContainer, inputChannels, outputChannels);
@@ -49,7 +49,7 @@ public class Lut16Handler: TagTypeHandler
         // Only operates on 3 channels
         if ((inputChannels == 3) && !((Mat3)matrix).IsIdentity)
         {
-            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(StateContainer, 3, 3, in matrix, null)))
+            if (!newLut.InsertStage(StageLoc.AtEnd, Stage.AllocMatrix(StateContainer, 3, 3, matrix, null)))
                 goto Error;
         }
 
@@ -88,36 +88,33 @@ public class Lut16Handler: TagTypeHandler
     {
         Stage.ToneCurveData? preMpe = null, postMpe = null;
         Stage.MatrixData? matMpe = null;
-        Stage.CLutData? clut = null;
+        Stage.CLut16Data? clut = null;
 
         var newLut = (Pipeline)value;
         var mpe = newLut.elements;
-        if (mpe is not null && mpe.type == Signature.Stage.MatrixElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.MatrixElem)
         {
-            if (mpe.inputChannels != 3 || mpe.outputChannels != 3 || mpe.data is null) return false;
-            matMpe = (Stage.MatrixData)mpe.data;
-            mpe = mpe.next;
+            if (mpe.InputChannels != 3 || mpe.OutputChannels != 3) return false;
+            matMpe = (Stage.MatrixData)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem)
         {
-            if (mpe.data is null) return false;
-            preMpe = (Stage.ToneCurveData)mpe.data;
-            mpe = mpe.next;
+            preMpe = (Stage.ToneCurveData)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CLutElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CLutElem)
         {
-            if (mpe.data is null) return false;
-            clut = (Stage.CLutData)mpe.data;
-            mpe = mpe.next;
+            clut = (Stage.CLut16Data)mpe.Data;
+            mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.type == Signature.Stage.CurveSetElem)
+        if (mpe is not null && mpe.Type == Signature.Stage.CurveSetElem)
         {
-            if (mpe.data is null) return false;
-            postMpe = (Stage.ToneCurveData)mpe.data;
-            mpe = mpe.next;
+            postMpe = (Stage.ToneCurveData)mpe.Data;
+            mpe = mpe.Next;
         }
 
         // That should be all
@@ -127,10 +124,10 @@ public class Lut16Handler: TagTypeHandler
             return false;
         }
 
-        var clutPoints = (uint)(clut?.Params[0].NumSamples[0] ?? 0);
+        var clutPoints = (uint)(clut?.Params.NumSamples[0] ?? 0);
 
-        if (!io.Write((byte)newLut.inputChannels)) return false;
-        if (!io.Write((byte)newLut.outputChannels)) return false;
+        if (!io.Write((byte)newLut.InputChannels)) return false;
+        if (!io.Write((byte)newLut.OutputChannels)) return false;
         if (!io.Write((byte)clutPoints)) return false;
         if (!io.Write((byte)0)) return false; // Padding
 
@@ -171,19 +168,19 @@ public class Lut16Handler: TagTypeHandler
             if (!Write16bitTables(io, ref preMpe)) return false;
         } else
         {
-            for (var i = 0; i < newLut.inputChannels; i++)
+            for (var i = 0; i < newLut.InputChannels; i++)
             {
                 if (!io.Write((ushort)0)) return false;
                 if (!io.Write((ushort)0xFFFF)) return false;
             }
         }
 
-        var numTabSize = Uipow(newLut.outputChannels, clutPoints, newLut.inputChannels);
+        var numTabSize = Uipow(newLut.OutputChannels, clutPoints, newLut.InputChannels);
         if (numTabSize == unchecked((uint)-1)) return false;
         if (numTabSize > 0)
         {
             // The 3D CLUT.
-            if (clut is not null && !io.Write((int)numTabSize, clut.Table.T))
+            if (clut is not null && !io.Write((int)numTabSize, clut.Table))
                 return false;
         }
 
@@ -193,7 +190,7 @@ public class Lut16Handler: TagTypeHandler
             if (!Write16bitTables(io, ref postMpe)) return false;
         } else
         {
-            for (var i = 0; i < newLut.outputChannels; i++)
+            for (var i = 0; i < newLut.OutputChannels; i++)
             {
                 if (!io.Write((ushort)0)) return false;
                 if (!io.Write((ushort)0xFFFF)) return false;

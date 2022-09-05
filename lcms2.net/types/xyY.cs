@@ -14,6 +14,17 @@ public struct xyY: ICloneable
 
     public object Clone() =>
            new xyY(x, y, Y);
+
+    public XYZ ToXYZ()
+    {
+        var dx = x / y * Y;
+        var dz = (1 - x - y) / y * Y;
+
+        return (dx, Y, dz);
+    }
+
+    public static explicit operator XYZ(xyY xyy) =>
+        xyy.ToXYZ();
 }
 
 public struct xyYTripple: ICloneable

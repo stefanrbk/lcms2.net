@@ -21,12 +21,12 @@ public class ColorantOrderHandler: TagTypeHandler
     {
         numItems = 0;
         if (!io.ReadUInt32Number(out var count)) return null;
-        if (count > Lcms2.MaxChannels) return null;
+        if (count > maxChannels) return null;
 
-        byte[] colorantOrder = new byte[Lcms2.MaxChannels];
+        byte[] colorantOrder = new byte[maxChannels];
 
         // We use FF as end marker
-        for (var i = 0; i < Lcms2.MaxChannels; i++)
+        for (var i = 0; i < maxChannels; i++)
             colorantOrder[i] = 0xFF;
 
         if (io.Read(colorantOrder, 0, (int)count) != count) return null;
@@ -41,7 +41,7 @@ public class ColorantOrderHandler: TagTypeHandler
         int count;
 
         // Get the length
-        for (var i = count = 0; i < Lcms2.MaxChannels; i++)
+        for (var i = count = 0; i < maxChannels; i++)
             if (colorantOrder[i] != 0xFF) count++;
 
         if (!io.Write(count)) return false;

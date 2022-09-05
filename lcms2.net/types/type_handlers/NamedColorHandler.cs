@@ -38,7 +38,7 @@ public class NamedColorHandler: TagTypeHandler
             return null;
         }
 
-        if (numDeviceCoords > MaxChannels)
+        if (numDeviceCoords > maxChannels)
         {
             State.SignalError(StateContainer, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
             goto Error;

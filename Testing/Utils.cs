@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 
 using lcms2.it8;
-using lcms2.state;
 using lcms2.types;
-
-using Newtonsoft.Json.Linq;
 
 using NUnit.Framework.Internal;
 
@@ -28,7 +20,7 @@ public static class Utils
     public static string subTest = String.Empty;
     public static string reasonToFail = String.Empty;
     public static double MaxErr = 0;
-    public static bool HasConsole = true;
+    public static bool HasConsole = !Console.IsInputRedirected;
     public static void DumpToneCurve(ToneCurve gamma, string filename)
     {
         var it8 = new IT8();
@@ -46,6 +38,22 @@ public static class Utils
         }
 
         it8.SaveToFile(filename);
+    }
+
+    public static ConsoleKeyInfo? WaitForKey(int ms)
+    {
+        var cancel = new CancellationTokenSource(ms);
+        var token = cancel.Token;
+        var task = Task.Run(() => Console.ReadKey(true), token);
+        try
+        {
+            task.Wait(token);
+            var read = task.IsCompletedSuccessfully;
+            if (read) return task.Result;
+        } catch
+        {
+        }
+        return null;
     }
 
     public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
@@ -79,70 +87,75 @@ public static class Utils
         Environment.Exit(-1);
     }
 
-    public static void Check(string title, Func<bool> test)
+    public static void Check(string title, Action test)
     {
         if (HasConsole)
-            Console.Write("Checking {0} ... ", title);
+            Console.Write("\tChecking {0} ... ", title);
 
         simultaneousErrors = 0;
         totalTests++;
 
-        if (!test())
+        try
         {
+            test();
+            WriteLineGreen("Ok.");
+        } catch (Exception ex)
+        {
+            reasonToFail = ex.Message;
             WriteRed(() =>
             {
                 Console.Error.WriteLine("FAIL!");
                 if (!String.IsNullOrEmpty(subTest))
-                    Console.Error.WriteLine("{0}: [{1}]\n\t{2}", title, subTest, reasonToFail);
+                    Console.Error.WriteLine("{0}: [{1}]\n\t\t{2}", title, subTest, reasonToFail);
                 else
-                    Console.Error.WriteLine("{0}:\n\t{1}", title, reasonToFail);
+                    Console.Error.WriteLine("{0}:\n\t\t{1}", title, reasonToFail);
 
                 if (simultaneousErrors > 1)
-                    Console.Error.WriteLine("\tMore than one ({0}) errors were reported", simultaneousErrors);
+                    Console.Error.WriteLine("\t\tMore than one ({0}) errors were reported", simultaneousErrors);
 
                 totalFail++;
             });
             reasonToFail = String.Empty;
-        } else
-        {
-            WriteLineGreen("Ok.");
         }
     }
 
-    public static bool CheckSimpleTest(Action fn)
-    {
-        try
-        {
-            fn();
-            return true;
-        } catch (Exception ex)
-        {
-            reasonToFail = ex.Message;
-            return false;
-        }
-    }
-
-    public static bool CheckInterp1D(Action<int, int> fn)
+    public static bool CheckInterp1D(Action<uint, uint> fn)
     {
         if (HasConsole)
             Console.Write("10 - 4096");
         var result = true;
-        for (int i = 0, j = 1; i < 16; i++, j++)
-            if (!CheckSimpleTest(() => fn(i is 0 ? 10 : 256 * i, 256 * j)))
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            try
+            {
+                fn(i is 0 ? 10 : 256 * i, 256 * j);
+            } catch
+            {
                 result = false;
+            }
+        }
+
         if (HasConsole)
             Console.Write("\nThe result is ");
         return result;
     }
 
-    public static bool CheckInterp3D(Action<int, int> fn)
+    public static bool CheckInterp3D(Action<uint, uint> fn)
     {
         if (HasConsole)
             Console.Write("0 - 256");
         var result = true;
-        for (int i = 0, j = 1; i < 16; i++, j++)
-            if (!CheckSimpleTest(() => fn(16 * i, 16 * j)))
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            try
+            {
+                fn(16 * i, 16 * j);
+            } catch
+            {
                 result = false;
+            }
+        }
+
         if (HasConsole)
             Console.Write("\nThe result is ");
         return result;
@@ -158,14 +171,14 @@ public static class Utils
     {
         Console.ForegroundColor = ConsoleColor.Green;
         fn();
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
     }
 
     public static void WriteRed(Action fn)
     {
         Console.ForegroundColor = ConsoleColor.Red;
         fn();
-        Console.ForegroundColor = ConsoleColor.White;
+        Console.ResetColor();
     }
 
     public static void ClearAssert() =>
@@ -174,14 +187,32 @@ public static class Utils
     public static bool HasAssertions =>
         TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
 
-    public static void ProgressBar(int start, int stop, int widthSubtract, int j)
+    public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
     {
         if (!HasConsole) return;
 
         var width = Console.BufferWidth - widthSubtract;
-        var percent = (double)(j - start) / (stop - start);
+        var percent = (double)(i - start) / (stop - start);
         var filled = (int)Math.Round((double)percent * width);
         var empty = width - filled;
         Console.Write($"{new string(' ', 8)}{start} {new string('█', filled)}{new string('▓', empty)} {stop}\r");
+    }
+
+    public static void Dot() =>
+        Console.Write(".");
+
+    public static void SubTest(string frm)
+    {
+        Dot();
+        subTest = frm;
+    }
+
+    public static double DeltaE(Lab lab1, Lab lab2)
+    {
+        var dL = Math.Abs(lab1.L - lab2.L);
+        var da = Math.Abs(lab1.a - lab2.a);
+        var db = Math.Abs(lab1.b - lab2.b);
+
+        return Math.Pow(Sqr(dL) + Sqr(da) + Sqr(db), 0.5);
     }
 }

@@ -26,7 +26,7 @@ public class ColorantTableHandler: TagTypeHandler
 
         if (!io.ReadUInt32Number(out var count)) return null;
 
-        if (count > Lcms2.MaxChannels)
+        if (count > maxChannels)
         {
             state.State.SignalError(StateContainer, ErrorCode.Range, "Too many colorants '{0}'", count);
             return null;

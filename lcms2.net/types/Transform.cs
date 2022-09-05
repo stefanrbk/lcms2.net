@@ -30,8 +30,8 @@ public delegate void TransformFn(Transform cargo, object inputBuffer, object out
 
 public unsafe struct Cache
 {
-    public fixed ushort CacheIn[Lcms2.MaxChannels];
-    public fixed ushort CacheOut[Lcms2.MaxChannels];
+    public fixed ushort CacheIn[maxChannels];
+    public fixed ushort CacheOut[maxChannels];
 }
 
 /// <summary>

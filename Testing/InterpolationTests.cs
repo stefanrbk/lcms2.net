@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-using lcms2.plugins;
+﻿using lcms2.plugins;
 using lcms2.state;
 using lcms2.types;
 
@@ -33,16 +31,8 @@ public class InterpolationTests: ITest
     // Down = Create decreasing tables
     // Reverse = Check reverse interpolation
     // max_err = max allowed error
-    [TestCase(2, false, 0)]
-    [TestCase(3, false, 1)]
-    [TestCase(4, false, 0)]
-    [TestCase(6, false, 0)]
-    [TestCase(18, false, 0)]
-    [TestCase(2, true, 0)]
-    [TestCase(3, true, 1)]
-    [TestCase(6, true, 0)]
-    [TestCase(18, true, 0)]
-    public void Check1DTest(int numNodesToCheck, bool down, int maxErr)
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.Check1D))]
+    public void Check1DTest(uint numNodesToCheck, bool down, int maxErr)
     {
         var tab = new ushort[numNodesToCheck];
 
@@ -56,7 +46,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i };
             var @out = new ushort[1];
 
-            p.Interpolation.Lerp16(in @in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
 
             if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
 
@@ -65,46 +55,16 @@ public class InterpolationTests: ITest
     }
 
     [Explicit("Exhaustive test")]
-    [TestCase(10, 256 * 1)]
-    [TestCase(256 * 1, 256 * 2)]
-    [TestCase(256 * 2, 256 * 3)]
-    [TestCase(256 * 3, 256 * 4)]
-    [TestCase(256 * 4, 256 * 5)]
-    [TestCase(256 * 5, 256 * 6)]
-    [TestCase(256 * 6, 256 * 7)]
-    [TestCase(256 * 7, 256 * 8)]
-    [TestCase(256 * 8, 256 * 9)]
-    [TestCase(256 * 9, 256 * 10)]
-    [TestCase(256 * 10, 256 * 11)]
-    [TestCase(256 * 11, 256 * 12)]
-    [TestCase(256 * 12, 256 * 13)]
-    [TestCase(256 * 13, 256 * 14)]
-    [TestCase(256 * 14, 256 * 15)]
-    [TestCase(256 * 15, 256 * 16)]
-    public void ExhaustiveCheck1DTest(int start, int stop) =>
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
+    public void ExhaustiveCheck1DTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, false, start, stop);
 
     [Explicit("Exhaustive test")]
-    [TestCase(10, 256 * 1)]
-    [TestCase(256 * 1, 256 * 2)]
-    [TestCase(256 * 2, 256 * 3)]
-    [TestCase(256 * 3, 256 * 4)]
-    [TestCase(256 * 4, 256 * 5)]
-    [TestCase(256 * 5, 256 * 6)]
-    [TestCase(256 * 6, 256 * 7)]
-    [TestCase(256 * 7, 256 * 8)]
-    [TestCase(256 * 8, 256 * 9)]
-    [TestCase(256 * 9, 256 * 10)]
-    [TestCase(256 * 10, 256 * 11)]
-    [TestCase(256 * 11, 256 * 12)]
-    [TestCase(256 * 12, 256 * 13)]
-    [TestCase(256 * 13, 256 * 14)]
-    [TestCase(256 * 14, 256 * 15)]
-    [TestCase(256 * 15, 256 * 16)]
-    public void ExhaustiveCheck1DDownTest(int start, int stop) =>
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
+    public void ExhaustiveCheck1DDownTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, true, start, stop);
 
-    private static void ExhaustiveCheck1D(Action<int, bool, int> fn, bool down, int start, int stop)
+    private static void ExhaustiveCheck1D(Action<uint, bool, int> fn, bool down, uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -136,7 +96,7 @@ public class InterpolationTests: ITest
     //            0xFFFF = 3 * 5 * 17 * 257
     //
     // I test tables of 2, 4, 6, and 18 points, that will be exact.
-    private static void BuildTable(int n, ref ushort[] tab, bool descending)
+    private static void BuildTable(uint n, ref ushort[] tab, bool descending)
     {
         for (var i = 0; i < n; i++)
         {
@@ -173,7 +133,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, ref @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -215,7 +175,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f , i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, ref @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -256,7 +216,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -294,7 +254,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, ref @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -306,24 +266,9 @@ public class InterpolationTests: ITest
         }
     }
 
-    [Explicit]
-    [TestCase(16*0, 16*1)]
-    [TestCase(16*1, 16*2)]
-    [TestCase(16*2, 16*3)]
-    [TestCase(16*3, 16*4)]
-    [TestCase(16*4, 16*5)]
-    [TestCase(16*5, 16*6)]
-    [TestCase(16*6, 16*7)]
-    [TestCase(16*7, 16*8)]
-    [TestCase(16*8, 16*9)]
-    [TestCase(16*9, 16*10)]
-    [TestCase(16*10, 16*11)]
-    [TestCase(16*11, 16*12)]
-    [TestCase(16*12, 16*13)]
-    [TestCase(16*13, 16*14)]
-    [TestCase(16*14, 16*15)]
-    [TestCase(16*15, 16*16)]
-    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(int start, int stop)
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
+    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -364,7 +309,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f , b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        p.Interpolation.LerpFloat(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -387,24 +332,9 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(int start, int stop)
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
+    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -445,7 +375,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f , b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, ref @out, p);
+                        p.Interpolation.LerpFloat(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -468,24 +398,9 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(int start, int stop)
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
+    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -525,7 +440,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        p.Interpolation.Lerp16(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -545,24 +460,9 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0, 16 * 1)]
-    [TestCase(16 * 1, 16 * 2)]
-    [TestCase(16 * 2, 16 * 3)]
-    [TestCase(16 * 3, 16 * 4)]
-    [TestCase(16 * 4, 16 * 5)]
-    [TestCase(16 * 5, 16 * 6)]
-    [TestCase(16 * 6, 16 * 7)]
-    [TestCase(16 * 7, 16 * 8)]
-    [TestCase(16 * 8, 16 * 9)]
-    [TestCase(16 * 9, 16 * 10)]
-    [TestCase(16 * 10, 16 * 11)]
-    [TestCase(16 * 11, 16 * 12)]
-    [TestCase(16 * 12, 16 * 13)]
-    [TestCase(16 * 13, 16 * 14)]
-    [TestCase(16 * 14, 16 * 15)]
-    [TestCase(16 * 15, 16 * 16)]
-    public void ExhaustiveCheck3DInterpolation16TrilinearTest(int start, int stop)
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
+    public void ExhaustiveCheck3DInterpolation16TrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -602,7 +502,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, ref @out, p);
+                        p.Interpolation.Lerp16(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -621,4 +521,251 @@ public class InterpolationTests: ITest
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
+
+    [Test]
+    public void CheckReverseInterpolation3x3Test()
+    {
+        var target = new float[4];
+        var result = new float[4];
+        var hint = new float[4];
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // B=0, G=0, R=0
+            0, 0, 0xFFFF,           // B=1, G=0, R=0
+            
+            0, 0xFFFF, 0,           // B=0, G=1, R=0
+            0, 0xFFFF, 0xFFFF,      // B=1, G=1, R=0
+            
+            0xFFFF, 0, 0,           // B=0, G=0, R=1
+            0xFFFF, 0, 0xFFFF,      // B=1, G=0, R=1
+            
+            0xFFFF, 0xFFFF, 0,      // B=0, G=1, R=1
+            0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
+        };
+
+        var lut = Pipeline.Alloc(_state, 3, 3);
+        Assert.That(lut, Is.Not.Null);
+
+        var clut = Stage.AllocCLut16bit(_state, 2, 3, 3, table);
+        lut.InsertStage(StageLoc.AtBegin, clut);
+
+        lut.EvalReverse(target, result, null);
+        Assert.That(result.Take(3).ToArray(), Contains.Item(0), "Reverse interpolation didn't find zero");
+
+        // Transverse identity
+        var max = 0f;
+        for (var i = 0; i <= 100; i++)
+        {
+            var @in = i / 100f;
+
+            target[0] = @in; target[1] = 0; target[2] = 0;
+            lut.EvalReverse(target, result, hint);
+
+            var err = MathF.Abs(@in - result[0]);
+            if (err > max) max = err;
+
+            result.CopyTo(hint, 0);
+        }
+
+        lut.Dispose();
+        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
+    }
+
+    [Test]
+    public void CheckReverseInterpolation4x3Test()
+    {
+        var target = new float[4];
+        var result = new float[4];
+        var hint = new float[4];
+
+        var table = new ushort[]
+        {
+            0, 0, 0,                // 0 0 0 0 = ( 0, 0, 0)
+            0, 0, 0,                // 0 0 0 1 = ( 0, 0, 0)
+
+            0, 0, 0xFFFF,           // 0 0 1 0 = ( 0, 0, 1)
+            0, 0, 0xFFFF,           // 0 0 1 1 = ( 0, 0, 1)
+            
+            0, 0xFFFF, 0,           // 0 1 0 0 = ( 0, 1, 0)
+            0, 0xFFFF, 0,           // 0 1 0 1 = ( 0, 1, 0)
+
+            0, 0xFFFF, 0xFFFF,      // 0 1 1 0 = ( 0, 1, 1)
+            0, 0xFFFF, 0xFFFF,      // 0 1 1 1 = ( 0, 1, 1)
+            
+            0xFFFF, 0, 0,           // 1 0 0 0 = ( 1, 0, 0)
+            0xFFFF, 0, 0,           // 1 0 0 1 = ( 1, 0, 0)
+
+            0xFFFF, 0, 0xFFFF,      // 1 0 1 0 = ( 1, 0, 1)
+            0xFFFF, 0, 0xFFFF,      // 1 0 1 1 = ( 1, 0, 1)
+            
+            0xFFFF, 0xFFFF, 0,      // 1 1 0 0 = ( 1, 1, 0)
+            0xFFFF, 0xFFFF, 0,      // 1 1 0 1 = ( 1, 1, 0)
+
+            0xFFFF, 0xFFFF, 0xFFFF, // 1 1 1 0 = ( 1, 1, 1)
+            0xFFFF, 0xFFFF, 0xFFFF, // 1 1 1 1 = ( 1, 1, 1)
+        };
+
+        var lut = Pipeline.Alloc(_state, 4, 3);
+        Assert.That(lut, Is.Not.Null);
+
+        var clut = Stage.AllocCLut16bit(_state, 2, 4, 3, table);
+        lut.InsertStage(StageLoc.AtBegin, clut);
+
+        // Check if the LUT is behaving as expected
+        SubTest("4->3 feasibility");
+        for (var i = 0; i <= 100; i++)
+        {
+            target[0] = i / 100f;
+            target[1] = target[0];
+            target[2] = 0;
+            target[3] = 12;
+
+            lut.Eval(target, result);
+
+            Assert.Multiple(() =>
+            {
+                ClearAssert();
+
+                IsGoodFixed15_16("0", target[0], result[0]);
+                IsGoodFixed15_16("1", target[1], result[1]);
+                IsGoodFixed15_16("2", target[2], result[2]);
+            });
+        }
+
+        SubTest("4->3 zero");
+        target[0] = target[1] = target[2] = 0;
+
+        // This one holds the fixed k
+        target[3] = 0;
+
+        // This is our hint (which is a big lie in this case)
+        Enumerable.Repeat(0.1f, 3).ToArray().CopyTo(hint, 0);
+
+        lut.EvalReverse(target, result, hint);
+
+        Assert.That(result, Contains.Item(0), "Reverse interpolation didn't find zero");
+
+        SubTest("4->3 find CMY");
+
+        var max = 0f;
+        for (var i = 0; i <= 100; i++)
+        {
+            var @in = i / 100f;
+
+            target[0] = @in; target[1] = 0; target[2] = 0;
+            lut.EvalReverse(target, result, hint);
+
+            var err = MathF.Abs(@in - result[0]);
+            if (err > max) max = err;
+
+            result.CopyTo(hint, 0);
+        }
+
+        lut.Dispose();
+        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
+    }
+
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 3 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 4 })]
+    public void CheckXDInterpTest(uint inputChans, ushort[] a)
+    {
+        var lut = Pipeline.Alloc(_state, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(_state, 9, inputChans, 3, null);
+        Assert.Multiple(() =>
+        {
+            ClearAssert();
+
+            Assert.That(lut, Is.Not.Null);
+            Assert.That(mpe, Is.Not.Null);
+        });
+
+        mpe!.Sample(SamplerXD, null, SamplerFlags.None);
+        lut!.InsertStage(StageLoc.AtBegin, mpe);
+
+        // Check accuracy
+        var out1 = new ushort[3];
+        var out2 = new ushort[3];
+
+        // This is the interpolated value
+        lut.Eval(a, out1);
+
+        // This is the real value
+        SamplerXD(a.Concat(Enumerable.Repeat<ushort>(0, 5)).ToArray(), out2, null);
+
+        // Let's see the difference
+
+        Assert.Multiple(() =>
+        {
+            IsGoodWord("Channel 1", out1[0], out2[0], 2);
+            IsGoodWord("Channel 2", out1[1], out2[1], 2);
+            IsGoodWord("Channel 3", out1[2], out2[2], 2);
+        });
+    }
+
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 3 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 4 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 5 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 6 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 7 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 8 })]
+    public void CheckXDInterpGranularTest(uint[] dims, uint inputChans, ushort[] a)
+    {
+        var lut = Pipeline.Alloc(_state, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(_state, dims, inputChans, 3, null);
+        Assert.Multiple(() =>
+        {
+            ClearAssert();
+
+            Assert.That(lut, Is.Not.Null);
+            Assert.That(mpe, Is.Not.Null);
+        });
+
+        mpe!.Sample(SamplerXD, null, SamplerFlags.None);
+        lut!.InsertStage(StageLoc.AtBegin, mpe);
+
+        // Check accuracy
+        var out1 = new ushort[3];
+        var out2 = new ushort[3];
+
+        // This is the interpolated value
+        lut.Eval(a, out1);
+
+        // This is the real value
+        SamplerXD(a.Concat(Enumerable.Repeat<ushort>(0, 5)).ToArray(), out2, null);
+
+        // Let's see the difference
+
+        Assert.Multiple(() =>
+        {
+            IsGoodWord("Channel 1", out1[0], out2[0], 2);
+            IsGoodWord("Channel 2", out1[1], out2[1], 2);
+            IsGoodWord("Channel 3", out1[2], out2[2], 2);
+        });
+    }
+
+    private static bool SamplerXD(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
+    {
+        @out![0] = Fn8D1(@in[..8]);
+        @out![1] = Fn8D2(@in[..8]);
+        @out![1] = Fn8D3(@in[..8]);
+
+        return true;
+    }
+
+    private static ushort Fn8D1(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Average(i => i);
+
+    private static ushort Fn8D2(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Concat(Enumerable.Repeat<ushort>(0, 4))
+                 .Select((i, j) => j is 2 or 3 ? 3 * i : i)
+                 .Average(i => i);
+
+    private static ushort Fn8D3(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Concat(Enumerable.Repeat<ushort>(0, 5))
+                 .Select((i, j) => j is 1 or 3 ? 3 * i : j is 2 ? 2 * i : i)
+                 .Average(i => i);
 }

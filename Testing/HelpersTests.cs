@@ -52,7 +52,7 @@ public class HelpersTests
         Assert.That(roundTrip, Is.EqualTo(value).Within(1.0 / 255.0));
     }
 
-    internal bool CheckQuickFloor()
+    internal void CheckQuickFloor()
     {
         try
         {
@@ -60,28 +60,24 @@ public class HelpersTests
             QuickFloorTest(32767.234, 32767);
             QuickFloorTest(-1.234, -2);
             QuickFloorTest(-32767.1, -32768);
-            return true;
         } catch
         {
             Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
-            return false;
         }
     }
 
-    internal bool CheckQuickFloorWord()
+    internal void CheckQuickFloorWord()
     {
         try
         {
             QuickFloorWordTest();
-            return true;
         } catch
         {
             Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
-            return false;
         }
     }
 
-    internal bool CheckFixedPoint15_16()
+    internal void CheckFixedPoint15_16()
     {
         try
         {
@@ -96,15 +92,13 @@ public class HelpersTests
             FixedPoint15_16Test(-1.1234567890123456789099999);
             FixedPoint15_16Test(32767.1234567890123456789099999);
             FixedPoint15_16Test(-32767.1234567890123456789099999);
-
-            return true;
         } catch
         {
-            return false;
+            Assert.Fail();
         }
     }
 
-    internal bool CheckFixedPoint8_8()
+    internal void CheckFixedPoint8_8()
     {
         try
         {
@@ -114,11 +108,9 @@ public class HelpersTests
             FixedPoint8_8Test(0.99999);
             FixedPoint8_8Test(0.1234567890123456789099999);
             FixedPoint8_8Test(255.1234567890123456789099999);
-
-            return true;
         } catch
         {
-            return false;
+            Assert.Fail();
         }
     }
 }

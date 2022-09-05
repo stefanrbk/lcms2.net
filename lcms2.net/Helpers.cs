@@ -10,8 +10,16 @@ internal static class Helpers
 
     internal const ushort maxNodesInCurve = 4097;
 
+    internal const int maxChannels = 16;
     internal const int maxInputDimensions = 15;
     internal const int maxStageChannels = 128;
+
+    internal const double maxEncodableXYZ = 1 + (32767.0 /32768.0);
+    internal const double minEncodableAb2 = -128.0;
+    internal const double maxEncodableAb2 = (65535.0 / 256.0) - 128.0;
+    internal const double minEncodableAb4 = -128.0;
+    internal const double maxEncodableAb4 = 127.0;
+
 
     internal const double determinantTolerance = 0.0001;
 
@@ -100,15 +108,49 @@ internal static class Helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ushort QuickSaturateWord(double d) =>
-        (d + 0.5) switch
+        (d += 0.5) switch
         {
             <= 0 => 0,
             >= 65535.0 => 0xFFFF,
             _ => QuickFloorWord(d),
         };
 
-    internal static ushort QuantizeValue(double i, int maxSamples) =>
+    /*  Original Code (cmslut.c line: 732)
+     *  
+     *  // Quantize a value 0 <= i < MaxSamples to 0..0xffff
+     *  cmsUInt16Number CMSEXPORT _cmsQuantizeVal(cmsFloat64Number i, cmsUInt32Number MaxSamples)
+     *  {
+     *      cmsFloat64Number x;
+     *
+     *      x = ((cmsFloat64Number) i * 65535.) / (cmsFloat64Number) (MaxSamples - 1);
+     *      return _cmsQuickSaturateWord(x);
+     *  }
+     */
+    internal static ushort QuantizeValue(double i, uint maxSamples) =>
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
+
+    internal static double Sqr(double v) =>
+        v * v;
+
+    internal static double Atan2Deg(double a, double b)
+    {
+        var h = (a is 0 && b is 0)
+            ? 0
+            : Math.Atan2(a, b);
+
+        h *= 180 / Math.PI;
+
+        while (h > 360.0)
+            h -= 360.0;
+
+        while (h < 0)
+            h += 360.0;
+
+        return h;
+    }
+
+    internal static double Deg2Rad(double deg) =>
+        deg * Math.PI / 180.0;
 
     /// <summary>
     ///     Converts a double-precision floating-point number into a Q15.16 signed fixed-point number.
@@ -153,5 +195,103 @@ internal static class Helpers
         var msb = (byte)((value >> 8) & 0xff);
 
         return msb + (lsb / 256.0);
+    }
+    public static double F(double t)
+    {
+        const double limit = 24.0 / 116.0 * (24.0 / 116.0) * (24.0 / 116.0);
+
+        if (t is <= limit)
+            return (841.0 / 108.0 * t) + (16.0 / 116.0);
+
+        return Math.Pow(t, 1.0 / 3.0);
+    }
+
+    public static double F1(double t)
+    {
+        const double limit = 24.0 / 116.0;
+
+        if (t is <= limit)
+            return 108.0 / 841.0 * (t - (16.0 / 116.0));
+
+        return t * t * t;
+    }
+
+    /*  Original Code (cmslut.c line: 81)
+     * 
+     *  // Conversion functions. From floating point to 16 bits
+     *  static
+     *  void FromFloatTo16(const cmsFloat32Number In[], cmsUInt16Number Out[], cmsUInt32Number n)
+     *  {
+     *      cmsUInt32Number i;
+     *
+     *      for (i=0; i < n; i++) {
+     *          Out[i] = _cmsQuickSaturateWord(In[i] * 65535.0);
+     *      }
+     *  }
+     */
+    public static void FromFloatTo16(ReadOnlySpan<float> @in, Span<ushort> @out, int n)
+    {
+        for (var i = 0; i < n; i++)
+            @out[i] = QuickSaturateWord(@in[i] * 65535);
+    }
+
+    /*  Original Code (cmslut.c line: 92)
+     * 
+     *  // From 16 bits to floating point
+     *  static
+     *  void From16ToFloat(const cmsUInt16Number In[], cmsFloat32Number Out[], cmsUInt32Number n)
+     *  {
+     *      cmsUInt32Number i;
+     *
+     *      for (i=0; i < n; i++) {
+     *          Out[i] = (cmsFloat32Number) In[i] / 65535.0F;
+     *      }
+     *  }
+     */
+    public static void From16ToFloat(ReadOnlySpan<ushort> @in, Span<float> @out, int n)
+    {
+        for (var i = 0; i < n; i++)
+            @out[i] = @in[i] / 65535f;
+    }
+
+    /*  Original Code (cmslut.c line: 459)
+     *  
+     *  // Given an hypercube of b dimensions, with Dims[] number of nodes by dimension, calculate the total amount of nodes
+     *  static
+     *  cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
+     *  {
+     *      cmsUInt32Number rv, dim;
+     *
+     *      _cmsAssert(Dims != NULL);
+     *
+     *      for (rv = 1; b > 0; b--) {
+     *
+     *          dim = Dims[b-1];
+     *          if (dim == 0) return 0;  // Error
+     *
+     *          rv *= dim;
+     *
+     *          // Check for overflow
+     *          if (rv > UINT_MAX / dim) return 0;
+     *      }
+     *
+     *      return rv;
+     *  }
+     */
+    public static uint CubeSize(ReadOnlySpan<uint> dims, int b)
+    {
+        uint rv;
+        for (rv = 1; b > 0; b--)
+        {
+            var dim = dims[b-1];
+            if (dim is 0) return 0;     // Error
+
+            rv *= dim;
+
+            // Check for overflow
+            if (rv > UInt32.MaxValue / dim) return 0;
+        }
+
+        return rv;
     }
 }

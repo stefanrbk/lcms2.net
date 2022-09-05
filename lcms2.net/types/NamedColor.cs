@@ -2,7 +2,7 @@
 
 internal class NamedColor
 {
-    internal ushort[] deviceColorant = new ushort[Lcms2.MaxChannels];
+    internal ushort[] deviceColorant = new ushort[maxChannels];
     internal string name;
     internal ushort[] pcs = new ushort[3];
 }

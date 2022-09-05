@@ -15,6 +15,6 @@ public class CurveSegment
     public float X0, X1;
 
     // Number of grid points if Type == 0
-    public int NumGridPoints =>
-        SampledPoints?.Length ?? 0;
+    public uint NumGridPoints =>
+        (uint?)SampledPoints?.Length ?? 0u;
 }
