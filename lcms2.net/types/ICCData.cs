@@ -1,18 +1,29 @@
-﻿using System.Buffers;
+﻿namespace lcms2.types;
 
-namespace lcms2.types;
-
-public class ICCData
+public class IccData: ICloneable, IDisposable
 {
-    internal uint Length;
-    internal uint Flag;
+    internal byte[] data;
 
-    internal byte[] Data { get; }
+    internal uint flag;
 
-    internal ICCData(uint length, uint flag, byte[] data)
+    internal uint length;
+
+    private bool disposed = false;
+
+    internal IccData(uint length, uint flag, byte[] data)
     {
-        Length = length;
-        Flag = flag;
-        Data = data;
+        this.length = length;
+        this.flag = flag;
+        this.data = data;
+    }
+
+    public object Clone() =>
+                        new IccData(length, flag, (byte[])data.Clone());
+
+    public void Dispose()
+    {
+        if (!disposed)
+            data = null!;
+        GC.SuppressFinalize(this);
     }
 }
