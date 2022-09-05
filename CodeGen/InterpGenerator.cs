@@ -54,12 +54,12 @@ public partial class InterpParams
         var tmp1 = new float[maxStageChannels];
         var tmp2 = new float[maxStageChannels];
 
-        var pk = fclamp(input[0]) * p.Domain[0];
+        var pk = Fclamp(input[0]) * p.Domain[0];
         var k0 = QuickFloor(pk);
         var rest = pk - k0;
 
         var K0 = p.Opta[{1}] * k0;
-        var K1 = K0 + (fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
+        var K1 = K0 + (Fclamp(input[0]) >= 1.0 ? 0 : p.Opta[{1}]);
 
         var t = lutTable[K0..];
         var p1 = new InterpParams(p.StateContainer, p.Flags, p.NumInputs, p.NumOutputs, t);
@@ -79,7 +79,7 @@ public partial class InterpParams
             var y0 = tmp1[i];
             var y1 = tmp2[i];
 
-            output[i] = lerp(rest, y0, y1);
+            output[i] = Lerp(rest, y0, y1);
         }}
     }}
 }}";

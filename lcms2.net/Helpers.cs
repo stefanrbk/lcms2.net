@@ -251,7 +251,7 @@ internal static class Helpers
     public static void From16ToFloat(ReadOnlySpan<ushort> @in, Span<float> @out, int n)
     {
         for (var i = 0; i < n; i++)
-            @out[i] = @in[i] / 65535;
+            @out[i] = @in[i] / 65535f;
     }
 
     /*  Original Code (cmslut.c line: 459)

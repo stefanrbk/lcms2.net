@@ -3,8 +3,6 @@ using System.Runtime.InteropServices;
 
 using lcms2.state;
 
-using static lcms2.Helpers;
-
 namespace lcms2.types;
 
 /// <summary>

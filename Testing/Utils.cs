@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 
 using lcms2.it8;
-using lcms2.state;
 using lcms2.types;
-
-using Newtonsoft.Json.Linq;
 
 using NUnit.Framework.Internal;
 
@@ -28,7 +20,7 @@ public static class Utils
     public static string subTest = String.Empty;
     public static string reasonToFail = String.Empty;
     public static double MaxErr = 0;
-    public static bool HasConsole = true;
+    public static bool HasConsole = !Console.IsInputRedirected;
     public static void DumpToneCurve(ToneCurve gamma, string filename)
     {
         var it8 = new IT8();
@@ -95,7 +87,7 @@ public static class Utils
         Environment.Exit(-1);
     }
 
-    public static void Check(string title, Func<bool> test)
+    public static void Check(string title, Action test)
     {
         if (HasConsole)
             Console.Write("\tChecking {0} ... ", title);
@@ -103,8 +95,13 @@ public static class Utils
         simultaneousErrors = 0;
         totalTests++;
 
-        if (!test())
+        try
         {
+            test();
+            WriteLineGreen("Ok.");
+        } catch (Exception ex)
+        {
+            reasonToFail = ex.Message;
             WriteRed(() =>
             {
                 Console.Error.WriteLine("FAIL!");
@@ -119,32 +116,7 @@ public static class Utils
                 totalFail++;
             });
             reasonToFail = String.Empty;
-        } else
-        {
-            WriteLineGreen("Ok.");
         }
-    }
-
-    public static bool CheckSimpleTest(Action fn)
-    {
-        try
-        {
-            fn();
-            return true;
-        } catch (Exception ex)
-        {
-            reasonToFail = ex.Message;
-            return false;
-        }
-    }
-
-    public static bool CheckMultiTest(IEnumerable<Action> tests)
-    {
-        foreach (var test in tests)
-            if (!CheckSimpleTest(test))
-                return false;
-
-        return true;
     }
 
     public static bool CheckInterp1D(Action<uint, uint> fn)
@@ -153,8 +125,16 @@ public static class Utils
             Console.Write("10 - 4096");
         var result = true;
         for (uint i = 0, j = 1; i < 16; i++, j++)
-            if (!CheckSimpleTest(() => fn(i is 0 ? 10 : 256 * i, 256 * j)))
+        {
+            try
+            {
+                fn(i is 0 ? 10 : 256 * i, 256 * j);
+            } catch
+            {
                 result = false;
+            }
+        }
+
         if (HasConsole)
             Console.Write("\nThe result is ");
         return result;
@@ -166,8 +146,16 @@ public static class Utils
             Console.Write("0 - 256");
         var result = true;
         for (uint i = 0, j = 1; i < 16; i++, j++)
-            if (!CheckSimpleTest(() => fn(16 * i, 16 * j)))
+        {
+            try
+            {
+                fn(16 * i, 16 * j);
+            } catch
+            {
                 result = false;
+            }
+        }
+
         if (HasConsole)
             Console.Write("\nThe result is ");
         return result;

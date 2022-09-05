@@ -285,8 +285,8 @@ public partial class Stage
          */
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage parent)
         {
-            var in16 = new ushort[parent.InputChannels];
-            var out16 = new ushort[parent.OutputChannels];
+            var in16 = new ushort[maxStageChannels];
+            var out16 = new ushort[maxStageChannels];
 
             FromFloatTo16(@in, in16, (int)parent.InputChannels);
             Params.Lerp16(in16, out16);

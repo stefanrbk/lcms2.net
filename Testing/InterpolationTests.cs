@@ -31,15 +31,7 @@ public class InterpolationTests: ITest
     // Down = Create decreasing tables
     // Reverse = Check reverse interpolation
     // max_err = max allowed error
-    [TestCase(2u, false, 0)]
-    [TestCase(3u, false, 1)]
-    [TestCase(4u, false, 0)]
-    [TestCase(6u, false, 0)]
-    [TestCase(18u, false, 0)]
-    [TestCase(2u, true, 0)]
-    [TestCase(3u, true, 1)]
-    [TestCase(6u, true, 0)]
-    [TestCase(18u, true, 0)]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.Check1D))]
     public void Check1DTest(uint numNodesToCheck, bool down, int maxErr)
     {
         var tab = new ushort[numNodesToCheck];
@@ -63,42 +55,12 @@ public class InterpolationTests: ITest
     }
 
     [Explicit("Exhaustive test")]
-    [TestCase(10u, 256 * 1u)]
-    [TestCase(256 * 1u, 256 * 2u)]
-    [TestCase(256 * 2u, 256 * 3u)]
-    [TestCase(256 * 3u, 256 * 4u)]
-    [TestCase(256 * 4u, 256 * 5u)]
-    [TestCase(256 * 5u, 256 * 6u)]
-    [TestCase(256 * 6u, 256 * 7u)]
-    [TestCase(256 * 7u, 256 * 8u)]
-    [TestCase(256 * 8u, 256 * 9u)]
-    [TestCase(256 * 9u, 256 * 10u)]
-    [TestCase(256 * 10u, 256 * 11u)]
-    [TestCase(256 * 11u, 256 * 12u)]
-    [TestCase(256 * 12u, 256 * 13u)]
-    [TestCase(256 * 13u, 256 * 14u)]
-    [TestCase(256 * 14u, 256 * 15u)]
-    [TestCase(256 * 15u, 256 * 16u)]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
     public void ExhaustiveCheck1DTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, false, start, stop);
 
     [Explicit("Exhaustive test")]
-    [TestCase(10u, 256 * 1u)]
-    [TestCase(256 * 1u, 256 * 2u)]
-    [TestCase(256 * 2u, 256 * 3u)]
-    [TestCase(256 * 3u, 256 * 4u)]
-    [TestCase(256 * 4u, 256 * 5u)]
-    [TestCase(256 * 5u, 256 * 6u)]
-    [TestCase(256 * 6u, 256 * 7u)]
-    [TestCase(256 * 7u, 256 * 8u)]
-    [TestCase(256 * 8u, 256 * 9u)]
-    [TestCase(256 * 9u, 256 * 10u)]
-    [TestCase(256 * 10u, 256 * 11u)]
-    [TestCase(256 * 11u, 256 * 12u)]
-    [TestCase(256 * 12u, 256 * 13u)]
-    [TestCase(256 * 13u, 256 * 14u)]
-    [TestCase(256 * 14u, 256 * 15u)]
-    [TestCase(256 * 15u, 256 * 16u)]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
     public void ExhaustiveCheck1DDownTest(uint start, uint stop) =>
         ExhaustiveCheck1D(Check1DTest, true, start, stop);
 
@@ -304,23 +266,8 @@ public class InterpolationTests: ITest
         }
     }
 
-    [Explicit]
-    [TestCase(16*0u, 16*1u)]
-    [TestCase(16*1u, 16*2u)]
-    [TestCase(16*2u, 16*3u)]
-    [TestCase(16*3u, 16*4u)]
-    [TestCase(16*4u, 16*5u)]
-    [TestCase(16*5u, 16*6u)]
-    [TestCase(16*6u, 16*7u)]
-    [TestCase(16*7u, 16*8u)]
-    [TestCase(16*8u, 16*9u)]
-    [TestCase(16*9u, 16*10u)]
-    [TestCase(16*10u, 16*11u)]
-    [TestCase(16*11u, 16*12u)]
-    [TestCase(16*12u, 16*13u)]
-    [TestCase(16*13u, 16*14u)]
-    [TestCase(16*14u, 16*15u)]
-    [TestCase(16*15u, 16*16u)]
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
     public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
@@ -385,23 +332,8 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0u, 16 * 1u)]
-    [TestCase(16 * 1u, 16 * 2u)]
-    [TestCase(16 * 2u, 16 * 3u)]
-    [TestCase(16 * 3u, 16 * 4u)]
-    [TestCase(16 * 4u, 16 * 5u)]
-    [TestCase(16 * 5u, 16 * 6u)]
-    [TestCase(16 * 6u, 16 * 7u)]
-    [TestCase(16 * 7u, 16 * 8u)]
-    [TestCase(16 * 8u, 16 * 9u)]
-    [TestCase(16 * 9u, 16 * 10u)]
-    [TestCase(16 * 10u, 16 * 11u)]
-    [TestCase(16 * 11u, 16 * 12u)]
-    [TestCase(16 * 12u, 16 * 13u)]
-    [TestCase(16 * 13u, 16 * 14u)]
-    [TestCase(16 * 14u, 16 * 15u)]
-    [TestCase(16 * 15u, 16 * 16u)]
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
     public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
@@ -466,23 +398,8 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0u, 16 * 1u)]
-    [TestCase(16 * 1u, 16 * 2u)]
-    [TestCase(16 * 2u, 16 * 3u)]
-    [TestCase(16 * 3u, 16 * 4u)]
-    [TestCase(16 * 4u, 16 * 5u)]
-    [TestCase(16 * 5u, 16 * 6u)]
-    [TestCase(16 * 6u, 16 * 7u)]
-    [TestCase(16 * 7u, 16 * 8u)]
-    [TestCase(16 * 8u, 16 * 9u)]
-    [TestCase(16 * 9u, 16 * 10u)]
-    [TestCase(16 * 10u, 16 * 11u)]
-    [TestCase(16 * 11u, 16 * 12u)]
-    [TestCase(16 * 12u, 16 * 13u)]
-    [TestCase(16 * 13u, 16 * 14u)]
-    [TestCase(16 * 14u, 16 * 15u)]
-    [TestCase(16 * 15u, 16 * 16u)]
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
     public void ExhaustiveCheck3DInterpolation16TetrahedralTest(uint start, uint stop)
     {
         if (HasConsole)
@@ -543,23 +460,8 @@ public class InterpolationTests: ITest
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
     }
 
-    [Explicit]
-    [TestCase(16 * 0u, 16 * 1u)]
-    [TestCase(16 * 1u, 16 * 2u)]
-    [TestCase(16 * 2u, 16 * 3u)]
-    [TestCase(16 * 3u, 16 * 4u)]
-    [TestCase(16 * 4u, 16 * 5u)]
-    [TestCase(16 * 5u, 16 * 6u)]
-    [TestCase(16 * 6u, 16 * 7u)]
-    [TestCase(16 * 7u, 16 * 8u)]
-    [TestCase(16 * 8u, 16 * 9u)]
-    [TestCase(16 * 9u, 16 * 10u)]
-    [TestCase(16 * 10u, 16 * 11u)]
-    [TestCase(16 * 11u, 16 * 12u)]
-    [TestCase(16 * 12u, 16 * 13u)]
-    [TestCase(16 * 13u, 16 * 14u)]
-    [TestCase(16 * 14u, 16 * 15u)]
-    [TestCase(16 * 15u, 16 * 16u)]
+    [Explicit("Exhaustive test")]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
     public void ExhaustiveCheck3DInterpolation16TrilinearTest(uint start, uint stop)
     {
         if (HasConsole)
@@ -764,11 +666,12 @@ public class InterpolationTests: ITest
         Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
     }
 
-    [Test]
-    public void Check3DInterpTest()
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 3 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 4 })]
+    public void CheckXDInterpTest(uint inputChans, ushort[] a)
     {
-        var lut = Pipeline.Alloc(_state, 3, 3);
-        var mpe = Stage.AllocCLut16bit(_state, 9, 3, 3, null);
+        var lut = Pipeline.Alloc(_state, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(_state, 9, inputChans, 3, null);
         Assert.Multiple(() =>
         {
             ClearAssert();
@@ -777,283 +680,18 @@ public class InterpolationTests: ITest
             Assert.That(mpe, Is.Not.Null);
         });
 
-        mpe!.Sample(Sampler3D, null, SamplerFlags.None);
+        mpe!.Sample(SamplerXD, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne3D(lut, 0x0000, 0x0000, 0x0000);
-            CheckOne3D(lut, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne3D(lut, 0x8080, 0x8080, 0x8080);
-            CheckOne3D(lut, 0x0000, 0xFE00, 0x80FF);
-            CheckOne3D(lut, 0x1111, 0x2222, 0x3333);
-            CheckOne3D(lut, 0x0000, 0x0012, 0x0013);
-            CheckOne3D(lut, 0x3141, 0x1415, 0x1592);
-            CheckOne3D(lut, 0xFF00, 0xFF01, 0xFF12);
-        });
-    }
-
-    [Test]
-    public void Check3DInterpGranularTest()
-    {
-        var dims = new uint[] { 7, 8, 9 };
-
-        var lut = Pipeline.Alloc(_state, 3, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 3, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler3D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne3D(lut, 0x0000, 0x0000, 0x0000);
-            CheckOne3D(lut, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne3D(lut, 0x8080, 0x8080, 0x8080);
-            CheckOne3D(lut, 0x0000, 0xFE00, 0x80FF);
-            CheckOne3D(lut, 0x1111, 0x2222, 0x3333);
-            CheckOne3D(lut, 0x0000, 0x0012, 0x0013);
-            CheckOne3D(lut, 0x3141, 0x1415, 0x1592);
-            CheckOne3D(lut, 0xFF00, 0xFF01, 0xFF12);
-        });
-    }
-
-    [Test]
-    public void Check4DInterpTest()
-    {
-        var lut = Pipeline.Alloc(_state, 4, 3);
-        var mpe = Stage.AllocCLut16bit(_state, 9, 4, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler4D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne4D(lut, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne4D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne4D(lut, 0x8080, 0x8080, 0x8080, 0x8080);
-            CheckOne4D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888);
-            CheckOne4D(lut, 0x1111, 0x2222, 0x3333, 0x4444);
-            CheckOne4D(lut, 0x0000, 0x0012, 0x0013, 0x0014);
-            CheckOne4D(lut, 0x3141, 0x1415, 0x1592, 0x9261);
-            CheckOne4D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13);
-        });
-    }
-
-    [Test]
-    public void Check4DInterpGranularTest()
-    {
-        var dims = new uint[] { 9, 8, 7, 6 };
-
-        var lut = Pipeline.Alloc(_state, 4, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 4, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler4D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne4D(lut, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne4D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne4D(lut, 0x8080, 0x8080, 0x8080, 0x8080);
-            CheckOne4D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888);
-            CheckOne4D(lut, 0x1111, 0x2222, 0x3333, 0x4444);
-            CheckOne4D(lut, 0x0000, 0x0012, 0x0013, 0x0014);
-            CheckOne4D(lut, 0x3141, 0x1415, 0x1592, 0x9261);
-            CheckOne4D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13);
-        });
-    }
-
-    [Test]
-    public void Check5DInterpGranularTest()
-    {
-        var dims = new uint[] { 3, 2, 2, 2, 2 };
-
-        var lut = Pipeline.Alloc(_state, 5, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 5, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler5D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne5D(lut, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne5D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne5D(lut, 0x8080, 0x8080, 0x8080, 0x8080, 0x1234);
-            CheckOne5D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888, 0x8878);
-            CheckOne5D(lut, 0x1111, 0x2222, 0x3333, 0x4444, 0x1455);
-            CheckOne5D(lut, 0x0000, 0x0012, 0x0013, 0x0014, 0x2333);
-            CheckOne5D(lut, 0x3141, 0x1415, 0x1592, 0x9261, 0x4567);
-            CheckOne5D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13, 0xF344);
-        });
-    }
-
-    [Test]
-    public void Check6DInterpGranularTest()
-    {
-        var dims = new uint[] { 4, 3, 3, 2, 2, 2 };
-
-        var lut = Pipeline.Alloc(_state, 6, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 6, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler6D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne6D(lut, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne6D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0xFFFF);
-
-            CheckOne6D(lut, 0x8080, 0x8080, 0x8080, 0x8080, 0x1234, 0x1122);
-            CheckOne6D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888, 0x8878, 0x2233);
-            CheckOne6D(lut, 0x1111, 0x2222, 0x3333, 0x4444, 0x1455, 0x3344);
-            CheckOne6D(lut, 0x0000, 0x0012, 0x0013, 0x0014, 0x2333, 0x4455);
-            CheckOne6D(lut, 0x3141, 0x1415, 0x1592, 0x9261, 0x4567, 0x5566);
-            CheckOne6D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13, 0xF344, 0x6677);
-        });
-    }
-
-    [Test]
-    public void Check7DInterpGranularTest()
-    {
-        var dims = new uint[] { 4, 3, 3, 2, 2, 2, 2 };
-
-        var lut = Pipeline.Alloc(_state, 7, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 7, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler7D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne7D(lut, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne7D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0xFFFF, 0xFFFF);
-
-            CheckOne7D(lut, 0x8080, 0x8080, 0x8080, 0x8080, 0x1234, 0x1122, 0x0056);
-            CheckOne7D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888, 0x8878, 0x2233, 0x0088);
-            CheckOne7D(lut, 0x1111, 0x2222, 0x3333, 0x4444, 0x1455, 0x3344, 0x1987);
-            CheckOne7D(lut, 0x0000, 0x0012, 0x0013, 0x0014, 0x2333, 0x4455, 0x9988);
-            CheckOne7D(lut, 0x3141, 0x1415, 0x1592, 0x9261, 0x4567, 0x5566, 0xFE56);
-            CheckOne7D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13, 0xF344, 0x6677, 0xBABE);
-        });
-    }
-
-    [Test]
-    public void Check8DInterpGranularTest()
-    {
-        var dims = new uint[] { 4, 3, 3, 2, 2, 2, 2, 2 };
-
-        var lut = Pipeline.Alloc(_state, 8, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, 8, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
-
-        mpe!.Sample(Sampler8D, null, SamplerFlags.None);
-        lut!.InsertStage(StageLoc.AtBegin, mpe);
-
-        // Check accuracy
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            CheckOne8D(lut, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
-            CheckOne8D(lut, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0000, 0xFFFF, 0xFFFF, 0xFFFF);
-
-            CheckOne8D(lut, 0x8080, 0x8080, 0x8080, 0x8080, 0x1234, 0x1122, 0x0056, 0x0011);
-            CheckOne8D(lut, 0x0000, 0xFE00, 0x80FF, 0x8888, 0x8878, 0x2233, 0x0088, 0x2020);
-            CheckOne8D(lut, 0x1111, 0x2222, 0x3333, 0x4444, 0x1455, 0x3344, 0x1987, 0x4532);
-            CheckOne8D(lut, 0x0000, 0x0012, 0x0013, 0x0014, 0x2333, 0x4455, 0x9988, 0x1200);
-            CheckOne8D(lut, 0x3141, 0x1415, 0x1592, 0x9261, 0x4567, 0x5566, 0xFE56, 0x6666);
-            CheckOne8D(lut, 0xFF00, 0xFF01, 0xFF12, 0xFF13, 0xF344, 0x6677, 0xBABE, 0xFACE);
-        });
-    }
-
-    private static void CheckOne3D(Pipeline lut, ushort a1, ushort a2, ushort a3)
-    {
-        var @in = new ushort[3]
-        {
-            a1, a2, a3
-        };
         var out1 = new ushort[3];
         var out2 = new ushort[3];
 
         // This is the interpolated value
-        lut.Eval(@in, out1);
+        lut.Eval(a, out1);
 
         // This is the real value
-        Sampler3D(@in, out2, null);
+        SamplerXD(a.Concat(Enumerable.Repeat<ushort>(0, 5)).ToArray(), out2, null);
 
         // Let's see the difference
 
@@ -1065,20 +703,36 @@ public class InterpolationTests: ITest
         });
     }
 
-    private static void CheckOne4D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4)
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 3 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 4 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 5 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 6 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 7 })]
+    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 8 })]
+    public void CheckXDInterpGranularTest(uint[] dims, uint inputChans, ushort[] a)
     {
-        var @in = new ushort[4]
+        var lut = Pipeline.Alloc(_state, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(_state, dims, inputChans, 3, null);
+        Assert.Multiple(() =>
         {
-            a1, a2, a3, a4
-        };
+            ClearAssert();
+
+            Assert.That(lut, Is.Not.Null);
+            Assert.That(mpe, Is.Not.Null);
+        });
+
+        mpe!.Sample(SamplerXD, null, SamplerFlags.None);
+        lut!.InsertStage(StageLoc.AtBegin, mpe);
+
+        // Check accuracy
         var out1 = new ushort[3];
         var out2 = new ushort[3];
 
         // This is the interpolated value
-        lut.Eval(@in, out1);
+        lut.Eval(a, out1);
 
         // This is the real value
-        Sampler4D(@in, out2, null);
+        SamplerXD(a.Concat(Enumerable.Repeat<ushort>(0, 5)).ToArray(), out2, null);
 
         // Let's see the difference
 
@@ -1090,166 +744,28 @@ public class InterpolationTests: ITest
         });
     }
 
-    private static void CheckOne5D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5)
+    private static bool SamplerXD(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
-        var @in = new ushort[5]
-        {
-            a1, a2, a3, a4, a5
-        };
-        var out1 = new ushort[3];
-        var out2 = new ushort[3];
-
-        // This is the interpolated value
-        lut.Eval(@in, out1);
-
-        // This is the real value
-        Sampler5D(@in, out2, null);
-
-        // Let's see the difference
-
-        Assert.Multiple(() =>
-        {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
-    }
-
-    private static void CheckOne6D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6)
-    {
-        var @in = new ushort[6]
-        {
-            a1, a2, a3, a4, a5, a6
-        };
-        var out1 = new ushort[3];
-        var out2 = new ushort[3];
-
-        // This is the interpolated value
-        lut.Eval(@in, out1);
-
-        // This is the real value
-        Sampler6D(@in, out2, null);
-
-        // Let's see the difference
-
-        Assert.Multiple(() =>
-        {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
-    }
-
-    private static void CheckOne7D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7)
-    {
-        var @in = new ushort[7]
-        {
-            a1, a2, a3, a4, a5, a6, a7
-        };
-        var out1 = new ushort[3];
-        var out2 = new ushort[3];
-
-        // This is the interpolated value
-        lut.Eval(@in, out1);
-
-        // This is the real value
-        Sampler7D(@in, out2, null);
-
-        // Let's see the difference
-
-        Assert.Multiple(() =>
-        {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
-    }
-
-    private static void CheckOne8D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8)
-    {
-        var @in = new ushort[8]
-        {
-            a1, a2, a3, a4, a5, a6, a7, a8
-        };
-        var out1 = new ushort[3];
-        var out2 = new ushort[3];
-
-        // This is the interpolated value
-        lut.Eval(@in, out1);
-
-        // This is the real value
-        Sampler8D(@in, out2, null);
-
-        // Let's see the difference
-
-        Assert.Multiple(() =>
-        {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
-    }
-
-    private static bool Sampler3D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], 0, 0, 0, 0, 0, 3);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], 0, 0, 0, 0, 0, 3);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], 0, 0, 0, 0, 0, 3);
+        @out![0] = Fn8D1(@in[..8]);
+        @out![1] = Fn8D2(@in[..8]);
+        @out![1] = Fn8D3(@in[..8]);
 
         return true;
     }
 
-    private static bool Sampler4D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], 0, 0, 0, 0, 4);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], 0, 0, 0, 0, 4);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], @in[3], 0, 0, 0, 0, 4);
+    private static ushort Fn8D1(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Average(i => i);
 
-        return true;
-    }
+    private static ushort Fn8D2(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Concat(Enumerable.Repeat<ushort>(0, 4))
+                 .Select((i, j) => j is 2 or 3 ? 3 * i : i)
+                 .Average(i => i);
 
-    private static bool Sampler5D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], 0, 0, 0, 5);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], 0, 0, 0, 5);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], @in[3], @in[4], 0, 0, 0, 5);
-
-        return true;
-    }
-
-    private static bool Sampler6D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], 0, 0, 6);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], 0, 0, 6);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], 0, 0, 6);
-
-        return true;
-    }
-
-    private static bool Sampler7D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], 0, 7);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], 0, 7);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], 0, 7);
-
-        return true;
-    }
-
-    private static bool Sampler8D(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
-    {
-        @out![0] = Fn8D1(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], @in[7], 8);
-        @out![1] = Fn8D2(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], @in[7], 8);
-        @out![2] = Fn8D3(@in[0], @in[1], @in[2], @in[3], @in[4], @in[5], @in[6], @in[7], 8);
-
-        return true;
-    }
-
-    private static ushort Fn8D1(ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8, uint m) =>
-        (ushort)(((uint)a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8) / m);
-
-    private static ushort Fn8D2(ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8, uint m) =>
-        (ushort)(((uint)a1 + (3 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 4));
-
-    private static ushort Fn8D3(ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8, uint m) =>
-        (ushort)(((3 * a1) + (2 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 5));
+    private static ushort Fn8D3(ReadOnlySpan<ushort> a) =>
+        (ushort)a.ToArray()
+                 .Concat(Enumerable.Repeat<ushort>(0, 5))
+                 .Select((i, j) => j is 1 or 3 ? 3 * i : j is 2 ? 2 * i : i)
+                 .Average(i => i);
 }
