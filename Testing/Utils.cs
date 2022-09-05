@@ -10,82 +10,30 @@ using NUnit.Framework.Internal;
 namespace lcms2.testing;
 public static class Utils
 {
+    #region Fields
+
     public const double FixedPrecision15_16 = 1.0 / 65535;
     public const double FixedPrecision8_8 = 1.0 / 255;
     public const double FloatPrecision = 0.00001;
 
-    public static int totalTests = 0;
-    public static int totalFail = 0;
+    public static bool HasConsole = !Console.IsInputRedirected;
+    public static double MaxErr = 0;
+    public static string reasonToFail = String.Empty;
     public static int simultaneousErrors = 0;
     public static string subTest = String.Empty;
-    public static string reasonToFail = String.Empty;
-    public static double MaxErr = 0;
-    public static bool HasConsole = !Console.IsInputRedirected;
-    public static void DumpToneCurve(ToneCurve gamma, string filename)
-    {
-        var it8 = new IT8();
+    public static int totalFail = 0;
+    public static int totalTests = 0;
 
-        it8.SetPropertyDouble("NUMBER_OF_FIELDS", 2);
-        it8.SetPropertyDouble("NUMBER_OF_SETS", gamma.NumEntries);
+    #endregion Fields
 
-        it8.SetDataFormat(0, "SAMPLE_ID");
-        it8.SetDataFormat(1, "VALUE");
+    #region Properties
 
-        for (var i = 0; i < gamma.NumEntries; i++)
-        {
-            it8.SetDataRowCol(i, 0, i);
-            it8.SetDataRowCol(i, 1, gamma.EstimatedTable[i]);
-        }
+    public static bool HasAssertions =>
+        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
 
-        it8.SaveToFile(filename);
-    }
+    #endregion Properties
 
-    public static ConsoleKeyInfo? WaitForKey(int ms)
-    {
-        var cancel = new CancellationTokenSource(ms);
-        var token = cancel.Token;
-        var task = Task.Run(() => Console.ReadKey(true), token);
-        try
-        {
-            task.Wait(token);
-            var read = task.IsCompletedSuccessfully;
-            if (read) return task.Result;
-        } catch
-        {
-        }
-        return null;
-    }
-
-    public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
-        Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
-
-    public static void IsGoodVal(string title, double @in, double @out, double max)
-    {
-        var err = Math.Abs(@in - @out);
-
-        if (err > MaxErr) MaxErr = err;
-
-        Assert.That(@in, Is.EqualTo(@out).Within(max), title);
-    }
-
-    public static void IsGoodFixed15_16(string title, double @in, double @out) =>
-        IsGoodVal(title, @in, @out, FixedPrecision15_16);
-
-    public static void IsGoodFixed8_8(string title, double @in, double @out) =>
-        IsGoodVal(title, @in, @out, FixedPrecision8_8);
-
-    public static void IsGoodWord(string title, ushort @in, ushort @out) =>
-        Assert.That(@in, Is.EqualTo(@out), title);
-
-    public static void IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr) =>
-        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), title);
-
-    [DoesNotReturn]
-    public static void Die(string reason, params object[] args)
-    {
-        WriteRed(() => Console.Error.WriteLine(String.Format(reason, args)));
-        Environment.Exit(-1);
-    }
+    #region Public Methods
 
     public static void Check(string title, Action test)
     {
@@ -99,7 +47,8 @@ public static class Utils
         {
             test();
             WriteLineGreen("Ok.");
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             reasonToFail = ex.Message;
             WriteRed(() =>
@@ -129,7 +78,8 @@ public static class Utils
             try
             {
                 fn(i is 0 ? 10 : 256 * i, 256 * j);
-            } catch
+            }
+            catch
             {
                 result = false;
             }
@@ -150,7 +100,8 @@ public static class Utils
             try
             {
                 fn(16 * i, 16 * j);
-            } catch
+            }
+            catch
             {
                 result = false;
             }
@@ -161,31 +112,70 @@ public static class Utils
         return result;
     }
 
-    public static void WriteLineGreen(string value) =>
-        WriteGreen(() => Console.WriteLine(value));
-
-    public static void WriteLineRed(string value) =>
-        WriteRed(() => Console.WriteLine(value));
-
-    public static void WriteGreen(Action fn)
-    {
-        Console.ForegroundColor = ConsoleColor.Green;
-        fn();
-        Console.ResetColor();
-    }
-
-    public static void WriteRed(Action fn)
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        fn();
-        Console.ResetColor();
-    }
-
     public static void ClearAssert() =>
         TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Clear();
 
-    public static bool HasAssertions =>
-        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
+    public static double DeltaE(Lab lab1, Lab lab2)
+    {
+        var dL = Math.Abs(lab1.L - lab2.L);
+        var da = Math.Abs(lab1.a - lab2.a);
+        var db = Math.Abs(lab1.b - lab2.b);
+
+        return Math.Pow(Sqr(dL) + Sqr(da) + Sqr(db), 0.5);
+    }
+
+    [DoesNotReturn]
+    public static void Die(string reason, params object[] args)
+    {
+        WriteRed(() => Console.Error.WriteLine(String.Format(reason, args)));
+        Environment.Exit(-1);
+    }
+
+    public static void Dot() =>
+        Console.Write(".");
+
+    public static void DumpToneCurve(ToneCurve gamma, string filename)
+    {
+        var it8 = new IT8();
+
+        it8.SetPropertyDouble("NUMBER_OF_FIELDS", 2);
+        it8.SetPropertyDouble("NUMBER_OF_SETS", gamma.NumEntries);
+
+        it8.SetDataFormat(0, "SAMPLE_ID");
+        it8.SetDataFormat(1, "VALUE");
+
+        for (var i = 0; i < gamma.NumEntries; i++)
+        {
+            it8.SetDataRowCol(i, 0, i);
+            it8.SetDataRowCol(i, 1, gamma.EstimatedTable[i]);
+        }
+
+        it8.SaveToFile(filename);
+    }
+
+    public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
+        Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
+
+    public static void IsGoodFixed15_16(string title, double @in, double @out) =>
+        IsGoodVal(title, @in, @out, FixedPrecision15_16);
+
+    public static void IsGoodFixed8_8(string title, double @in, double @out) =>
+        IsGoodVal(title, @in, @out, FixedPrecision8_8);
+
+    public static void IsGoodVal(string title, double @in, double @out, double max)
+    {
+        var err = Math.Abs(@in - @out);
+
+        if (err > MaxErr) MaxErr = err;
+
+        Assert.That(@in, Is.EqualTo(@out).Within(max), title);
+    }
+
+    public static void IsGoodWord(string title, ushort @in, ushort @out) =>
+        Assert.That(@in, Is.EqualTo(@out), title);
+
+    public static void IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr) =>
+        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), title);
 
     public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
     {
@@ -198,21 +188,45 @@ public static class Utils
         Console.Write($"{new string(' ', 8)}{start} {new string('█', filled)}{new string('▓', empty)} {stop}\r");
     }
 
-    public static void Dot() =>
-        Console.Write(".");
-
     public static void SubTest(string frm)
     {
         Dot();
         subTest = frm;
     }
 
-    public static double DeltaE(Lab lab1, Lab lab2)
+    public static ConsoleKeyInfo? WaitForKey(int ms)
     {
-        var dL = Math.Abs(lab1.L - lab2.L);
-        var da = Math.Abs(lab1.a - lab2.a);
-        var db = Math.Abs(lab1.b - lab2.b);
-
-        return Math.Pow(Sqr(dL) + Sqr(da) + Sqr(db), 0.5);
+        var cancel = new CancellationTokenSource(ms);
+        var token = cancel.Token;
+        var task = Task.Run(() => Console.ReadKey(true), token);
+        try
+        {
+            task.Wait(token);
+            var read = task.IsCompletedSuccessfully;
+            if (read) return task.Result;
+        } catch
+        {
+        }
+        return null;
     }
+    public static void WriteGreen(Action fn)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        fn();
+        Console.ResetColor();
+    }
+
+    public static void WriteLineGreen(string value) =>
+            WriteGreen(() => Console.WriteLine(value));
+
+    public static void WriteLineRed(string value) =>
+        WriteRed(() => Console.WriteLine(value));
+    public static void WriteRed(Action fn)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        fn();
+        Console.ResetColor();
+    }
+
+    #endregion Public Methods
 }

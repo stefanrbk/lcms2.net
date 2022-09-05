@@ -5,19 +5,7 @@ namespace lcms2.testing;
 [TestFixture(TestOf = typeof(Helpers))]
 public class HelpersTests
 {
-    [TestCase(1.234, (short)1)]
-    [TestCase(32767.234, (short)32767)]
-    [TestCase(-1.234, (short)-2)]
-    [TestCase(-32767.1, (short)-32768)]
-    public void QuickFloorTest(double value, short expected) =>
-        Assert.That(QuickFloor(value), Is.EqualTo(expected));
-
-    [Test]
-    public void QuickFloorWordTest()
-    {
-        for (var i = 0; i < UInt16.MaxValue; i++)
-            Assert.That(QuickFloorWord(i + 0.1234), Is.EqualTo(i));
-    }
+    #region Public Methods
 
     [TestCase(1.0)]
     [TestCase(2.0)]
@@ -52,6 +40,63 @@ public class HelpersTests
         Assert.That(roundTrip, Is.EqualTo(value).Within(1.0 / 255.0));
     }
 
+    [TestCase(1.234, (short)1)]
+    [TestCase(32767.234, (short)32767)]
+    [TestCase(-1.234, (short)-2)]
+    [TestCase(-32767.1, (short)-32768)]
+    public void QuickFloorTest(double value, short expected) =>
+        Assert.That(QuickFloor(value), Is.EqualTo(expected));
+
+    [Test]
+    public void QuickFloorWordTest()
+    {
+        for (var i = 0; i < UInt16.MaxValue; i++)
+            Assert.That(QuickFloorWord(i + 0.1234), Is.EqualTo(i));
+    }
+
+    #endregion Public Methods
+
+    #region Internal Methods
+
+    internal void CheckFixedPoint15_16()
+    {
+        try
+        {
+            FixedPoint15_16Test(1.0);
+            FixedPoint15_16Test(2.0);
+            FixedPoint15_16Test(1.23456);
+            FixedPoint15_16Test(0.99999);
+            FixedPoint15_16Test(0.1234567890123456789099999);
+            FixedPoint15_16Test(-1.0);
+            FixedPoint15_16Test(-2.0);
+            FixedPoint15_16Test(-1.123456);
+            FixedPoint15_16Test(-1.1234567890123456789099999);
+            FixedPoint15_16Test(32767.1234567890123456789099999);
+            FixedPoint15_16Test(-32767.1234567890123456789099999);
+        }
+        catch
+        {
+            Assert.Fail();
+        }
+    }
+
+    internal void CheckFixedPoint8_8()
+    {
+        try
+        {
+            FixedPoint8_8Test(1.0);
+            FixedPoint8_8Test(2.0);
+            FixedPoint8_8Test(1.23456);
+            FixedPoint8_8Test(0.99999);
+            FixedPoint8_8Test(0.1234567890123456789099999);
+            FixedPoint8_8Test(255.1234567890123456789099999);
+        }
+        catch
+        {
+            Assert.Fail();
+        }
+    }
+
     internal void CheckQuickFloor()
     {
         try
@@ -77,40 +122,5 @@ public class HelpersTests
         }
     }
 
-    internal void CheckFixedPoint15_16()
-    {
-        try
-        {
-            FixedPoint15_16Test(1.0);
-            FixedPoint15_16Test(2.0);
-            FixedPoint15_16Test(1.23456);
-            FixedPoint15_16Test(0.99999);
-            FixedPoint15_16Test(0.1234567890123456789099999);
-            FixedPoint15_16Test(-1.0);
-            FixedPoint15_16Test(-2.0);
-            FixedPoint15_16Test(-1.123456);
-            FixedPoint15_16Test(-1.1234567890123456789099999);
-            FixedPoint15_16Test(32767.1234567890123456789099999);
-            FixedPoint15_16Test(-32767.1234567890123456789099999);
-        } catch
-        {
-            Assert.Fail();
-        }
-    }
-
-    internal void CheckFixedPoint8_8()
-    {
-        try
-        {
-            FixedPoint8_8Test(1.0);
-            FixedPoint8_8Test(2.0);
-            FixedPoint8_8Test(1.23456);
-            FixedPoint8_8Test(0.99999);
-            FixedPoint8_8Test(0.1234567890123456789099999);
-            FixedPoint8_8Test(255.1234567890123456789099999);
-        } catch
-        {
-            Assert.Fail();
-        }
-    }
+    #endregion Internal Methods
 }

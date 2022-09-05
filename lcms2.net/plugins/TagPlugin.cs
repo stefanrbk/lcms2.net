@@ -1,5 +1,29 @@
-﻿using System.Diagnostics;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using lcms2.state;
 using lcms2.types;
 
@@ -11,6 +35,8 @@ namespace lcms2.plugins;
 /// <remarks>Implements the <c>cmsTagDescriptor</c> struct.</remarks>
 public class TagDescriptor
 {
+    #region Fields
+
     /// <summary>
     ///     For writing
     /// </summary>
@@ -26,6 +52,10 @@ public class TagDescriptor
     /// </summary>
     public Signature[] SupportedTypes;
 
+    #endregion Fields
+
+    #region Public Constructors
+
     public TagDescriptor(int elementCount, int numSupportedTypes, TagTypeDecider? decider)
     {
         ElementCount = elementCount;
@@ -39,13 +69,21 @@ public class TagDescriptor
         SupportedTypes = supportedTypes;
         DecideType = decider;
     }
+
+    #endregion Public Constructors
 }
 
 public class TagLinkedList
 {
+    #region Fields
+
     public TagDescriptor Descriptor;
     public TagLinkedList? Next;
     public Signature Signature;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public TagLinkedList(Signature signature, TagDescriptor descriptor, TagLinkedList? next)
     {
@@ -60,6 +98,8 @@ public class TagLinkedList
         Descriptor = list[0].desc;
         Next = list.Length > 1 ? new(list[1..]) : null;
     }
+
+    #endregion Public Constructors
 }
 
 /// <summary>
@@ -69,8 +109,14 @@ public class TagLinkedList
 public sealed class TagPlugin
     : Plugin
 {
+    #region Fields
+
     public TagDescriptor Descriptor;
     public Signature Signature;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public TagPlugin(Signature magic, uint expectedVersion, Signature type, Signature signature, TagDescriptor descriptor)
         : base(magic, expectedVersion, type)
@@ -78,6 +124,10 @@ public sealed class TagPlugin
         Signature = signature;
         Descriptor = descriptor;
     }
+
+    #endregion Public Constructors
+
+    #region Internal Methods
 
     internal static bool RegisterPlugin(object? context, TagPlugin? plugin)
     {
@@ -94,10 +144,14 @@ public sealed class TagPlugin
 
         return true;
     }
+
+    #endregion Internal Methods
 }
 
 internal sealed class TagPluginChunk
 {
+    #region Fields
+
     internal static readonly TagLinkedList supportedTags = new(new (Signature sig, TagDescriptor desc)[]
     {
         (Signature.Tag.AToB0, TagHandlers.AToB),
@@ -198,10 +252,23 @@ internal sealed class TagPluginChunk
 
     internal static TagPluginChunk global = new();
     internal TagLinkedList? tags;
-    internal static TagPluginChunk Default => new();
+
+    #endregion Fields
+
+    #region Private Constructors
 
     private TagPluginChunk()
     { }
+
+    #endregion Private Constructors
+
+    #region Properties
+
+    internal static TagPluginChunk Default => new();
+
+    #endregion Properties
+
+    #region Internal Methods
 
     internal TagDescriptor GetTagDescriptor(object? state, Signature sig)
     {
@@ -217,4 +284,6 @@ internal sealed class TagPluginChunk
 
         return null;
     }
+
+    #endregion Internal Methods
 }

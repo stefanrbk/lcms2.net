@@ -1,29 +1,57 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using System.Text;
-using System.Threading.Tasks;
 
 using static lcms2.it8.IT8;
 
 namespace lcms2.it8;
-internal class Reader: IDisposable
+
+internal class Reader : IDisposable
 {
-    private int _ch;
+    #region Fields
+
+    private readonly List<KeyValue> _availableProperties = new();
+    private readonly List<KeyValue> _availableSampleIds = new();
     private readonly Stack<StreamReader> _fileStack = new();
     private readonly StringBuilder _id = new(128);
     private readonly StringBuilder _str = new(1024);
-    private Symbol _sy = Symbol.Undefined;
-    private int _inum;
-    private double _dnum;
-    private int _lineNo;
-    private readonly List<KeyValue> _availableProperties = new();
-    private readonly List<KeyValue> _availableSampleIds = new();
     private readonly List<Table> _tables = new();
+    private int _ch;
     private int _currentTable;
-    private string? _sheetType;
     private bool _disposedValue;
+    private double _dnum;
+    private int _inum;
+    private int _lineNo;
+    private string? _sheetType;
+    private Symbol _sy = Symbol.Undefined;
+
+    #endregion Fields
+
+    #region Properties
 
     private Table Table
     {
@@ -34,6 +62,10 @@ internal class Reader: IDisposable
             return _tables[_currentTable];
         }
     }
+
+    #endregion Properties
+
+    #region Public Methods
 
     /// <summary>
     ///     Checks to see if <paramref name="stream"/> is a compatible stream to read from.
@@ -98,6 +130,82 @@ internal class Reader: IDisposable
         return false;
     }
 
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion Public Methods
+
+    #region Internal Methods
+
+    internal IT8? LoadFromFile(string filename)
+    {
+        using var fs = File.OpenRead(filename);
+        return Load(fs);
+    }
+
+    internal IT8? LoadFromMemory(byte[] buffer)
+    {
+        using var fs = new MemoryStream(buffer);
+        return Load(fs);
+    }
+
+    #endregion Internal Methods
+
+    #region Protected Methods
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                while (_fileStack.Count > 0)
+                    _fileStack.Pop().Dispose();
+            }
+            _disposedValue = true;
+        }
+    }
+
+    #endregion Protected Methods
+
+    #region Private Methods
+
+    private static bool IsDigit(int c) =>
+        Char.IsDigit((char)c);
+
+    private static bool IsFirstId(int c) =>
+        !IsDigit(c) && IsMiddle(c);
+
+    private static bool IsId(int c) =>
+        IsDigit(c) || IsMiddle(c);
+
+    private static bool IsMiddle(int c) =>
+        !IsSeparator(c) && c is not '#' and not '\"' and not '\'' and > 32 and < 127;
+
+    private static bool IsSeparator(int c) =>
+        c is ' ' or '\t';
+
+    private static char ToUpper(int c) =>
+        Char.ToUpper((char)c);
+
+    private void Check(Symbol sy, string err)
+    {
+        if (_sy != sy)
+            throw new IT8Exception(_fileStack, _lineNo, err);
+    }
+
+    private void CheckEol()
+    {
+        Check(Symbol.EOL, "Expected separator");
+
+        while (_sy is Symbol.EOL)
+            InSymbol();
+    }
+
     private void GetValue(out string value, int maxStringLength, string err)
     {
         switch (_sy)
@@ -137,277 +245,6 @@ internal class Reader: IDisposable
         }
     }
 
-    private void ReadType(out string sheetType)
-    {
-        var count = 0;
-
-        // First line is a very special case.
-        var sb = new StringBuilder(100);
-        while (IsSeparator(_ch))
-            NextChar();
-
-        while (_ch is not '\r' and not '\n' and not '\t' and not 0)
-        {
-            if (count++ < maxStr)
-                sb.Append(_ch);
-            NextChar();
-        }
-
-        sheetType = sb.ToString();
-    }
-
-    private void ReadDataFormatSection()
-    {
-        var t = _tables[_currentTable];
-
-        InSymbol();     // Eats "BEGIN_DATA_FORMAT"
-        CheckEol();
-
-        var field = 0;
-        while (_sy is not Symbol.SendDataFormat and not Symbol.EOL and not Symbol.EOF and not Symbol.SynError)
-        {
-            if (_sy is not Symbol.Ident)
-                throw new IT8Exception(_fileStack, _lineNo, "Sample type expected");
-
-            t.SetDataFormat(field++, _id.ToString(), _fileStack, _lineNo);
-
-            InSymbol();
-            SkipEol();
-        }
-
-        SkipEol();
-        Skip(Symbol.SendDataFormat);
-        SkipEol();
-
-        if (field != t.NumSamples)
-            throw new IT8Exception(_fileStack, _lineNo, $"Count mismatch. NUMBER_OF_FIELDS was {t.NumSamples}, found {field}");
-    }
-
-    private void ReadDataSection()
-    {
-        var t = _tables[_currentTable];
-
-        InSymbol();     // Eats "BEGIN_DATA"
-        CheckEol();
-
-        var field = 0;
-        var set = 0;
-
-        if (t.data is null)
-            t.AllocateDataSet();
-
-        while (_sy is not Symbol.SendData and not Symbol.EOF)
-        {
-            if (field >= t.NumSamples)
-            {
-                field = 0;
-                set++;
-            }
-            switch (_sy)
-            {
-                case Symbol.Ident:
-                    t.SetData(set, field, _id.ToString());
-                    break;
-
-                case Symbol.String:
-                    t.SetData(set, field, _str.ToString());
-                    break;
-
-                default:
-                    GetValue(out var buffer, 255, "Sample data expected");
-                    t.SetData(set, field, buffer);
-                    break;
-            }
-
-            field++;
-
-            InSymbol();
-            SkipEol();
-        }
-
-        SkipEol();
-        Skip(Symbol.SendDataFormat);
-        SkipEol();
-
-        if (field != t.NumSamples)
-            throw new IT8Exception(_fileStack, _lineNo, $"Count mismatch. NUMBER_OF_FIELDS was {t.NumSamples}, found {field}");
-    }
-
-    private void ReadHeaderSection()
-    {
-        string buffer;
-
-        while (_sy is not Symbol.EOF and not Symbol.SynError and not Symbol.BeginDataFormat and not Symbol.BeginData)
-        {
-            switch (_sy)
-            {
-                case Symbol.Keyword:
-
-                    InSymbol();
-                    GetValue(out buffer, maxStr - 1, "Keyword expected");
-                    _availableProperties.Add(new(buffer, WriteMode.Uncooked));
-                    InSymbol();
-                    break;
-
-                case Symbol.DataFormatId:
-
-                    InSymbol();
-                    GetValue(out buffer, maxStr - 1, "Keyword expected");
-                    _availableSampleIds.Add(new(buffer, WriteMode.Uncooked));
-                    InSymbol();
-                    break;
-
-                case Symbol.Ident:
-
-                    var varName = _id.ToString();
-                    KeyValue? key;
-                    if ((key = _availableProperties.First(i => i.Key == varName)) is null)
-                    {
-                        key = new(varName, WriteMode.Uncooked);
-                        _availableProperties.Add(key);
-                    }
-
-                    InSymbol();
-                    GetValue(out buffer, maxStr - 1, "Property data expected");
-
-                    if (key.Mode is not WriteMode.Pair)
-                        Table.header.Add(new(varName, buffer, (_sy is Symbol.String) ? WriteMode.Stringify : WriteMode.Uncooked));
-                    else
-                    {
-                        if (_sy is not Symbol.String)
-                            throw new IT8Exception(_fileStack, _lineNo, $"Invalid value '{buffer}' for property '{varName}'.");
-
-                        // chop the string as a list of "subkey, value" pairs, using ';' as a
-                        // separator for each pair, split the subkey and the value
-                        var keys = new string(buffer).Split(';')
-                                                              .Select(k => k.Split(',', StringSplitOptions.TrimEntries))
-                                                              .ToArray();
-                        for (var i = 0; i < keys.Length; i++)
-                        {
-                            if (keys[i].Length < 2)
-                                throw new IT8Exception(_fileStack, _lineNo, $"Invalid value for property '{varName}'");
-
-                            var (subkey, value) = (keys[i][0], keys[i][1]);
-
-                            if (String.IsNullOrEmpty(subkey) || String.IsNullOrEmpty(value))
-                                throw new IT8Exception(_fileStack, _lineNo, $"Invalid value for property '{varName}'");
-
-                            Table.header.Add(new (varName, subkey, value, WriteMode.Pair));
-                        }
-                    }
-
-                    InSymbol();
-
-                    break;
-
-                default:
-                    throw new IT8Exception(_fileStack, _lineNo, "Expected keyword or identifier");
-            }
-
-            SkipEol();
-        }
-    }
-
-    private void ReadReal(int inum)
-    {
-        _dnum = inum;
-
-        while (IsDigit(_ch))
-        {
-            _dnum = (_dnum * 10) + (_ch - '0');
-            NextChar();
-        }
-
-        if (_ch is '.')     // Decimal point
-        {
-            var frac = 0d;
-            var prec = 0;
-
-            NextChar();
-
-            while (IsDigit(_ch))
-            {
-                frac = (frac * 10) + (_ch - '0');
-                prec++;
-                NextChar();
-            }
-
-            _dnum += frac / XPow10(prec);
-        }
-
-        // Exponent, example 34.00E+20
-        if (ToUpper(_ch) is 'E')
-        {
-            NextChar();
-
-            var eSign = 1;
-            if (_ch is '-')
-            {
-                eSign = -1;
-                NextChar();
-            } else if (_ch is '+')
-                NextChar();
-
-            var e = 0;
-            while (IsDigit(_ch))
-            {
-                var digit = _ch - '0';
-
-                if ((e * 10.0) + digit < maxInum)
-                    e = (e * 10) + digit;
-
-                NextChar();
-            }
-            e *= eSign;
-            _dnum *= XPow10(e);
-        }
-    }
-
-    private static bool IsSeparator(int c) =>
-        c is ' ' or '\t';
-
-    private static bool IsMiddle(int c) =>
-        !IsSeparator(c) && c is not '#' and not '\"' and not '\'' and > 32 and < 127;
-
-    private static bool IsId(int c) =>
-        IsDigit(c) || IsMiddle(c);
-
-    private static bool IsFirstId(int c) =>
-        !IsDigit(c) && IsMiddle(c);
-
-    private static bool IsDigit(int c) =>
-        Char.IsDigit((char)c);
-
-    private static char ToUpper(int c) =>
-        Char.ToUpper((char)c);
-
-    private void NextChar()
-    {
-        var stream = _fileStack.Peek();
-
-        _ch = stream.Read();
-        if (_ch < 0 && _fileStack.Count > 0)
-        {
-            stream.Dispose();
-            _fileStack.Pop();
-            _ch = ' ';
-        }
-    }
-
-    private void Check(Symbol sy, string err)
-    {
-        if (_sy != sy)
-            throw new IT8Exception(_fileStack, _lineNo, err);
-    }
-
-    private void CheckEol()
-    {
-        Check(Symbol.EOL, "Expected separator");
-
-        while (_sy is Symbol.EOL)
-            InSymbol();
-    }
-
     private void InStringSymbol()
     {
         while (IsSeparator(_ch))
@@ -432,7 +269,8 @@ internal class Reader: IDisposable
 
             _sy = Symbol.String;
             NextChar();
-        } else
+        }
+        else
             throw new IT8Exception(_fileStack, _lineNo, "String expected");
     }
 
@@ -456,7 +294,8 @@ internal class Reader: IDisposable
 
                 var key = FindKey(_id.ToString());
                 _sy = key is Symbol.Undefined ? Symbol.Ident : key;
-            } else if (IsDigit((char)_ch) || _ch is '.' or '-' or '+')      // Is a number?
+            }
+            else if (IsDigit((char)_ch) || _ch is '.' or '-' or '+')      // Is a number?
             {
                 var sign = 1;
 
@@ -628,16 +467,38 @@ internal class Reader: IDisposable
         }
     }
 
-    private void Skip(Symbol sy)
+    private IT8? Load(Stream fs)
     {
-        if (_sy == sy && _sy is not Symbol.EOF)
-            InSymbol();
+        var type = IsMyFormat(fs);
+        if (!type) return null;
+
+        var it8 = new IT8();
+
+        _fileStack.Push(new StreamReader(fs, Encoding.ASCII));
+
+        Parse(!type);
+        it8.SheetType = _sheetType;
+        _tables.Cook();
+
+        it8.tables.AddRange(_tables);
+        it8.SetTable(0);
+        it8.availableProperties.AddRange(_availableProperties);
+        it8.availableSampleId.AddRange(_availableSampleIds);
+
+        return it8;
     }
 
-    private void SkipEol()
+    private void NextChar()
     {
-        while (_sy is Symbol.EOL)
-            InSymbol();
+        var stream = _fileStack.Peek();
+
+        _ch = stream.Read();
+        if (_ch < 0 && _fileStack.Count > 0)
+        {
+            stream.Dispose();
+            _fileStack.Pop();
+            _ch = ' ';
+        }
     }
 
     private void Parse(bool nosheet)
@@ -680,18 +541,19 @@ internal class Reader: IDisposable
                                 {
                                     _sheetType = _id.ToString();
                                     InSymbol();
-                                } else
+                                }
+                                else
                                 {
                                     _sheetType = "";
                                 }
-                            } else if (_sy is Symbol.String)
+                            }
+                            else if (_sy is Symbol.String)
                             {
                                 // Validate quoted strings
                                 _sheetType = _str.ToString();
                                 InSymbol();
                             }
                         }
-
                     }
 
                     break;
@@ -707,56 +569,244 @@ internal class Reader: IDisposable
         }
     }
 
-    internal IT8? LoadFromFile(string filename)
+    private void ReadDataFormatSection()
     {
-        using var fs = File.OpenRead(filename);
-        return Load(fs);
-    }
+        var t = _tables[_currentTable];
 
-    internal IT8? LoadFromMemory(byte[] buffer)
-    {
-        using var fs = new MemoryStream(buffer);
-        return Load(fs);
-    }
+        InSymbol();     // Eats "BEGIN_DATA_FORMAT"
+        CheckEol();
 
-    private IT8? Load(Stream fs)
-    {
-        var type = IsMyFormat(fs);
-        if (!type) return null;
-
-        var it8 = new IT8();
-
-        _fileStack.Push(new StreamReader(fs, Encoding.ASCII));
-
-        Parse(!type);
-        it8.SheetType = _sheetType;
-        _tables.Cook();
-
-        it8.tables.AddRange(_tables);
-        it8.SetTable(0);
-        it8.availableProperties.AddRange(_availableProperties);
-        it8.availableSampleId.AddRange(_availableSampleIds);
-
-        return it8;
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
+        var field = 0;
+        while (_sy is not Symbol.SendDataFormat and not Symbol.EOL and not Symbol.EOF and not Symbol.SynError)
         {
-            if (disposing)
+            if (_sy is not Symbol.Ident)
+                throw new IT8Exception(_fileStack, _lineNo, "Sample type expected");
+
+            t.SetDataFormat(field++, _id.ToString(), _fileStack, _lineNo);
+
+            InSymbol();
+            SkipEol();
+        }
+
+        SkipEol();
+        Skip(Symbol.SendDataFormat);
+        SkipEol();
+
+        if (field != t.NumSamples)
+            throw new IT8Exception(_fileStack, _lineNo, $"Count mismatch. NUMBER_OF_FIELDS was {t.NumSamples}, found {field}");
+    }
+
+    private void ReadDataSection()
+    {
+        var t = _tables[_currentTable];
+
+        InSymbol();     // Eats "BEGIN_DATA"
+        CheckEol();
+
+        var field = 0;
+        var set = 0;
+
+        if (t.data is null)
+            t.AllocateDataSet();
+
+        while (_sy is not Symbol.SendData and not Symbol.EOF)
+        {
+            if (field >= t.NumSamples)
             {
-                while (_fileStack.Count > 0)
-                    _fileStack.Pop().Dispose();
+                field = 0;
+                set++;
             }
-            _disposedValue = true;
+            switch (_sy)
+            {
+                case Symbol.Ident:
+                    t.SetData(set, field, _id.ToString());
+                    break;
+
+                case Symbol.String:
+                    t.SetData(set, field, _str.ToString());
+                    break;
+
+                default:
+                    GetValue(out var buffer, 255, "Sample data expected");
+                    t.SetData(set, field, buffer);
+                    break;
+            }
+
+            field++;
+
+            InSymbol();
+            SkipEol();
+        }
+
+        SkipEol();
+        Skip(Symbol.SendDataFormat);
+        SkipEol();
+
+        if (field != t.NumSamples)
+            throw new IT8Exception(_fileStack, _lineNo, $"Count mismatch. NUMBER_OF_FIELDS was {t.NumSamples}, found {field}");
+    }
+
+    private void ReadHeaderSection()
+    {
+        string buffer;
+
+        while (_sy is not Symbol.EOF and not Symbol.SynError and not Symbol.BeginDataFormat and not Symbol.BeginData)
+        {
+            switch (_sy)
+            {
+                case Symbol.Keyword:
+
+                    InSymbol();
+                    GetValue(out buffer, maxStr - 1, "Keyword expected");
+                    _availableProperties.Add(new(buffer, WriteMode.Uncooked));
+                    InSymbol();
+                    break;
+
+                case Symbol.DataFormatId:
+
+                    InSymbol();
+                    GetValue(out buffer, maxStr - 1, "Keyword expected");
+                    _availableSampleIds.Add(new(buffer, WriteMode.Uncooked));
+                    InSymbol();
+                    break;
+
+                case Symbol.Ident:
+
+                    var varName = _id.ToString();
+                    KeyValue? key;
+                    if ((key = _availableProperties.First(i => i.Key == varName)) is null)
+                    {
+                        key = new(varName, WriteMode.Uncooked);
+                        _availableProperties.Add(key);
+                    }
+
+                    InSymbol();
+                    GetValue(out buffer, maxStr - 1, "Property data expected");
+
+                    if (key.Mode is not WriteMode.Pair)
+                        Table.header.Add(new(varName, buffer, (_sy is Symbol.String) ? WriteMode.Stringify : WriteMode.Uncooked));
+                    else
+                    {
+                        if (_sy is not Symbol.String)
+                            throw new IT8Exception(_fileStack, _lineNo, $"Invalid value '{buffer}' for property '{varName}'.");
+
+                        // chop the string as a list of "subkey, value" pairs, using ';' as a
+                        // separator for each pair, split the subkey and the value
+                        var keys = new string(buffer).Split(';')
+                                                              .Select(k => k.Split(',', StringSplitOptions.TrimEntries))
+                                                              .ToArray();
+                        for (var i = 0; i < keys.Length; i++)
+                        {
+                            if (keys[i].Length < 2)
+                                throw new IT8Exception(_fileStack, _lineNo, $"Invalid value for property '{varName}'");
+
+                            var (subkey, value) = (keys[i][0], keys[i][1]);
+
+                            if (String.IsNullOrEmpty(subkey) || String.IsNullOrEmpty(value))
+                                throw new IT8Exception(_fileStack, _lineNo, $"Invalid value for property '{varName}'");
+
+                            Table.header.Add(new(varName, subkey, value, WriteMode.Pair));
+                        }
+                    }
+
+                    InSymbol();
+
+                    break;
+
+                default:
+                    throw new IT8Exception(_fileStack, _lineNo, "Expected keyword or identifier");
+            }
+
+            SkipEol();
         }
     }
 
-    public void Dispose()
+    private void ReadReal(int inum)
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        _dnum = inum;
+
+        while (IsDigit(_ch))
+        {
+            _dnum = (_dnum * 10) + (_ch - '0');
+            NextChar();
+        }
+
+        if (_ch is '.')     // Decimal point
+        {
+            var frac = 0d;
+            var prec = 0;
+
+            NextChar();
+
+            while (IsDigit(_ch))
+            {
+                frac = (frac * 10) + (_ch - '0');
+                prec++;
+                NextChar();
+            }
+
+            _dnum += frac / XPow10(prec);
+        }
+
+        // Exponent, example 34.00E+20
+        if (ToUpper(_ch) is 'E')
+        {
+            NextChar();
+
+            var eSign = 1;
+            if (_ch is '-')
+            {
+                eSign = -1;
+                NextChar();
+            }
+            else if (_ch is '+')
+                NextChar();
+
+            var e = 0;
+            while (IsDigit(_ch))
+            {
+                var digit = _ch - '0';
+
+                if ((e * 10.0) + digit < maxInum)
+                    e = (e * 10) + digit;
+
+                NextChar();
+            }
+            e *= eSign;
+            _dnum *= XPow10(e);
+        }
     }
+
+    private void ReadType(out string sheetType)
+    {
+        var count = 0;
+
+        // First line is a very special case.
+        var sb = new StringBuilder(100);
+        while (IsSeparator(_ch))
+            NextChar();
+
+        while (_ch is not '\r' and not '\n' and not '\t' and not 0)
+        {
+            if (count++ < maxStr)
+                sb.Append(_ch);
+            NextChar();
+        }
+
+        sheetType = sb.ToString();
+    }
+
+    private void Skip(Symbol sy)
+    {
+        if (_sy == sy && _sy is not Symbol.EOF)
+            InSymbol();
+    }
+
+    private void SkipEol()
+    {
+        while (_sy is Symbol.EOL)
+            InSymbol();
+    }
+
+    #endregion Private Methods
 }

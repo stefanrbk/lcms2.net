@@ -1,23 +1,73 @@
-﻿using System.Runtime.InteropServices;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 namespace lcms2.types;
-
 
 public partial class Stage
 {
+    #region Public Methods
+
     public bool Sample(CLut16Data.Sampler sampler, in object? cargo, SamplerFlags flags) =>
         (Data as CLut16Data)?.Sample(sampler, cargo, flags) ?? throw new InvalidOperationException();
 
-    public class CLut16Data: StageData
+    #endregion Public Methods
+
+    #region Classes
+
+    public class CLut16Data : StageData
     {
-        public delegate bool Sampler(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo);
+        #region Fields
 
         public uint NumEntries;
+
         public InterpParams Params;
+
         public ushort[] Table;
 
+        #endregion Fields
+
+        #region Internal Constructors
+
+        internal CLut16Data(ushort[] table, InterpParams @params, uint numEntries)
+        {
+            Table = table;
+            Params = @params;
+            NumEntries = numEntries;
+        }
+
+        #endregion Internal Constructors
+
+        #region Delegates
+
+        public delegate bool Sampler(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo);
+
+        #endregion Delegates
+
         /*  Original Code (cmslut.c line: 742)
-         *  
+         *
          *  // This routine does a sweep on whole input space, and calls its callback
          *  // function on knots. returns TRUE if all ok, FALSE otherwise.
          *  cmsBool CMSEXPORT cmsStageSampleCLut16bit(cmsStage* mpe, cmsSAMPLER16 Sampler, void * Cargo, cmsUInt32Number dwFlags)
@@ -85,6 +135,35 @@ public partial class Stage
          *      return TRUE;
          *  }
          */
+
+        #region Public Methods
+
+        public static bool SliceSpace(uint numInputs, in uint[] clutPoints, Sampler sampler, in object cargo)
+        {
+            var @in = new ushort[maxChannels];
+
+            if (numInputs >= maxChannels) return false;
+
+            var numTotalPoints = CubeSize(clutPoints, (int)numInputs);
+            if (numTotalPoints is 0) return false;
+
+            for (var i = 0; i < numTotalPoints; i++)
+            {
+                var rest = i;
+                for (var t = (int)numInputs - 1; t >= 0; --t)
+                {
+                    var colorant = rest % clutPoints[t];
+
+                    rest /= (int)clutPoints[t];
+                    @in[t] = QuantizeValue(colorant, clutPoints[t]);
+                }
+
+                if (!sampler(@in, null, in cargo)) return false;
+            }
+
+            return true;
+        }
+
         public bool Sample(Sampler sampler, in object? cargo, SamplerFlags flags)
         {
             var @in = new ushort[maxInputDimensions + 1];
@@ -134,8 +213,10 @@ public partial class Stage
             return true;
         }
 
+        #endregion Public Methods
+
         /*  Original Code (cmslut.c line:868)
-         *  
+         *
          *  // This routine does a sweep on whole input space, and calls its callback
          *  // function on knots. returns TRUE if all ok, FALSE otherwise.
          *  cmsBool CMSEXPORT cmsSliceSpace16(cmsUInt32Number nInputs, const cmsUInt32Number clutPoints[],
@@ -169,41 +250,8 @@ public partial class Stage
          *      return TRUE;
          *  }
          */
-        public static bool SliceSpace(uint numInputs, in uint[] clutPoints, Sampler sampler, in object cargo)
-        {
-            var @in = new ushort[maxChannels];
-
-            if (numInputs >= maxChannels) return false;
-
-            var numTotalPoints = CubeSize(clutPoints, (int)numInputs);
-            if (numTotalPoints is 0) return false;
-
-            for (var i = 0; i < numTotalPoints; i++)
-            {
-                var rest = i;
-                for (var t = (int)numInputs - 1; t >= 0; --t)
-                {
-                    var colorant = rest % clutPoints[t];
-
-                    rest /= (int)clutPoints[t];
-                    @in[t] = QuantizeValue(colorant, clutPoints[t]);
-                }
-
-                if (!sampler(@in, null, in cargo)) return false;
-            }
-
-            return true;
-        }
-
-        internal CLut16Data(ushort[] table, InterpParams @params, uint numEntries)
-        {
-            Table = table;
-            Params = @params;
-            NumEntries = numEntries;
-        }
-
         /*  Original Code (cmslut.c line: 481)
-         *  
+         *
          *  static
          *  void* CLUTElemDup(cmsStage* mpe)
          *  {
@@ -246,6 +294,9 @@ public partial class Stage
          *      return NULL;
          *  }
          */
+
+        #region Internal Methods
+
         internal override StageData? Duplicate(Stage parent)
         {
             var p =
@@ -267,7 +318,7 @@ public partial class Stage
         }
 
         /*  Original Code (cmslut.c line: 443)
-         *  
+         *
          *  // Convert to 16 bits, evaluate, and back to floating point
          *  static
          *  void EvaluateCLUTfloatIn16(const cmsFloat32Number In[], cmsFloat32Number Out[], const cmsStage *mpe)
@@ -283,6 +334,7 @@ public partial class Stage
          *      From16ToFloat(Out16, Out,  mpe ->OutputChannels);
          *  }
          */
+
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage parent)
         {
             var in16 = new ushort[maxStageChannels];
@@ -293,8 +345,10 @@ public partial class Stage
             From16ToFloat(out16, @out, (int)parent.OutputChannels);
         }
 
+        #endregion Internal Methods
+
         /*  Original Code (cmslut.c line: 524)
-         *  
+         *
          *  static
          *  void CLutElemTypeFree(cmsStage* mpe)
          *  {
@@ -314,4 +368,6 @@ public partial class Stage
          */
         // Free is lifted up to base class as Dispose
     }
+
+    #endregion Classes
 }

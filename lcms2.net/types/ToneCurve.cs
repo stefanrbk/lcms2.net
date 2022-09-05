@@ -1,7 +1,33 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using lcms2.state;
+
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 using static System.Math;
 
@@ -13,8 +39,10 @@ namespace lcms2.types;
 /// <remarks>Implements the <c>cmsParametricCurveEvaluator</c> typedef.</remarks>
 public delegate double ParametricCurveEvaluator(int type, in double[] @params, double r);
 
-public sealed class ToneCurve: ICloneable, IDisposable
+public sealed class ToneCurve : ICloneable, IDisposable
 {
+    #region Fields
+
     internal static ParametricCurvesCollection defaultCurves = new(
         new (int Types, int Count)[]
         {
@@ -45,6 +73,10 @@ public sealed class ToneCurve: ICloneable, IDisposable
 
     private bool _disposed = false;
 
+    #endregion Fields
+
+    #region Private Constructors
+
     private ToneCurve(CurveSegment[] segments, ParametricCurveEvaluator[] evals, InterpParams? interpParams = null)
     {
         this.interpParams = interpParams;
@@ -57,6 +89,10 @@ public sealed class ToneCurve: ICloneable, IDisposable
         this.interpParams = interpParams;
         this.table16 = table16;
     }
+
+    #endregion Private Constructors
+
+    #region Properties
 
     public ushort[] EstimatedTable =>
                         table16;
@@ -101,7 +137,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                     else
                         last = table16[i];
                 }
-            } else
+            }
+            else
             {
                 var last = table16[n - 1];
 
@@ -134,6 +171,10 @@ public sealed class ToneCurve: ICloneable, IDisposable
 
     internal int NumSegments =>
                      segments.Length;
+
+    #endregion Properties
+
+    #region Public Methods
 
     public static ToneCurve? BuildGamma(object? state, double gamma) =>
                BuildParametric(state, 1, gamma);
@@ -385,7 +426,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 {
                     result.table16[i] = QuickSaturateWord(ascending ? y2 : y1);
                     continue;
-                } else
+                }
+                else
                 {
                     // Interpolate
                     a = (y2 - y1) / (x2 - x1);
@@ -471,13 +513,15 @@ public sealed class ToneCurve: ICloneable, IDisposable
                                     // Clamp to ushort
                                     table16[i] = QuickSaturateWord(z[i + 1]);
                             }
-                        } else
+                        }
+                        else
                         { // Could not smooth
                             State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Function Smooth2 failed.");
                             successStatus = false;
                         }
                     }
-                } else
+                }
+                else
                 {
                     State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Too many points.");
                     successStatus = false;
@@ -487,6 +531,10 @@ public sealed class ToneCurve: ICloneable, IDisposable
 
         return successStatus;
     }
+
+    #endregion Public Methods
+
+    #region Internal Methods
 
     internal static ToneCurve? Alloc(object? state, uint numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
     {
@@ -549,6 +597,10 @@ public sealed class ToneCurve: ICloneable, IDisposable
         return null;
     }
 
+    #endregion Internal Methods
+
+    #region Private Methods
+
     private static double DefaultEvalParametricFn(int type, in double[] @params, double r)
     {
         double val, disc, e;
@@ -593,7 +645,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (ap1 < determinantTolerance)
                 {
                     val = 0;
-                } else
+                }
+                else
                 {
                     disc = -p2 / p1;
 
@@ -604,7 +657,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                         val = e > 0
                             ? Pow(e, p0)
                             : 0;
-                    } else
+                    }
+                    else
                     {
                         val = 0;
                     }
@@ -629,7 +683,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (ap1 < determinantTolerance)
                 {
                     val = 0;
-                } else
+                }
+                else
                 {
                     disc = Max(-p2 / p1, 0);
 
@@ -640,7 +695,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                         val = e > 0
                             ? Pow(e, p0) + p3
                             : 0;
-                    } else
+                    }
+                    else
                     {
                         val = p3;
                     }
@@ -654,7 +710,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (ap1 < determinantTolerance)
                 {
                     val = 0;
-                } else
+                }
+                else
                 {
                     if (r >= p3)
                     {
@@ -663,7 +720,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                         val = e > 0
                             ? (Pow(e, 1 / p0) - p2) / p1
                             : 0;
-                    } else
+                    }
+                    else
                     {
                         val = -p2 / p1;
                     }
@@ -681,7 +739,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                     val = e > 0
                         ? Pow(e, p0)
                         : 0;
-                } else
+                }
+                else
                 {
                     val = r * p3;
                 }
@@ -716,7 +775,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                     val = e > 0
                         ? Pow(e, p0) + p5
                         : p5;
-                } else
+                }
+                else
                 {
                     val = (r * p3) + p6;
                 }
@@ -735,7 +795,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                         : ap0 < determinantTolerance || ap1 < determinantTolerance
                             ? 0
                             : (Pow(e, 1.0 / p0) - p2) / p1;
-                } else
+                }
+                else
                 {
                     val = ap3 < determinantTolerance
                         ? 0
@@ -764,7 +825,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (ap1 < determinantTolerance)
                 {
                     val = 0;
-                } else
+                }
+                else
                 {
                     e = r - p3;
                     val = e < 0
@@ -872,12 +934,14 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (y0 <= y1)
                 { // Increasing
                     if (@in >= y0 && @in <= y1) return i;
-                } else
+                }
+                else
                 { // Decreasing
                     if (@in >= y1 && @in <= y0) return i;
                 }
             }
-        } else
+        }
+        else
         {
             // Table is overall descending
             for (var i = 0; i < p.Domain[0]; i++)
@@ -888,7 +952,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
                 if (y0 <= y1)
                 {
                     if (@in >= y0 && @in <= y1) return i;
-                } else
+                }
+                else
                 {
                     if (@in >= y1 && @in <= y0) return i;
                 }
@@ -985,7 +1050,8 @@ public sealed class ToneCurve: ICloneable, IDisposable
 
                     segInterp[i].Interpolation.LerpFloat(r1, out32, segInterp[i]);
                     result = out32[0];
-                } else
+                }
+                else
                 {
                     result = evals[i](segments[i].Type, segments[i].Params, r);
                 }
@@ -1000,10 +1066,14 @@ public sealed class ToneCurve: ICloneable, IDisposable
 
         return minusInf;
     }
+
+    #endregion Private Methods
 }
 
 internal class ParametricCurvesCollection
 {
+    #region Fields
+
     public const int MaxInputDimensions = 15;
 
     internal ParametricCurveEvaluator evaluator;
@@ -1011,6 +1081,10 @@ internal class ParametricCurvesCollection
     internal (int Type, int Count)[] functions = new (int, int)[Lcms2.MaxTypesInPlugin];
 
     internal ParametricCurvesCollection? next;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public ParametricCurvesCollection((int Types, int Count)[] functions, ParametricCurveEvaluator evaluator, ParametricCurvesCollection? next)
     {
@@ -1026,8 +1100,16 @@ internal class ParametricCurvesCollection
         this.next = next;
     }
 
+    #endregion Public Constructors
+
+    #region Properties
+
     internal int NumFunctions =>
         functions.Length;
+
+    #endregion Properties
+
+    #region Internal Methods
 
     internal static ParametricCurvesCollection? GetByType(object? state, int type, out int index)
     {
@@ -1067,4 +1149,6 @@ internal class ParametricCurvesCollection
 
         return -1;
     }
+
+    #endregion Internal Methods
 }

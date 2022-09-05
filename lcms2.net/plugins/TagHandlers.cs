@@ -1,4 +1,30 @@
-﻿using lcms2.types;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.types;
 
 using static lcms2.types.Signature;
 
@@ -8,6 +34,8 @@ public delegate Signature TagTypeDecider(double iccVersion, ref object data);
 
 internal static class TagHandlers
 {
+    #region Fields
+
     public static readonly TagDescriptor AToB = new(1, new Signature[] { TagType.Lut16, TagType.LutAtoB, TagType.Lut8 }, DecideLutA2B);
 
     public static readonly TagDescriptor BToA = new(1, new Signature[] { TagType.Lut16, TagType.LutBtoA, TagType.Lut8 }, DecideLutB2A);
@@ -33,6 +61,10 @@ internal static class TagHandlers
     public static readonly TagDescriptor Xyz = new(1, new Signature[] { TagType.XYZ }, DecideXYZ);
 
     public static readonly TagDescriptor XyzEx = new(1, new Signature[] { TagType.XYZ, TagType.CorbisBrokenXYZ }, DecideXYZ);
+
+    #endregion Fields
+
+    #region Public Methods
 
     public static Signature DecideCurve(double iccVersion, ref object data)
     {
@@ -77,4 +109,6 @@ internal static class TagHandlers
 
     public static Signature DecideXYZ(double iccVersion, ref object data) =>
         TagType.XYZ;
+
+    #endregion Public Methods
 }

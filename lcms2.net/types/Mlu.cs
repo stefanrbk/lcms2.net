@@ -1,29 +1,62 @@
-﻿using lcms2.state;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 namespace lcms2.types;
 
-public class Mlu: ICloneable, IDisposable
+public class Mlu : ICloneable, IDisposable
 {
+    #region Fields
+
     internal const string noCountry = "\0\0";
 
     internal const string noLanguage = "\0\0";
 
-    internal object? state;
-
     internal List<MluEntry> entries = new();
-
     internal byte[] memPool = Array.Empty<byte>();
-
     internal uint poolSize;
-
     internal uint poolUsed;
-
+    internal object? state;
     private bool _disposed;
+
+    #endregion Fields
+
+    #region Internal Constructors
 
     internal Mlu(object? state) =>
         this.state = state;
 
+    #endregion Internal Constructors
+
+    #region Properties
+
     internal uint UsedEntries => (uint)entries.Count;
+
+    #endregion Properties
+
+    #region Public Methods
 
     public object Clone()
     {
@@ -49,6 +82,10 @@ public class Mlu: ICloneable, IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    #endregion Public Methods
+
+    #region Internal Methods
 
     internal static Mlu? Duplicate(Mlu? mlu)
     {
@@ -206,6 +243,10 @@ public class Mlu: ICloneable, IDisposable
         return AddBlock((uint)len, str.ToCharArray(), lang, cntry);
     }
 
+    #endregion Internal Methods
+
+    #region Protected Methods
+
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
@@ -216,6 +257,10 @@ public class Mlu: ICloneable, IDisposable
             _disposed = true;
         }
     }
+
+    #endregion Protected Methods
+
+    #region Private Methods
 
     private static string StrFrom16(ushort n)
     {
@@ -279,12 +324,18 @@ public class Mlu: ICloneable, IDisposable
         // Found exact match
         return result;
     }
+
+    #endregion Private Methods
 }
 
 internal struct MluEntry
 {
+    #region Fields
+
     public ushort Country;
     public ushort Language;
     public uint Len;
     public uint OffsetToStr;
+
+    #endregion Fields
 }

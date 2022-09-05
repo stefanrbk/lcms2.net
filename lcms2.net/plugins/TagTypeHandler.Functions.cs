@@ -1,14 +1,40 @@
-﻿using lcms2.io;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 using lcms2.types.type_handlers;
-
-using static lcms2.Helpers;
 
 namespace lcms2.plugins;
 
 public abstract partial class TagTypeHandler
 {
+    #region Public Methods
+
     public static TagTypeHandler? GetHandler(object? state, Signature sig) =>
            GetHandler(sig, State.GetTagTypePlugin(state).tagTypes);
 
@@ -101,6 +127,10 @@ public abstract partial class TagTypeHandler
 
         return io.Seek(curPos, SeekOrigin.Begin) == curPos; // Make sure we end up at the end of the table
     }
+
+    #endregion Public Methods
+
+    #region Internal Methods
 
     internal static bool ReadCountAndString(Stream io, Mlu mlu, ref int sizeOfTag, string section)
     {
@@ -255,7 +285,8 @@ public abstract partial class TagTypeHandler
 
                 for (var j = 1; j < actualSeg.NumGridPoints; j++)
                     if (!io.Write(actualSeg.SampledPoints[j])) return false;
-            } else
+            }
+            else
             {
                 // This is a formula-based curve.
                 if (!io.Write((uint)Signature.CurveSegment.Formula)) return false;
@@ -433,11 +464,13 @@ public abstract partial class TagTypeHandler
         {
             var h = new CurveHandler();
             return (ToneCurve?)h.Read(io, 0, out _);
-        } else if (baseType.Signature == Signature.TagType.ParametricCurve)
+        }
+        else if (baseType.Signature == Signature.TagType.ParametricCurve)
         {
             var h = new ParametricCurveHandler();
             return (ToneCurve?)h.Read(io, 0, out _);
-        } else
+        }
+        else
             State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", baseType.Signature);
         return null;
     }
@@ -533,7 +566,8 @@ public abstract partial class TagTypeHandler
                     if (!io.ReadFloat32Number(out var f)) return null;
                     segments[i].Params[j] = f;
                 }
-            } else if (elementSig == Signature.CurveSegment.Sampled)
+            }
+            else if (elementSig == Signature.CurveSegment.Sampled)
             {
                 if (!io.ReadUInt32Number(out var count)) return null;
 
@@ -546,7 +580,8 @@ public abstract partial class TagTypeHandler
                 for (var j = 1; j < count; j++)
                     if (!io.ReadFloat32Number(out sp[j])) return null;
                 segments[i].SampledPoints = sp;
-            } else
+            }
+            else
             {
                 State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve element type '{0}' found.", elementSig);
                 return null;
@@ -615,13 +650,15 @@ public abstract partial class TagTypeHandler
             {
                 for (var j = 0; j < 256; j++)
                     if (!io.Write((byte)j)) return false;
-            } else
+            }
+            else
             {
                 if (tables.TheCurves[i].NumEntries != 256)
                 {
                     State.SignalError(StateContainer, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
                     return false;
-                } else
+                }
+                else
                     for (var j = 0; j < 256; j++)
                     {
                         var val = From16to8(tables.TheCurves[i].table16[j]);
@@ -702,11 +739,13 @@ public abstract partial class TagTypeHandler
             {
                 var h = new CurveHandler(StateContainer);
                 if (!h.Write(io, curves[i], 1)) return false;
-            } else if (currentType == Signature.TagType.ParametricCurve)
+            }
+            else if (currentType == Signature.TagType.ParametricCurve)
             {
                 var h = new ParametricCurveHandler(StateContainer);
                 if (!h.Write(io, curves[i], 1)) return false;
-            } else
+            }
+            else
             {
                 State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", type);
                 return false;
@@ -717,6 +756,10 @@ public abstract partial class TagTypeHandler
 
         return true;
     }
+
+    #endregion Internal Methods
+
+    #region Protected Methods
 
     protected static TagTypeHandler? GetHandler(Signature sig, TagTypeLinkedList? pluginList)
     {
@@ -733,4 +776,6 @@ public abstract partial class TagTypeHandler
 
         return null;
     }
+
+    #endregion Protected Methods
 }

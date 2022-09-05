@@ -1,13 +1,66 @@
-﻿using System.Diagnostics;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using lcms2.plugins;
 using lcms2.types;
 
+using System.Diagnostics;
+
 namespace lcms2.state;
+
 public static class State
 {
+    #region Enums
+
+    private enum Chunks
+    {
+        UserPtr,
+        Logger,
+        AlarmCodesContext,
+        AdaptationStateContext,
+        InterpPlugin,
+        CurvesPlugin,
+        FormattersPlugin,
+        TagTypePlugin,
+        TagPlugin,
+        IntentPlugin,
+        MPEPlugin,
+        OptimizationPlugin,
+        TransformPlugin,
+        MutexPlugin,
+
+        Max
+    }
+
+    #endregion Enums
+
+    #region Public Methods
+
     public static object? CreateStateContainer(Plugin? plugin = null, object? userData = null) =>
-        Context.Create(plugin, userData);
+            Context.Create(plugin, userData);
 
     public static void DeleteStateContainer(object? state) =>
         Context.Delete(state);
@@ -15,14 +68,14 @@ public static class State
     public static object? DuplicateStateContainer(object? state, object? newUserData = null) =>
         Context.Duplicate(state, newUserData);
 
-    public static object? GetStateContainerUserData(object? state) =>
-        Context.GetClientChunk(state, Chunks.UserPtr);
-
     public static ushort[] GetAlarmCodes() =>
         GetAlarmCodes(null);
 
     public static ushort[] GetAlarmCodes(object? state) =>
         ((AlarmCodes)Context.GetClientChunk(state, Chunks.AlarmCodesContext)!).alarmCodes;
+
+    public static object? GetStateContainerUserData(object? state) =>
+                Context.GetClientChunk(state, Chunks.UserPtr);
 
     public static object? GetUserData(object? state) =>
         Context.GetClientChunk(state, Chunks.UserPtr);
@@ -62,6 +115,40 @@ public static class State
     public static void SetLogErrorHandler(object? state, LogErrorHandlerFunction? fn) =>
         ((LogErrorHandler)Context.GetClientChunk(state, Chunks.Logger)!).handler = fn ?? LogErrorHandler.DefaultLogErrorHandlerFunction;
 
+    #endregion Public Methods
+
+    #region Internal Methods
+
+    internal static ParametricCurvesPluginChunk GetCurvesPlugin(object? state) =>
+            (ParametricCurvesPluginChunk)Context.GetClientChunk(state, Chunks.CurvesPlugin)!;
+
+    internal static FormattersPluginChunk GetFormattersPlugin(object? state) =>
+            (FormattersPluginChunk)Context.GetClientChunk(state, Chunks.FormattersPlugin)!;
+
+    internal static InterpolationPluginChunk GetInterpolationPlugin(object? state) =>
+            (InterpolationPluginChunk)Context.GetClientChunk(state, Chunks.InterpPlugin)!;
+
+    internal static TagTypePluginChunk GetMultiProcessElementPlugin(object? state) =>
+            (TagTypePluginChunk)Context.GetClientChunk(state, Chunks.MPEPlugin)!;
+
+    internal static MutexPluginChunk GetMutexPlugin(object? state) =>
+            (MutexPluginChunk)Context.GetClientChunk(state, Chunks.MutexPlugin)!;
+
+    internal static OptimizationPluginChunk GetOptimizationPlugin(object? state) =>
+            (OptimizationPluginChunk)Context.GetClientChunk(state, Chunks.OptimizationPlugin)!;
+
+    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(object? state) =>
+            (RenderingIntentsPluginChunk)Context.GetClientChunk(state, Chunks.IntentPlugin)!;
+
+    internal static TagPluginChunk GetTagPlugin(object? state) =>
+            (TagPluginChunk)Context.GetClientChunk(state, Chunks.TagPlugin)!;
+
+    internal static TagTypePluginChunk GetTagTypePlugin(object? state) =>
+            (TagTypePluginChunk)Context.GetClientChunk(state, Chunks.TagTypePlugin)!;
+
+    internal static TransformPluginChunk GetTransformPlugin(object? state) =>
+            (TransformPluginChunk)Context.GetClientChunk(state, Chunks.TransformPlugin)!;
+
     /// <summary>
     ///     Log an error.
     /// </summary>
@@ -71,43 +158,17 @@ public static class State
     {
         // Check for the context, if specified go there. If not, go for the global
         LogErrorHandler lhg = (LogErrorHandler)Context.GetClientChunk(state, Chunks.Logger)!;
-            if (lhg.handler is not null)
+        if (lhg.handler is not null)
             lhg.handler(state, errorCode, String.Format(errorText, args));
     }
 
-    internal static ParametricCurvesPluginChunk GetCurvesPlugin(object? state) =>
-        (ParametricCurvesPluginChunk)Context.GetClientChunk(state, Chunks.CurvesPlugin)!;
+    #endregion Internal Methods
 
-    internal static FormattersPluginChunk GetFormattersPlugin(object? state) =>
-        (FormattersPluginChunk)Context.GetClientChunk(state, Chunks.FormattersPlugin)!;
-
-    internal static InterpolationPluginChunk GetInterpolationPlugin(object? state) =>
-        (InterpolationPluginChunk)Context.GetClientChunk(state, Chunks.InterpPlugin)!;
-
-    internal static TagTypePluginChunk GetMultiProcessElementPlugin(object? state) =>
-        (TagTypePluginChunk)Context.GetClientChunk(state, Chunks.MPEPlugin)!;
-
-    internal static MutexPluginChunk GetMutexPlugin(object? state) =>
-        (MutexPluginChunk)Context.GetClientChunk(state, Chunks.MutexPlugin)!;
-
-    internal static OptimizationPluginChunk GetOptimizationPlugin(object? state) =>
-        (OptimizationPluginChunk)Context.GetClientChunk(state, Chunks.OptimizationPlugin)!;
-
-    internal static RenderingIntentsPluginChunk GetRenderingIntentsPlugin(object? state) =>
-        (RenderingIntentsPluginChunk)Context.GetClientChunk(state, Chunks.IntentPlugin)!;
-
-    internal static TagPluginChunk GetTagPlugin(object? state) =>
-        (TagPluginChunk)Context.GetClientChunk(state, Chunks.TagPlugin)!;
-
-    internal static TagTypePluginChunk GetTagTypePlugin(object? state) =>
-        (TagTypePluginChunk)Context.GetClientChunk(state, Chunks.TagTypePlugin)!;
-
-    internal static TransformPluginChunk GetTransformPlugin(object? state) =>
-        (TransformPluginChunk)Context.GetClientChunk(state, Chunks.TransformPlugin)!;
+    #region Classes
 
     private sealed class Context
     {
-        private object?[] _chunks = new object[(int)Chunks.Max];
+        #region Fields
 
         private static readonly Context _globalContext = new()
         {
@@ -131,13 +192,20 @@ public static class State
         };
 
         private static readonly object _poolHeadMutex = new();
-
         private static Context? _poolHead = null;
-
+        private object?[] _chunks = new object[(int)Chunks.Max];
         private Context? _next;
+
+        #endregion Fields
+
+        #region Private Constructors
 
         private Context()
         { }
+
+        #endregion Private Constructors
+
+        #region Internal Methods
 
         internal static object? Create(Plugin? plugin, object? userData)
         {
@@ -183,7 +251,8 @@ public static class State
                 if (_poolHead == ctx)
                 {
                     _poolHead = ctx._next;
-                } else
+                }
+                else
                 {
                     // Search for previous
                     for (var prev = _poolHead; prev is not null; prev = prev._next)
@@ -260,36 +329,17 @@ public static class State
             return _globalContext._chunks[(int)chunk];
         }
 
-        // Helps prevent deleted contexts from being used by searching for the context in the list of
-        // active contexts and returning the global context if not found.
-        private static Context Get(object? state)
-        {
-            // On null, use global settings
-            if (state is not Context context)
-                return _globalContext;
+        #endregion Internal Methods
 
-            // Search
-            lock (_poolHeadMutex)
-            {
-                for (var ctx = _poolHead; ctx is not null; ctx = ctx._next)
-                {
-                    // Found it?
-                    if (context == ctx)
-                    {
-                        return ctx;
-                    }
-                }
-            }
-            return _globalContext;
-        }
-
-        private static void AllocAlarmCodes(Context state, Context? src = null) =>
-            state._chunks[(int)Chunks.AlarmCodesContext] =
-                (AlarmCodes?)src?._chunks[(int)Chunks.AlarmCodesContext] ?? AlarmCodes.Default;
+        #region Private Methods
 
         private static void AllocAdaptationState(Context state, Context? src = null) =>
-            state._chunks[(int)Chunks.AdaptationStateContext] =
-                (AdaptationState?)src?._chunks[(int)Chunks.AdaptationStateContext] ?? AdaptationState.Default;
+                    state._chunks[(int)Chunks.AdaptationStateContext] =
+                        (AdaptationState?)src?._chunks[(int)Chunks.AdaptationStateContext] ?? AdaptationState.Default;
+
+        private static void AllocAlarmCodes(Context state, Context? src = null) =>
+                    state._chunks[(int)Chunks.AlarmCodesContext] =
+                        (AlarmCodes?)src?._chunks[(int)Chunks.AlarmCodesContext] ?? AlarmCodes.Default;
 
         private static void AllocFormattersPluginChunk(Context state, Context? src = null)
         {
@@ -300,12 +350,12 @@ public static class State
         }
 
         private static void AllocInterpolationPluginChunk(Context state, Context? src = null) =>
-            state._chunks[(int)Chunks.InterpPlugin] =
-                (InterpolationPluginChunk?)src?._chunks[(int)Chunks.InterpPlugin] ?? InterpolationPluginChunk.Default;
+                    state._chunks[(int)Chunks.InterpPlugin] =
+                        (InterpolationPluginChunk?)src?._chunks[(int)Chunks.InterpPlugin] ?? InterpolationPluginChunk.Default;
 
         private static void AllocLogErrorHandler(Context state, Context? src = null) =>
-            state._chunks[(int)Chunks.Logger] =
-                (LogErrorHandler?)src?._chunks[(int)Chunks.Logger] ?? LogErrorHandler.Default;
+                    state._chunks[(int)Chunks.Logger] =
+                        (LogErrorHandler?)src?._chunks[(int)Chunks.Logger] ?? LogErrorHandler.Default;
 
         private static void AllocMPEPluginChunk(Context state, Context? src = null)
         {
@@ -316,8 +366,8 @@ public static class State
         }
 
         private static void AllocMutexPluginChunk(Context state, Context? src = null) =>
-            state._chunks[(int)Chunks.MutexPlugin] =
-                (MutexPluginChunk?)src?._chunks[(int)Chunks.MutexPlugin] ?? MutexPluginChunk.Default;
+                    state._chunks[(int)Chunks.MutexPlugin] =
+                        (MutexPluginChunk?)src?._chunks[(int)Chunks.MutexPlugin] ?? MutexPluginChunk.Default;
 
         private static void AllocOptimizationPluginChunk(Context state, Context? src = null)
         {
@@ -365,32 +415,6 @@ public static class State
                 DupTransformList(ref state, src);
             else
                 state._chunks[(int)Chunks.TransformPlugin] = TransformPluginChunk.Default;
-        }
-
-        private static void DupTransformList(ref Context ctx, in Context src)
-        {
-            TransformPluginChunk newHead = TransformPluginChunk.Default;
-            TransformCollection? anterior = null;
-            var head = (TransformPluginChunk?)src._chunks[(int)Chunks.TransformPlugin];
-
-            Debug.Assert(head is not null);
-
-            // Walk the list copying all nodes
-            for (var entry = head.transformCollection; entry is not null; entry = entry.next)
-            {
-                // We want to keep the linked list order, so this is a little bit tricky
-                TransformCollection newEntry = new(entry);
-
-                if (anterior is not null)
-                    anterior.next = newEntry;
-
-                anterior = newEntry;
-
-                if (newHead.transformCollection is null)
-                    newHead.transformCollection = newEntry;
-            }
-
-            ctx._chunks[(int)Chunks.TransformPlugin] = newHead;
         }
 
         private static void DupFormatterFactoryList(ref Context state, in Context src)
@@ -497,31 +521,6 @@ public static class State
             state._chunks[(int)Chunks.CurvesPlugin] = newHead;
         }
 
-        private static void DupTagTypeList(Context state, in Context src, Chunks loc)
-        {
-            TagTypePluginChunk newHead = TagTypePluginChunk.Default;
-            TagTypeLinkedList? anterior = null;
-            var head = (TagTypePluginChunk?)src._chunks[(int)loc];
-
-            Debug.Assert(head is not null);
-
-            // Walk the list copying all nodes
-            for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
-            {
-                TagTypeLinkedList newEntry = new(entry.Handler, null);
-
-                if (anterior is not null)
-                    anterior.Next = newEntry;
-
-                anterior = newEntry;
-
-                if (newHead.tagTypes is null)
-                    newHead.tagTypes = newEntry;
-            }
-
-            state._chunks[(int)loc] = newHead;
-        }
-
         private static void DupTagList(ref Context ctx, in Context src)
         {
             TagPluginChunk newHead = TagPluginChunk.Default;
@@ -547,24 +546,83 @@ public static class State
 
             ctx._chunks[(int)Chunks.TagPlugin] = newHead;
         }
-    }
-    private enum Chunks
-    {
-        UserPtr,
-        Logger,
-        AlarmCodesContext,
-        AdaptationStateContext,
-        InterpPlugin,
-        CurvesPlugin,
-        FormattersPlugin,
-        TagTypePlugin,
-        TagPlugin,
-        IntentPlugin,
-        MPEPlugin,
-        OptimizationPlugin,
-        TransformPlugin,
-        MutexPlugin,
 
-        Max
+        private static void DupTagTypeList(Context state, in Context src, Chunks loc)
+        {
+            TagTypePluginChunk newHead = TagTypePluginChunk.Default;
+            TagTypeLinkedList? anterior = null;
+            var head = (TagTypePluginChunk?)src._chunks[(int)loc];
+
+            Debug.Assert(head is not null);
+
+            // Walk the list copying all nodes
+            for (var entry = head.tagTypes; entry is not null; entry = entry.Next)
+            {
+                TagTypeLinkedList newEntry = new(entry.Handler, null);
+
+                if (anterior is not null)
+                    anterior.Next = newEntry;
+
+                anterior = newEntry;
+
+                if (newHead.tagTypes is null)
+                    newHead.tagTypes = newEntry;
+            }
+
+            state._chunks[(int)loc] = newHead;
+        }
+
+        private static void DupTransformList(ref Context ctx, in Context src)
+        {
+            TransformPluginChunk newHead = TransformPluginChunk.Default;
+            TransformCollection? anterior = null;
+            var head = (TransformPluginChunk?)src._chunks[(int)Chunks.TransformPlugin];
+
+            Debug.Assert(head is not null);
+
+            // Walk the list copying all nodes
+            for (var entry = head.transformCollection; entry is not null; entry = entry.next)
+            {
+                // We want to keep the linked list order, so this is a little bit tricky
+                TransformCollection newEntry = new(entry);
+
+                if (anterior is not null)
+                    anterior.next = newEntry;
+
+                anterior = newEntry;
+
+                if (newHead.transformCollection is null)
+                    newHead.transformCollection = newEntry;
+            }
+
+            ctx._chunks[(int)Chunks.TransformPlugin] = newHead;
+        }
+
+        // Helps prevent deleted contexts from being used by searching for the context in the list of
+        // active contexts and returning the global context if not found.
+        private static Context Get(object? state)
+        {
+            // On null, use global settings
+            if (state is not Context context)
+                return _globalContext;
+
+            // Search
+            lock (_poolHeadMutex)
+            {
+                for (var ctx = _poolHead; ctx is not null; ctx = ctx._next)
+                {
+                    // Found it?
+                    if (context == ctx)
+                    {
+                        return ctx;
+                    }
+                }
+            }
+            return _globalContext;
+        }
+
+        #endregion Private Methods
     }
+
+    #endregion Classes
 }

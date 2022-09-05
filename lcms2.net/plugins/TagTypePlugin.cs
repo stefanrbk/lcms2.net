@@ -1,5 +1,29 @@
-﻿using System.Diagnostics;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using lcms2.state;
 using lcms2.types;
 using lcms2.types.type_handlers;
@@ -8,9 +32,15 @@ namespace lcms2.plugins;
 
 public class TagTypeLinkedList
 {
+    #region Fields
+
     public TagTypeHandler Handler;
 
     public TagTypeLinkedList? Next;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next)
     {
@@ -23,26 +53,42 @@ public class TagTypeLinkedList
         Handler = list[0];
         Next = list.Length > 1 ? new(list[1..]) : null;
     }
+
+    #endregion Public Constructors
 }
 
 /// <summary>
 ///     Tag type handler
 /// </summary>
 /// <remarks>Implements the <c>cmsPluginTagType</c> struct.</remarks>
-public sealed class TagTypePlugin: Plugin
+public sealed class TagTypePlugin : Plugin
 {
+    #region Fields
+
     public TagTypeHandler Handler;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public TagTypePlugin(Signature magic, uint expectedVersion, Signature type, TagTypeHandler handler)
         : base(magic, expectedVersion, type) =>
         Handler = handler;
 
+    #endregion Public Constructors
+
+    #region Internal Methods
+
     internal static bool RegisterPlugin(object? state, TagTypePlugin? plugin) =>
         TagTypePluginChunk.TagType.RegisterPlugin(state, plugin);
+
+    #endregion Internal Methods
 }
 
 internal sealed class TagTypePluginChunk
 {
+    #region Fields
+
     internal static readonly TagTypeLinkedList supportedMpeTypes = new(new TagTypeHandler[]
     {
         // Ignore these elements for now (That's what the spec says)
@@ -91,10 +137,22 @@ internal sealed class TagTypePluginChunk
 
     internal TagTypeLinkedList? tagTypes;
 
-    internal static TagTypePluginChunk Default => new();
+    #endregion Fields
+
+    #region Private Constructors
 
     private TagTypePluginChunk()
     { }
+
+    #endregion Private Constructors
+
+    #region Properties
+
+    internal static TagTypePluginChunk Default => new();
+
+    #endregion Properties
+
+    #region Private Methods
 
     private static bool RegisterTypesPlugin(object? state, Plugin? data, bool isMpePlugin)
     {
@@ -105,12 +163,13 @@ internal sealed class TagTypePluginChunk
 
         if (isMpePlugin)
         {
-                sta = State.GetMultiProcessElementPlugin(state);
-                handler = ((MultiProcessElementPlugin)data).Handler;
-        } else
+            sta = State.GetMultiProcessElementPlugin(state);
+            handler = ((MultiProcessElementPlugin)data).Handler;
+        }
+        else
         {
-                sta = State.GetTagTypePlugin(state);
-                handler = ((TagTypePlugin)data).Handler;
+            sta = State.GetTagTypePlugin(state);
+            handler = ((TagTypePlugin)data).Handler;
         }
 
         if (data is null)
@@ -128,21 +187,43 @@ internal sealed class TagTypePluginChunk
         return true;
     }
 
+    #endregion Private Methods
+
+    #region Classes
+
     internal static class MPE
     {
+        #region Fields
+
         internal static TagTypePluginChunk global = new();
+
+        #endregion Fields
+
+        #region Internal Methods
 
         internal static bool RegisterPlugin(object? context, Plugin? plugin) =>
             RegisterTypesPlugin(context, plugin, isMpePlugin: true);
+
+        #endregion Internal Methods
     }
 
     internal static class TagType
     {
+        #region Fields
+
         internal static TagTypePluginChunk global = new();
+
+        #endregion Fields
+
+        #region Internal Methods
 
         internal static bool RegisterPlugin(object? context, Plugin? plugin) =>
             RegisterTypesPlugin(context, plugin, isMpePlugin: false);
+
+        #endregion Internal Methods
     }
+
+    #endregion Classes
 }
 
 public delegate bool PositionTableEntryFn(TagTypeHandler self, Stream io, ref object cargo, int n, int sizeOfTag);

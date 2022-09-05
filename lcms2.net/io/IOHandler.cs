@@ -1,13 +1,41 @@
-﻿using System.Buffers.Binary;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.types;
+
+using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
-
-using lcms2.types;
 
 namespace lcms2.io;
 
 public static class IOHandler
 {
+    #region Public Methods
+
     /// <summary>
     ///     Swaps the endianness of a <see cref="ushort"/> on little endian machines. ICC Profiles
     ///     are stored in big endian and requires "adjustment".
@@ -72,7 +100,8 @@ public static class IOHandler
             var resultString = string.Format(frm, args);
             var bytes = Encoding.UTF8.GetBytes(resultString);
             io.Write(bytes, 0, Math.Min(bytes.Length, 2047));
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -183,7 +212,8 @@ public static class IOHandler
             var tb = MemoryMarshal.Read<TagBase>(buf);
 
             return tb;
-        } catch
+        }
+        catch
         {
             return default;
         }
@@ -298,7 +328,6 @@ public static class IOHandler
         return true;
     }
 
-
     public static long Tell(this Stream io) =>
                                             io.Seek(0, SeekOrigin.Current);
 
@@ -315,7 +344,8 @@ public static class IOHandler
         {
             io.WriteByte(n);
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -336,7 +366,8 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt16BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -375,7 +406,8 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -395,7 +427,8 @@ public static class IOHandler
             BinaryPrimitives.WriteInt32BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -416,7 +449,8 @@ public static class IOHandler
             BinaryPrimitives.WriteSingleBigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -437,7 +471,8 @@ public static class IOHandler
             BinaryPrimitives.WriteUInt64BigEndian(tmp, n);
             io.Write(tmp.AsSpan());
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -489,7 +524,8 @@ public static class IOHandler
             var buf = new byte[sizeof(TagBase)];
             MemoryMarshal.Write(buf, ref tagBase);
             io.Write(buf);
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -529,7 +565,8 @@ public static class IOHandler
             io.Write(buf);
 
             return true;
-        } catch
+        }
+        catch
         {
             return false;
         }
@@ -543,4 +580,6 @@ public static class IOHandler
     /// <returns>Whether the write operation was successful</returns>
     public static bool WriteUtf16String(this Stream io, string str) =>
         io.Write(str.ToCharArray());
+
+    #endregion Public Methods
 }

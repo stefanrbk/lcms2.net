@@ -1,15 +1,64 @@
-﻿namespace lcms2.types;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+namespace lcms2.types;
 
 public partial class Stage
 {
-    public abstract class StageData: IDisposable
+    #region Classes
+
+    public abstract class StageData : IDisposable
     {
+        #region Fields
+
         private bool _disposed;
+
+        #endregion Fields
+
+        #region Public Methods
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion Public Methods
+
+        #region Internal Methods
+
+        internal abstract StageData? Duplicate(Stage parent);
 
         internal abstract void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage parent);
 
+        #endregion Internal Methods
+
         /*  Original Code (cmslut.c line: 1240)
-         *  
+         *
          *  // Duplicates an MPE
          *  cmsStage* CMSEXPORT cmsStageDup(cmsStage* mpe)
          *  {
@@ -46,10 +95,8 @@ public partial class Stage
          *      return NewMPE;
          *  }
          */
-        internal abstract StageData? Duplicate(Stage parent);
-
         /*  Original Code (cmslut.c line: 1199)
-         *  
+         *
          *  // Free a single MPE
          *  void CMSEXPORT cmsStageFree(cmsStage* mpe)
          *  {
@@ -59,6 +106,9 @@ public partial class Stage
          *      _cmsFree(mpe ->ContextID, mpe);
          *  }
          */
+
+        #region Protected Methods
+
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -67,11 +117,8 @@ public partial class Stage
             }
         }
 
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+        #endregion Protected Methods
     }
+
+    #endregion Classes
 }

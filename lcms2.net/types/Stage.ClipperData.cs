@@ -2,8 +2,12 @@
 
 public sealed partial class Stage
 {
+    #region Classes
+
     internal class ClipperData: StageData
     {
+        #region Internal Methods
+
         internal override StageData? Duplicate(Stage parent) =>
             new ClipperData();
 
@@ -26,5 +30,9 @@ public sealed partial class Stage
             for (var i = 0; i < parent.InputChannels; i++)
                 @out[i] = Math.Max(@in[i], 0);
         }
+
+        #endregion Internal Methods
     }
+
+    #endregion Classes
 }

@@ -1,16 +1,48 @@
-﻿using lcms2.io;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.io;
 using lcms2.plugins;
 using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 
-public class DictionaryHandler: TagTypeHandler
+public class DictionaryHandler : TagTypeHandler
 {
+    #region Public Constructors
+
     public DictionaryHandler(Signature sig, object? state = null)
         : base(sig, state, 0) { }
 
     public DictionaryHandler(object? state = null)
         : this(default, state) { }
+
+    #endregion Public Constructors
+
+    #region Public Methods
 
     public override object? Duplicate(object value, int num) =>
         (value as Dictionary)?.Clone();
@@ -76,7 +108,8 @@ public class DictionaryHandler: TagTypeHandler
             {
                 State.SignalError(StateContainer, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
                 rc = false;
-            } else
+            }
+            else
             {
                 hDict.AddEntry(nameStr, valueStr, dispNameMlu, dispValueMlu);
                 rc = true;
@@ -159,10 +192,20 @@ public class DictionaryHandler: TagTypeHandler
         return true;
     }
 
+    #endregion Public Methods
+
+    #region Structs
+
     internal struct DicArray
     {
+        #region Fields
+
         public DicElem? DisplayName, DisplayValue;
         public DicElem Name, Value;
+
+        #endregion Fields
+
+        #region Public Constructors
 
         public DicArray(object? context, uint count, uint length)
         {
@@ -177,6 +220,10 @@ public class DictionaryHandler: TagTypeHandler
                 ? new DicElem(context, count)
                 : null;
         }
+
+        #endregion Public Constructors
+
+        #region Public Methods
 
         public bool ReadOffset(Stream io, uint count, uint length, uint baseOffset, ref int signedSizeOfTagPtr)
         {
@@ -232,13 +279,21 @@ public class DictionaryHandler: TagTypeHandler
 
             return true;
         }
+
+        #endregion Public Methods
     }
 
     internal struct DicElem
     {
-        public object? StateContainer;
+        #region Fields
+
         public uint[] Offsets;
         public uint[] Sizes;
+        public object? StateContainer;
+
+        #endregion Fields
+
+        #region Public Constructors
 
         public DicElem(object? state, uint count)
         {
@@ -246,6 +301,10 @@ public class DictionaryHandler: TagTypeHandler
             Sizes = new uint[count];
             StateContainer = state;
         }
+
+        #endregion Public Constructors
+
+        #region Public Methods
 
         public bool ReadOneChar(Stream io, uint index, out string? str)
         {
@@ -339,5 +398,9 @@ public class DictionaryHandler: TagTypeHandler
             Sizes[index] = (uint)io.Tell() - before;
             return true;
         }
+
+        #endregion Public Methods
     }
+
+    #endregion Structs
 }

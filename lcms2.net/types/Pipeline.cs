@@ -1,78 +1,61 @@
-﻿namespace lcms2.types;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+namespace lcms2.types;
 
 public delegate void PipelineEval16Fn(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object data);
 
 public delegate void PipelineEvalFloatFn(ReadOnlySpan<float> @in, Span<float> @out, in object data);
 
-public class Pipeline: ICloneable, IDisposable
+public class Pipeline : ICloneable, IDisposable
 {
     /*  Original Code (cmslut.c line: 1398)
-     *  
+     *
      *  cmsContext CMSEXPORT cmsGetPipelineContextID(const cmsPipeline* lut)
      *  {
      *      _cmsAssert(lut != NULL);
      *      return lut ->ContextID;
      *  }
      */
-    public object? StateContainer { get; internal set; }
+
+    #region Fields
 
     internal object? data;
-
     internal DupUserDataFn? dupDataFn;
-
     internal Stage? elements;
-
     internal PipelineEval16Fn? eval16Fn;
-
     internal PipelineEvalFloatFn? evalFloatFn;
-
     internal FreeUserDataFn? freeDataFn;
-
-    /*  Original Code (cmslut.c line: 1404)
-     *  
-     *  cmsUInt32Number CMSEXPORT cmsPipelineInputChannels(const cmsPipeline* lut)
-     *  {
-     *      _cmsAssert(lut != NULL);
-     *      return lut ->InputChannels;
-     *  }
-     */
-    public uint InputChannels { get; internal set; }
-
-    /*  Original Code (cmalut.c line: 1410)
-     *  
-     *  cmsUInt32Number CMSEXPORT cmsPipelineOutputChannels(const cmsPipeline* lut)
-     *  {
-     *      _cmsAssert(lut != NULL);
-     *      return lut ->OutputChannels;
-     *  }
-     */
-    public uint OutputChannels { get; internal set; }
-
-    /*  Original Code (cmslut.c line: 1628)
-     *  
-     *  cmsBool CMSEXPORT cmsPipelineSetSaveAs8bitsFlag(cmsPipeline* lut, cmsBool On)
-     *  {
-     *      cmsBool Anterior = lut ->SaveAs8Bits;
-     *
-     *      lut ->SaveAs8Bits = On;
-     *      return Anterior;
-     *  }
-     */
-    public bool SaveAs8Bits { get; internal set; }
-
+    private const int _inversionMaxIterations = 30;
+    private const float _jacobianEpsilon = 0.001f;
     private bool _disposedValue;
 
-    /*  Original Code (cmslut.c line: 1701)
-     *  
-     *  #define JACOBIAN_EPSILON            0.001f
-     */
-    private const float _jacobianEpsilon = 0.001f;
+    #endregion Fields
 
-    /*  Original Code (cmslut.c line: 1702)
-     *  
-     *  #define INVERSION_MAX_ITERATIONS    30
-     */
-    private const int _inversionMaxIterations = 30;
+    #region Internal Constructors
 
     internal Pipeline(Stage? elements,
                       uint inputChannels,
@@ -97,19 +80,30 @@ public class Pipeline: ICloneable, IDisposable
         SaveAs8Bits = saveAs8Bits;
     }
 
-    /*  Original Code (cmslut.c line: 1652)
-     *  
-     *  cmsUInt32Number CMSEXPORT cmsPipelineStageCount(const cmsPipeline* lut)
-     *  {
-     *      cmsStage *mpe;
-     *      cmsUInt32Number n;
-     *
-     *      for (n=0, mpe = lut ->Elements; mpe != NULL; mpe = mpe ->Next)
-     *              n++;
-     *
-     *      return n;
-     *  }
-     */
+    #endregion Internal Constructors
+
+    #region Properties
+
+    public Stage? FirstStage =>
+        elements;
+
+    public uint InputChannels { get; internal set; }
+
+    public Stage? LastStage
+    {
+        get
+        {
+            Stage? anterior = null;
+            for (var mpe = elements; mpe is not null; mpe = mpe.Next)
+                anterior = mpe;
+
+            return anterior;
+        }
+    }
+
+    public uint OutputChannels { get; internal set; }
+    public bool SaveAs8Bits { get; internal set; }
+
     public uint StageCount
     {
         get
@@ -124,18 +118,66 @@ public class Pipeline: ICloneable, IDisposable
         }
     }
 
+    public object? StateContainer { get; internal set; }
+
+    #endregion Properties
+
+    /*  Original Code (cmslut.c line: 1404)
+     *
+     *  cmsUInt32Number CMSEXPORT cmsPipelineInputChannels(const cmsPipeline* lut)
+     *  {
+     *      _cmsAssert(lut != NULL);
+     *      return lut ->InputChannels;
+     *  }
+     */
+    /*  Original Code (cmalut.c line: 1410)
+     *
+     *  cmsUInt32Number CMSEXPORT cmsPipelineOutputChannels(const cmsPipeline* lut)
+     *  {
+     *      _cmsAssert(lut != NULL);
+     *      return lut ->OutputChannels;
+     *  }
+     */
+    /*  Original Code (cmslut.c line: 1628)
+     *
+     *  cmsBool CMSEXPORT cmsPipelineSetSaveAs8bitsFlag(cmsPipeline* lut, cmsBool On)
+     *  {
+     *      cmsBool Anterior = lut ->SaveAs8Bits;
+     *
+     *      lut ->SaveAs8Bits = On;
+     *      return Anterior;
+     *  }
+     */
+    /*  Original Code (cmslut.c line: 1701)
+     *
+     *  #define JACOBIAN_EPSILON            0.001f
+     */
+    /*  Original Code (cmslut.c line: 1702)
+     *
+     *  #define INVERSION_MAX_ITERATIONS    30
+     */
+    /*  Original Code (cmslut.c line: 1652)
+     *
+     *  cmsUInt32Number CMSEXPORT cmsPipelineStageCount(const cmsPipeline* lut)
+     *  {
+     *      cmsStage *mpe;
+     *      cmsUInt32Number n;
+     *
+     *      for (n=0, mpe = lut ->Elements; mpe != NULL; mpe = mpe ->Next)
+     *              n++;
+     *
+     *      return n;
+     *  }
+     */
     /*  Original Code (cmslut.c line: 1637)
-     *  
+     *
      *  cmsStage* CMSEXPORT cmsPipelineGetPtrToFirstStage(const cmsPipeline* lut)
      *  {
      *      return lut ->Elements;
      *  }
      */
-    public Stage? FirstStage =>
-        elements;
-
     /*  Original Code (cmslut.c line: 1642)
-     *  
+     *
      *  cmsStage* CMSEXPORT cmsPipelineGetPtrToLastStage(const cmsPipeline* lut)
      *  {
      *      cmsStage *mpe, *Anterior = NULL;
@@ -146,20 +188,8 @@ public class Pipeline: ICloneable, IDisposable
      *      return Anterior;
      *  }
      */
-    public Stage? LastStage
-    {
-        get
-        {
-            Stage? anterior = null;
-            for (var mpe = elements; mpe is not null; mpe = mpe.Next)
-                anterior = mpe;
-
-            return anterior;
-        }
-    }
-
     /*  Original Code (cmslut.c line: 1367)
-     *  
+     *
      *  // LUT Creation & Destruction
      *  cmsPipeline* CMSEXPORT cmsPipelineAlloc(cmsContext ContextID, cmsUInt32Number InputChannels, cmsUInt32Number OutputChannels)
      *  {
@@ -191,6 +221,9 @@ public class Pipeline: ICloneable, IDisposable
      *         return NewLUT;
      *  }
      */
+
+    #region Public Methods
+
     public static Pipeline? Alloc(object? state, uint inputChannels, uint outputChannels)
     {
         // A value of zero in channels is allowed as placeholder
@@ -223,7 +256,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1602)
-     *  
+     *
      *  // Concatenate two LUT into a new single one
      *  cmsBool  CMSEXPORT cmsPipelineCat(cmsPipeline* l1, const cmsPipeline* l2)
      *  {
@@ -246,9 +279,221 @@ public class Pipeline: ICloneable, IDisposable
      *                  return FALSE;
      *      }
      *
-     *      return BlessLUT(l1);    
+     *      return BlessLUT(l1);
      *  }
      */
+
+    public bool CheckAndRetreiveStagesAtoB(out Stage? a, out Stage? clut, out Stage? m, out Stage? matrix, out Stage? b)
+    {
+        a = null;
+        clut = null;
+        m = null;
+        matrix = null;
+        b = null;
+
+        var stages = new List<Stage>(5);
+
+        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
+            stages.Add(mpe);
+
+        switch (stages.Count)
+        {
+            case 1:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem)
+                {
+                    b = stages[0];
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            case 3:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.MatrixElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem)
+                {
+                    m = stages[0];
+                    matrix = stages[1];
+                    b = stages[2];
+
+                    return true;
+                }
+                else if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem)
+                {
+                    a = stages[0];
+                    clut = stages[1];
+                    b = stages[2];
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            case 5:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem &&
+                    stages[3].Type == Signature.Stage.MatrixElem &&
+                    stages[4].Type == Signature.Stage.CurveSetElem)
+                {
+                    a = stages[0];
+                    clut = stages[1];
+                    m = stages[2];
+                    matrix = stages[3];
+                    b = stages[4];
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            default:
+
+                return false;
+        }
+    }
+
+    public bool CheckAndRetrieveStagesBtoA(out Stage? b, out Stage? matrix, out Stage? m, out Stage? clut, out Stage? a)
+    {
+        a = null;
+        clut = null;
+        m = null;
+        matrix = null;
+        b = null;
+
+        var stages = new List<Stage>(5);
+
+        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
+            stages.Add(mpe);
+
+        switch (stages.Count)
+        {
+            case 1:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem)
+                {
+                    b = stages[0];
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            case 3:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.MatrixElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem)
+                {
+                    b = stages[0];
+                    matrix = stages[1];
+                    m = stages[2];
+
+                    return true;
+                }
+                else if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem)
+                {
+                    b = stages[0];
+                    clut = stages[1];
+                    a = stages[2];
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            case 5:
+
+                if (stages[0].Type == Signature.Stage.CurveSetElem &&
+                    stages[1].Type == Signature.Stage.CLutElem &&
+                    stages[2].Type == Signature.Stage.CurveSetElem &&
+                    stages[3].Type == Signature.Stage.MatrixElem &&
+                    stages[4].Type == Signature.Stage.CurveSetElem)
+                {
+                    b = stages[0];
+                    matrix = stages[1];
+                    m = stages[2];
+                    clut = stages[3];
+                    a = stages[4];
+
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+
+            default:
+
+                return false;
+        }
+    }
+
+    public object Clone()
+    {
+        Stage? anterior = null;
+        var first = true;
+
+        var newLut = Alloc(StateContainer, InputChannels, OutputChannels);
+        if (newLut is null) return null!;
+
+        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
+        {
+            var newMpe = (Stage)mpe.Clone();
+            if (newMpe is null)
+            {
+                newLut.Dispose();
+                return null!;
+            }
+
+            if (first)
+            {
+                newLut.elements = newMpe;
+                first = false;
+            }
+            else if (anterior is not null)
+            {
+                anterior.Next = newMpe;
+            }
+
+            anterior = newMpe;
+        }
+
+        newLut.eval16Fn = eval16Fn;
+        newLut.evalFloatFn = evalFloatFn;
+        newLut.dupDataFn = dupDataFn;
+        newLut.freeDataFn = freeDataFn;
+
+        if (newLut.dupDataFn is not null)
+            newLut.data = newLut.dupDataFn?.Invoke(StateContainer, data);
+
+        newLut.SaveAs8Bits = SaveAs8Bits;
+
+        if (!newLut.BlessLut())
+        {
+            newLut.Dispose();
+            return null!;
+        }
+
+        return newLut;
+    }
+
     public bool Concat(Pipeline l2)
     {
         // If both LUTS have no elements, we need to inherit
@@ -273,7 +518,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 104)
-     * 
+     *
      *  // This function is quite useful to analyze the structure of a LUT and retrieve the MPE elements
      *  // that conform the LUT. It should be called with the LUT, the number of expected elements and
      *  // then a list of expected types followed with a list of cmsFloat64Number pointers to MPE elements. If
@@ -326,162 +571,8 @@ public class Pipeline: ICloneable, IDisposable
      *  Not able to implement the same way, as C# doesn't support passing object refs in params
      *  This is the most elegant solution I could devise.
      */
-    public bool CheckAndRetreiveStagesAtoB(out Stage? a, out Stage? clut, out Stage? m, out Stage? matrix, out Stage? b)
-    {
-        a = null;
-        clut = null;
-        m = null;
-        matrix = null;
-        b = null;
-
-        var stages = new List<Stage>(5);
-
-        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
-            stages.Add(mpe);
-
-        switch (stages.Count)
-        {
-            case 1:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem)
-                {
-                    b = stages[0];
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            case 3:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.MatrixElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem)
-                {
-                    m = stages[0];
-                    matrix = stages[1];
-                    b = stages[2];
-
-                    return true;
-                } else if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.CLutElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem)
-                {
-                    a = stages[0];
-                    clut = stages[1];
-                    b = stages[2];
-
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            case 5:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.CLutElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem &&
-                    stages[3].Type == Signature.Stage.MatrixElem &&
-                    stages[4].Type == Signature.Stage.CurveSetElem)
-                {
-                    a = stages[0];
-                    clut = stages[1];
-                    m = stages[2];
-                    matrix = stages[3];
-                    b = stages[4];
-
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            default:
-
-                return false;
-        }
-    }
-
-    public bool CheckAndRetrieveStagesBtoA(out Stage? b, out Stage? matrix, out Stage? m, out Stage? clut, out Stage? a)
-    {
-        a = null;
-        clut = null;
-        m = null;
-        matrix = null;
-        b = null;
-
-        var stages = new List<Stage>(5);
-
-        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
-            stages.Add(mpe);
-
-        switch (stages.Count)
-        {
-            case 1:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem)
-                {
-                    b = stages[0];
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            case 3:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.MatrixElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem)
-                {
-                    b = stages[0];
-                    matrix = stages[1];
-                    m = stages[2];
-
-                    return true;
-                } else if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.CLutElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem)
-                {
-                    b = stages[0];
-                    clut = stages[1];
-                    a = stages[2];
-
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            case 5:
-
-                if (stages[0].Type == Signature.Stage.CurveSetElem &&
-                    stages[1].Type == Signature.Stage.CLutElem &&
-                    stages[2].Type == Signature.Stage.CurveSetElem &&
-                    stages[3].Type == Signature.Stage.MatrixElem &&
-                    stages[4].Type == Signature.Stage.CurveSetElem)
-                {
-                    b = stages[0];
-                    matrix = stages[1];
-                    m = stages[2];
-                    clut = stages[3];
-                    a = stages[4];
-
-                    return true;
-                } else
-                {
-                    return false;
-                }
-
-            default:
-
-                return false;
-        }
-    }
-
     /*  Original Code (cmslut.c Line: 1454)
-     *  
+     *
      *  // Duplicates a LUT
      *  cmsPipeline* CMSEXPORT cmsPipelineDup(const cmsPipeline* lut)
      *  {
@@ -510,7 +601,7 @@ public class Pipeline: ICloneable, IDisposable
      *                   First = FALSE;
      *               }
      *               else {
-     *                  if (Anterior != NULL) 
+     *                  if (Anterior != NULL)
      *                      Anterior ->Next = NewMPE;
      *               }
      *
@@ -537,57 +628,8 @@ public class Pipeline: ICloneable, IDisposable
      *      return NewLUT;
      *  }
      */
-    public object Clone()
-    {
-        Stage? anterior = null;
-        var first = true;
-
-        var newLut = Alloc(StateContainer, InputChannels, OutputChannels);
-        if (newLut is null) return null!;
-
-        for (var mpe = elements; mpe is not null; mpe = mpe.Next)
-        {
-            var newMpe = (Stage)mpe.Clone();
-            if (newMpe is null)
-            {
-                newLut.Dispose();
-                return null!;
-            }
-
-            if (first)
-            {
-                newLut.elements = newMpe;
-                first = false;
-            }
-            else if (anterior is not null)
-            {
-                anterior.Next = newMpe;
-            }
-
-            anterior = newMpe;
-        }
-
-        newLut.eval16Fn = eval16Fn;
-        newLut.evalFloatFn = evalFloatFn;
-        newLut.dupDataFn = dupDataFn;
-        newLut.freeDataFn = freeDataFn;
-
-        if (newLut.dupDataFn is not null)
-            newLut.data = newLut.dupDataFn?.Invoke(StateContainer, data);
-
-        newLut.SaveAs8Bits = SaveAs8Bits;
-
-        if (!newLut.BlessLut())
-        {
-            newLut.Dispose();
-            return null!;
-        }
-
-        return newLut;
-    }
-
     /*  Original Code (cmslut.c line: 1437)
-     *  
+     *
      *  // Default to evaluate the LUT on 16 bit-basis.
      *  void CMSEXPORT cmsPipelineEval16(const cmsUInt16Number In[], cmsUInt16Number Out[],  const cmsPipeline* lut)
      *  {
@@ -595,11 +637,19 @@ public class Pipeline: ICloneable, IDisposable
      *      lut ->Eval16Fn(In, Out, lut->Data);
      *  }
      */
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
     public void Eval(ReadOnlySpan<ushort> @in, Span<ushort> @out) =>
-        eval16Fn?.Invoke(@in, @out, this);
+            eval16Fn?.Invoke(@in, @out, this);
 
     /*  Original Code (cmslut.c line: 1445)
-     *  
+     *
      *  // Does evaluate the LUT on cmsFloat32Number-basis.
      *  void CMSEXPORT cmsPipelineEvalFloat(const cmsFloat32Number In[], cmsFloat32Number Out[], const cmsPipeline* lut)
      *  {
@@ -607,11 +657,12 @@ public class Pipeline: ICloneable, IDisposable
      *      lut ->EvalFloatFn(In, Out, lut);
      *  }
      */
+
     public void Eval(ReadOnlySpan<float> @in, Span<float> @out) =>
         evalFloatFn?.Invoke(@in, @out, this);
 
     /*  Original Code (cmslut.c line: 1735
-     *  
+     *
      *  // Evaluate a LUT in reverse direction. It only searches on 3->3 LUT. Uses Newton method
      *  //
      *  // x1 <- x - [J(x)]^-1 * f(x)
@@ -719,6 +770,7 @@ public class Pipeline: ICloneable, IDisposable
      *      return TRUE;
      *  }
      */
+
     public bool EvalReverse(ReadOnlySpan<float> target, Span<float> result, ReadOnlySpan<float> hint)
     {
         var lastError = 1e20;
@@ -736,7 +788,8 @@ public class Pipeline: ICloneable, IDisposable
         {
             // Begin at any point, we choose 1/3 of CMY axis
             x[0] = x[1] = x[2] = 0.3f;
-        } else
+        }
+        else
         {
             // Only copy 3 channels from hint...
             for (var j = 0; j < 3; j++)
@@ -812,7 +865,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1510)
-     *  
+     *
      *  int CMSEXPORT cmsPipelineInsertStage(cmsPipeline* lut, cmsStageLoc loc, cmsStage* mpe)
      *  {
      *      cmsStage* Anterior = NULL, *pt;
@@ -836,7 +889,7 @@ public class Pipeline: ICloneable, IDisposable
      *                  for (pt = lut ->Elements;
      *                       pt != NULL;
      *                       pt = pt -> Next) Anterior = pt;
-     *          
+     *
      *                  Anterior ->Next = mpe;
      *                  mpe ->Next = NULL;
      *              }
@@ -845,9 +898,10 @@ public class Pipeline: ICloneable, IDisposable
      *              return FALSE;
      *      }
      *
-     *      return BlessLUT(lut);    
+     *      return BlessLUT(lut);
      *  }
      */
+
     public bool InsertStage(StageLoc loc, Stage? mpe)
     {
         Stage? anterior = null;
@@ -860,6 +914,7 @@ public class Pipeline: ICloneable, IDisposable
                 mpe.Next = elements;
                 elements = mpe;
                 break;
+
             case StageLoc.AtEnd:
                 if (elements is null)
                     elements = mpe;
@@ -872,6 +927,7 @@ public class Pipeline: ICloneable, IDisposable
                     mpe.Next = null;
                 }
                 break;
+
             default:
                 return false;
         }
@@ -880,7 +936,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1663)
-     *  
+     *
      *  // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
      *  // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
      *  void CMSEXPORT _cmsPipelineSetOptimizationParameters(cmsPipeline* Lut,
@@ -896,6 +952,7 @@ public class Pipeline: ICloneable, IDisposable
      *      Lut ->Data = PrivateData;
      *  }
      */
+
     public void SetOptimizationParameters(PipelineEval16Fn? eval16,
                                           object? privateData,
                                           FreeUserDataFn? freePrivateDataFn,
@@ -909,7 +966,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1545)
-     *  
+     *
      *  // Unlink an element and return the pointer to it
      *  void CMSEXPORT cmsPipelineUnlinkStage(cmsPipeline* lut, cmsStageLoc loc, cmsStage** mpe)
      *  {
@@ -966,6 +1023,7 @@ public class Pipeline: ICloneable, IDisposable
      *      BlessLUT(lut);
      *  }
      */
+
     public Stage? UnlinkStage(StageLoc loc)
     {
         Stage? unlinked = null;
@@ -1010,8 +1068,10 @@ public class Pipeline: ICloneable, IDisposable
         return unlinked;
     }
 
+    #endregion Public Methods
+
     /*  Original Code (cmslut.c line: 1317)
-     *  
+     *
      *  // Default to evaluate the LUT on 16 bit-basis. Precision is retained.
      *  static
      *  void _LUTeval16(CMSREGISTER const cmsUInt16Number In[], CMSREGISTER cmsUInt16Number Out[],  CMSREGISTER const void* D)
@@ -1036,6 +1096,49 @@ public class Pipeline: ICloneable, IDisposable
      *      FromFloatTo16(&Storage[Phase][0], Out, lut ->OutputChannels);
      *  }
      */
+
+    #region Protected Methods
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                for (Stage? mpe = elements; mpe is not null; mpe = mpe.Next)
+                    mpe.Dispose();
+
+                if (freeDataFn is not null)
+                    freeDataFn(StateContainer, ref data!);
+            }
+            _disposedValue = true;
+        }
+    }
+
+    #endregion Protected Methods
+
+    #region Private Methods
+
+    private static float EuclideanDistance(ReadOnlySpan<float> a, ReadOnlySpan<float> b, int n)
+    {
+        var sum = 0f;
+        for (var i = 0; i < n; i++)
+        {
+            var dif = b[i] - a[i];
+            sum += dif * dif;
+        }
+
+        return MathF.Sqrt(sum);
+    }
+
+    private static void IncDelta(ref float val)
+    {
+        if (val < (1.0 - _jacobianEpsilon))
+            val += _jacobianEpsilon;
+        else
+            val -= _jacobianEpsilon;
+    }
+
     private static void LutEval16(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object d)
     {
         var lut = (Pipeline)d;
@@ -1061,7 +1164,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1343)
-     *  
+     *
      *  // Does evaluate the LUT on cmsFloat32Number-basis.
      *  static
      *  void _LUTevalFloat(const cmsFloat32Number In[], cmsFloat32Number Out[], const void* D)
@@ -1085,6 +1188,7 @@ public class Pipeline: ICloneable, IDisposable
      *      memmove(Out, &Storage[Phase][0], lut ->OutputChannels * sizeof(cmsFloat32Number));
      *  }
      */
+
     private static void LutEvalFloat(ReadOnlySpan<float> @in, Span<float> @out, in object d)
     {
         var lut = (Pipeline)d;
@@ -1109,7 +1213,7 @@ public class Pipeline: ICloneable, IDisposable
     }
 
     /*  Original Code (cmslut.c line: 1279)
-     *  
+     *
      *  // This function sets up the channel count
      *  static
      *  cmsBool BlessLUT(cmsPipeline* lut)
@@ -1144,9 +1248,10 @@ public class Pipeline: ICloneable, IDisposable
      *      }
      *  }
      *
-     *      return TRUE;    
+     *      return TRUE;
      *  }
      */
+
     private bool BlessLut()
     {
         if (elements is not null)
@@ -1175,8 +1280,10 @@ public class Pipeline: ICloneable, IDisposable
         return true;
     }
 
+    #endregion Private Methods
+
     /*  Original Code (cmslut.c line: 1416)
-     *  
+     *
      *  // Free a profile elements LUT
      *  void CMSEXPORT cmsPipelineFree(cmsPipeline* lut)
      *  {
@@ -1197,31 +1304,8 @@ public class Pipeline: ICloneable, IDisposable
      *      _cmsFree(lut ->ContextID, lut);
      *  }
      */
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                for (Stage? mpe = elements; mpe is not null; mpe = mpe.Next)
-                    mpe.Dispose();
-
-                if (freeDataFn is not null)
-                    freeDataFn(StateContainer, ref data!);
-            }
-            _disposedValue = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
     /*  Original Code (cmslut.c line: 1704)
-     *  
+     *
      *  // Increment with reflexion on boundary
      *  static
      *  void IncDelta(cmsFloat32Number *Val)
@@ -1235,16 +1319,8 @@ public class Pipeline: ICloneable, IDisposable
      *
      *  }
      */
-    private static void IncDelta(ref float val)
-    {
-        if (val < (1.0 - _jacobianEpsilon))
-            val += _jacobianEpsilon;
-        else
-            val -= _jacobianEpsilon;
-    }
-
     /*  Original Code (cmslut.c line: 1719)
-     *  
+     *
      *  // Euclidean distance between two vectors of n elements each one
      *  static
      *  cmsFloat32Number EuclideanDistance(cmsFloat32Number a[], cmsFloat32Number b[], int n)
@@ -1260,15 +1336,4 @@ public class Pipeline: ICloneable, IDisposable
      *      return sqrtf(sum);
      *  }
      */
-    private static float EuclideanDistance(ReadOnlySpan<float> a, ReadOnlySpan<float> b, int n)
-    {
-        var sum = 0f;
-        for (var i = 0; i < n; i++)
-        {
-            var dif = b[i] - a[i];
-            sum += dif * dif;
-        }
-
-        return MathF.Sqrt(sum);
-    }
 }

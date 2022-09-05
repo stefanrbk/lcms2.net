@@ -5,8 +5,14 @@ namespace lcms2.testing;
 [TestFixture(TestOf = typeof(Stage))]
 public class MpeTests
 {
+    #region Fields
+
     private readonly object? _state;
     Stage _identity;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public MpeTests() =>
         _state = null;
@@ -16,17 +22,13 @@ public class MpeTests
         _state = state;
     }
 
-    [SetUp]
-    public void Setup()
-    {
-        _identity = Stage.AllocIdentityCLut(_state, 3)!;
-    }
+    #endregion Public Constructors
 
-    [TearDown]
-    public void TearDown()
-    {
-        _identity.Dispose();
-    }
+    #region Public Methods
+
+    [Test]
+    public void AccessingCurveSetOnNonToneCurveStageThrowsInvalidOperationException() =>
+        Assert.Throws<InvalidOperationException>(() => _identity.CurveSet[0].evals = null!);
 
     [Test]
     public void SetInputChannelsGreaterThanMaxStageChannelsIgnoresChange()
@@ -52,7 +54,17 @@ public class MpeTests
         Assert.That(_identity.OutputChannels, Is.EqualTo(4), "OutputChannel didn't ignore invalid value!");
     }
 
-    [Test]
-    public void AccessingCurveSetOnNonToneCurveStageThrowsInvalidOperationException() =>
-        Assert.Throws<InvalidOperationException>(() => _identity.CurveSet[0].evals = null!);
+    [SetUp]
+    public void Setup()
+    {
+        _identity = Stage.AllocIdentityCLut(_state, 3)!;
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _identity.Dispose();
+    }
+
+    #endregion Public Methods
 }

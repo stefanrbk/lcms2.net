@@ -1,23 +1,63 @@
-﻿namespace lcms2.types;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+namespace lcms2.types;
 
 public partial class Stage
 {
+    #region Classes
+
     /// <summary>
     ///     Data kept in "Element" member of <see cref="Stage"/>
     /// </summary>
     /// <remarks>Implements the <c>_cmsStageToneCurvesData</c> struct.</remarks>
-    public class ToneCurveData: StageData
+    public class ToneCurveData : StageData
     {
+        #region Fields
+
         public ToneCurve[] TheCurves;
+
+        #endregion Fields
+
+        #region Internal Constructors
 
         internal ToneCurveData(ToneCurve[]? theCurves = null) =>
             TheCurves = theCurves ?? Array.Empty<ToneCurve>();
 
+        #endregion Internal Constructors
+
+        #region Properties
+
         public int NumCurves =>
             TheCurves.Length;
 
+        #endregion Properties
+
         /*  Original Code (cmslut.c line: 166)
-         *  
+         *
          *  static
          *  void EvaluateCurves(const cmsFloat32Number In[],
          *                      cmsFloat32Number Out[],
@@ -38,14 +78,23 @@ public partial class Stage
          *      }
          *  }
          */
+
+        #region Internal Methods
+
+        internal override StageData? Duplicate(Stage _) =>
+            new ToneCurveData(TheCurves.Select(t => (ToneCurve)t.Clone())
+                                       .ToArray());
+
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage _)
         {
             for (var i = 0; i < NumCurves; i++)
                 @out[i] = TheCurves[i].Eval(@in[i]);
         }
 
+        #endregion Internal Methods
+
         /*  Original Code (cmslut.c line: 186)
-         *  
+         *
          *  static
          *  void CurveSetElemTypeFree(cmsStage* mpe)
          *  {
@@ -67,6 +116,9 @@ public partial class Stage
          *      _cmsFree(mpe ->ContextID, Data);
          *  }
          */
+
+        #region Protected Methods
+
         protected override void Dispose(bool isDisposing)
         {
             if (isDisposing)
@@ -80,8 +132,10 @@ public partial class Stage
             base.Dispose(isDisposing);
         }
 
+        #endregion Protected Methods
+
         /*  Original Code (cmslut.c line: 208)
-         *  
+         *
          *  static
          *  void* CurveSetDup(cmsStage* mpe)
          *  {
@@ -120,8 +174,7 @@ public partial class Stage
          *      return NULL;
          *  }
          */
-        internal override StageData? Duplicate(Stage _) =>
-            new ToneCurveData(TheCurves.Select(t => (ToneCurve)t.Clone())
-                                       .ToArray());
     }
+
+    #endregion Classes
 }

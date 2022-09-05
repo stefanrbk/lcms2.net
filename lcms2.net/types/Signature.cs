@@ -1,13 +1,45 @@
-﻿using System.Text;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using System.Text;
 
 namespace lcms2.types;
 
-public partial struct Signature: ICloneable
+public partial struct Signature : ICloneable
 {
+    #region Fields
+
     public static readonly Signature LcmsSignature = new("lcms");
     public static readonly Signature MagicNumber = new("ascp");
 
     private readonly uint _value;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public Signature(uint value) =>
            _value = value;
@@ -38,6 +70,10 @@ public partial struct Signature: ICloneable
         this._value = ((uint)bytes[0] << 24) + ((uint)bytes[1] << 16) + ((uint)bytes[2] << 8) + bytes[3];
     }
 
+    #endregion Public Constructors
+
+    #region Public Methods
+
     public static implicit operator uint(Signature v) =>
         v._value;
 
@@ -55,4 +91,6 @@ public partial struct Signature: ICloneable
 
         return new string(str);
     }
+
+    #endregion Public Methods
 }

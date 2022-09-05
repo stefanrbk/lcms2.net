@@ -1,6 +1,30 @@
-﻿using System.Runtime.InteropServices;
-
-using lcms2.state;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
@@ -30,8 +54,12 @@ public delegate void TransformFn(Transform cargo, object inputBuffer, object out
 
 public unsafe struct Cache
 {
+    #region Fields
+
     public fixed ushort CacheIn[maxChannels];
     public fixed ushort CacheOut[maxChannels];
+
+    #endregion Fields
 }
 
 /// <summary>
@@ -40,55 +68,49 @@ public unsafe struct Cache
 /// <remarks>Implements the <c>cmsStride</c> struct.</remarks>
 public struct Stride
 {
+    #region Fields
+
     public int BytesPerLineIn;
     public int BytesPerLineOut;
     public int BytesPerPlaneIn;
     public int BytesPerPlaneOut;
+
+    #endregion Fields
 }
 
 public class Transform
 {
+    #region Fields
+
     internal double adaptationState;
 
     internal Cache cache;
 
-    internal object? state;
-
     internal Signature entryColorSpace;
-
     internal XYZ entryWhitePoint;
-
     internal Signature exitColorSpace;
-
     internal XYZ exitWhitePoint;
-
     internal FreeUserDataFn? freeUserData;
-
     internal Formatter16? fromInput;
-
     internal FormatterFloat? fromInputFloat;
-
     internal Pipeline gamutCheck;
-
     internal NamedColorList inputColorant;
-
     internal Signature inputFormat, outputFormat;
-
     internal Pipeline lut;
-
     internal TransformFn? oldXform;
-
     internal NamedColorList outputColorant;
-
     internal Signature renderingIntent;
-
     internal Sequence sequence;
-
+    internal object? state;
     internal Formatter16? toOutput;
 
     internal FormatterFloat? toOutputFloat;
 
     internal Transform2Fn? xform;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     ///     Retrieve original flags
@@ -120,6 +142,10 @@ public class Transform
     /// </remarks>
     public object? UserData { get; set; }
 
+    #endregion Properties
+
+    #region Structs
+
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct Factory
     {
@@ -129,4 +155,6 @@ public class Transform
         [FieldOffset(0)]
         public Transform2Factory Xform;
     }
+
+    #endregion Structs
 }

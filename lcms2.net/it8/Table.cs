@@ -1,18 +1,53 @@
-﻿using System.Text;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 namespace lcms2.it8;
+
 internal class Table
 {
+    #region Fields
+
+    internal readonly List<KeyValue> header = new();
     internal string[]? data;
     internal string[]? dataFormat;
-    internal readonly List<KeyValue> header = new();
     internal int sampleId;
 
-    internal int NumSamples =>
-        Int32.Parse(GetProperty("NUMBER_OF_FIELDS"));
+    #endregion Fields
+
+    #region Properties
 
     internal int NumPatches =>
         Int32.Parse(GetProperty("NUMBER_OF_SETS"));
+
+    internal int NumSamples =>
+            Int32.Parse(GetProperty("NUMBER_OF_FIELDS"));
+
+    #endregion Properties
+
+    #region Internal Methods
 
     internal void AllocateDataFormat()
     {
@@ -82,20 +117,11 @@ internal class Table
     internal string GetProperty(string key) =>
         header.Find(k => k.Key == key)?.Value ?? String.Empty;
 
-    internal double GetPropertyDouble(string key) =>
-        Double.Parse(header.Find(k => k.Key == key)?.Value ?? "0");
-
     internal string GetProperty(string key, string subkey) =>
         header.Find(k => k.Key == key && k.Subkey == subkey)?.Value ?? String.Empty;
 
-    internal int LocateSample(string sample) =>
-        dataFormat?.FindIndex(i => String.Compare(i, sample) == 0) ?? -1;
-
-    internal int LocatePatch(string patch) =>
-        data?.Chunk(NumSamples)
-             .Select(s => s[sampleId])
-             .ToList()
-             .FindIndex(k => String.Compare(k, patch) == 0) ?? -1;
+    internal double GetPropertyDouble(string key) =>
+            Double.Parse(header.Find(k => k.Key == key)?.Value ?? "0");
 
     internal int LocateEmptyPatch() =>
         data?.Chunk(NumSamples)
@@ -103,22 +129,14 @@ internal class Table
              .ToList()
              .FindIndex(k => String.IsNullOrEmpty(k)) ?? -1;
 
-    internal void SetDataFormat(int n, string label, Stack<StreamReader>? s = null, int? lineNo = null)
-    {
-        if (dataFormat is null)
-            AllocateDataFormat();
+    internal int LocatePatch(string patch) =>
+        data?.Chunk(NumSamples)
+             .Select(s => s[sampleId])
+             .ToList()
+             .FindIndex(k => String.Compare(k, patch) == 0) ?? -1;
 
-        if (n > NumSamples)
-        {
-            if (s is not null && lineNo is not null)
-                throw new IT8Exception(s, lineNo.Value, "More than NUMBER_OF_FIELDS fields.");
-            else
-                throw new IT8Exception("More than NUMBER_OF_FIELDS fields.");
-        }
-
-        if (dataFormat is not null)
-            dataFormat[n] = label;
-    }
+    internal int LocateSample(string sample) =>
+                dataFormat?.FindIndex(i => String.Compare(i, sample) == 0) ?? -1;
 
     internal void SetData(int setIndex, int fieldIndex, string value, Stack<StreamReader>? s = null, int? lineNo = null)
     {
@@ -169,11 +187,32 @@ internal class Table
                     throw new IT8Exception($"Couldn't add more patches '{patch}'");
             }
             field = sampleId;
-        } else {
+        }
+        else
+        {
             set = LocatePatch(patch);
             if (set < 0) return;
         }
 
         SetData(set, field, value, s, lineNo);
     }
+
+    internal void SetDataFormat(int n, string label, Stack<StreamReader>? s = null, int? lineNo = null)
+    {
+        if (dataFormat is null)
+            AllocateDataFormat();
+
+        if (n > NumSamples)
+        {
+            if (s is not null && lineNo is not null)
+                throw new IT8Exception(s, lineNo.Value, "More than NUMBER_OF_FIELDS fields.");
+            else
+                throw new IT8Exception("More than NUMBER_OF_FIELDS fields.");
+        }
+
+        if (dataFormat is not null)
+            dataFormat[n] = label;
+    }
+
+    #endregion Internal Methods
 }

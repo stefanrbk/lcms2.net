@@ -31,6 +31,8 @@ namespace lcms2.types;
 
 public partial class Stage
 {
+    #region Private Constructors
+
     private Stage(object? state,
                   Signature type,
                   Signature implements,
@@ -46,8 +48,10 @@ public partial class Stage
         Data = data;
     }
 
+    #endregion Private Constructors
+
     /*  Original Code (cmslut.c line: 70)
-     * 
+     *
      *  cmsStage* CMSEXPORT cmsStageAllocIdentity(cmsContext ContextID, cmsUInt32Number nChannels)
      *  {
      *      return _cmsStageAllocPlaceholder(ContextID,
@@ -59,8 +63,125 @@ public partial class Stage
      *                                      NULL);
      *  }
      */
+
+    #region Public Methods
+
+    public static Stage? Alloc(object? state,
+                               Signature type,
+                               uint inputChannels,
+                               uint outputChannels,
+                               StageData? data)
+    {
+        if (inputChannels > maxStageChannels ||
+            outputChannels > maxStageChannels)
+        {
+            return null;
+        }
+
+        return new(state, type, type, inputChannels, outputChannels, data);
+    }
+
+    public static Stage? AllocCLut16bit(object? state,
+                                        uint numGridPoints,
+                                        uint inputChan,
+                                        uint outputChan,
+                                        in ushort[]? table) =>
+        AllocCLut16bit(state, Enumerable.Repeat(numGridPoints, maxInputDimensions).ToArray(), inputChan, outputChan, table);
+
+    public static Stage? AllocCLut16bit(object? state,
+                                        uint[] clutPoints,
+                                        uint inputChan,
+                                        uint outputChan,
+                                        in ushort[]? table)
+    {
+        if (inputChan > maxInputDimensions)
+        {
+            State.SignalError(state, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
+            return null;
+        }
+
+        uint n = outputChan * CubeSize(clutPoints, (int)inputChan);
+        var newTable = ((ushort[]?)table?.Clone()) ?? new ushort[n];
+
+        var p =
+            InterpParams.Compute(
+                state,
+                clutPoints,
+                inputChan,
+                outputChan,
+                newTable,
+                LerpFlag.Ushort);
+        if (p is null) return null;
+
+        var newElem =
+            new CLut16Data(
+                newTable,
+                p,
+                n);
+
+        if (n is 0) return null;
+
+        return
+            Alloc(
+                state,
+                Signature.Stage.CLutElem,
+                inputChan,
+                outputChan,
+                newElem);
+    }
+
+    public static Stage? AllocCLutFloat(object? state,
+                                        uint numGridPoints,
+                                        uint inputChan,
+                                        uint outputChan,
+                                        in float[]? table) =>
+        AllocCLutFloat(state, Enumerable.Repeat(numGridPoints, maxInputDimensions).ToArray(), inputChan, outputChan, table);
+
+    public static Stage? AllocCLutFloat(object? state,
+                                        uint[] clutPoints,
+                                        uint inputChan,
+                                        uint outputChan,
+                                        in float[]? table)
+    {
+        if (inputChan > maxInputDimensions)
+        {
+            State.SignalError(state, ErrorCode.Range,
+                $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
+            return null;
+        }
+
+        uint n = outputChan * CubeSize(clutPoints, (int)inputChan);
+        var newTable = ((float[]?)table?.Clone()) ?? new float[n];
+
+        var p =
+            InterpParams.Compute(
+                state,
+                clutPoints,
+                inputChan,
+                outputChan,
+                newTable,
+                LerpFlag.Float);
+        if (p is null) return null;
+
+        var newElem =
+            new CLutFloatData(
+                newTable,
+                p,
+                n);
+
+        if (n is 0) return null;
+
+        return
+            Alloc(
+                state,
+                Signature.Stage.CLutElem,
+                inputChan,
+                outputChan,
+                newElem);
+    }
+
     public static Stage? AllocIdentity(object? state, uint numChannels) =>
-        Alloc(
+                            Alloc(
             state,
             Signature.Stage.IdentityElem,
             numChannels,
@@ -68,7 +189,7 @@ public partial class Stage
             new IdentityData());
 
     /*  Original Code (cmslut.c line: 294)
-     *  
+     *
      *  // Create a bunch of identity curves
      *  cmsStage* CMSEXPORT _cmsStageAllocIdentityCurves(cmsContext ContextID, cmsUInt32Number nChannels)
      *  {
@@ -79,6 +200,265 @@ public partial class Stage
      *      return mpe;
      *  }
      */
+
+    public static Stage? AllocMatrix(object? state,
+                                     uint rows,
+                                     uint cols,
+                                     ReadOnlySpan<double> matrix,
+                                     ReadOnlySpan<double> offset)
+    {
+        var n = rows * cols;
+
+        // Check for overflow
+        if (n is 0 || n < rows || n < cols ||
+            n >= UInt32.MaxValue / cols ||
+            n >= UInt32.MaxValue / rows)
+        {
+            return null;
+        }
+
+        var newElem = new MatrixData(
+            matrix[..(int)n].ToArray(),
+            offset != default
+                ? offset[..(int)rows].ToArray()
+                : null);
+
+        return Alloc(
+            state,
+            Signature.Stage.MatrixElem,
+            cols,
+            rows,
+            newElem);
+    }
+
+    public static Stage? AllocToneCurves(object? state,
+                                         uint numChannels,
+                                         ToneCurve[]? curves)
+    {
+        var array = new ToneCurve[numChannels];
+        for (var i = 0; i < numChannels; i++)
+        {
+            if (curves is null)
+            {
+                var t = ToneCurve.BuildGamma(state, 1.0);
+                if (t is null) return null;
+                array[i] = t;
+            }
+            else
+                array[i] = (ToneCurve)curves[i].Clone();
+        }
+        var newElem = new ToneCurveData(array);
+        if (newElem is null) return null;
+
+        var newMpe =
+            Alloc(
+                state,
+                Signature.Stage.CurveSetElem,
+                numChannels,
+                numChannels,
+                newElem);
+        if (newMpe is null) return null;
+
+        return newMpe;
+    }
+
+    #endregion Public Methods
+
+    #region Internal Methods
+
+    internal static Stage? AllocIdentityCLut(object? state, uint numChan)
+    {
+        var dims = Enumerable.Repeat(2u, maxInputDimensions).ToArray();
+
+        var mpe = AllocCLut16bit(state, dims, numChan, numChan, null);
+        if (mpe is null) return null;
+
+        if (!mpe.Sample(IdentitySampler, (int)numChan, SamplerFlags.None))
+        {
+            mpe.Dispose();
+            return null;
+        }
+
+        mpe.implements = Signature.Stage.IdentityElem;
+        return mpe;
+    }
+
+    internal static Stage? AllocLab2XYZ(object? state) =>
+        Alloc(state, Signature.Stage.Lab2XYZElem, 3, 3, new Lab2XYZData());
+
+    internal static Stage? AllocLabPrelin(object? state)
+    {
+        var @params = new double[] { 2.4 };
+
+        var temp = new[]
+        {
+            ToneCurve.BuildGamma(state, 1.0),
+            ToneCurve.BuildParametric(state, 108, @params),
+            ToneCurve.BuildParametric(state, 108, @params),
+        };
+
+        if (temp.Contains(null)) return null;
+        var labTable = temp.Cast<ToneCurve>().ToArray();
+
+        return AllocToneCurves(state, 3, labTable);
+    }
+
+    internal static Stage? AllocLabV2ToV4(object? state)
+    {
+        var v2ToV4 = new double[]
+        {
+            65535.0 / 65280.0, 0, 0,
+            0, 65535.0 / 65280.0, 0,
+            0, 0, 65535.0 / 65280.0
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, v2ToV4, null);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.LabV2toV4Elem;
+        return mpe;
+    }
+
+    internal static Stage? AllocLabV2ToV4Curves(object? state)
+    {
+        var temp = new[]
+        {
+            ToneCurve.BuildTabulated16(state, 258, null),
+            ToneCurve.BuildTabulated16(state, 258, null),
+            ToneCurve.BuildTabulated16(state, 258, null),
+        };
+
+        if (temp.Contains(null))
+        {
+            ToneCurve.DisposeTriple(temp!);
+            return null;
+        }
+        var labTable = temp.Cast<ToneCurve>().ToArray();
+
+        for (var j = 0; j < 3; j++)
+        {
+            for (var i = 0; i < 257; i++)
+                labTable[j].table16[i] = (ushort)(((i * 0xFFFF) + 0x80) >> 8);
+
+            labTable[j].table16[257] = 0xFFFF;
+        }
+
+        var mpe = AllocToneCurves(state, 3, labTable);
+        ToneCurve.DisposeTriple(labTable!);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.LabV2toV4Elem;
+        return mpe;
+    }
+
+    internal static Stage? AllocLabV4ToV2(object? state)
+    {
+        var v4ToV2 = new double[]
+        {
+            65280.0 / 65535.0, 0, 0,
+            0, 65280.0 / 65535.0, 0,
+            0, 0, 65280.0 / 65535.0
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, v4ToV2, null);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.LabV4toV2Elem;
+        return mpe;
+    }
+
+    internal static Stage? AllocXyz2Lab(object? state) =>
+        Alloc(state, Signature.Stage.XYZ2LabElem, 3, 3, new XYZ2LabData());
+
+    internal static Stage? ClipNegatives(object? state, uint numChannels) =>
+        Alloc(state, Signature.Stage.ClipNegativesElem, numChannels, numChannels, new ClipperData());
+
+    internal static Stage? NormalizeFromLabFloat(object? state)
+    {
+        var a1 = new double[]
+        {
+            1.0 / 100.0, 0, 0,
+            0, 1.0 / 255.0, 0,
+            0, 0, 1.0 / 255.0
+        };
+
+        var o1 = new double[]
+        {
+            0,
+            128.0/255.0,
+            128.0/255.0
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, a1, o1);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.Lab2FloatPCS;
+        return mpe;
+    }
+
+    internal static Stage? NormalizeFromXyzFloat(object? state)
+    {
+        const double n = 32768.0 / 65535.0;
+
+        var a1 = new double[]
+        {
+            n, 0, 0,
+            0, n, 0,
+            0, 0, n
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, a1, null);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.XYZ2FloatPCS;
+        return mpe;
+    }
+
+    internal static Stage? NormalizeToLabFloat(object? state)
+    {
+        var a1 = new double[]
+        {
+            100.0, 0, 0,
+            0, 255.0, 0,
+            0, 0, 255.0
+        };
+
+        var o1 = new double[]
+        {
+            0,
+            -128.0,
+            -128.0
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, a1, o1);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.FloatPCS2Lab;
+        return mpe;
+    }
+
+    internal static Stage? NormalizeToXyzFloat(object? state)
+    {
+        const double n = 65535.0 / 32768.0;
+
+        var a1 = new double[]
+        {
+            n, 0, 0,
+            0, n, 0,
+            0, 0, n
+        };
+
+        var mpe = AllocMatrix(state, 3, 3, a1, null);
+
+        if (mpe is null) return null;
+        mpe.implements = Signature.Stage.FloatPCS2XYZ;
+        return mpe;
+    }
+
+    #endregion Internal Methods
+
+    #region Private Methods
+
     private static Stage? AllocIdentityCurves(object? state, uint numChannels)
     {
         var mpe = AllocToneCurves(state, numChannels, null);
@@ -89,7 +469,7 @@ public partial class Stage
     }
 
     /*  Original Code (cmslut.c line: 604)
-     *  
+     *
      *  cmsStage* CMSEXPORT cmsStageAllocCLut16bit(cmsContext ContextID,
      *                                      cmsUInt32Number nGridPoints,
      *                                      cmsUInt32Number inputChan,
@@ -106,15 +486,8 @@ public partial class Stage
      *      return cmsStageAllocCLut16bitGranular(ContextID, Dimensions, inputChan, outputChan, Table);
      *  }
      */
-    public static Stage? AllocCLut16bit(object? state,
-                                        uint numGridPoints,
-                                        uint inputChan,
-                                        uint outputChan,
-                                        in ushort[]? table) =>
-        AllocCLut16bit(state, Enumerable.Repeat(numGridPoints, maxInputDimensions).ToArray(), inputChan, outputChan, table);
-
     /*  Original Code (cmslut.c line: 542)
-     *  
+     *
      *  // Allocates a 16-bit multidimensional CLUT. This is evaluated at 16-bit precision. Table may have different
      *  // granularity on each dimension.
      *  cmsStage* CMSEXPORT cmsStageAllocCLut16bitGranular(cmsContext ContextID,
@@ -177,50 +550,8 @@ public partial class Stage
      *      return NewMPE;
      *  }
      */
-    public static Stage? AllocCLut16bit(object? state,
-                                        uint[] clutPoints,
-                                        uint inputChan,
-                                        uint outputChan,
-                                        in ushort[]? table)
-    {
-        if (inputChan > maxInputDimensions)
-        {
-            State.SignalError(state, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
-            return null;
-        }
-
-        uint n = outputChan * CubeSize(clutPoints, (int)inputChan);
-        var newTable = ((ushort[]?)table?.Clone()) ?? new ushort[n];
-
-        var p =
-            InterpParams.Compute(
-                state,
-                clutPoints,
-                inputChan,
-                outputChan,
-                newTable,
-                LerpFlag.Ushort);
-        if (p is null) return null;
-
-        var newElem =
-            new CLut16Data(
-                newTable,
-                p,
-                n);
-
-        if (n is 0) return null;
-
-        return
-            Alloc(
-                state,
-                Signature.Stage.CLutElem,
-                inputChan,
-                outputChan,
-                newElem);
-    }
-
     /*  Original Code (cmslut.c line:621)
-     *  
+     *
      *  cmsStage* CMSEXPORT cmsStageAllocCLutFloat(cmsContext ContextID,
      *                                         cmsUInt32Number nGridPoints,
      *                                         cmsUInt32Number inputChan,
@@ -237,15 +568,8 @@ public partial class Stage
      *      return cmsStageAllocCLutFloatGranular(ContextID, Dimensions, inputChan, outputChan, Table);
      *  }
      */
-    public static Stage? AllocCLutFloat(object? state,
-                                        uint numGridPoints,
-                                        uint inputChan,
-                                        uint outputChan,
-                                        in float[]? table) =>
-        AllocCLutFloat(state, Enumerable.Repeat(numGridPoints, maxInputDimensions).ToArray(), inputChan, outputChan, table);
-
     /*  Original Code (cmslut.c line: 639)
-     *  
+     *
      *  cmsStage* CMSEXPORT cmsStageAllocCLutFloatGranular(cmsContext ContextID, const cmsUInt32Number clutPoints[], cmsUInt32Number inputChan, cmsUInt32Number outputChan, const cmsFloat32Number* Table)
      *  {
      *      cmsUInt32Number i, n;
@@ -302,51 +626,8 @@ public partial class Stage
      *      return NewMPE;
      *  }
      */
-    public static Stage? AllocCLutFloat(object? state,
-                                        uint[] clutPoints,
-                                        uint inputChan,
-                                        uint outputChan,
-                                        in float[]? table)
-    {
-        if (inputChan > maxInputDimensions)
-        {
-            State.SignalError(state, ErrorCode.Range, 
-                $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
-            return null;
-        }
-
-        uint n = outputChan * CubeSize(clutPoints, (int)inputChan);
-        var newTable = ((float[]?)table?.Clone()) ?? new float[n];
-
-        var p =
-            InterpParams.Compute(
-                state,
-                clutPoints,
-                inputChan,
-                outputChan,
-                newTable,
-                LerpFlag.Float);
-        if (p is null) return null;
-
-        var newElem =
-            new CLutFloatData(
-                newTable,
-                p,
-                n);
-
-        if (n is 0) return null;
-
-        return
-            Alloc(
-                state,
-                Signature.Stage.CLutElem,
-                inputChan,
-                outputChan,
-                newElem);
-    }
-
     /*  Original Code (cmslut.c line: 708)
-     *  
+     *
      *  // Creates an MPE that just copies input to output
      *  cmsStage* CMSEXPORT _cmsStageAllocIdentityCLut(cmsContext ContextID, cmsUInt32Number nChan)
      *  {
@@ -369,35 +650,15 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? AllocIdentityCLut(object? state, uint numChan)
-    {
-        var dims = Enumerable.Repeat(2u,maxInputDimensions).ToArray();
-
-        var mpe = AllocCLut16bit(state, dims, numChan, numChan, null);
-        if (mpe is null) return null;
-
-        if (!mpe.Sample(IdentitySampler, (int)numChan, SamplerFlags.None))
-        {
-            mpe.Dispose();
-            return null;
-        }
-
-        mpe.implements = Signature.Stage.IdentityElem;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 966)
-     *  
+     *
      *  cmsStage* CMSEXPORT _cmsStageAllocLab2XYZ(cmsContext ContextID)
      *  {
      *      return _cmsStageAllocPlaceholder(ContextID, cmsSigLab2XYZElemType, 3, 3, EvaluateLab2XYZ, NULL, NULL, NULL);
      *  }
      */
-    internal static Stage? AllocLab2XYZ(object? state) =>
-        Alloc(state, Signature.Stage.Lab2XYZElem, 3, 3, new Lab2XYZData());
-
     /*  Original Code (cmslut.c line: 1184)
-     *  
+     *
      *  // For v4, S-Shaped curves are placed in a/b axis to increase resolution near gray
      *
      *  cmsStage* _cmsStageAllocLabPrelin(cmsContext ContextID)
@@ -412,25 +673,8 @@ public partial class Stage
      *      return cmsStageAllocToneCurves(ContextID, 3, LabTable);
      *  }
      */
-    internal static Stage? AllocLabPrelin(object? state)
-    {
-        var @params = new double[] {2.4};
-
-        var temp = new[]
-        {
-            ToneCurve.BuildGamma(state, 1.0),
-            ToneCurve.BuildParametric(state, 108, @params),
-            ToneCurve.BuildParametric(state, 108, @params),
-        };
-
-        if (temp.Contains(null)) return null;
-        var labTable = temp.Cast<ToneCurve>().ToArray();
-
-        return AllocToneCurves(state, 3, labTable);
-    }
-
     /*  Original Code (cmslut.c line: 973)
-     *  
+     *
      *  // v2 L=100 is supposed to be placed on 0xFF00. There is no reasonable
      *  // number of gridpoints that would make exact match. However, a prelinearization
      *  // of 258 entries, would map 0xFF00 exactly on entry 257, and this is good to avoid scum dot.
@@ -472,40 +716,8 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? AllocLabV2ToV4Curves(object? state)
-    {
-        var temp = new[]
-        {
-            ToneCurve.BuildTabulated16(state, 258, null),
-            ToneCurve.BuildTabulated16(state, 258, null),
-            ToneCurve.BuildTabulated16(state, 258, null),
-        };
-
-        if (temp.Contains(null))
-        {
-            ToneCurve.DisposeTriple(temp!);
-            return null;
-        }
-        var labTable = temp.Cast<ToneCurve>().ToArray();
-
-        for (var j = 0; j < 3; j++)
-        {
-            for (var i = 0; i < 257; i++)
-                labTable[j].table16[i] = (ushort)(((i * 0xFFFF) + 0x80) >> 8);
-
-            labTable[j].table16[257] = 0xFFFF;
-        }
-
-        var mpe = AllocToneCurves(state, 3, labTable);
-        ToneCurve.DisposeTriple(labTable!);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.LabV2toV4Elem;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1016)
-     *  
+     *
      *  // Matrix-based conversion, which is more accurate, but slower and cannot properly be saved in devicelink profiles
      *  cmsStage* CMSEXPORT _cmsStageAllocLabV2ToV4(cmsContext ContextID)
      *  {
@@ -521,24 +733,8 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? AllocLabV2ToV4(object? state)
-    {
-        var v2ToV4 = new double[]
-        {
-            65535.0 / 65280.0, 0, 0,
-            0, 65535.0 / 65280.0, 0,
-            0, 0, 65535.0 / 65280.0
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, v2ToV4, null);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.LabV2toV4Elem;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1032)
-     *  
+     *
      *  // Reverse direction
      *  cmsStage* CMSEXPORT _cmsStageAllocLabV4ToV2(cmsContext ContextID)
      *  {
@@ -554,35 +750,16 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? AllocLabV4ToV2(object? state)
-    {
-        var v4ToV2 = new double[]
-        {
-            65280.0 / 65535.0, 0, 0,
-            0, 65280.0 / 65535.0, 0,
-            0, 0, 65280.0 / 65535.0
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, v4ToV2, null);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.LabV4toV2Elem;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1176)
-     *  
+     *
      *  cmsStage* CMSEXPORT _cmsStageAllocXYZ2Lab(cmsContext ContextID)
      *  {
      *      return _cmsStageAllocPlaceholder(ContextID, cmsSigXYZ2LabElemType, 3, 3, EvaluateXYZ2Lab, NULL, NULL, NULL);
      *
      *  }
      */
-    internal static Stage? AllocXyz2Lab(object? state) =>
-        Alloc(state, Signature.Stage.XYZ2LabElem, 3, 3, new XYZ2LabData());
-
     /*  Original Code (cmslut.c line: 1048)
-     *  
+     *
      *  // To Lab to float. Note that the MPE gives numbers in normal Lab range
      *  // and we need 0..1.0 range for the formatters
      *  // L* : 0...100 => 0...1.0  (L* / 100)
@@ -609,31 +786,8 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? NormalizeFromLabFloat(object? state)
-    {
-        var a1 = new double[]
-        {
-            1.0 / 100.0, 0, 0,
-            0, 1.0 / 255.0, 0,
-            0, 0, 1.0 / 255.0
-        };
-
-        var o1 = new double[]
-        {
-            0,
-            128.0/255.0,
-            128.0/255.0
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, a1, o1);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.Lab2FloatPCS;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1074)
-     *  
+     *
      *  // Fom XYZ to floating point PCS
      *  cmsStage* _cmsStageNormalizeFromXyzFloat(cmsContext ContextID)
      *  {
@@ -652,26 +806,8 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? NormalizeFromXyzFloat(object? state)
-    {
-        const double n = 32768.0 / 65535.0;
-
-        var a1 = new double[]
-        {
-            n, 0, 0,
-            0, n, 0,
-            0, 0, n
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, a1, null);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.XYZ2FloatPCS;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1092)
-     *  
+     *
      *  cmsStage* _cmsStageNormalizeToLabFloat(cmsContext ContextID)
      *  {
      *      static const cmsFloat64Number a1[] = {
@@ -692,31 +828,8 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? NormalizeToLabFloat(object? state)
-    {
-        var a1 = new double[]
-        {
-            100.0, 0, 0,
-            0, 255.0, 0,
-            0, 0, 255.0
-        };
-
-        var o1 = new double[]
-        {
-            0,
-            -128.0,
-            -128.0
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, a1, o1);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.FloatPCS2Lab;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1112)
-     *  
+     *
      *  cmsStage* _cmsStageNormalizeToXyzFloat(cmsContext ContextID)
      *  {
      *  #define n (65535.0/32768.0)
@@ -734,37 +847,16 @@ public partial class Stage
      *      return mpe;
      *  }
      */
-    internal static Stage? NormalizeToXyzFloat(object? state)
-    {
-        const double n = 65535.0 / 32768.0;
-
-        var a1 = new double[]
-        {
-            n, 0, 0,
-            0, n, 0,
-            0, 0, n
-        };
-
-        var mpe = AllocMatrix(state, 3, 3, a1, null);
-
-        if (mpe is null) return null;
-        mpe.implements = Signature.Stage.FloatPCS2XYZ;
-        return mpe;
-    }
-
     /*  Original Code (cmslut.c line: 1129)
-     *  
+     *
      *  cmsStage*  _cmsStageClipNegatives(cmsContext ContextID, cmsUInt32Number nChannels)
      *  {
      *         return _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType,
      *                nChannels, nChannels, Clipper, NULL, NULL, NULL);
      *  }
      */
-    internal static Stage? ClipNegatives(object? state, uint numChannels) =>
-        Alloc(state, Signature.Stage.ClipNegativesElem, numChannels, numChannels, new ClipperData());
-
     /*  Original Code (cmslut.c line: 379)
-     *  
+     *
      *  cmsStage*  CMSEXPORT cmsStageAllocMatrix(cmsContext ContextID, cmsUInt32Number Rows, cmsUInt32Number Cols,
      *                                       const cmsFloat64Number* Matrix, const cmsFloat64Number* Offset)
      *  {
@@ -800,7 +892,7 @@ public partial class Stage
      *
      *          NewElem ->Offset = (cmsFloat64Number*) _cmsCalloc(ContextID, Rows, sizeof(cmsFloat64Number));
      *          if (NewElem->Offset == NULL) goto Error;
-     *     
+     *
      *          for (i=0; i < Rows; i++) {
      *                  NewElem ->Offset[i] = Offset[i];
      *          }
@@ -813,38 +905,8 @@ public partial class Stage
      *      return NULL;
      *  }
      */
-    public static Stage? AllocMatrix(object? state,
-                                     uint rows,
-                                     uint cols,
-                                     ReadOnlySpan<double> matrix,
-                                     ReadOnlySpan<double> offset)
-    {
-        var n = rows * cols;
-
-        // Check for overflow
-        if (n is 0 || n < rows || n < cols ||
-            n >= UInt32.MaxValue / cols ||
-            n >= UInt32.MaxValue / rows)
-        {
-            return null;
-        }
-
-        var newElem = new MatrixData(
-            matrix[..(int)n].ToArray(),
-            offset != default
-                ? offset[..(int)rows].ToArray()
-                : null);
-
-        return Alloc(
-            state,
-            Signature.Stage.MatrixElem,
-            cols,
-            rows,
-            newElem);
-    }
-
     /*  Original Code (cmslut.c line: 30)
-     * 
+     *
      *  // Allocates an empty multi profile element
      *  cmsStage* CMSEXPORT _cmsStageAllocPlaceholder(cmsContext ContextID,
      *                                  cmsStageSignature Type,
@@ -856,42 +918,27 @@ public partial class Stage
      *                                  void*             Data)
      *  {
      *      cmsStage* ph = (cmsStage*) _cmsMallocZero(ContextID, sizeof(cmsStage));
-     *  
+     *
      *      if (ph == NULL) return NULL;
-     *  
-     *  
+     *
+     *
      *      ph ->ContextID = ContextID;
-     *  
+     *
      *      ph ->Type       = Type;
      *      ph ->Implements = Type;   // By default, no clue on what is implementing
-     *  
+     *
      *      ph ->InputChannels  = InputChannels;
      *      ph ->OutputChannels = OutputChannels;
      *      ph ->EvalPtr        = EvalPtr;
      *      ph ->DupElemPtr     = DupElemPtr;
      *      ph ->FreePtr        = FreePtr;
      *      ph ->Data           = Data;
-     *  
+     *
      *      return ph;
      *  }
      */
-    public static Stage? Alloc(object? state,
-                               Signature type,
-                               uint inputChannels,
-                               uint outputChannels,
-                               StageData? data)
-    {
-        if (inputChannels > maxStageChannels ||
-            outputChannels > maxStageChannels)
-        {
-            return null;
-        }
-
-        return new(state, type, type, inputChannels, outputChannels, data);
-    }
-
     /*  Original Code (cmslut.c line: 247)
-     *  
+     *
      *  // Curves == NULL forces identity curves
      *  cmsStage* CMSEXPORT cmsStageAllocToneCurves(cmsContext ContextID, cmsUInt32Number nChannels, cmsToneCurve* const Curves[])
      *  {
@@ -938,38 +985,8 @@ public partial class Stage
      *     return NewMPE;
      *  }
      */
-    public static Stage? AllocToneCurves(object? state,
-                                         uint numChannels,
-                                         ToneCurve[]? curves)
-    {
-        var array = new ToneCurve[numChannels];
-        for (var i = 0; i < numChannels; i++)
-        {
-            if (curves is null)
-            {
-                var t = ToneCurve.BuildGamma(state, 1.0);
-                if (t is null) return null;
-                array[i] = t;
-            } else
-                array[i] = (ToneCurve)curves[i].Clone();
-        }
-        var newElem = new ToneCurveData(array);
-        if (newElem is null) return null;
-
-        var newMpe =
-            Alloc(
-                state,
-                Signature.Stage.CurveSetElem,
-                numChannels,
-                numChannels,
-                newElem);
-        if (newMpe is null) return null;
-
-        return newMpe;
-    }
-
     /*  Original Code (cmslut.c line: 696)
-     *  
+     *
      *  static
      *  int IdentitySampler(CMSREGISTER const cmsUInt16Number In[], CMSREGISTER cmsUInt16Number Out[], CMSREGISTER void * Cargo)
      *  {
@@ -982,6 +999,7 @@ public partial class Stage
      *      return 1;
      *  }
      */
+
     private static bool IdentitySampler(ReadOnlySpan<ushort> @in, Span<ushort> @out, in object? cargo)
     {
         if (cargo is not int numChan ||
@@ -990,10 +1008,12 @@ public partial class Stage
         {
             return false;
         }
-        
+
         for (var i = 0; i < numChan; i++)
             @out[i] = @in[i];
 
         return true;
     }
+
+    #endregion Private Methods
 }

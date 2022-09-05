@@ -1,7 +1,33 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
 using lcms2.state;
+
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
@@ -39,14 +65,11 @@ public enum LerpFlag
 ///     Used on all interpolations. Supplied by lcms2 when calling the interpolation function
 /// </summary>
 /// <remarks>Implements the <c>cmsInterpParams</c> struct.</remarks>
-public partial class InterpParams: ICloneable
+public partial class InterpParams : ICloneable
 {
-    public const int MaxInputDimensions = 15;
+    #region Fields
 
-    /// <summary>
-    ///     The calling thread
-    /// </summary>
-    public object? StateContainer;
+    public const int MaxInputDimensions = 15;
 
     /// <summary>
     ///     Domain = numSamples - 1
@@ -86,9 +109,18 @@ public partial class InterpParams: ICloneable
     public int[] Opta = new int[MaxInputDimensions];
 
     /// <summary>
+    ///     The calling thread
+    /// </summary>
+    public object? StateContainer;
+
+    /// <summary>
     ///     "Points" to the actual interpolation table.
     /// </summary>
     public object Table;
+
+    #endregion Fields
+
+    #region Public Constructors
 
     public InterpParams(object? state, LerpFlag flags, uint numInputs, uint numOutputs, object table)
     {
@@ -100,15 +132,40 @@ public partial class InterpParams: ICloneable
         Interpolation = default;
     }
 
+    #endregion Public Constructors
+
+    #region Properties
+
     public ushort[] Table16 =>
         (Flags & LerpFlag.Float) == 0
-            ?(ushort[])Table
+            ? (ushort[])Table
             : throw new InvalidOperationException();
 
     public float[] TableFloat =>
         (Flags & LerpFlag.Float) != 0
             ? (float[])Table
             : throw new InvalidOperationException();
+
+    #endregion Properties
+
+    #region Public Methods
+
+    public object Clone() =>
+        new InterpParams(StateContainer, Flags, NumInputs, NumOutputs, Table)
+        {
+            NumSamples = (uint[])NumSamples.Clone(),
+            Domain = (int[])Domain.Clone(),
+            Opta = (int[])Opta.Clone(),
+            Interpolation = Interpolation,
+        };
+
+    public void Lerp16(ReadOnlySpan<ushort> input, Span<ushort> output)
+    {
+        if ((Flags & LerpFlag.Float) == 0)
+            Interpolation.Lerp16(input, output, this);
+        else
+            throw new InvalidOperationException();
+    }
 
     public void LerpFloat(ReadOnlySpan<float> input, Span<float> output)
     {
@@ -118,13 +175,9 @@ public partial class InterpParams: ICloneable
             throw new InvalidOperationException();
     }
 
-    public void Lerp16(ReadOnlySpan<ushort> input, Span<ushort> output)
-    {
-        if ((Flags & LerpFlag.Float) == 0)
-            Interpolation.Lerp16(input, output, this);
-        else
-            throw new InvalidOperationException();
-    }
+    #endregion Public Methods
+
+    #region Internal Methods
 
     internal static InterpParams? Compute(object? state, in uint[] numSamples, uint inputChan, uint outputChan, object table, LerpFlag flags)
     {
@@ -190,7 +243,8 @@ public partial class InterpParams: ICloneable
                         interpolation.LerpFloat = LinLerp1D;
                     else
                         interpolation.Lerp16 = LinLerp1D;
-                } else
+                }
+                else
                 {
                     if (isFloat)
                         interpolation.LerpFloat = Eval1Input;
@@ -216,7 +270,8 @@ public partial class InterpParams: ICloneable
                         interpolation.LerpFloat = TrilinearInterp;
                     else
                         interpolation.Lerp16 = TrilinearInterp;
-                } else
+                }
+                else
                 {
                     if (isFloat)
                         interpolation.LerpFloat = TetrahedralInterp;
@@ -360,6 +415,10 @@ public partial class InterpParams: ICloneable
         return Interpolation.Lerp16 is not null;
     }
 
+    #endregion Internal Methods
+
+    #region Private Methods
+
     private static void BilinearInterp(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
@@ -451,7 +510,8 @@ public partial class InterpParams: ICloneable
 
             for (var outChan = 0; outChan < p16.NumOutputs; outChan++)
                 output[outChan] = lutTable[y0 + outChan];
-        } else
+        }
+        else
         {
             var v = input[0] * p16.Domain[0];
             var fk = ToFixedDomain(v);
@@ -481,7 +541,8 @@ public partial class InterpParams: ICloneable
 
             for (var outChan = 0; outChan < p.NumOutputs; outChan++)
                 output[outChan] = lutTable[start + outChan];
-        } else
+        }
+        else
         {
             val2 *= p.Domain[0];
 
@@ -550,32 +611,38 @@ public partial class InterpParams: ICloneable
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x1, y0, z0, outChan);
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (rx >= rz && rz >= ry)
+            }
+            else if (rx >= rz && rz >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x1, y0, z0, outChan);
-            } else if (rz >= rx && rx >= ry)
+            }
+            else if (rz >= rx && rx >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else if (ry >= rx && rx >= rz)
+            }
+            else if (ry >= rx && rx >= rz)
             {
                 c1 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x0, y1, z0, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (ry >= rz && rz >= rx)
+            }
+            else if (ry >= rz && rz >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y1, z0, outChan);
-            } else if (rz >= ry && ry >= rx)
+            }
+            else if (rz >= ry && ry >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else
+            }
+            else
             {
                 c1 = c2 = c3 = 0;
             }
@@ -595,32 +662,38 @@ public partial class InterpParams: ICloneable
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x1, y0, z0, outChan);
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (rx >= rz && rz >= ry)
+            }
+            else if (rx >= rz && rz >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x1, y0, z0, outChan);
-            } else if (rz >= rx && rx >= ry)
+            }
+            else if (rz >= rx && rx >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else if (ry >= rx && rx >= rz)
+            }
+            else if (ry >= rx && rx >= rz)
             {
                 c1 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x0, y1, z0, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (ry >= rz && rz >= rx)
+            }
+            else if (ry >= rz && rz >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y1, z0, outChan);
-            } else if (rz >= ry && ry >= rx)
+            }
+            else if (rz >= ry && ry >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else
+            }
+            else
             {
                 c1 = c2 = c3 = 0;
             }
@@ -698,7 +771,8 @@ public partial class InterpParams: ICloneable
         if (value[0] == 0xFFFF || p.Domain[0] == 0)
         {
             output[0] = lutTable[p.Domain[0]];
-        } else
+        }
+        else
         {
             var val3 = p.Domain[0] * value[0];
             val3 = ToFixedDomain(val3);
@@ -722,7 +796,8 @@ public partial class InterpParams: ICloneable
         if (val2 == 1.0 || p.Domain[0] == 0)
         {
             output[0] = lutTable[p.Domain[0]];
-        } else
+        }
+        else
         {
             val2 *= p.Domain[0];
 
@@ -774,32 +849,38 @@ public partial class InterpParams: ICloneable
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x1, y0, z0, outChan);
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (rx >= rz && rz >= ry)
+            }
+            else if (rx >= rz && rz >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z0, outChan) - c0;
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x1, y0, z0, outChan);
-            } else if (rz >= rx && rx >= ry)
+            }
+            else if (rz >= rx && rx >= ry)
             {
                 c1 = Dens(lutTable, x1, y0, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c2 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else if (ry >= rx && rx >= rz)
+            }
+            else if (ry >= rx && rx >= rz)
             {
                 c1 = Dens(lutTable, x1, y1, z0, outChan) - Dens(lutTable, x0, y1, z0, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x1, y1, z0, outChan);
-            } else if (ry >= rz && rz >= rx)
+            }
+            else if (ry >= rz && rz >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z0, outChan) - c0;
                 c3 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y1, z0, outChan);
-            } else if (rz >= ry && ry >= rx)
+            }
+            else if (rz >= ry && ry >= rx)
             {
                 c1 = Dens(lutTable, x1, y1, z1, outChan) - Dens(lutTable, x0, y1, z1, outChan);
                 c2 = Dens(lutTable, x0, y1, z1, outChan) - Dens(lutTable, x0, y0, z1, outChan);
                 c3 = Dens(lutTable, x0, y0, z1, outChan) - c0;
-            } else
+            }
+            else
             {
                 c1 = c2 = c3 = 0;
             }
@@ -859,7 +940,8 @@ public partial class InterpParams: ICloneable
                     lutTable = lutTable[1..];
                     o = o[1..];
                 }
-            } else if (rz >= rx)
+            }
+            else if (rz >= rx)
             {
                 x1 += z1;
                 y1 += x1;
@@ -877,7 +959,8 @@ public partial class InterpParams: ICloneable
                     lutTable = lutTable[1..];
                     o = o[1..];
                 }
-            } else
+            }
+            else
             {
                 z1 += x1;
                 y1 += z1;
@@ -896,7 +979,8 @@ public partial class InterpParams: ICloneable
                     o = o[1..];
                 }
             }
-        } else
+        }
+        else
         {
             if (rx >= rz)
             {
@@ -916,7 +1000,8 @@ public partial class InterpParams: ICloneable
                     lutTable = lutTable[1..];
                     o = o[1..];
                 }
-            } else if (ry >= rz)
+            }
+            else if (ry >= rz)
             {
                 z1 += y1;
                 x1 += z1;
@@ -934,7 +1019,8 @@ public partial class InterpParams: ICloneable
                     lutTable = lutTable[1..];
                     o = o[1..];
                 }
-            } else
+            }
+            else
             {
                 y1 += z1;
                 x1 += y1;
@@ -1055,14 +1141,7 @@ public partial class InterpParams: ICloneable
         }
     }
 
-    public object Clone() =>
-        new InterpParams(StateContainer, Flags, NumInputs, NumOutputs, Table)
-        {
-            NumSamples = (uint[])NumSamples.Clone(),
-            Domain = (int[])Domain.Clone(),
-            Opta = (int[])Opta.Clone(),
-            Interpolation = Interpolation,
-        };
+    #endregion Private Methods
 }
 
 /// <summary>
