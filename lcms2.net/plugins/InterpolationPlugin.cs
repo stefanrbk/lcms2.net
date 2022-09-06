@@ -29,10 +29,6 @@ using lcms2.types;
 
 namespace lcms2.plugins;
 
-/// <summary>
-///     The plugin representing an interpolation
-/// </summary>
-/// <remarks>Implements the <c>cmsPluginInterpolation</c> struct.</remarks>
 public sealed class InterpolationPlugin
     : Plugin
 {
@@ -54,6 +50,26 @@ public sealed class InterpolationPlugin
 
     internal static bool RegisterPlugin(object? state, InterpolationPlugin? plugin)
     {
+        /**  Original Code (cmsintrp.c line: 66)
+         **
+         **  // Main plug-in entry
+         **  cmsBool  _cmsRegisterInterpPlugin(cmsContext ContextID, cmsPluginBase* Data)
+         **  {
+         **      cmsPluginInterpolation* Plugin = (cmsPluginInterpolation*) Data;
+         **      _cmsInterpPluginChunkType* ptr = (_cmsInterpPluginChunkType*) _cmsContextGetClientChunk(ContextID, InterpPlugin);
+         **
+         **      if (Data == NULL) {
+         **
+         **          ptr ->Interpolators = NULL;
+         **          return TRUE;
+         **      }
+         **
+         **      // Set replacement functions
+         **      ptr ->Interpolators = Plugin ->InterpolatorsFactory;
+         **      return TRUE;
+         **  }
+         **/
+
         var ptr = State.GetInterpolationPlugin(state);
 
         if (plugin is null)
@@ -74,7 +90,16 @@ internal sealed class InterpolationPluginChunk
 {
     #region Fields
 
-    internal static InterpolationPluginChunk global = new() { interpolators = null };
+    internal static InterpolationPluginChunk global = new()
+    {
+        /**  Original Code (cmsintrp.c line: 43)
+         **
+         **  // This is the default factory
+         **  _cmsInterpPluginChunkType _cmsInterpPluginChunk = { NULL };
+         **/
+
+        interpolators = null
+    };
     internal InterpFnFactory? interpolators;
 
     #endregion Fields

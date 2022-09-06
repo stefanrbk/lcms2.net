@@ -53,30 +53,30 @@ internal static class Helpers
 
     public static uint CubeSize(ReadOnlySpan<uint> dims, int b)
     {
-        /*  Original Code (cmslut.c line: 459)
-         *
-         *  // Given an hypercube of b dimensions, with Dims[] number of nodes by dimension, calculate the total amount of nodes
-         *  static
-         *  cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
-         *  {
-         *      cmsUInt32Number rv, dim;
-         *
-         *      _cmsAssert(Dims != NULL);
-         *
-         *      for (rv = 1; b > 0; b--) {
-         *
-         *          dim = Dims[b-1];
-         *          if (dim == 0) return 0;  // Error
-         *
-         *          rv *= dim;
-         *
-         *          // Check for overflow
-         *          if (rv > UINT_MAX / dim) return 0;
-         *      }
-         *
-         *      return rv;
-         *  }
-         */
+        /**  Original Code (cmslut.c line: 459)
+         **
+         **  // Given an hypercube of b dimensions, with Dims[] number of nodes by dimension, calculate the total amount of nodes
+         **  static
+         **  cmsUInt32Number CubeSize(const cmsUInt32Number Dims[], cmsUInt32Number b)
+         **  {
+         **      cmsUInt32Number rv, dim;
+         **
+         **      _cmsAssert(Dims != NULL);
+         **
+         **      for (rv = 1; b > 0; b--) {
+         **
+         **          dim = Dims[b-1];
+         **          if (dim == 0) return 0;  // Error
+         **
+         **          rv *= dim;
+         **
+         **          // Check for overflow
+         **          if (rv > UINT_MAX / dim) return 0;
+         **      }
+         **
+         **      return rv;
+         **  }
+         **/
         uint rv;
         for (rv = 1; b > 0; b--)
         {
@@ -120,38 +120,38 @@ internal static class Helpers
 
     public static void From16ToFloat(ReadOnlySpan<ushort> @in, Span<float> @out, int n)
     {
-        /*  Original Code (cmslut.c line: 92)
-         *
-         *  // From 16 bits to floating point
-         *  static
-         *  void From16ToFloat(const cmsUInt16Number In[], cmsFloat32Number Out[], cmsUInt32Number n)
-         *  {
-         *      cmsUInt32Number i;
-         *
-         *      for (i=0; i < n; i++) {
-         *          Out[i] = (cmsFloat32Number) In[i] / 65535.0F;
-         *      }
-         *  }
-         */
+        /**  Original Code (cmslut.c line: 92)
+         **
+         **  // From 16 bits to floating point
+         **  static
+         **  void From16ToFloat(const cmsUInt16Number In[], cmsFloat32Number Out[], cmsUInt32Number n)
+         **  {
+         **      cmsUInt32Number i;
+         **
+         **      for (i=0; i < n; i++) {
+         **          Out[i] = (cmsFloat32Number) In[i] / 65535.0F;
+         **      }
+         **  }
+         **/
         for (var i = 0; i < n; i++)
             @out[i] = @in[i] / 65535f;
     }
 
     public static void FromFloatTo16(ReadOnlySpan<float> @in, Span<ushort> @out, int n)
     {
-    /*  Original Code (cmslut.c line: 81)
-     *
-     *  // Conversion functions. From floating point to 16 bits
-     *  static
-     *  void FromFloatTo16(const cmsFloat32Number In[], cmsUInt16Number Out[], cmsUInt32Number n)
-     *  {
-     *      cmsUInt32Number i;
-     *
-     *      for (i=0; i < n; i++) {
-     *          Out[i] = _cmsQuickSaturateWord(In[i] * 65535.0);
-     *      }
-     *  }
-     */
+        /** Original Code (cmslut.c line: 81)
+         **
+         ** // Conversion functions. From floating point to 16 bits
+         ** static
+         ** void FromFloatTo16(const cmsFloat32Number In[], cmsUInt16Number Out[], cmsUInt32Number n)
+         ** {
+         **     cmsUInt32Number i;
+         **
+         **     for (i=0; i < n; i++) {
+         **         Out[i] = _cmsQuickSaturateWord(In[i] * 65535.0);
+         **     }
+         ** }
+         **/
         for (var i = 0; i < n; i++)
             @out[i] = QuickSaturateWord(@in[i] * 65535);
     }
@@ -229,17 +229,17 @@ internal static class Helpers
         a - ((a + 0x7FFF) >> 16);
 
     internal static ushort QuantizeValue(double i, uint maxSamples) =>
-    /*  Original Code (cmslut.c line: 732)
-     *
-     *  // Quantize a value 0 <= i < MaxSamples to 0..0xffff
-     *  cmsUInt16Number CMSEXPORT _cmsQuantizeVal(cmsFloat64Number i, cmsUInt32Number MaxSamples)
-     *  {
-     *      cmsFloat64Number x;
-     *
-     *      x = ((cmsFloat64Number) i * 65535.) / (cmsFloat64Number) (MaxSamples - 1);
-     *      return _cmsQuickSaturateWord(x);
-     *  }
-     */
+    /**  Original Code (cmslut.c line: 732)
+     **
+     **  // Quantize a value 0 <= i < MaxSamples to 0..0xffff
+     **  cmsUInt16Number CMSEXPORT _cmsQuantizeVal(cmsFloat64Number i, cmsUInt32Number MaxSamples)
+     **  {
+     **      cmsFloat64Number x;
+     **
+     **      x = ((cmsFloat64Number) i * 65535.) / (cmsFloat64Number) (MaxSamples - 1);
+     **      return _cmsQuickSaturateWord(x);
+     **  }
+     **/
         QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
