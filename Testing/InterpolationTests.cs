@@ -27,6 +27,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, numNodesToCheck, 1, 1, tab, LerpFlag.Ushort);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         BuildTable(numNodesToCheck, ref tab, down);
 
@@ -35,7 +36,7 @@ public class InterpolationTests: ITest
             var @in = new ushort[] { (ushort)i };
             var @out = new ushort[1];
 
-            p.Interpolation.Lerp16(@in, @out, p);
+            p.Interpolation.Lerp(@in, @out, p);
 
             if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
 
@@ -63,13 +64,14 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         for (var i = 0; i < 0xFFFF; i++)
         {
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, @out, p);
+            p.Interpolation.Lerp(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -101,13 +103,14 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         for (var i = 0; i < 0xFFFF; i++)
         {
             var @in = new ushort[] { (ushort)i, (ushort)i, (ushort)i };
             var @out = new ushort[3];
 
-            p.Interpolation.Lerp16(@in, @out, p);
+            p.Interpolation.Lerp(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -139,6 +142,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         MaxErr = 0.0;
         for (var i = 0; i < 0xFFFF; i++)
@@ -146,7 +150,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f, i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, @out, p);
+            p.Interpolation.Lerp(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -181,6 +185,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         MaxErr = 0.0;
         for (var i = 0; i < 0xFFFF; i++)
@@ -188,7 +193,7 @@ public class InterpolationTests: ITest
             var @in = new float[] { i / 65535f, i / 65535f, i / 65535f };
             var @out = new float[3];
 
-            p.Interpolation.LerpFloat(@in, @out, p);
+            p.Interpolation.Lerp(@in, @out, p);
             Assert.Multiple(() =>
             {
                 ClearAssert();
@@ -465,6 +470,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         Assert.Multiple(() =>
         {
@@ -477,7 +483,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, @out, p);
+                        p.Interpolation.Lerp(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -527,6 +533,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         Assert.Multiple(() =>
         {
@@ -539,7 +546,7 @@ public class InterpolationTests: ITest
                         var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
                         var @out = new ushort[3];
 
-                        p.Interpolation.Lerp16(@in, @out, p);
+                        p.Interpolation.Lerp(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -589,6 +596,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         MaxErr = 0.0;
         Assert.Multiple(() =>
@@ -602,7 +610,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f, b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, @out, p);
+                        p.Interpolation.Lerp(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();
@@ -655,6 +663,7 @@ public class InterpolationTests: ITest
 
         var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
         Assert.That(p, Is.Not.Null);
+        Assert.That(p.Interpolation, Is.Not.Null);
 
         MaxErr = 0.0;
         Assert.Multiple(() =>
@@ -668,7 +677,7 @@ public class InterpolationTests: ITest
                         var @in = new float[] { r / 255f, g / 255f, b / 255f };
                         var @out = new float[3];
 
-                        p.Interpolation.LerpFloat(@in, @out, p);
+                        p.Interpolation.Lerp(@in, @out, p);
                         Assert.Multiple(() =>
                         {
                             ClearAssert();

@@ -341,7 +341,7 @@ public partial class Stage
             var out16 = new ushort[maxStageChannels];
 
             FromFloatTo16(@in, in16, (int)parent.InputChannels);
-            Params.Lerp16(in16, out16);
+            Params.Lerp(in16, out16);
             From16ToFloat(out16, @out, (int)parent.OutputChannels);
         }
 

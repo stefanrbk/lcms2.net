@@ -27,7 +27,6 @@
 using lcms2.state;
 
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
@@ -43,7 +42,7 @@ public delegate void InterpFn16(ReadOnlySpan<ushort> input, Span<ushort> output,
 ///     Interpolators factory
 /// </summary>
 /// <remarks>Implements the <c>cmsInterpFnFactory</c> typedef.</remarks>
-public delegate InterpFunction InterpFnFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags);
+public delegate InterpFunction? InterpFnFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags);
 
 /// <summary>
 ///     Floating point forward interpolation. Full precision interpolation using floats. This is not
@@ -84,7 +83,7 @@ public partial class InterpParams : ICloneable
     /// <summary>
     ///     Points to the function to do the interpolation
     /// </summary>
-    public InterpFunction Interpolation;
+    public InterpFunction? Interpolation;
 
     /// <summary>
     ///     != 1 only in 3D interpolation
@@ -156,21 +155,21 @@ public partial class InterpParams : ICloneable
             NumSamples = (uint[])NumSamples.Clone(),
             Domain = (int[])Domain.Clone(),
             Opta = (int[])Opta.Clone(),
-            Interpolation = Interpolation,
+            Interpolation = (InterpFunction?)Interpolation?.Clone(),
         };
 
-    public void Lerp16(ReadOnlySpan<ushort> input, Span<ushort> output)
+    public void Lerp(ReadOnlySpan<ushort> input, Span<ushort> output)
     {
         if ((Flags & LerpFlag.Float) == 0)
-            Interpolation.Lerp16(input, output, this);
+            Interpolation?.Lerp(input, output, this);
         else
             throw new InvalidOperationException();
     }
 
-    public void LerpFloat(ReadOnlySpan<float> input, Span<float> output)
+    public void Lerp(ReadOnlySpan<float> input, Span<float> output)
     {
         if ((Flags & LerpFlag.Float) != 0)
-            Interpolation.LerpFloat(input, output, this);
+            Interpolation?.Lerp(input, output, this);
         else
             throw new InvalidOperationException();
     }
@@ -223,9 +222,9 @@ public partial class InterpParams : ICloneable
         return Compute(state, samples, inputChan, outputChan, table, flags);
     }
 
-    internal static InterpFunction DefaultInterpolatorsFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags)
+    internal static InterpFunction? DefaultInterpolatorsFactory(uint numInputChannels, uint numOutputChannels, LerpFlag flags)
     {
-        InterpFunction interpolation = default;
+        InterpFunction? interpolation = null;
         var isFloat = (flags & LerpFlag.Float) != 0;
         var isTriliniar = (flags & LerpFlag.Trilinear) != 0;
 
@@ -237,160 +236,128 @@ public partial class InterpParams : ICloneable
         {
             case 1: // Gray Lut / linear
 
-                if (numOutputChannels == 1)
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = LinLerp1D;
-                    else
-                        interpolation.Lerp16 = LinLerp1D;
-                }
-                else
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = Eval1Input;
-                    else
-                        interpolation.Lerp16 = Eval1Input;
-                }
+                interpolation = numOutputChannels == 1
+                    ? isFloat
+                        ? new InterpFunction(LinLerp1DFloat)
+                        : new InterpFunction(LinLerp1DFloat)
+                    : isFloat
+                        ? new InterpFunction(Eval1InputFloat)
+                        : new InterpFunction(Eval1Input16);
                 break;
 
             case 2: // Duotone
 
-                if (isFloat)
-                    interpolation.LerpFloat = BilinearInterp;
-                else
-                    interpolation.Lerp16 = BilinearInterp;
+                interpolation = isFloat
+                    ? new InterpFunction(BilinearInterpFloat)
+                    : new InterpFunction(BilinearInterp16);
 
                 break;
 
             case 3: // RGB et al
 
-                if (isTriliniar)
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = TrilinearInterp;
-                    else
-                        interpolation.Lerp16 = TrilinearInterp;
-                }
-                else
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = TetrahedralInterp;
-                    else
-                        interpolation.Lerp16 = TetrahedralInterp;
-                }
+                interpolation = isTriliniar
+                    ? isFloat
+                        ? new InterpFunction(TrilinearInterpFloat)
+                        : new InterpFunction(TrilinearInterp16)
+                    : isFloat
+                        ? new InterpFunction(TetrahedralInterpFloat)
+                        : new InterpFunction(TetrahedralInterp16);
                 break;
 
             case 4: // CMYK lut
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval4Inputs;
-                else
-                    interpolation.Lerp16 = Eval4Inputs;
+                interpolation = isFloat
+                    ? new InterpFunction(Eval4InputsFloat)
+                    : new InterpFunction(Eval4Inputs16);
 
                 break;
 
             case 5:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval5Inputs;
-                else
-                    interpolation.Lerp16 = Eval5Inputs;
+                interpolation = isFloat
+                    ? new InterpFunction(Eval5InputsFloat)
+                    : new InterpFunction(Eval5Inputs16);
 
                 break;
 
             case 6:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval6Inputs;
-                else
-                    interpolation.Lerp16 = Eval6Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval6InputsFloat) 
+                    : new InterpFunction(Eval6Inputs16);
 
                 break;
 
             case 7:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval7Inputs;
-                else
-                    interpolation.Lerp16 = Eval7Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval7InputsFloat) 
+                    : new InterpFunction(Eval7Inputs16);
 
                 break;
 
             case 8:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval8Inputs;
-                else
-                    interpolation.Lerp16 = Eval8Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval8InputsFloat) 
+                    : new InterpFunction(Eval8Inputs16);
 
                 break;
 
             case 9:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval9Inputs;
-                else
-                    interpolation.Lerp16 = Eval9Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval9InputsFloat) 
+                    : new InterpFunction(Eval9Inputs16);
 
                 break;
 
             case 10:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval10Inputs;
-                else
-                    interpolation.Lerp16 = Eval10Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval10InputsFloat) 
+                    : new InterpFunction(Eval10Inputs16);
 
                 break;
 
             case 11:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval11Inputs;
-                else
-                    interpolation.Lerp16 = Eval11Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval11InputsFloat) 
+                    : new InterpFunction(Eval11Inputs16);
 
                 break;
 
             case 12:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval12Inputs;
-                else
-                    interpolation.Lerp16 = Eval12Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval12InputsFloat) 
+                    : new InterpFunction(Eval12Inputs16);
 
                 break;
 
             case 13:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval13Inputs;
-                else
-                    interpolation.Lerp16 = Eval13Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval13InputsFloat) 
+                    : new InterpFunction(Eval13Inputs16);
 
                 break;
 
             case 14:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval14Inputs;
-                else
-                    interpolation.Lerp16 = Eval14Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval14InputsFloat) 
+                    : new InterpFunction(Eval14Inputs16);
 
                 break;
 
             case 15:
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval15Inputs;
-                else
-                    interpolation.Lerp16 = Eval15Inputs;
+                interpolation = isFloat 
+                    ? new InterpFunction(Eval15InputsFloat) 
+                    : new InterpFunction(Eval15Inputs16);
 
-                break;
-
-            default:
-
-                interpolation.Lerp16 = null!;
                 break;
         }
         return interpolation;
@@ -400,7 +367,7 @@ public partial class InterpParams : ICloneable
     {
         var ptr = State.GetInterpolationPlugin(state);
 
-        Interpolation.Lerp16 = null;
+        Interpolation = null;
 
         // Invoke factory, possibly in the Plugin
         if (ptr.interpolators is not null)
@@ -408,18 +375,17 @@ public partial class InterpParams : ICloneable
 
         // If unsupported by the plugin, go for the default. It happens only if an extern plugin is
         // being used
-        if (Interpolation.Lerp16 is null)
-            Interpolation = DefaultInterpolatorsFactory(NumInputs, NumOutputs, Flags);
+        Interpolation ??= DefaultInterpolatorsFactory(NumInputs, NumOutputs, Flags);
 
         // Check for valid interpolator (we just check one member of the union
-        return Interpolation.Lerp16 is not null;
+        return Interpolation is not null;
     }
 
     #endregion Internal Methods
 
     #region Private Methods
 
-    private static void BilinearInterp(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
+    private static void BilinearInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
 
@@ -450,7 +416,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void BilinearInterp(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
+    private static void BilinearInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
     {
         var lutTable = p.Table16;
 
@@ -500,7 +466,7 @@ public partial class InterpParams : ICloneable
     private static ushort Dens(Span<ushort> table, int i, int j, int k, int outChan) =>
         table[i + j + k + outChan];
 
-    private static void Eval1Input(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p16)
+    private static void Eval1Input16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p16)
     {
         var lutTable = p16.Table16;
 
@@ -529,7 +495,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void Eval1Input(ReadOnlySpan<float> value, Span<float> output, InterpParams p)
+    private static void Eval1InputFloat(ReadOnlySpan<float> value, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
 
@@ -564,7 +530,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void Eval4Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
+    private static void Eval4Inputs16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
     {
         var tmp1 = new ushort[maxStageChannels];
         var tmp2 = new ushort[maxStageChannels];
@@ -706,7 +672,7 @@ public partial class InterpParams : ICloneable
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }
 
-    private static void Eval4Inputs(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
+    private static void Eval4InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
         var tmp1 = new float[maxStageChannels];
@@ -725,12 +691,12 @@ public partial class InterpParams : ICloneable
         p.Domain[1..3].CopyTo(p1.Domain.AsSpan());
 
         var inp = input[1..];
-        TetrahedralInterp(inp, tmp1, p1);
+        TetrahedralInterpFloat(inp, tmp1, p1);
 
         t = lutTable[k1..];
         p1.Table = t;
 
-        TetrahedralInterp(inp, tmp2, p1);
+        TetrahedralInterpFloat(inp, tmp2, p1);
 
         for (var i = 0; i < p.NumOutputs; i++)
         {
@@ -763,7 +729,7 @@ public partial class InterpParams : ICloneable
         return (ushort)dif;
     }
 
-    private static void LinLerp1D(ReadOnlySpan<ushort> value, Span<ushort> output, InterpParams p)
+    private static void LinLerp1D16(ReadOnlySpan<ushort> value, Span<ushort> output, InterpParams p)
     {
         var lutTable = p.Table16;
 
@@ -787,7 +753,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void LinLerp1D(ReadOnlySpan<float> value, Span<float> output, InterpParams p)
+    private static void LinLerp1DFloat(ReadOnlySpan<float> value, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
 
@@ -815,7 +781,7 @@ public partial class InterpParams : ICloneable
     }
 
     // Tetrahedral interpolation, using Sakamoto algorithm.
-    private static void TetrahedralInterp(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
+    private static void TetrahedralInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
         float c1 = 0, c2 = 0, c3 = 0;
@@ -889,7 +855,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void TetrahedralInterp(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
+    private static void TetrahedralInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
     {
         var lutTable = p.Table16;
         int rest, c0, c1 = 0, c2 = 0, c3 = 0;
@@ -1042,7 +1008,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void TrilinearInterp(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
+    private static void TrilinearInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {
         var lutTable = p.TableFloat;
 
@@ -1090,7 +1056,7 @@ public partial class InterpParams : ICloneable
         }
     }
 
-    private static void TrilinearInterp(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
+    private static void TrilinearInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p)
     {
         var lutTable = p.Table16;
 
@@ -1148,12 +1114,30 @@ public partial class InterpParams : ICloneable
 ///     This type holds a pointer to an interpolator that can be either 16 bits or float
 /// </summary>
 /// <remarks>Implements the <c>cmsInterpFunction</c> union.</remarks>
-[StructLayout(LayoutKind.Explicit)]
-public struct InterpFunction
+public class InterpFunction : ICloneable
 {
-    [FieldOffset(0)]
-    public InterpFn16 Lerp16;
+    private readonly InterpFn16? _lerp16;
 
-    [FieldOffset(0)]
-    public InterpFnFloat LerpFloat;
+    private readonly InterpFnFloat? _lerpFloat;
+
+    private InterpFunction() { }
+
+    public InterpFunction(InterpFn16 fn16) =>
+        _lerp16 = fn16;
+
+    public InterpFunction(InterpFnFloat fnFloat) =>
+        _lerpFloat = fnFloat;
+
+    public void Lerp(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p) =>
+        _lerp16?.Invoke(input, output, p);
+
+    public void Lerp(ReadOnlySpan<float> input, Span<float> output, InterpParams p) =>
+        _lerpFloat?.Invoke(input, output, p);
+
+    public object Clone() =>
+        _lerp16 is not null
+            ? new InterpFunction(_lerp16)
+            : _lerpFloat is not null
+                ? new InterpFunction(_lerpFloat)
+                : null!;
 }

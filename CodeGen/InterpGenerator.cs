@@ -16,7 +16,7 @@ namespace lcms2.types;
 
 public partial class InterpParams
 {{
-    private static void Eval{0}Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p16)
+    private static void Eval{0}Inputs16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams p16)
     {{
         var lutTable = p16.Table16;
 
@@ -48,7 +48,7 @@ public partial class InterpParams
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }}
 
-    private static void Eval{0}Inputs(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
+    private static void Eval{0}InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams p)
     {{
         var lutTable = p.TableFloat;
         var tmp1 = new float[maxStageChannels];

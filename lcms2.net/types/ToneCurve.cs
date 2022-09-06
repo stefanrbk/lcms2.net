@@ -353,7 +353,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
         var i = new ushort[] { v };
         var o = new ushort[1];
 
-        interpParams!.Interpolation.Lerp16(i, o, interpParams!);
+        interpParams!.Interpolation?.Lerp(i, o, interpParams!);
 
         return o[0];
     }
@@ -1048,7 +1048,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
                     // Setup the table (TODO: clean that)
                     segInterp[i].Table = segments[i].SampledPoints!;
 
-                    segInterp[i].Interpolation.LerpFloat(r1, out32, segInterp[i]);
+                    segInterp[i].Interpolation?.Lerp(r1, out32, segInterp[i]);
                     result = out32[0];
                 }
                 else

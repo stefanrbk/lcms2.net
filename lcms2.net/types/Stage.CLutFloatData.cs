@@ -318,7 +318,7 @@ public partial class Stage
          */
 
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage _) =>
-            Params.LerpFloat(@in, @out);
+            Params.Lerp(@in, @out);
 
         #endregion Internal Methods
 
