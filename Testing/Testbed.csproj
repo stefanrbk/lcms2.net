@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -7,11 +7,15 @@
 
     <IsPackable>false</IsPackable>
 
-    <RootNamespace>lcms2.testing</RootNamespace>
-
-    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <RootNamespace>lcms2.testbed</RootNamespace>
 
     <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
+
+    <IsPublishable>False</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
