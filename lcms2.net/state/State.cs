@@ -103,7 +103,7 @@ public static class State
 
     public static void SetAlarmCodes(object? state, ushort[] codes)
     {
-        if (codes.Length is not 16) SignalError(state, ErrorCode.Range, "Invalid alarm code array length");
+        if (codes.Length is not 16) Errors.InvalidAlarmCode(state);
 
         var alarmCodes = (AlarmCodes)Context.GetClientChunk(state, Chunks.AlarmCodesContext)!;
         alarmCodes.alarmCodes = codes;
@@ -344,7 +344,7 @@ public static class State
         {
             if (chunk is < 0 or >= Chunks.Max)
             {
-                SignalError(state, ErrorCode.Internal, "Bad context chunk -- possible corruption");
+                Errors.ContextChunkOutOfRange(state);
 
                 return _globalContext._chunks[(int)Chunks.UserPtr];
             }

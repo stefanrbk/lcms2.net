@@ -185,7 +185,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         if (c is null)
         {
-            State.SignalError(state, ErrorCode.UnknownExtension, "Invalid parametric curve type {0}", type);
+            Errors.InvalidParametricCurveType(state, type);
             return null;
         }
 
@@ -489,7 +489,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
                                 if (z[i] >= 65535f) poles++;
                                 if (z[i] < z[i - 1])
                                 {
-                                    State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Non-Monotonic.");
+                                    Errors.ToneCurveSmoothNonMonotonic(context);
                                     successStatus = notCheck;
                                     break;
                                 }
@@ -497,13 +497,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                             if (successStatus && zeros > (numItems / 3))
                             {
-                                State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly zeros.");
+                                Errors.ToneCurveSmoothMostlyZeros(context);
                                 successStatus = notCheck;
                             }
 
                             if (successStatus && poles > (numItems / 3))
                             {
-                                State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Degenerated, mostly poles.");
+                                Errors.ToneCurveSmoothMostlyPoles(context);
                                 successStatus = notCheck;
                             }
 
@@ -516,14 +516,14 @@ public sealed class ToneCurve : ICloneable, IDisposable
                         }
                         else
                         { // Could not smooth
-                            State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Function Smooth2 failed.");
+                            Errors.ToneCurveSmoothFailed(context);
                             successStatus = false;
                         }
                     }
                 }
                 else
                 {
-                    State.SignalError(context, ErrorCode.Range, "ToneCurve.Smooth: Too many points.");
+                    Errors.ToneCurveSmoothTooManyPoints(context);
                     successStatus = false;
                 }
             }
@@ -543,13 +543,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
         // We allow huge tables, which are then restricted for smoothing operations
         if (numEntries > 65530)
         {
-            State.SignalError(state, ErrorCode.Range, "Couldn't create tone curve of more than 65530 entries");
+            Errors.ToneCurveTooManyEntries(state);
             return null;
         }
 
         if (numEntries == 0 && numSegments == 0)
         {
-            State.SignalError(state, ErrorCode.Range, "Couldn't create tone curve with zero segments and no table");
+            Errors.ToneCurveTooFewEntries(state);
             return null;
         }
 

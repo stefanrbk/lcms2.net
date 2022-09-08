@@ -1,4 +1,4 @@
-namespace lcms2.tests;
+namespace lcms2.tests.types;
 
 public class InterpParamsTests
 {

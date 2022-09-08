@@ -109,8 +109,7 @@ public class LutA2BHandler : TagTypeHandler
         if (lut.elements is not null &&
             !lut.CheckAndRetreiveStagesAtoB(out a, out clut, out m, out matrix, out b))
         {
-            State.SignalError(StateContainer, ErrorCode.NotSuitable, "Lut is not suitable to be saved as LutAToB");
-            return false;
+            return Errors.NotSuitableLutAToBSave(StateContainer);
         }
 
         // Get input, output channels

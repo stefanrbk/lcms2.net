@@ -61,17 +61,10 @@ public abstract class Plugin
         for (var p = plugin; p is not null; p = p.Next)
         {
             if (p.Magic != Signature.Plugin.MagicNumber)
-            {
-                State.SignalError(state, ErrorCode.UnknownExtension, "Unrecognized plugin");
-                return false;
-            }
+                return Errors.UnrecognizedPlugin(state);
 
             if (p.ExpectedVersion > Lcms2.Version)
-            {
-                State.SignalError(state, ErrorCode.UnknownExtension,
-                    "plugin needs Little CMS {0}, current version is {1}", p.ExpectedVersion, Lcms2.Version);
-                return false;
-            }
+                return Errors.InvalidLcmsVersion(state, p.ExpectedVersion, Lcms2.Version);
 
             if (p.Type == Signature.Plugin.Interpolation)
             {
@@ -115,8 +108,7 @@ public abstract class Plugin
             }
             else
             {
-                State.SignalError(state, ErrorCode.UnknownExtension, "Unrecognized plugin type {0:X8}", p.Type);
-                return false;
+                return Errors.UnrecognizedPluginType(state, p.Type);
             }
         }
         // This is true to allow Context initialization without plugins.

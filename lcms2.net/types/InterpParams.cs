@@ -244,7 +244,7 @@ public class InterpParams : ICloneable
         // Check for maximum inputs
         if (inputChan > MaxInputDimensions)
         {
-            State.SignalError(state, ErrorCode.Range, "Too many input channels ({0} channels, max={1})", inputChan, MaxInputDimensions);
+            Errors.TooManyInputChannels(state, inputChan, maxInputDimensions);
             return null;
         }
 
@@ -265,7 +265,7 @@ public class InterpParams : ICloneable
 
         if (!p.SetInterpolationRoutine(state))
         {
-            State.SignalError(state, ErrorCode.UnknownExtension, "Unsupported interpolation ({0}->{1} channels)", inputChan, outputChan);
+            Errors.UnsupportedInterpolation(state, inputChan, outputChan);
             return null;
         }
 

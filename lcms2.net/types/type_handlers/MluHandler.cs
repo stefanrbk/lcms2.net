@@ -62,7 +62,7 @@ public class MluHandler : TagTypeHandler
 
         if (recLen != 12)
         {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported.");
+            Errors.NotSupportedMluLength(StateContainer);
             return null;
         }
 

@@ -199,7 +199,7 @@ public partial class Stage
 
         if (inputChan > maxInputDimensions)
         {
-            State.SignalError(state, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
+            Errors.TooManyInputChannels(state, inputChan, maxInputDimensions);
             return null;
         }
 
@@ -326,8 +326,7 @@ public partial class Stage
 
         if (inputChan > maxInputDimensions)
         {
-            State.SignalError(state, ErrorCode.Range,
-                $"Too many input channels ({inputChan} channels, max={maxInputDimensions})");
+            Errors.TooManyInputChannels(state, inputChan, maxInputDimensions);
             return null;
         }
 

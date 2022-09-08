@@ -157,10 +157,7 @@ public class Lut8Handler : TagTypeHandler
 
         // That should be all
         if (mpe is not null)
-        {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "LUT is not suitable to be saved as LUT8");
-            return false;
-        }
+            return Errors.NotSuitableLut8Save(StateContainer);
 
         var clutPoints = clut?.Params.NumSamples[0] ?? 0;
 

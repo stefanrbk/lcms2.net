@@ -123,10 +123,7 @@ public class MpeHandler : TagTypeHandler
 
             var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
             if (typeHandler is null)
-            {
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Found unknown MPE type '{0}'", elementSig);
-                return false;
-            }
+                return Errors.UnknownMpeType(StateContainer, elementSig);
 
             if (!io.Write((uint)elementSig)) return false;
             if (!io.Write((uint)0)) return false;
