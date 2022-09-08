@@ -342,12 +342,7 @@ public static class State
 
         internal static object? GetClientChunk(object? state, Chunks chunk)
         {
-            if (chunk is < 0 or >= Chunks.Max)
-            {
-                Errors.ContextChunkOutOfRange(state);
-
-                return _globalContext._chunks[(int)Chunks.UserPtr];
-            }
+            // Bounds checking not needed as State handles all calls to this function
 
             var ctx = Get(state);
             var ptr = ctx._chunks[(int)chunk];
