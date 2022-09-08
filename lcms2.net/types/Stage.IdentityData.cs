@@ -34,20 +34,20 @@ public partial class Stage
     {
         #region Internal Methods
 
-        internal override StageData? Duplicate(Stage _) => null;
-
-        /*  Original Code (cmslut.c line: 61)
-         *
-         *  static
-         *  void EvaluateIdentity(const cmsFloat32Number In[],
-         *                              cmsFloat32Number Out[],
-         *                        const cmsStage *mpe)
-         *  {
-         *      memmove(Out, In, mpe ->InputChannels * sizeof(cmsFloat32Number));
-         *  }
-         */
+        internal override StageData? Duplicate(Stage _) => new IdentityData();
 
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage _) =>
+            /**  Original Code (cmslut.c line: 61)
+             **
+             **  static
+             **  void EvaluateIdentity(const cmsFloat32Number In[],
+             **                              cmsFloat32Number Out[],
+             **                        const cmsStage *mpe)
+             **  {
+             **      memmove(Out, In, mpe ->InputChannels * sizeof(cmsFloat32Number));
+             **  }
+             **/
+
             @in.CopyTo(@out);
 
         #endregion Internal Methods

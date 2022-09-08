@@ -85,7 +85,7 @@ public class VcgtHandler : TagTypeHandler
 
                 if (numChannels != 3)
                 {
-                    State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported number of channels for VCGT '{0}'", numChannels);
+                    Errors.UnsupportedVcgtChannelCount(StateContainer, numChannels);
                     return null;
                 }
 
@@ -127,7 +127,7 @@ public class VcgtHandler : TagTypeHandler
                         // Unsupported
                         default:
 
-                            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported bit depth for VCGT '{0}'", numBytes * 8);
+                            Errors.UnsupportedVcgtBitDepth(StateContainer, numBytes * 8);
                             goto Error;
                     }
                 } // For all 3 channels
@@ -163,7 +163,7 @@ public class VcgtHandler : TagTypeHandler
             // Unsupported
             default:
 
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported tag type for VCGT '{0}'", tagType);
+                Errors.UnsupportedVcgtType(StateContainer, (int)tagType);
                 goto Error;
         }
 

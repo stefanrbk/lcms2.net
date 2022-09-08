@@ -69,7 +69,7 @@ public class ParametricCurveHandler : TagTypeHandler
 
         if (type > 4)
         {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown parametric curve type '{0}'", type);
+            Errors.UnknownParametricCurveType(StateContainer, type);
             return null;
         }
         var n = _readParamsByType[type];
@@ -90,16 +90,10 @@ public class ParametricCurveHandler : TagTypeHandler
         var typeN = curve.segments[0].Type;
 
         if (curve.NumSegments > 1 || typeN < 1)
-        {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
-            return false;
-        }
+            return Errors.ParametricCurveCannotWrite(StateContainer);
 
         if (typeN > 5)
-        {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unsupported parametric curve");
-            return false;
-        }
+            return Errors.UnsupportedParametricCurve(StateContainer);
 
         var numParams = _writeParamsByType[typeN];
 

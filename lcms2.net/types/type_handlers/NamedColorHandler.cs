@@ -64,13 +64,13 @@ public class NamedColorHandler : TagTypeHandler
         var v = new NamedColorList(StateContainer, count, prefix, suffix);
         if (v is null)
         {
-            State.SignalError(StateContainer, ErrorCode.Range, "Too many named colors '{0}'", count);
+            Errors.TooManyNamedColors(StateContainer, count);
             return null;
         }
 
         if (numDeviceCoords > maxChannels)
         {
-            State.SignalError(StateContainer, ErrorCode.Range, "Too many device coordinates '{0}'", numDeviceCoords);
+            Errors.TooManyDeviceCoordinates(StateContainer, numDeviceCoords);
             goto Error;
         }
 

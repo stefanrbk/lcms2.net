@@ -177,17 +177,10 @@ public abstract partial class TagTypeHandler
         // Read diverse MPE types
         var typeHandler = GetHandler(elementSig, mpeChunk.tagTypes);
         if (typeHandler is null)
-        {
-            State.SignalError(self.StateContainer, ErrorCode.UnknownExtension, "Unknown MPE type '{0}' found.", elementSig);
-            return false;
-        }
+            return Errors.UnknownMpeType(self.StateContainer, elementSig);
 
-        if (typeHandler is not MpeStubHandler &&
-            !newLut.InsertStage(StageLoc.AtEnd, (Stage?)typeHandler.Read(io, sizeOfTag, out _)))
-
-            return false;
-
-        return true;
+        return typeHandler is MpeStubHandler ||
+            newLut.InsertStage(StageLoc.AtEnd, (Stage?)typeHandler.Read(io, sizeOfTag, out _));
     }
 
     internal static unsafe bool ReadSequenceId(TagTypeHandler self, Stream io, ref object cargo, int index, int sizeOfTag)
@@ -450,7 +443,7 @@ public abstract partial class TagTypeHandler
 
             default:
                 clut.Dispose();
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
+                Errors.UnknownPrecision(StateContainer, precision);
                 return null;
         }
 
@@ -471,7 +464,7 @@ public abstract partial class TagTypeHandler
             return (ToneCurve?)h.Read(io, 0, out _);
         }
         else
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", baseType.Signature);
+            Errors.UnknownCurveType(StateContainer, baseType.Signature);
         return null;
     }
 
@@ -583,7 +576,7 @@ public abstract partial class TagTypeHandler
             }
             else
             {
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve element type '{0}' found.", elementSig);
+                Errors.UnknownCurveType(StateContainer, elementSig);
                 return null;
             }
         }
@@ -655,8 +648,7 @@ public abstract partial class TagTypeHandler
             {
                 if (tables.TheCurves[i].NumEntries != 256)
                 {
-                    State.SignalError(StateContainer, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
-                    return false;
+                    return Errors.Lut8InvalidEntryCount(StateContainer);
                 }
                 else
                     for (var j = 0; j < 256; j++)
@@ -674,13 +666,9 @@ public abstract partial class TagTypeHandler
     internal bool WriteClut(Stream io, byte precision, Stage mpe)
     {
         var gridPoints = new byte[maxChannels]; // Number of grid points in each dimension.
-        var clut = mpe.Data as Stage.CLut16Data;
 
-        if (clut is null)
-        {
-            State.SignalError(StateContainer, ErrorCode.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
-            return false;
-        }
+        if (mpe.Data is not Stage.CLut16Data clut)
+            return Errors.CannotSaveFloatingPointClut(StateContainer);
 
         for (var i = 0; i < clut.Params.NumInputs; i++)
             gridPoints[i] = (byte)clut.Params.NumSamples[i];
@@ -710,7 +698,7 @@ public abstract partial class TagTypeHandler
 
             default:
 
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown precision of '{0}'", precision);
+                Errors.UnknownPrecision(StateContainer, precision);
                 return false;
         }
 
@@ -747,8 +735,7 @@ public abstract partial class TagTypeHandler
             }
             else
             {
-                State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown curve type '{0}'", type);
-                return false;
+                return Errors.UnknownCurveType(StateContainer, type);
             }
 
             if (!io.WriteAlignment()) return false;

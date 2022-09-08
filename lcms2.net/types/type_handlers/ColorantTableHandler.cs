@@ -60,7 +60,7 @@ public class ColorantTableHandler : TagTypeHandler
 
         if (count > maxChannels)
         {
-            state.State.SignalError(StateContainer, ErrorCode.Range, "Too many colorants '{0}'", count);
+            Errors.TooManyColorants(StateContainer, count);
             return null;
         }
 

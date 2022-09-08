@@ -66,80 +66,46 @@ public partial class Stage
 
         #endregion Delegates
 
-        /*  Original Code (cmslut.c line: 742)
-         *
-         *  // This routine does a sweep on whole input space, and calls its callback
-         *  // function on knots. returns TRUE if all ok, FALSE otherwise.
-         *  cmsBool CMSEXPORT cmsStageSampleCLut16bit(cmsStage* mpe, cmsSAMPLER16 Sampler, void * Cargo, cmsUInt32Number dwFlags)
-         *  {
-         *      int i, t, index, rest;
-         *      cmsUInt32Number nTotalPoints;
-         *      cmsUInt32Number nInputs, nOutputs;
-         *      cmsUInt32Number* nSamples;
-         *      cmsUInt16Number In[MAX_INPUT_DIMENSIONS+1], Out[MAX_STAGE_CHANNELS];
-         *      _cmsStageCLutData* clut;
-         *
-         *      if (mpe == NULL) return FALSE;
-         *
-         *      clut = (_cmsStageCLutData*) mpe->Data;
-         *
-         *      if (clut == NULL) return FALSE;
-         *
-         *      nSamples = clut->Params ->nSamples;
-         *      nInputs  = clut->Params ->nInputs;
-         *      nOutputs = clut->Params ->nOutputs;
-         *
-         *      if (nInputs <= 0) return FALSE;
-         *      if (nOutputs <= 0) return FALSE;
-         *      if (nInputs > MAX_INPUT_DIMENSIONS) return FALSE;
-         *      if (nOutputs >= MAX_STAGE_CHANNELS) return FALSE;
-         *
-         *      memset(In, 0, sizeof(In));
-         *      memset(Out, 0, sizeof(Out));
-         *
-         *      nTotalPoints = CubeSize(nSamples, nInputs);
-         *      if (nTotalPoints == 0) return FALSE;
-         *
-         *      index = 0;
-         *      for (i = 0; i < (int) nTotalPoints; i++) {
-         *
-         *          rest = i;
-         *          for (t = (int)nInputs - 1; t >= 0; --t) {
-         *
-         *              cmsUInt32Number  Colorant = rest % nSamples[t];
-         *
-         *              rest /= nSamples[t];
-         *
-         *              In[t] = _cmsQuantizeVal(Colorant, nSamples[t]);
-         *          }
-         *
-         *          if (clut ->Tab.T != NULL) {
-         *              for (t = 0; t < (int)nOutputs; t++)
-         *                  Out[t] = clut->Tab.T[index + t];
-         *          }
-         *
-         *          if (!Sampler(In, Out, Cargo))
-         *              return FALSE;
-         *
-         *          if (!(dwFlags & SAMPLER_INSPECT)) {
-         *
-         *              if (clut ->Tab.T != NULL) {
-         *                  for (t=0; t < (int) nOutputs; t++)
-         *                      clut->Tab.T[index + t] = Out[t];
-         *              }
-         *          }
-         *
-         *          index += nOutputs;
-         *      }
-         *
-         *      return TRUE;
-         *  }
-         */
-
         #region Public Methods
 
         public static bool SliceSpace(uint numInputs, in uint[] clutPoints, Sampler sampler, in object cargo)
         {
+            /** Original Code (cmslut.c line:868)
+             **
+             ** // This routine does a sweep on whole input space, and calls its callback
+             ** // function on knots. returns TRUE if all ok, FALSE otherwise.
+             ** cmsBool CMSEXPORT cmsSliceSpace16(cmsUInt32Number nInputs, const cmsUInt32Number clutPoints[],
+             **                                          cmsSAMPLER16 Sampler, void * Cargo)
+             ** {
+             **     int i, t, rest;
+             **     cmsUInt32Number nTotalPoints;
+             **     cmsUInt16Number In[cmsMAXCHANNELS];
+             **
+             **     if (nInputs >= cmsMAXCHANNELS) return FALSE;
+             **
+             **     nTotalPoints = CubeSize(clutPoints, nInputs);
+             **     if (nTotalPoints == 0) return FALSE;
+             **
+             **     for (i = 0; i < (int) nTotalPoints; i++) {
+             **
+             **         rest = i;
+             **         for (t = (int) nInputs-1; t >=0; --t) {
+             **
+             **             cmsUInt32Number  Colorant = rest % clutPoints[t];
+             **
+             **             rest /= clutPoints[t];
+             **             In[t] = _cmsQuantizeVal(Colorant, clutPoints[t]);
+             **
+             **         }
+             **
+             **         if (!Sampler(In, NULL, Cargo))
+             **             return FALSE;
+             **     }
+             **
+             **     return TRUE;
+             ** }
+             **/
+
             var @in = new ushort[maxChannels];
 
             if (numInputs >= maxChannels) return false;
@@ -166,6 +132,76 @@ public partial class Stage
 
         public bool Sample(Sampler sampler, in object? cargo, SamplerFlags flags)
         {
+            /** Original Code (cmslut.c line: 742)
+             **
+             ** // This routine does a sweep on whole input space, and calls its callback
+             ** // function on knots. returns TRUE if all ok, FALSE otherwise.
+             ** cmsBool CMSEXPORT cmsStageSampleCLut16bit(cmsStage* mpe, cmsSAMPLER16 Sampler, void * Cargo, cmsUInt32Number dwFlags)
+             ** {
+             **     int i, t, index, rest;
+             **     cmsUInt32Number nTotalPoints;
+             **     cmsUInt32Number nInputs, nOutputs;
+             **     cmsUInt32Number* nSamples;
+             **     cmsUInt16Number In[MAX_INPUT_DIMENSIONS+1], Out[MAX_STAGE_CHANNELS];
+             **     _cmsStageCLutData* clut;
+             **
+             **     if (mpe == NULL) return FALSE;
+             **
+             **     clut = (_cmsStageCLutData*) mpe->Data;
+             **
+             **     if (clut == NULL) return FALSE;
+             **
+             **     nSamples = clut->Params ->nSamples;
+             **     nInputs  = clut->Params ->nInputs;
+             **     nOutputs = clut->Params ->nOutputs;
+             **
+             **     if (nInputs <= 0) return FALSE;
+             **     if (nOutputs <= 0) return FALSE;
+             **     if (nInputs > MAX_INPUT_DIMENSIONS) return FALSE;
+             **     if (nOutputs >= MAX_STAGE_CHANNELS) return FALSE;
+             **
+             **     memset(In, 0, sizeof(In));
+             **     memset(Out, 0, sizeof(Out));
+             **
+             **     nTotalPoints = CubeSize(nSamples, nInputs);
+             **     if (nTotalPoints == 0) return FALSE;
+             **
+             **     index = 0;
+             **     for (i = 0; i < (int) nTotalPoints; i++) {
+             **
+             **         rest = i;
+             **         for (t = (int)nInputs - 1; t >= 0; --t) {
+             **
+             **             cmsUInt32Number  Colorant = rest % nSamples[t];
+             **
+             **             rest /= nSamples[t];
+             **
+             **             In[t] = _cmsQuantizeVal(Colorant, nSamples[t]);
+             **         }
+             **
+             **         if (clut ->Tab.T != NULL) {
+             **             for (t = 0; t < (int)nOutputs; t++)
+             **                 Out[t] = clut->Tab.T[index + t];
+             **         }
+             **
+             **         if (!Sampler(In, Out, Cargo))
+             **             return FALSE;
+             **
+             **         if (!(dwFlags & SAMPLER_INSPECT)) {
+             **
+             **             if (clut ->Tab.T != NULL) {
+             **                 for (t=0; t < (int) nOutputs; t++)
+             **                     clut->Tab.T[index + t] = Out[t];
+             **             }
+             **         }
+             **
+             **         index += nOutputs;
+             **     }
+             **
+             **     return TRUE;
+             ** }
+             **/
+
             var @in = new ushort[maxInputDimensions + 1];
             var @out = new ushort[maxStageChannels];
 
@@ -215,90 +251,55 @@ public partial class Stage
 
         #endregion Public Methods
 
-        /*  Original Code (cmslut.c line:868)
-         *
-         *  // This routine does a sweep on whole input space, and calls its callback
-         *  // function on knots. returns TRUE if all ok, FALSE otherwise.
-         *  cmsBool CMSEXPORT cmsSliceSpace16(cmsUInt32Number nInputs, const cmsUInt32Number clutPoints[],
-         *                                           cmsSAMPLER16 Sampler, void * Cargo)
-         *  {
-         *      int i, t, rest;
-         *      cmsUInt32Number nTotalPoints;
-         *      cmsUInt16Number In[cmsMAXCHANNELS];
-         *
-         *      if (nInputs >= cmsMAXCHANNELS) return FALSE;
-         *
-         *      nTotalPoints = CubeSize(clutPoints, nInputs);
-         *      if (nTotalPoints == 0) return FALSE;
-         *
-         *      for (i = 0; i < (int) nTotalPoints; i++) {
-         *
-         *          rest = i;
-         *          for (t = (int) nInputs-1; t >=0; --t) {
-         *
-         *              cmsUInt32Number  Colorant = rest % clutPoints[t];
-         *
-         *              rest /= clutPoints[t];
-         *              In[t] = _cmsQuantizeVal(Colorant, clutPoints[t]);
-         *
-         *          }
-         *
-         *          if (!Sampler(In, NULL, Cargo))
-         *              return FALSE;
-         *      }
-         *
-         *      return TRUE;
-         *  }
-         */
-        /*  Original Code (cmslut.c line: 481)
-         *
-         *  static
-         *  void* CLUTElemDup(cmsStage* mpe)
-         *  {
-         *      _cmsStageCLutData* Data = (_cmsStageCLutData*) mpe ->Data;
-         *      _cmsStageCLutData* NewElem;
-         *
-         *
-         *      NewElem = (_cmsStageCLutData*) _cmsMallocZero(mpe ->ContextID, sizeof(_cmsStageCLutData));
-         *      if (NewElem == NULL) return NULL;
-         *
-         *      NewElem ->nEntries       = Data ->nEntries;
-         *      NewElem ->HasFloatValues = Data ->HasFloatValues;
-         *
-         *      if (Data ->Tab.T) {
-         *
-         *          if (Data ->HasFloatValues) {
-         *              NewElem ->Tab.TFloat = (cmsFloat32Number*) _cmsDupMem(mpe ->ContextID, Data ->Tab.TFloat, Data ->nEntries * sizeof *(cmsFloat32Number));
-         *              if (NewElem ->Tab.TFloat == NULL)
-         *                  goto Error;
-         *          } else {
-         *              NewElem ->Tab.T = (cmsUInt16Number*) _cmsDupMem(mpe ->ContextID, Data ->Tab.T, Data ->nEntries * sizeof *(cmsUInt16Number));
-         *              if (NewElem ->Tab.T == NULL)
-         *                  goto Error;
-         *          }
-         *      }
-         *
-         *      NewElem ->Params   = _cmsComputeInterpParamsEx(mpe ->ContextID,
-         *                                                     Data ->Params ->nSamples,
-         *                                                     Data ->Params ->nInputs,
-         *                                                     Data ->Params ->nOutputs,
-         *                                                     NewElem ->Tab.T,
-         *                                                     Data ->Params ->dwFlags);
-         *      if (NewElem->Params != NULL)
-         *          return (void*) NewElem;
-         *   Error:
-         *      if (NewElem->Tab.T)
-         *          // This works for both types
-         *          _cmsFree(mpe ->ContextID, NewElem -> Tab.T);
-         *      _cmsFree(mpe ->ContextID, NewElem);
-         *      return NULL;
-         *  }
-         */
-
         #region Internal Methods
 
         internal override StageData? Duplicate(Stage parent)
         {
+            /** Original Code (cmslut.c line: 481)
+             **
+             ** static
+             ** void* CLUTElemDup(cmsStage* mpe)
+             ** {
+             **     _cmsStageCLutData* Data = (_cmsStageCLutData*) mpe ->Data;
+             **     _cmsStageCLutData* NewElem;
+             **
+             **
+             **     NewElem = (_cmsStageCLutData*) _cmsMallocZero(mpe ->ContextID, sizeof(_cmsStageCLutData));
+             **     if (NewElem == NULL) return NULL;
+             **
+             **     NewElem ->nEntries       = Data ->nEntries;
+             **     NewElem ->HasFloatValues = Data ->HasFloatValues;
+             **
+             **     if (Data ->Tab.T) {
+             **
+             **         if (Data ->HasFloatValues) {
+             **             NewElem ->Tab.TFloat = (cmsFloat32Number*) _cmsDupMem(mpe ->ContextID, Data ->Tab.TFloat, Data ->nEntries * sizeof *(cmsFloat32Number));
+             **             if (NewElem ->Tab.TFloat == NULL)
+             **                 goto Error;
+             **         } else {
+             **             NewElem ->Tab.T = (cmsUInt16Number*) _cmsDupMem(mpe ->ContextID, Data ->Tab.T, Data ->nEntries * sizeof *(cmsUInt16Number));
+             **             if (NewElem ->Tab.T == NULL)
+             **                 goto Error;
+             **         }
+             **     }
+             **
+             **     NewElem ->Params   = _cmsComputeInterpParamsEx(mpe ->ContextID,
+             **                                                    Data ->Params ->nSamples,
+             **                                                    Data ->Params ->nInputs,
+             **                                                    Data ->Params ->nOutputs,
+             **                                                    NewElem ->Tab.T,
+             **                                                    Data ->Params ->dwFlags);
+             **     if (NewElem->Params != NULL)
+             **         return (void*) NewElem;
+             **  Error:
+             **     if (NewElem->Tab.T)
+             **         // This works for both types
+             **         _cmsFree(mpe ->ContextID, NewElem -> Tab.T);
+             **     _cmsFree(mpe ->ContextID, NewElem);
+             **     return NULL;
+             ** }
+             **/
+
             var p =
                 InterpParams.Compute(
                     parent.StateContainer,
@@ -317,56 +318,35 @@ public partial class Stage
                     NumEntries);
         }
 
-        /*  Original Code (cmslut.c line: 443)
-         *
-         *  // Convert to 16 bits, evaluate, and back to floating point
-         *  static
-         *  void EvaluateCLUTfloatIn16(const cmsFloat32Number In[], cmsFloat32Number Out[], const cmsStage *mpe)
-         *  {
-         *      _cmsStageCLutData* Data = (_cmsStageCLutData*) mpe ->Data;
-         *      cmsUInt16Number In16[MAX_STAGE_CHANNELS], Out16[MAX_STAGE_CHANNELS];
-         *
-         *      _cmsAssert(mpe ->InputChannels  <= MAX_STAGE_CHANNELS);
-         *      _cmsAssert(mpe ->OutputChannels <= MAX_STAGE_CHANNELS);
-         *
-         *      FromFloatTo16(In, In16, mpe ->InputChannels);
-         *      Data -> Params ->Interpolation.Lerp16(In16, Out16, Data->Params);
-         *      From16ToFloat(Out16, Out,  mpe ->OutputChannels);
-         *  }
-         */
-
         internal override void Evaluate(ReadOnlySpan<float> @in, Span<float> @out, Stage parent)
         {
+            /** Original Code (cmslut.c line: 443)
+             **
+             ** // Convert to 16 bits, evaluate, and back to floating point
+             ** static
+             ** void EvaluateCLUTfloatIn16(const cmsFloat32Number In[], cmsFloat32Number Out[], const cmsStage *mpe)
+             ** {
+             **     _cmsStageCLutData* Data = (_cmsStageCLutData*) mpe ->Data;
+             **     cmsUInt16Number In16[MAX_STAGE_CHANNELS], Out16[MAX_STAGE_CHANNELS];
+             **
+             **     _cmsAssert(mpe ->InputChannels  <= MAX_STAGE_CHANNELS);
+             **     _cmsAssert(mpe ->OutputChannels <= MAX_STAGE_CHANNELS);
+             **
+             **     FromFloatTo16(In, In16, mpe ->InputChannels);
+             **     Data -> Params ->Interpolation.Lerp16(In16, Out16, Data->Params);
+             **     From16ToFloat(Out16, Out,  mpe ->OutputChannels);
+             ** }
+             **/
+
             var in16 = new ushort[maxStageChannels];
             var out16 = new ushort[maxStageChannels];
 
             FromFloatTo16(@in, in16, (int)parent.InputChannels);
-            Params.Lerp16(in16, out16);
+            Params.Lerp(in16, out16);
             From16ToFloat(out16, @out, (int)parent.OutputChannels);
         }
 
         #endregion Internal Methods
-
-        /*  Original Code (cmslut.c line: 524)
-         *
-         *  static
-         *  void CLutElemTypeFree(cmsStage* mpe)
-         *  {
-         *
-         *      _cmsStageCLutData* Data = (_cmsStageCLutData*) mpe ->Data;
-         *
-         *      // Already empty
-         *      if (Data == NULL) return;
-         *
-         *      // This works for both types
-         *      if (Data -> Tab.T)
-         *          _cmsFree(mpe ->ContextID, Data -> Tab.T);
-         *
-         *      _cmsFreeInterpParams(Data ->Params);
-         *      _cmsFree(mpe ->ContextID, mpe ->Data);
-         *  }
-         */
-        // Free is lifted up to base class as Dispose
     }
 
     #endregion Classes

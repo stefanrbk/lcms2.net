@@ -75,7 +75,7 @@ public class DictionaryHandler : TagTypeHandler
         // Check for valid lengths
         if (length is not 16 and not 24 and not 32)
         {
-            State.SignalError(StateContainer, ErrorCode.UnknownExtension, "Unknown record length in dictionary '{0}'", length);
+            Errors.UnknownDictionaryRecordLength(StateContainer, length);
             goto Error;
         }
 
@@ -106,8 +106,7 @@ public class DictionaryHandler : TagTypeHandler
 
             if (String.IsNullOrEmpty(nameStr) || String.IsNullOrEmpty(valueStr))
             {
-                State.SignalError(StateContainer, ErrorCode.CorruptionDetected, "Bad dictionary Name/Value");
-                rc = false;
+                rc = Errors.BadDictionaryNameValue(StateContainer);
             }
             else
             {

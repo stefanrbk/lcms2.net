@@ -30,7 +30,18 @@ public sealed partial class Stage : ICloneable, IDisposable
 {
     #region Fields
 
-    public Stage? Next;
+    public Stage? Next
+    {
+        /** Original Code (cmslut.c line: 1234)
+         **
+         ** cmsStage*  CMSEXPORT cmsStageNext(const cmsStage* mpe)
+         ** {
+         **     return mpe -> Next;
+         ** }
+         **/
+
+        get; internal set;
+    }
     internal Signature implements;
     private bool _disposedValue;
     private uint _inputChan;
@@ -38,80 +49,86 @@ public sealed partial class Stage : ICloneable, IDisposable
 
     #endregion Fields
 
-    /*  Original Code (cmslut.c line: 1229)
-     *
-     *  cmsContext CMSEXPORT cmsGetStageContextID(const cmsStage* mpe)
-     *  {
-     *      return mpe -> ContextID;
-     *  }
-     */
-
     #region Properties
 
-    public StageData Data { get; internal set; }
+    public StageData Data
+    {
+        /** Original Code (cmslut.c line: 1224)
+         **
+         ** void* CMSEXPORT cmsStageData(const cmsStage* mpe)
+         ** {
+         **     return mpe -> Data;
+         ** }
+         **/
+
+        get; internal set;
+    }
 
     public uint InputChannels
     {
+        /** Original Code (cmslut.c line: 1209)
+         **
+         ** cmsUInt32Number  CMSEXPORT cmsStageInputChannels(const cmsStage* mpe)
+         ** {
+         **     return mpe ->InputChannels;
+         ** }
+         **/
+
         get => _inputChan;
         internal set => _inputChan = value <= maxStageChannels ? value : _inputChan;
     }
 
     public uint OutputChannels
     {
+        /** Original Code (cmslut.c line: 1214)
+         **
+         ** cmsUInt32Number  CMSEXPORT cmsStageOutputChannels(const cmsStage* mpe)
+         ** {
+         **     return mpe ->OutputChannels;
+         ** }
+         **/
+
         get => _outputChan;
         internal set => _outputChan = value <= maxStageChannels ? value : _outputChan;
     }
 
-    public object? StateContainer { get; internal set; }
+    public object? StateContainer
+    {
+        /** Original Code (cmslut.c line: 1229)
+         **
+         ** cmsContext CMSEXPORT cmsGetStageContextID(const cmsStage* mpe)
+         ** {
+         **     return mpe -> ContextID;
+         ** }
+         **/
 
-    /*  Original Code (cmslut.c line: 1224)
-     *
-     *  void* CMSEXPORT cmsStageData(const cmsStage* mpe)
-     *  {
-     *      return mpe -> Data;
-     *  }
-     */
-    /*  Original Code (cmslut.c line: 1209)
-     *
-     *  cmsUInt32Number  CMSEXPORT cmsStageInputChannels(const cmsStage* mpe)
-     *  {
-     *      return mpe ->InputChannels;
-     *  }
-     */
-    /*  Original Code (cmslut.c line: 1234)
-     *
-     *  cmsStage*  CMSEXPORT cmsStageNext(const cmsStage* mpe)
-     *  {
-     *      return mpe -> Next;
-     *  }
-     */
-    /*  Original Code (cmslut.c line: 1214)
-     *
-     *  cmsUInt32Number  CMSEXPORT cmsStageOutputChannels(const cmsStage* mpe)
-     *  {
-     *      return mpe ->OutputChannels;
-     *  }
-     */
-    /*  Original Code (cmslut.c line: 1219)
-     *
-     *  cmsStageSignature CMSEXPORT cmsStageType(const cmsStage* mpe)
-     *  {
-     *      return mpe -> Type;
-     *  }
-     */
-    public Signature Type { get; internal set; }
+        get; internal set;
+    }
 
-    /*  Original Code (cmslut.c line: 159)
-     *
-     *  cmsToneCurve** _cmsStageGetPtrToCurveSet(const cmsStage* mpe)
-     *  {
-     *      _cmsStageToneCurvesData* Data = (_cmsStageToneCurvesData*) mpe ->Data;
-     *
-     *      return Data ->TheCurves;
-     *  }
-     */
+    public Signature Type
+    {
+        /** Original Code (cmslut.c line: 1219)
+         **
+         ** cmsStageSignature CMSEXPORT cmsStageType(const cmsStage* mpe)
+         ** {
+         **     return mpe -> Type;
+         ** }
+         **/
+
+        get; internal set;
+    }
 
     internal ToneCurve[] CurveSet =>
+        /** Original Code (cmslut.c line: 159)
+         **
+         ** cmsToneCurve** _cmsStageGetPtrToCurveSet(const cmsStage* mpe)
+         ** {
+         **     _cmsStageToneCurvesData* Data = (_cmsStageToneCurvesData*) mpe ->Data;
+         **
+         **     return Data ->TheCurves;
+         ** }
+         **/
+
         (Data as ToneCurveData)?.TheCurves ?? throw new InvalidOperationException();
 
     #endregion Properties
@@ -120,12 +137,53 @@ public sealed partial class Stage : ICloneable, IDisposable
 
     public object Clone()
     {
+        /** Original Code (cmslut.c line: 1240)
+         **
+         ** // Duplicates an MPE
+         ** cmsStage* CMSEXPORT cmsStageDup(cmsStage* mpe)
+         ** {
+         **     cmsStage* NewMPE;
+         **
+         **     if (mpe == NULL) return NULL;
+         **     NewMPE = _cmsStageAllocPlaceholder(mpe ->ContextID,
+         **                                      mpe ->Type,
+         **                                      mpe ->InputChannels,
+         **                                      mpe ->OutputChannels,
+         **                                      mpe ->EvalPtr,
+         **                                      mpe ->DupElemPtr,
+         **                                      mpe ->FreePtr,
+         **                                      NULL);
+         **     if (NewMPE == NULL) return NULL;
+         **
+         **     NewMPE ->Implements = mpe ->Implements;
+         **
+         **     if (mpe ->DupElemPtr) {
+         **
+         **         NewMPE ->Data = mpe ->DupElemPtr(mpe);
+         **
+         **         if (NewMPE->Data == NULL) {
+         **
+         **             cmsStageFree(NewMPE);
+         **             return NULL;
+         **         }
+         **
+         **     } else {
+         **
+         **         NewMPE ->Data       = NULL;
+         **     }
+         **
+         **     return NewMPE;
+         ** }
+         **/
+
         var result = Alloc(
             StateContainer,
             Type,
             InputChannels,
             OutputChannels,
-            Data.Duplicate(this))!;
+            Data.Duplicate(this));
+        if (result is null) return null!;
+
         result.implements = implements;
 
         return result;
@@ -133,6 +191,18 @@ public sealed partial class Stage : ICloneable, IDisposable
 
     public void Dispose()
     {
+        /** Original Code (cmslut.c line: 1199)
+         **
+         ** // Free a single MPE
+         ** void CMSEXPORT cmsStageFree(cmsStage* mpe)
+         ** {
+         **     if (mpe ->FreePtr)
+         **         mpe ->FreePtr(mpe);
+         **
+         **     _cmsFree(mpe ->ContextID, mpe);
+         ** }
+         **/
+
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
@@ -147,8 +217,7 @@ public sealed partial class Stage : ICloneable, IDisposable
         if (!_disposedValue)
         {
             if (disposing)
-            {
-            }
+                Data?.Dispose();
 
             Data = null!;
 

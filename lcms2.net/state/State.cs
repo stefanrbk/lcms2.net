@@ -103,7 +103,7 @@ public static class State
 
     public static void SetAlarmCodes(object? state, ushort[] codes)
     {
-        if (codes.Length is not 16) SignalError(state, ErrorCode.Range, "Invalid alarm code array length");
+        if (codes.Length is not 16) Errors.InvalidAlarmCode(state);
 
         var alarmCodes = (AlarmCodes)Context.GetClientChunk(state, Chunks.AlarmCodesContext)!;
         alarmCodes.alarmCodes = codes;
@@ -172,6 +172,36 @@ public static class State
 
         private static readonly Context _globalContext = new()
         {
+            /**  Original Code (cmsplugin.c line: 642)
+             **  
+             **  // The Global storage for system context. This is the one and only global variable
+             **  // pointers structure. All global vars are referenced here.
+             **  static struct _cmsContext_struct globalContext = {
+             **
+             **      NULL,                              // Not in the linked list
+             **      NULL,                              // No suballocator
+             **      {
+             **          NULL,                          //  UserPtr,            
+             **          &_cmsLogErrorChunk,            //  Logger,
+             **          &_cmsAlarmCodesChunk,          //  AlarmCodes,
+             **          &_cmsAdaptationStateChunk,     //  AdaptationState, 
+             **          &_cmsMemPluginChunk,           //  MemPlugin,
+             **          &_cmsInterpPluginChunk,        //  InterpPlugin,
+             **          &_cmsCurvesPluginChunk,        //  CurvesPlugin,
+             **          &_cmsFormattersPluginChunk,    //  FormattersPlugin,
+             **          &_cmsTagTypePluginChunk,       //  TagTypePlugin,
+             **          &_cmsTagPluginChunk,           //  TagPlugin,
+             **          &_cmsIntentsPluginChunk,       //  IntentPlugin,
+             **          &_cmsMPETypePluginChunk,       //  MPEPlugin,
+             **          &_cmsOptimizationPluginChunk,  //  OptimizationPlugin,
+             **          &_cmsTransformPluginChunk,     //  TransformPlugin,
+             **          &_cmsMutexPluginChunk          //  MutexPlugin
+             **      },
+             **
+             **      { NULL, NULL, NULL, NULL, NULL, NULL } // The default memory allocator is not used for context 0
+             **  };
+             **/
+
             _chunks = new object?[(int)Chunks.Max]
         {
             null,
@@ -312,12 +342,7 @@ public static class State
 
         internal static object? GetClientChunk(object? state, Chunks chunk)
         {
-            if (chunk is < 0 or >= Chunks.Max)
-            {
-                SignalError(state, ErrorCode.Internal, "Bad context chunk -- possible corruption");
-
-                return _globalContext._chunks[(int)Chunks.UserPtr];
-            }
+            // Bounds checking not needed as State handles all calls to this function
 
             var ctx = Get(state);
             var ptr = ctx._chunks[(int)chunk];
@@ -334,12 +359,12 @@ public static class State
         #region Private Methods
 
         private static void AllocAdaptationState(Context state, Context? src = null) =>
-                    state._chunks[(int)Chunks.AdaptationStateContext] =
-                        (AdaptationState?)src?._chunks[(int)Chunks.AdaptationStateContext] ?? AdaptationState.Default;
+            state._chunks[(int)Chunks.AdaptationStateContext] =
+                (AdaptationState?)src?._chunks[(int)Chunks.AdaptationStateContext] ?? AdaptationState.Default;
 
         private static void AllocAlarmCodes(Context state, Context? src = null) =>
-                    state._chunks[(int)Chunks.AlarmCodesContext] =
-                        (AlarmCodes?)src?._chunks[(int)Chunks.AlarmCodesContext] ?? AlarmCodes.Default;
+            state._chunks[(int)Chunks.AlarmCodesContext] =
+                (AlarmCodes?)src?._chunks[(int)Chunks.AlarmCodesContext] ?? AlarmCodes.Default;
 
         private static void AllocFormattersPluginChunk(Context state, Context? src = null)
         {
@@ -350,12 +375,35 @@ public static class State
         }
 
         private static void AllocInterpolationPluginChunk(Context state, Context? src = null) =>
-                    state._chunks[(int)Chunks.InterpPlugin] =
-                        (InterpolationPluginChunk?)src?._chunks[(int)Chunks.InterpPlugin] ?? InterpolationPluginChunk.Default;
+            /**  Original Code (cmsintrp.c line: 45)
+             **  
+             **  // The interpolation plug-in memory chunk allocator/dup
+             **  void _cmsAllocInterpPluginChunk(struct _cmsContext_struct* ctx, const struct _cmsContext_struct* src)
+             **  {
+             **      void* from;
+             **
+             **      _cmsAssert(ctx != NULL);
+             **
+             **      if (src != NULL) {
+             **          from = src ->chunks[InterpPlugin];       
+             **      }
+             **      else { 
+             **          static _cmsInterpPluginChunkType InterpPluginChunk = { NULL };
+             **
+             **          from = &InterpPluginChunk;
+             **      }
+             **
+             **      _cmsAssert(from != NULL);
+             **      ctx ->chunks[InterpPlugin] = _cmsSubAllocDup(ctx ->MemPool, from, sizeof(_cmsInterpPluginChunkType));
+             **  }
+             **/
+
+            state._chunks[(int)Chunks.InterpPlugin] =
+                (InterpolationPluginChunk?)src?._chunks[(int)Chunks.InterpPlugin] ?? InterpolationPluginChunk.Default;
 
         private static void AllocLogErrorHandler(Context state, Context? src = null) =>
-                    state._chunks[(int)Chunks.Logger] =
-                        (LogErrorHandler?)src?._chunks[(int)Chunks.Logger] ?? LogErrorHandler.Default;
+            state._chunks[(int)Chunks.Logger] =
+                (LogErrorHandler?)src?._chunks[(int)Chunks.Logger] ?? LogErrorHandler.Default;
 
         private static void AllocMPEPluginChunk(Context state, Context? src = null)
         {
@@ -366,8 +414,8 @@ public static class State
         }
 
         private static void AllocMutexPluginChunk(Context state, Context? src = null) =>
-                    state._chunks[(int)Chunks.MutexPlugin] =
-                        (MutexPluginChunk?)src?._chunks[(int)Chunks.MutexPlugin] ?? MutexPluginChunk.Default;
+            state._chunks[(int)Chunks.MutexPlugin] =
+                (MutexPluginChunk?)src?._chunks[(int)Chunks.MutexPlugin] ?? MutexPluginChunk.Default;
 
         private static void AllocOptimizationPluginChunk(Context state, Context? src = null)
         {

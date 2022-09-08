@@ -56,70 +56,62 @@ public abstract class Plugin
     public static bool Register(Plugin? plugin = null) =>
            Register(null, plugin);
 
-    public static bool Register(object? state = null, Plugin? plug_in = null)
+    public static bool Register(object? state = null, Plugin? plugin = null)
     {
-        for (var plugin = plug_in; plugin is not null; plugin = plugin.Next)
+        for (var p = plugin; p is not null; p = p.Next)
         {
-            if (plugin.Magic != Signature.Plugin.MagicNumber)
-            {
-                State.SignalError(state, ErrorCode.UnknownExtension, "Unrecognized plugin");
-                return false;
-            }
+            if (p.Magic != Signature.Plugin.MagicNumber)
+                return Errors.UnrecognizedPlugin(state);
 
-            if (plugin.ExpectedVersion > Lcms2.Version)
-            {
-                State.SignalError(state, ErrorCode.UnknownExtension,
-                    "plugin needs Little CMS {0}, current version is {1}", plugin.ExpectedVersion, Lcms2.Version);
-                return false;
-            }
+            if (p.ExpectedVersion > Lcms2.Version)
+                return Errors.InvalidLcmsVersion(state, p.ExpectedVersion, Lcms2.Version);
 
-            if (plugin.Type == Signature.Plugin.Interpolation)
+            if (p.Type == Signature.Plugin.Interpolation)
             {
-                return InterpolationPlugin.RegisterPlugin(state, plugin as InterpolationPlugin);
+                return InterpolationPlugin.RegisterPlugin(state, p as InterpolationPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.TagType)
+            else if (p.Type == Signature.Plugin.TagType)
             {
-                return TagTypePlugin.RegisterPlugin(state, plugin as TagTypePlugin);
+                return TagTypePlugin.RegisterPlugin(state, p as TagTypePlugin);
             }
-            else if (plugin.Type == Signature.Plugin.Tag)
+            else if (p.Type == Signature.Plugin.Tag)
             {
-                return TagPlugin.RegisterPlugin(state, plugin as TagPlugin);
+                return TagPlugin.RegisterPlugin(state, p as TagPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.Formatters)
+            else if (p.Type == Signature.Plugin.Formatters)
             {
-                return FormattersPlugin.RegisterPlugin(state, plugin as FormattersPlugin);
+                return FormattersPlugin.RegisterPlugin(state, p as FormattersPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.RenderingIntent)
+            else if (p.Type == Signature.Plugin.RenderingIntent)
             {
-                return RenderingIntentPlugin.RegisterPlugin(state, plugin as RenderingIntentPlugin);
+                return RenderingIntentPlugin.RegisterPlugin(state, p as RenderingIntentPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.ParametricCurve)
+            else if (p.Type == Signature.Plugin.ParametricCurve)
             {
-                return ParametricCurvesPlugin.RegisterPlugin(state, plugin as ParametricCurvesPlugin);
+                return ParametricCurvesPlugin.RegisterPlugin(state, p as ParametricCurvesPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.MultiProcessElement)
+            else if (p.Type == Signature.Plugin.MultiProcessElement)
             {
-                return MultiProcessElementPlugin.RegisterPlugin(state, plugin as MultiProcessElementPlugin);
+                return MultiProcessElementPlugin.RegisterPlugin(state, p as MultiProcessElementPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.Optimization)
+            else if (p.Type == Signature.Plugin.Optimization)
             {
-                return OptimizationPlugin.RegisterPlugin(state, plugin as OptimizationPlugin);
+                return OptimizationPlugin.RegisterPlugin(state, p as OptimizationPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.Translform)
+            else if (p.Type == Signature.Plugin.Translform)
             {
-                return TransformPlugin.RegisterPlugin(state, plugin as TransformPlugin);
+                return TransformPlugin.RegisterPlugin(state, p as TransformPlugin);
             }
-            else if (plugin.Type == Signature.Plugin.Mutex)
+            else if (p.Type == Signature.Plugin.Mutex)
             {
-                return MutexPlugin.RegisterPlugin(state, plugin as MutexPlugin);
+                return MutexPlugin.RegisterPlugin(state, p as MutexPlugin);
             }
             else
             {
-                State.SignalError(state, ErrorCode.UnknownExtension, "Unrecognized plugin type {0:X8}", plugin.Type);
-                return false;
+                return Errors.UnrecognizedPluginType(state, p.Type);
             }
         }
-        // plug_in was null somehow? I would expect this to be false, but it is true in the original...
+        // This is true to allow Context initialization without plugins.
         return true;
     }
 
