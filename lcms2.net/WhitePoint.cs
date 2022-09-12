@@ -1,23 +1,36 @@
-﻿using lcms2.types;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.types;
 
 namespace lcms2;
+
 public static class WhitePoint
 {
     #region Fields
-
-    public static readonly XYZ D50XYZ =
-        /** Original Code (cmswtpnt.c line:30)
-         **
-         ** // D50 - Widely used
-         ** const cmsCIEXYZ* CMSEXPORT cmsD50_XYZ(void)
-         ** {
-         **     static cmsCIEXYZ D50XYZ = {cmsD50X, cmsD50Y, cmsD50Z};
-         **
-         **     return &D50XYZ;
-         ** }
-         **/
-
-        (0.9642, 1.0, 0.8249);
 
     public static readonly xyY D50xyY =
         /** Original Code (cmswtpnt.c line:38)
@@ -34,7 +47,106 @@ public static class WhitePoint
 
         (xyY)D50XYZ;
 
+    public static readonly XYZ D50XYZ =
+            /** Original Code (cmswtpnt.c line:30)
+             **
+             ** // D50 - Widely used
+             ** const cmsCIEXYZ* CMSEXPORT cmsD50_XYZ(void)
+             ** {
+             **     static cmsCIEXYZ D50XYZ = {cmsD50X, cmsD50Y, cmsD50Z};
+             **
+             **     return &D50XYZ;
+             ** }
+             **/
+
+            (0.9642, 1.0, 0.8249);
+
+    private static readonly (double mirek, double ut, double vt, double tt)[] IsoTempData = new[]
+    {
+     // (Mirek, Ut,       Vt,       Tt      )
+        (0.0,   0.18006,  0.26352,  -0.24341),
+        (10,    0.18066,  0.26589,  -0.25479),
+        (20,    0.18133,  0.26846,  -0.26876),
+        (30,    0.18208,  0.27119,  -0.28539),
+        (40,    0.18293,  0.27407,  -0.30470),
+        (50,    0.18388,  0.27709,  -0.32675),
+        (60,    0.18494,  0.28021,  -0.35156),
+        (70,    0.18611,  0.28342,  -0.37915),
+        (80,    0.18740,  0.28668,  -0.40955),
+        (90,    0.18880,  0.28997,  -0.44278),
+        (100,   0.19032,  0.29326,  -0.47888),
+        (125,   0.19462,  0.30141,  -0.58204),
+        (150,   0.19962,  0.30921,  -0.70471),
+        (175,   0.20525,  0.31647,  -0.84901),
+        (200,   0.21142,  0.32312,  -1.0182 ),
+        (225,   0.21807,  0.32909,  -1.2168 ),
+        (250,   0.22511,  0.33439,  -1.4512 ),
+        (275,   0.23247,  0.33904,  -1.7298 ),
+        (300,   0.24010,  0.34308,  -2.0637 ),
+        (325,   0.24702,  0.34655,  -2.4681 ),
+        (350,   0.25591,  0.34951,  -2.9641 ),
+        (375,   0.26400,  0.35200,  -3.5814 ),
+        (400,   0.27218,  0.35407,  -4.3633 ),
+        (425,   0.28039,  0.35577,  -5.3762 ),
+        (450,   0.28863,  0.35714,  -6.7262 ),
+        (475,   0.29685,  0.35823,  -8.5955 ),
+        (500,   0.30505,  0.35907,  -11.324 ),
+        (525,   0.31320,  0.35968,  -15.628 ),
+        (550,   0.32129,  0.36011,  -23.325 ),
+        (575,   0.32931,  0.36038,  -40.770 ),
+        (600,   0.33724,  0.36051,  -116.45  )
+    };
+
     #endregion Fields
+
+    #region Properties
+
+    private static int NISO =>
+        IsoTempData.Length;
+
+    #endregion Properties
+
+    #region Public Methods
+
+    public static XYZ AdaptToIlluminant(XYZ sourceWhitePt, XYZ illuminant, XYZ value)
+    {
+        /** Original Code (cmswtpnt.c line: 323)
+         **
+         ** // Adapts a color to a given illuminant. Original color is expected to have
+         ** // a SourceWhitePt white point.
+         ** cmsBool CMSEXPORT cmsAdaptToIlluminant(cmsCIEXYZ* Result,
+         **                                        const cmsCIEXYZ* SourceWhitePt,
+         **                                        const cmsCIEXYZ* Illuminant,
+         **                                        const cmsCIEXYZ* Value)
+         ** {
+         **     cmsMAT3 Bradford;
+         **     cmsVEC3 In, Out;
+         **
+         **     _cmsAssert(Result != NULL);
+         **     _cmsAssert(SourceWhitePt != NULL);
+         **     _cmsAssert(Illuminant != NULL);
+         **     _cmsAssert(Value != NULL);
+         **
+         **     if (!_cmsAdaptationMatrix(&Bradford, NULL, SourceWhitePt, Illuminant)) return FALSE;
+         **
+         **     _cmsVEC3init(&In, Value -> X, Value -> Y, Value -> Z);
+         **     _cmsMAT3eval(&Out, &Bradford, &In);
+         **
+         **     Result -> X = Out.n[0];
+         **     Result -> Y = Out.n[1];
+         **     Result -> Z = Out.n[2];
+         **
+         **     return TRUE;
+         ** }
+         **/
+
+        if (sourceWhitePt.IsNaN || illuminant.IsNaN || value.IsNaN) return XYZ.NaN;
+
+        var bradford = AdaptationMatrix(null, sourceWhitePt, illuminant);
+        if (bradford.IsNaN) return XYZ.NaN;
+
+        return (XYZ)bradford.Eval((Vec3)value);
+    }
 
     public static xyY FromTemp(double tempK)
     {
@@ -204,6 +316,10 @@ public static class WhitePoint
         return Double.NaN;
     }
 
+    #endregion Public Methods
+
+    #region Internal Methods
+
     internal static Mat3 AdaptationMatrix(Mat3? coneMatrix, XYZ fromIll, XYZ toIll)
     {
         /** Original Code (cmswtpnt.c line: 231)
@@ -267,114 +383,6 @@ public static class WhitePoint
         r = bradford * r;
 
         return true;
-    }
-
-    private static readonly (double mirek, double ut, double vt, double tt)[] IsoTempData = new[]
-    {
-     // (Mirek, Ut,       Vt,       Tt      )
-        (0.0,   0.18006,  0.26352,  -0.24341),
-        (10,    0.18066,  0.26589,  -0.25479),
-        (20,    0.18133,  0.26846,  -0.26876),
-        (30,    0.18208,  0.27119,  -0.28539),
-        (40,    0.18293,  0.27407,  -0.30470),
-        (50,    0.18388,  0.27709,  -0.32675),
-        (60,    0.18494,  0.28021,  -0.35156),
-        (70,    0.18611,  0.28342,  -0.37915),
-        (80,    0.18740,  0.28668,  -0.40955),
-        (90,    0.18880,  0.28997,  -0.44278),
-        (100,   0.19032,  0.29326,  -0.47888),
-        (125,   0.19462,  0.30141,  -0.58204),
-        (150,   0.19962,  0.30921,  -0.70471),
-        (175,   0.20525,  0.31647,  -0.84901),
-        (200,   0.21142,  0.32312,  -1.0182 ),
-        (225,   0.21807,  0.32909,  -1.2168 ),
-        (250,   0.22511,  0.33439,  -1.4512 ),
-        (275,   0.23247,  0.33904,  -1.7298 ),
-        (300,   0.24010,  0.34308,  -2.0637 ),
-        (325,   0.24702,  0.34655,  -2.4681 ),
-        (350,   0.25591,  0.34951,  -2.9641 ),
-        (375,   0.26400,  0.35200,  -3.5814 ),
-        (400,   0.27218,  0.35407,  -4.3633 ),
-        (425,   0.28039,  0.35577,  -5.3762 ),
-        (450,   0.28863,  0.35714,  -6.7262 ),
-        (475,   0.29685,  0.35823,  -8.5955 ),
-        (500,   0.30505,  0.35907,  -11.324 ),
-        (525,   0.31320,  0.35968,  -15.628 ),
-        (550,   0.32129,  0.36011,  -23.325 ),
-        (575,   0.32931,  0.36038,  -40.770 ),
-        (600,   0.33724,  0.36051,  -116.45  )
-    };
-
-    private static int NISO =>
-        IsoTempData.Length;
-
-    private static Mat3 ComputeChromaticAdaptation(XYZ srcWp, XYZ dstWp, Mat3 chad)
-    {
-        /** Original Code (cmswtpnt.c line: 188)
-         **
-         ** // Compute chromatic adaptation matrix using Chad as cone matrix
-         **
-         ** static
-         ** cmsBool ComputeChromaticAdaptation(cmsMAT3* Conversion,
-         **                                 const cmsCIEXYZ* SourceWhitePoint,
-         **                                 const cmsCIEXYZ* DestWhitePoint,
-         **                                 const cmsMAT3* Chad)
-         **
-         ** {
-         **
-         **     cmsMAT3 Chad_Inv;
-         **     cmsVEC3 ConeSourceXYZ, ConeSourceRGB;
-         **     cmsVEC3 ConeDestXYZ, ConeDestRGB;
-         **     cmsMAT3 Cone, Tmp;
-         **
-         **
-         **     Tmp = *Chad;
-         **     if (!_cmsMAT3inverse(&Tmp, &Chad_Inv)) return FALSE;
-         **
-         **     _cmsVEC3init(&ConeSourceXYZ, SourceWhitePoint -> X,
-         **                              SourceWhitePoint -> Y,
-         **                              SourceWhitePoint -> Z);
-         **
-         **     _cmsVEC3init(&ConeDestXYZ,   DestWhitePoint -> X,
-         **                              DestWhitePoint -> Y,
-         **                              DestWhitePoint -> Z);
-         **
-         **     _cmsMAT3eval(&ConeSourceRGB, Chad, &ConeSourceXYZ);
-         **     _cmsMAT3eval(&ConeDestRGB,   Chad, &ConeDestXYZ);
-         **
-         **     // Build matrix
-         **     _cmsVEC3init(&Cone.v[0], ConeDestRGB.n[0]/ConeSourceRGB.n[0],    0.0,  0.0);
-         **     _cmsVEC3init(&Cone.v[1], 0.0,   ConeDestRGB.n[1]/ConeSourceRGB.n[1],   0.0);
-         **     _cmsVEC3init(&Cone.v[2], 0.0,   0.0,   ConeDestRGB.n[2]/ConeSourceRGB.n[2]);
-         **
-         **
-         **     // Normalize
-         **     _cmsMAT3per(&Tmp, &Cone, Chad);
-         **     _cmsMAT3per(Conversion, &Chad_Inv, &Tmp);
-         **
-         **     return TRUE;
-         ** }
-         **/
-
-        var chad_inv = chad.Inverse();
-        if (chad_inv.IsNaN) return Mat3.NaN;
-
-        var coneSrcXyz = (Vec3)srcWp;
-        var coneDstXyz = (Vec3)dstWp;
-
-        var coneSrcRgb = chad.Eval(coneSrcXyz);
-        var coneDstRgb = chad.Eval(coneDstXyz);
-
-        // Build matrix
-        var cone = new Mat3(
-            new Vec3(coneDstRgb[0] / coneSrcRgb[0], 0, 0),
-            new Vec3(0, coneDstRgb[1] / coneSrcRgb[1], 0),
-            new Vec3(0, 0, coneDstRgb[2] / coneSrcRgb[2])
-        );
-
-        // Normalize
-        var tmp = cone * chad;
-        return chad_inv * tmp;
     }
 
     internal static Mat3 BuildRgb2XyzTransferMatrix(xyY whitePt, xyYTripple primrs)
@@ -475,43 +483,78 @@ public static class WhitePoint
         return r;
     }
 
-    public static XYZ AdaptToIlluminant(XYZ sourceWhitePt, XYZ illuminant, XYZ value)
+    #endregion Internal Methods
+
+    #region Private Methods
+
+    private static Mat3 ComputeChromaticAdaptation(XYZ srcWp, XYZ dstWp, Mat3 chad)
     {
-        /** Original Code (cmswtpnt.c line: 323)
+        /** Original Code (cmswtpnt.c line: 188)
          **
-         ** // Adapts a color to a given illuminant. Original color is expected to have
-         ** // a SourceWhitePt white point.
-         ** cmsBool CMSEXPORT cmsAdaptToIlluminant(cmsCIEXYZ* Result,
-         **                                        const cmsCIEXYZ* SourceWhitePt,
-         **                                        const cmsCIEXYZ* Illuminant,
-         **                                        const cmsCIEXYZ* Value)
+         ** // Compute chromatic adaptation matrix using Chad as cone matrix
+         **
+         ** static
+         ** cmsBool ComputeChromaticAdaptation(cmsMAT3* Conversion,
+         **                                 const cmsCIEXYZ* SourceWhitePoint,
+         **                                 const cmsCIEXYZ* DestWhitePoint,
+         **                                 const cmsMAT3* Chad)
+         **
          ** {
-         **     cmsMAT3 Bradford;
-         **     cmsVEC3 In, Out;
          **
-         **     _cmsAssert(Result != NULL);
-         **     _cmsAssert(SourceWhitePt != NULL);
-         **     _cmsAssert(Illuminant != NULL);
-         **     _cmsAssert(Value != NULL);
+         **     cmsMAT3 Chad_Inv;
+         **     cmsVEC3 ConeSourceXYZ, ConeSourceRGB;
+         **     cmsVEC3 ConeDestXYZ, ConeDestRGB;
+         **     cmsMAT3 Cone, Tmp;
          **
-         **     if (!_cmsAdaptationMatrix(&Bradford, NULL, SourceWhitePt, Illuminant)) return FALSE;
          **
-         **     _cmsVEC3init(&In, Value -> X, Value -> Y, Value -> Z);
-         **     _cmsMAT3eval(&Out, &Bradford, &In);
+         **     Tmp = *Chad;
+         **     if (!_cmsMAT3inverse(&Tmp, &Chad_Inv)) return FALSE;
          **
-         **     Result -> X = Out.n[0];
-         **     Result -> Y = Out.n[1];
-         **     Result -> Z = Out.n[2];
+         **     _cmsVEC3init(&ConeSourceXYZ, SourceWhitePoint -> X,
+         **                              SourceWhitePoint -> Y,
+         **                              SourceWhitePoint -> Z);
+         **
+         **     _cmsVEC3init(&ConeDestXYZ,   DestWhitePoint -> X,
+         **                              DestWhitePoint -> Y,
+         **                              DestWhitePoint -> Z);
+         **
+         **     _cmsMAT3eval(&ConeSourceRGB, Chad, &ConeSourceXYZ);
+         **     _cmsMAT3eval(&ConeDestRGB,   Chad, &ConeDestXYZ);
+         **
+         **     // Build matrix
+         **     _cmsVEC3init(&Cone.v[0], ConeDestRGB.n[0]/ConeSourceRGB.n[0],    0.0,  0.0);
+         **     _cmsVEC3init(&Cone.v[1], 0.0,   ConeDestRGB.n[1]/ConeSourceRGB.n[1],   0.0);
+         **     _cmsVEC3init(&Cone.v[2], 0.0,   0.0,   ConeDestRGB.n[2]/ConeSourceRGB.n[2]);
+         **
+         **
+         **     // Normalize
+         **     _cmsMAT3per(&Tmp, &Cone, Chad);
+         **     _cmsMAT3per(Conversion, &Chad_Inv, &Tmp);
          **
          **     return TRUE;
          ** }
          **/
 
-        if (sourceWhitePt.IsNaN || illuminant.IsNaN || value.IsNaN) return XYZ.NaN;
+        var chad_inv = chad.Inverse();
+        if (chad_inv.IsNaN) return Mat3.NaN;
 
-        var bradford = AdaptationMatrix(null, sourceWhitePt, illuminant);
-        if (bradford.IsNaN) return XYZ.NaN;
+        var coneSrcXyz = (Vec3)srcWp;
+        var coneDstXyz = (Vec3)dstWp;
 
-        return (XYZ)bradford.Eval((Vec3)value);
+        var coneSrcRgb = chad.Eval(coneSrcXyz);
+        var coneDstRgb = chad.Eval(coneDstXyz);
+
+        // Build matrix
+        var cone = new Mat3(
+            new Vec3(coneDstRgb[0] / coneSrcRgb[0], 0, 0),
+            new Vec3(0, coneDstRgb[1] / coneSrcRgb[1], 0),
+            new Vec3(0, 0, coneDstRgb[2] / coneSrcRgb[2])
+        );
+
+        // Normalize
+        var tmp = cone * chad;
+        return chad_inv * tmp;
     }
+
+    #endregion Private Methods
 }
