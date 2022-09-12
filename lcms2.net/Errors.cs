@@ -365,6 +365,15 @@ internal static class Errors
                     nameof(unsupported_parametric_curve))
                     ?? unsupported_parametric_curve));
 
+    internal static bool InvalidWhitePointFromTemp(object? state) =>
+        ReturnFalse(() =>
+            State.SignalError(
+                state,
+                ErrorCode.Range,
+                resources.GetString(
+                    nameof(invalid_whitepoint_from_temp))
+                    ?? invalid_whitepoint_from_temp));
+
     internal static bool UnsupportedVcgtBitDepth(object? state, int bitDepth) =>
                         ReturnFalse(() =>
             State.SignalError(

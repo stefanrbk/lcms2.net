@@ -135,6 +135,9 @@
   <data name="invalid_parametric_curve_type" xml:space="preserve">
     <value>Invalid parametric curve type {0}</value>
   </data>
+  <data name="invalid_whitepoint_from_temp" xml:space="preserve">
+    <value>WhitePoint.FromTemp: Invalid temp</value>
+  </data>
   <data name="lut8_invalid_entry_count" xml:space="preserve">
     <value>LUT8 needs 256 entries on prelinearization</value>
   </data>
