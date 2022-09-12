@@ -545,6 +545,45 @@ public static class State
 
         private static void DupPluginCurvesList(ref Context state, in Context src)
         {
+            /** Original Code (cmsgamma.c line: 69)
+             **
+             ** // Duplicates the zone of memory used by the plug-in in the new context
+             ** static
+             ** void DupPluginCurvesList(struct _cmsContext_struct* ctx, 
+             **                                                const struct _cmsContext_struct* src)
+             ** {
+             **    _cmsCurvesPluginChunkType newHead = { NULL };
+             **    _cmsParametricCurvesCollection*  entry;
+             **    _cmsParametricCurvesCollection*  Anterior = NULL;
+             **    _cmsCurvesPluginChunkType* head = (_cmsCurvesPluginChunkType*) src->chunks[CurvesPlugin];
+             **
+             **     _cmsAssert(head != NULL);
+             **
+             **     // Walk the list copying all nodes
+             **    for (entry = head->ParametricCurves;
+             **         entry != NULL;
+             **         entry = entry ->Next) {
+             **
+             **             _cmsParametricCurvesCollection *newEntry = ( _cmsParametricCurvesCollection *) _cmsSubAllocDup(ctx ->MemPool, entry, sizeof(_cmsParametricCurvesCollection));
+             **
+             **             if (newEntry == NULL) 
+             **                 return;
+             **
+             **             // We want to keep the linked list order, so this is a little bit tricky
+             **             newEntry -> Next = NULL;
+             **             if (Anterior)
+             **                 Anterior -> Next = newEntry;
+             **
+             **             Anterior = newEntry;
+             **
+             **             if (newHead.ParametricCurves == NULL)
+             **                 newHead.ParametricCurves = newEntry;
+             **     }
+             **
+             **   ctx ->chunks[CurvesPlugin] = _cmsSubAllocDup(ctx->MemPool, &newHead, sizeof(_cmsCurvesPluginChunkType));
+             ** }
+             **/
+
             ParametricCurvesPluginChunk newHead = ParametricCurvesPluginChunk.Default;
             ParametricCurvesCollection? anterior = null;
             var head = (ParametricCurvesPluginChunk?)src._chunks[(int)Chunks.CurvesPlugin];
@@ -562,8 +601,7 @@ public static class State
 
                 anterior = newEntry;
 
-                if (newHead.parametricCurves is null)
-                    newHead.parametricCurves = newEntry;
+                newHead.parametricCurves ??= newEntry;
             }
 
             state._chunks[(int)Chunks.CurvesPlugin] = newHead;
