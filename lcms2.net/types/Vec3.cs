@@ -49,6 +49,16 @@ public struct Vec3
 
     #endregion Public Constructors
 
+    #region Properties
+
+    public static Vec3 NaN =>
+        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(X) || Double.IsNaN(Y) || Double.IsNaN(Z);
+
+    #endregion Properties
+
     #region Indexers
 
     public double this[int index]

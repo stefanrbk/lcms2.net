@@ -31,7 +31,9 @@ public struct xyY : ICloneable
     #region Fields
 
     public double x;
+
     public double y;
+
     public double Y;
 
     #endregion Fields
@@ -42,6 +44,16 @@ public struct xyY : ICloneable
         (this.x, this.y, this.Y) = (x, y, Y);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static xyY NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(x) || Double.IsNaN(y) || Double.IsNaN(Y);
+
+    #endregion Properties
 
     #region Public Methods
 
@@ -70,7 +82,9 @@ public struct xyYTripple : ICloneable
     #region Fields
 
     public xyY Blue;
+
     public xyY Green;
+
     public xyY Red;
 
     #endregion Fields
@@ -81,6 +95,16 @@ public struct xyYTripple : ICloneable
         (Red, Green, Blue) = (red, green, blue);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static xyYTripple NaN =>
+                        new(xyY.NaN, xyY.NaN, xyY.NaN);
+
+    public bool IsNaN =>
+        Red.IsNaN || Green.IsNaN || Blue.IsNaN;
+
+    #endregion Properties
 
     #region Public Methods
 

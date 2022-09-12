@@ -31,7 +31,9 @@ public struct JCh : ICloneable
     #region Fields
 
     public double C;
+
     public double h;
+
     public double J;
 
     #endregion Fields
@@ -42,6 +44,16 @@ public struct JCh : ICloneable
         (J, C, this.h) = (j, c, h);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static JCh NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(J) || Double.IsNaN(C) || Double.IsNaN(h);
+
+    #endregion Properties
 
     #region Public Methods
 

@@ -31,7 +31,9 @@ public struct XYZ : ICloneable
     #region Fields
 
     public double X;
+
     public double Y;
+
     public double Z;
 
     #endregion Fields
@@ -42,6 +44,16 @@ public struct XYZ : ICloneable
         (X, Y, Z) = (x, y, z);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static XYZ NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(X) || Double.IsNaN(Y) || Double.IsNaN(Z);
+
+    #endregion Properties
 
     #region Public Methods
 

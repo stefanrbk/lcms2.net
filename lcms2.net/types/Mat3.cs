@@ -59,6 +59,9 @@ public struct Mat3
             new(0, 1, 0),
             new(0, 0, 1));
 
+    public static Mat3 NaN =>
+                    new(Vec3.NaN, Vec3.NaN, Vec3.NaN);
+
     /// <summary>
     ///     Checks to see if this matrix is within 1e-4 of the identity matrix.
     /// </summary>
@@ -79,6 +82,9 @@ public struct Mat3
             return true;
         }
     }
+
+    public bool IsNaN =>
+            X.IsNaN || Y.IsNaN || Z.IsNaN;
 
     #endregion Properties
 

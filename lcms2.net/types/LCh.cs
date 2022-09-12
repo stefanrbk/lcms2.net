@@ -31,7 +31,9 @@ public struct LCh : ICloneable
     #region Fields
 
     public double C;
+
     public double h;
+
     public double L;
 
     #endregion Fields
@@ -42,6 +44,16 @@ public struct LCh : ICloneable
         (L, C, this.h) = (l, c, h);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static LCh NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(L) || Double.IsNaN(C) || Double.IsNaN(h);
+
+    #endregion Properties
 
     #region Public Methods
 

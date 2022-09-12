@@ -31,7 +31,9 @@ public struct Lab : ICloneable
     #region Fields
 
     public double a;
+
     public double b;
+
     public double L;
 
     #endregion Fields
@@ -42,6 +44,16 @@ public struct Lab : ICloneable
         (L, this.a, this.b) = (l, a, b);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static Lab NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(L) || Double.IsNaN(a) || Double.IsNaN(b);
+
+    #endregion Properties
 
     #region Public Methods
 
