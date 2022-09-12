@@ -205,8 +205,10 @@ public sealed class ToneCurve : ICloneable, IDisposable
             Type = type,
         };
 
-        var size = c.functions[pos].Count * sizeof(double);
-        @params[..size].CopyTo(seg0.Params, 0);
+        var size = c.functions[pos].Count;
+        if (@params.Length < size || @params.Length >= 10 /* seg0.Params.Length always = 10 */) return null;
+
+        @params.AsSpan(..size).CopyTo(seg0.Params);
 
         return BuildSegmented(state, new CurveSegment[] { seg0 });
     }
@@ -218,9 +220,9 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         // Optimization for identity curves.
         if (numSegments == 1 && segments[0].Type == 1)
-            numGridPoints = (uint)EntriesByGamma(segments[0].Params[0]);
+            numGridPoints = EntriesByGamma(segments[0].Params[0]);
 
-        var g = Alloc(state, numGridPoints, numSegments, segments, null);
+        var g = Alloc(state, segments);
         if (g is null) return null;
 
         // Once we have the floating point version, we can approximate a 16 bit table of 4096
@@ -238,13 +240,21 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return g;
     }
 
-    public static ToneCurve? BuildTabulated16(object? state, uint numEntries, ushort[]? values) =>
-           Alloc(state, numEntries, 0, null, values);
+    public static ToneCurve? BuildEmptyTabulated16(object? state, uint numEntries) =>
+        BuildTabulated(state, new ushort[numEntries]);
 
-    public static ToneCurve? BuildTabulatedFloat(object? state, uint numEntries, float[] values)
+    public static ToneCurve? BuildEmptyTabulatedFloat(object? state, uint numSamples) =>
+        BuildTabulated(state, new float[numSamples]);
+
+    public static ToneCurve? BuildTabulated(object? state, ReadOnlySpan<ushort> values) =>
+        Alloc(state, values);
+
+    public static ToneCurve? BuildTabulated(object? state, ReadOnlySpan<float> values)
     {
         var seg = new CurveSegment[3];
 
+        // A segmented tone curve should have function segments in the first and last positions
+        // Initialize segmented curve part up to 0 to constant value = samples[0]
         seg[0] = new()
         {
             X0 = minusInf,
@@ -257,14 +267,16 @@ public sealed class ToneCurve : ICloneable, IDisposable
         seg[0].Params[3] = values[0];
         seg[0].Params[4] = 0;
 
+        // From zero to 1
         seg[1] = new()
         {
             X0 = 0f,
             X1 = 1f,
             Type = 0,
-            SampledPoints = values,
+            SampledPoints = values.ToArray(),
         };
 
+        // Final segment is constant = lastsample
         seg[2] = new()
         {
             X0 = 1f,
@@ -274,7 +286,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
         seg[2].Params[0] = 1;
         seg[2].Params[1] = 0;
         seg[2].Params[2] = 0;
-        seg[2].Params[3] = values[numEntries - 1];
+        seg[2].Params[3] = values[^1];
         seg[2].Params[4] = 0;
 
         return BuildSegmented(state, seg);
@@ -290,7 +302,11 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
 
     public object Clone() =>
-        Alloc(interpParams?.StateContainer, NumEntries, NumSegments, segments, table16)!;
+        table16.Length > 0
+            ? Alloc(interpParams?.StateContainer, table16)!
+            : segments.Length > 0
+                ? Alloc(interpParams?.StateContainer, segments)!
+                : null!;
 
     public void Dispose()
     {
@@ -385,7 +401,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
             res[i] = Yreversed.Eval(x);
         }
 
-        result = BuildTabulatedFloat(state, numResultingPoints, res);
+        result = BuildTabulated(state, res);
 
     Error:
         Yreversed?.Dispose();
@@ -407,7 +423,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
             return BuildParametric(interpParams?.StateContainer, -segments[0].Type, segments[0].Params);
         }
 
-        var result = BuildTabulated16(interpParams?.StateContainer, numResultSamples, null);
+        var result = BuildEmptyTabulated16(interpParams?.StateContainer, numResultSamples);
         if (result is null)
             return null;
 
@@ -545,7 +561,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     #region Internal Methods
 
-    internal static ToneCurve? Alloc(object? state, uint numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
+    internal static ToneCurve? Alloc(object? state, ReadOnlySpan<CurveSegment> segments)
     {
         /** Original Code (cmsgamma.c line: 209)
          **
@@ -653,31 +669,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
          **/
 
         InterpParams? interp;
+        var numSegments = segments.Length;
 
-        // We allow huge tables, which are then restricted for smoothing operations
-        if (numEntries > 65530)
-        {
-            Errors.ToneCurveTooManyEntries(state);
-            return null;
-        }
-
-        if (numEntries == 0 && numSegments == 0)
-        {
-            Errors.ToneCurveTooFewEntries(state);
-            return null;
-        }
-
-        var p = numSegments == 0
-            ? new ToneCurve(new ushort[numEntries])
-            : new ToneCurve(new CurveSegment[numSegments], new ParametricCurveEvaluator[numSegments]);
-
-        // Initialize members if requested
-        if (values is not null && numEntries > 0)
-            values.CopyTo(p.table16.AsSpan());
+        var p = new ToneCurve(new CurveSegment[numSegments], new ParametricCurveEvaluator[numSegments]);
 
         // Initialize the segments stuff. The evaluator for each segment is located and a pointer to
         // it is placed in advance to maximize performance.
-        if (segments is not null && numSegments > 0)
+        if (numSegments > 0)
         {
             for (var i = 0; i < numSegments; i++)
             {
@@ -707,6 +705,39 @@ public sealed class ToneCurve : ICloneable, IDisposable
                     p.evals[i] = c.evaluator;
             }
         }
+
+        interp = InterpParams.Compute(state, 0, 1, 1, p.table16, LerpFlag.Ushort);
+        if (interp is not null)
+        {
+            p.interpParams = interp;
+            return p;
+        }
+
+        return null;
+    }
+    internal static ToneCurve? Alloc(object? state, ReadOnlySpan<ushort> values)
+    {
+        InterpParams? interp;
+        var numEntries = (uint)values.Length;
+
+        // We allow huge tables, which are then restricted for smoothing operations
+        if (numEntries > 65530)
+        {
+            Errors.ToneCurveTooManyEntries(state);
+            return null;
+        }
+
+        if (numEntries == 0)
+        {
+            Errors.ToneCurveTooFewEntries(state);
+            return null;
+        }
+
+        var p = new ToneCurve(new ushort[numEntries]);
+
+        // Initialize members if requested
+        if (numEntries > 0)
+            values.CopyTo(p.table16.AsSpan());
 
         interp = InterpParams.Compute(state, numEntries, 1, 1, p.table16, LerpFlag.Ushort);
         if (interp is not null)
@@ -1033,10 +1064,20 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return val;
     }
 
-    private static int EntriesByGamma(double gamma) =>
-        Abs(gamma - 1.0) < 0.001
+    private static ushort EntriesByGamma(double gamma) =>
+        /** Original Code (cmsgamma.c line: 776)
+         **
+         ** static
+         ** cmsUInt32Number EntriesByGamma(cmsFloat64Number Gamma)
+         ** {
+         **     if (fabs(Gamma - 1.0) < 0.001) return 2;
+         **     return 4096;
+         ** }
+         **/
+
+        (ushort)(Abs(gamma - 1.0) < 0.001
             ? 2
-            : 4096;
+            : 4096);
 
     private static int GetInterval(double @in, ushort[] lutTable, InterpParams p)
     {

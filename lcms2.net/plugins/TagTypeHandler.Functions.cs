@@ -331,7 +331,7 @@ public abstract partial class TagTypeHandler
 
         for (var i = 0; i < numChannels; i++)
         {
-            var tab = ToneCurve.BuildTabulated16(StateContainer, numEntries, null);
+            var tab = ToneCurve.BuildEmptyTabulated16(StateContainer, numEntries);
             if (tab is null) goto Error;
             tables[i] = tab;
 
@@ -366,7 +366,7 @@ public abstract partial class TagTypeHandler
 
         for (var i = 0; i < numChannels; i++)
         {
-            var tab = ToneCurve.BuildTabulated16(StateContainer, 256, null);
+            var tab = ToneCurve.BuildEmptyTabulated16(StateContainer, 256);
             if (tab is null) goto Error;
             tables[i] = tab;
         }

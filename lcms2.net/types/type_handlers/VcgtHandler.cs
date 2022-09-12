@@ -100,7 +100,7 @@ public class VcgtHandler : TagTypeHandler
                 // Populate tone curves
                 for (var n = 0; n < 3; n++)
                 {
-                    var tempCurve = ToneCurve.BuildTabulated16(StateContainer, numElems, null);
+                    var tempCurve = ToneCurve.BuildEmptyTabulated16(StateContainer, numElems);
                     if (tempCurve is null) goto Error;
 
                     curves[n] = tempCurve;
