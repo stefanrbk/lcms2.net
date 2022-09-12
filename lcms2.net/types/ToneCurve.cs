@@ -33,32 +33,41 @@ using static System.Math;
 
 namespace lcms2.types;
 
-/// <summary>
-///     Evaluator callback for user-supplied parametric curves. May implement more than one type
-/// </summary>
-/// <remarks>Implements the <c>cmsParametricCurveEvaluator</c> typedef.</remarks>
 public delegate double ParametricCurveEvaluator(int type, in double[] @params, double r);
 
 public sealed class ToneCurve : ICloneable, IDisposable
 {
     #region Fields
 
-    internal static ParametricCurvesCollection defaultCurves = new(
-        new (int Types, int Count)[]
-        {
-            (1, 1),
-            (2, 3),
-            (3, 4),
-            (4, 5),
-            (5, 7),
-            (6, 4),
-            (7, 5),
-            (8, 5),
-            (108, 1),
-            (109, 1),
-        },
-        DefaultEvalParametricFn,
-        null);
+    internal static ParametricCurvesCollection defaultCurves =
+        /** Original Code (cmsgamma.c line: 60)
+         **
+         ** // The built-in list
+         ** static _cmsParametricCurvesCollection DefaultCurves = {
+         **     10,                                      // # of curve types
+         **     { 1, 2, 3, 4, 5, 6, 7, 8, 108, 109 },    // Parametric curve ID
+         **     { 1, 3, 4, 5, 7, 4, 5, 5,   1,   1 },    // Parameters by type
+         **     DefaultEvalParametricFn,                 // Evaluator
+         **     NULL                                     // Next in chain
+         ** };
+         **/
+
+        new(
+            new (int Types, int Count)[]
+            {
+                (1, 1),
+                (2, 3),
+                (3, 4),
+                (4, 5),
+                (5, 7),
+                (6, 4),
+                (7, 5),
+                (8, 5),
+                (108, 1),
+                (109, 1),
+            },
+            DefaultEvalParametricFn,
+            null);
 
     internal ParametricCurveEvaluator[] evals = Array.Empty<ParametricCurveEvaluator>();
 
@@ -71,7 +80,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     internal ushort[] table16 = Array.Empty<ushort>();
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     #endregion Fields
 
@@ -281,7 +290,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
 
     public object Clone() =>
-           Alloc(interpParams?.StateContainer, NumEntries, NumSegments, segments, table16)!;
+        Alloc(interpParams?.StateContainer, NumEntries, NumSegments, segments, table16)!;
 
     public void Dispose()
     {
@@ -1072,6 +1081,22 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
 internal class ParametricCurvesCollection
 {
+    /** Original Code (cmsgamma.c line: 44)
+     **
+     ** // The list of supported parametric curves
+     ** typedef struct _cmsParametricCurvesCollection_st {
+     **
+     **     cmsUInt32Number nFunctions;                                     // Number of supported functions in this chunk
+     **     cmsInt32Number  FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];        // The identification types
+     **     cmsUInt32Number ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];       // Number of parameters for each function
+     **
+     **     cmsParametricCurveEvaluator Evaluator;                          // The evaluator
+     **
+     **     struct _cmsParametricCurvesCollection_st* Next; // Next in list
+     **
+     ** } _cmsParametricCurvesCollection;
+     **/
+
     #region Fields
 
     public const int MaxInputDimensions = 15;
@@ -1145,7 +1170,7 @@ internal class ParametricCurvesCollection
     internal int IsInSet(int type)
     {
         for (var i = 0; i < NumFunctions; i++)
-            if (Math.Abs(type) == functions[i].Type) return i;
+            if (Abs(type) == functions[i].Type) return i;
 
         return -1;
     }
