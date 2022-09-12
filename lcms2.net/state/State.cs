@@ -427,6 +427,26 @@ public static class State
 
         private static void AllocParametricCurvesPluginChunk(Context state, Context? src = null)
         {
+            /** Original Code (cmsgamma.c line: 105)
+             **
+             ** // The allocator have to follow the chain
+             ** void _cmsAllocCurvesPluginChunk(struct _cmsContext_struct* ctx, 
+             **                                 const struct _cmsContext_struct* src)
+             ** {
+             **     _cmsAssert(ctx != NULL);
+             **
+             **     if (src != NULL) {
+             **
+             **         // Copy all linked list
+             **        DupPluginCurvesList(ctx, src);
+             **     }
+             **     else {
+             **         static _cmsCurvesPluginChunkType CurvesPluginChunk = { NULL };
+             **         ctx ->chunks[CurvesPlugin] = _cmsSubAllocDup(ctx ->MemPool, &CurvesPluginChunk, sizeof(_cmsCurvesPluginChunkType));
+             **     }
+             ** }
+             **/
+
             if (src is not null)
                 DupPluginCurvesList(ref state, src);
             else

@@ -65,6 +65,45 @@ public sealed class ParametricCurvesPlugin : Plugin
 
     internal static bool RegisterPlugin(object? state, ParametricCurvesPlugin? plugin)
     {
+        /** Original Code (cmsgamma.c line: 126)
+         **
+         ** // As a way to install new parametric curves
+         ** cmsBool _cmsRegisterParametricCurvesPlugin(cmsContext ContextID, cmsPluginBase* Data)
+         ** {
+         **     _cmsCurvesPluginChunkType* ctx = ( _cmsCurvesPluginChunkType*) _cmsContextGetClientChunk(ContextID, CurvesPlugin);
+         **     cmsPluginParametricCurves* Plugin = (cmsPluginParametricCurves*) Data;
+         **     _cmsParametricCurvesCollection* fl;
+         **
+         **     if (Data == NULL) {
+         **
+         **           ctx -> ParametricCurves =  NULL;
+         **           return TRUE;
+         **     }
+         **
+         **     fl = (_cmsParametricCurvesCollection*) _cmsPluginMalloc(ContextID, sizeof(_cmsParametricCurvesCollection));
+         **     if (fl == NULL) return FALSE;
+         **
+         **     // Copy the parameters
+         **     fl ->Evaluator  = Plugin ->Evaluator;
+         **     fl ->nFunctions = Plugin ->nFunctions;
+         **
+         **     // Make sure no mem overwrites
+         **     if (fl ->nFunctions > MAX_TYPES_IN_LCMS_PLUGIN)
+         **         fl ->nFunctions = MAX_TYPES_IN_LCMS_PLUGIN;
+         **
+         **     // Copy the data
+         **     memmove(fl->FunctionTypes,  Plugin ->FunctionTypes,   fl->nFunctions * sizeof(cmsUInt32Number));
+         **     memmove(fl->ParameterCount, Plugin ->ParameterCount,  fl->nFunctions * sizeof(cmsUInt32Number));
+         **
+         **     // Keep linked list
+         **     fl ->Next = ctx->ParametricCurves;
+         **     ctx->ParametricCurves = fl;
+         **
+         **     // All is ok
+         **     return TRUE;
+         ** }
+         **/
+
         var ctx = State.GetCurvesPlugin(state);
 
         if (plugin is null)
@@ -73,7 +112,13 @@ public sealed class ParametricCurvesPlugin : Plugin
             return true;
         }
 
-        ctx.parametricCurves = new ParametricCurvesCollection(plugin.Functions, plugin.Evaluator, ctx.parametricCurves);
+        var fl = new ParametricCurvesCollection(plugin.Functions, plugin.Evaluator, ctx.parametricCurves);
+
+        // Keep linked list
+        {
+            fl.next = ctx.parametricCurves;
+            ctx.parametricCurves = fl;
+        }
 
         return true;
     }

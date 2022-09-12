@@ -547,6 +547,111 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     internal static ToneCurve? Alloc(object? state, uint numEntries, int numSegments, in CurveSegment[]? segments, in ushort[]? values)
     {
+        /** Original Code (cmsgamma.c line: 209)
+         **
+         ** // Low level allocate, which takes care of memory details. nEntries may be zero, and in this case
+         ** // no optimization curve is computed. nSegments may also be zero in the inverse case, where only the
+         ** // optimization curve is given. Both features simultaneously is an error
+         ** static
+         ** cmsToneCurve* AllocateToneCurveStruct(cmsContext ContextID, cmsUInt32Number nEntries,
+         **                                       cmsUInt32Number nSegments, const cmsCurveSegment* Segments,
+         **                                       const cmsUInt16Number* Values)
+         ** {
+         **     cmsToneCurve* p;
+         **     cmsUInt32Number i;
+         **
+         **     // We allow huge tables, which are then restricted for smoothing operations
+         **     if (nEntries > 65530) {
+         **         cmsSignalError(ContextID, cmsERROR_RANGE, "Couldn't create tone curve of more than 65530 entries");
+         **         return NULL;
+         **     }
+         **
+         **     if (nEntries == 0 && nSegments == 0) {
+         **         cmsSignalError(ContextID, cmsERROR_RANGE, "Couldn't create tone curve with zero segments and no table");
+         **         return NULL;
+         **     }
+         **
+         **     // Allocate all required pointers, etc.
+         **     p = (cmsToneCurve*) _cmsMallocZero(ContextID, sizeof(cmsToneCurve));
+         **     if (!p) return NULL;
+         **
+         **     // In this case, there are no segments
+         **     if (nSegments == 0) {
+         **         p ->Segments = NULL;
+         **         p ->Evals = NULL;
+         **     }
+         **     else {
+         **         p ->Segments = (cmsCurveSegment*) _cmsCalloc(ContextID, nSegments, sizeof(cmsCurveSegment));
+         **         if (p ->Segments == NULL) goto Error;
+         **
+         **         p ->Evals    = (cmsParametricCurveEvaluator*) _cmsCalloc(ContextID, nSegments, sizeof(cmsParametricCurveEvaluator));
+         **         if (p ->Evals == NULL) goto Error;
+         **     }
+         **
+         **     p -> nSegments = nSegments;
+         **
+         **     // This 16-bit table contains a limited precision representation of the whole curve and is kept for
+         **     // increasing xput on certain operations.
+         **     if (nEntries == 0) {
+         **         p ->Table16 = NULL;
+         **     }
+         **     else {
+         **        p ->Table16 = (cmsUInt16Number*)  _cmsCalloc(ContextID, nEntries, sizeof(cmsUInt16Number));
+         **        if (p ->Table16 == NULL) goto Error;
+         **     }
+         **
+         **     p -> nEntries  = nEntries;
+         **
+         **     // Initialize members if requested
+         **     if (Values != NULL && (nEntries > 0)) {
+         **
+         **         for (i=0; i < nEntries; i++)
+         **             p ->Table16[i] = Values[i];
+         **     }
+         **
+         **     // Initialize the segments stuff. The evaluator for each segment is located and a pointer to it
+         **     // is placed in advance to maximize performance.
+         **     if (Segments != NULL && (nSegments > 0)) {
+         **
+         **         _cmsParametricCurvesCollection *c;
+         **
+         **         p ->SegInterp = (cmsInterpParams**) _cmsCalloc(ContextID, nSegments, sizeof(cmsInterpParams*));
+         **         if (p ->SegInterp == NULL) goto Error;
+         **
+         **         for (i=0; i < nSegments; i++) {
+         **
+         **             // Type 0 is a special marker for table-based curves
+         **             if (Segments[i].Type == 0)
+         **                 p ->SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, NULL, CMS_LERP_FLAGS_FLOAT);
+         **
+         **             memmove(&p ->Segments[i], &Segments[i], sizeof(cmsCurveSegment));
+         **
+         **             if (Segments[i].Type == 0 && Segments[i].SampledPoints != NULL)
+         **                 p ->Segments[i].SampledPoints = (cmsFloat32Number*) _cmsDupMem(ContextID, Segments[i].SampledPoints, sizeof(cmsFloat32Number) * Segments[i].nGridPoints);
+         **             else
+         **                 p ->Segments[i].SampledPoints = NULL;
+         **
+         **
+         **             c = GetParametricCurveByType(ContextID, Segments[i].Type, NULL);
+         **             if (c != NULL)
+         **                     p ->Evals[i] = c ->Evaluator;
+         **         }
+         **     }
+         **
+         **     p ->InterpParams = _cmsComputeInterpParams(ContextID, p ->nEntries, 1, 1, p->Table16, CMS_LERP_FLAGS_16BITS);
+         **     if (p->InterpParams != NULL)
+         **         return p;
+         **
+         ** Error:
+         **     if (p -> SegInterp) _cmsFree(ContextID, p -> SegInterp);
+         **     if (p -> Segments) _cmsFree(ContextID, p -> Segments);
+         **     if (p -> Evals) _cmsFree(ContextID, p -> Evals);
+         **     if (p ->Table16) _cmsFree(ContextID, p ->Table16);
+         **     _cmsFree(ContextID, p);
+         **     return NULL;
+         ** }
+         **/
+
         InterpParams? interp;
 
         // We allow huge tables, which are then restricted for smoothing operations
@@ -562,9 +667,9 @@ public sealed class ToneCurve : ICloneable, IDisposable
             return null;
         }
 
-        var p = numSegments != 0
-            ? new ToneCurve(new CurveSegment[numSegments], new ParametricCurveEvaluator[numSegments])
-            : new ToneCurve(new ushort[numEntries]);
+        var p = numSegments == 0
+            ? new ToneCurve(new ushort[numEntries])
+            : new ToneCurve(new CurveSegment[numSegments], new ParametricCurveEvaluator[numSegments]);
 
         // Initialize members if requested
         if (values is not null && numEntries > 0)
@@ -586,6 +691,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 p.segments[i] = segments[i];
 
+                ///  Original Code: if (Segments[i].Type == 0 && Segments[i].SampledPoints != NULL)
+                ///                     p->Segments[i].SampledPoints = (cmsFloat32Number*)_cmsDupMem(ContextID, Segments[i].SampledPoints, sizeof(cmsFloat32Number) * Segments[i].nGridPoints);
+                ///                 else
+                ///                         p->Segments[i].SampledPoints = NULL;
+                ///
+                /// Both logic checks don't need to happen in C# as the 2nd one "!= NULL" is accomplished via
+                /// "(float[]?)segments[i].SampledPoints?.Clone()" as it will return null if SampledPoints is null.
                 p.segments[i].SampledPoints = segments[i].Type == 0
                     ? (float[]?)segments[i].SampledPoints?.Clone()
                     : null;
@@ -975,6 +1087,16 @@ public sealed class ToneCurve : ICloneable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double InverseSigmoidFactory(double k, double t)
     {
+        /** Original Code (cmsgamma.c line: 330)
+         **
+         ** cmsINLINE double inverse_sigmoid_factory(double k, double t)
+         ** {
+         **     double correction = 0.5 / sigmoid_base(k, 1);
+         **
+         **     return (inverted_sigmoid_base(k, (t - 0.5) / correction) + 1.0) / 2.0;
+         ** }
+         **/
+
         var correction = 0.5 / SigmoidBase(k, 1);
 
         return (InvertedSigmoidBase(k, (t - 0.5) / correction) + 1.0) / 2.0;
@@ -982,15 +1104,42 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double InvertedSigmoidBase(double k, double t) =>
+        /** Original Code (cmsgamma.c line: 318)
+         **
+         ** cmsINLINE double inverted_sigmoid_base(double k, double t)
+         ** {
+         **     return -log((1.0 / (t + 0.5)) - 1.0) / k;
+         ** }
+         **/
+
         -Log((1.0 / (t + 0.5)) - 1.0) / k;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double SigmoidBase(double k, double t) =>
+        /** Original Code (cmsgamma.c line: 312)
+         **
+         ** // Generates a sigmoidal function with desired steepness.
+         ** cmsINLINE double sigmoid_base(double k, double t)
+         ** {
+         **     return (1.0 / (1.0 + exp(-k * t))) - 0.5;
+         ** }
+         **/
+
         (1.0 / (1.0 + Exp(-k * t))) - 0.5;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double SigmoidFactory(double k, double t)
     {
+        /** Original Code (cmsgamma.c line: 323)
+         **
+         ** cmsINLINE double sigmoid_factory(double k, double t)
+         ** {
+         **     double correction = 0.5 / sigmoid_base(k, 1);
+         **
+         **     return correction * sigmoid_base(k, 2.0 * t - 1.0) + 0.5;
+         ** }
+         **/
+
         var correction = 0.5 / SigmoidBase(k, 1);
 
         return (correction * SigmoidBase(k, (2.0 * t) - 1.0)) + 0.5;
@@ -1138,6 +1287,41 @@ internal class ParametricCurvesCollection
 
     internal static ParametricCurvesCollection? GetByType(object? state, int type, out int index)
     {
+        /** Original Code (cmsgamma.c line: 176)
+         **
+         ** // Search for the collection which contains a specific type
+         ** static
+         ** _cmsParametricCurvesCollection *GetParametricCurveByType(cmsContext ContextID, int Type, int* index)
+         ** {
+         **     _cmsParametricCurvesCollection* c;
+         **     int Position;
+         **     _cmsCurvesPluginChunkType* ctx = ( _cmsCurvesPluginChunkType*) _cmsContextGetClientChunk(ContextID, CurvesPlugin);
+         **
+         **     for (c = ctx->ParametricCurves; c != NULL; c = c ->Next) {
+         **
+         **         Position = IsInSet(Type, c);
+         **
+         **         if (Position != -1) {
+         **             if (index != NULL)
+         **                 *index = Position;
+         **             return c;
+         **         }
+         **     }
+         **     // If none found, revert for defaults
+         **     for (c = &DefaultCurves; c != NULL; c = c ->Next) {
+         **
+         **         Position = IsInSet(Type, c);
+         **
+         **         if (Position != -1) {
+         **             if (index != NULL)
+         **                 *index = Position;
+         **             return c;
+         **         }
+         **     }
+         **
+         **     return NULL;
+         ** }
+         **/
         var ctx = State.GetCurvesPlugin(state);
 
         for (var c = ctx.parametricCurves; c is not null; c = c.next)
@@ -1169,6 +1353,21 @@ internal class ParametricCurvesCollection
 
     internal int IsInSet(int type)
     {
+        /** Original Code (cmsgamma.c line: 163)
+         **
+         ** // Search in type list, return position or -1 if not found
+         ** static
+         ** int IsInSet(int Type, _cmsParametricCurvesCollection* c)
+         ** {
+         **     int i;
+         **
+         **     for (i=0; i < (int) c ->nFunctions; i++)
+         **         if (abs(Type) == c ->FunctionTypes[i]) return i;
+         **
+         **     return -1;
+         ** }
+         **/
+
         for (var i = 0; i < NumFunctions; i++)
             if (Abs(type) == functions[i].Type) return i;
 
