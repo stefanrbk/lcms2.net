@@ -104,10 +104,19 @@ public sealed class ToneCurve : ICloneable, IDisposable
     #region Properties
 
     public ushort[] EstimatedTable =>
-                        table16;
+        /** Original Code (cmsgamma.c line: 762)
+         **
+         ** const cmsUInt16Number* CMSEXPORT cmsGetToneCurveEstimatedTable(const cmsToneCurve* t)
+         ** {
+         **     _cmsAssert(t != NULL);
+         **     return t ->Table16;
+         ** }
+         **/
+
+        table16;
 
     public bool IsDescending =>
-           table16[0] > table16[NumEntries - 1];
+        table16[0] > table16[NumEntries - 1];
 
     public bool IsLinear
     {
@@ -166,8 +175,17 @@ public sealed class ToneCurve : ICloneable, IDisposable
     public bool IsMultisegment =>
            NumSegments > 1;
 
-    // 16 bit Table-based representation follows
     public uint NumEntries =>
+        /** Original Code (cmsgamma.c line: 755)
+         **
+         ** // Access to estimated low-res table
+         ** cmsUInt32Number CMSEXPORT cmsGetToneCurveEstimatedTableEntries(const cmsToneCurve* t)
+         ** {
+         **     _cmsAssert(t != NULL);
+         **     return t ->nEntries;
+         ** }
+         **/
+
         (uint)table16.Length;
 
     public int ParametricType =>
@@ -190,6 +208,40 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public static ToneCurve? BuildParametric(object? state, int type, params double[] @params)
     {
+        /** Original Code (cmsgamma.c line: 859)
+         **
+         ** // Parametric curves
+         ** //
+         ** // Parameters goes as: Curve, a, b, c, d, e, f
+         ** // Type is the ICC type +1
+         ** // if type is negative, then the curve is analytically inverted
+         ** cmsToneCurve* CMSEXPORT cmsBuildParametricToneCurve(cmsContext ContextID, cmsInt32Number Type, const cmsFloat64Number Params[])
+         ** {
+         **     cmsCurveSegment Seg0;
+         **     int Pos = 0;
+         **     cmsUInt32Number size;
+         **     _cmsParametricCurvesCollection* c = GetParametricCurveByType(ContextID, Type, &Pos);
+         **
+         **     _cmsAssert(Params != NULL);
+         **
+         **     if (c == NULL) {
+         **         cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Invalid parametric curve type %d", Type);
+         **         return NULL;
+         **     }
+         **
+         **     memset(&Seg0, 0, sizeof(Seg0));
+         **
+         **     Seg0.x0   = MINUS_INF;
+         **     Seg0.x1   = PLUS_INF;
+         **     Seg0.Type = Type;
+         **
+         **     size = c->ParameterCount[Pos] * sizeof(cmsFloat64Number);
+         **     memmove(Seg0.Params, Params, size);
+         **
+         **     return cmsBuildSegmentedToneCurve(ContextID, 1, &Seg0);
+         ** }
+         **/
+
         var c = ParametricCurvesCollection.GetByType(state, type, out var pos);
 
         if (c is null)
@@ -213,8 +265,46 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return BuildSegmented(state, new CurveSegment[] { seg0 });
     }
 
-    public static ToneCurve? BuildSegmented(object? state, CurveSegment[] segments)
+    public static ToneCurve? BuildSegmented(object? state, ReadOnlySpan<CurveSegment> segments)
     {
+        /** Original Code (cmsgamma.c line: 784)
+         **
+         ** // Create a segmented gamma, fill the table
+         ** cmsToneCurve* CMSEXPORT cmsBuildSegmentedToneCurve(cmsContext ContextID,
+         **                                                    cmsUInt32Number nSegments, const cmsCurveSegment Segments[])
+         ** {
+         **     cmsUInt32Number i;
+         **     cmsFloat64Number R, Val;
+         **     cmsToneCurve* g;
+         **     cmsUInt32Number nGridPoints = 4096;
+         **
+         **     _cmsAssert(Segments != NULL);
+         **
+         **     // Optimizatin for identity curves.
+         **     if (nSegments == 1 && Segments[0].Type == 1) {
+         **
+         **         nGridPoints = EntriesByGamma(Segments[0].Params[0]);
+         **     }
+         **
+         **     g = AllocateToneCurveStruct(ContextID, nGridPoints, nSegments, Segments, NULL);
+         **     if (g == NULL) return NULL;
+         **
+         **     // Once we have the floating point version, we can approximate a 16 bit table of 4096 entries
+         **     // for performance reasons. This table would normally not be used except on 8/16 bits transforms.
+         **     for (i = 0; i < nGridPoints; i++) {
+         **
+         **         R   = (cmsFloat64Number) i / (nGridPoints-1);
+         **
+         **         Val = EvalSegmentedFn(g, R);
+         **
+         **         // Round and saturate
+         **         g ->Table16[i] = _cmsQuickSaturateWord(Val * 65535.0);
+         **     }
+         **
+         **     return g;
+         ** }
+         **/
+
         var numSegments = segments.Length;
         var numGridPoints = 4096u;
 
@@ -247,10 +337,63 @@ public sealed class ToneCurve : ICloneable, IDisposable
         BuildTabulated(state, new float[numSamples]);
 
     public static ToneCurve? BuildTabulated(object? state, ReadOnlySpan<ushort> values) =>
+        /** Original Code (cmsgamma.c line: 769)
+         **
+         ** // Create an empty gamma curve, by using tables. This specifies only the limited-precision part, and leaves the
+         ** // floating point description empty.
+         ** cmsToneCurve* CMSEXPORT cmsBuildTabulatedToneCurve16(cmsContext ContextID, cmsUInt32Number nEntries, const cmsUInt16Number Values[])
+         ** {
+         **     return AllocateToneCurveStruct(ContextID, nEntries, 0, NULL, Values);
+         ** }
+         **/
+
         Alloc(state, values);
 
     public static ToneCurve? BuildTabulated(object? state, ReadOnlySpan<float> values)
     {
+        /** Original Code (cmsgamma.c line: )
+         **
+         ** // Use a segmented curve to store the floating point table
+         ** cmsToneCurve* CMSEXPORT cmsBuildTabulatedToneCurveFloat(cmsContext ContextID, cmsUInt32Number nEntries, const cmsFloat32Number values[])
+         ** {
+         **     cmsCurveSegment Seg[3];
+         **
+         **     // A segmented tone curve should have function segments in the first and last positions
+         **     // Initialize segmented curve part up to 0 to constant value = samples[0]
+         **     Seg[0].x0 = MINUS_INF;
+         **     Seg[0].x1 = 0;
+         **     Seg[0].Type = 6;
+         **
+         **     Seg[0].Params[0] = 1;
+         **     Seg[0].Params[1] = 0;
+         **     Seg[0].Params[2] = 0;
+         **     Seg[0].Params[3] = values[0];
+         **     Seg[0].Params[4] = 0;
+         **
+         **     // From zero to 1
+         **     Seg[1].x0 = 0;
+         **     Seg[1].x1 = 1.0;
+         **     Seg[1].Type = 0;
+         **
+         **     Seg[1].nGridPoints = nEntries;
+         **     Seg[1].SampledPoints = (cmsFloat32Number*) values;
+         **
+         **     // Final segment is constant = lastsample
+         **     Seg[2].x0 = 1.0;
+         **     Seg[2].x1 = PLUS_INF;
+         **     Seg[2].Type = 6;
+         **
+         **     Seg[2].Params[0] = 1;
+         **     Seg[2].Params[1] = 0;
+         **     Seg[2].Params[2] = 0;
+         **     Seg[2].Params[3] = values[nEntries-1];
+         **     Seg[2].Params[4] = 0;
+         **
+         **
+         **     return cmsBuildSegmentedToneCurve(ContextID, 3, Seg);
+         ** }
+         **/
+
         var seg = new CurveSegment[3];
 
         // A segmented tone curve should have function segments in the first and last positions
@@ -717,6 +860,111 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
     internal static ToneCurve? Alloc(object? state, ReadOnlySpan<ushort> values)
     {
+        /** Original Code (cmsgamma.c line: 209)
+         **
+         ** // Low level allocate, which takes care of memory details. nEntries may be zero, and in this case
+         ** // no optimization curve is computed. nSegments may also be zero in the inverse case, where only the
+         ** // optimization curve is given. Both features simultaneously is an error
+         ** static
+         ** cmsToneCurve* AllocateToneCurveStruct(cmsContext ContextID, cmsUInt32Number nEntries,
+         **                                       cmsUInt32Number nSegments, const cmsCurveSegment* Segments,
+         **                                       const cmsUInt16Number* Values)
+         ** {
+         **     cmsToneCurve* p;
+         **     cmsUInt32Number i;
+         **
+         **     // We allow huge tables, which are then restricted for smoothing operations
+         **     if (nEntries > 65530) {
+         **         cmsSignalError(ContextID, cmsERROR_RANGE, "Couldn't create tone curve of more than 65530 entries");
+         **         return NULL;
+         **     }
+         **
+         **     if (nEntries == 0 && nSegments == 0) {
+         **         cmsSignalError(ContextID, cmsERROR_RANGE, "Couldn't create tone curve with zero segments and no table");
+         **         return NULL;
+         **     }
+         **
+         **     // Allocate all required pointers, etc.
+         **     p = (cmsToneCurve*) _cmsMallocZero(ContextID, sizeof(cmsToneCurve));
+         **     if (!p) return NULL;
+         **
+         **     // In this case, there are no segments
+         **     if (nSegments == 0) {
+         **         p ->Segments = NULL;
+         **         p ->Evals = NULL;
+         **     }
+         **     else {
+         **         p ->Segments = (cmsCurveSegment*) _cmsCalloc(ContextID, nSegments, sizeof(cmsCurveSegment));
+         **         if (p ->Segments == NULL) goto Error;
+         **
+         **         p ->Evals    = (cmsParametricCurveEvaluator*) _cmsCalloc(ContextID, nSegments, sizeof(cmsParametricCurveEvaluator));
+         **         if (p ->Evals == NULL) goto Error;
+         **     }
+         **
+         **     p -> nSegments = nSegments;
+         **
+         **     // This 16-bit table contains a limited precision representation of the whole curve and is kept for
+         **     // increasing xput on certain operations.
+         **     if (nEntries == 0) {
+         **         p ->Table16 = NULL;
+         **     }
+         **     else {
+         **        p ->Table16 = (cmsUInt16Number*)  _cmsCalloc(ContextID, nEntries, sizeof(cmsUInt16Number));
+         **        if (p ->Table16 == NULL) goto Error;
+         **     }
+         **
+         **     p -> nEntries  = nEntries;
+         **
+         **     // Initialize members if requested
+         **     if (Values != NULL && (nEntries > 0)) {
+         **
+         **         for (i=0; i < nEntries; i++)
+         **             p ->Table16[i] = Values[i];
+         **     }
+         **
+         **     // Initialize the segments stuff. The evaluator for each segment is located and a pointer to it
+         **     // is placed in advance to maximize performance.
+         **     if (Segments != NULL && (nSegments > 0)) {
+         **
+         **         _cmsParametricCurvesCollection *c;
+         **
+         **         p ->SegInterp = (cmsInterpParams**) _cmsCalloc(ContextID, nSegments, sizeof(cmsInterpParams*));
+         **         if (p ->SegInterp == NULL) goto Error;
+         **
+         **         for (i=0; i < nSegments; i++) {
+         **
+         **             // Type 0 is a special marker for table-based curves
+         **             if (Segments[i].Type == 0)
+         **                 p ->SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, NULL, CMS_LERP_FLAGS_FLOAT);
+         **
+         **             memmove(&p ->Segments[i], &Segments[i], sizeof(cmsCurveSegment));
+         **
+         **             if (Segments[i].Type == 0 && Segments[i].SampledPoints != NULL)
+         **                 p ->Segments[i].SampledPoints = (cmsFloat32Number*) _cmsDupMem(ContextID, Segments[i].SampledPoints, sizeof(cmsFloat32Number) * Segments[i].nGridPoints);
+         **             else
+         **                 p ->Segments[i].SampledPoints = NULL;
+         **
+         **
+         **             c = GetParametricCurveByType(ContextID, Segments[i].Type, NULL);
+         **             if (c != NULL)
+         **                     p ->Evals[i] = c ->Evaluator;
+         **         }
+         **     }
+         **
+         **     p ->InterpParams = _cmsComputeInterpParams(ContextID, p ->nEntries, 1, 1, p->Table16, CMS_LERP_FLAGS_16BITS);
+         **     if (p->InterpParams != NULL)
+         **         return p;
+         **
+         ** Error:
+         **     if (p -> SegInterp) _cmsFree(ContextID, p -> SegInterp);
+         **     if (p -> Segments) _cmsFree(ContextID, p -> Segments);
+         **     if (p -> Evals) _cmsFree(ContextID, p -> Evals);
+         **     if (p ->Table16) _cmsFree(ContextID, p ->Table16);
+         **     _cmsFree(ContextID, p);
+         **     return NULL;
+         ** }
+         **/
+
         InterpParams? interp;
         var numEntries = (uint)values.Length;
 
@@ -755,15 +1003,394 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     private static double DefaultEvalParametricFn(int type, in double[] @params, double r)
     {
+        /** Original Code (cmsgamma.c line: 338)
+         **
+         ** // Parametric Fn using floating point
+         ** static
+         ** cmsFloat64Number DefaultEvalParametricFn(cmsInt32Number Type, const cmsFloat64Number Params[], cmsFloat64Number R)
+         ** {
+         **     cmsFloat64Number e, Val, disc;
+         **
+         **     switch (Type) {
+         **
+         **    // X = Y ^ Gamma
+         **     case 1:
+         **         if (R < 0) {
+         **
+         **             if (fabs(Params[0] - 1.0) < MATRIX_DET_TOLERANCE)
+         **                 Val = R;
+         **             else
+         **                 Val = 0;
+         **         }
+         **         else
+         **             Val = pow(R, Params[0]);
+         **         break;
+         **
+         **     // Type 1 Reversed: X = Y ^1/gamma
+         **     case -1:
+         **         if (R < 0) {
+         **
+         **             if (fabs(Params[0] - 1.0) < MATRIX_DET_TOLERANCE)
+         **                 Val = R;
+         **             else
+         **                 Val = 0;
+         **         }
+         **         else
+         **         {
+         **             if (fabs(Params[0]) < MATRIX_DET_TOLERANCE)
+         **                 Val = PLUS_INF;
+         **             else
+         **                 Val = pow(R, 1 / Params[0]);
+         **         }
+         **         break;
+         **
+         **     // CIE 122-1966
+         **     // Y = (aX + b)^Gamma  | X >= -b/a
+         **     // Y = 0               | else
+         **     case 2:
+         **     {
+         **
+         **         if (fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **         {
+         **             Val = 0;
+         **         }
+         **         else
+         **         {
+         **             disc = -Params[2] / Params[1];
+         **
+         **             if (R >= disc) {
+         **
+         **                 e = Params[1] * R + Params[2];
+         **
+         **                 if (e > 0)
+         **                     Val = pow(e, Params[0]);
+         **                 else
+         **                     Val = 0;
+         **             }
+         **             else
+         **                 Val = 0;
+         **         }
+         **     }
+         **     break;
+         **
+         **      // Type 2 Reversed
+         **      // X = (Y ^1/g  - b) / a
+         **      case -2:
+         **      {
+         **          if (fabs(Params[0]) < MATRIX_DET_TOLERANCE ||
+         **              fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **          {
+         **              Val = 0;
+         **          }
+         **          else
+         **          {
+         **              if (R < 0)
+         **                  Val = 0;
+         **              else
+         **                  Val = (pow(R, 1.0 / Params[0]) - Params[2]) / Params[1];
+         **
+         **              if (Val < 0)
+         **                  Val = 0;
+         **          }
+         **      }         
+         **      break;
+         **
+         **
+         **     // IEC 61966-3
+         **     // Y = (aX + b)^Gamma | X <= -b/a
+         **     // Y = c              | else
+         **     case 3:
+         **     {
+         **         if (fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **         {
+         **             Val = 0;
+         **         }
+         **         else
+         **         {
+         **             disc = -Params[2] / Params[1];
+         **             if (disc < 0)
+         **                 disc = 0;
+         **
+         **             if (R >= disc) {
+         **
+         **                 e = Params[1] * R + Params[2];
+         **
+         **                 if (e > 0)
+         **                     Val = pow(e, Params[0]) + Params[3];
+         **                 else
+         **                     Val = 0;
+         **             }
+         **             else
+         **                 Val = Params[3];
+         **         }
+         **     }
+         **     break;
+         **
+         **
+         **     // Type 3 reversed
+         **     // X=((Y-c)^1/g - b)/a      | (Y>=c)
+         **     // X=-b/a                   | (Y<c)
+         **     case -3:
+         **     {
+         **         if (fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **         {
+         **             Val = 0;
+         **         }
+         **         else
+         **         {
+         **             if (R >= Params[3]) {
+         **
+         **                 e = R - Params[3];
+         **
+         **                 if (e > 0)
+         **                     Val = (pow(e, 1 / Params[0]) - Params[2]) / Params[1];
+         **                 else
+         **                     Val = 0;
+         **             }
+         **             else {
+         **                 Val = -Params[2] / Params[1];
+         **             }
+         **         }
+         **     }
+         **     break;
+         **
+         **
+         **     // IEC 61966-2.1 (sRGB)
+         **     // Y = (aX + b)^Gamma | X >= d
+         **     // Y = cX             | X < d
+         **     case 4:
+         **         if (R >= Params[4]) {
+         **
+         **             e = Params[1]*R + Params[2];
+         **
+         **             if (e > 0)
+         **                 Val = pow(e, Params[0]);
+         **             else
+         **                 Val = 0;
+         **         }
+         **         else
+         **             Val = R * Params[3];
+         **         break;
+         **
+         **     // Type 4 reversed
+         **     // X=((Y^1/g-b)/a)    | Y >= (ad+b)^g
+         **     // X=Y/c              | Y< (ad+b)^g
+         **     case -4:
+         **     {
+         **
+         **         e = Params[1] * Params[4] + Params[2];
+         **         if (e < 0)
+         **             disc = 0;
+         **         else
+         **             disc = pow(e, Params[0]);
+         **
+         **         if (R >= disc) {
+         **
+         **             if (fabs(Params[0]) < MATRIX_DET_TOLERANCE ||
+         **                 fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **
+         **                 Val = 0;
+         **
+         **             else
+         **                 Val = (pow(R, 1.0 / Params[0]) - Params[2]) / Params[1];
+         **         }
+         **         else {
+         **
+         **             if (fabs(Params[3]) < MATRIX_DET_TOLERANCE)
+         **                 Val = 0;
+         **             else
+         **                 Val = R / Params[3];
+         **         }
+         **
+         **     }
+         **     break;
+         **
+         **
+         **     // Y = (aX + b)^Gamma + e | X >= d
+         **     // Y = cX + f             | X < d
+         **     case 5:
+         **         if (R >= Params[4]) {
+         **
+         **             e = Params[1]*R + Params[2];
+         **
+         **             if (e > 0)
+         **                 Val = pow(e, Params[0]) + Params[5];
+         **             else
+         **                 Val = Params[5];
+         **         }
+         **         else
+         **             Val = R*Params[3] + Params[6];
+         **         break;
+         **
+         **
+         **     // Reversed type 5
+         **     // X=((Y-e)1/g-b)/a   | Y >=(ad+b)^g+e), cd+f
+         **     // X=(Y-f)/c          | else
+         **     case -5:
+         **     {
+         **         disc = Params[3] * Params[4] + Params[6];
+         **         if (R >= disc) {
+         **
+         **             e = R - Params[5];
+         **             if (e < 0)
+         **                 Val = 0;
+         **             else
+         **             {
+         **                 if (fabs(Params[0]) < MATRIX_DET_TOLERANCE ||
+         **                     fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **
+         **                     Val = 0;
+         **                 else
+         **                     Val = (pow(e, 1.0 / Params[0]) - Params[2]) / Params[1];
+         **             }
+         **         }
+         **         else {
+         **             if (fabs(Params[3]) < MATRIX_DET_TOLERANCE)
+         **                 Val = 0;
+         **             else
+         **                 Val = (R - Params[6]) / Params[3];
+         **         }
+         **
+         **     }
+         **     break;
+         **
+         **
+         **     // Types 6,7,8 comes from segmented curves as described in ICCSpecRevision_02_11_06_Float.pdf
+         **     // Type 6 is basically identical to type 5 without d
+         **
+         **     // Y = (a * X + b) ^ Gamma + c
+         **     case 6:
+         **         e = Params[1]*R + Params[2];
+         **
+         **         if (e < 0)
+         **             Val = Params[3];
+         **         else
+         **             Val = pow(e, Params[0]) + Params[3];
+         **         break;
+         **
+         **     // ((Y - c) ^1/Gamma - b) / a
+         **     case -6:
+         **     {
+         **         if (fabs(Params[1]) < MATRIX_DET_TOLERANCE)
+         **         {
+         **             Val = 0;
+         **         }
+         **         else
+         **         {
+         **             e = R - Params[3];
+         **             if (e < 0)
+         **                 Val = 0;
+         **             else
+         **                 Val = (pow(e, 1.0 / Params[0]) - Params[2]) / Params[1];
+         **         }
+         **     }
+         **     break;
+         **
+         **
+         **     // Y = a * log (b * X^Gamma + c) + d
+         **     case 7:
+         **
+         **        e = Params[2] * pow(R, Params[0]) + Params[3];
+         **        if (e <= 0)
+         **            Val = Params[4];
+         **        else
+         **            Val = Params[1]*log10(e) + Params[4];
+         **        break;
+         **
+         **     // (Y - d) / a = log(b * X ^Gamma + c)
+         **     // pow(10, (Y-d) / a) = b * X ^Gamma + c
+         **     // pow((pow(10, (Y-d) / a) - c) / b, 1/g) = X
+         **     case -7:
+         **     {
+         **         if (fabs(Params[0]) < MATRIX_DET_TOLERANCE ||
+         **             fabs(Params[1]) < MATRIX_DET_TOLERANCE ||
+         **             fabs(Params[2]) < MATRIX_DET_TOLERANCE)
+         **         {
+         **             Val = 0;
+         **         }
+         **         else
+         **         {
+         **             Val = pow((pow(10.0, (R - Params[4]) / Params[1]) - Params[3]) / Params[2], 1.0 / Params[0]);
+         **         }
+         **     }
+         **     break;
+         **
+         **
+         **    //Y = a * b^(c*X+d) + e
+         **    case 8:
+         **        Val = (Params[0] * pow(Params[1], Params[2] * R + Params[3]) + Params[4]);
+         **        break;
+         **
+         **
+         **    // Y = (log((y-e) / a) / log(b) - d ) / c
+         **    // a=0, b=1, c=2, d=3, e=4,
+         **    case -8:
+         **
+         **        disc = R - Params[4];
+         **        if (disc < 0) Val = 0;
+         **        else
+         **        {
+         **            if (fabs(Params[0]) < MATRIX_DET_TOLERANCE ||
+         **                fabs(Params[2]) < MATRIX_DET_TOLERANCE)
+         **            {
+         **                Val = 0;
+         **            }
+         **            else
+         **            {
+         **                Val = (log(disc / Params[0]) / log(Params[1]) - Params[3]) / Params[2];
+         **            }
+         **        }
+         **        break;
+         **
+         **
+         **    // S-Shaped: (1 - (1-x)^1/g)^1/g
+         **    case 108:
+         **        if (fabs(Params[0]) < MATRIX_DET_TOLERANCE)
+         **            Val = 0;
+         **        else
+         **            Val = pow(1.0 - pow(1 - R, 1/Params[0]), 1/Params[0]);
+         **       break;
+         **
+         **     // y = (1 - (1-x)^1/g)^1/g
+         **     // y^g = (1 - (1-x)^1/g)
+         **     // 1 - y^g = (1-x)^1/g
+         **     // (1 - y^g)^g = 1 - x
+         **     // 1 - (1 - y^g)^g
+         **     case -108:
+         **         Val = 1 - pow(1 - pow(R, Params[0]), Params[0]);
+         **         break;
+         **
+         **     // Sigmoidals
+         **     case 109:
+         **         Val = sigmoid_factory(Params[0], R);
+         **         break;
+         **
+         **     case -109:
+         **         Val = inverse_sigmoid_factory(Params[0], R);
+         **         break;
+         **
+         **     default:
+         **         // Unsupported parametric curve. Should never reach here
+         **         return 0;
+         **     }
+         **
+         **     return Val;
+         ** }
+         **/
+
         double val, disc, e;
 
-        var p0 = @params[0]; var ap0 = Abs(p0);
-        var p1 = @params.Length <= 1 ? @params[1] : 0; var ap1 = Abs(p1);
-        var p2 = @params.Length <= 1 ? @params[2] : 0; var ap2 = Abs(p2);
-        var p3 = @params.Length <= 1 ? @params[3] : 0; var ap3 = Abs(p3);
-        var p4 = @params.Length <= 1 ? @params[4] : 0; var ap4 = Abs(p4);
-        var p5 = @params.Length <= 1 ? @params[5] : 0; var ap5 = Abs(p5);
-        var p6 = @params.Length <= 1 ? @params[6] : 0; var ap6 = Abs(p6);
+        var (p0, p1, p2, p3, p4, p5, p6) = @params.Length switch
+        {
+            0 => (        0d,         0d,         0d,         0d,         0d,         0d,         0d),
+            1 => (@params[0],         0d,         0d,         0d,         0d,         0d,         0d),
+            2 => (@params[0], @params[1],         0d,         0d,         0d,         0d,         0d),
+            3 => (@params[0], @params[1], @params[2],         0d,         0d,         0d,         0d),
+            4 => (@params[0], @params[1], @params[2], @params[3],         0d,         0d,         0d),
+            5 => (@params[0], @params[1], @params[2], @params[3], @params[4],         0d,         0d),
+            6 => (@params[0], @params[1], @params[2], @params[3], @params[4], @params[5],         0d),
+            _ => (@params[0], @params[1], @params[2], @params[3], @params[4], @params[5], @params[6]),
+        };
 
         switch (type)
         {
@@ -771,30 +1398,33 @@ public sealed class ToneCurve : ICloneable, IDisposable
             case 1:
 
                 val = r < 0
-                    ? Abs(p0 - 1.0) < determinantTolerance
+                    ? (double)Abs(p0 - 1) < determinantTolerance
                         ? r
                         : 0
                     : Pow(r, p0);
 
                 break;
 
-            // Type 1 Reversed: X = Y ^ 1/Gamma
+            // Type 1 Reversed
+            // X = Y ^ 1/Gamma
             case -1:
 
                 val = r < 0
-                    ? Abs(p0 - 1.0) < determinantTolerance
+                    ? (double)Abs(p0 - 1) < determinantTolerance
                         ? r
                         : 0
-                    : ap0 < determinantTolerance
+                    : (double)Abs(p0) < determinantTolerance
                         ? plusInf
                         : Pow(r, 1 / p0);
 
                 break;
 
-            // CIE 122-1966 Y = (aX + b)^Gamma | X >= -b/a Y = 0 | else
+            // CIE 122-1966
+            // Y = (aX + b)^Gamma | X ≥ -b/a
+            // Y = 0              | else
             case 2:
 
-                if (ap1 < determinantTolerance)
+                if ((double)Abs(p1) < determinantTolerance)
                 {
                     val = 0;
                 }
@@ -818,21 +1448,24 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // Type 2 Reversed X = (Y ^1/g - b) / a
+            // Type 2 Reversed
+            // X = (Y ^1/g - b) / a
             case -2:
 
-                val = ap0 < determinantTolerance || ap1 < determinantTolerance
+                val = (double)Abs(p0) < determinantTolerance || (double)Abs(p1) < determinantTolerance
                     ? 0
                     : r < 0
                         ? 0
-                        : Max((Pow(r, 1.0 / p0) - p2) / p1, 0);
+                        : Max((Pow(r, 1.0 / p0) - p2) / p1, 0); // Max is the same as "if (val < 0)" check
 
                 break;
 
-            // IEC 61966-3 Y = (aX + b)^Gamma | X <= -b/a Y = c | else
+            // IEC 61966-3
+            // Y = (aX + b)^Gamma | X ≤ -b/a
+            // Y = c              | else
             case 3:
 
-                if (ap1 < determinantTolerance)
+                if ((double)Abs(p1) < determinantTolerance)
                 {
                     val = 0;
                 }
@@ -856,10 +1489,12 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // Type 3 reversed X=((Y-c)^1/g - b)/a | (Y>=c) X=-b/a | (Y<c)
+            // Type 3 reversed
+            // X = ((Y-c)^1/g - b)/a | Y ≥ c
+            // X = -b/a              | Y < c
             case -3:
 
-                if (ap1 < determinantTolerance)
+                if ((double)Abs(p1) < determinantTolerance)
                 {
                     val = 0;
                 }
@@ -881,7 +1516,9 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // IEC 61966-2.1 (sRGB) Y = (aX + b)^Gamma | X >= d Y = cX | X < d
+            // IEC 61966-2.1 (sRGB)
+            // Y = (aX + b)^Gamma | X ≥ d
+            // Y = cX             | X < d
             case 4:
 
                 if (r >= p4)
@@ -899,7 +1536,9 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // Type 4 reversed X=((Y^1/g-b)/a) | Y >= (ad+b)^g X=Y/c | Y< (ad+b)^g
+            // Type 4 reversed
+            // X = ((Y^1/g-b)/a) | Y ≥ (ad+b)^g
+            // X = Y/c           | Y < (ad+b)^g
             case -4:
 
                 e = (p1 * p4) + p2;
@@ -908,16 +1547,17 @@ public sealed class ToneCurve : ICloneable, IDisposable
                     : Pow(e, p0);
 
                 val = r >= disc
-                    ? ap0 < determinantTolerance || ap1 < determinantTolerance
+                    ? (double)Abs(p0) < determinantTolerance || (double)Abs(p1) < determinantTolerance
                         ? 0
                         : (Pow(r, 1.0 / p0) - p2) / p1
-                    : ap3 < determinantTolerance
+                    : (double)Abs(p3) < determinantTolerance
                         ? 0
                         : r / p3;
 
                 break;
 
-            // Y = (aX + b)^Gamma + e | X >= d Y = cX + f | X < d
+            // Y = (aX + b)^Gamma + e | X ≥ d
+            // Y = cX + f             | X < d
             case 5:
 
                 if (r >= p4)
@@ -935,7 +1575,9 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // Reversed type 5 X=((Y-e)1/g-b)/a | Y >=(ad+b)^g+e), cd+f X=(Y-f)/c | else
+            // Reversed type 5
+            // X = ((Y-e)1/g-b)/a | Y ≥ (ad+b)^g+e), cd+f
+            // X = (Y-f)/c        | else
             case -5:
 
                 disc = (p3 * p4) + p6;
@@ -944,21 +1586,21 @@ public sealed class ToneCurve : ICloneable, IDisposable
                     e = r - p5;
                     val = e < 0
                         ? 0
-                        : ap0 < determinantTolerance || ap1 < determinantTolerance
+                        : (double)Abs(p0) < determinantTolerance || (double)Abs(p1) < determinantTolerance
                             ? 0
                             : (Pow(e, 1.0 / p0) - p2) / p1;
                 }
                 else
                 {
-                    val = ap3 < determinantTolerance
+                    val = (double)Abs(p3) < determinantTolerance
                         ? 0
                         : (r - p6) / p3;
                 }
 
                 break;
 
-            // Types 6,7,8 comes from segmented curves as described in
-            // ICCSpecRevision_02_11_06_Float.pdf Type 6 is basically identical to type 5 without d
+            // Types 6,7,8 comes from segmented curves as described in ICCSpecRevision_02_11_06_Float.pdf
+            // Type 6 is basically identical to type 5 without d
 
             // Y = (a * X + b) ^ Gamma + c
             case 6:
@@ -971,10 +1613,10 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // ((Y - c) ^1/Gamma - b) / a
+            // X = ((Y - c) ^1/Gamma - b) / a
             case -6:
 
-                if (ap1 < determinantTolerance)
+                if ((double)Abs(p1) < determinantTolerance)
                 {
                     val = 0;
                 }
@@ -997,11 +1639,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
                     : (p1 * Log10(e)) + p4;
 
                 break;
-            // (Y - d) / a = log(b * X ^Gamma + c) pow(10, (Y-d) / a) = b * X ^Gamma + c
-            // pow((pow(10, (Y-d) / a) - c) / b, 1/g) = X
+
+            //                Y = a * log (b * X^Gamma + c) + d
+            // b * X ^Gamma + c = (Y - d) / a = log(b * X ^Gamma + c) pow(10, (Y-d) / a)
+            //                X = pow((pow(10, (Y-d) / a) - c) / b, 1/g)
             case -7:
 
-                val = ap0 < determinantTolerance || ap1 < determinantTolerance || ap2 < determinantTolerance
+                val = (double)Abs(p0) < determinantTolerance || (double)Abs(p1) < determinantTolerance || (double)Abs(p2) < determinantTolerance
                     ? 0
                     : Pow((Pow(10.0, (r - p4) / p1) - p3) / p2, 1.0 / p0);
 
@@ -1014,13 +1658,14 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
                 break;
 
-            // Y = (log((y-e) / a) / log(b) - d ) / c a=0, b=1, c=2, d=3, e=4,
+            // Y = (log((y-e) / a) / log(b) - d ) / c
+            // a = p0, b = p1, c = p2, d = p3, e = p4,
             case -8:
 
                 disc = r - p4;
                 val = disc < 0
                     ? 0
-                    : ap0 < determinantTolerance || ap2 < determinantTolerance
+                    : (double)Abs(p0) < determinantTolerance || (double)Abs(p2) < determinantTolerance
                         ? 0
                         : ((Log(disc / p0) / Log(p1)) - p3) / p2;
 
@@ -1029,14 +1674,18 @@ public sealed class ToneCurve : ICloneable, IDisposable
             // S-Shaped: (1 - (1-x)^1/g)^1/g
             case 108:
 
-                val = ap0 < determinantTolerance
+                val = (double)Abs(p0) < determinantTolerance
                     ? 0
                     : Pow(1.0 - Pow(1 - r, 1 / p0), 1 / p0);
 
                 break;
 
-            // y = (1 - (1-x)^1/g)^1/g y^g = (1 - (1-x)^1/g) 1 - y^g = (1-x)^1/g (1 - y^g)^g = 1 - x
-            // 1 - (1 - y^g)^g
+            //         Y = (1 - (1-X)^1/g)^1/g
+            //       Y^g = (1 - (1-X)^1/g)
+            //   1 - Y^g = (1-X)^1/g
+            // (1-X)^1/g = 1 - Y^g
+            //     1 - X = (1 - Y^g)^g
+            //         X = 1 - (1 - Y^g)^g
             case -108:
 
                 val = 1 - Pow(1 - Pow(r, p0), p0);
@@ -1231,6 +1880,54 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     private double EvalSegmentedFn(double r)
     {
+        /** Original Code (cmsgamma.c line: 710)
+         **
+         ** // Evaluate a segmented function for a single value. Return -Inf if no valid segment found .
+         ** // If fn type is 0, perform an interpolation on the table
+         ** static
+         ** cmsFloat64Number EvalSegmentedFn(const cmsToneCurve *g, cmsFloat64Number R)
+         ** {
+         **     int i;
+         **     cmsFloat32Number Out32;
+         **     cmsFloat64Number Out;
+         **
+         **     for (i = (int) g->nSegments - 1; i >= 0; --i) {
+         **
+         **         // Check for domain
+         **         if ((R > g->Segments[i].x0) && (R <= g->Segments[i].x1)) {
+         **
+         **             // Type == 0 means segment is sampled
+         **             if (g->Segments[i].Type == 0) {
+         **
+         **                 cmsFloat32Number R1 = (cmsFloat32Number)(R - g->Segments[i].x0) / (g->Segments[i].x1 - g->Segments[i].x0);
+         **
+         **                 // Setup the table (TODO: clean that)
+         **                 g->SegInterp[i]->Table = g->Segments[i].SampledPoints;
+         **
+         **                 g->SegInterp[i]->Interpolation.LerpFloat(&R1, &Out32, g->SegInterp[i]);
+         **                 Out = (cmsFloat64Number) Out32;
+         **
+         **             }
+         **             else {
+         **                 Out = g->Evals[i](g->Segments[i].Type, g->Segments[i].Params, R);
+         **             }
+         **
+         **             if (isinf(Out))
+         **                 return PLUS_INF;
+         **             else
+         **             {
+         **                 if (isinf(-Out))
+         **                     return MINUS_INF;
+         **             }
+         **
+         **             return Out;
+         **         }
+         **     }
+         **
+         **     return MINUS_INF;
+         ** }
+         **/
+
         double result;
 
         for (var i = NumSegments - 1; i >= 0; i--)
