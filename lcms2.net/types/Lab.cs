@@ -66,6 +66,9 @@ public struct Lab : ICloneable
     public static explicit operator LCh(Lab lab) =>
         lab.ToLCh();
 
+    public static explicit operator Vec3(Lab value) =>
+        value.ToVec();
+
     public static explicit operator XYZ(Lab lab) =>
         lab.ToXYZ();
 
@@ -119,6 +122,9 @@ public struct Lab : ICloneable
 
     public LCh ToLCh() =>
         new(L, Math.Pow(Sqr(a) + Sqr(b), 0.5), Atan2Deg(b, a));
+
+    public Vec3 ToVec() =>
+        new(L, a, b);
 
     public XYZ ToXYZ(XYZ? whitePoint = null)
     {

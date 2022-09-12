@@ -57,6 +57,9 @@ public struct xyY : ICloneable
 
     #region Public Methods
 
+    public static explicit operator Vec3(xyY value) =>
+        value.ToVec();
+
     public static explicit operator XYZ(xyY xyy) =>
         xyy.ToXYZ();
 
@@ -65,6 +68,9 @@ public struct xyY : ICloneable
 
     public object Clone() =>
            new xyY(x, y, Y);
+
+    public Vec3 ToVec() =>
+                        new(x, y, Y);
 
     public XYZ ToXYZ()
     {

@@ -60,6 +60,9 @@ public struct XYZ : ICloneable
     public static explicit operator Lab(XYZ xyz) =>
         xyz.ToLab();
 
+    public static explicit operator Vec3(XYZ xyz) =>
+        xyz.ToVec3();
+
     public static explicit operator xyY(XYZ xyz) =>
         xyz.ToxyY();
 
@@ -86,6 +89,12 @@ public struct XYZ : ICloneable
 
         return (L, a, b);
     }
+
+    public Vec3 ToVec() =>
+                                        new(X, Y, Z);
+
+    public Vec3 ToVec3() =>
+        new(X, Y, Z);
 
     public xyY ToxyY()
     {

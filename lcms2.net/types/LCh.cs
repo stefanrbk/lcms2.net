@@ -60,14 +60,20 @@ public struct LCh : ICloneable
     public static explicit operator Lab(LCh lch) =>
         lch.ToLab();
 
+    public static explicit operator Vec3(LCh value) =>
+        value.ToVec();
+
     public static implicit operator LCh((double, double, double) v) =>
-            new(v.Item1, v.Item2, v.Item3);
+                new(v.Item1, v.Item2, v.Item3);
 
     public object Clone() =>
            new LCh(L, C, h);
 
     public Lab ToLab() =>
         new(L, C * Math.Cos(h * Math.PI / 180.0), C * Math.Sin(h * Math.PI / 180.0));
+
+    public Vec3 ToVec() =>
+        new(L, C, h);
 
     #endregion Public Methods
 }

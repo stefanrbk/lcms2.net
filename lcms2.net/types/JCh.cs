@@ -57,11 +57,17 @@ public struct JCh : ICloneable
 
     #region Public Methods
 
+    public static explicit operator Vec3(JCh value) =>
+        value.ToVec();
+
     public static implicit operator JCh((double, double, double) v) =>
-        new(v.Item1, v.Item2, v.Item3);
+            new(v.Item1, v.Item2, v.Item3);
 
     public object Clone() =>
            new JCh(J, C, h);
+
+    public Vec3 ToVec() =>
+        new(J, C, h);
 
     #endregion Public Methods
 }
