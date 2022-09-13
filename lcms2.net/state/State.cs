@@ -59,6 +59,27 @@ public static class State
 
     #region Public Methods
 
+    public static (Signature Code, string Desc)[] GetSupportedIntents(int maxReturn, out int count) =>
+        GetSupportedIntents(null, maxReturn, out count);
+
+    public static (Signature Code, string Desc)[] GetSupportedIntents(object? state, int maxReturn, out int count)
+    {
+        IntentsList? pt;
+
+        var ctx = GetRenderingIntentsPlugin(state);
+        var list = new List<(Signature Code, string Desc)>();
+
+        for (count = 0, pt = ctx.intents; pt is not null; pt = pt.next)
+        {
+            if (count++ < maxReturn)
+                list.Add((pt.intent, pt.description));
+        }
+
+        // TODO: Repeat the previous for loop using RenderingIntentPluginChunk.DefaultIntents once it exists!
+
+        return list.ToArray();
+    }
+
     public static object? CreateStateContainer(Plugin? plugin = null, object? userData = null) =>
             Context.Create(plugin, userData);
 

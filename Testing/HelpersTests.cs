@@ -1,6 +1,4 @@
-﻿using static lcms2.Helpers;
-
-namespace lcms2.testing;
+﻿namespace lcms2.testing;
 
 [TestFixture(TestOf = typeof(Helpers))]
 public class HelpersTests
@@ -97,18 +95,18 @@ public class HelpersTests
         }
     }
 
-    internal void CheckQuickFloor()
+    internal static bool CheckQuickFloor()
     {
-        try
+        if (QuickFloor(1.234) is not 1 ||
+            QuickFloor(32767.234) is not 32767 ||
+            QuickFloor(-1.234) is not -2 ||
+            QuickFloor(-32767.1) is not -32767)
         {
-            QuickFloorTest(1.234, 1);
-            QuickFloorTest(32767.234, 32767);
-            QuickFloorTest(-1.234, -2);
-            QuickFloorTest(-32767.1, -32768);
-        } catch
-        {
-            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
+            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
+                "Please use the \"(No Fast Floor)\" configuration toggles.\n");
+            return false;
         }
+        return true;
     }
 
     internal void CheckQuickFloorWord()

@@ -112,7 +112,7 @@ internal class IntentsList
 
     #region Public Constructors
 
-    public IntentsList(Signature intent, string description, IntentFn link, IntentsList? next)
+    public IntentsList(Signature intent, string description, IntentFn link, IntentsList? next = null)
     {
         this.intent = intent;
         this.description = description;
@@ -121,6 +121,23 @@ internal class IntentsList
     }
 
     #endregion Public Constructors
+
+    public static IntentsList? Build(Span<IntentsList> values)
+    {
+        if (values.Length > 1)
+        {
+            values[^2].next = values[^1];
+            return Build(values[..^1]);
+        }
+        else if (values.Length == 1)
+        {
+            return values[0];
+        }
+        else
+        {
+            return null;
+        }
+    }
 }
 
 internal sealed class RenderingIntentsPluginChunk
@@ -142,6 +159,8 @@ internal sealed class RenderingIntentsPluginChunk
     #region Properties
 
     internal static RenderingIntentsPluginChunk Default => new();
+
+    // TODO: DefaultIntents: see TODO in State.GetSupportedIntents
 
     #endregion Properties
 }

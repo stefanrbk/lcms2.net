@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using lcms2.it8;
+using lcms2.state;
 using lcms2.types;
 
 using NUnit.Framework.Internal;
@@ -35,6 +36,46 @@ public static class Utils
     #endregion Properties
 
     #region Public Methods
+    public static bool CheckExhaustive()
+    {
+        Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
+        var key = WaitForKey(5000);
+        if (key.HasValue)
+        {
+            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
+            {
+                if (key.Value.Key is ConsoleKey.Enter)
+                    Console.WriteLine("N");
+                else
+                    Console.WriteLine(key.Value.KeyChar);
+                return false;
+            }
+            else if (key.Value.Key is ConsoleKey.Y)
+            {
+                Console.WriteLine(key.Value.KeyChar);
+                return true;
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+        }
+
+        return false;
+    }
+
+    public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
+        Die(text);
+
+    public static void PrintSupportedIntents()
+    {
+        var values = State.GetSupportedIntents(200, out _);
+
+        Console.WriteLine("Supported intents:");
+        foreach (var value in values)
+            Console.WriteLine($"\t{value.Code} - {value.Desc}");
+        Console.WriteLine();
+    }
 
     public static void Check(string title, Action test)
     {
@@ -161,7 +202,14 @@ public static class Utils
     [DoesNotReturn]
     public static void Die(string reason, params object[] args)
     {
-        WriteRed(() => Console.Error.WriteLine(String.Format(reason, args)));
+        WriteRed(() => Console.Error.WriteLine(String.Format($"\n{reason}", args)));
+        Environment.Exit(-1);
+    }
+
+    [DoesNotReturn]
+    public static void Die(string reason)
+    {
+        WriteRed(() => Console.Error.WriteLine($"\n{reason}"));
         Environment.Exit(-1);
     }
 

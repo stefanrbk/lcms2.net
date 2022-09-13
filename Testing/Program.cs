@@ -1,56 +1,39 @@
 ﻿using lcms2.state;
+using lcms2.testbed;
 using lcms2.testing;
-
-var exhaustive = false;
-var doSpeedTests = true;
-var doCheckTests = true;
-var doPluginTests = true;
-var doZooTests = false;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
 
-if (args.Length is 0)
+var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
+
+var exhaustive = cliResult.Value.DoExhaustive;
+var doSpeedTests = cliResult.Value.DoSpeed;
+var doCheckTests = cliResult.Value.DoChecks;
+var doPluginTests = cliResult.Value.DoPlugins;
+var doZooTests = cliResult.Value.DoZoo;
+
+if (args.Length is 0 && HasConsole)
+    exhaustive = CheckExhaustive();
+
+if (exhaustive)
 {
-    Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
-    if (!Console.IsInputRedirected)
-    {
-        var key = WaitForKey(5000);
-        if (key.HasValue)
-        {
-            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
-            {
-                exhaustive = false;
-                if (key.Value.Key is ConsoleKey.Enter)
-                    Console.WriteLine("N");
-                else
-                    Console.WriteLine(key.Value.KeyChar);
-            } else if (key.Value.Key is ConsoleKey.Y)
-            {
-                exhaustive = true;
-                Console.WriteLine(key.Value.KeyChar);
-                Console.WriteLine("Running exhaustive tests (will take a while...)");
-            }
-        } else
-            Console.WriteLine();
-    }
-}
-if (args.Contains("--exhaustive", StringComparer.OrdinalIgnoreCase))
-{
-    exhaustive = true;
     Console.WriteLine("Running exhaustive tests (will take a while...)");
     Console.WriteLine();
 }
 
 Console.WriteLine();
 Console.Write("\tInstalling error logger ... ");
-State.SetLogErrorHandler((_, __, t) => Die(t));
+State.SetLogErrorHandler(FatalErrorQuit);
 WriteLineGreen("done");
 
-Check("quick floor", new HelpersTests().CheckQuickFloor);
+PrintSupportedIntents();
+
+Check("quick floor", HelpersTests.CheckQuickFloor);
 Check("quick floor word", new HelpersTests().CheckQuickFloorWord);
 Check("Fixed point 15.16 representation", new HelpersTests().CheckFixedPoint15_16);
 Check("Fixed point 8.8 representation", new HelpersTests().CheckFixedPoint8_8);
+
 
 if (doCheckTests)
 {
