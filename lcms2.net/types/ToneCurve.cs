@@ -116,10 +116,43 @@ public sealed class ToneCurve : ICloneable, IDisposable
         table16;
 
     public bool IsDescending =>
-        table16[0] > table16[NumEntries - 1];
+        /** Original Code (cmsgamma.c line: 1375)
+         **
+         ** // Same, but for descending tables
+         ** cmsBool  CMSEXPORT cmsIsToneCurveDescending(const cmsToneCurve* t)
+         ** {
+         **     _cmsAssert(t != NULL);
+         **
+         **     return t ->Table16[0] > t ->Table16[t ->nEntries-1];
+         ** }
+         **/
+
+        table16[0] > table16[^1];
 
     public bool IsLinear
     {
+        /** Original Code (cmsgamma.c line: 1310)
+         **
+         ** // Is a table linear? Do not use parametric since we cannot guarantee some weird parameters resulting
+         ** // in a linear table. This way assures it is linear in 12 bits, which should be enough in most cases.
+         ** cmsBool CMSEXPORT cmsIsToneCurveLinear(const cmsToneCurve* Curve)
+         ** {
+         **     int i;
+         **     int diff;
+         **
+         **     _cmsAssert(Curve != NULL);
+         **
+         **     for (i=0; i < (int) Curve ->nEntries; i++) {
+         **
+         **         diff = abs((int) Curve->Table16[i] - (int) _cmsQuantizeVal(i, Curve ->nEntries));
+         **         if (diff > 0x0f)
+         **             return FALSE;
+         **     }
+         **
+         **     return TRUE;
+         ** }
+         **/
+
         get
         {
             for (var i = 0; i < NumEntries; i++)
@@ -135,6 +168,55 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public bool IsMonotonic
     {
+        /** Original Code (cmsgamma.c line: 1329)
+         **
+         ** // Same, but for monotonicity
+         ** cmsBool  CMSEXPORT cmsIsToneCurveMonotonic(const cmsToneCurve* t)
+         ** {
+         **     cmsUInt32Number n;
+         **     int i, last;
+         **     cmsBool lDescending;
+         **
+         **     _cmsAssert(t != NULL);
+         **
+         **     // Degenerated curves are monotonic? Ok, let's pass them
+         **     n = t ->nEntries;
+         **     if (n < 2) return TRUE;
+         **
+         **     // Curve direction
+         **     lDescending = cmsIsToneCurveDescending(t);
+         **
+         **     if (lDescending) {
+         **
+         **         last = t ->Table16[0];
+         **
+         **         for (i = 1; i < (int) n; i++) {
+         **
+         **             if (t ->Table16[i] - last > 2) // We allow some ripple
+         **                 return FALSE;
+         **             else
+         **                 last = t ->Table16[i];
+         **
+         **         }
+         **     }
+         **     else {
+         **
+         **         last = t ->Table16[n-1];
+         **
+         **         for (i = (int) n - 2; i >= 0; --i) {
+         **
+         **             if (t ->Table16[i] - last > 2)
+         **                 return FALSE;
+         **             else
+         **                 last = t ->Table16[i];
+         **
+         **         }
+         **     }
+         **
+         **     return TRUE;
+         ** }
+         **/
+
         get
         {
             // Degenerated curves are monotonic? Ok, let's pass them
@@ -158,7 +240,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
             }
             else
             {
-                var last = table16[n - 1];
+                var last = table16[^1];
 
                 for (var i = n - 2; i >= 0; i--)
                 {
@@ -173,7 +255,18 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
 
     public bool IsMultisegment =>
-           NumSegments > 1;
+        /** Original Code (cmsgamma.c line: 1384)
+        **
+        ** // Another info fn: is out gamma table multisegment?
+        **  cmsBool  CMSEXPORT cmsIsToneCurveMultisegment(const cmsToneCurve* t)
+        **  {
+        **  _cmsAssert(t != NULL);
+        **
+        **  return t -> nSegments > 1;
+        **  }
+        **/
+
+       NumSegments > 1;
 
     public uint NumEntries =>
         /** Original Code (cmsgamma.c line: 755)
@@ -189,12 +282,38 @@ public sealed class ToneCurve : ICloneable, IDisposable
         (uint)table16.Length;
 
     public int ParametricType =>
-           NumSegments == 1
-               ? segments[0].Type
-                 : 0;
+        /** Original Code (cmsgamma.c line: 1392)
+         **
+         ** cmsInt32Number  CMSEXPORT cmsGetToneCurveParametricType(const cmsToneCurve* t)
+         ** {
+         **     _cmsAssert(t != NULL);
+         **
+         **     if (t -> nSegments != 1) return 0;
+         **     return t ->Segments[0].Type;
+         ** }
+         **/
 
-    public double[] Params =>
-           segments[0].Params;
+        NumSegments == 1
+            ? segments[0].Type
+              : 0;
+
+    public double[]? Params =>
+        /** Original Code (cmsgamma.c line: 1486)
+         **
+         ** // Retrieve parameters on one-segment tone curves
+         **
+         ** cmsFloat64Number* CMSEXPORT cmsGetToneCurveParams(const cmsToneCurve* t)
+         ** {
+         **     _cmsAssert(t != NULL);
+         **
+         **     if (t->nSegments != 1) return NULL;
+         **     return t->Segments[0].Params;
+         ** }
+         **/
+
+        NumSegments is 1
+            ? segments[0].Params
+            : null;
 
     internal int NumSegments =>
                      segments.Length;
@@ -204,7 +323,16 @@ public sealed class ToneCurve : ICloneable, IDisposable
     #region Public Methods
 
     public static ToneCurve? BuildGamma(object? state, double gamma) =>
-               BuildParametric(state, 1, gamma);
+        /** Original Code (cmsgamma.c line: 892)
+         **
+         ** // Build a gamma table based on gamma constant
+         ** cmsToneCurve* CMSEXPORT cmsBuildGamma(cmsContext ContextID, cmsFloat64Number Gamma)
+         ** {
+         **     return cmsBuildParametricToneCurve(ContextID, 1, &Gamma);
+         ** }
+         **/
+
+        BuildParametric(state, 1, gamma);
 
     public static ToneCurve? BuildParametric(object? state, int type, params double[] @params)
     {
@@ -437,6 +565,22 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public static void DisposeTriple(ToneCurve?[] curves)
     {
+        /** Original Code (cmsgamma.c line: 937)
+         **
+         ** // Utility function, free 3 gamma tables
+         ** void CMSEXPORT cmsFreeToneCurveTriple(cmsToneCurve* Curve[3])
+         ** {
+         **
+         **     _cmsAssert(Curve != NULL);
+         **
+         **     if (Curve[0] != NULL) cmsFreeToneCurve(Curve[0]);
+         **     if (Curve[1] != NULL) cmsFreeToneCurve(Curve[1]);
+         **     if (Curve[2] != NULL) cmsFreeToneCurve(Curve[2]);
+         **
+         **     Curve[0] = Curve[1] = Curve[2] = NULL;
+         ** }
+         **/
+
         Debug.Assert(curves.Length == 3);
 
         curves[0]?.Dispose();
@@ -445,6 +589,17 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
 
     public object Clone() =>
+        /** Original Code (cmsgamma.c line: )
+         **
+         ** // Duplicate a gamma table
+         ** cmsToneCurve* CMSEXPORT cmsDupToneCurve(const cmsToneCurve* In)
+         ** {
+         **     if (In == NULL) return NULL;
+         **
+         **     return  AllocateToneCurveStruct(In ->InterpParams ->ContextID, In ->nEntries, In ->nSegments, In ->Segments, In ->Table16);
+         ** }
+         **/
+
         table16.Length > 0
             ? Alloc(interpParams?.StateContainer, table16)!
             : segments.Length > 0
@@ -453,6 +608,47 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public void Dispose()
     {
+        /** Original Code (cmsgamma.c line: 899)
+         **
+         ** // Free all memory taken by the gamma curve
+         ** void CMSEXPORT cmsFreeToneCurve(cmsToneCurve* Curve)
+         ** {
+         **     cmsContext ContextID;
+         **
+         **     if (Curve == NULL) return;
+         **
+         **     ContextID = Curve ->InterpParams->ContextID;
+         **
+         **     _cmsFreeInterpParams(Curve ->InterpParams);
+         **
+         **     if (Curve -> Table16)
+         **         _cmsFree(ContextID, Curve ->Table16);
+         **
+         **     if (Curve ->Segments) {
+         **
+         **         cmsUInt32Number i;
+         **
+         **         for (i=0; i < Curve ->nSegments; i++) {
+         **
+         **             if (Curve ->Segments[i].SampledPoints) {
+         **                 _cmsFree(ContextID, Curve ->Segments[i].SampledPoints);
+         **             }
+         **
+         **             if (Curve ->SegInterp[i] != 0)
+         **                 _cmsFreeInterpParams(Curve->SegInterp[i]);
+         **         }
+         **
+         **         _cmsFree(ContextID, Curve ->Segments);
+         **         _cmsFree(ContextID, Curve ->SegInterp);
+         **     }
+         **
+         **     if (Curve -> Evals)
+         **         _cmsFree(ContextID, Curve -> Evals);
+         **
+         **     _cmsFree(ContextID, Curve);
+         ** }
+         **/
+
         if (!_disposed)
         {
             table16 = null!;
@@ -474,6 +670,63 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public double EstimateGamma(double precision)
     {
+        /** Original Code (cmsgamma.c line: 1431)
+         **
+         ** // Least squares fitting.
+         ** // A mathematical procedure for finding the best-fitting curve to a given set of points by
+         ** // minimizing the sum of the squares of the offsets ("the residuals") of the points from the curve.
+         ** // The sum of the squares of the offsets is used instead of the offset absolute values because
+         ** // this allows the residuals to be treated as a continuous differentiable quantity.
+         ** //
+         ** // y = f(x) = x ^ g
+         ** //
+         ** // R  = (yi - (xi^g))
+         ** // R2 = (yi - (xi^g))2
+         ** // SUM R2 = SUM (yi - (xi^g))2
+         ** //
+         ** // dR2/dg = -2 SUM x^g log(x)(y - x^g)
+         ** // solving for dR2/dg = 0
+         ** //
+         ** // g = 1/n * SUM(log(y) / log(x))
+         **
+         ** cmsFloat64Number CMSEXPORT cmsEstimateGamma(const cmsToneCurve* t, cmsFloat64Number Precision)
+         ** {
+         **     cmsFloat64Number gamma, sum, sum2;
+         **     cmsFloat64Number n, x, y, Std;
+         **     cmsUInt32Number i;
+         **
+         **     _cmsAssert(t != NULL);
+         **
+         **     sum = sum2 = n = 0;
+         **
+         **     // Excluding endpoints
+         **     for (i=1; i < (MAX_NODES_IN_CURVE-1); i++) {
+         **
+         **         x = (cmsFloat64Number) i / (MAX_NODES_IN_CURVE-1);
+         **         y = (cmsFloat64Number) cmsEvalToneCurveFloat(t, (cmsFloat32Number) x);
+         **
+         **         // Avoid 7% on lower part to prevent
+         **         // artifacts due to linear ramps
+         **
+         **         if (y > 0. && y < 1. && x > 0.07) {
+         **
+         **             gamma = log(y) / log(x);
+         **             sum  += gamma;
+         **             sum2 += gamma * gamma;
+         **             n++;
+         **         }
+         **     }
+         **
+         **     // Take a look on SD to see if gamma isn't exponential at all
+         **     Std = sqrt((n * sum2 - sum * sum) / (n*(n-1)));
+         **
+         **     if (Std > Precision)
+         **         return -1.0;
+         **
+         **     return (sum / n);   // The mean
+         ** }
+         **/
+
         var sum = 0d;
         var sum2 = 0d;
         var n = 0d;
@@ -504,6 +757,28 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public float Eval(float v)
     {
+        /** Original Code (cmsgamma.c line: 1400)
+         **
+         ** // We need accuracy this time
+         ** cmsFloat32Number CMSEXPORT cmsEvalToneCurveFloat(const cmsToneCurve* Curve, cmsFloat32Number v)
+         ** {
+         **     _cmsAssert(Curve != NULL);
+         **
+         **     // Check for 16 bits table. If so, this is a limited-precision tone curve
+         **     if (Curve ->nSegments == 0) {
+         **
+         **         cmsUInt16Number In, Out;
+         **
+         **         In = (cmsUInt16Number) _cmsQuickSaturateWord(v * 65535.0);
+         **         Out = cmsEvalToneCurve16(Curve, In);
+         **
+         **         return (cmsFloat32Number) (Out / 65535.0);
+         **     }
+         **
+         **     return (cmsFloat32Number) EvalSegmentedFn(Curve, v);
+         ** }
+         **/
+
         // Check for 16 bit table. If so, this is a limited-precision tone curve
         if (NumSegments == 0)
         {
@@ -518,6 +793,20 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public ushort Eval(ushort v)
     {
+        /** Original Code (cmsgamma.c line: 1419)
+         **
+         ** // We need xput over here
+         ** cmsUInt16Number CMSEXPORT cmsEvalToneCurve16(const cmsToneCurve* Curve, cmsUInt16Number v)
+         ** {
+         **     cmsUInt16Number out;
+         **
+         **     _cmsAssert(Curve != NULL);
+         **
+         **     Curve ->InterpParams ->Interpolation.Lerp16(&v, &out, Curve ->InterpParams);
+         **     return out;
+         ** }
+         **/
+
         var i = new ushort[] { v };
         var o = new ushort[1];
 
@@ -528,6 +817,53 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     public ToneCurve? Join(object? state, ToneCurve Y, uint numResultingPoints)
     {
+        /** Original Code (cmsgamma.c line: )
+         **
+         ** // Joins two curves for X and Y. Curves should be monotonic.
+         ** // We want to get
+         ** //
+         ** //      y = Y^-1(X(t))
+         ** //
+         ** cmsToneCurve* CMSEXPORT cmsJoinToneCurve(cmsContext ContextID,
+         **                                       const cmsToneCurve* X,
+         **                                       const cmsToneCurve* Y, cmsUInt32Number nResultingPoints)
+         ** {
+         **     cmsToneCurve* out = NULL;
+         **     cmsToneCurve* Yreversed = NULL;
+         **     cmsFloat32Number t, x;
+         **     cmsFloat32Number* Res = NULL;
+         **     cmsUInt32Number i;
+         **
+         **
+         **     _cmsAssert(X != NULL);
+         **     _cmsAssert(Y != NULL);
+         **
+         **     Yreversed = cmsReverseToneCurveEx(nResultingPoints, Y);
+         **     if (Yreversed == NULL) goto Error;
+         **
+         **     Res = (cmsFloat32Number*) _cmsCalloc(ContextID, nResultingPoints, sizeof(cmsFloat32Number));
+         **     if (Res == NULL) goto Error;
+         **
+         **     //Iterate
+         **     for (i=0; i <  nResultingPoints; i++) {
+         **
+         **         t = (cmsFloat32Number) i / (cmsFloat32Number)(nResultingPoints-1);
+         **         x = cmsEvalToneCurveFloat(X,  t);
+         **         Res[i] = cmsEvalToneCurveFloat(Yreversed, x);
+         **     }
+         **
+         **     // Allocate space for output
+         **     out = cmsBuildTabulatedToneCurveFloat(ContextID, nResultingPoints, Res);
+         **
+         ** Error:
+         **
+         **     if (Res != NULL) _cmsFree(ContextID, Res);
+         **     if (Yreversed != NULL) cmsFreeToneCurve(Yreversed);
+         **
+         **     return out;
+         ** }
+         **/
+
         var X = this;
         ToneCurve? result = null;
 
@@ -552,8 +888,86 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return result;
     }
 
-    public ToneCurve? Reverse(uint numResultSamples)
+    public ToneCurve? Reverse(uint numResultSamples = 4096)
     {
+        /** Original Code (cmsgamma.c line: 1053)
+         **
+         ** // Reverse a gamma table
+         ** cmsToneCurve* CMSEXPORT cmsReverseToneCurveEx(cmsUInt32Number nResultSamples, const cmsToneCurve* InCurve)
+         ** {
+         **     cmsToneCurve *out;
+         **     cmsFloat64Number a = 0, b = 0, y, x1, y1, x2, y2;
+         **     int i, j;
+         **     int Ascending;
+         **
+         **     _cmsAssert(InCurve != NULL);
+         **
+         **     // Try to reverse it analytically whatever possible
+         **
+         **     if (InCurve ->nSegments == 1 && InCurve ->Segments[0].Type > 0 && 
+         **         /* InCurve -> Segments[0].Type <= 5 *\
+         **         GetParametricCurveByType(InCurve ->InterpParams->ContextID, InCurve ->Segments[0].Type, NULL) != NULL) {
+         **
+         **         return cmsBuildParametricToneCurve(InCurve ->InterpParams->ContextID,
+         **                                        -(InCurve -> Segments[0].Type),
+         **                                        InCurve -> Segments[0].Params);
+         **     }
+         **
+         **     // Nope, reverse the table.
+         **     out = cmsBuildTabulatedToneCurve16(InCurve ->InterpParams->ContextID, nResultSamples, NULL);
+         **     if (out == NULL)
+         **         return NULL;
+         **
+         **     // We want to know if this is an ascending or descending table
+         **     Ascending = !cmsIsToneCurveDescending(InCurve);
+         **
+         **     // Iterate across Y axis
+         **     for (i=0; i < (int) nResultSamples; i++) {
+         **
+         **         y = (cmsFloat64Number) i * 65535.0 / (nResultSamples - 1);
+         **
+         **         // Find interval in which y is within.
+         **         j = GetInterval(y, InCurve->Table16, InCurve->InterpParams);
+         **         if (j >= 0) {
+         **
+         **
+         **             // Get limits of interval
+         **             x1 = InCurve ->Table16[j];
+         **             x2 = InCurve ->Table16[j+1];
+         **
+         **             y1 = (cmsFloat64Number) (j * 65535.0) / (InCurve ->nEntries - 1);
+         **             y2 = (cmsFloat64Number) ((j+1) * 65535.0 ) / (InCurve ->nEntries - 1);
+         **
+         **             // If collapsed, then use any
+         **             if (x1 == x2) {
+         **
+         **                 out ->Table16[i] = _cmsQuickSaturateWord(Ascending ? y2 : y1);
+         **                 continue;
+         **
+         **             } else {
+         **
+         **                 // Interpolate
+         **                 a = (y2 - y1) / (x2 - x1);
+         **                 b = y2 - a * x2;
+         **             }
+         **         }
+         **
+         **         out ->Table16[i] = _cmsQuickSaturateWord(a* y + b);
+         **     }
+         **
+         **
+         **     return out;
+         ** }
+         **
+         ** // Reverse a gamma table
+         ** cmsToneCurve* CMSEXPORT cmsReverseToneCurve(const cmsToneCurve* InGamma)
+         ** {
+         **     _cmsAssert(InGamma != NULL);
+         **
+         **     return cmsReverseToneCurveEx(4096, InGamma);
+         ** }
+         **/
+
         var a = 0.0;
         var b = 0.0;
 
@@ -609,11 +1023,126 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return result;
     }
 
-    public ToneCurve? Reverse() =>
-           Reverse(4096);
-
     public bool Smooth(double lambda)
     {
+        /** Original Code (cmsgamma.c line: 1195)
+         **
+         ** // Smooths a curve sampled at regular intervals.
+         ** cmsBool  CMSEXPORT cmsSmoothToneCurve(cmsToneCurve* Tab, cmsFloat64Number lambda)
+         ** {
+         **     cmsBool SuccessStatus = TRUE;
+         **     cmsFloat32Number *w, *y, *z;
+         **     cmsUInt32Number i, nItems, Zeros, Poles;
+         **     cmsBool notCheck = FALSE;
+         **
+         **     if (Tab != NULL && Tab->InterpParams != NULL)
+         **     {
+         **         cmsContext ContextID = Tab->InterpParams->ContextID;
+         **
+         **         if (!cmsIsToneCurveLinear(Tab)) // Only non-linear curves need smoothing
+         **         {
+         **             nItems = Tab->nEntries;
+         **             if (nItems < MAX_NODES_IN_CURVE)
+         **             {
+         **                 // Allocate one more item than needed
+         **                 w = (cmsFloat32Number *)_cmsCalloc(ContextID, nItems + 1, sizeof(cmsFloat32Number));
+         **                 y = (cmsFloat32Number *)_cmsCalloc(ContextID, nItems + 1, sizeof(cmsFloat32Number));
+         **                 z = (cmsFloat32Number *)_cmsCalloc(ContextID, nItems + 1, sizeof(cmsFloat32Number));
+         **
+         **                 if (w != NULL && y != NULL && z != NULL) // Ensure no memory allocation failure
+         **                 {
+         **                     memset(w, 0, (nItems + 1) * sizeof(cmsFloat32Number));
+         **                     memset(y, 0, (nItems + 1) * sizeof(cmsFloat32Number));
+         **                     memset(z, 0, (nItems + 1) * sizeof(cmsFloat32Number));
+         **
+         **                     for (i = 0; i < nItems; i++)
+         **                     {
+         **                         y[i + 1] = (cmsFloat32Number)Tab->Table16[i];
+         **                         w[i + 1] = 1.0;
+         **                     }
+         **
+         **                     if (lambda < 0)
+         **                     {
+         **                         notCheck = TRUE;
+         **                         lambda = -lambda;
+         **                     }
+         **
+         **                     if (smooth2(ContextID, w, y, z, (cmsFloat32Number)lambda, (int)nItems))
+         **                     {
+         **                         // Do some reality - checking...
+         **
+         **                         Zeros = Poles = 0;
+         **                         for (i = nItems; i > 1; --i)
+         **                         {
+         **                             if (z[i] == 0.) Zeros++;
+         **                             if (z[i] >= 65535.) Poles++;
+         **                             if (z[i] < z[i - 1])
+         **                             {
+         **                                 cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Non-Monotonic.");
+         **                                 SuccessStatus = notCheck;
+         **                                 break;
+         **                             }
+         **                         }
+         **
+         **                         if (SuccessStatus && Zeros > (nItems / 3))
+         **                         {
+         **                             cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Degenerated, mostly zeros.");
+         **                             SuccessStatus = notCheck;
+         **                         }
+         **
+         **                         if (SuccessStatus && Poles > (nItems / 3))
+         **                         {
+         **                             cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Degenerated, mostly poles.");
+         **                             SuccessStatus = notCheck;
+         **                         }
+         **
+         **                         if (SuccessStatus) // Seems ok
+         **                         {
+         **                             for (i = 0; i < nItems; i++)
+         **                             {
+         **                                 // Clamp to cmsUInt16Number
+         **                                 Tab->Table16[i] = _cmsQuickSaturateWord(z[i + 1]);
+         **                             }
+         **                         }
+         **                     }
+         **                     else // Could not smooth
+         **                     {
+         **                         cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Function smooth2 failed.");
+         **                         SuccessStatus = FALSE;
+         **                     }
+         **                 }
+         **                 else // One or more buffers could not be allocated
+         **                 {
+         **                     cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Could not allocate memory.");
+         **                     SuccessStatus = FALSE;
+         **                 }
+         **
+         **                 if (z != NULL)
+         **                     _cmsFree(ContextID, z);
+         **
+         **                 if (y != NULL)
+         **                     _cmsFree(ContextID, y);
+         **
+         **                 if (w != NULL)
+         **                     _cmsFree(ContextID, w);
+         **             }
+         **             else // too many items in the table
+         **             {
+         **                 cmsSignalError(ContextID, cmsERROR_RANGE, "cmsSmoothToneCurve: Too many points.");
+         **                 SuccessStatus = FALSE;
+         **             }
+         **         }
+         **     }
+         **     else // Tab parameter or Tab->InterpParams is NULL
+         **     {
+         **         // Can't signal an error here since the ContextID is not known at this point
+         **         SuccessStatus = FALSE;
+         **     }
+         **
+         **     return SuccessStatus;
+         ** }
+         **/
+
         var successStatus = true;
 
         if (interpParams is not null)
@@ -645,47 +1174,43 @@ public sealed class ToneCurve : ICloneable, IDisposable
                             lambda = -lambda;
                         }
 
-                        if (Smooth2(w, y, z, (float)lambda, (int)numItems))
+                        Smooth(w, y, z, (float)lambda, (int)numItems);
+
+                        // Do some reality checking...
+
+                        var zeros = 0;
+                        var poles = 0;
+                        for (var i = numItems; i > 1; i--)
                         {
-                            // Do some reality checking...
-
-                            var zeros = 0;
-                            var poles = 0;
-                            for (var i = numItems; i > 1; i--)
+                            if (z[i] == 0f) zeros++;
+                            if (z[i] >= 65535f) poles++;
+                            if (z[i] < z[i - 1])
                             {
-                                if (z[i] == 0f) zeros++;
-                                if (z[i] >= 65535f) poles++;
-                                if (z[i] < z[i - 1])
-                                {
-                                    Errors.ToneCurveSmoothNonMonotonic(context);
-                                    successStatus = notCheck;
-                                    break;
-                                }
-                            }
-
-                            if (successStatus && zeros > (numItems / 3))
-                            {
-                                Errors.ToneCurveSmoothMostlyZeros(context);
+                                Errors.ToneCurveSmoothNonMonotonic(context);
                                 successStatus = notCheck;
-                            }
-
-                            if (successStatus && poles > (numItems / 3))
-                            {
-                                Errors.ToneCurveSmoothMostlyPoles(context);
-                                successStatus = notCheck;
-                            }
-
-                            if (successStatus)
-                            { // Seems ok
-                                for (var i = 0; i < numItems; i++)
-                                    // Clamp to ushort
-                                    table16[i] = QuickSaturateWord(z[i + 1]);
+                                break;
                             }
                         }
-                        else
-                        { // Could not smooth
-                            Errors.ToneCurveSmoothFailed(context);
-                            successStatus = false;
+
+                        if (successStatus && zeros > (numItems / 3))
+                        {
+                            Errors.ToneCurveSmoothMostlyZeros(context);
+                            successStatus = notCheck;
+                        }
+
+                        if (successStatus && poles > (numItems / 3))
+                        {
+                            Errors.ToneCurveSmoothMostlyPoles(context);
+                            successStatus = notCheck;
+                        }
+
+                        if (successStatus)
+                        { // Seems ok
+                            for (var i = 0; i < numItems; i++)
+                            {
+                                // Clamp to ushort
+                                table16[i] = QuickSaturateWord(z[i + 1]);
+                            }
                         }
                     }
                 }
@@ -1730,6 +2255,57 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     private static int GetInterval(double @in, ushort[] lutTable, InterpParams p)
     {
+        /** Original Code (cmsgamma.c line: )
+         **
+         ** // Get the surrounding nodes. This is tricky on non-monotonic tables
+         ** static
+         ** int GetInterval(cmsFloat64Number In, const cmsUInt16Number LutTable[], const struct _cms_interp_struc* p)
+         ** {
+         **     int i;
+         **     int y0, y1;
+         **
+         **     // A 1 point table is not allowed
+         **     if (p -> Domain[0] < 1) return -1;
+         **
+         **     // Let's see if ascending or descending.
+         **     if (LutTable[0] < LutTable[p ->Domain[0]]) {
+         **
+         **         // Table is overall ascending
+         **         for (i = (int) p->Domain[0] - 1; i >= 0; --i) {
+         **
+         **             y0 = LutTable[i];
+         **             y1 = LutTable[i+1];
+         **
+         **             if (y0 <= y1) { // Increasing
+         **                 if (In >= y0 && In <= y1) return i;
+         **             }
+         **             else
+         **                 if (y1 < y0) { // Decreasing
+         **                     if (In >= y1 && In <= y0) return i;
+         **                 }
+         **         }
+         **     }
+         **     else {
+         **         // Table is overall descending
+         **         for (i=0; i < (int) p -> Domain[0]; i++) {
+         **
+         **             y0 = LutTable[i];
+         **             y1 = LutTable[i+1];
+         **
+         **             if (y0 <= y1) { // Increasing
+         **                 if (In >= y0 && In <= y1) return i;
+         **             }
+         **             else
+         **                 if (y1 < y0) { // Decreasing
+         **                     if (In >= y1 && In <= y0) return i;
+         **                 }
+         **         }
+         **     }
+         **
+         **     return -1;
+         ** }
+         **/
+
         // A 1 point table is not allowed
         if (p.Domain[0] < 1) return -1;
 
@@ -1835,8 +2411,78 @@ public sealed class ToneCurve : ICloneable, IDisposable
         return (correction * SigmoidBase(k, (2.0 * t) - 1.0)) + 0.5;
     }
 
-    private static bool Smooth2(float[] w, float[] y, float[] z, float lambda, int m)
+    private static void Smooth(float[] w, float[] y, float[] z, float lambda, int m)
     {
+        /** Original Code (cmsgamma.c line: 1128)
+         **
+         ** // From: Eilers, P.H.C. (1994) Smoothing and interpolation with finite
+         ** // differences. in: Graphic Gems IV, Heckbert, P.S. (ed.), Academic press.
+         ** //
+         ** // Smoothing and interpolation with second differences.
+         ** //
+         ** //   Input:  weights (w), data (y): vector from 1 to m.
+         ** //   Input:  smoothing parameter (lambda), length (m).
+         ** //   Output: smoothed vector (z): vector from 1 to m.
+         **
+         ** static
+         ** cmsBool smooth2(cmsContext ContextID, cmsFloat32Number w[], cmsFloat32Number y[], 
+         **                 cmsFloat32Number z[], cmsFloat32Number lambda, int m)
+         ** {
+         **     int i, i1, i2;
+         **     cmsFloat32Number *c, *d, *e;
+         **     cmsBool st;
+         **
+         **
+         **     c = (cmsFloat32Number*) _cmsCalloc(ContextID, MAX_NODES_IN_CURVE, sizeof(cmsFloat32Number));
+         **     d = (cmsFloat32Number*) _cmsCalloc(ContextID, MAX_NODES_IN_CURVE, sizeof(cmsFloat32Number));
+         **     e = (cmsFloat32Number*) _cmsCalloc(ContextID, MAX_NODES_IN_CURVE, sizeof(cmsFloat32Number));
+         **
+         **     if (c != NULL && d != NULL && e != NULL) {
+         **
+         **
+         **     d[1] = w[1] + lambda;
+         **     c[1] = -2 * lambda / d[1];
+         **     e[1] = lambda /d[1];
+         **     z[1] = w[1] * y[1];
+         **     d[2] = w[2] + 5 * lambda - d[1] * c[1] *  c[1];
+         **     c[2] = (-4 * lambda - d[1] * c[1] * e[1]) / d[2];
+         **     e[2] = lambda / d[2];
+         **     z[2] = w[2] * y[2] - c[1] * z[1];
+         **
+         **     for (i = 3; i < m - 1; i++) {
+         **         i1 = i - 1; i2 = i - 2;
+         **         d[i]= w[i] + 6 * lambda - c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+         **         c[i] = (-4 * lambda -d[i1] * c[i1] * e[i1])/ d[i];
+         **         e[i] = lambda / d[i];
+         **         z[i] = w[i] * y[i] - c[i1] * z[i1] - e[i2] * z[i2];
+         **     }
+         **
+         **     i1 = m - 2; i2 = m - 3;
+         **
+         **     d[m - 1] = w[m - 1] + 5 * lambda -c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+         **     c[m - 1] = (-2 * lambda - d[i1] * c[i1] * e[i1]) / d[m - 1];
+         **     z[m - 1] = w[m - 1] * y[m - 1] - c[i1] * z[i1] - e[i2] * z[i2];
+         **     i1 = m - 1; i2 = m - 2;
+         **
+         **     d[m] = w[m] + lambda - c[i1] * c[i1] * d[i1] - e[i2] * e[i2] * d[i2];
+         **     z[m] = (w[m] * y[m] - c[i1] * z[i1] - e[i2] * z[i2]) / d[m];
+         **     z[m - 1] = z[m - 1] / d[m - 1] - c[m - 1] * z[m];
+         **
+         **     for (i = m - 2; 1<= i; i--)
+         **         z[i] = z[i] / d[i] - c[i] * z[i + 1] - e[i] * z[i + 2];
+         **
+         **       st = TRUE;
+         **     }
+         **     else st = FALSE;
+         **
+         **     if (c != NULL) _cmsFree(ContextID, c);
+         **     if (d != NULL) _cmsFree(ContextID, d);
+         **     if (e != NULL) _cmsFree(ContextID, e);
+         **
+         **     return st;
+         ** }
+         **/
+
         int i, i1, i2;
 
         var c = new float[maxNodesInCurve];
@@ -1874,8 +2520,6 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         for (i = m - 2; 1 <= i; i--)
             z[i] = (z[i] / d[i]) - (c[i] * z[i + 1]) - (e[i] * z[i + 2]);
-
-        return true;
     }
 
     private double EvalSegmentedFn(double r)
