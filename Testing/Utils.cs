@@ -23,6 +23,7 @@ public static class Utils
     public static string subTest = String.Empty;
     public static int totalFail = 0;
     public static int totalTests = 0;
+    public static bool TrappedError;
 
     #endregion Fields
 
@@ -65,6 +66,39 @@ public static class Utils
                 totalFail++;
             });
             reasonToFail = String.Empty;
+            subTest = String.Empty;
+        }
+    }
+
+    public static void Check(string title, Func<bool> test)
+    {
+        if (HasConsole)
+            Console.Write("\tChecking {0} ... ", title);
+
+        simultaneousErrors = 0;
+        reasonToFail = String.Empty;
+        subTest = String.Empty;
+        totalTests++;
+
+        if (test() && !TrappedError)
+        {
+            WriteLineGreen("Ok.");
+        }
+        else
+        {
+            WriteRed(() =>
+            {
+                Console.Error.WriteLine("FAIL!");
+                if (!String.IsNullOrEmpty(subTest))
+                    Console.Error.WriteLine("{0}: [{1}]\n\t\t{2}", title, subTest, reasonToFail);
+                else
+                    Console.Error.WriteLine("{0}:\n\t\t{1}", title, reasonToFail);
+
+                if (simultaneousErrors > 1)
+                    Console.Error.WriteLine("\t\tMore than one ({0}) errors were reported", simultaneousErrors);
+
+                totalFail++;
+            });
         }
     }
 
