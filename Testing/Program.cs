@@ -1,6 +1,8 @@
 ﻿using lcms2.state;
 using lcms2.testbed;
 
+using interp = lcms2.testbed.InterpolationTests;
+
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
 
@@ -36,86 +38,86 @@ Check("Fixed point 8.8 representation", HelpersTests.CheckFixedPoint8_8);
 
 if (doCheckTests)
 {
-    var interp = new InterpolationTests();
-    interp.Setup();
+    var interpolation = new InterpolationTests();
+    interpolation.Setup();
 
     Console.WriteLine("\nForward 1D interpolation");
-    Check("1D interpolation in 2pt tables", () => interp.Check1DTest(2, false, 0));
-    Check("1D interpolation in 3pt tables", () => interp.Check1DTest(3, false, 1));
-    Check("1D interpolation in 4pt tables", () => interp.Check1DTest(4, false, 0));
-    Check("1D interpolation in 6pt tables", () => interp.Check1DTest(6, false, 0));
-    Check("1D interpolation in 18pt tables", () => interp.Check1DTest(18, false, 0));
-    Check("1D interpolation in descending 2pt tables", () => interp.Check1DTest(2, true, 0));
-    Check("1D interpolation in descending 3pt tables", () => interp.Check1DTest(3, true, 1));
-    Check("1D interpolation in descending 6pt tables", () => interp.Check1DTest(6, true, 0));
-    Check("1D interpolation in descending 18pt tables", () => interp.Check1DTest(18, true, 0));
+    Check("1D interpolation in 2pt tables", interp.Check1DLerp2);
+    Check("1D interpolation in 3pt tables", interp.Check1DLerp3);
+    Check("1D interpolation in 4pt tables", interp.Check1DLerp4);
+    Check("1D interpolation in 6pt tables", interp.Check1DLerp6);
+    Check("1D interpolation in 18pt tables", interp.Check1DLerp18);
+    Check("1D interpolation in descending 2pt tables", interp.Check1DLerp2Down);
+    Check("1D interpolation in descending 3pt tables", interp.Check1DLerp3Down);
+    Check("1D interpolation in descending 6pt tables", interp.Check1DLerp4Down);
+    Check("1D interpolation in descending 18pt tables", interp.Check1DLerp18Down);
 
     if (exhaustive)
     {
-        Check("1D interpolation in n tables", () => CheckInterp1D(interp.ExhaustiveCheck1DTest));
-        Check("1D interpolation in descending tables", () => CheckInterp1D(interp.ExhaustiveCheck1DDownTest));
+        Check("1D interpolation in n tables", interp.ExhaustiveCheck1DLerp);
+        Check("1D interpolation in descending tables", interp.ExhaustiveCheck1DLerpDown);
     }
 
     Console.WriteLine("\nForward 3D interpolation");
-    Check("3D interpolation Tetrahedral (float)", interp.Check3DInterpolationFloatTetrahedralTest);
-    Check("3D interpolation Trilinear (float)", interp.Check3DInterpolationFloatTrilinearTest);
-    Check("3D interpolation Tetrahedral (16)", interp.Check3DInterpolation16TetrahedralTest);
-    Check("3D interpolation Trilinear (16)", interp.Check3DInterpolation16TrilinearTest);
+    Check("3D interpolation Tetrahedral (float)", interpolation.Check3DInterpolationFloatTetrahedralTest);
+    Check("3D interpolation Trilinear (float)", interpolation.Check3DInterpolationFloatTrilinearTest);
+    Check("3D interpolation Tetrahedral (16)", interpolation.Check3DInterpolation16TetrahedralTest);
+    Check("3D interpolation Trilinear (16)", interpolation.Check3DInterpolation16TrilinearTest);
 
     if (exhaustive)
     {
-        Check("Exhaustive 3D interpolation Tetrahedral (float)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolationFloatTetrahedralTest));
-        Check("Exhaustive 3D interpolation Trilinear (float)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolationFloatTrilinearTest));
-        Check("Exhaustive 3D interpolation Tetrahedral (16)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolation16TetrahedralTest));
-        Check("Exhaustive 3D interpolation Trilinear (16)", () => CheckInterp3D(interp.ExhaustiveCheck3DInterpolation16TrilinearTest));
+        Check("Exhaustive 3D interpolation Tetrahedral (float)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolationFloatTetrahedralTest));
+        Check("Exhaustive 3D interpolation Trilinear (float)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolationFloatTrilinearTest));
+        Check("Exhaustive 3D interpolation Tetrahedral (16)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolation16TetrahedralTest));
+        Check("Exhaustive 3D interpolation Trilinear (16)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolation16TrilinearTest));
     }
 
-    Check("Reverse interpolation 3 -> 3", interp.CheckReverseInterpolation3x3Test);
-    Check("Reverse interpolation 4 -> 3", interp.CheckReverseInterpolation4x3Test);
+    Check("Reverse interpolation 3 -> 3", interpolation.CheckReverseInterpolation3x3Test);
+    Check("Reverse interpolation 4 -> 3", interpolation.CheckReverseInterpolation4x3Test);
 
     Console.WriteLine("\nHigh dimensionality interpolation");
     Check("3D interpolation", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXD(3))
-            interp.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
+            interpolation.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
     }));
     Check("3D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(3))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
     Check("4D interpolation", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXD(4))
-            interp.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
+            interpolation.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
     }));
     Check("4D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(4))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
     Check("5D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(5))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
     Check("6D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(6))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
     Check("7D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(7))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
     Check("8D interpolation with granularity", () => Assert.Multiple(() =>
     {
         foreach (var i in TestDataGenerator.CheckXDGranular(8))
-            interp.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
+            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
     }));
 
-    interp.Teardown();
+    interpolation.Teardown();
 
     var cs = new ColorspaceTests();
 

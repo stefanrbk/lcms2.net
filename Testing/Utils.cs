@@ -67,6 +67,9 @@ public static class Utils
     public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
         Die(text);
 
+    public static void Fail(string text) =>
+        reasonToFail = text;
+
     public static void PrintSupportedIntents()
     {
         var values = State.GetSupportedIntents(200, out _);

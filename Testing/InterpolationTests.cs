@@ -1,10 +1,8 @@
-﻿using lcms2.plugins;
-using lcms2.state;
+﻿using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.testbed;
 
-[TestFixture(TestOf = typeof(InterpolationPlugin))]
 public class InterpolationTests : ITest
 {
     #region Fields
@@ -14,20 +12,38 @@ public class InterpolationTests : ITest
     #endregion Fields
 
     #region Public Methods
+    public static bool Check1DLerp2() =>
+        Check1D(2, false, 0);
+    public static bool Check1DLerp3() =>
+        Check1D(3, false, 1);
+    public static bool Check1DLerp4() =>
+        Check1D(4, false, 0);
+    public static bool Check1DLerp6() =>
+        Check1D(6, false, 0);
+    public static bool Check1DLerp18() =>
+        Check1D(18, false, 0);
+    public static bool Check1DLerp2Down() =>
+        Check1D(2, true, 0);
+    public static bool Check1DLerp3Down() =>
+        Check1D(3, true, 1);
+    public static bool Check1DLerp4Down() =>
+        Check1D(4, true, 0);
+    public static bool Check1DLerp6Down() =>
+        Check1D(6, true, 0);
+    public static bool Check1DLerp18Down() =>
+        Check1D(18, true, 0);
 
     // A single function that does check 1D interpolation
     // nNodesToCheck = number on nodes to check
     // Down = Create decreasing tables
     // Reverse = Check reverse interpolation
     // max_err = max allowed error
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.Check1D))]
-    public void Check1DTest(uint numNodesToCheck, bool down, int maxErr)
+    public static bool Check1D(uint numNodesToCheck, bool down, int maxErr)
     {
         var tab = new ushort[numNodesToCheck];
 
-        var p = InterpParams.Compute(_state, numNodesToCheck, 1, 1, tab, LerpFlag.Ushort);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null , numNodesToCheck, 1, 1, tab, LerpFlag.Ushort);
+        if (p is null || p.Interpolation is null) return false;
 
         BuildTable(numNodesToCheck, ref tab, down);
 
@@ -40,8 +56,44 @@ public class InterpolationTests : ITest
 
             if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
 
-            Assert.That(@out[0], Is.EqualTo(@in[0]).Within(maxErr), $"{numNodesToCheck} nodes");
+            if (Math.Abs(@out[0] - @in[0]) > maxErr)
+            {
+                Fail($"({numNodesToCheck}): Must be {@in}, but was {@out} : ");
+                return false;
+            }
         }
+
+        return true;
+    }
+
+    public static bool ExhaustiveCheck1DLerp()
+    {
+        if (HasConsole)
+            Console.Write("10 - 4096");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!ExhaustiveCheck1D(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
+    }
+
+    public static bool ExhaustiveCheck1DLerpDown()
+    {
+        if (HasConsole)
+            Console.Write("10 - 4096");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!ExhaustiveCheck1DDown(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
     }
 
     [Test]
@@ -431,16 +483,6 @@ public class InterpolationTests : ITest
     }
 
     [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
-    public void ExhaustiveCheck1DDownTest(uint start, uint stop) =>
-        ExhaustiveCheck1D(Check1DTest, true, start, stop);
-
-    [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck1D))]
-    public void ExhaustiveCheck1DTest(uint start, uint stop) =>
-        ExhaustiveCheck1D(Check1DTest, false, start, stop);
-
-    [Explicit("Exhaustive test")]
     [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
     public void ExhaustiveCheck3DInterpolation16TetrahedralTest(uint start, uint stop)
     {
@@ -737,7 +779,7 @@ public class InterpolationTests : ITest
         }
     }
 
-    private static void ExhaustiveCheck1D(Action<uint, bool, int> fn, bool down, uint start, uint stop)
+    private static bool ExhaustiveCheck1D(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -747,21 +789,40 @@ public class InterpolationTests : ITest
         var startStr = start.ToString();
         var stopStr = stop.ToString();
         var widthSubtract = 16 + startStr.Length + stopStr.Length;
-
-        Assert.Multiple(() =>
+        for (var j = start; j <= stop; j++)
         {
-            ClearAssert();
+            ProgressBar(start, stop, widthSubtract, j);
 
-            for (var j = start; j <= stop; j++)
-            {
-                ProgressBar(start, stop, widthSubtract, j);
-
-                fn(j, down, 1);
-            }
-        });
+            if (!Check1D(j, false, 1)) return false;
+        }
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
+    }
+
+    private static bool ExhaustiveCheck1DDown(uint start, uint stop)
+    {
+        if (HasConsole)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"\tTesting {start} - {stop}");
+        }
+        var startStr = start.ToString();
+        var stopStr = stop.ToString();
+        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+        for (var j = start; j <= stop; j++)
+        {
+            ProgressBar(start, stop, widthSubtract, j);
+
+            if (!Check1D(j, true, 1)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
     }
     private static ushort Fn8D1(ReadOnlySpan<ushort> a) =>
         (ushort)a.ToArray()
