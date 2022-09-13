@@ -1,6 +1,5 @@
 ﻿using lcms2.state;
 using lcms2.testbed;
-using lcms2.testing;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
@@ -30,9 +29,9 @@ WriteLineGreen("done");
 PrintSupportedIntents();
 
 Check("quick floor", HelpersTests.CheckQuickFloor);
-Check("quick floor word", new HelpersTests().CheckQuickFloorWord);
-Check("Fixed point 15.16 representation", new HelpersTests().CheckFixedPoint15_16);
-Check("Fixed point 8.8 representation", new HelpersTests().CheckFixedPoint8_8);
+Check("quick floor word", HelpersTests.CheckQuickFloorWord);
+Check("Fixed point 15.16 representation", HelpersTests.CheckFixedPoint15_16);
+Check("Fixed point 8.8 representation", HelpersTests.CheckFixedPoint8_8);
 
 
 if (doCheckTests)

@@ -1,6 +1,6 @@
 using lcms2.state;
 
-namespace lcms2.testing;
+namespace lcms2.testbed;
 
 public class StateTests
 {

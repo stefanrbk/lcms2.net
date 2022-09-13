@@ -1,4 +1,4 @@
-﻿namespace lcms2.testing;
+﻿namespace lcms2.testbed;
 public interface ITest
 {
     #region Public Methods

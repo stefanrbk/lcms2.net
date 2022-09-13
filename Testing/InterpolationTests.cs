@@ -2,10 +2,10 @@
 using lcms2.state;
 using lcms2.types;
 
-namespace lcms2.testing;
+namespace lcms2.testbed;
 
 [TestFixture(TestOf = typeof(InterpolationPlugin))]
-public class InterpolationTests: ITest
+public class InterpolationTests : ITest
 {
     #region Fields
 
@@ -707,7 +707,8 @@ public class InterpolationTests: ITest
         try
         {
             _ = Console.BufferWidth;
-        } catch
+        }
+        catch
         {
             HasConsole = false;
         }
@@ -732,7 +733,7 @@ public class InterpolationTests: ITest
         {
             var v = 65535.0 * i / (n - 1);
 
-            tab[descending ? (n - i - 1) : i] = (ushort)Math.Floor(v + 0.5);
+            tab[descending ? n - i - 1 : i] = (ushort)Math.Floor(v + 0.5);
         }
     }
 

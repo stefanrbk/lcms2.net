@@ -1,7 +1,7 @@
 ﻿using lcms2.types;
 
-namespace lcms2.testing;
-public class ColorspaceTests: ITest
+namespace lcms2.testbed;
+public class ColorspaceTests : ITest
 {
     #region Public Methods
 

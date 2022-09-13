@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using lcms2.types;
-
-namespace lcms2.testing;
+﻿namespace lcms2.testbed;
 public static class TestDataGenerator
 {
     #region Fields
@@ -65,7 +57,7 @@ public static class TestDataGenerator
     public static IEnumerable<object[]> ExhaustiveCheck1D()
     {
         for (uint i = 0, j = 1; i < 16; i++, j++)
-            yield return new object[] { i == 0 ? 10 : (i * 256), j * 256 };
+            yield return new object[] { i == 0 ? 10 : i * 256, j * 256 };
     }
 
     public static IEnumerable<object[]> ExhaustiveCheck3D()
