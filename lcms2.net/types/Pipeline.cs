@@ -933,12 +933,12 @@ public class Pipeline : ICloneable, IDisposable
                     fx[2] - target[2]);
 
             var tmp2 = jacobian.Solve(tmp);
-            if (tmp2 is null) return false;
+            if (tmp2.IsNaN) return false;
 
             // Move our guess
-            x[0] -= (float)tmp2.Value[0];
-            x[1] -= (float)tmp2.Value[1];
-            x[2] -= (float)tmp2.Value[2];
+            x[0] -= (float)tmp2[0];
+            x[1] -= (float)tmp2[1];
+            x[2] -= (float)tmp2[2];
 
             // Some clipping...
             for (var j = 0; j < 3; j++)

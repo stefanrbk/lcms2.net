@@ -716,9 +716,9 @@ public partial class Stage
 
         var temp = new[]
         {
-            ToneCurve.BuildTabulated16(state, 258, null),
-            ToneCurve.BuildTabulated16(state, 258, null),
-            ToneCurve.BuildTabulated16(state, 258, null),
+            ToneCurve.BuildEmptyTabulated16(state, 258),
+            ToneCurve.BuildEmptyTabulated16(state, 258),
+            ToneCurve.BuildEmptyTabulated16(state, 258),
         };
 
         if (temp.Contains(null))

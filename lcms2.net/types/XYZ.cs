@@ -31,7 +31,9 @@ public struct XYZ : ICloneable
     #region Fields
 
     public double X;
+
     public double Y;
+
     public double Z;
 
     #endregion Fields
@@ -43,10 +45,23 @@ public struct XYZ : ICloneable
 
     #endregion Public Constructors
 
+    #region Properties
+
+    public static XYZ NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(X) || Double.IsNaN(Y) || Double.IsNaN(Z);
+
+    #endregion Properties
+
     #region Public Methods
 
     public static explicit operator Lab(XYZ xyz) =>
         xyz.ToLab();
+
+    public static explicit operator Vec3(XYZ xyz) =>
+        xyz.ToVec3();
 
     public static explicit operator xyY(XYZ xyz) =>
         xyz.ToxyY();
@@ -74,6 +89,12 @@ public struct XYZ : ICloneable
 
         return (L, a, b);
     }
+
+    public Vec3 ToVec() =>
+                                        new(X, Y, Z);
+
+    public Vec3 ToVec3() =>
+        new(X, Y, Z);
 
     public xyY ToxyY()
     {

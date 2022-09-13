@@ -31,7 +31,9 @@ public struct LCh : ICloneable
     #region Fields
 
     public double C;
+
     public double h;
+
     public double L;
 
     #endregion Fields
@@ -43,19 +45,35 @@ public struct LCh : ICloneable
 
     #endregion Public Constructors
 
+    #region Properties
+
+    public static LCh NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(L) || Double.IsNaN(C) || Double.IsNaN(h);
+
+    #endregion Properties
+
     #region Public Methods
 
     public static explicit operator Lab(LCh lch) =>
         lch.ToLab();
 
+    public static explicit operator Vec3(LCh value) =>
+        value.ToVec();
+
     public static implicit operator LCh((double, double, double) v) =>
-            new(v.Item1, v.Item2, v.Item3);
+                new(v.Item1, v.Item2, v.Item3);
 
     public object Clone() =>
            new LCh(L, C, h);
 
     public Lab ToLab() =>
         new(L, C * Math.Cos(h * Math.PI / 180.0), C * Math.Sin(h * Math.PI / 180.0));
+
+    public Vec3 ToVec() =>
+        new(L, C, h);
 
     #endregion Public Methods
 }

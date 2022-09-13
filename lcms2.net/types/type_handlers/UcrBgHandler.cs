@@ -62,7 +62,7 @@ public class UcrBgHandler : TagTypeHandler
         if (!io.ReadUInt32Number(out var countUcr)) return null;
         sizeOfTag -= sizeof(uint);
 
-        ucr = ToneCurve.BuildTabulated16(StateContainer, countUcr, null);
+        ucr = ToneCurve.BuildEmptyTabulated16(StateContainer, countUcr);
         if (ucr is null) return null;
 
         if (sizeOfTag < (countUcr * sizeof(ushort))) goto Error;
@@ -75,7 +75,7 @@ public class UcrBgHandler : TagTypeHandler
         if (!io.ReadUInt32Number(out var countBg)) goto Error;
         sizeOfTag -= sizeof(uint);
 
-        bg = ToneCurve.BuildTabulated16(StateContainer, countBg, null);
+        bg = ToneCurve.BuildEmptyTabulated16(StateContainer, countBg);
         if (bg is null) goto Error;
 
         if (sizeOfTag < (countBg * sizeof(ushort))) goto Error;

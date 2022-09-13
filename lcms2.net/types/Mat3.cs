@@ -59,6 +59,9 @@ public struct Mat3
             new(0, 1, 0),
             new(0, 0, 1));
 
+    public static Mat3 NaN =>
+                    new(Vec3.NaN, Vec3.NaN, Vec3.NaN);
+
     /// <summary>
     ///     Checks to see if this matrix is within 1e-4 of the identity matrix.
     /// </summary>
@@ -79,6 +82,9 @@ public struct Mat3
             return true;
         }
     }
+
+    public bool IsNaN =>
+            X.IsNaN || Y.IsNaN || Z.IsNaN;
 
     #endregion Properties
 
@@ -162,7 +168,7 @@ public struct Mat3
     ///     Inverse of a matrix b = a^(-1)
     /// </summary>
     /// <remarks>Implements the <c>_cmsMAT3inverse</c> function.</remarks>
-    public Mat3? Inverse()
+    public Mat3 Inverse()
     {
         var c0 = (this[1][1] * this[2][2]) - (this[1][2] * this[2][1]);
         var c1 = (this[1][0] * this[2][2]) + (this[1][2] * this[2][0]);
@@ -171,7 +177,7 @@ public struct Mat3
         var det = (this[0][0] * c0) + (this[0][1] * c1) + (this[0][2] * c2);
 
         return m.Abs(det) < determinantTolerance
-            ? null
+            ? NaN
             : (new(
             new(
                 c0 / det,
@@ -191,10 +197,10 @@ public struct Mat3
     ///     Solve a system in the form Ax = b
     /// </summary>
     /// <remarks>Implements the <c>_cmsMAT3solve</c> function.</remarks>
-    public Vec3? Solve(Vec3 vec)
+    public Vec3 Solve(Vec3 vec)
     {
         var inv = Inverse();
-        return inv?.Eval(vec);
+        return inv.Eval(vec);
     }
 
     #endregion Public Methods

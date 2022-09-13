@@ -31,7 +31,7 @@ public class CurveSegment
     #region Fields
 
     // Parameters if Type != 0;
-    public double[] Params = new double[10];
+    public readonly double[] Params = new double[10];
 
     // Points to an array of floats if Type == 0;
     public float[]? SampledPoints;

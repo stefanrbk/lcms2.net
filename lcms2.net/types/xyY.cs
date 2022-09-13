@@ -31,7 +31,9 @@ public struct xyY : ICloneable
     #region Fields
 
     public double x;
+
     public double y;
+
     public double Y;
 
     #endregion Fields
@@ -43,7 +45,20 @@ public struct xyY : ICloneable
 
     #endregion Public Constructors
 
+    #region Properties
+
+    public static xyY NaN =>
+                        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(x) || Double.IsNaN(y) || Double.IsNaN(Y);
+
+    #endregion Properties
+
     #region Public Methods
+
+    public static explicit operator Vec3(xyY value) =>
+        value.ToVec();
 
     public static explicit operator XYZ(xyY xyy) =>
         xyy.ToXYZ();
@@ -53,6 +68,9 @@ public struct xyY : ICloneable
 
     public object Clone() =>
            new xyY(x, y, Y);
+
+    public Vec3 ToVec() =>
+                        new(x, y, Y);
 
     public XYZ ToXYZ()
     {
@@ -70,7 +88,9 @@ public struct xyYTripple : ICloneable
     #region Fields
 
     public xyY Blue;
+
     public xyY Green;
+
     public xyY Red;
 
     #endregion Fields
@@ -81,6 +101,16 @@ public struct xyYTripple : ICloneable
         (Red, Green, Blue) = (red, green, blue);
 
     #endregion Public Constructors
+
+    #region Properties
+
+    public static xyYTripple NaN =>
+                        new(xyY.NaN, xyY.NaN, xyY.NaN);
+
+    public bool IsNaN =>
+        Red.IsNaN || Green.IsNaN || Blue.IsNaN;
+
+    #endregion Properties
 
     #region Public Methods
 

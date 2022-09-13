@@ -115,6 +115,15 @@ namespace lcms2.res {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to WhitePoint.FromTemp: Invalid temp.
+        /// </summary>
+        internal static string invalid_whitepoint_from_temp {
+            get {
+                return ResourceManager.GetString("invalid_whitepoint_from_temp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to LUT8 needs 256 entries on prelinearization.
         /// </summary>
         internal static string lut8_invalid_entry_count {

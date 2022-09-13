@@ -49,6 +49,16 @@ public struct Vec3
 
     #endregion Public Constructors
 
+    #region Properties
+
+    public static Vec3 NaN =>
+        new(Double.NaN, Double.NaN, Double.NaN);
+
+    public bool IsNaN =>
+        Double.IsNaN(X) || Double.IsNaN(Y) || Double.IsNaN(Z);
+
+    #endregion Properties
+
     #region Indexers
 
     public double this[int index]
@@ -107,6 +117,21 @@ public struct Vec3
     public static double Dot(Vec3 u, Vec3 v) =>
         (u.X * v.X) + (u.Y * v.Y) + (u.Z * v.Z);
 
+    public static explicit operator JCh(Vec3 value) =>
+        new(value.X, value.Y, value.Z);
+
+    public static explicit operator Lab(Vec3 value) =>
+        new(value.X, value.Y, value.Z);
+
+    public static explicit operator LCh(Vec3 value) =>
+        new(value.X, value.Y, value.Z);
+
+    public static explicit operator xyY(Vec3 value) =>
+        new(value.X, value.Y, value.Z);
+
+    public static explicit operator XYZ(Vec3 value) =>
+        new(value.X, value.Y, value.Z);
+
     public static Vec3 operator -(Vec3 left, Vec3 right) =>
            Subtract(left, right);
 
@@ -126,6 +151,21 @@ public struct Vec3
     /// <remarks>Implements the <c>_cmsVEC3length</c> function.</remarks>
     public double Length() =>
         Math.Sqrt((X * X) + (Y * Y) + (Z * Z));
+
+    public JCh ToJCh() =>
+        new(X, Y, Z);
+
+    public Lab ToLab() =>
+        new(X, Y, Z);
+
+    public LCh ToLCh() =>
+        new(X, Y, Z);
+
+    public xyY ToxyY() =>
+        new(X, Y, Z);
+
+    public XYZ ToXYZ() =>
+        new(X, Y, Z);
 
     #endregion Public Methods
 }
