@@ -263,8 +263,7 @@ public class InterpolationTests : ITest
         return true;
     }
 
-    [Test]
-    public void CheckReverseInterpolation3x3Test()
+    public static bool CheckReverseInterpolation3x3()
     {
         var target = new float[4];
         var result = new float[4];
@@ -285,14 +284,16 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
         };
 
-        var lut = Pipeline.Alloc(_state, 3, 3);
-        Assert.That(lut, Is.Not.Null);
+        var lut = Pipeline.Alloc(null, 3, 3);
+        if (lut is null)
+            return Fail("lut was null");
 
-        var clut = Stage.AllocCLut16bit(_state, 2, 3, 3, table);
+        var clut = Stage.AllocCLut16bit(null, 2, 3, 3, table);
         lut.InsertStage(StageLoc.AtBegin, clut);
 
         lut.EvalReverse(target, result, null);
-        Assert.That(result.Take(3).ToArray(), Contains.Item(0), "Reverse interpolation didn't find zero");
+        if (!result.Take(3).Contains(0))
+            return Fail("Reverse interpolation didn't find zero");
 
         // Transverse identity
         var max = 0f;
@@ -310,11 +311,10 @@ public class InterpolationTests : ITest
         }
 
         lut.Dispose();
-        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
+        return max <= FloatPrecision;
     }
 
-    [Test]
-    public void CheckReverseInterpolation4x3Test()
+    public static bool CheckReverseInterpolation4x3()
     {
         var target = new float[4];
         var result = new float[4];
@@ -347,10 +347,11 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // 1 1 1 1 = ( 1, 1, 1)
         };
 
-        var lut = Pipeline.Alloc(_state, 4, 3);
-        Assert.That(lut, Is.Not.Null);
+        var lut = Pipeline.Alloc(null, 4, 3);
+        if (lut is null)
+            return Fail("lut was null");
 
-        var clut = Stage.AllocCLut16bit(_state, 2, 4, 3, table);
+        var clut = Stage.AllocCLut16bit(null, 2, 4, 3, table);
         lut.InsertStage(StageLoc.AtBegin, clut);
 
         // Check if the LUT is behaving as expected
@@ -364,14 +365,12 @@ public class InterpolationTests : ITest
 
             lut.Eval(target, result);
 
-            Assert.Multiple(() =>
+            if (!IsGoodFixed15_16("0", target[0], result[0]) ||
+                !IsGoodFixed15_16("1", target[1], result[1]) ||
+                !IsGoodFixed15_16("2", target[2], result[2]))
             {
-                ClearAssert();
-
-                IsGoodFixed15_16("0", target[0], result[0]);
-                IsGoodFixed15_16("1", target[1], result[1]);
-                IsGoodFixed15_16("2", target[2], result[2]);
-            });
+                return false;
+            }
         }
 
         SubTest("4->3 zero");
@@ -385,7 +384,8 @@ public class InterpolationTests : ITest
 
         lut.EvalReverse(target, result, hint);
 
-        Assert.That(result, Contains.Item(0), "Reverse interpolation didn't find zero");
+        if (!result.Contains(0))
+            return Fail("Reverse interpolation didn't find zero");
 
         SubTest("4->3 find CMY");
 
@@ -404,7 +404,8 @@ public class InterpolationTests : ITest
         }
 
         lut.Dispose();
-        Assert.That(max, Is.LessThanOrEqualTo(FloatPrecision));
+
+        return max <= FloatPrecision;
     }
 
     [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 3 })]

@@ -67,8 +67,11 @@ public static class Utils
     public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
         Die(text);
 
-    public static void Fail(string text) =>
+    public static bool Fail(string text)
+    {
         reasonToFail = text;
+        return false;
+    }
 
     public static void PrintSupportedIntents()
     {

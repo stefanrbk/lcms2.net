@@ -72,8 +72,8 @@ if (doCheckTests)
         Check("Exhaustive 3D interpolation Trilinear (16)", interp.ExhaustiveCheck3DInterpolationTrilinear16);
     }
 
-    Check("Reverse interpolation 3 -> 3", interpolation.CheckReverseInterpolation3x3Test);
-    Check("Reverse interpolation 4 -> 3", interpolation.CheckReverseInterpolation4x3Test);
+    Check("Reverse interpolation 3 -> 3", interp.CheckReverseInterpolation3x3);
+    Check("Reverse interpolation 4 -> 3", interp.CheckReverseInterpolation4x3);
 
     Console.WriteLine("\nHigh dimensionality interpolation");
     Check("3D interpolation", () => Assert.Multiple(() =>
