@@ -485,9 +485,22 @@ public class InterpolationTests : ITest
         });
     }
 
-    [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
-    public void ExhaustiveCheck3DInterpolation16TetrahedralTest(uint start, uint stop)
+    public static bool ExhaustiveCheck3DInterpolationTetrahedral16()
+    {
+        if (HasConsole)
+            Console.Write("0 - 256");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!TestExhaustiveCheck3DInterpolationTetrahedral16(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
+    }
+
+    public static bool TestExhaustiveCheck3DInterpolationTetrahedral16(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -513,44 +526,54 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Ushort);
+        if (p is null || p.Interpolation is null) return false;
 
-        Assert.Multiple(() =>
+        for (var r = start; r < stop; r++)
         {
-            for (var r = start; r < stop; r++)
+            for (var g = 0; g < 0xFF; g++)
             {
-                for (var g = 0; g < 0xFF; g++)
+                for (var b = 0; b < 0xFF; b++)
                 {
-                    for (var b = 0; b < 0xFF; b++)
+                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                    var @out = new ushort[3];
+
+                    p.Interpolation.Lerp(@in, @out, p);
+
+                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                        !IsGoodWord("Channel 2", @out[2], @in[2]))
                     {
-                        var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                        var @out = new ushort[3];
-
-                        p.Interpolation.Lerp(@in, @out, p);
-                        Assert.Multiple(() =>
-                        {
-                            ClearAssert();
-
-                            IsGoodWord("Channel 1", @out[0], @in[0]);
-                            IsGoodWord("Channel 2", @out[1], @in[1]);
-                            IsGoodWord("Channel 2", @out[2], @in[2]);
-                        });
+                        return false;
                     }
                 }
-
-                ProgressBar(start, stop, widthSubtract, r);
             }
-        });
+
+            ProgressBar(start, stop, widthSubtract, r);
+        }
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
     }
 
-    [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
-    public void ExhaustiveCheck3DInterpolation16TrilinearTest(uint start, uint stop)
+    public static bool ExhaustiveCheck3DInterpolationTrilinear16()
+    {
+        if (HasConsole)
+            Console.Write("0 - 256");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!TestExhaustiveCheck3DInterpolationTrilinear16(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
+    }
+
+    public static bool TestExhaustiveCheck3DInterpolationTrilinear16(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -576,44 +599,54 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Trilinear);
+        if (p is null || p.Interpolation is null) return false;
 
-        Assert.Multiple(() =>
+        for (var r = start; r < stop; r++)
         {
-            for (var r = start; r < stop; r++)
+            for (var g = 0; g < 0xFF; g++)
             {
-                for (var g = 0; g < 0xFF; g++)
+                for (var b = 0; b < 0xFF; b++)
                 {
-                    for (var b = 0; b < 0xFF; b++)
+                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                    var @out = new ushort[3];
+
+                    p.Interpolation.Lerp(@in, @out, p);
+
+                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                        !IsGoodWord("Channel 2", @out[2], @in[2]))
                     {
-                        var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                        var @out = new ushort[3];
-
-                        p.Interpolation.Lerp(@in, @out, p);
-                        Assert.Multiple(() =>
-                        {
-                            ClearAssert();
-
-                            IsGoodWord("Channel 1", @out[0], @in[0]);
-                            IsGoodWord("Channel 2", @out[1], @in[1]);
-                            IsGoodWord("Channel 2", @out[2], @in[2]);
-                        });
+                        return false;
                     }
                 }
-
-                ProgressBar(start, stop, widthSubtract, r);
             }
-        });
+
+            ProgressBar(start, stop, widthSubtract, r);
+        }
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
     }
 
-    [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
-    public void ExhaustiveCheck3DInterpolationFloatTetrahedralTest(uint start, uint stop)
+    public static bool ExhaustiveCheck3DInterpolationTetrahedralFloat()
+    {
+        if (HasConsole)
+            Console.Write("0 - 256");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!TestExhaustiveCheck3DInterpolationTetrahedralFloat(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
+    }
+
+    public static bool TestExhaustiveCheck3DInterpolationTetrahedralFloat(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -639,48 +672,55 @@ public class InterpolationTests : ITest
             1, .5f, .25f,       // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float);
+        if (p is null || p.Interpolation is null) return false;
 
         MaxErr = 0.0;
-        Assert.Multiple(() =>
+        for (var r = start; r < stop; r++)
         {
-            for (var r = start; r < stop; r++)
+            for (var g = 0; g < 0xFF; g++)
             {
-                for (var g = 0; g < 0xFF; g++)
+                for (var b = 0; b < 0xFF; b++)
                 {
-                    for (var b = 0; b < 0xFF; b++)
+                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                    var @out = new ushort[3];
+
+                    p.Interpolation.Lerp(@in, @out, p);
+
+                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                        !IsGoodWord("Channel 2", @out[2], @in[2]))
                     {
-                        var @in = new float[] { r / 255f, g / 255f, b / 255f };
-                        var @out = new float[3];
-
-                        p.Interpolation.Lerp(@in, @out, p);
-                        Assert.Multiple(() =>
-                        {
-                            ClearAssert();
-
-                            IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
-                            IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
-                            IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
-
-                            if (HasAssertions)
-                                WriteLineRed($"|Err|<{MaxErr}");
-                        });
+                        return false;
                     }
                 }
-
-                ProgressBar(start, stop, widthSubtract, r);
             }
-        });
+
+            ProgressBar(start, stop, widthSubtract, r);
+        }
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
     }
 
-    [Explicit("Exhaustive test")]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.ExhaustiveCheck3D))]
-    public void ExhaustiveCheck3DInterpolationFloatTrilinearTest(uint start, uint stop)
+    public static bool ExhaustiveCheck3DInterpolationTrilinearFloat()
+    {
+        if (HasConsole)
+            Console.Write("0 - 256");
+        for (uint i = 0, j = 1; i < 16; i++, j++)
+        {
+            if (!TestExhaustiveCheck3DInterpolationTrilinearFloat(i, j)) return false;
+        }
+
+        if (HasConsole)
+            Console.Write("\nThe result is ");
+
+        return true;
+    }
+
+    public static bool TestExhaustiveCheck3DInterpolationTrilinearFloat(uint start, uint stop)
     {
         if (HasConsole)
         {
@@ -706,43 +746,37 @@ public class InterpolationTests : ITest
             1, .5f, .25f,       // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
+        if (p is null || p.Interpolation is null) return false;
 
         MaxErr = 0.0;
-        Assert.Multiple(() =>
+        for (var r = start; r < stop; r++)
         {
-            for (var r = start; r < stop; r++)
+            for (var g = 0; g < 0xFF; g++)
             {
-                for (var g = 0; g < 0xFF; g++)
+                for (var b = 0; b < 0xFF; b++)
                 {
-                    for (var b = 0; b < 0xFF; b++)
+                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
+                    var @out = new ushort[3];
+
+                    p.Interpolation.Lerp(@in, @out, p);
+
+                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                        !IsGoodWord("Channel 2", @out[2], @in[2]))
                     {
-                        var @in = new float[] { r / 255f, g / 255f, b / 255f };
-                        var @out = new float[3];
-
-                        p.Interpolation.Lerp(@in, @out, p);
-                        Assert.Multiple(() =>
-                        {
-                            ClearAssert();
-
-                            IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
-                            IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
-                            IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
-
-                            if (HasAssertions)
-                                WriteLineRed($"|Err|<{MaxErr}");
-                        });
+                        return false;
                     }
                 }
-
-                ProgressBar(start, stop, widthSubtract, r);
             }
-        });
+
+            ProgressBar(start, stop, widthSubtract, r);
+        }
 
         if (HasConsole)
             Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+
+        return true;
     }
 
     [SetUp]

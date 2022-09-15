@@ -66,10 +66,10 @@ if (doCheckTests)
 
     if (exhaustive)
     {
-        Check("Exhaustive 3D interpolation Tetrahedral (float)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolationFloatTetrahedralTest));
-        Check("Exhaustive 3D interpolation Trilinear (float)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolationFloatTrilinearTest));
-        Check("Exhaustive 3D interpolation Tetrahedral (16)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolation16TetrahedralTest));
-        Check("Exhaustive 3D interpolation Trilinear (16)", () => CheckInterp3D(interpolation.ExhaustiveCheck3DInterpolation16TrilinearTest));
+        Check("Exhaustive 3D interpolation Tetrahedral (float)", interp.ExhaustiveCheck3DInterpolationTetrahedralFloat);
+        Check("Exhaustive 3D interpolation Trilinear (float)", interp.ExhaustiveCheck3DInterpolationTrilinearFloat);
+        Check("Exhaustive 3D interpolation Tetrahedral (16)", interp.ExhaustiveCheck3DInterpolationTetrahedral16);
+        Check("Exhaustive 3D interpolation Trilinear (16)", interp.ExhaustiveCheck3DInterpolationTrilinear16);
     }
 
     Check("Reverse interpolation 3 -> 3", interpolation.CheckReverseInterpolation3x3Test);
