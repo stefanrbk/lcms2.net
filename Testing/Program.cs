@@ -38,7 +38,7 @@ Check("Fixed point 8.8 representation", HelpersTests.CheckFixedPoint8_8);
 
 if (doCheckTests)
 {
-    var interpolation = new InterpolationTests();
+    var interpolation = new interp();
     interpolation.Setup();
 
     Console.WriteLine("\nForward 1D interpolation");
@@ -59,10 +59,10 @@ if (doCheckTests)
     }
 
     Console.WriteLine("\nForward 3D interpolation");
-    Check("3D interpolation Tetrahedral (float)", interpolation.Check3DInterpolationFloatTetrahedralTest);
-    Check("3D interpolation Trilinear (float)", interpolation.Check3DInterpolationFloatTrilinearTest);
-    Check("3D interpolation Tetrahedral (16)", interpolation.Check3DInterpolation16TetrahedralTest);
-    Check("3D interpolation Trilinear (16)", interpolation.Check3DInterpolation16TrilinearTest);
+    Check("3D interpolation Tetrahedral (float)", interp.Check3DInterpolationFloatTetrahedral);
+    Check("3D interpolation Trilinear (float)", interp.Check3DInterpolationFloatTrilinear);
+    Check("3D interpolation Tetrahedral (16)", interp.Check3DInterpolationTetrahedral16);
+    Check("3D interpolation Trilinear (16)", interp.Check3DInterpolationTrilinear16);
 
     if (exhaustive)
     {

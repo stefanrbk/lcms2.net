@@ -241,26 +241,39 @@ public static class Utils
     public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
         Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
 
-    public static void IsGoodFixed15_16(string title, double @in, double @out) =>
+    public static bool IsGoodFixed15_16(string title, double @in, double @out) =>
         IsGoodVal(title, @in, @out, FixedPrecision15_16);
 
-    public static void IsGoodFixed8_8(string title, double @in, double @out) =>
+    public static bool IsGoodFixed8_8(string title, double @in, double @out) =>
         IsGoodVal(title, @in, @out, FixedPrecision8_8);
 
-    public static void IsGoodVal(string title, double @in, double @out, double max)
+    public static bool IsGoodVal(string title, double @in, double @out, double max)
     {
         var err = Math.Abs(@in - @out);
 
         if (err > MaxErr) MaxErr = err;
 
-        Assert.That(@in, Is.EqualTo(@out).Within(max), title);
+        if (err > max)
+        {
+            Fail($"({title}): Must be {@in}, but was {@out} ");
+            return false;
+        }
+        return true;
     }
 
-    public static void IsGoodWord(string title, ushort @in, ushort @out) =>
-        Assert.That(@in, Is.EqualTo(@out), title);
+    public static bool IsGoodWord(string title, ushort @in, ushort @out) =>
+        IsGoodWord(title, @in, @out, 0);
 
-    public static void IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr) =>
-        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), title);
+    public static bool IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr)
+    {
+        if (Math.Abs(@in - @out) > maxErr)
+        {
+            Fail($"({title}): Must be {@in}, but was {@out} ");
+            return false;
+        }
+
+        return true;
+    }
 
     public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
     {

@@ -96,8 +96,7 @@ public class InterpolationTests : ITest
         return true;
     }
 
-    [Test]
-    public void Check3DInterpolation16TetrahedralTest()
+    public static bool Check3DInterpolationTetrahedral16()
     {
         var table = new ushort[]
         {
@@ -114,9 +113,8 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Ushort);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Ushort);
+        if (p is null || p.Interpolation is null) return false;
 
         for (var i = 0; i < 0xFFFF; i++)
         {
@@ -124,19 +122,22 @@ public class InterpolationTests : ITest
             var @out = new ushort[3];
 
             p.Interpolation.Lerp(@in, @out, p);
-            Assert.Multiple(() =>
-            {
-                ClearAssert();
 
-                IsGoodWord("Channel 1", @out[0], @in[0]);
-                IsGoodWord("Channel 2", @out[1], @in[1]);
-                IsGoodWord("Channel 2", @out[2], @in[2]);
-            });
+            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
+                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
+                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
+            {
+                return false;
+            }
         }
+
+        if (MaxErr > 0)
+            WriteLineRed($"|Err|<{MaxErr}");
+
+        return true;
     }
 
-    [Test]
-    public void Check3DInterpolation16TrilinearTest()
+    public static bool Check3DInterpolationTrilinear16()
     {
         var table = new ushort[]
         {
@@ -153,9 +154,8 @@ public class InterpolationTests : ITest
             0xFFFF, 0xFFFF, 0xFFFF, // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, table, LerpFlag.Trilinear);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Trilinear);
+        if (p is null || p.Interpolation is null) return false;
 
         for (var i = 0; i < 0xFFFF; i++)
         {
@@ -163,19 +163,22 @@ public class InterpolationTests : ITest
             var @out = new ushort[3];
 
             p.Interpolation.Lerp(@in, @out, p);
-            Assert.Multiple(() =>
-            {
-                ClearAssert();
 
-                IsGoodWord("Channel 1", @out[0], @in[0]);
-                IsGoodWord("Channel 2", @out[1], @in[1]);
-                IsGoodWord("Channel 2", @out[2], @in[2]);
-            });
+            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
+                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
+                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
+            {
+                return false;
+            }
         }
+
+        if (MaxErr > 0)
+            WriteLineRed($"|Err|<{MaxErr}");
+
+        return true;
     }
 
-    [Test]
-    public void Check3DInterpolationFloatTetrahedralTest()
+    public static bool Check3DInterpolationFloatTetrahedral()
     {
         var floatTable = new float[]
         {
@@ -192,9 +195,8 @@ public class InterpolationTests : ITest
             1, .5f, .25f,       // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float);
+        if (p is null || p.Interpolation is null) return false;
 
         MaxErr = 0.0;
         for (var i = 0; i < 0xFFFF; i++)
@@ -203,22 +205,22 @@ public class InterpolationTests : ITest
             var @out = new float[3];
 
             p.Interpolation.Lerp(@in, @out, p);
-            Assert.Multiple(() =>
+
+            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
+                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
+                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
             {
-                ClearAssert();
-
-                IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
-                IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
-                IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
-
-                if (HasAssertions)
-                    WriteLineRed($"|Err|<{MaxErr}");
-            });
+                return false;
+            }
         }
+
+        if (MaxErr > 0)
+            WriteLineRed($"|Err|<{MaxErr}");
+
+        return true;
     }
 
-    [Test]
-    public void Check3DInterpolationFloatTrilinearTest()
+    public static bool Check3DInterpolationFloatTrilinear()
     {
         var floatTable = new float[]
         {
@@ -235,9 +237,9 @@ public class InterpolationTests : ITest
             1, .5f, .25f,       // B=1, G=1, R=1
         };
 
-        var p = InterpParams.Compute(_state, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
-        Assert.That(p, Is.Not.Null);
-        Assert.That(p.Interpolation, Is.Not.Null);
+        var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
+
+        if (p is null || p.Interpolation is null) return false;
 
         MaxErr = 0.0;
         for (var i = 0; i < 0xFFFF; i++)
@@ -246,18 +248,19 @@ public class InterpolationTests : ITest
             var @out = new float[3];
 
             p.Interpolation.Lerp(@in, @out, p);
-            Assert.Multiple(() =>
+
+            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
+                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
+                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
             {
-                ClearAssert();
-
-                IsGoodFixed15_16("Channel 1", @out[0], @in[0]);
-                IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f);
-                IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f);
-
-                if (HasAssertions)
-                    WriteLineRed($"|Err|<{MaxErr}");
-            });
+                return false;
+            }
         }
+
+        if (MaxErr > 0)
+            WriteLineRed($"|Err|<{MaxErr}");
+
+        return true;
     }
 
     [Test]
