@@ -2,6 +2,7 @@
 using lcms2.testbed;
 
 using interp = lcms2.testbed.InterpolationTests;
+using cs = lcms2.testbed.ColorspaceTests;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
@@ -82,43 +83,13 @@ if (doCheckTests)
     Check("7D interpolation with granularity", () => interp.CheckXDInterpGranular(7));
     Check("8D interpolation with granularity", () => interp.CheckXDInterpGranular(8));
 
-    var cs = new ColorspaceTests();
-
     Console.WriteLine("\nEncoding of colorspaces");
-    ((ITest)cs).Setup();
 
-    Check("Lab to LCh and back (float only)", () =>
-        Assert.Multiple(() =>
-        {
-            for (var b = -16; b <= 16; b++)
-                cs.CheckLab2LCh(b * 8, (b + 1) * 8);
-        }));
-    Check("Lab to XYZ and back (float only)", () =>
-        Assert.Multiple(() =>
-        {
-            for (var b = -16; b <= 16; b++)
-                cs.CheckLab2XYZ(b * 8, (b + 1) * 8);
-        }));
-    Check("Lab to xyY and back (float only)", () =>
-        Assert.Multiple(() =>
-        {
-            for (var b = -16; b <= 16; b++)
-                cs.CheckLab2xyY(b * 8, (b + 1) * 8);
-        }));
-    Check("Lab V2 encoding", () =>
-        Assert.Multiple(() =>
-        {
-            for (var i = 0; i < 64; i++)
-                cs.CheckLabV2EncodingTest(i * 1024, (i + 1) * 1024);
-        }));
-    Check("Lab V4 encoding", () =>
-        Assert.Multiple(() =>
-        {
-            for (var i = 0; i < 64; i++)
-                cs.CheckLabV4EncodingTest(i * 1024, (i + 1) * 1024);
-        }));
-
-    ((ITest)cs).Teardown();
+    Check("Lab to LCh and back (float only)", cs.CheckLab2LCh);
+    Check("Lab to XYZ and back (float only)", cs.CheckLab2XYZ);
+    Check("Lab to xyY and back (float only)", cs.CheckLab2xyY);
+    Check("Lab V2 encoding", cs.CheckLabV2EncodingTest);
+    Check("Lab V4 encoding", cs.CheckLabV4EncodingTest);
 }
 
 if (doPluginTests)
