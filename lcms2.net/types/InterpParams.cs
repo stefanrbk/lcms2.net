@@ -1475,44 +1475,46 @@ public class InterpParams : ICloneable
          **  EVAL_FNS(14, 13)
          **  EVAL_FNS(15, 14)
          **/
+        x is not > 4
+            ? throw new ArgumentException(null, nameof(x))
+            : (i, o, p) =>
+            {
+                var x1 = x - 1;
+                var lutTable = p.Table16;
 
-        (i, o, p) =>
-        {
-            var lutTable = p.Table16;
+                var tmp1 = new ushort[maxStageChannels];
+                var tmp2 = new ushort[maxStageChannels];
 
-            var tmp1 = new ushort[maxStageChannels];
-            var tmp2 = new ushort[maxStageChannels];
+                var fk = ToFixedDomain(i[0] * p.Domain[0]);
+                var k0 = FixedToInt(fk);
+                var rk = FixedRestToInt(fk);
 
-            var fk = ToFixedDomain(i[0] * p.Domain[0]);
-            var k0 = FixedToInt(fk);
-            var rk = FixedRestToInt(fk);
+                var K0 = p.Opta[x1] * k0;
+                var K1 = p.Opta[x1] * (k0 + (i[0] != 0xFFFF ? 1 : 0));
 
-            var K0 = p.Opta[--x] * k0;
-            var K1 = p.Opta[x] * (k0 + (i[0] != 0xFFFF ? 1 : 0));
+                var p1 = (InterpParams)p.Clone();
+                p.Domain[1..x1].CopyTo(p1.Domain.AsSpan());
 
-            var p1 = (InterpParams)p.Clone();
-            p.Domain[1..x].CopyTo(p1.Domain.AsSpan());
+                var t = lutTable[K0..];
+                p1.Table = t;
 
-            var t = lutTable[K0..];
-            p1.Table = t;
+                var inp = i[1..];
+                if (x1 is 4)
+                    Eval4Inputs16(inp, tmp1, p1);
+                else
+                    EvalXInputs16(x1)(inp, tmp1, p1);
 
-            var inp = i[1..];
-            if (x is 4)
-                Eval4Inputs16(inp, tmp1, p1);
-            else
-                EvalXInputs16(x)(inp, tmp1, p1);
+                t = lutTable[K1..];
+                p1.Table = t;
 
-            t = lutTable[K1..];
-            p1.Table = t;
+                if (x1 is 4)
+                    Eval4Inputs16(inp, tmp2, p1);
+                else
+                    EvalXInputs16(x1)(inp, tmp2, p1);
 
-            if (x is 4)
-                Eval4Inputs16(inp, tmp2, p1);
-            else
-                EvalXInputs16(x)(inp, tmp2, p1);
-
-            for (var j = 0; j < p.NumOutputs; j++)
-                o[j] = LinearInterp(rk, tmp1[j], tmp2[j]);
-        };
+                for (var j = 0; j < p.NumOutputs; j++)
+                    o[j] = LinearInterp(rk, tmp1[j], tmp2[j]);
+            };
 
     private static InterpFnFloat EvalXInputsFloat(int x) =>
         /**  Original Code (cmsintrp.c line: 1118)

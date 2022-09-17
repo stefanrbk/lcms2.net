@@ -35,12 +35,8 @@ Check("quick floor word", HelpersTests.CheckQuickFloorWord);
 Check("Fixed point 15.16 representation", HelpersTests.CheckFixedPoint15_16);
 Check("Fixed point 8.8 representation", HelpersTests.CheckFixedPoint8_8);
 
-
 if (doCheckTests)
 {
-    var interpolation = new interp();
-    interpolation.Setup();
-
     Console.WriteLine("\nForward 1D interpolation");
     Check("1D interpolation in 2pt tables", interp.Check1DLerp2);
     Check("1D interpolation in 3pt tables", interp.Check1DLerp3);
@@ -49,7 +45,8 @@ if (doCheckTests)
     Check("1D interpolation in 18pt tables", interp.Check1DLerp18);
     Check("1D interpolation in descending 2pt tables", interp.Check1DLerp2Down);
     Check("1D interpolation in descending 3pt tables", interp.Check1DLerp3Down);
-    Check("1D interpolation in descending 6pt tables", interp.Check1DLerp4Down);
+    Check("1D interpolation in descending 4pt tables", interp.Check1DLerp4Down);
+    Check("1D interpolation in descending 6pt tables", interp.Check1DLerp6Down);
     Check("1D interpolation in descending 18pt tables", interp.Check1DLerp18Down);
 
     if (exhaustive)
@@ -76,48 +73,14 @@ if (doCheckTests)
     Check("Reverse interpolation 4 -> 3", interp.CheckReverseInterpolation4x3);
 
     Console.WriteLine("\nHigh dimensionality interpolation");
-    Check("3D interpolation", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXD(3))
-            interpolation.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
-    }));
-    Check("3D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(3))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-    Check("4D interpolation", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXD(4))
-            interpolation.CheckXDInterpTest((uint)i[0], (ushort[])i[1]);
-    }));
-    Check("4D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(4))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-    Check("5D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(5))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-    Check("6D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(6))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-    Check("7D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(7))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-    Check("8D interpolation with granularity", () => Assert.Multiple(() =>
-    {
-        foreach (var i in TestDataGenerator.CheckXDGranular(8))
-            interpolation.CheckXDInterpGranularTest((uint[])i[0], (uint)i[1], (ushort[])i[2]);
-    }));
-
-    interpolation.Teardown();
+    Check("3D interpolation", () => interp.CheckXDInterp(3));
+    Check("3D interpolation with granularity", () => interp.CheckXDInterpGranular(3));
+    Check("4D interpolation", () => interp.CheckXDInterp(4));
+    Check("4D interpolation with granularity", () => interp.CheckXDInterpGranular(4));
+    Check("5D interpolation with granularity", () => interp.CheckXDInterpGranular(5));
+    Check("6D interpolation with granularity", () => interp.CheckXDInterpGranular(6));
+    Check("7D interpolation with granularity", () => interp.CheckXDInterpGranular(7));
+    Check("8D interpolation with granularity", () => interp.CheckXDInterpGranular(8));
 
     var cs = new ColorspaceTests();
 
@@ -167,3 +130,5 @@ if (doPluginTests)
     Check("Alarm codes context", state.TestAlarmCodes);
     Check("Adaptation state context", state.TestAdaptationStateState);
 }
+
+return totalFail;

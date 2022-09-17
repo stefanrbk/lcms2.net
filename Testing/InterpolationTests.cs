@@ -3,11 +3,9 @@ using lcms2.types;
 
 namespace lcms2.testbed;
 
-public class InterpolationTests : ITest
+public static class InterpolationTests
 {
     #region Fields
-
-    private object _state;
 
     #endregion Fields
 
@@ -123,9 +121,9 @@ public class InterpolationTests : ITest
 
             p.Interpolation.Lerp(@in, @out, p);
 
-            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
-                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
-                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
+            if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                !IsGoodWord("Channel 2", @out[2], @in[2]))
             {
                 return false;
             }
@@ -164,9 +162,9 @@ public class InterpolationTests : ITest
 
             p.Interpolation.Lerp(@in, @out, p);
 
-            if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0]) ||
-                !IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f) ||
-                !IsGoodFixed15_16("Channel 2", @out[2], @in[2] / 4f))
+            if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                !IsGoodWord("Channel 2", @out[2], @in[2]))
             {
                 return false;
             }
@@ -408,65 +406,56 @@ public class InterpolationTests : ITest
         return max <= FloatPrecision;
     }
 
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 3 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 4 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 5 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 6 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 7 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXDGranular), new object[] { 8 })]
-    public void CheckXDInterpGranularTest(uint[] dims, uint inputChans, ushort[] a)
+    public static bool CheckXDInterpGranular(uint inputChans)
     {
-        var lut = Pipeline.Alloc(_state, inputChans, 3);
-        var mpe = Stage.AllocCLut16bit(_state, dims, inputChans, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
+        var dims = _checkXDDims[inputChans - 3][..(int)inputChans];
 
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
+        var lut = Pipeline.Alloc(null, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(null, dims, inputChans, 3, null);
+
+        if (lut is null) return Fail("lut was null");
+        if (mpe is null) return Fail("mpe was null");
 
         mpe!.Sample(SamplerXD, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
-        var out1 = new ushort[3];
-        var out2 = new ushort[3];
-
-        // This is the interpolated value
-        lut.Eval(a, out1);
-
-        // This is the real value
-        SamplerXD(a.Concat(Enumerable.Repeat<ushort>(0, 5)).ToArray(), out2, null);
-
-        // Let's see the difference
-
-        Assert.Multiple(() =>
+        foreach (var test in _checkXDData)
         {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
+            if (!CheckOneXD(lut, test[..(int)inputChans]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 3 })]
-    [TestCaseSource(typeof(TestDataGenerator), nameof(TestDataGenerator.CheckXD), new object[] { 4 })]
-    public void CheckXDInterpTest(uint inputChans, ushort[] a)
+    public static bool CheckXDInterp(uint inputChans)
     {
-        var lut = Pipeline.Alloc(_state, inputChans, 3);
-        var mpe = Stage.AllocCLut16bit(_state, 9, inputChans, 3, null);
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
+        var lut = Pipeline.Alloc(null, inputChans, 3);
+        var mpe = Stage.AllocCLut16bit(null, 9, inputChans, 3, null);
 
-            Assert.That(lut, Is.Not.Null);
-            Assert.That(mpe, Is.Not.Null);
-        });
+        if (lut is null) return Fail("lut was null");
+        if (mpe is null) return Fail("mpe was null");
 
         mpe!.Sample(SamplerXD, null, SamplerFlags.None);
         lut!.InsertStage(StageLoc.AtBegin, mpe);
 
         // Check accuracy
+        foreach (var test in _checkXDData)
+        {
+            if (!CheckOneXD(lut, test[..(int)inputChans]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CheckOneXD(Pipeline lut, params ushort[] a)
+    {
         var out1 = new ushort[3];
         var out2 = new ushort[3];
 
@@ -478,12 +467,9 @@ public class InterpolationTests : ITest
 
         // Let's see the difference
 
-        Assert.Multiple(() =>
-        {
-            IsGoodWord("Channel 1", out1[0], out2[0], 2);
-            IsGoodWord("Channel 2", out1[1], out2[1], 2);
-            IsGoodWord("Channel 3", out1[2], out2[2], 2);
-        });
+        return IsGoodWord("Channel 1", out1[0], out2[0], 2) &&
+               IsGoodWord("Channel 2", out1[0], out2[0], 2) &&
+               IsGoodWord("Channel 3", out1[0], out2[0], 2);
     }
 
     public static bool ExhaustiveCheck3DInterpolationTetrahedral16()
@@ -780,24 +766,6 @@ public class InterpolationTests : ITest
         return true;
     }
 
-    [SetUp]
-    public void Setup()
-    {
-        _state = State.CreateStateContainer()!;
-        try
-        {
-            _ = Console.BufferWidth;
-        }
-        catch
-        {
-            HasConsole = false;
-        }
-    }
-
-    [TearDown]
-    public void Teardown() =>
-        State.DeleteStateContainer(_state);
-
     #endregion Public Methods
 
     #region Private Methods
@@ -882,10 +850,32 @@ public class InterpolationTests : ITest
     {
         @out![0] = Fn8D1(@in[..8]);
         @out![1] = Fn8D2(@in[..8]);
-        @out![1] = Fn8D3(@in[..8]);
+        @out![2] = Fn8D3(@in[..8]);
 
         return true;
     }
 
     #endregion Private Methods
+
+    private static readonly ushort[][] _checkXDData =
+    {
+        new ushort[] { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
+        new ushort[] { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
+        new ushort[] { 0x8080, 0x8080, 0x8080, 0x8080, 0x1234, 0x1122, 0x0056, 0x0011 },
+        new ushort[] { 0x0000, 0xFE00, 0x80FF, 0x8888, 0x8878, 0x2233, 0x0088, 0x2020 },
+        new ushort[] { 0x1111, 0x2222, 0x3333, 0x4444, 0x1455, 0x3344, 0x1987, 0x4532 },
+        new ushort[] { 0x0000, 0x0012, 0x0013, 0x0014, 0x2333, 0x4455, 0x9988, 0x1200 },
+        new ushort[] { 0x3141, 0x1415, 0x1592, 0x9261, 0x4567, 0x5566, 0xFE56, 0x6666 },
+        new ushort[] { 0xFF00, 0xFF01, 0xFF12, 0xFF13, 0xF344, 0x6677, 0xBABE, 0xFACE },
+    };
+
+    private static readonly uint[][] _checkXDDims =
+    {
+        new uint[] { 7, 8, 9 },
+        new uint[] { 9, 8, 7, 6 },
+        new uint[] { 3, 2, 2, 2, 2 },
+        new uint[] { 4, 3, 3, 2, 2, 2 },
+        new uint[] { 4, 3, 3, 2, 2, 2, 2 },
+        new uint[] { 4, 3, 3, 2, 2, 2, 2, 2 }
+    };
 }

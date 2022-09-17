@@ -52,7 +52,7 @@ public static class HelpersTests
         if (QuickFloor(1.234) is not 1 ||
             QuickFloor(32767.234) is not 32767 ||
             QuickFloor(-1.234) is not -2 ||
-            QuickFloor(-32767.1) is not -32767)
+            QuickFloor(-32767.1) is not -32768)
         {
             Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
                 "Please use the \"(No Fast Floor)\" configuration toggles.\n");
