@@ -64,36 +64,6 @@ public static class InterpolationTests
         return true;
     }
 
-    public static bool ExhaustiveCheck1DLerp()
-    {
-        if (HasConsole)
-            Console.Write("10 - 4096");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!ExhaustiveCheck1D(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
-    public static bool ExhaustiveCheck1DLerpDown()
-    {
-        if (HasConsole)
-            Console.Write("10 - 4096");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!ExhaustiveCheck1DDown(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
     public static bool Check3DInterpolationTetrahedral16()
     {
         var table = new ushort[]
@@ -474,29 +444,7 @@ public static class InterpolationTests
 
     public static bool ExhaustiveCheck3DInterpolationTetrahedral16()
     {
-        if (HasConsole)
-            Console.Write("0 - 256");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!TestExhaustiveCheck3DInterpolationTetrahedral16(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
-    public static bool TestExhaustiveCheck3DInterpolationTetrahedral16(uint start, uint stop)
-    {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+        var rc = true;
 
         var table = new ushort[]
         {
@@ -514,62 +462,51 @@ public static class InterpolationTests
         };
 
         var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Ushort);
-        if (p is null || p.Interpolation is null) return false;
+        if (p is null || p.Interpolation is null) goto Err;
 
-        for (var r = start; r < stop; r++)
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 0xFF; i += 16)
         {
-            for (var g = 0; g < 0xFF; g++)
+            for (var r = 0u; r < 16; r++)
             {
-                for (var b = 0; b < 0xFF; b++)
+                for (var g = 0; g < 0xFF; g++)
                 {
-                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                    var @out = new ushort[3];
-
-                    p.Interpolation.Lerp(@in, @out, p);
-
-                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
-                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
-                        !IsGoodWord("Channel 2", @out[2], @in[2]))
+                    for (var b = 0; b < 0xFF; b++)
                     {
-                        return false;
+                        var @in = new ushort[] { (ushort)(r + i), (ushort)g, (ushort)b };
+                        var @out = new ushort[3];
+
+                        p.Interpolation.Lerp(@in, @out, p);
+
+                        if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                            !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                            !IsGoodWord("Channel 2", @out[2], @in[2]))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
-
-            ProgressBar(start, stop, widthSubtract, r);
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
 
     public static bool ExhaustiveCheck3DInterpolationTrilinear16()
     {
-        if (HasConsole)
-            Console.Write("0 - 256");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!TestExhaustiveCheck3DInterpolationTrilinear16(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
-    public static bool TestExhaustiveCheck3DInterpolationTrilinear16(uint start, uint stop)
-    {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+        var rc = true;
 
         var table = new ushort[]
         {
@@ -587,62 +524,51 @@ public static class InterpolationTests
         };
 
         var p = InterpParams.Compute(null, 2, 3, 3, table, LerpFlag.Trilinear);
-        if (p is null || p.Interpolation is null) return false;
+        if (p is null || p.Interpolation is null) goto Err;
 
-        for (var r = start; r < stop; r++)
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 0xFF; i += 16)
         {
-            for (var g = 0; g < 0xFF; g++)
+            for (var r = 0u; r < 16; r++)
             {
-                for (var b = 0; b < 0xFF; b++)
+                for (var g = 0; g < 0xFF; g++)
                 {
-                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                    var @out = new ushort[3];
-
-                    p.Interpolation.Lerp(@in, @out, p);
-
-                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
-                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
-                        !IsGoodWord("Channel 2", @out[2], @in[2]))
+                    for (var b = 0; b < 0xFF; b++)
                     {
-                        return false;
+                        var @in = new ushort[] { (ushort)(r + i), (ushort)g, (ushort)b };
+                        var @out = new ushort[3];
+
+                        p.Interpolation.Lerp(@in, @out, p);
+
+                        if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
+                            !IsGoodWord("Channel 2", @out[1], @in[1]) ||
+                            !IsGoodWord("Channel 2", @out[2], @in[2]))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
-
-            ProgressBar(start, stop, widthSubtract, r);
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
 
     public static bool ExhaustiveCheck3DInterpolationTetrahedralFloat()
     {
-        if (HasConsole)
-            Console.Write("0 - 256");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!TestExhaustiveCheck3DInterpolationTetrahedralFloat(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
-    public static bool TestExhaustiveCheck3DInterpolationTetrahedralFloat(uint start, uint stop)
-    {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+        var rc = true;
 
         var floatTable = new float[]
         {
@@ -660,63 +586,55 @@ public static class InterpolationTests
         };
 
         var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float);
-        if (p is null || p.Interpolation is null) return false;
+        if (p is null || p.Interpolation is null) goto Err;
 
         MaxErr = 0.0;
-        for (var r = start; r < stop; r++)
+
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 0xFF; i += 16)
         {
-            for (var g = 0; g < 0xFF; g++)
+            for (var r = 0u; r < 16; r++)
             {
-                for (var b = 0; b < 0xFF; b++)
+                for (var g = 0; g < 0xFF; g++)
                 {
-                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                    var @out = new ushort[3];
-
-                    p.Interpolation.Lerp(@in, @out, p);
-
-                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
-                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
-                        !IsGoodWord("Channel 2", @out[2], @in[2]))
+                    for (var b = 0; b < 0xFF; b++)
                     {
-                        return false;
+                        var @in = new[] { (r + i) / 255f, g / 255f, b / 255f };
+                        var @out = new float[3];
+
+                        p.Interpolation.Lerp(@in, @out, p);
+
+                        if (!IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 1", @out[0], @in[0]) ||
+                            !IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 2", @out[1], @in[1] / 2) ||
+                            !IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 2", @out[2], @in[2] / 4))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
-
-            ProgressBar(start, stop, widthSubtract, r);
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        if (MaxErr > 0)
+            Console.Write($"|Err|<{MaxErr}");
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
 
     public static bool ExhaustiveCheck3DInterpolationTrilinearFloat()
     {
-        if (HasConsole)
-            Console.Write("0 - 256");
-        for (uint i = 0, j = 1; i < 16; i++, j++)
-        {
-            if (!TestExhaustiveCheck3DInterpolationTrilinearFloat(i, j)) return false;
-        }
-
-        if (HasConsole)
-            Console.Write("\nThe result is ");
-
-        return true;
-    }
-
-    public static bool TestExhaustiveCheck3DInterpolationTrilinearFloat(uint start, uint stop)
-    {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
+        var rc = true;
 
         var floatTable = new float[]
         {
@@ -734,36 +652,50 @@ public static class InterpolationTests
         };
 
         var p = InterpParams.Compute(null, 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
-        if (p is null || p.Interpolation is null) return false;
+        if (p is null || p.Interpolation is null) goto Err;
 
         MaxErr = 0.0;
-        for (var r = start; r < stop; r++)
+
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 0xFF; i += 16)
         {
-            for (var g = 0; g < 0xFF; g++)
+            for (var r = 0u; r < 16; r++)
             {
-                for (var b = 0; b < 0xFF; b++)
+                for (var g = 0; g < 0xFF; g++)
                 {
-                    var @in = new ushort[] { (ushort)r, (ushort)g, (ushort)b };
-                    var @out = new ushort[3];
-
-                    p.Interpolation.Lerp(@in, @out, p);
-
-                    if (!IsGoodWord("Channel 1", @out[0], @in[0]) ||
-                        !IsGoodWord("Channel 2", @out[1], @in[1]) ||
-                        !IsGoodWord("Channel 2", @out[2], @in[2]))
+                    for (var b = 0; b < 0xFF; b++)
                     {
-                        return false;
+                        var @in = new[] { (r + i) / 255f, g / 255f, b / 255f };
+                        var @out = new float[3];
+
+                        p.Interpolation.Lerp(@in, @out, p);
+
+                        if (!IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 1", @out[0], @in[0]) ||
+                            !IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 2", @out[1], @in[1] / 2) ||
+                            !IsGoodFixed15_16($"({r + 1},{g},{b}): Channel 2", @out[2], @in[2] / 4))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
-
-            ProgressBar(start, stop, widthSubtract, r);
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        if (MaxErr > 0)
+            Console.Write($"|Err|<{MaxErr}");
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
 
     #endregion Public Methods
@@ -785,51 +717,58 @@ public static class InterpolationTests
         }
     }
 
-    private static bool ExhaustiveCheck1D(uint start, uint stop)
+    public static bool ExhaustiveCheck1DLerp()
     {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
-        for (var j = start; j <= stop; j++)
-        {
-            ProgressBar(start, stop, widthSubtract, j);
+        var rc = true;
 
-            if (!Check1D(j, false, 1)) return false;
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 4096; i += 256)
+        {
+            for (var j = i is 0 ? 10u : 0u; j < 256; j++)
+                tasks.Add(Task.Run(() => Check1D(j + i, false, 1)));
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
 
-    private static bool ExhaustiveCheck1DDown(uint start, uint stop)
+    public static bool ExhaustiveCheck1DLerpDown()
     {
-        if (HasConsole)
-        {
-            Console.WriteLine();
-            Console.WriteLine($"\tTesting {start} - {stop}");
-        }
-        var startStr = start.ToString();
-        var stopStr = stop.ToString();
-        var widthSubtract = 16 + startStr.Length + stopStr.Length;
-        for (var j = start; j <= stop; j++)
-        {
-            ProgressBar(start, stop, widthSubtract, j);
+        var rc = true;
 
-            if (!Check1D(j, true, 1)) return false;
+        var tasks = new List<Task<bool>>();
+        for (var i = 0u; i < 4096; i += 256)
+        {
+            for (var j = i is 0 ? 10u : 0u; j < 256; j++)
+                tasks.Add(Task.Run(() => Check1D(j + i, true, 1)));
         }
 
-        if (HasConsole)
-            Console.Write($"\r{new string(' ', Console.BufferWidth - 1)}\r\t\tDone.");
+        foreach (var task in tasks)
+            task.Wait();
 
-        return true;
+        if (tasks.Select(t => t.IsCompletedSuccessfully && t.Result).Contains(false))
+            goto Err;
+
+        goto Done;
+
+    Err:
+        rc = false;
+
+    Done:
+        return rc;
     }
+
     private static ushort Fn8D1(ReadOnlySpan<ushort> a) =>
         (ushort)a.ToArray()
                  .Average(i => i);

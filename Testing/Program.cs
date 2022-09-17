@@ -3,6 +3,8 @@ using lcms2.testbed;
 
 using interp = lcms2.testbed.InterpolationTests;
 using cs = lcms2.testbed.ColorspaceTests;
+using state = lcms2.testbed.StateTests;
+using helper = lcms2.testbed.HelpersTests;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
@@ -31,10 +33,10 @@ WriteLineGreen("done");
 
 PrintSupportedIntents();
 
-Check("quick floor", HelpersTests.CheckQuickFloor);
-Check("quick floor word", HelpersTests.CheckQuickFloorWord);
-Check("Fixed point 15.16 representation", HelpersTests.CheckFixedPoint15_16);
-Check("Fixed point 8.8 representation", HelpersTests.CheckFixedPoint8_8);
+Check("quick floor", helper.CheckQuickFloor);
+Check("quick floor word", helper.CheckQuickFloorWord);
+Check("Fixed point 15.16 representation", helper.CheckFixedPoint15_16);
+Check("Fixed point 8.8 representation", helper.CheckFixedPoint8_8);
 
 if (doCheckTests)
 {
@@ -94,8 +96,6 @@ if (doCheckTests)
 
 if (doPluginTests)
 {
-    var state = new StateTests();
-
     Console.WriteLine("\nPlugin tests");
     Check("Simple context functionality", state.TestSimpleState);
     Check("Alarm codes context", state.TestAlarmCodes);

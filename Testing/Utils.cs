@@ -19,6 +19,7 @@ public static class Utils
 
     public static bool HasConsole = !Console.IsInputRedirected;
     public static double MaxErr = 0;
+    private static object maxErrLock = new();
     public static string reasonToFail = String.Empty;
     public static int simultaneousErrors = 0;
     public static string subTest = String.Empty;
@@ -69,7 +70,9 @@ public static class Utils
 
     public static bool Fail(string text)
     {
-        reasonToFail = text;
+        lock(reasonToFail)
+            reasonToFail = text;
+
         return false;
     }
 
@@ -241,8 +244,15 @@ public static class Utils
         it8.SaveToFile(filename);
     }
 
-    public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
-        Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
+    public static bool IsGoodDouble(string title, double actual, double expected, double delta)
+    {
+        var err = Math.Abs(actual - expected);
+
+        if (err > delta)
+            return Fail($"({title}): Must be {expected}, but was {actual}");
+
+        return true;
+    }
 
     public static bool IsGoodFixed15_16(string title, double @in, double @out) =>
         IsGoodVal(title, @in, @out, FixedPrecision15_16);
@@ -254,7 +264,8 @@ public static class Utils
     {
         var err = Math.Abs(@in - @out);
 
-        if (err > MaxErr) MaxErr = err;
+        lock(maxErrLock)
+            if (err > MaxErr) MaxErr = err;
 
         if (err > max)
         {
