@@ -75,5 +75,48 @@ public static class HelpersTests
         return true;
     }
 
+    internal static bool CheckD50Roundtrip()
+    {
+        const double d50x2 = 0.96420288;
+        const double d50y2 = 1.0;
+        const double d50z2 = 0.82490540;
+
+        var xe = DoubleToS15Fixed16(Lcms2.D50.X);
+        var ye = DoubleToS15Fixed16(Lcms2.D50.Y);
+        var ze = DoubleToS15Fixed16(Lcms2.D50.Z);
+
+        var x = S15Fixed16toDouble(xe);
+        var y = S15Fixed16toDouble(ye);
+        var z = S15Fixed16toDouble(ze);
+
+        var dx = Math.Abs(Lcms2.D50.X - x);
+        var dy = Math.Abs(Lcms2.D50.Y - y);
+        var dz = Math.Abs(Lcms2.D50.Z - z);
+
+        var euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+        if (euc > 1E-5)
+            return Fail($"D50 roundtrip |err| > ({euc}) ");
+
+        xe = DoubleToS15Fixed16(d50x2);
+        ye = DoubleToS15Fixed16(d50y2);
+        ze = DoubleToS15Fixed16(d50z2);
+
+        x = S15Fixed16toDouble(xe);
+        y = S15Fixed16toDouble(ye);
+        z = S15Fixed16toDouble(ze);
+
+        dx = Math.Abs(d50x2 - x);
+        dy = Math.Abs(d50y2 - y);
+        dz = Math.Abs(d50z2 - z);
+
+        euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+        if (euc > 1E-5)
+            return Fail($"D50 roundtrip |err| > ({euc}) ");
+
+        return true;
+    }
+
     #endregion Internal Methods
 }

@@ -37,6 +37,7 @@ Check("quick floor", helper.CheckQuickFloor);
 Check("quick floor word", helper.CheckQuickFloorWord);
 Check("Fixed point 15.16 representation", helper.CheckFixedPoint15_16);
 Check("Fixed point 8.8 representation", helper.CheckFixedPoint8_8);
+Check("D50 roundtrip", helper.CheckD50Roundtrip);
 
 if (doCheckTests)
 {
