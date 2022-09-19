@@ -4,8 +4,6 @@ using lcms2.it8;
 using lcms2.state;
 using lcms2.types;
 
-using NUnit.Framework.Internal;
-
 [assembly: ExcludeFromCodeCoverage]
 
 namespace lcms2.testing;
@@ -30,9 +28,6 @@ public static class Utils
     #endregion Fields
 
     #region Properties
-
-    public static bool HasAssertions =>
-        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
 
     #endregion Properties
 
@@ -195,9 +190,6 @@ public static class Utils
             Console.Write("\nThe result is ");
         return result;
     }
-
-    public static void ClearAssert() =>
-        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Clear();
 
     public static double DeltaE(Lab lab1, Lab lab2)
     {

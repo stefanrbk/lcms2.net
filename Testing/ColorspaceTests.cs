@@ -29,8 +29,6 @@ public static class ColorspaceTests
 
     public static bool CheckLab2xyY()
     {
-        ClearAssert();
-
         for (var l = 0; l < 100; l += 10)
         {
             for (var a = -128; a < 128; a += 8)
