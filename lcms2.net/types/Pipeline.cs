@@ -138,6 +138,7 @@ public class Pipeline : ICloneable, IDisposable
 
         get; internal set;
     }
+
     public bool SaveAs8Bits
     {
         /** Original Code (cmslut.c line: 1628)

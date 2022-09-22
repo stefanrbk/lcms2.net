@@ -1,4 +1,30 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using System.Diagnostics.CodeAnalysis;
 
 using lcms2.it8;
 using lcms2.state;
@@ -7,6 +33,7 @@ using lcms2.types;
 [assembly: ExcludeFromCodeCoverage]
 
 namespace lcms2.testing;
+
 public static class Utils
 {
     #region Fields
@@ -17,69 +44,17 @@ public static class Utils
 
     public static bool HasConsole = !Console.IsInputRedirected;
     public static double MaxErr = 0;
-    private static object maxErrLock = new();
     public static string reasonToFail = String.Empty;
     public static int simultaneousErrors = 0;
     public static string subTest = String.Empty;
     public static int totalFail = 0;
     public static int totalTests = 0;
     public static bool TrappedError;
+    private static object maxErrLock = new();
 
     #endregion Fields
 
-    #region Properties
-
-    #endregion Properties
-
     #region Public Methods
-    public static bool CheckExhaustive()
-    {
-        Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
-        var key = WaitForKey(5000);
-        if (key.HasValue)
-        {
-            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
-            {
-                if (key.Value.Key is ConsoleKey.Enter)
-                    Console.WriteLine("N");
-                else
-                    Console.WriteLine(key.Value.KeyChar);
-                return false;
-            }
-            else if (key.Value.Key is ConsoleKey.Y)
-            {
-                Console.WriteLine(key.Value.KeyChar);
-                return true;
-            }
-        }
-        else
-        {
-            Console.WriteLine();
-        }
-
-        return false;
-    }
-
-    public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
-        Die(text);
-
-    public static bool Fail(string text)
-    {
-        lock(reasonToFail)
-            reasonToFail = text;
-
-        return false;
-    }
-
-    public static void PrintSupportedIntents()
-    {
-        var values = State.GetSupportedIntents(200, out _);
-
-        Console.WriteLine("Supported intents:");
-        foreach (var value in values)
-            Console.WriteLine($"\t{value.Code} - {value.Desc}");
-        Console.WriteLine();
-    }
 
     public static void Check(string title, Action test)
     {
@@ -145,6 +120,34 @@ public static class Utils
                 totalFail++;
             });
         }
+    }
+
+    public static bool CheckExhaustive()
+    {
+        Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
+        var key = WaitForKey(5000);
+        if (key.HasValue)
+        {
+            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
+            {
+                if (key.Value.Key is ConsoleKey.Enter)
+                    Console.WriteLine("N");
+                else
+                    Console.WriteLine(key.Value.KeyChar);
+                return false;
+            }
+            else if (key.Value.Key is ConsoleKey.Y)
+            {
+                Console.WriteLine(key.Value.KeyChar);
+                return true;
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+        }
+
+        return false;
     }
 
     public static bool CheckInterp1D(Action<uint, uint> fn)
@@ -236,6 +239,17 @@ public static class Utils
         it8.SaveToFile(filename);
     }
 
+    public static bool Fail(string text)
+    {
+        lock (reasonToFail)
+            reasonToFail = text;
+
+        return false;
+    }
+
+    public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
+                                        Die(text);
+
     public static bool IsGoodDouble(string title, double actual, double expected, double delta)
     {
         var err = Math.Abs(actual - expected);
@@ -256,7 +270,7 @@ public static class Utils
     {
         var err = Math.Abs(@in - @out);
 
-        lock(maxErrLock)
+        lock (maxErrLock)
             if (err > MaxErr) MaxErr = err;
 
         if (err > max)
@@ -279,6 +293,16 @@ public static class Utils
         }
 
         return true;
+    }
+
+    public static void PrintSupportedIntents()
+    {
+        var values = State.GetSupportedIntents(200, out _);
+
+        Console.WriteLine("Supported intents:");
+        foreach (var value in values)
+            Console.WriteLine($"\t{value.Code} - {value.Desc}");
+        Console.WriteLine();
     }
 
     public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
@@ -308,11 +332,13 @@ public static class Utils
             task.Wait(token);
             var read = task.IsCompletedSuccessfully;
             if (read) return task.Result;
-        } catch
+        }
+        catch
         {
         }
         return null;
     }
+
     public static void WriteGreen(Action fn)
     {
         Console.ForegroundColor = ConsoleColor.Green;
@@ -325,6 +351,7 @@ public static class Utils
 
     public static void WriteLineRed(string value) =>
         WriteRed(() => Console.WriteLine(value));
+
     public static void WriteRed(Action fn)
     {
         Console.ForegroundColor = ConsoleColor.Red;

@@ -30,21 +30,12 @@ public sealed partial class Stage : ICloneable, IDisposable
 {
     #region Fields
 
-    public Stage? Next
-    {
-        /** Original Code (cmslut.c line: 1234)
-         **
-         ** cmsStage*  CMSEXPORT cmsStageNext(const cmsStage* mpe)
-         ** {
-         **     return mpe -> Next;
-         ** }
-         **/
-
-        get; internal set;
-    }
     internal Signature implements;
+
     private bool _disposedValue;
+
     private uint _inputChan;
+
     private uint _outputChan;
 
     #endregion Fields
@@ -76,6 +67,19 @@ public sealed partial class Stage : ICloneable, IDisposable
 
         get => _inputChan;
         internal set => _inputChan = value <= maxStageChannels ? value : _inputChan;
+    }
+
+    public Stage? Next
+    {
+        /** Original Code (cmslut.c line: 1234)
+         **
+         ** cmsStage*  CMSEXPORT cmsStageNext(const cmsStage* mpe)
+         ** {
+         **     return mpe -> Next;
+         ** }
+         **/
+
+        get; internal set;
     }
 
     public uint OutputChannels

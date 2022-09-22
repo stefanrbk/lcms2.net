@@ -59,8 +59,26 @@ public static class State
 
     #region Public Methods
 
+    public static object? CreateStateContainer(Plugin? plugin = null, object? userData = null) =>
+            Context.Create(plugin, userData);
+
+    public static void DeleteStateContainer(object? state) =>
+        Context.Delete(state);
+
+    public static object? DuplicateStateContainer(object? state, object? newUserData = null) =>
+        Context.Duplicate(state, newUserData);
+
+    public static ushort[] GetAlarmCodes() =>
+        GetAlarmCodes(null);
+
+    public static ushort[] GetAlarmCodes(object? state) =>
+        ((AlarmCodes)Context.GetClientChunk(state, Chunks.AlarmCodesContext)!).alarmCodes;
+
+    public static object? GetStateContainerUserData(object? state) =>
+                Context.GetClientChunk(state, Chunks.UserPtr);
+
     public static (Signature Code, string Desc)[] GetSupportedIntents(int maxReturn, out int count) =>
-        GetSupportedIntents(null, maxReturn, out count);
+                                GetSupportedIntents(null, maxReturn, out count);
 
     public static (Signature Code, string Desc)[] GetSupportedIntents(object? state, int maxReturn, out int count)
     {
@@ -79,24 +97,6 @@ public static class State
 
         return list.ToArray();
     }
-
-    public static object? CreateStateContainer(Plugin? plugin = null, object? userData = null) =>
-            Context.Create(plugin, userData);
-
-    public static void DeleteStateContainer(object? state) =>
-        Context.Delete(state);
-
-    public static object? DuplicateStateContainer(object? state, object? newUserData = null) =>
-        Context.Duplicate(state, newUserData);
-
-    public static ushort[] GetAlarmCodes() =>
-        GetAlarmCodes(null);
-
-    public static ushort[] GetAlarmCodes(object? state) =>
-        ((AlarmCodes)Context.GetClientChunk(state, Chunks.AlarmCodesContext)!).alarmCodes;
-
-    public static object? GetStateContainerUserData(object? state) =>
-                Context.GetClientChunk(state, Chunks.UserPtr);
 
     public static object? GetUserData(object? state) =>
         Context.GetClientChunk(state, Chunks.UserPtr);
@@ -194,7 +194,7 @@ public static class State
         private static readonly Context _globalContext = new()
         {
             /**  Original Code (cmsplugin.c line: 642)
-             **  
+             **
              **  // The Global storage for system context. This is the one and only global variable
              **  // pointers structure. All global vars are referenced here.
              **  static struct _cmsContext_struct globalContext = {
@@ -202,10 +202,10 @@ public static class State
              **      NULL,                              // Not in the linked list
              **      NULL,                              // No suballocator
              **      {
-             **          NULL,                          //  UserPtr,            
+             **          NULL,                          //  UserPtr,
              **          &_cmsLogErrorChunk,            //  Logger,
              **          &_cmsAlarmCodesChunk,          //  AlarmCodes,
-             **          &_cmsAdaptationStateChunk,     //  AdaptationState, 
+             **          &_cmsAdaptationStateChunk,     //  AdaptationState,
              **          &_cmsMemPluginChunk,           //  MemPlugin,
              **          &_cmsInterpPluginChunk,        //  InterpPlugin,
              **          &_cmsCurvesPluginChunk,        //  CurvesPlugin,
@@ -397,7 +397,7 @@ public static class State
 
         private static void AllocInterpolationPluginChunk(Context state, Context? src = null) =>
             /**  Original Code (cmsintrp.c line: 45)
-             **  
+             **
              **  // The interpolation plug-in memory chunk allocator/dup
              **  void _cmsAllocInterpPluginChunk(struct _cmsContext_struct* ctx, const struct _cmsContext_struct* src)
              **  {
@@ -406,9 +406,9 @@ public static class State
              **      _cmsAssert(ctx != NULL);
              **
              **      if (src != NULL) {
-             **          from = src ->chunks[InterpPlugin];       
+             **          from = src ->chunks[InterpPlugin];
              **      }
-             **      else { 
+             **      else {
              **          static _cmsInterpPluginChunkType InterpPluginChunk = { NULL };
              **
              **          from = &InterpPluginChunk;
@@ -451,7 +451,7 @@ public static class State
             /** Original Code (cmsgamma.c line: 105)
              **
              ** // The allocator have to follow the chain
-             ** void _cmsAllocCurvesPluginChunk(struct _cmsContext_struct* ctx, 
+             ** void _cmsAllocCurvesPluginChunk(struct _cmsContext_struct* ctx,
              **                                 const struct _cmsContext_struct* src)
              ** {
              **     _cmsAssert(ctx != NULL);
@@ -590,7 +590,7 @@ public static class State
              **
              ** // Duplicates the zone of memory used by the plug-in in the new context
              ** static
-             ** void DupPluginCurvesList(struct _cmsContext_struct* ctx, 
+             ** void DupPluginCurvesList(struct _cmsContext_struct* ctx,
              **                                                const struct _cmsContext_struct* src)
              ** {
              **    _cmsCurvesPluginChunkType newHead = { NULL };
@@ -607,7 +607,7 @@ public static class State
              **
              **             _cmsParametricCurvesCollection *newEntry = ( _cmsParametricCurvesCollection *) _cmsSubAllocDup(ctx ->MemPool, entry, sizeof(_cmsParametricCurvesCollection));
              **
-             **             if (newEntry == NULL) 
+             **             if (newEntry == NULL)
              **                 return;
              **
              **             // We want to keep the linked list order, so this is a little bit tricky

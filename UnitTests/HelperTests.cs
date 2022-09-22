@@ -1,37 +1,83 @@
-﻿using static lcms2.Helpers;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using static lcms2.Helpers;
 
 namespace lcms2.tests;
 
 [TestFixture(TestOf = typeof(Helpers))]
 public class HelperTests
 {
-    [TestCaseSource(nameof(_quickFloorValues), Category = FixedTest)]
-    public void QuickFloorReturnsFlooredValueTest(double value) =>
-        Assert.That(QuickFloor(value), Is.EqualTo(Math.Floor(value)));
+    #region Fields
 
-    [Test, Category(RandomTest)]
-    public void QuickFloorWordReturnsFlooredValueTest(
-        [Random((ushort)0, (ushort)65534, 10, Distinct = true)]
-            ushort value) =>
-        Assert.That(QuickFloorWord(value + 0.1234), Is.EqualTo(value));
+    private static readonly object[][] _doubleToS15Fixed16Values = new[]
+    {
+        new object[] {                           0.0,  0x00000000 },
+        new object[] {                           1.0,  0x00010000 },
+        new object[] { 32767.0 + (65535.0 / 65536.0),  0x7FFFFFFF },
+        new object[] { 32767.0 + (65535.0 / 65536.0),  0x7FFFFFFF },
+        new object[] {                          -1.0, -0x00010000 }
+    };
 
-    [TestCaseSource(nameof(_doubleToS15Fixed16Values), Category = FixedTest)]
-    public void DoubleToS15Fixed16ReturnsProperFixedPointValueTest(double value, int expected) =>
-        Assert.That(DoubleToS15Fixed16(value), Is.EqualTo(expected));
+    private static readonly double[] _quickFloorValues = new[]
+    {
+        1.234,
+        32767.234,
+        -1.234,
+        -32767.234
+    };
 
-    [TestCaseSource(nameof(_doubleToS15Fixed16Values), Category = FixedTest)]
-    public void S15Fixed16ToDoubleReturnsProperDoubleValueTest(double expected, int value) =>
-        Assert.That(S15Fixed16toDouble(value), Is.EqualTo(expected));
+    private static readonly double[] _s15Fixed16RoundTripValues = new[]
+    {
+        1.0,
+        2.0,
+        1.23456,
+        0.99999,
+        0.1234567890123456789099999,
+        -1.0,
+        -2.0,
+        -1.23456,
+        -1.1234567890123456789099999,
+        32767.1234567890123456789099999,
+        -32767.1234567890123456789099999
+    };
 
-    [TestCaseSource(nameof(_s15Fixed16RoundTripValues), Category = FixedTest)]
-    [TestCaseSource(nameof(S15Fixed16TestRandomGenerator), Category = RandomTest)]
-    public void S15Fixed16RoundTripTest(double value) =>
-        Assert.That(S15Fixed16toDouble(DoubleToS15Fixed16(value)), Is.EqualTo(value).Within(S15Fixed16Precision));
+    private static readonly double[] _u8Fixed8RoundTripValues = new[]
+    {
+        1.0,
+        2.0,
+        1.23456,
+        0.99999,
+        0.1234567890123456789099999,
+        255.1234567890123456789099999,
+    };
 
-    [TestCaseSource(nameof(_u8Fixed8RoundTripValues), Category = FixedTest)]
-    [TestCaseSource(nameof(U8Fixed8TestRandomGenerator), Category = RandomTest)]
-    public void U8Fixed8RoundTripTest(double value) =>
-        Assert.That(U8Fixed8toDouble(DoubleToU8Fixed8(value)), Is.EqualTo(value).Within(U8Fixed8Precision));
+    #endregion Fields
+
+    #region Public Methods
 
     [Test, Category(FixedTest)]
     public void D50ConstRoundtripTest()
@@ -73,44 +119,38 @@ public class HelperTests
         Assert.That(euc, Is.LessThan(1E-5).Within(0));
     }
 
-    private static readonly double[] _quickFloorValues = new[]
-    {
-        1.234,
-        32767.234,
-        -1.234,
-        -32767.234
-    };
-    private static readonly object[][] _doubleToS15Fixed16Values = new[]
-    {
-        new object[] {                           0.0,  0x00000000 },
-        new object[] {                           1.0,  0x00010000 },
-        new object[] { 32767.0 + (65535.0 / 65536.0),  0x7FFFFFFF },
-        new object[] { 32767.0 + (65535.0 / 65536.0),  0x7FFFFFFF },
-        new object[] {                          -1.0, -0x00010000 }
-    };
-    private static readonly double[] _s15Fixed16RoundTripValues = new[]
-    {
-        1.0,
-        2.0,
-        1.23456,
-        0.99999,
-        0.1234567890123456789099999,
-        -1.0,
-        -2.0,
-        -1.23456,
-        -1.1234567890123456789099999,
-        32767.1234567890123456789099999,
-        -32767.1234567890123456789099999
-    };
-    private static readonly double[] _u8Fixed8RoundTripValues = new[]
-    {
-        1.0,
-        2.0,
-        1.23456,
-        0.99999,
-        0.1234567890123456789099999,
-        255.1234567890123456789099999,
-    };
+    [TestCaseSource(nameof(_doubleToS15Fixed16Values), Category = FixedTest)]
+    public void DoubleToS15Fixed16ReturnsProperFixedPointValueTest(double value, int expected) =>
+        Assert.That(DoubleToS15Fixed16(value), Is.EqualTo(expected));
+
+    [TestCaseSource(nameof(_quickFloorValues), Category = FixedTest)]
+    public void QuickFloorReturnsFlooredValueTest(double value) =>
+        Assert.That(QuickFloor(value), Is.EqualTo(Math.Floor(value)));
+
+    [Test, Category(RandomTest)]
+    public void QuickFloorWordReturnsFlooredValueTest(
+        [Random((ushort)0, (ushort)65534, 10, Distinct = true)]
+            ushort value) =>
+        Assert.That(QuickFloorWord(value + 0.1234), Is.EqualTo(value));
+
+    [TestCaseSource(nameof(_s15Fixed16RoundTripValues), Category = FixedTest)]
+    [TestCaseSource(nameof(S15Fixed16TestRandomGenerator), Category = RandomTest)]
+    public void S15Fixed16RoundTripTest(double value) =>
+        Assert.That(S15Fixed16toDouble(DoubleToS15Fixed16(value)), Is.EqualTo(value).Within(S15Fixed16Precision));
+
+    [TestCaseSource(nameof(_doubleToS15Fixed16Values), Category = FixedTest)]
+    public void S15Fixed16ToDoubleReturnsProperDoubleValueTest(double expected, int value) =>
+        Assert.That(S15Fixed16toDouble(value), Is.EqualTo(expected));
+
+    [TestCaseSource(nameof(_u8Fixed8RoundTripValues), Category = FixedTest)]
+    [TestCaseSource(nameof(U8Fixed8TestRandomGenerator), Category = RandomTest)]
+    public void U8Fixed8RoundTripTest(double value) =>
+        Assert.That(U8Fixed8toDouble(DoubleToU8Fixed8(value)), Is.EqualTo(value).Within(U8Fixed8Precision));
+
+    #endregion Public Methods
+
+    #region Private Methods
+
     private static IEnumerable<double> S15Fixed16TestRandomGenerator()
     {
         var whole = new List<int>();
@@ -136,6 +176,7 @@ public class HelperTests
             yield return w + (f / 65536.0);
         }
     }
+
     private static IEnumerable<double> U8Fixed8TestRandomGenerator()
     {
         var whole = new List<int>();
@@ -161,4 +202,6 @@ public class HelperTests
             yield return w + (f / 256.0);
         }
     }
+
+    #endregion Private Methods
 }

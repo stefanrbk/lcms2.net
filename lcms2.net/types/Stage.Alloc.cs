@@ -25,8 +25,6 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
-
 namespace lcms2.types;
 
 public partial class Stage

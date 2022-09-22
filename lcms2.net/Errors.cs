@@ -109,8 +109,17 @@ internal static class Errors
                     ?? invalid_parametric_curve_type,
                 type));
 
-    internal static bool Lut8InvalidEntryCount(object? state) =>
+    internal static bool InvalidWhitePointFromTemp(object? state) =>
         ReturnFalse(() =>
+            State.SignalError(
+                state,
+                ErrorCode.Range,
+                resources.GetString(
+                    nameof(invalid_whitepoint_from_temp))
+                    ?? invalid_whitepoint_from_temp));
+
+    internal static bool Lut8InvalidEntryCount(object? state) =>
+            ReturnFalse(() =>
             State.SignalError(
                 state,
                 ErrorCode.Range,
@@ -235,16 +244,6 @@ internal static class Errors
                     nameof(tonecurve_too_many_entries))
                     ?? tonecurve_too_many_entries));
 
-    internal static bool TooManyDeviceCoordinates(object? state, uint numCoords) =>
-        ReturnFalse(() =>
-            State.SignalError(
-                state,
-                ErrorCode.Range,
-                resources.GetString(
-                    nameof(too_many_device_coordinates))
-                    ?? too_many_device_coordinates,
-                numCoords));
-
     internal static bool TooManyColorants(object? state, uint numCoords) =>
         ReturnFalse(() =>
             State.SignalError(
@@ -253,6 +252,16 @@ internal static class Errors
                 resources.GetString(
                     nameof(too_many_colorants))
                     ?? too_many_colorants,
+                numCoords));
+
+    internal static bool TooManyDeviceCoordinates(object? state, uint numCoords) =>
+            ReturnFalse(() =>
+            State.SignalError(
+                state,
+                ErrorCode.Range,
+                resources.GetString(
+                    nameof(too_many_device_coordinates))
+                    ?? too_many_device_coordinates,
                 numCoords));
 
     internal static bool TooManyInputChannels(object? state, uint inputChannels, int max) =>
@@ -364,15 +373,6 @@ internal static class Errors
                 resources.GetString(
                     nameof(unsupported_parametric_curve))
                     ?? unsupported_parametric_curve));
-
-    internal static bool InvalidWhitePointFromTemp(object? state) =>
-        ReturnFalse(() =>
-            State.SignalError(
-                state,
-                ErrorCode.Range,
-                resources.GetString(
-                    nameof(invalid_whitepoint_from_temp))
-                    ?? invalid_whitepoint_from_temp));
 
     internal static bool UnsupportedVcgtBitDepth(object? state, int bitDepth) =>
                         ReturnFalse(() =>

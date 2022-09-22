@@ -255,16 +255,16 @@ public sealed class ToneCurve : ICloneable, IDisposable
     }
 
     public bool IsMultisegment =>
-        /** Original Code (cmsgamma.c line: 1384)
-        **
-        ** // Another info fn: is out gamma table multisegment?
-        **  cmsBool  CMSEXPORT cmsIsToneCurveMultisegment(const cmsToneCurve* t)
-        **  {
-        **  _cmsAssert(t != NULL);
-        **
-        **  return t -> nSegments > 1;
-        **  }
-        **/
+       /** Original Code (cmsgamma.c line: 1384)
+       **
+       ** // Another info fn: is out gamma table multisegment?
+       **  cmsBool  CMSEXPORT cmsIsToneCurveMultisegment(const cmsToneCurve* t)
+       **  {
+       **  _cmsAssert(t != NULL);
+       **
+       **  return t -> nSegments > 1;
+       **  }
+       **/
 
        NumSegments > 1;
 
@@ -322,17 +322,23 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
     #region Public Methods
 
-    public static ToneCurve? BuildGamma(object? state, double gamma) =>
-        /** Original Code (cmsgamma.c line: 892)
-         **
-         ** // Build a gamma table based on gamma constant
-         ** cmsToneCurve* CMSEXPORT cmsBuildGamma(cmsContext ContextID, cmsFloat64Number Gamma)
-         ** {
-         **     return cmsBuildParametricToneCurve(ContextID, 1, &Gamma);
-         ** }
-         **/
+    public static ToneCurve? BuildEmptyTabulated16(object? state, uint numEntries) =>
+        BuildTabulated(state, new ushort[numEntries]);
 
-        BuildParametric(state, 1, gamma);
+    public static ToneCurve? BuildEmptyTabulatedFloat(object? state, uint numSamples) =>
+        BuildTabulated(state, new float[numSamples]);
+
+    public static ToneCurve? BuildGamma(object? state, double gamma) =>
+                /** Original Code (cmsgamma.c line: 892)
+                 **
+                 ** // Build a gamma table based on gamma constant
+                 ** cmsToneCurve* CMSEXPORT cmsBuildGamma(cmsContext ContextID, cmsFloat64Number Gamma)
+                 ** {
+                 **     return cmsBuildParametricToneCurve(ContextID, 1, &Gamma);
+                 ** }
+                 **/
+
+                BuildParametric(state, 1, gamma);
 
     public static ToneCurve? BuildParametric(object? state, int type, params double[] @params)
     {
@@ -457,12 +463,6 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         return g;
     }
-
-    public static ToneCurve? BuildEmptyTabulated16(object? state, uint numEntries) =>
-        BuildTabulated(state, new ushort[numEntries]);
-
-    public static ToneCurve? BuildEmptyTabulatedFloat(object? state, uint numSamples) =>
-        BuildTabulated(state, new float[numSamples]);
 
     public static ToneCurve? BuildTabulated(object? state, ReadOnlySpan<ushort> values) =>
         /** Original Code (cmsgamma.c line: 769)
@@ -904,7 +904,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
          **
          **     // Try to reverse it analytically whatever possible
          **
-         **     if (InCurve ->nSegments == 1 && InCurve ->Segments[0].Type > 0 && 
+         **     if (InCurve ->nSegments == 1 && InCurve ->Segments[0].Type > 0 &&
          **         /* InCurve -> Segments[0].Type <= 5 *\
          **         GetParametricCurveByType(InCurve ->InterpParams->ContextID, InCurve ->Segments[0].Type, NULL) != NULL) {
          **
@@ -1383,6 +1383,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         return null;
     }
+
     internal static ToneCurve? Alloc(object? state, ReadOnlySpan<ushort> values)
     {
         /** Original Code (cmsgamma.c line: 209)
@@ -1617,7 +1618,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
          **              if (Val < 0)
          **                  Val = 0;
          **          }
-         **      }         
+         **      }
          **      break;
          **
          **
@@ -1907,13 +1908,13 @@ public sealed class ToneCurve : ICloneable, IDisposable
 
         var (p0, p1, p2, p3, p4, p5, p6) = @params.Length switch
         {
-            0 => (        0d,         0d,         0d,         0d,         0d,         0d,         0d),
-            1 => (@params[0],         0d,         0d,         0d,         0d,         0d,         0d),
-            2 => (@params[0], @params[1],         0d,         0d,         0d,         0d,         0d),
-            3 => (@params[0], @params[1], @params[2],         0d,         0d,         0d,         0d),
-            4 => (@params[0], @params[1], @params[2], @params[3],         0d,         0d,         0d),
-            5 => (@params[0], @params[1], @params[2], @params[3], @params[4],         0d,         0d),
-            6 => (@params[0], @params[1], @params[2], @params[3], @params[4], @params[5],         0d),
+            0 => (0d, 0d, 0d, 0d, 0d, 0d, 0d),
+            1 => (@params[0], 0d, 0d, 0d, 0d, 0d, 0d),
+            2 => (@params[0], @params[1], 0d, 0d, 0d, 0d, 0d),
+            3 => (@params[0], @params[1], @params[2], 0d, 0d, 0d, 0d),
+            4 => (@params[0], @params[1], @params[2], @params[3], 0d, 0d, 0d),
+            5 => (@params[0], @params[1], @params[2], @params[3], @params[4], 0d, 0d),
+            6 => (@params[0], @params[1], @params[2], @params[3], @params[4], @params[5], 0d),
             _ => (@params[0], @params[1], @params[2], @params[3], @params[4], @params[5], @params[6]),
         };
 
@@ -2425,7 +2426,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
          ** //   Output: smoothed vector (z): vector from 1 to m.
          **
          ** static
-         ** cmsBool smooth2(cmsContext ContextID, cmsFloat32Number w[], cmsFloat32Number y[], 
+         ** cmsBool smooth2(cmsContext ContextID, cmsFloat32Number w[], cmsFloat32Number y[],
          **                 cmsFloat32Number z[], cmsFloat32Number lambda, int m)
          ** {
          **     int i, i1, i2;

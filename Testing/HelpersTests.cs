@@ -1,17 +1,34 @@
-﻿namespace lcms2.testbed;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+namespace lcms2.testbed;
 
 public static class HelpersTests
 {
     #region Public Methods
-
-    private static bool TestSingleFixed15_16(double value)
-    {
-        var f = DoubleToS15Fixed16(value);
-        var roundTrip = S15Fixed16toDouble(f);
-        var error = Math.Abs(value - roundTrip);
-
-        return error <= FixedPrecision15_16;
-    }
 
     public static bool TestSingleFixed8_8(double value)
     {
@@ -25,55 +42,6 @@ public static class HelpersTests
     #endregion Public Methods
 
     #region Internal Methods
-
-    internal static bool CheckFixedPoint15_16() =>
-        TestSingleFixed15_16(1.0) &&
-        TestSingleFixed15_16(2.0) &&
-        TestSingleFixed15_16(1.23456) &&
-        TestSingleFixed15_16(0.99999) &&
-        TestSingleFixed15_16(0.1234567890123456789099999) &&
-        TestSingleFixed15_16(-1.0) &&
-        TestSingleFixed15_16(-2.0) &&
-        TestSingleFixed15_16(-1.123456) &&
-        TestSingleFixed15_16(-1.1234567890123456789099999) &&
-        TestSingleFixed15_16(32767.1234567890123456789099999) &&
-        TestSingleFixed15_16(-32767.1234567890123456789099999);
-
-    internal static bool CheckFixedPoint8_8() =>
-        TestSingleFixed8_8(1.0) &&
-        TestSingleFixed8_8(2.0) &&
-        TestSingleFixed8_8(1.23456) &&
-        TestSingleFixed8_8(0.99999) &&
-        TestSingleFixed8_8(0.1234567890123456789099999) &&
-        TestSingleFixed8_8(255.1234567890123456789099999);
-
-    internal static bool CheckQuickFloor()
-    {
-        if (QuickFloor(1.234) is not 1 ||
-            QuickFloor(32767.234) is not 32767 ||
-            QuickFloor(-1.234) is not -2 ||
-            QuickFloor(-32767.1) is not -32768)
-        {
-            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
-                "Please use the \"(No Fast Floor)\" configuration toggles.\n");
-            return false;
-        }
-        return true;
-    }
-
-    internal static bool CheckQuickFloorWord()
-    {
-
-        for (var i = 0; i < UInt16.MaxValue; i++)
-        {
-            if (QuickFloorWord(i + 0.1234) != i)
-            {
-                Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
-                return false;
-            }
-        }
-        return true;
-    }
 
     internal static bool CheckD50Roundtrip()
     {
@@ -118,5 +86,66 @@ public static class HelpersTests
         return true;
     }
 
+    internal static bool CheckFixedPoint15_16() =>
+        TestSingleFixed15_16(1.0) &&
+        TestSingleFixed15_16(2.0) &&
+        TestSingleFixed15_16(1.23456) &&
+        TestSingleFixed15_16(0.99999) &&
+        TestSingleFixed15_16(0.1234567890123456789099999) &&
+        TestSingleFixed15_16(-1.0) &&
+        TestSingleFixed15_16(-2.0) &&
+        TestSingleFixed15_16(-1.123456) &&
+        TestSingleFixed15_16(-1.1234567890123456789099999) &&
+        TestSingleFixed15_16(32767.1234567890123456789099999) &&
+        TestSingleFixed15_16(-32767.1234567890123456789099999);
+
+    internal static bool CheckFixedPoint8_8() =>
+        TestSingleFixed8_8(1.0) &&
+        TestSingleFixed8_8(2.0) &&
+        TestSingleFixed8_8(1.23456) &&
+        TestSingleFixed8_8(0.99999) &&
+        TestSingleFixed8_8(0.1234567890123456789099999) &&
+        TestSingleFixed8_8(255.1234567890123456789099999);
+
+    internal static bool CheckQuickFloor()
+    {
+        if (QuickFloor(1.234) is not 1 ||
+            QuickFloor(32767.234) is not 32767 ||
+            QuickFloor(-1.234) is not -2 ||
+            QuickFloor(-32767.1) is not -32768)
+        {
+            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
+                "Please use the \"(No Fast Floor)\" configuration toggles.\n");
+            return false;
+        }
+        return true;
+    }
+
+    internal static bool CheckQuickFloorWord()
+    {
+        for (var i = 0; i < UInt16.MaxValue; i++)
+        {
+            if (QuickFloorWord(i + 0.1234) != i)
+            {
+                Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
+                return false;
+            }
+        }
+        return true;
+    }
+
     #endregion Internal Methods
+
+    #region Private Methods
+
+    private static bool TestSingleFixed15_16(double value)
+    {
+        var f = DoubleToS15Fixed16(value);
+        var roundTrip = S15Fixed16toDouble(f);
+        var error = Math.Abs(value - roundTrip);
+
+        return error <= FixedPrecision15_16;
+    }
+
+    #endregion Private Methods
 }

@@ -630,7 +630,7 @@ public static class InterpolationTests
             tasks.Add(Task.Factory.StartNew((o) =>
             {
                 var offset = (int)o!;
-                var list = new List<bool>(16*256*256);
+                var list = new List<bool>(16 * 256 * 256);
                 for (var r = offset; r < offset + 16; r++)
                 {
                     for (var g = 0; g <= 0xFF; g++)
@@ -732,7 +732,7 @@ public static class InterpolationTests
             tasks.Add(Task.Factory.StartNew((o) =>
             {
                 var offset = (int)o!;
-                var list = new List<bool>(4*256*256);
+                var list = new List<bool>(4 * 256 * 256);
                 for (var r = offset; r < offset + 4; r++)
                 {
                     for (var g = 0; g <= 0xFF; g++)
@@ -834,7 +834,7 @@ public static class InterpolationTests
             tasks.Add(Task.Factory.StartNew((o) =>
             {
                 var offset = (int)o!;
-                var list = new List<bool>(16*256*256);
+                var list = new List<bool>(16 * 256 * 256);
                 for (var r = offset; r < offset + 16; r++)
                 {
                     for (var g = 0; g <= 0xFF; g++)

@@ -26,7 +26,6 @@
 //
 using lcms2.io;
 using lcms2.plugins;
-using lcms2.state;
 
 namespace lcms2.types.type_handlers;
 

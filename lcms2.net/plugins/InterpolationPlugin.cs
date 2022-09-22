@@ -100,6 +100,7 @@ internal sealed class InterpolationPluginChunk
 
         interpolators = null
     };
+
     internal InterpFnFactory? interpolators;
 
     #endregion Fields

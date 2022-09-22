@@ -122,6 +122,8 @@ internal class IntentsList
 
     #endregion Public Constructors
 
+    #region Public Methods
+
     public static IntentsList? Build(Span<IntentsList> values)
     {
         if (values.Length > 1)
@@ -138,6 +140,8 @@ internal class IntentsList
             return null;
         }
     }
+
+    #endregion Public Methods
 }
 
 internal sealed class RenderingIntentsPluginChunk
@@ -160,7 +164,7 @@ internal sealed class RenderingIntentsPluginChunk
 
     internal static RenderingIntentsPluginChunk Default => new();
 
-    // TODO: DefaultIntents: see TODO in State.GetSupportedIntents
-
     #endregion Properties
+
+    // TODO: DefaultIntents: see TODO in State.GetSupportedIntents
 }
