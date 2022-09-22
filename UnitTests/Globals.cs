@@ -44,6 +44,9 @@ public static class Globals
     public static void IsGoodWord(string message, ushort @in, ushort @out, ushort maxErr = 0) =>
         Assert.That(@in, Is.EqualTo(@out).Within(maxErr), message);
 
+    public static double Sqr(double v) =>
+        v * v;
+
     static Globals()
     {
         TestState = State.CreateStateContainer();
