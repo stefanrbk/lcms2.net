@@ -33,6 +33,7 @@ WriteLineGreen("done");
 
 PrintSupportedIntents();
 
+Console.WriteLine("\nBasic operations");
 Check("quick floor", helper.CheckQuickFloor);
 Check("quick floor word", helper.CheckQuickFloorWord);
 Check("Fixed point 15.16 representation", helper.CheckFixedPoint15_16);
