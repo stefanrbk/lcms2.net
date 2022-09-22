@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using lcms2.it8;
+using lcms2.state;
 using lcms2.types;
-
-using NUnit.Framework.Internal;
 
 [assembly: ExcludeFromCodeCoverage]
 
@@ -18,22 +17,69 @@ public static class Utils
 
     public static bool HasConsole = !Console.IsInputRedirected;
     public static double MaxErr = 0;
+    private static object maxErrLock = new();
     public static string reasonToFail = String.Empty;
     public static int simultaneousErrors = 0;
     public static string subTest = String.Empty;
     public static int totalFail = 0;
     public static int totalTests = 0;
+    public static bool TrappedError;
 
     #endregion Fields
 
     #region Properties
 
-    public static bool HasAssertions =>
-        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Count > 0;
-
     #endregion Properties
 
     #region Public Methods
+    public static bool CheckExhaustive()
+    {
+        Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
+        var key = WaitForKey(5000);
+        if (key.HasValue)
+        {
+            if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
+            {
+                if (key.Value.Key is ConsoleKey.Enter)
+                    Console.WriteLine("N");
+                else
+                    Console.WriteLine(key.Value.KeyChar);
+                return false;
+            }
+            else if (key.Value.Key is ConsoleKey.Y)
+            {
+                Console.WriteLine(key.Value.KeyChar);
+                return true;
+            }
+        }
+        else
+        {
+            Console.WriteLine();
+        }
+
+        return false;
+    }
+
+    public static void FatalErrorQuit(object? _1, ErrorCode _2, string text) =>
+        Die(text);
+
+    public static bool Fail(string text)
+    {
+        lock(reasonToFail)
+            reasonToFail = text;
+
+        return false;
+    }
+
+    public static void PrintSupportedIntents()
+    {
+        var values = State.GetSupportedIntents(200, out _);
+
+        Console.WriteLine("Supported intents:");
+        foreach (var value in values)
+            Console.WriteLine($"\t{value.Code} - {value.Desc}");
+        Console.WriteLine();
+    }
 
     public static void Check(string title, Action test)
     {
@@ -65,6 +111,39 @@ public static class Utils
                 totalFail++;
             });
             reasonToFail = String.Empty;
+            subTest = String.Empty;
+        }
+    }
+
+    public static void Check(string title, Func<bool> test)
+    {
+        if (HasConsole)
+            Console.Write("\tChecking {0} ... ", title);
+
+        simultaneousErrors = 0;
+        reasonToFail = String.Empty;
+        subTest = String.Empty;
+        totalTests++;
+
+        if (test() && !TrappedError)
+        {
+            WriteLineGreen("Ok.");
+        }
+        else
+        {
+            WriteRed(() =>
+            {
+                Console.Error.WriteLine("FAIL!");
+                if (!String.IsNullOrEmpty(subTest))
+                    Console.Error.WriteLine("{0}: [{1}]\n\t\t{2}", title, subTest, reasonToFail);
+                else
+                    Console.Error.WriteLine("{0}:\n\t\t{1}", title, reasonToFail);
+
+                if (simultaneousErrors > 1)
+                    Console.Error.WriteLine("\t\tMore than one ({0}) errors were reported", simultaneousErrors);
+
+                totalFail++;
+            });
         }
     }
 
@@ -112,9 +191,6 @@ public static class Utils
         return result;
     }
 
-    public static void ClearAssert() =>
-        TestExecutionContext.CurrentContext.CurrentResult.AssertionResults.Clear();
-
     public static double DeltaE(Lab lab1, Lab lab2)
     {
         var dL = Math.Abs(lab1.L - lab2.L);
@@ -127,7 +203,14 @@ public static class Utils
     [DoesNotReturn]
     public static void Die(string reason, params object[] args)
     {
-        WriteRed(() => Console.Error.WriteLine(String.Format(reason, args)));
+        WriteRed(() => Console.Error.WriteLine(String.Format($"\n{reason}", args)));
+        Environment.Exit(-1);
+    }
+
+    [DoesNotReturn]
+    public static void Die(string reason)
+    {
+        WriteRed(() => Console.Error.WriteLine($"\n{reason}"));
         Environment.Exit(-1);
     }
 
@@ -153,29 +236,50 @@ public static class Utils
         it8.SaveToFile(filename);
     }
 
-    public static void IsGoodDouble(string title, double actual, double expected, double delta) =>
-        Assert.That(actual, Is.EqualTo(expected).Within(delta), title);
+    public static bool IsGoodDouble(string title, double actual, double expected, double delta)
+    {
+        var err = Math.Abs(actual - expected);
 
-    public static void IsGoodFixed15_16(string title, double @in, double @out) =>
+        if (err > delta)
+            return Fail($"({title}): Must be {expected}, but was {actual}");
+
+        return true;
+    }
+
+    public static bool IsGoodFixed15_16(string title, double @in, double @out) =>
         IsGoodVal(title, @in, @out, FixedPrecision15_16);
 
-    public static void IsGoodFixed8_8(string title, double @in, double @out) =>
+    public static bool IsGoodFixed8_8(string title, double @in, double @out) =>
         IsGoodVal(title, @in, @out, FixedPrecision8_8);
 
-    public static void IsGoodVal(string title, double @in, double @out, double max)
+    public static bool IsGoodVal(string title, double @in, double @out, double max)
     {
         var err = Math.Abs(@in - @out);
 
-        if (err > MaxErr) MaxErr = err;
+        lock(maxErrLock)
+            if (err > MaxErr) MaxErr = err;
 
-        Assert.That(@in, Is.EqualTo(@out).Within(max), title);
+        if (err > max)
+        {
+            Fail($"({title}): Must be {@in}, but was {@out} ");
+            return false;
+        }
+        return true;
     }
 
-    public static void IsGoodWord(string title, ushort @in, ushort @out) =>
-        Assert.That(@in, Is.EqualTo(@out), title);
+    public static bool IsGoodWord(string title, ushort @in, ushort @out) =>
+        IsGoodWord(title, @in, @out, 0);
 
-    public static void IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr) =>
-        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), title);
+    public static bool IsGoodWord(string title, ushort @in, ushort @out, ushort maxErr)
+    {
+        if (Math.Abs(@in - @out) > maxErr)
+        {
+            Fail($"({title}): Must be {@in}, but was {@out} ");
+            return false;
+        }
+
+        return true;
+    }
 
     public static void ProgressBar(uint start, uint stop, int widthSubtract, uint i)
     {

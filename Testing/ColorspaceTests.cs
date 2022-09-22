@@ -1,113 +1,115 @@
 ﻿using lcms2.types;
 
-namespace lcms2.testing;
-public class ColorspaceTests: ITest
+namespace lcms2.testbed;
+public static class ColorspaceTests
 {
     #region Public Methods
 
-    [Test, Sequential]
-    public void CheckLab2LCh([Range(-128, 120, 8)] int bFrom,
-                             [Range(-120, 128, 8)] int bTo) =>
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            for (var l = 0; l < 100; l += 10)
-            {
-                for (var a = -128; a < 128; a += 8)
-                {
-                    for (var b = bFrom; b < bTo; b += 8)
-                    {
-                        var lab = new Lab(l, a, b);
-                        var lch = (LCh)lab;
-                        var lab2 = (Lab)lch;
-
-                        var dist = DeltaE(lab, lab2);
-                        Assert.That(dist, Is.LessThan(1E-12));
-                    }
-                }
-            }
-        });
-
-    [Test, Sequential]
-    public void CheckLab2xyY([Range(-128, 120, 8)] int bFrom,
-                             [Range(-120, 128, 8)] int bTo) =>
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            for (var l = 0; l < 100; l += 10)
-            {
-                for (var a = -128; a < 128; a += 8)
-                {
-                    for (var b = bFrom; b < bTo; b += 8)
-                    {
-                        var lab = new Lab(l, a, b);
-                        var xyz = (XYZ)lab;
-                        var xyy = (xyY)xyz;
-                        xyz = (XYZ)xyy;
-                        var lab2 = (Lab)xyz;
-
-                        var dist = DeltaE(lab, lab2);
-                        Assert.That(dist, Is.LessThan(1E-12));
-                    }
-                }
-            }
-        });
-
-    [Test, Sequential]
-    public void CheckLab2XYZ([Range(-128, 120, 8)] int bFrom,
-                             [Range(-120, 128, 8)] int bTo) =>
-        Assert.Multiple(() =>
-        {
-            ClearAssert();
-
-            for (var l = 0; l < 100; l += 10)
-            {
-                for (var a = -128; a < 128; a += 8)
-                {
-                    for (var b = bFrom; b < bTo; b += 8)
-                    {
-                        var lab = new Lab(l, a, b);
-                        var xyz = (XYZ)lab;
-                        var lab2 = (Lab)xyz;
-
-                        var dist = DeltaE(lab, lab2);
-                        Assert.That(dist, Is.LessThan(1E-12));
-                    }
-                }
-            }
-        });
-    [Test, Sequential]
-    public void CheckLabV2EncodingTest([Range(0, 64512, 1024)] int from,
-                                       [Range(1024, 65536, 1024)] int to)
+    public static bool CheckLab2LCh()
     {
-        for (var j = from; j < to; j++)
+        for (var l = 0; l < 100; l += 10)
+        {
+            for (var a = -128; a < 128; a += 8)
+            {
+                for (var b = -128; b < 128; b += 8)
+                {
+                    var lab = new Lab(l, a, b);
+                    var lch = (LCh)lab;
+                    var lab2 = (Lab)lch;
+
+                    var dist = DeltaE(lab, lab2);
+                    if (dist >= 1E-12)
+                        return Fail($"({l},{a},{b}): Difference outside tolerence. Was {dist}");
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static bool CheckLab2xyY()
+    {
+        for (var l = 0; l < 100; l += 10)
+        {
+            for (var a = -128; a < 128; a += 8)
+            {
+                for (var b = -128; b < 128; b += 8)
+                {
+                    var lab = new Lab(l, a, b);
+                    var xyz = (XYZ)lab;
+                    var xyy = (xyY)xyz;
+                    xyz = (XYZ)xyy;
+                    var lab2 = (Lab)xyz;
+
+                    var dist = DeltaE(lab, lab2);
+                    if (dist >= 1E-12)
+                        return Fail($"({l},{a},{b}): Difference outside tolerence. Was {dist}");
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static bool CheckLab2XYZ()
+    {
+        for (var l = 0; l < 100; l += 10)
+        {
+            for (var a = -128; a < 128; a += 8)
+            {
+                for (var b = -128; b < 128; b += 8)
+                {
+                    var lab = new Lab(l, a, b);
+                    var xyz = (XYZ)lab;
+                    var lab2 = (Lab)xyz;
+
+                    var dist = DeltaE(lab, lab2);
+                    if (dist >= 1E-12)
+                        return Fail($"({l},{a},{b}): Difference outside tolerence. Was {dist}");
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static bool CheckLabV2EncodingTest()
+    {
+        for (var j = 0; j < 65535; j++)
         {
             var aw1 = new LabEncodedV2((ushort)j, (ushort)j, (ushort)j);
             var lab = (Lab)aw1;
             var aw2 = (LabEncodedV2)lab;
 
-            Assert.That(aw2, Is.EqualTo(aw1));
+            if (aw1.L != aw2.L ||
+                aw1.a != aw2.a ||
+                aw1.b != aw2.b)
+            {
+                return Fail($"({j},{j},{j}): Was ({aw2.L},{aw2.a},{aw2.b})");
+            }
         }
+
+        return true;
     }
 
-    [Test, Sequential]
-    public void CheckLabV4EncodingTest([Range(0, 64512, 1024)] int from,
-                                       [Range(1024, 65536, 1024)] int to)
+    public static bool CheckLabV4EncodingTest()
     {
-        for (var j = from; j < to; j++)
+        for (var j = 0; j < 65535; j++)
         {
             var aw1 = new LabEncoded((ushort)j, (ushort)j, (ushort)j);
             var lab = (Lab)aw1;
             var aw2 = (LabEncoded)lab;
 
-            Assert.That(aw2, Is.EqualTo(aw1));
+            if (aw1.L != aw2.L ||
+                aw1.a != aw2.a ||
+                aw1.b != aw2.b)
+            {
+                return Fail($"({j},{j},{j}): Was ({aw2.L},{aw2.a},{aw2.b})");
+            }
         }
-    }
 
-    void ITest.Setup() { }
-    void ITest.Teardown() { }
+        return true;
+    }
 
     #endregion Public Methods
 }

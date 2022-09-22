@@ -1,125 +1,121 @@
-﻿using static lcms2.Helpers;
+﻿namespace lcms2.testbed;
 
-namespace lcms2.testing;
-
-[TestFixture(TestOf = typeof(Helpers))]
-public class HelpersTests
+public static class HelpersTests
 {
     #region Public Methods
 
-    [TestCase(1.0)]
-    [TestCase(2.0)]
-    [TestCase(1.23456)]
-    [TestCase(0.99999)]
-    [TestCase(0.1234567890123456789099999)]
-    [TestCase(-1.0)]
-    [TestCase(-2.0)]
-    [TestCase(-1.123456)]
-    [TestCase(-1.1234567890123456789099999)]
-    [TestCase(32767.1234567890123456789099999)]
-    [TestCase(-32767.1234567890123456789099999)]
-    public void FixedPoint15_16Test(double value)
+    private static bool TestSingleFixed15_16(double value)
     {
         var f = DoubleToS15Fixed16(value);
         var roundTrip = S15Fixed16toDouble(f);
+        var error = Math.Abs(value - roundTrip);
 
-        Assert.That(roundTrip, Is.EqualTo(value).Within(1.0 / 65535.0));
+        return error <= FixedPrecision15_16;
     }
 
-    [TestCase(1.0)]
-    [TestCase(2.0)]
-    [TestCase(1.23456)]
-    [TestCase(0.99999)]
-    [TestCase(0.1234567890123456789099999)]
-    [TestCase(255.1234567890123456789099999)]
-    public void FixedPoint8_8Test(double value)
+    public static bool TestSingleFixed8_8(double value)
     {
         var f = DoubleToU8Fixed8(value);
         var roundTrip = U8Fixed8toDouble(f);
+        var error = Math.Abs(value - roundTrip);
 
-        Assert.That(roundTrip, Is.EqualTo(value).Within(1.0 / 255.0));
-    }
-
-    [TestCase(1.234, (short)1)]
-    [TestCase(32767.234, (short)32767)]
-    [TestCase(-1.234, (short)-2)]
-    [TestCase(-32767.1, (short)-32768)]
-    public void QuickFloorTest(double value, short expected) =>
-        Assert.That(QuickFloor(value), Is.EqualTo(expected));
-
-    [Test]
-    public void QuickFloorWordTest()
-    {
-        for (var i = 0; i < UInt16.MaxValue; i++)
-            Assert.That(QuickFloorWord(i + 0.1234), Is.EqualTo(i));
+        return error <= FixedPrecision8_8;
     }
 
     #endregion Public Methods
 
     #region Internal Methods
 
-    internal void CheckFixedPoint15_16()
+    internal static bool CheckFixedPoint15_16() =>
+        TestSingleFixed15_16(1.0) &&
+        TestSingleFixed15_16(2.0) &&
+        TestSingleFixed15_16(1.23456) &&
+        TestSingleFixed15_16(0.99999) &&
+        TestSingleFixed15_16(0.1234567890123456789099999) &&
+        TestSingleFixed15_16(-1.0) &&
+        TestSingleFixed15_16(-2.0) &&
+        TestSingleFixed15_16(-1.123456) &&
+        TestSingleFixed15_16(-1.1234567890123456789099999) &&
+        TestSingleFixed15_16(32767.1234567890123456789099999) &&
+        TestSingleFixed15_16(-32767.1234567890123456789099999);
+
+    internal static bool CheckFixedPoint8_8() =>
+        TestSingleFixed8_8(1.0) &&
+        TestSingleFixed8_8(2.0) &&
+        TestSingleFixed8_8(1.23456) &&
+        TestSingleFixed8_8(0.99999) &&
+        TestSingleFixed8_8(0.1234567890123456789099999) &&
+        TestSingleFixed8_8(255.1234567890123456789099999);
+
+    internal static bool CheckQuickFloor()
     {
-        try
+        if (QuickFloor(1.234) is not 1 ||
+            QuickFloor(32767.234) is not 32767 ||
+            QuickFloor(-1.234) is not -2 ||
+            QuickFloor(-32767.1) is not -32768)
         {
-            FixedPoint15_16Test(1.0);
-            FixedPoint15_16Test(2.0);
-            FixedPoint15_16Test(1.23456);
-            FixedPoint15_16Test(0.99999);
-            FixedPoint15_16Test(0.1234567890123456789099999);
-            FixedPoint15_16Test(-1.0);
-            FixedPoint15_16Test(-2.0);
-            FixedPoint15_16Test(-1.123456);
-            FixedPoint15_16Test(-1.1234567890123456789099999);
-            FixedPoint15_16Test(32767.1234567890123456789099999);
-            FixedPoint15_16Test(-32767.1234567890123456789099999);
+            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
+                "Please use the \"(No Fast Floor)\" configuration toggles.\n");
+            return false;
         }
-        catch
-        {
-            Assert.Fail();
-        }
+        return true;
     }
 
-    internal void CheckFixedPoint8_8()
+    internal static bool CheckQuickFloorWord()
     {
-        try
+
+        for (var i = 0; i < UInt16.MaxValue; i++)
         {
-            FixedPoint8_8Test(1.0);
-            FixedPoint8_8Test(2.0);
-            FixedPoint8_8Test(1.23456);
-            FixedPoint8_8Test(0.99999);
-            FixedPoint8_8Test(0.1234567890123456789099999);
-            FixedPoint8_8Test(255.1234567890123456789099999);
+            if (QuickFloorWord(i + 0.1234) != i)
+            {
+                Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
+                return false;
+            }
         }
-        catch
-        {
-            Assert.Fail();
-        }
+        return true;
     }
 
-    internal void CheckQuickFloor()
+    internal static bool CheckD50Roundtrip()
     {
-        try
-        {
-            QuickFloorTest(1.234, 1);
-            QuickFloorTest(32767.234, 32767);
-            QuickFloorTest(-1.234, -2);
-            QuickFloorTest(-32767.1, -32768);
-        } catch
-        {
-            Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
-        }
-    }
+        const double d50x2 = 0.96420288;
+        const double d50y2 = 1.0;
+        const double d50z2 = 0.82490540;
 
-    internal void CheckQuickFloorWord()
-    {
-        try
-        {
-            QuickFloorWordTest();
-        } catch
-        {
-            Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
-        }
+        var xe = DoubleToS15Fixed16(Lcms2.D50.X);
+        var ye = DoubleToS15Fixed16(Lcms2.D50.Y);
+        var ze = DoubleToS15Fixed16(Lcms2.D50.Z);
+
+        var x = S15Fixed16toDouble(xe);
+        var y = S15Fixed16toDouble(ye);
+        var z = S15Fixed16toDouble(ze);
+
+        var dx = Math.Abs(Lcms2.D50.X - x);
+        var dy = Math.Abs(Lcms2.D50.Y - y);
+        var dz = Math.Abs(Lcms2.D50.Z - z);
+
+        var euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+        if (euc > 1E-5)
+            return Fail($"D50 roundtrip |err| > ({euc}) ");
+
+        xe = DoubleToS15Fixed16(d50x2);
+        ye = DoubleToS15Fixed16(d50y2);
+        ze = DoubleToS15Fixed16(d50z2);
+
+        x = S15Fixed16toDouble(xe);
+        y = S15Fixed16toDouble(ye);
+        z = S15Fixed16toDouble(ze);
+
+        dx = Math.Abs(d50x2 - x);
+        dy = Math.Abs(d50y2 - y);
+        dz = Math.Abs(d50z2 - z);
+
+        euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
+
+        if (euc > 1E-5)
+            return Fail($"D50 roundtrip |err| > ({euc}) ");
+
+        return true;
     }
 
     #endregion Internal Methods
