@@ -24,11 +24,11 @@
 //
 //---------------------------------------------------------------------------------
 //
-using System.Diagnostics.CodeAnalysis;
-
 using lcms2.it8;
 using lcms2.state;
 using lcms2.types;
+
+using System.Diagnostics.CodeAnalysis;
 
 [assembly: ExcludeFromCodeCoverage]
 
@@ -148,6 +148,14 @@ public static class Utils
         }
 
         return false;
+    }
+
+    public static bool CheckGammaEstimation(ToneCurve c, double g)
+    {
+        var est = c.EstimateGamma(1E-3);
+
+        SubTest("Gamma estimation");
+        return Math.Abs(est - g) <= 1E-3;
     }
 
     public static bool CheckInterp1D(Action<uint, uint> fn)

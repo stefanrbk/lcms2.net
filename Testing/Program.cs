@@ -31,6 +31,7 @@ using cs = lcms2.testbed.ColorspaceTests;
 using helper = lcms2.testbed.HelpersTests;
 using interp = lcms2.testbed.InterpolationTests;
 using state = lcms2.testbed.StateTests;
+using tc = lcms2.testbed.ToneCurveTests;
 using wp = lcms2.testbed.WhitePointTests;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
@@ -124,6 +125,10 @@ if (doCheckTests)
 
     Console.WriteLine("\nBlackBody");
     Check("Blackbody radiator", wp.CheckTemp2Chroma);
+
+    Console.WriteLine("\nTone curves");
+    Check("Linear gamma curves (16 bits)", tc.CheckGammaCreation16);
+    Check("Linear gamma curves (float)", tc.CheckGammaCreationFloat);
 }
 
 if (doPluginTests)
