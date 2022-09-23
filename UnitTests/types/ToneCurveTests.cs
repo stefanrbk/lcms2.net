@@ -33,50 +33,102 @@ public class ToneCurveTests
 {
     #region Fields
 
-    ToneCurve LinGamma;
+    ToneCurve? Curve;
 
     #endregion Fields
 
     #region Public Methods
 
-    [Test, Category(RandomTest)]
-    public void CheckGammaCreation16(
-        [Random(0, 0xFFFF, 20)]
-            int i)
-    {
-        var @in = (ushort)i;
-        var @out = LinGamma.Eval(@in);
-        Assert.That(@out, Is.EqualTo(@in));
-    }
-
-    [Test, Category(RandomTest)]
-    public void CheckGammaCreationFloat(
-        [Random(0, 0xFFFF, 20)]
-            int i)
-    {
-        var @in = i / 65535f;
-        var @out = LinGamma.Eval(@in);
-        Assert.That(@out, Is.EqualTo(@in).Within(1 / 65535f));
-    }
-
     [Test, Category(FixedTest)]
-    public void CheckGammaEstimation10()
+    public void CheckGamma(
+        [Values(1.8, 2.2, 3.0)]
+            double g)
     {
-        var est = LinGamma.EstimateGamma(1E-3);
-        Assert.That(est, Is.EqualTo(1.0).Within(1E-3));
-    }
+        Curve = ToneCurve.BuildGamma(null, g);
+        Assert.That(Curve, Is.Not.Null);
 
-    [SetUp]
-    public void SetUp()
-    {
-        var linGamma = ToneCurve.BuildGamma(null, 1.0);
-        Assert.That(linGamma, Is.Not.Null);
-        LinGamma = linGamma;
+        var MaxErr = 0.0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = i / 65535f;
+            var @out = Curve.Eval(@in);
+            var val = Math.Pow(@in, g);
+
+            var err = Math.Abs(val - @out);
+            if (err > MaxErr) MaxErr = err;
+        }
+
+        if (MaxErr > 0) Console.Write($"|Err|<{MaxErr * 65535.0:F6}");
+
+        CheckGammaEstimation(Curve, g);
     }
 
     [TearDown]
     public void TearDown() =>
-        LinGamma.Dispose();
+        Curve?.Dispose();
 
     #endregion Public Methods
+
+    #region Private Methods
+
+    private static void CheckGammaEstimation(ToneCurve c, double g)
+    {
+        var est = c.EstimateGamma(1E-3);
+        Assert.That(est, Is.EqualTo(g).Within(1E-3));
+    }
+
+    #endregion Private Methods
+
+    #region Classes
+
+    public class LinearTests
+    {
+        #region Fields
+
+        ToneCurve LinGamma;
+
+        #endregion Fields
+
+        #region Public Methods
+
+        [Test, Category(RandomTest)]
+        public void CheckGammaCreation16(
+            [Random(0, 0xFFFF, 20)]
+                int i)
+        {
+            var @in = (ushort)i;
+            var @out = LinGamma.Eval(@in);
+            Assert.That(@out, Is.EqualTo(@in));
+        }
+
+        [Test, Category(RandomTest)]
+        public void CheckGammaCreationFloat(
+            [Random(0, 0xFFFF, 20)]
+                int i)
+        {
+            var @in = i / 65535f;
+            var @out = LinGamma.Eval(@in);
+            Assert.That(@out, Is.EqualTo(@in).Within(1 / 65535f));
+        }
+
+        [Test, Category(FixedTest)]
+        public void CheckGammaEstimation10() =>
+            CheckGammaEstimation(LinGamma, 1.0);
+
+        [SetUp]
+        public void SetUp()
+        {
+            var linGamma = ToneCurve.BuildGamma(null, 1.0);
+            Assert.That(linGamma, Is.Not.Null);
+            LinGamma = linGamma;
+        }
+
+        [TearDown]
+        public void TearDown() =>
+            LinGamma.Dispose();
+
+        #endregion Public Methods
+    }
+
+    #endregion Classes
 }

@@ -129,6 +129,10 @@ if (doCheckTests)
     Console.WriteLine("\nTone curves");
     Check("Linear gamma curves (16 bits)", tc.CheckGammaCreation16);
     Check("Linear gamma curves (float)", tc.CheckGammaCreationFloat);
+
+    Check("Curve 1.8 (float)", tc.CheckGamma18);
+    Check("Curve 2.2 (float)", tc.CheckGamma22);
+    Check("Curve 3.0 (float)", tc.CheckGamma30);
 }
 
 if (doPluginTests)

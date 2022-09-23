@@ -93,7 +93,7 @@ public static class Utils
     public static void Check(string title, Func<bool> test)
     {
         if (HasConsole)
-            Console.Write("\tChecking {0} ... ", title);
+            Console.Write("\tChecking {0} ...", title);
 
         simultaneousErrors = 0;
         reasonToFail = String.Empty;
