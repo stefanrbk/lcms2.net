@@ -38,17 +38,26 @@ public static class ToneCurveTests
     public static bool CheckGamma18Table() =>
         CheckGammaFloatTable(1.8);
 
+    public static bool CheckGamma18TableWord() =>
+        CheckGammaWordTable(1.8);
+
     public static bool CheckGamma22() =>
             CheckGamma(2.2);
 
     public static bool CheckGamma22Table() =>
         CheckGammaFloatTable(2.2);
 
+    public static bool CheckGamma22TableWord() =>
+        CheckGammaWordTable(2.2);
+
     public static bool CheckGamma30() =>
             CheckGamma(3.0);
 
     public static bool CheckGamma30Table() =>
         CheckGammaFloatTable(3.0);
+
+    public static bool CheckGamma30TableWord() =>
+        CheckGammaWordTable(3.0);
 
     public static bool CheckGammaCreation16()
     {
@@ -128,7 +137,7 @@ public static class ToneCurveTests
     {
         var values = new float[1025];
 
-        for (var i = 0; i < 1024; i++)
+        for (var i = 0; i <= 1024; i++)
         {
             var @in = i / 1024f;
             values[i] = MathF.Pow(@in, (float)g);
@@ -139,6 +148,38 @@ public static class ToneCurveTests
 
         MaxErr = 0;
         for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = i / 65535f;
+            var @out = curve.Eval(@in);
+            var val = Math.Pow(@in, g);
+
+            var err = Math.Abs(val - @out);
+            if (err > MaxErr) MaxErr = err;
+        }
+
+        if (MaxErr > 0) Console.Write($"|Err|<{MaxErr * 65535.0:F6} ");
+
+        if (!CheckGammaEstimation(curve, g)) return false;
+
+        curve.Dispose();
+        return true;
+    }
+
+    private static bool CheckGammaWordTable(double g)
+    {
+        var values = new ushort[1025];
+
+        for (var i = 0; i <= 1024; i++)
+        {
+            var @in = i / 1024f;
+            values[i] = (ushort)Math.Floor((Math.Pow(@in, g) * 65535.0) + 0.5);
+        }
+
+        var curve = ToneCurve.BuildTabulated(null, values);
+        if (curve is null) return false;
+
+        MaxErr = 0.0;
+        for (var i = 0; i <= 0xFFFF; i++)
         {
             var @in = i / 65535f;
             var @out = curve.Eval(@in);

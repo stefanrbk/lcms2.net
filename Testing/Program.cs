@@ -137,6 +137,10 @@ if (doCheckTests)
     Check("Curve 1.8 (table)", tc.CheckGamma18Table);
     Check("Curve 2.2 (table)", tc.CheckGamma22Table);
     Check("Curve 3.0 (table)", tc.CheckGamma30Table);
+
+    Check("Curve 1.8 (word table)", tc.CheckGamma18TableWord);
+    Check("Curve 2.2 (word table)", tc.CheckGamma22TableWord);
+    Check("Curve 3.0 (word table)", tc.CheckGamma30TableWord);
 }
 
 if (doPluginTests)

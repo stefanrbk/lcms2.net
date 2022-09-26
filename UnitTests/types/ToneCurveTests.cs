@@ -97,6 +97,40 @@ public class ToneCurveTests
         curve.Dispose();
     }
 
+    [Test, Category(FixedTest)]
+    public void CheckGammaWordTable(
+        [Values(1.8, 2.2, 3.0)]
+            double g)
+    {
+        var values = new ushort[1025];
+
+        for (var i = 0; i <= 1024; i++)
+        {
+            var @in = i / 1024f;
+            values[i] = (ushort)Math.Floor((Math.Pow(@in, g) * 65535.0) + 0.5);
+        }
+
+        var curve = ToneCurve.BuildTabulated(null, values);
+        Assert.That(curve, Is.Not.Null);
+
+        var MaxErr = 0.0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = i / 65535f;
+            var @out = curve.Eval(@in);
+            var val = Math.Pow(@in, g);
+
+            var err = Math.Abs(val - @out);
+            if (err > MaxErr) MaxErr = err;
+        }
+
+        if (MaxErr > 0) Console.Write($"|Err|<{MaxErr * 65535.0:F6}");
+
+        CheckGammaEstimation(curve, g);
+
+        curve.Dispose();
+    }
+
     [TearDown]
     public void TearDown() =>
         Curve?.Dispose();
