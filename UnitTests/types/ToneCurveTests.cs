@@ -63,6 +63,40 @@ public class ToneCurveTests
         CheckGammaEstimation(Curve, g);
     }
 
+    [Test, Category(FixedTest)]
+    public void CheckGammaFloatTable(
+        [Values(1.8, 2.2, 3.0)]
+            double g)
+    {
+        var values = new float[1025];
+
+        for (var i = 0; i <= 1024; i++)
+        {
+            var @in = i / 1024f;
+            values[i] = MathF.Pow(@in, (float)g);
+        }
+
+        var curve = ToneCurve.BuildTabulated(null, values);
+        Assert.That(curve, Is.Not.Null);
+
+        var MaxErr = 0.0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = i / 65535f;
+            var @out = curve.Eval(@in);
+            var val = Math.Pow(@in, g);
+
+            var err = Math.Abs(val - @out);
+            if (err > MaxErr) MaxErr = err;
+        }
+
+        if (MaxErr > 0) Console.Write($"|Err|<{MaxErr * 65535.0:F6}");
+
+        CheckGammaEstimation(curve, g);
+
+        curve.Dispose();
+    }
+
     [TearDown]
     public void TearDown() =>
         Curve?.Dispose();

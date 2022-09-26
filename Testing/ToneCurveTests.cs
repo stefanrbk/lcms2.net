@@ -35,11 +35,20 @@ public static class ToneCurveTests
     public static bool CheckGamma18() =>
         CheckGamma(1.8);
 
+    public static bool CheckGamma18Table() =>
+        CheckGammaFloatTable(1.8);
+
     public static bool CheckGamma22() =>
-        CheckGamma(2.2);
+            CheckGamma(2.2);
+
+    public static bool CheckGamma22Table() =>
+        CheckGammaFloatTable(2.2);
 
     public static bool CheckGamma30() =>
-        CheckGamma(3.0);
+            CheckGamma(3.0);
+
+    public static bool CheckGamma30Table() =>
+        CheckGammaFloatTable(3.0);
 
     public static bool CheckGammaCreation16()
     {
@@ -94,6 +103,38 @@ public static class ToneCurveTests
     private static bool CheckGamma(double g)
     {
         var curve = ToneCurve.BuildGamma(null, g);
+        if (curve is null) return false;
+
+        MaxErr = 0;
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var @in = i / 65535f;
+            var @out = curve.Eval(@in);
+            var val = Math.Pow(@in, g);
+
+            var err = Math.Abs(val - @out);
+            if (err > MaxErr) MaxErr = err;
+        }
+
+        if (MaxErr > 0) Console.Write($"|Err|<{MaxErr * 65535.0:F6} ");
+
+        if (!CheckGammaEstimation(curve, g)) return false;
+
+        curve.Dispose();
+        return true;
+    }
+
+    private static bool CheckGammaFloatTable(double g)
+    {
+        var values = new float[1025];
+
+        for (var i = 0; i < 1024; i++)
+        {
+            var @in = i / 1024f;
+            values[i] = MathF.Pow(@in, (float)g);
+        }
+
+        var curve = ToneCurve.BuildTabulated(null, values);
         if (curve is null) return false;
 
         MaxErr = 0;

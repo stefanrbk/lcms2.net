@@ -133,6 +133,10 @@ if (doCheckTests)
     Check("Curve 1.8 (float)", tc.CheckGamma18);
     Check("Curve 2.2 (float)", tc.CheckGamma22);
     Check("Curve 3.0 (float)", tc.CheckGamma30);
+
+    Check("Curve 1.8 (table)", tc.CheckGamma18Table);
+    Check("Curve 2.2 (table)", tc.CheckGamma22Table);
+    Check("Curve 3.0 (table)", tc.CheckGamma30Table);
 }
 
 if (doPluginTests)
