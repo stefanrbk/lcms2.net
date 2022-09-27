@@ -29,7 +29,7 @@ using static lcms2.Helpers;
 namespace lcms2.tests;
 
 [TestFixture(TestOf = typeof(Helpers))]
-public class HelperTests
+public class HelperTests : TestBase
 {
     #region Fields
 

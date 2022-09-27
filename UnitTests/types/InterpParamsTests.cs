@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.tests.types;
 
-public class InterpParamsTests
+public class InterpParamsTests : TestBase
 {
     #region Fields
 

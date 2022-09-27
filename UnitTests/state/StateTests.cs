@@ -31,7 +31,7 @@ using static lcms2.state.State;
 namespace lcms2.tests.state;
 
 [TestFixture(TestOf = typeof(State))]
-public class StateTests
+public class StateTests : TestBase
 {
     #region Public Methods
 
