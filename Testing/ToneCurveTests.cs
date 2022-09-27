@@ -61,7 +61,7 @@ public static class ToneCurveTests
 
     public static bool CheckGammaCreation16()
     {
-        var linGamma = ToneCurve.BuildGamma(null, 1.0);
+        using var linGamma = ToneCurve.BuildGamma(null, 1.0);
         if (linGamma is null) return false;
 
         for (var i = 0; i < 0xFFFF; i++)
@@ -71,20 +71,16 @@ public static class ToneCurveTests
             if (@in != @out)
             {
                 Fail($"(lin gamma): Must be {@in}, but was {@out} : ");
-                linGamma.Dispose();
                 return false;
             }
         }
 
-        if (!CheckGammaEstimation(linGamma, 1.0)) return false;
-
-        linGamma.Dispose();
-        return true;
+        return CheckGammaEstimation(linGamma, 1.0);
     }
 
     public static bool CheckGammaCreationFloat()
     {
-        var linGamma = ToneCurve.BuildGamma(null, 1.0);
+        using var linGamma = ToneCurve.BuildGamma(null, 1.0);
         if (linGamma is null) return false;
 
         for (var i = 0; i < 0xFFFF; i++)
@@ -94,15 +90,104 @@ public static class ToneCurveTests
             if (Math.Abs(@in - @out) > (1 / 65535f))
             {
                 Fail($"(lin gamma): Must be {@in}, but was {@out} : ");
-                linGamma.Dispose();
                 return false;
             }
         }
 
-        if (!CheckGammaEstimation(linGamma, 1.0)) return false;
+        return CheckGammaEstimation(linGamma, 1.0);
+    }
 
-        linGamma.Dispose();
-        return true;
+    public static bool CheckJoint16CurvesSrgb()
+    {
+        using var forward = BuildSrgbGamma();
+        if (forward is null)
+            return false;
+
+        using var reverse = forward.Reverse();
+        if (reverse is null)
+            return false;
+
+        using var result = CombineGamma16(forward, reverse);
+        if (result is null)
+            return false;
+
+        return result.IsLinear;
+    }
+
+    public static bool CheckJointCurves()
+    {
+        using var forward = ToneCurve.BuildGamma(null, 3.0);
+        using var reverse = ToneCurve.BuildGamma(null, 3.0);
+
+        if (forward is null || reverse is null)
+            return false;
+
+        using var result = forward.Join(null, reverse, 256);
+
+        if (result is null)
+            return false;
+
+        var rc = result.IsLinear;
+
+        if (!rc)
+            Fail("Joining same curve twice does not result in a linear ramp");
+
+        return rc;
+    }
+
+    public static bool CheckJointCurvesDescending()
+    {
+        using var forward = ToneCurve.BuildGamma(null, 2.2);
+        if (forward is null)
+            return false;
+
+        // Fake the curve to be table-based
+
+        for (var i = 0; i < 4096; i++)
+            forward.table16[i] = (ushort)(0xFFFF - forward.table16[i]);
+        forward.segments[0].Type = 0;
+
+        using var reverse = forward.Reverse();
+        if (reverse is null)
+            return false;
+
+        using var result = reverse.Join(null, reverse, 256);
+
+        if (result is null)
+            return false;
+
+        return result.IsLinear;
+    }
+
+    public static bool CheckJointCurvesSShaped()
+    {
+        using var forward = ToneCurve.BuildParametric(null, 108, 3.2);
+        if (forward is null) return false;
+
+        using var reverse = forward.Reverse();
+        if (reverse is null) return false;
+
+        using var result = forward.Join(null, forward, 4096);
+        if (result is null) return false;
+
+        return result.IsLinear;
+    }
+
+    public static bool CheckJointFloatCurvesSrgb()
+    {
+        using var forward = BuildSrgbGamma();
+        if (forward is null)
+            return false;
+
+        using var reverse = forward.Reverse();
+        if (reverse is null)
+            return false;
+
+        using var result = CombineGammaFloat(forward, reverse);
+        if (result is null)
+            return false;
+
+        return result.IsLinear;
     }
 
     public static bool CheckParametricToneCurves()
@@ -209,13 +294,69 @@ public static class ToneCurveTests
         return true;
     }
 
+    public static bool CheckReverseDegenerated()
+    {
+        var tab = new ushort[]
+        {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0x5555,
+            0x6666,
+            0x7777,
+            0x8888,
+            0x9999,
+            0xFFFF,
+            0xFFFF,
+            0xFFFF,
+            0xFFFF,
+            0xFFFF,
+            0xFFFF
+        };
+
+        using var p = ToneCurve.BuildTabulated(null, tab);
+        if (p is null)
+            return false;
+
+        using var g = p.Reverse();
+        if (g is null)
+            return false;
+
+        // Now let's check some points
+        if (!CheckFToneCurvePoint(g, 0x5555, 0x5555)) return false;
+        if (!CheckFToneCurvePoint(g, 0x7777, 0x7777)) return false;
+
+        // First point for zero
+        if (!CheckFToneCurvePoint(g, 0x0000, 0x4444)) return false;
+
+        // Last point
+        if (!CheckFToneCurvePoint(g, 0xFFFF, 0xFFFF)) return false;
+
+        return true;
+    }
+
     #endregion Public Methods
 
     #region Private Methods
 
+    private static ToneCurve? BuildSrgbGamma() =>
+        ToneCurve.BuildParametric(null, 4, new double[5]
+        {
+            2.4,
+            1 / 1.055,
+            0.055 / 1.055,
+            1 / 12.92,
+            0.04045
+        });
+
+    private static bool CheckFToneCurvePoint(ToneCurve c, ushort point, int value) =>
+            Math.Abs(value - c.Eval(point)) < 2;
+
     private static bool CheckGamma(double g)
     {
-        var curve = ToneCurve.BuildGamma(null, g);
+        using var curve = ToneCurve.BuildGamma(null, g);
         if (curve is null) return false;
 
         MaxErr = 0;
@@ -247,7 +388,7 @@ public static class ToneCurveTests
             values[i] = MathF.Pow(@in, (float)g);
         }
 
-        var curve = ToneCurve.BuildTabulated(null, values);
+        using var curve = ToneCurve.BuildTabulated(null, values);
         if (curve is null) return false;
 
         MaxErr = 0;
@@ -279,7 +420,7 @@ public static class ToneCurveTests
             values[i] = (ushort)Math.Floor((Math.Pow(@in, g) * 65535.0) + 0.5);
         }
 
-        var curve = ToneCurve.BuildTabulated(null, values);
+        using var curve = ToneCurve.BuildTabulated(null, values);
         if (curve is null) return false;
 
         MaxErr = 0.0;
@@ -303,8 +444,8 @@ public static class ToneCurveTests
 
     private static bool CheckSingleParametric(string name, Func<float, double[], float> fn, int type, double[] p)
     {
-        var tc = ToneCurve.BuildParametric(null, type, p);
-        var tc1 = ToneCurve.BuildParametric(null, -type, p);
+        using var tc = ToneCurve.BuildParametric(null, type, p);
+        using var tc1 = ToneCurve.BuildParametric(null, -type, p);
 
         bool End(bool result)
         {
@@ -353,8 +494,37 @@ public static class ToneCurveTests
         }
     }
 
+    private static ToneCurve? CombineGamma16(ToneCurve g1, ToneCurve g2)
+    {
+        var tab = new ushort[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            var val = QuantizeValue(i, 256);
+
+            tab[i] = g2.Eval(g1.Eval(val));
+        }
+
+        return ToneCurve.BuildTabulated(null, tab);
+    }
+
+    private static ToneCurve? CombineGammaFloat(ToneCurve g1, ToneCurve g2)
+    {
+        var tab = new ushort[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            var f = i / 255f;
+            f = g2.Eval(g1.Eval(f));
+
+            tab[i] = (ushort)Math.Floor((f * 65535.0) + 0.5);
+        }
+
+        return ToneCurve.BuildTabulated(null, tab);
+    }
+
     private static float Gamma(float x, double[] p) =>
-        (float)Math.Pow(x, p[0]);
+            (float)Math.Pow(x, p[0]);
 
     private static float IEC61966_21(float x, double[] p)
     {

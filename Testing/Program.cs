@@ -143,6 +143,13 @@ if (doCheckTests)
     Check("Curve 3.0 (word table)", tc.CheckGamma30TableWord);
 
     Check("Parametric curves", tc.CheckParametricToneCurves);
+
+    Check("Join curves", tc.CheckJointCurves);
+    Check("Join curves descending", tc.CheckJointCurvesDescending);
+    Check("Join curves degenerated", tc.CheckReverseDegenerated);
+    Check("Join curves sRGB (Float)", tc.CheckJointFloatCurvesSrgb);
+    Check("Join curves sRGB (16 bits)", tc.CheckJoint16CurvesSrgb);
+    Check("Join curves sigmoidal", tc.CheckJointCurvesSShaped);
 }
 
 if (doPluginTests)
