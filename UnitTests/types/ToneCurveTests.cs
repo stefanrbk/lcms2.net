@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.tests.types;
@@ -131,6 +132,85 @@ public class ToneCurveTests
         curve.Dispose();
     }
 
+    [Test, Category(FixedTest)]
+    public void CheckParametricToneCurves(
+        [Range(1, 8)]
+        [Values(108)]
+            int type)
+    {
+        switch (type)
+        {
+            // 1) X = Y ^ Gamma
+            case 1:
+
+                CheckSingleParametric("Gamma", Gamma, 1, 2.2);
+                break;
+
+            // 2) CIE 122-1966
+            // Y = (aX + b)^Gamma  | X >= -b/a
+            // Y = 0               | else
+            case 2:
+
+                CheckSingleParametric("CIE122-1966", CIE122, 2, 2.2, 1.5, -0.5);
+                break;
+
+            // 3) IEC 61966-3
+            // Y = (aX + b)^Gamma | X <= -b/a
+            // Y = c              | else
+            case 3:
+
+                CheckSingleParametric("IEC 61966-3", IEC61966_3, 3, 2.2, 1.5, -0.5, 0.3);
+                break;
+
+            // 4) IEC 61966-2.1 (sRGB)
+            // Y = (aX + b)^Gamma | X >= d
+            // Y = cX             | X < d
+            case 4:
+
+                CheckSingleParametric("IEC 61966-2.1", IEC61966_21, 4, 2.4, 1 / 1.055, 0.055 / 1.055, 1 / 12.92, 0.04045);
+                break;
+
+            // 5) Y = (aX + b)^Gamma + e | X >= d
+            // Y = cX + f             | else
+            case 5:
+
+                CheckSingleParametric("param_5", Param5, 5, 2.2, 0.7, 0.2, 0.3, 0.1, 0.5, 0.2);
+                break;
+
+            // 6) Y = (aX + b) ^ Gamma + c
+            case 6:
+
+                CheckSingleParametric("param_6", Param6, 6, 2.2, 0.7, 0.2, 0.3);
+                break;
+
+            // 7) Y = a * log (b * X^Gamma + c) + d
+            case 7:
+
+                CheckSingleParametric("param_7", Param7, 7, 2.2, 0.9, 0.9, 0.02, 0.1);
+                break;
+
+            // 8) Y = a * b ^ (c*X+d) + e
+            case 8:
+
+                CheckSingleParametric("param_8", Param8, 8, 0.9, 0.9, 1.02, 0.1, 0.2);
+                break;
+
+            // 108: S-Shaped: (1 - (1-x)^1/g)^1/g
+            case 108:
+
+                CheckSingleParametric("sigmoidal", Sigmoidal, 108, 1.9);
+                break;
+        }
+
+        // All OK
+
+        Assert.Pass();
+    }
+
+    [SetUp]
+    public void SetUp() =>
+        State.SetLogErrorHandler((_, e, m) => Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), e)}: {m}"));
+
     [TearDown]
     public void TearDown() =>
         Curve?.Dispose();
@@ -144,6 +224,132 @@ public class ToneCurveTests
         var est = c.EstimateGamma(1E-3);
         Assert.That(est, Is.EqualTo(g).Within(1E-3));
     }
+
+    private static void CheckSingleParametric(string name, Func<float, double[], float> fn, int type, params double[] p)
+    {
+        var tc = ToneCurve.BuildParametric(null, type, p);
+        var tc1 = ToneCurve.BuildParametric(null, -type, p);
+        Assert.Multiple(() =>
+        {
+            Assert.That(tc, Is.Not.Null);
+            Assert.That(tc1, Is.Not.Null);
+        });
+
+        Assert.Multiple(() =>
+        {
+            for (var i = 0; i <= 1000; i++)
+            {
+                var x = i / 1000f;
+
+                var yFn = fn(x, p);
+                var yParam = tc!.Eval(x);
+                var xParam = tc1!.Eval(yParam);
+
+                var yParam2 = fn(xParam, p);
+
+                Assert.Multiple(() =>
+                {
+                    IsGoodVal(name, yFn, yParam, S15Fixed16Precision);
+                    IsGoodVal($"Inverse {name}", yFn, yParam2, S15Fixed16Precision);
+                });
+            }
+            tc!.Dispose();
+            tc1!.Dispose();
+        });
+    }
+
+    private static float CIE122(float x, double[] p)
+    {
+        if (x >= -p[2] / p[1])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)Math.Pow(e, p[0]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return 0f;
+        }
+    }
+
+    private static float Gamma(float x, double[] p) =>
+        (float)Math.Pow(x, p[0]);
+
+    private static float IEC61966_21(float x, double[] p)
+    {
+        if (x >= p[4])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)Math.Pow(e, p[0]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)(x * p[3]);
+        }
+    }
+
+    private static float IEC61966_3(float x, double[] p)
+    {
+        if (x >= -p[2] / p[1])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)(Math.Pow(e, p[0]) + p[3]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)p[3];
+        }
+    }
+
+    private static float Param5(float x, double[] p)
+    {
+        // Y = (aX + b)^Gamma + e | X >= d
+        // Y = cX + f             | else
+
+        if (x >= p[4])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)(Math.Pow(e, p[0]) + p[5]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)((x * p[3]) + p[6]);
+        }
+    }
+
+    private static float Param6(float x, double[] p)
+    {
+        var e = (p[1] * x) + p[2];
+
+        if (e > 0)
+            return (float)(Math.Pow(e, p[0]) + p[3]);
+        else
+            return 0f;
+    }
+
+    private static float Param7(float x, double[] p) =>
+        (float)((p[1] * Math.Log10((p[2] * Math.Pow(x, p[0])) + p[3])) + p[4]);
+
+    private static float Param8(float x, double[] p) =>
+        (float)((p[0] * Math.Pow(p[1], (p[2] * x) + p[3])) + p[4]);
+
+    private static float Sigmoidal(float x, double[] p) =>
+        (float)Math.Pow(1.0 - Math.Pow(1.0 - x, 1 / p[0]), 1 / p[0]);
 
     #endregion Private Methods
 

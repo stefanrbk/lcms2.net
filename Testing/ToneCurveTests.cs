@@ -105,6 +105,110 @@ public static class ToneCurveTests
         return true;
     }
 
+    public static bool CheckParametricToneCurves()
+    {
+        var p = new double[10];
+
+        // 1) X = Y ^ Gamma
+
+        p[0] = 2.2;
+
+        if (!CheckSingleParametric("Gamma", Gamma, 1, p))
+            return false;
+
+        // 2) CIE 122-1966
+        // Y = (aX + b)^Gamma  | X >= -b/a
+        // Y = 0               | else
+
+        p[0] = 2.2;
+        p[1] = 1.5;
+        p[2] = -0.5;
+
+        if (!CheckSingleParametric("CIE122-1966", CIE122, 2, p))
+            return false;
+
+        // 3) IEC 61966-3
+        // Y = (aX + b)^Gamma | X <= -b/a
+        // Y = c              | else
+
+        p[0] = 2.2;
+        p[1] = 1.5;
+        p[2] = -0.5;
+        p[3] = 0.3;
+
+        if (!CheckSingleParametric("IEC 61966-3", IEC61966_3, 3, p))
+            return false;
+
+        // 4) IEC 61966-2.1 (sRGB)
+        // Y = (aX + b)^Gamma | X >= d
+        // Y = cX             | X < d
+
+        p[0] = 2.4;
+        p[1] = 1.0 / 1.055;
+        p[2] = 0.055 / 1.055;
+        p[3] = 1.0 / 12.92;
+        p[4] = 0.04045;
+
+        if (!CheckSingleParametric("IEC 61966-2.1", IEC61966_21, 4, p))
+            return false;
+
+        // 5) Y = (aX + b)^Gamma + e | X >= d
+        // Y = cX + f             | else
+
+        p[0] = 2.2;
+        p[1] = 0.7;
+        p[2] = 0.2;
+        p[3] = 0.3;
+        p[4] = 0.1;
+        p[5] = 0.5;
+        p[6] = 0.2;
+
+        if (!CheckSingleParametric("param_5", Param5, 5, p))
+            return false;
+
+        // 6) Y = (aX + b) ^ Gamma + c
+
+        p[0] = 2.2;
+        p[1] = 0.7;
+        p[2] = 0.2;
+        p[3] = 0.3;
+
+        if (!CheckSingleParametric("param_6", Param6, 6, p))
+            return false;
+
+        // 7) Y = a * log (b * X^Gamma + c) + d
+
+        p[0] = 2.2;
+        p[1] = 0.9;
+        p[2] = 0.9;
+        p[3] = 0.02;
+        p[4] = 0.1;
+
+        if (!CheckSingleParametric("param_7", Param7, 7, p))
+            return false;
+
+        // 8) Y = a * b ^ (c*X+d) + e
+
+        p[0] = 0.9;
+        p[1] = 0.9;
+        p[2] = 1.02;
+        p[3] = 0.1;
+        p[4] = 0.2;
+
+        if (!CheckSingleParametric("param_8", Param8, 8, p))
+            return false;
+
+        // 108: S-Shaped: (1 - (1-x)^1/g)^1/g
+
+        p[0] = 1.9;
+        if (!CheckSingleParametric("sigmoidal", Sigmoidal, 108, p))
+            return false;
+
+        // All OK
+
+        return true;
+    }
+
     #endregion Public Methods
 
     #region Private Methods
@@ -196,6 +300,134 @@ public static class ToneCurveTests
         curve.Dispose();
         return true;
     }
+
+    private static bool CheckSingleParametric(string name, Func<float, double[], float> fn, int type, double[] p)
+    {
+        var tc = ToneCurve.BuildParametric(null, type, p);
+        var tc1 = ToneCurve.BuildParametric(null, -type, p);
+
+        bool End(bool result)
+        {
+            tc?.Dispose();
+            tc1?.Dispose();
+
+            return result;
+        }
+
+        if (tc is null || tc1 is null) return End(false);
+
+        for (var i = 0; i <= 1000; i++)
+        {
+            var x = i / 1000f;
+
+            var yFn = fn(x, p);
+            var yParam = tc.Eval(x);
+            var xParam = tc1.Eval(yParam);
+
+            var yParam2 = fn(xParam, p);
+
+            if (!IsGoodVal(name, yFn, yParam, FixedPrecision15_16))
+                return End(false);
+
+            if (!IsGoodVal($"Inverse {name}", yFn, yParam2, FixedPrecision15_16))
+                return End(false);
+        }
+
+        return End(true);
+    }
+
+    private static float CIE122(float x, double[] p)
+    {
+        if (x >= -p[2] / p[1])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)Math.Pow(e, p[0]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return 0f;
+        }
+    }
+
+    private static float Gamma(float x, double[] p) =>
+        (float)Math.Pow(x, p[0]);
+
+    private static float IEC61966_21(float x, double[] p)
+    {
+        if (x >= p[4])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)Math.Pow(e, p[0]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)(x * p[3]);
+        }
+    }
+
+    private static float IEC61966_3(float x, double[] p)
+    {
+        if (x >= -p[2] / p[1])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)(Math.Pow(e, p[0]) + p[3]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)p[3];
+        }
+    }
+
+    private static float Param5(float x, double[] p)
+    {
+        // Y = (aX + b)^Gamma + e | X >= d
+        // Y = cX + f             | else
+
+        if (x >= p[4])
+        {
+            var e = (p[1] * x) + p[2];
+
+            if (e > 0)
+                return (float)(Math.Pow(e, p[0]) + p[5]);
+            else
+                return 0f;
+        }
+        else
+        {
+            return (float)((x * p[3]) + p[6]);
+        }
+    }
+
+    private static float Param6(float x, double[] p)
+    {
+        var e = (p[1] * x) + p[2];
+
+        if (e > 0)
+            return (float)(Math.Pow(e, p[0]) + p[3]);
+        else
+            return 0f;
+    }
+
+    private static float Param7(float x, double[] p) =>
+        (float)((p[1] * Math.Log10((p[2] * Math.Pow(x, p[0])) + p[3])) + p[4]);
+
+    private static float Param8(float x, double[] p) =>
+        (float)((p[0] * Math.Pow(p[1], (p[2] * x) + p[3])) + p[4]);
+
+    private static float Sigmoidal(float x, double[] p) =>
+        (float)Math.Pow(1.0 - Math.Pow(1.0 - x, 1 / p[0]), 1 / p[0]);
 
     #endregion Private Methods
 }

@@ -393,7 +393,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
         };
 
         var size = c.functions[pos].Count;
-        if (@params.Length < size || @params.Length >= 10 /* seg0.Params.Length always = 10 */) return null;
+        if (@params.Length < size || @params.Length > 10 /* seg0.Params.Length always = 10 */) return null;
 
         @params.AsSpan(..size).CopyTo(seg0.Params);
 
