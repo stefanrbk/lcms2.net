@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,12 +24,29 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using NSubstitute;
+namespace lcms2.testbed;
 
-global using NUnit.Framework;
+public static class WhitePointTests
+{
+    #region Public Methods
 
-global using static lcms2.tests.Globals;
+    public static bool CheckTemp2Chroma()
+    {
+        var max = 0.0;
+        for (var j = 4000; j < 25000; j++)
+        {
+            var white = WhitePoint.FromTemp(j);
+            var v = WhitePoint.ToTemp(white);
 
-using System.Diagnostics.CodeAnalysis;
+            if (Double.IsNaN(v)) return false;
 
-[assembly: ExcludeFromCodeCoverage]
+            var d = Math.Abs(v - j);
+            if (d > max) max = d;
+        }
+
+        // the actual resolution is 100 degrees
+        return max < 100;
+    }
+
+    #endregion Public Methods
+}

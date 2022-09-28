@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,12 +24,20 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using NSubstitute;
+using lcms2.state;
 
-global using NUnit.Framework;
+namespace lcms2.tests;
 
-global using static lcms2.tests.Globals;
+public abstract class TestBase
+{
+    #region Public Methods
 
-using System.Diagnostics.CodeAnalysis;
+    [SetUp]
+    public virtual void SetUp() =>
+        State.SetLogErrorHandler(
+            (_, e, m) =>
+                Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), e)}: {m}")
+            );
 
-[assembly: ExcludeFromCodeCoverage]
+    #endregion Public Methods
+}

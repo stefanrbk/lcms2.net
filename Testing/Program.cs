@@ -1,10 +1,38 @@
-﻿using lcms2.state;
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022      Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+using lcms2.state;
 using lcms2.testbed;
 
-using interp = lcms2.testbed.InterpolationTests;
 using cs = lcms2.testbed.ColorspaceTests;
-using state = lcms2.testbed.StateTests;
 using helper = lcms2.testbed.HelpersTests;
+using interp = lcms2.testbed.InterpolationTests;
+using state = lcms2.testbed.StateTests;
+using tc = lcms2.testbed.ToneCurveTests;
+using wp = lcms2.testbed.WhitePointTests;
 
 Console.WriteLine("LittleCMS.net {0} test bed {1} {2}", Lcms2.Version / 1000.0, DateTime.Now.Day, DateTime.Now.TimeOfDay);
 Console.WriteLine();
@@ -29,7 +57,7 @@ if (exhaustive)
 Console.WriteLine();
 Console.Write("\tInstalling error logger ... ");
 State.SetLogErrorHandler(FatalErrorQuit);
-WriteLineGreen("done");
+WriteLineGreen("done\n");
 
 PrintSupportedIntents();
 
@@ -94,6 +122,34 @@ if (doCheckTests)
     Check("Lab to xyY and back (float only)", cs.CheckLab2xyY);
     Check("Lab V2 encoding", cs.CheckLabV2EncodingTest);
     Check("Lab V4 encoding", cs.CheckLabV4EncodingTest);
+
+    Console.WriteLine("\nBlackBody");
+    Check("Blackbody radiator", wp.CheckTemp2Chroma);
+
+    Console.WriteLine("\nTone curves");
+    Check("Linear gamma curves (16 bits)", tc.CheckGammaCreation16);
+    Check("Linear gamma curves (float)", tc.CheckGammaCreationFloat);
+
+    Check("Curve 1.8 (float)", tc.CheckGamma18);
+    Check("Curve 2.2 (float)", tc.CheckGamma22);
+    Check("Curve 3.0 (float)", tc.CheckGamma30);
+
+    Check("Curve 1.8 (table)", tc.CheckGamma18Table);
+    Check("Curve 2.2 (table)", tc.CheckGamma22Table);
+    Check("Curve 3.0 (table)", tc.CheckGamma30Table);
+
+    Check("Curve 1.8 (word table)", tc.CheckGamma18TableWord);
+    Check("Curve 2.2 (word table)", tc.CheckGamma22TableWord);
+    Check("Curve 3.0 (word table)", tc.CheckGamma30TableWord);
+
+    Check("Parametric curves", tc.CheckParametricToneCurves);
+
+    Check("Join curves", tc.CheckJointCurves);
+    Check("Join curves descending", tc.CheckJointCurvesDescending);
+    Check("Join curves degenerated", tc.CheckReverseDegenerated);
+    Check("Join curves sRGB (Float)", tc.CheckJointFloatCurvesSrgb);
+    Check("Join curves sRGB (16 bits)", tc.CheckJoint16CurvesSrgb);
+    Check("Join curves sigmoidal", tc.CheckJointCurvesSShaped);
 }
 
 if (doPluginTests)
