@@ -461,6 +461,14 @@ public partial class Stage
             newElem);
     }
 
+    public static Stage? AllocNamedColor(NamedColorList ncl, bool usePCS) =>
+        Alloc(
+            ncl.state,
+            Signature.Stage.NamedColorElem,
+            1,
+            usePCS ? 3 : ncl.colorantCount,
+            new NamedColorData(ncl, usePCS));
+
     public static Stage? AllocToneCurves(object? state,
                                          uint numChannels,
                                          ToneCurve[]? curves)
