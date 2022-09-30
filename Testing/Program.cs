@@ -165,6 +165,11 @@ if (doCheckTests)
     Check("5 Stage LUT (16 bits)", lut.Check5Stage16Lut);
     Check("6 Stage LUT ", lut.Check6StageLut);
     Check("6 Stage LUT (16 bits)", lut.Check6Stage16Lut);
+
+    Console.WriteLine("\nLUT operation");
+    Check("Lab to Lab LUT (float only)", lut.CheckLab2LabLut);
+    Check("XYZ to XYZ LUT (float only)", lut.CheckXyz2XyzLut);
+    Check("Lab to Lab MAT LUT (float only)", lut.CheckLab2LabMatLut);
 }
 
 if (doPluginTests)

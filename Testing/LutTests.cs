@@ -171,6 +171,29 @@ public static class LutTests
         return CheckFullLut(ref lut, 6);
     }
 
+    public static bool CheckLab2LabLut()
+    {
+        var lut = Pipeline.Alloc(null, 3, 3);
+        if (lut is null) return false;
+
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocLab2XYZ(null));
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocXyz2Lab(null));
+
+        return CheckFloatLut(ref lut) && CheckStagesLut(ref lut, 2);
+    }
+
+    public static bool CheckLab2LabMatLut()
+    {
+        var lut = Pipeline.Alloc(null, 3, 3);
+        if (lut is null) return false;
+
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocLab2XYZ(null));
+        AddIdentityMatrix(ref lut);
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocXyz2Lab(null));
+
+        return CheckFloatLut(ref lut) && CheckStagesLut(ref lut, 3);
+    }
+
     public static bool CheckLutCreation()
     {
         var lut = Pipeline.Alloc(null, 1, 1);
@@ -184,6 +207,17 @@ public static class LutTests
         var n2 = lut2.StageCount;
 
         return (n1 is 0) && (n2 is 0);
+    }
+
+    public static bool CheckXyz2XyzLut()
+    {
+        var lut = Pipeline.Alloc(null, 3, 3);
+        if (lut is null) return false;
+
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocXyz2Lab(null));
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocLab2XYZ(null));
+
+        return CheckFloatLut(ref lut) && CheckStagesLut(ref lut, 2);
     }
 
     #endregion Public Methods
