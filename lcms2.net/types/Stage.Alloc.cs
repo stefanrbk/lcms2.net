@@ -462,6 +462,21 @@ public partial class Stage
     }
 
     public static Stage? AllocNamedColor(NamedColorList ncl, bool usePCS) =>
+        /** Original Code (cmsnamed.c line: 742)
+         **
+         ** // Named color lookup element
+         ** cmsStage* CMSEXPORT _cmsStageAllocNamedColor(cmsNAMEDCOLORLIST* NamedColorList, cmsBool UsePCS)
+         ** {
+         **     return _cmsStageAllocPlaceholder(NamedColorList ->ContextID,
+         **                                    cmsSigNamedColorElemType,
+         **                                    1, UsePCS ? 3 : NamedColorList ->ColorantCount,
+         **                                    UsePCS ? EvalNamedColorPCS : EvalNamedColor,
+         **                                    DupNamedColorList,
+         **                                    FreeNamedColorList,
+         **                                    cmsDupNamedColorList(NamedColorList));
+         **
+         ** }
+         **/
         Alloc(
             ncl.state,
             Signature.Stage.NamedColorElem,

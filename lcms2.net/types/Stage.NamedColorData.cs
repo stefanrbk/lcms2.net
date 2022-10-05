@@ -93,6 +93,7 @@ public partial class Stage
              **     cmsFreeNamedColorList(List);
              ** }
              **/
+
             List.Dispose();
             base.Dispose(disposing);
         }
@@ -124,6 +125,7 @@ public partial class Stage
              **     }
              ** }
              **/
+
             var ncl = List;
             var index = QuickSaturateWord(@in[0] * 65535.0);
 
@@ -164,6 +166,7 @@ public partial class Stage
              **     }
              ** }
              **/
+
             var ncl = List;
             var index = QuickSaturateWord(@in[0] * 65535.0);
 
