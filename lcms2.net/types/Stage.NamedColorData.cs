@@ -127,7 +127,7 @@ public partial class Stage
             var ncl = List;
             var index = QuickSaturateWord(@in[0] * 65535.0);
 
-            if (index >= ncl.numColors)
+            if (index >= ncl.list.Count)
             {
                 State.SignalError(ncl.state, ErrorCode.Range, "Color {0} out of range", index);
                 @out[0] = @out[1] = @out[2] = 0f;
@@ -167,7 +167,7 @@ public partial class Stage
             var ncl = List;
             var index = QuickSaturateWord(@in[0] * 65535.0);
 
-            if (index >= ncl.numColors)
+            if (index >= ncl.list.Count)
             {
                 State.SignalError(ncl.state, ErrorCode.Range, "Color {0} out of range", index);
                 for (var j = 0; j < ncl.colorantCount; j++)
