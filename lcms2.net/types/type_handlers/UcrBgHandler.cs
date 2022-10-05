@@ -109,7 +109,6 @@ public class UcrBgHandler : TagTypeHandler
     public override bool Write(Stream io, object ptr, int numItems)
     {
         var value = (UcrBg)ptr;
-        byte[]? nullBuffer = null;
 
         // First curve is Under color removal
         if (!io.Write(value.Ucr.NumEntries)) return false;
@@ -120,9 +119,9 @@ public class UcrBgHandler : TagTypeHandler
         if (!io.Write((int)value.Bg.NumEntries, value.Bg.table16)) return false;
 
         // Now comes the text. The length is specified by the tab size
-        var textSize = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref nullBuffer);
+        var textSize = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, default);
         var text = new byte[textSize];
-        _ = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref text);
+        _ = value.Description.GetAscii(Mlu.noLanguage, Mlu.noCountry, text);
 
         io.Write(text);
 

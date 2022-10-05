@@ -76,17 +76,16 @@ public class TextHandler : TagTypeHandler
     {
         var mlu = (Mlu)value;
 
-        byte[]? buffer = null;
         // Get the size of the string. Note there is an extra "\0" at the end
-        var size = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref buffer);
+        var size = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, default);
         if (size == 0) return false; // Cannot be zero!
 
         // Create memory
-        buffer = new byte[size];
-        mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref buffer);
+        var buffer = new byte[size];
+        mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, buffer);
 
         // Write it, including separator
-        io.Write(buffer!, 0, (int)size);
+        io.Write(buffer, 0, (int)size);
 
         return true;
     }
