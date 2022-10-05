@@ -217,12 +217,12 @@ public abstract partial class TagTypeHandler
 
     internal static bool WriteCountAndString(Stream io, Mlu mlu, string section)
     {
-        var textSize = mlu.GetAscii("PS", section);
+        var textSize = mlu.GetAscii("PS", section, default);
         var text = new byte[textSize];
 
         if (!io.Write(textSize)) return false;
 
-        if (mlu.GetAscii("PS", section, ref text) == 0) return false;
+        if (mlu.GetAscii("PS", section, text) == 0) return false;
 
         io.Write(text);
 
