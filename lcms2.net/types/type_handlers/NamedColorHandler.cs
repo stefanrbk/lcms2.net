@@ -60,7 +60,7 @@ public class NamedColorHandler : TagTypeHandler
         if (!io.ReadAsciiString(32, out var prefix)) return null;   // Prefix for each color name
         if (!io.ReadAsciiString(32, out var suffix)) return null;   // Suffix for each color name
 
-        var v = new NamedColorList(StateContainer, count, prefix, suffix);
+        var v = new NamedColorList(StateContainer, (int)count, numDeviceCoords, prefix, suffix);
         if (v is null)
         {
             Errors.TooManyNamedColors(StateContainer, count);
@@ -80,7 +80,7 @@ public class NamedColorHandler : TagTypeHandler
             if (!io.ReadUInt16Array(3, out var pcs)) goto Error;
             if (!io.ReadUInt16Array((int)numDeviceCoords, out var colorant)) goto Error;
 
-            if (!v.Append(root, pcs, colorant)) goto Error;
+            v.Append(root, pcs, colorant);
         }
 
         return v;
@@ -94,7 +94,7 @@ public class NamedColorHandler : TagTypeHandler
     {
         var namedColorList = (NamedColorList)value;
 
-        var numColors = namedColorList.numColors;
+        var numColors = namedColorList.list.Count;
 
         if (!io.Write((uint)0)) return false;
         if (!io.Write(numColors)) return false;
@@ -105,7 +105,7 @@ public class NamedColorHandler : TagTypeHandler
 
         for (var i = 0; i < numColors; i++)
         {
-            if (!namedColorList.Info((uint)i, out var root, out _, out _, out var pcs, out var colorant)) return false;
+            if (!namedColorList.Info(i, out var root, out _, out _, out var pcs, out var colorant)) return false;
 
             if (!io.WriteAsciiString(root, 32)) return false;
             if (!io.Write(3, pcs)) return false;

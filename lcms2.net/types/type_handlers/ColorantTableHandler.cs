@@ -63,7 +63,7 @@ public class ColorantTableHandler : TagTypeHandler
             return null;
         }
 
-        NamedColorList list = new(StateContainer, count, "", "");
+        NamedColorList list = new(StateContainer, (int)count, 0, "", "");
 
         for (var i = 0; i < count; i++)
         {
@@ -71,7 +71,7 @@ public class ColorantTableHandler : TagTypeHandler
 
             if (!io.ReadUInt16Array(3, out var pcs)) goto Error;
 
-            if (!list.Append(new string(name.Select(c => (char)c).ToArray()), pcs, null)) goto Error;
+            list.Append(new string(name.Select(c => (char)c).ToArray()), pcs, null);
         }
 
         numItems = 1;
@@ -87,11 +87,11 @@ public class ColorantTableHandler : TagTypeHandler
     {
         var namedColorList = (NamedColorList)value;
 
-        var numColors = namedColorList.numColors;
+        var numColors = namedColorList.list.Count;
 
         if (!io.Write(numColors)) return false;
 
-        for (var i = 0u; i < numColors; i++)
+        for (var i = 0; i < numColors; i++)
         {
             if (!namedColorList.Info(i, out var root, out _, out _, out var pcs, out _)) return false;
 
