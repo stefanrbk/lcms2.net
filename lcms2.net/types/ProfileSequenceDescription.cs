@@ -45,7 +45,12 @@ public class ProfileSequenceDescription : ICloneable, IDisposable
 
     #region Public Constructors
 
-    public ProfileSequenceDescription(object? context, Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID)
+    public ProfileSequenceDescription(object? context,
+                                      Signature deviceMfg,
+                                      Signature deviceModel,
+                                      ulong attributes,
+                                      Signature technology,
+                                      ProfileID profileID)
     {
         DeviceMfg = deviceMfg;
         DeviceModel = deviceModel;
@@ -62,7 +67,14 @@ public class ProfileSequenceDescription : ICloneable, IDisposable
 
     #region Private Constructors
 
-    private ProfileSequenceDescription(Signature deviceMfg, Signature deviceModel, ulong attributes, Signature technology, ProfileID profileID, Mlu manufacturer, Mlu model, Mlu description)
+    private ProfileSequenceDescription(Signature deviceMfg,
+                                       Signature deviceModel,
+                                       ulong attributes,
+                                       Signature technology,
+                                       ProfileID profileID,
+                                       Mlu manufacturer,
+                                       Mlu model,
+                                       Mlu description)
     {
         DeviceMfg = deviceMfg;
         DeviceModel = deviceModel;
