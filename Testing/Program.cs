@@ -170,6 +170,7 @@ if (doCheckTests)
     Check("Lab to Lab LUT (float only)", lut.CheckLab2LabLut);
     Check("XYZ to XYZ LUT (float only)", lut.CheckXyz2XyzLut);
     Check("Lab to Lab MAT LUT (float only)", lut.CheckLab2LabMatLut);
+    Check("Named Color LUT", lut.CheckNamedColorLut);
 }
 
 if (doPluginTests)
