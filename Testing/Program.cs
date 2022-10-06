@@ -30,6 +30,7 @@ using lcms2.testbed;
 using cs = lcms2.testbed.ColorspaceTests;
 using helper = lcms2.testbed.HelpersTests;
 using interp = lcms2.testbed.InterpolationTests;
+using lut = lcms2.testbed.LutTests;
 using state = lcms2.testbed.StateTests;
 using tc = lcms2.testbed.ToneCurveTests;
 using wp = lcms2.testbed.WhitePointTests;
@@ -150,6 +151,26 @@ if (doCheckTests)
     Check("Join curves sRGB (Float)", tc.CheckJointFloatCurvesSrgb);
     Check("Join curves sRGB (16 bits)", tc.CheckJoint16CurvesSrgb);
     Check("Join curves sigmoidal", tc.CheckJointCurvesSShaped);
+
+    Console.WriteLine("\nLUT basics");
+    Check("LUT creation & dup", lut.CheckLutCreation);
+    Check("1 Stage LUT ", lut.Check1StageLut);
+    Check("2 Stage LUT ", lut.Check2StageLut);
+    Check("2 Stage LUT (16 bits)", lut.Check2Stage16Lut);
+    Check("3 Stage LUT ", lut.Check3StageLut);
+    Check("3 Stage LUT (16 bits)", lut.Check3Stage16Lut);
+    Check("4 Stage LUT ", lut.Check4StageLut);
+    Check("4 Stage LUT (16 bits)", lut.Check4Stage16Lut);
+    Check("5 Stage LUT ", lut.Check5StageLut);
+    Check("5 Stage LUT (16 bits)", lut.Check5Stage16Lut);
+    Check("6 Stage LUT ", lut.Check6StageLut);
+    Check("6 Stage LUT (16 bits)", lut.Check6Stage16Lut);
+
+    Console.WriteLine("\nLUT operation");
+    Check("Lab to Lab LUT (float only)", lut.CheckLab2LabLut);
+    Check("XYZ to XYZ LUT (float only)", lut.CheckXyz2XyzLut);
+    Check("Lab to Lab MAT LUT (float only)", lut.CheckLab2LabMatLut);
+    Check("Named Color LUT", lut.CheckNamedColorLut);
 }
 
 if (doPluginTests)
