@@ -531,6 +531,36 @@ public class LutTests : TestBase
         }
     }
 
+    [Test, Category(FixedTest)]
+    public void NamedColorLutTest()
+    {
+        var nc = new NamedColorList(null, 256, 3, "pre", "post");
+
+        for (var i = 0; i < 256; i++)
+        {
+            var pcs = Enumerable.Repeat((ushort)i, 3).ToArray();
+            var colorant = Enumerable.Repeat((ushort)i, 4).ToArray();
+
+            var name = $"#{i}";
+            nc.Append(name, pcs, colorant);
+        }
+        lut.InsertStage(StageLoc.AtEnd, Stage.AllocNamedColor(nc, false));
+
+        var inw = new ushort[3];
+        var outw = new ushort[3];
+        Assert.Multiple(() =>
+        {
+            for (var j = 0; j < 256; j++)
+            {
+                inw[0] = (ushort)j;
+
+                lut.Eval(inw, outw);
+                if (outw.Any(i => i != j))
+                    Assert.Fail($"Failed eval pass {j}");
+            }
+        });
+    }
+
     [SetUp]
     public override void SetUp()
     {

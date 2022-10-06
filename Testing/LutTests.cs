@@ -226,7 +226,6 @@ public static class LutTests
         }
         lut.InsertStage(StageLoc.AtEnd, Stage.AllocNamedColor(nc, false));
 
-        var n2 = 0;
         var inw = new ushort[3];
         var outw = new ushort[3];
         for (var j = 0; j < 256; j++)
@@ -234,10 +233,11 @@ public static class LutTests
             inw[0] = (ushort)j;
 
             lut.Eval(inw, outw);
-            n2 += outw.Count(i => i != j);
+            if (outw.Any(i => i != j))
+                return false;
         }
 
-        return n2 is 0;
+        return true;
     }
 
     public static bool CheckXyz2XyzLut()
