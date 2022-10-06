@@ -143,12 +143,12 @@ public class MluHandler : TagTypeHandler
 
         var mlu = (Mlu)value;
 
-        if (!io.Write(mlu.UsedEntries)) return false;
+        if (!io.Write(mlu.TranslationsCount)) return false;
         if (!io.Write((uint)12)) return false;
 
-        var headerSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
+        var headerSize = (12 * mlu.TranslationsCount) + (uint)sizeof(TagBase);
 
-        for (var i = 0; i < mlu.UsedEntries; i++)
+        for (var i = 0; i < mlu.TranslationsCount; i++)
         {
             var len = mlu.entries[i].Len;
             var offset = mlu.entries[i].OffsetToStr;

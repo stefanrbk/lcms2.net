@@ -134,6 +134,21 @@ public class Transform
     public (FormatterFloat? FromInput, FormatterFloat? ToOutput) FormattersFloat =>
         (fromInputFloat, toOutputFloat);
 
+    public NamedColorList? NamedColorList =>
+        /** Original Code (cmsnamed.c line: 756)
+         **
+         ** // Retrieve the named color list from a transform. Should be first element in the LUT
+         ** cmsNAMEDCOLORLIST* CMSEXPORT cmsGetNamedColorList(cmsHTRANSFORM xform)
+         ** {
+         **     _cmsTRANSFORM* v = (_cmsTRANSFORM*) xform;
+         **     cmsStage* mpe  = v ->Lut->Elements;
+         **
+         **     if (mpe ->Type != cmsSigNamedColorElemType) return NULL;
+         **     return (cmsNAMEDCOLORLIST*) mpe ->Data;
+         ** }
+         **/
+        (lut.elements?.Data as Stage.NamedColorData)?.List;
+
     /// <summary>
     ///     User data as specified by the factory
     /// </summary>

@@ -58,7 +58,8 @@ public class ProfileSequenceDescriptionHandler : TagTypeHandler
         if (sizeOfTag < sizeof(uint)) return null;
         sizeOfTag -= sizeof(uint);
 
-        Sequence outSeq = new(StateContainer, (int)count);
+        Sequence? outSeq = Sequence.Alloc(StateContainer, (int)count);
+        if (outSeq is null) return null;
 
         // Get structures as well
 
@@ -84,6 +85,7 @@ public class ProfileSequenceDescriptionHandler : TagTypeHandler
 
             if (!ReadEmbeddedText(io, ref sec.Manufacturer, sizeOfTag)) goto Error;
             if (!ReadEmbeddedText(io, ref sec.Model, sizeOfTag)) goto Error;
+            outSeq.Seq[i] = sec;
         }
 
         numItems = 1;

@@ -61,7 +61,8 @@ public class ProfileSequenceIdHandler : TagTypeHandler
         sizeOfTag -= sizeof(uint);
 
         // Allocate an empty structure
-        object outSeq = new Sequence(StateContainer, (int)count);
+        object? outSeq = Sequence.Alloc(StateContainer, (int)count);
+        if (outSeq is null) return null;
 
         // Read the position table
         if (!ReadPositionTable(io, (int)count, (uint)baseOffset, ref outSeq, ReadSequenceId))

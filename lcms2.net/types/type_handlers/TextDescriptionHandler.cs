@@ -123,10 +123,9 @@ public class TextDescriptionHandler : TagTypeHandler
 
         var mlu = (Mlu)value;
         var filler = new byte[68]; // Used for writing zeros
-        byte[]? nullArray = null;
 
         // Get the len of string
-        var len = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref nullArray);
+        var len = mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, default);
 
         // Specification ICC.1:2001-04 (v2.4.0): It has been found that textDescriptionType can contain misaligned data
         //(see clause 4.1 for the definition of 'aligned'). Because the Unicode language
@@ -154,8 +153,8 @@ public class TextDescriptionHandler : TagTypeHandler
             wide = new char[len];
 
             // Get both representations
-            mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, ref text);
-            mlu.GetUtf16(Mlu.noLanguage, Mlu.noCountry, ref wide);
+            mlu.GetAscii(Mlu.noLanguage, Mlu.noCountry, text);
+            mlu.GetUtf16(Mlu.noLanguage, Mlu.noCountry, wide);
         }
 
         // Tell the real text len including the null terminator and padding
