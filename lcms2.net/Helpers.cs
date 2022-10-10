@@ -355,5 +355,8 @@ internal static class Helpers
         return rc;
     }
 
+    internal static ushort XYZ2Fix(double d) =>
+                                                                                                                                            QuickSaturateWord(d * 32768.0);
+
     #endregion Internal Methods
 }

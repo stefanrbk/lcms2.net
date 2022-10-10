@@ -103,5 +103,22 @@ public struct XYZ : ICloneable
         return new(X * iSum, Y * iSum, Y);
     }
 
+    public ushort[] ToXYZEncodedArray()
+    {
+        XYZ xyz = this;
+
+        // Clamp to encodeable values.
+        if (xyz.Y <= 0)
+        {
+            xyz = default;
+        }
+
+        xyz.X = Math.Max(Math.Min(xyz.X, maxEncodableXYZ), 0);
+        xyz.Y = Math.Max(Math.Min(xyz.Y, maxEncodableXYZ), 0);
+        xyz.Z = Math.Max(Math.Min(xyz.Z, maxEncodableXYZ), 0);
+
+        return new[] { XYZ2Fix(xyz.X), XYZ2Fix(xyz.Y), XYZ2Fix(xyz.Z) };
+    }
+
     #endregion Public Methods
 }
