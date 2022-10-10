@@ -107,6 +107,19 @@ public struct Lab : ICloneable
         return (fl, fa, fb);
     }
 
+    public ushort[] ToLabEncodedArray()
+    {
+        var dl = ClampLDoubleV4(L);
+        var da = ClampabDoubleV4(a);
+        var db = ClampabDoubleV4(b);
+
+        var fl = L2Fix4(dl);
+        var fa = ab2Fix4(da);
+        var fb = ab2Fix4(db);
+
+        return new[] { fl, fa, fb };
+    }
+
     public LabEncodedV2 ToLabEncodedV2()
     {
         var dl = ClampLDoubleV2(L);
@@ -138,56 +151,4 @@ public struct Lab : ICloneable
     }
 
     #endregion Public Methods
-
-    #region Private Methods
-
-    private static ushort ab2Fix2(double ab) =>
-        QuickSaturateWord((ab + 128.0) * 256.0);
-
-    private static ushort ab2Fix4(double ab) =>
-        QuickSaturateWord((ab + 128.0) * 257.0);
-
-    private static double ClampabDoubleV2(double ab) =>
-        ab switch
-        {
-            < minEncodableAb2 => minEncodableAb2,
-            > maxEncodableAb2 => maxEncodableAb2,
-            _ => ab
-        };
-
-    private static double ClampabDoubleV4(double ab) =>
-        ab switch
-        {
-            < minEncodableAb4 => minEncodableAb4,
-            > maxEncodableAb4 => maxEncodableAb4,
-            _ => ab
-        };
-
-    private static double ClampLDoubleV2(double l)
-    {
-        const double lMax = 0xFFFF * 100.0 / 0xFF00;
-
-        return l switch
-        {
-            < 0 => 0,
-            > lMax => lMax,
-            _ => l
-        };
-    }
-
-    private static double ClampLDoubleV4(double l) =>
-        l switch
-        {
-            < 0 => 0,
-            > 100.0 => 100.0,
-            _ => l
-        };
-
-    private static ushort L2Fix2(double l) =>
-        QuickSaturateWord(l * 652.8);
-
-    private static ushort L2Fix4(double l) =>
-        QuickSaturateWord(l * 655.35);
-
-    #endregion Private Methods
 }
