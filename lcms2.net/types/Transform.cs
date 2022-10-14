@@ -187,21 +187,84 @@ public class Transform
     private static ushort ReverseFlavor(ushort x) =>
         unchecked((ushort)(0xFFFF - x));
 
-    private Span<byte> Unroll1Byte(ushort[] wIn, Span<byte> acc, int _)
+    private ushort ChangeEndian(ReadOnlySpan<byte> span) =>
+        ChangeEndian(BitConverter.ToUInt16(span));
+
+    private ushort From8to16Reversed(byte value) =>
+        From8to16(ReverseFlavor(value));
+
+    private void Lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
+    {
+        var L = lab4[0] / 655.35f;
+        var a = (lab4[1] / 257f) - 128f;
+        var b = (lab4[2] / 257f) - 128f;
+
+        wIn[0] = L / 100f;
+        wIn[1] = (a + 128f) / 255f;
+        wIn[2] = (b + 128f) / 255f;
+    }
+
+    private ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
+            ReverseFlavor(BitConverter.ToUInt16(span));
+
+    private ReadOnlySpan<byte> Unroll16ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
+
+        stride /= inputFormat.PixelSize;
+
+        var start = extraFirst
+            ? extra
+            : (byte)0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v =
+                (float)(planar
+                    ? ptr[(i + start) * stride]
+                    : ptr[i + start]);
+
+            v /= 65535.0f;
+
+            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+        }
+
+        if (extra is 0 && swapFirst)
+        {
+            var tmp = wIn[0];
+
+            wIn.CopyTo(wIn[1..]);
+            wIn[nChan - 1] = tmp;
+        }
+
+        return inputFormat.Planar
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll1Byte(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
 
         return acc;
     }
 
-    private Span<byte> Unroll1ByteReversed(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1ByteReversed(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = ReverseFlavor(From8to16(acc[0])); acc = acc[1..]; // L
 
         return acc;
     }
 
-    private Span<byte> Unroll1ByteSkip1(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1ByteSkip1(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
         acc = acc[1..];
@@ -209,7 +272,7 @@ public class Transform
         return acc;
     }
 
-    private Span<byte> Unroll1ByteSkip2(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1ByteSkip2(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
         acc = acc[2..];
@@ -217,21 +280,21 @@ public class Transform
         return acc;
     }
 
-    private Span<byte> Unroll1Word(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1Word(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // L
 
         return acc;
     }
 
-    private Span<byte> Unroll1WordReversed(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1WordReversed(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // L
 
         return acc;
     }
 
-    private Span<byte> Unroll1WordSkip3(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll1WordSkip3(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // L
         acc = acc[8..];
@@ -239,219 +302,319 @@ public class Transform
         return acc;
     }
 
-    private Span<byte> Unroll2Bytes(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll2Bytes(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // ch1
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // ch2
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        wIn[0] = ptr[0]; // ch1
+        wIn[1] = ptr[1]; // ch2
+
+        return ptr[2..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll2Words(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
+
+        wIn[0] = ptr[0]; // ch1
+        wIn[1] = ptr[1]; // ch2
+
+        return ptr[2..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll3Bytes(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        wIn[0] = ptr[0]; // R
+        wIn[1] = ptr[1]; // G
+        wIn[2] = ptr[2]; // B
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll3BytesSkip1Swap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        ptr++; // A
+        wIn[2] = ptr[0]; // B
+        wIn[1] = ptr[1]; // G
+        wIn[0] = ptr[2]; // R
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll3BytesSkip1SwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        ptr++; // A
+        wIn[0] = ptr[0]; // R
+        wIn[1] = ptr[1]; // G
+        wIn[2] = ptr[2]; // B
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll3BytesSkip1SwapSwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        wIn[2] = ptr[0]; // B
+        wIn[1] = ptr[1]; // G
+        wIn[0] = ptr[2]; // R
+        ptr++; // A
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> Unroll3BytesSwap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        wIn[2] = ptr[0]; // B
+        wIn[1] = ptr[1]; // G
+        wIn[0] = ptr[2]; // R
 
         return acc;
     }
 
-    private Span<byte> Unroll2Words(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll3Words(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // ch1
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // ch2
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[0] = ptr[0]; // C R
+        wIn[1] = ptr[1]; // M G
+        wIn[2] = ptr[2]; // Y B
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll3Bytes(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll3WordsSkip1Swap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // R
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // G
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // B
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        ptr++; // A
+        wIn[2] = ptr[0]; // B
+        wIn[1] = ptr[1]; // G
+        wIn[0] = ptr[2]; // R
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll3BytesSkip1Swap(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll3WordsSkip1SwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        acc = acc[1..]; // A
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // B
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // G
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // R
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        ptr++; // A
+        wIn[0] = ptr[0]; // R
+        wIn[1] = ptr[1]; // G
+        wIn[2] = ptr[2]; // B
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll3BytesSkip1SwapFirst(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll3WordsSwap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        acc = acc[1..]; // A
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // R
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // G
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // B
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[2] = ptr[0]; // Y B
+        wIn[1] = ptr[1]; // M G
+        wIn[0] = ptr[2]; // C R
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll3BytesSkip1SwapSwapFirst(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4Bytes(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // B
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // G
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // R
-        acc = acc[1..]; // A
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
-        return acc;
+        wIn[0] = ptr[0]; // C
+        wIn[1] = ptr[1]; // M
+        wIn[2] = ptr[2]; // Y
+        wIn[3] = ptr[3]; // K
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll3BytesSwap(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4BytesReverse(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // B
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // G
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // R
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16Reversed);
 
-        return acc;
+        wIn[0] = ptr[0]; // C
+        wIn[1] = ptr[1]; // M
+        wIn[2] = ptr[2]; // Y
+        wIn[3] = ptr[3]; // K
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll3Words(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4BytesSwap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C R
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M G
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y B
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
-        return acc;
+        wIn[3] = ptr[0]; // K
+        wIn[2] = ptr[1]; // Y
+        wIn[1] = ptr[2]; // M
+        wIn[0] = ptr[3]; // C
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll3WordsSkip1Swap(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4BytesSwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        acc = acc[2..]; // A
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // B
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // G
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // R
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
-        return acc;
+        wIn[3] = ptr[0]; // K
+        wIn[0] = ptr[1]; // C
+        wIn[1] = ptr[2]; // M
+        wIn[2] = ptr[3]; // Y
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll3WordsSkip1SwapFirst(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4BytesSwapSwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        acc = acc[2..]; // A
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // R
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // G
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // B
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
-        return acc;
+        wIn[2] = ptr[0]; // K
+        wIn[1] = ptr[1]; // Y
+        wIn[0] = ptr[2]; // M
+        wIn[3] = ptr[3]; // C
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll3WordsSwap(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4Words(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y B
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M G
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C R
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[0] = ptr[0]; // C
+        wIn[1] = ptr[1]; // M
+        wIn[2] = ptr[2]; // Y
+        wIn[3] = ptr[3]; // K
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll4Bytes(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4WordsReverse(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // C
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // M
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // Y
-        wIn[3] = From8to16(acc[0]); acc = acc[1..]; // K
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, ReverseFlavor);
 
-        return acc;
+        wIn[0] = ptr[0]; // C
+        wIn[1] = ptr[1]; // M
+        wIn[2] = ptr[2]; // Y
+        wIn[3] = ptr[3]; // K
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll4BytesReverse(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4WordsSwap(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = From8to16(ReverseFlavor(acc[0])); acc = acc[1..]; // C
-        wIn[1] = From8to16(ReverseFlavor(acc[0])); acc = acc[1..]; // M
-        wIn[2] = From8to16(ReverseFlavor(acc[0])); acc = acc[1..]; // Y
-        wIn[3] = From8to16(ReverseFlavor(acc[0])); acc = acc[1..]; // K
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[3] = ptr[0]; // K
+        wIn[2] = ptr[1]; // Y
+        wIn[1] = ptr[2]; // M
+        wIn[0] = ptr[3]; // C
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll4BytesSwap(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4WordsSwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[3] = From8to16(acc[0]); acc = acc[1..]; // K
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // Y
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // M
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // C
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[3] = ptr[0]; // K
+        wIn[0] = ptr[1]; // C
+        wIn[1] = ptr[2]; // M
+        wIn[2] = ptr[3]; // Y
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll4BytesSwapFirst(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll4WordsSwapSwapFirst(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[3] = From8to16(acc[0]); acc = acc[1..]; // K
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // C
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // M
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // Y
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[2] = ptr[0]; // K
+        wIn[1] = ptr[1]; // Y
+        wIn[0] = ptr[2]; // M
+        wIn[3] = ptr[3]; // C
+
+        return ptr[4..].Span;
     }
 
-    private Span<byte> Unroll4BytesSwapSwapFirst(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> Unroll8ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
-        wIn[2] = From8to16(acc[0]); acc = acc[1..]; // K
-        wIn[1] = From8to16(acc[0]); acc = acc[1..]; // Y
-        wIn[0] = From8to16(acc[0]); acc = acc[1..]; // M
-        wIn[3] = From8to16(acc[0]); acc = acc[1..]; // C
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
 
-        return acc;
+        stride /= inputFormat.PixelSize;
+
+        var start = extraFirst
+            ? extra
+            : (byte)0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v = (float)acc[(i + start) * (planar ? stride : 1)];
+
+            v /= 255.0f;
+
+            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+        }
+
+        if (extra is 0 && swapFirst)
+        {
+            var tmp = wIn[0];
+
+            wIn.CopyTo(wIn[1..]);
+            wIn[nChan - 1] = tmp;
+        }
+
+        return inputFormat.Planar
+            ? acc[sizeof(byte)..]
+            : acc[((nChan + extra) * sizeof(byte))..];
     }
 
-    private Span<byte> Unroll4Words(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollALabV2_8(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y
-        wIn[3] = BitConverter.ToUInt16(acc); acc = acc[2..]; // K
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
-        return acc;
+        ptr++; // A
+        wIn[0] = FromLabV2ToLabV4(ptr[0]); // L
+        wIn[1] = FromLabV2ToLabV4(ptr[1]); // a
+        wIn[2] = FromLabV2ToLabV4(ptr[2]); // b
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll4WordsReverse(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollALabV2_8ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // C
-        wIn[1] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // M
-        wIn[2] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // Y
-        wIn[3] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // K
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, s => FromLabV2ToLabV4(From8to16(s)));
 
-        return acc;
+        ptr++;  // A
+        var lab4 = new ushort[]
+        {
+            ptr[0], // L
+            ptr[1], // a
+            ptr[2], // b
+        };
+
+        Lab4toFloat(wIn, lab4);
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> Unroll4WordsSwap(ushort[] wIn, Span<byte> acc, int _)
-    {
-        wIn[3] = BitConverter.ToUInt16(acc); acc = acc[2..]; // K
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C
-
-        return acc;
-    }
-
-    private Span<byte> Unroll4WordsSwapFirst(ushort[] wIn, Span<byte> acc, int _)
-    {
-        wIn[3] = BitConverter.ToUInt16(acc); acc = acc[2..]; // K
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y
-
-        return acc;
-    }
-
-    private Span<byte> Unroll4WordsSwapSwapFirst(ushort[] wIn, Span<byte> acc, int _)
-    {
-        wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // K
-        wIn[1] = BitConverter.ToUInt16(acc); acc = acc[2..]; // Y
-        wIn[0] = BitConverter.ToUInt16(acc); acc = acc[2..]; // M
-        wIn[3] = BitConverter.ToUInt16(acc); acc = acc[2..]; // C
-
-        return acc;
-    }
-
-    private Span<byte> UnrollALabV2_8(ushort[] wIn, Span<byte> acc, int _)
-    {
-        acc = acc[1..]; // A
-        wIn[0] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // L
-        wIn[1] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // a
-        wIn[2] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // b
-
-        return acc;
-    }
-
-    private Span<byte> UnrollAnyWords(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollAnyWords(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = inputFormat.Channels;
         var swapEndian = inputFormat.EndianSwap;
@@ -460,37 +623,38 @@ public class Transform
         var swapFirst = inputFormat.SwapFirst;
         var extra = inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc,
+            swapEndian
+                ? ChangeEndian
+                : BitConverter.ToUInt16);
 
         if (extraFirst)
-            acc = acc[(extra * sizeof(ushort))..];
+            ptr += extra;
 
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = BitConverter.ToUInt16(acc);
-
-            if (swapEndian)
-                v = ChangeEndian(v);
+            var v = ptr[0];
 
             wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor(v) : v;
-            acc = acc[sizeof(ushort)..];
+            ptr++;
         }
 
         if (!extraFirst)
-            acc = acc[(extra * sizeof(ushort))..];
+            ptr += extra;
 
         if (extra is 0 && swapFirst)
         {
             var tmp = wIn[0];
 
-            wIn.CopyTo(wIn, 1);
+            wIn.CopyTo(wIn[1..]);
             wIn[nChan - 1] = tmp;
         }
 
-        return acc;
+        return ptr.Span;
     }
 
-    private Span<byte> UnrollAnyWordsPremul(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollAnyWordsPremul(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = inputFormat.Channels;
         var swapEndian = inputFormat.EndianSwap;
@@ -501,14 +665,15 @@ public class Transform
 
         var alpha = extraFirst ? acc[0] : acc[nChan - 1];
         var alpha_factor = (uint)ToFixedDomain(From8to16(alpha));
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
         if (extraFirst)
-            acc = acc[sizeof(ushort)..];
+            ptr++;
 
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = (uint)BitConverter.ToUInt16(acc);
+            var v = (uint)ptr[0];
 
             if (swapEndian)
                 v = ChangeEndian((ushort)v);
@@ -517,16 +682,16 @@ public class Transform
             if (v > 0xFFFF) v = 0xFFFF;
 
             wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : (ushort)v;
-            acc = acc[sizeof(ushort)..];
+            ptr++;
         }
 
         if (!extraFirst)
-            acc = acc[sizeof(ushort)..];
+            ptr++;
 
-        return acc;
+        return ptr.Span;
     }
 
-    private Span<byte> UnrollChunkyBytes(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollChunkyBytes(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
@@ -575,23 +740,82 @@ public class Transform
         {
             var tmp = wIn[0];
 
-            wIn.CopyTo(wIn, 1);
+            wIn.CopyTo(wIn[1..]);
             wIn[nChan - 1] = tmp;
         }
 
         return acc;
     }
 
-    private Span<byte> UnrollDouble1Chan(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollDouble1Chan(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        var inks = BitConverter.ToDouble(acc);
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
+
+        var inks = ptr[0];
 
         wIn[0] = wIn[1] = wIn[2] = QuickSaturateWord(inks * 65535.0);
 
-        return acc[sizeof(double)..];
+        return ptr[1..].Span;
     }
 
-    private Span<byte> UnrollDoubleTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollDoublesToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
+        var premul = inputFormat.PremultipliedAlpha;
+        var maximum = inputFormat.IsInkSpace ? 100d : 1d;
+        var alphaFactor = 1d;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
+
+        stride /= inputFormat.PixelSize;
+
+        if (premul && extra != 0)
+        {
+            alphaFactor =
+                planar
+                    ? (extraFirst ? ptr[0] : ptr[nChan * stride]) / maximum
+                    : (extraFirst ? ptr[0] : ptr[nChan]) / maximum;
+        }
+
+        var start = extraFirst
+            ? extra
+            : (byte)0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v =
+                planar
+                    ? ptr[(i + start) * stride]
+                    : ptr[i + start];
+
+            if (premul && alphaFactor > 0)
+                v /= alphaFactor;
+
+            v /= maximum;
+
+            wIn[index] = (float)(reverse is ColorFlavor.Subtractive ? 1 - v : v);
+        }
+
+        if (extra is 0 && swapFirst)
+        {
+            var tmp = wIn[0];
+
+            wIn.CopyTo(wIn[1..]);
+            wIn[nChan - 1] = tmp;
+        }
+
+        return inputFormat.Planar
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollDoubleTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
@@ -601,6 +825,7 @@ public class Transform
         var extraFirst = doSwap ^ swapFirst;
         var planar = inputFormat.Planar;
         var maximum = inputFormat.IsInkSpace ? 655.35 : 65535.0;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
         stride /= inputFormat.PixelSize;
 
@@ -611,11 +836,10 @@ public class Transform
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = (float)BitConverter.ToDouble(
-                acc[((i + start) * (
-                    planar
-                        ? stride
-                        : 1) * sizeof(double))..]);
+            var v =
+                (float)(planar
+                    ? ptr[(i + start) * stride]
+                    : ptr[i + start]);
 
             var vi = QuickSaturateWord(v * maximum);
 
@@ -628,16 +852,73 @@ public class Transform
         {
             var tmp = wIn[0];
 
-            wIn.CopyTo(wIn, 1);
+            wIn.CopyTo(wIn[1..]);
             wIn[nChan - 1] = tmp;
         }
 
         return inputFormat.Planar
-            ? acc[sizeof(double)..]
-            : acc[((nChan + extra) * sizeof(double))..];
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
     }
 
-    private Span<byte> UnrollFloatTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollFloatsToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
+        var premul = inputFormat.PremultipliedAlpha;
+        var maximum = inputFormat.IsInkSpace ? 100f : 1f;
+        var alphaFactor = 1f;
+        var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
+
+        stride /= inputFormat.PixelSize;
+
+        if (premul && extra != 0)
+        {
+            alphaFactor =
+                planar
+                    ? (extraFirst ? ptr[0] : ptr[nChan * stride]) / maximum
+                    : (extraFirst ? ptr[0] : ptr[nChan]) / maximum;
+        }
+
+        var start = extraFirst
+            ? extra
+            : (byte)0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v =
+                planar
+                    ? ptr[(i + start) * stride]
+                    : ptr[i + start];
+
+            if (premul && alphaFactor > 0)
+                v /= alphaFactor;
+
+            v /= maximum;
+
+            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+        }
+
+        if (extra is 0 && swapFirst)
+        {
+            var tmp = wIn[0];
+
+            wIn.CopyTo(wIn[1..]);
+            wIn[nChan - 1] = tmp;
+        }
+
+        return inputFormat.Planar
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollFloatTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
@@ -647,6 +928,7 @@ public class Transform
         var extraFirst = doSwap ^ swapFirst;
         var planar = inputFormat.Planar;
         var maximum = inputFormat.IsInkSpace ? 655.35 : 65535.0;
+        var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
         stride /= inputFormat.PixelSize;
 
@@ -657,11 +939,10 @@ public class Transform
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = BitConverter.ToSingle(
-                acc[((i + start) * (
-                    planar
-                        ? stride
-                        : 1) * sizeof(float))..]);
+            var v =
+                planar
+                    ? ptr[(i + start) * stride]
+                    : ptr[i + start];
 
             var vi = QuickSaturateWord(v * maximum);
 
@@ -674,100 +955,182 @@ public class Transform
         {
             var tmp = wIn[0];
 
-            wIn.CopyTo(wIn, 1);
+            wIn.CopyTo(wIn[1..]);
             wIn[nChan - 1] = tmp;
         }
 
         return inputFormat.Planar
-            ? acc[sizeof(float)..]
-            : acc[((nChan + extra) * sizeof(float))..];
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
     }
 
-    private Span<byte> UnrollLabDoubleTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollLabDoubleTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         Lab lab;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
+        stride /= sizeof(double);
 
         if (inputFormat.Planar)
         {
-            var pos_L = acc;
-            var pos_a = acc[stride..];
+            var pos_L = ptr;
+            var pos_a = ptr[stride..];
             var pos_b = pos_a[stride..];
 
-            lab.L = BitConverter.ToDouble(pos_L);
-            lab.a = BitConverter.ToDouble(pos_a);
-            lab.b = BitConverter.ToDouble(pos_b);
+            lab.L = pos_L[0];
+            lab.a = pos_a[0];
+            lab.b = pos_b[0];
 
-            lab.ToLabEncodedArray().CopyTo(wIn, 0);
-            return acc[sizeof(double)..];
+            lab.ToLabEncodedArray().CopyTo(wIn);
+            return ptr[1..].Span;
         }
         else
         {
-            var pos_L = acc;
-            var pos_a = acc[sizeof(double)..];
-            var pos_b = pos_a[sizeof(double)..];
+            lab.L = ptr[0];
+            lab.a = ptr[1];
+            lab.b = ptr[2];
 
-            lab.L = BitConverter.ToDouble(pos_L);
-            lab.a = BitConverter.ToDouble(pos_a);
-            lab.b = BitConverter.ToDouble(pos_b);
+            lab.ToLabEncodedArray().CopyTo(wIn);
 
-            lab.ToLabEncodedArray().CopyTo(wIn, 0);
-
-            return acc[((sizeof(double) * 3) + (inputFormat.ExtraSamples * sizeof(double)))..];
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
         }
     }
 
-    private Span<byte> UnrollLabFloatTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollLabDoubleToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
-        Lab lab;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
         if (inputFormat.Planar)
         {
-            var pos_L = acc;
-            var pos_a = acc[stride..];
+            stride /= inputFormat.PixelSize;
+
+            wIn[0] = (float)(ptr[0] / 100);
+            wIn[1] = (float)((ptr[stride] + 128) / 255);
+            wIn[2] = (float)((ptr[stride * 2] + 128) / 255);
+
+            return ptr[1..].Span;
+        }
+        else
+        {
+            wIn[0] = (float)(ptr[0] / 100);
+            wIn[1] = (float)((ptr[1] + 128) / 255);
+            wIn[2] = (float)((ptr[2] + 128) / 255);
+
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private ReadOnlySpan<byte> UnrollLabFloatTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        Lab lab;
+        var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
+
+        if (inputFormat.Planar)
+        {
+            var pos_L = ptr;
+            var pos_a = ptr[stride..];
             var pos_b = pos_a[stride..];
 
-            lab.L = BitConverter.ToSingle(pos_L);
-            lab.a = BitConverter.ToSingle(pos_a);
-            lab.b = BitConverter.ToSingle(pos_b);
+            lab.L = pos_L[0];
+            lab.a = pos_a[0];
+            lab.b = pos_b[0];
 
-            lab.ToLabEncodedArray().CopyTo(wIn, 0);
+            lab.ToLabEncodedArray().CopyTo(wIn);
             return acc[sizeof(float)..];
         }
         else
         {
-            var pos_L = acc;
-            var pos_a = acc[sizeof(float)..];
-            var pos_b = pos_a[sizeof(float)..];
+            lab.L = ptr[0];
+            lab.a = ptr[1];
+            lab.b = ptr[2];
 
-            lab.L = BitConverter.ToSingle(pos_L);
-            lab.a = BitConverter.ToSingle(pos_a);
-            lab.b = BitConverter.ToSingle(pos_b);
+            lab.ToLabEncodedArray().CopyTo(wIn);
 
-            lab.ToLabEncodedArray().CopyTo(wIn, 0);
-
-            return acc[((3 + inputFormat.ExtraSamples) * sizeof(float))..];
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
         }
     }
 
-    private Span<byte> UnrollLabV2_16(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollLabFloatToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
-        wIn[0] = FromLabV2ToLabV4(BitConverter.ToUInt16(acc)); acc = acc[2..]; // L
-        wIn[1] = FromLabV2ToLabV4(BitConverter.ToUInt16(acc)); acc = acc[2..]; // a
-        wIn[2] = FromLabV2ToLabV4(BitConverter.ToUInt16(acc)); acc = acc[2..]; // b
+        var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
-        return acc;
+        if (inputFormat.Planar)
+        {
+            stride /= inputFormat.PixelSize;
+
+            wIn[0] = (float)(ptr[0] / 100.0);
+            wIn[1] = (float)((ptr[stride] + 128.0) / 255);
+            wIn[2] = (float)((ptr[stride * 2] + 128.0) / 255);
+
+            return ptr[1..].Span;
+        }
+        else
+        {
+            wIn[0] = (float)(ptr[0] / 100.0);
+            wIn[1] = (float)((ptr[1] + 128.0) / 255);
+            wIn[2] = (float)((ptr[2] + 128.0) / 255);
+
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
+        }
     }
 
-    private Span<byte> UnrollLabV2_8(ushort[] wIn, Span<byte> acc, int _)
+    private ReadOnlySpan<byte> UnrollLabV2_16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
-        wIn[0] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // L
-        wIn[1] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // a
-        wIn[2] = FromLabV2ToLabV4(From8to16(acc[0])); acc = acc[1..]; // b
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
-        return acc;
+        wIn[0] = FromLabV2ToLabV4(ptr[0]); // L
+        wIn[1] = FromLabV2ToLabV4(ptr[1]); // a
+        wIn[2] = FromLabV2ToLabV4(ptr[2]); // b
+
+        return ptr[3..].Span;
     }
 
-    private Span<byte> UnrollPlanarBytes(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollLabV2_16ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(
+            acc,
+            s =>
+                FromLabV2ToLabV4(BitConverter.ToUInt16(s)));
+
+        var lab4 = new ushort[]
+        {
+            ptr[0], // L
+            ptr[1], // a
+            ptr[2], // b
+        };
+
+        Lab4toFloat(wIn, lab4);
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollLabV2_8(Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        wIn[0] = FromLabV2ToLabV4(ptr[0]); // L
+        wIn[1] = FromLabV2ToLabV4(ptr[1]); // a
+        wIn[2] = FromLabV2ToLabV4(ptr[2]); // b
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollLabV2_8ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int _)
+    {
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, s => FromLabV2ToLabV4(From8to16(s)));
+
+        var lab4 = new ushort[]
+        {
+            ptr[0], // L
+            ptr[1], // a
+            ptr[2], // b
+        };
+
+        Lab4toFloat(wIn, lab4);
+
+        return ptr[3..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollPlanarBytes(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
@@ -776,26 +1139,29 @@ public class Transform
         var extraFirst = doSwap ^ swapFirst;
         var extra = inputFormat.ExtraSamples;
         var premul = inputFormat.PremultipliedAlpha;
-        var init = acc;
+        var init = acc[1..];
         var alphaFactor = 1;
+        var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
+
+        stride /= sizeof(ushort);
 
         if (extraFirst)
         {
             if (premul && extra != 0)
-                alphaFactor = ToFixedDomain(From8to16(acc[0]));
+                alphaFactor = ToFixedDomain(ptr[0]);
 
-            acc = acc[(extra * stride)..];
+            ptr += extra * stride;
         }
         else
         {
             if (premul && extra != 0)
-                alphaFactor = ToFixedDomain(From8to16(acc[nChan]));
+                alphaFactor = ToFixedDomain(ptr[nChan]);
         }
 
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            uint v = From8to16(acc[0]);
+            uint v = ptr[0];
 
             v = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : v;
 
@@ -806,40 +1172,43 @@ public class Transform
             }
 
             wIn[index] = (ushort)v;
-            acc = acc[stride..];
+            ptr += stride;
         }
 
-        return init[1..];
+        return init;
     }
 
-    private Span<byte> UnrollPlanarWords(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollPlanarWords(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
         var reverse = inputFormat.Flavor;
         var swapEndian = inputFormat.EndianSwap;
-        var init = acc;
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
+        var init = ptr[1..].Span;
+
+        stride /= sizeof(ushort);
 
         if (doSwap)
-            acc = acc[(inputFormat.ExtraSamples * stride)..];
+            ptr += inputFormat.ExtraSamples * stride;
 
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = BitConverter.ToUInt16(acc);
+            var v = ptr[0];
 
             if (swapEndian)
                 v = ChangeEndian(v);
 
             wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor(v) : v;
 
-            acc = acc[stride..];
+            ptr += stride;
         }
 
-        return init[sizeof(ushort)..];
+        return init;
     }
 
-    private Span<byte> UnrollPlanarWordsPremul(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollPlanarWordsPremul(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = inputFormat.Channels;
         var doSwap = inputFormat.SwapAll;
@@ -847,18 +1216,22 @@ public class Transform
         var reverse = inputFormat.Flavor;
         var swapEndian = inputFormat.EndianSwap;
         var extraFirst = doSwap ^ swapFirst;
-        var init = acc;
 
         var alpha = extraFirst ? acc[0] : acc[(nChan - 1) * stride];
         var alpha_factor = (uint)ToFixedDomain(From8to16(alpha));
 
+        var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
+        var init = ptr[1..].Span;
+
+        stride /= sizeof(ushort);
+
         if (extraFirst)
-            acc = acc[stride..];
+            ptr += stride;
 
         for (var i = 0; i < nChan; i++)
         {
             var index = doSwap ? (nChan - i - 1) : i;
-            var v = (uint)BitConverter.ToUInt16(acc);
+            var v = (uint)ptr[0];
 
             if (swapEndian)
                 v = ChangeEndian((ushort)v);
@@ -868,75 +1241,125 @@ public class Transform
 
             wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : (ushort)v;
 
-            acc = acc[stride..];
+            ptr += stride;
         }
 
-        return init[sizeof(ushort)..];
+        return init;
     }
 
-    private Span<byte> UnrollXYZDoubleTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollXYZDoubleTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         XYZ xyz;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
+        stride /= sizeof(double);
 
         if (inputFormat.Planar)
         {
-            var posX = acc;
-            var posY = acc[stride..];
+            var posX = ptr;
+            var posY = ptr[stride..];
             var posZ = posY[stride..];
 
-            xyz.X = BitConverter.ToDouble(posX);
-            xyz.Y = BitConverter.ToDouble(posY);
-            xyz.Z = BitConverter.ToDouble(posZ);
+            xyz.X = posX[0];
+            xyz.Y = posY[0];
+            xyz.Z = posZ[0];
 
-            xyz.ToXYZEncodedArray().CopyTo(wIn, 0);
+            xyz.ToXYZEncodedArray().CopyTo(wIn);
             return acc[sizeof(double)..];
         }
         else
         {
-            var posX = acc;
-            var posY = acc[sizeof(double)..];
-            var posZ = posY[sizeof(double)..];
+            xyz.X = ptr[0];
+            xyz.Y = ptr[1];
+            xyz.Z = ptr[2];
 
-            xyz.X = BitConverter.ToDouble(posX);
-            xyz.Y = BitConverter.ToDouble(posY);
-            xyz.Z = BitConverter.ToDouble(posZ);
+            xyz.ToXYZEncodedArray().CopyTo(wIn);
 
-            xyz.ToXYZEncodedArray().CopyTo(wIn, 0);
-
-            return acc[((3 + inputFormat.ExtraSamples) * sizeof(double))..];
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
         }
     }
 
-    private Span<byte> UnrollXYZFloatTo16(ushort[] wIn, Span<byte> acc, int stride)
+    private ReadOnlySpan<byte> UnrollXYZDoubleToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
-        XYZ xyz;
+        var ptr = new UpCastingReadOnlySpan<byte, double>(
+            acc,
+            s =>
+                BitConverter.ToDouble(s) / maxEncodableXYZ);
 
         if (inputFormat.Planar)
         {
-            var posX = acc;
-            var posY = acc[stride..];
+            stride /= inputFormat.PixelSize;
+
+            wIn[0] = (float)ptr[0];
+            wIn[1] = (float)ptr[stride];
+            wIn[2] = (float)ptr[stride * 2];
+
+            return ptr[1..].Span;
+        }
+        else
+        {
+            wIn[0] = (float)ptr[0];
+            wIn[1] = (float)ptr[1];
+            wIn[2] = (float)ptr[2];
+
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private ReadOnlySpan<byte> UnrollXYZFloatTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        XYZ xyz;
+        var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
+        stride /= sizeof(float);
+
+        if (inputFormat.Planar)
+        {
+            var posX = ptr;
+            var posY = ptr[stride..];
             var posZ = posY[stride..];
 
-            xyz.X = BitConverter.ToSingle(posX);
-            xyz.Y = BitConverter.ToSingle(posY);
-            xyz.Z = BitConverter.ToSingle(posZ);
+            xyz.X = posX[0];
+            xyz.Y = posY[0];
+            xyz.Z = posZ[0];
 
-            xyz.ToXYZEncodedArray().CopyTo(wIn, 0);
+            xyz.ToXYZEncodedArray().CopyTo(wIn);
             return acc[sizeof(float)..];
         }
         else
         {
-            var posX = acc;
-            var posY = acc[sizeof(float)..];
-            var posZ = posY[sizeof(float)..];
+            xyz.X = ptr[0];
+            xyz.Y = ptr[1];
+            xyz.Z = ptr[2];
 
-            xyz.X = BitConverter.ToSingle(posX);
-            xyz.Y = BitConverter.ToSingle(posY);
-            xyz.Z = BitConverter.ToSingle(posZ);
+            xyz.ToXYZEncodedArray().CopyTo(wIn);
 
-            xyz.ToXYZEncodedArray().CopyTo(wIn, 0);
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
+        }
+    }
 
-            return acc[((3 + inputFormat.ExtraSamples) * sizeof(float))..];
+    private ReadOnlySpan<byte> UnrollXYZFloatToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var ptr = new UpCastingReadOnlySpan<byte, float>(
+            acc,
+            s =>
+                (float)(BitConverter.ToSingle(s) / maxEncodableXYZ));
+
+        if (inputFormat.Planar)
+        {
+            stride /= inputFormat.PixelSize;
+
+            wIn[0] = (float)ptr[0];
+            wIn[1] = (float)ptr[stride];
+            wIn[2] = (float)ptr[stride * 2];
+
+            return ptr[1..].Span;
+        }
+        else
+        {
+            wIn[0] = (float)ptr[0];
+            wIn[1] = (float)ptr[1];
+            wIn[2] = (float)ptr[2];
+
+            return ptr[(3 + inputFormat.ExtraSamples)..].Span;
         }
     }
 
