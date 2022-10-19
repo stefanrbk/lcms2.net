@@ -22,6 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MoreSpans\MoreSpans.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="res\Strings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
