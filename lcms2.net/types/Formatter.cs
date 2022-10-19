@@ -76,3 +76,25 @@ public struct Formatter
     [FieldOffset(0)]
     public FormatterFloat FmtFloat;
 }
+
+internal struct Formatters16
+{
+    #region Fields
+
+    public Formatter16 Frm;
+    public uint Mask;
+    public Signature Type;
+
+    #endregion Fields
+}
+
+internal struct FormattersFloat
+{
+    #region Fields
+
+    public FormatterFloat Frm;
+    public uint Mask;
+    public Signature Type;
+
+    #endregion Fields
+}

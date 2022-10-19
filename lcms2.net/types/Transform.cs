@@ -24,6 +24,8 @@
 //
 //---------------------------------------------------------------------------------
 //
+using MoreSpans;
+
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -919,6 +921,88 @@ public class Transform
             : swap1[(nChan + extra)..].Span;
     }
 
+    private Span<byte> PackHalfFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 655.35f : 65535.0f;
+
+        var ptr = output.UpCaster(BitConverter.ToHalf, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index] / maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = (Half)v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
+    private Span<byte> PackHalfFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 100f : 1f;
+
+        var ptr = output.UpCaster(BitConverter.ToHalf, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index] * maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = (Half)v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
     private Span<byte> PackLabDoubleFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
@@ -1225,7 +1309,7 @@ public class Transform
     }
 
     private ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
-            ReverseFlavor(BitConverter.ToUInt16(span));
+        ReverseFlavor(BitConverter.ToUInt16(span));
 
     private ReadOnlySpan<byte> Unroll16ToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
@@ -1937,13 +2021,81 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
+            RollingShift(wIn[..nChan]);
 
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
+        return inputFormat.Planar
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollHalfTo16(Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
+        var maximum = inputFormat.IsInkSpace ? 655.35f : 65535.0f;
+        var ptr = new UpCastingReadOnlySpan<byte, Half>(acc, BitConverter.ToHalf);
+
+        stride /= inputFormat.PixelSize;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v =
+                planar
+                    ? (float)ptr[(i + start) * stride]
+                    : (float)ptr[i + start];
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            wIn[index] = QuickSaturateWord((double)v * maximum);
         }
 
+        if (extra is 0 && swapFirst)
+            RollingShift(wIn[..nChan]);
+
+        return inputFormat.Planar
+            ? ptr[1..].Span
+            : ptr[(nChan + extra)..].Span;
+    }
+
+    private ReadOnlySpan<byte> UnrollHalfToFloat(Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    {
+        var nChan = inputFormat.Channels;
+        var doSwap = inputFormat.SwapAll;
+        var reverse = inputFormat.Flavor;
+        var swapFirst = inputFormat.SwapFirst;
+        var extra = inputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var planar = inputFormat.Planar;
+        var maximum = inputFormat.IsInkSpace ? 100f : 1f;
+        var ptr = new UpCastingReadOnlySpan<byte, Half>(acc, BitConverter.ToHalf);
+
+        stride /= inputFormat.PixelSize;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+            var v =
+                planar
+                    ? (float)ptr[(i + start) * stride]
+                    : (float)ptr[i + start];
+
+            v /= maximum;
+
+            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+        }
+
+        if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
