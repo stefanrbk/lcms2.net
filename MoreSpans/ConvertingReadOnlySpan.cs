@@ -24,7 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2;
+namespace MoreSpans;
 
 public readonly ref struct ConvertingReadOnlySpan<Tfrom, Tto>
     where Tfrom : unmanaged
@@ -32,25 +32,19 @@ public readonly ref struct ConvertingReadOnlySpan<Tfrom, Tto>
 {
     #region Fields
 
-    private readonly FuncTo _funcTo;
+    private readonly ConvertFunc<Tfrom, Tto> _funcTo;
 
     #endregion Fields
 
     #region Public Constructors
 
-    public ConvertingReadOnlySpan(ReadOnlySpan<Tfrom> span, FuncTo funcTo)
+    public ConvertingReadOnlySpan(ReadOnlySpan<Tfrom> span, ConvertFunc<Tfrom, Tto> funcTo)
     {
         Span = span;
         _funcTo = funcTo;
     }
 
     #endregion Public Constructors
-
-    #region Delegates
-
-    public delegate Tto FuncTo(Tfrom span);
-
-    #endregion Delegates
 
     #region Properties
 

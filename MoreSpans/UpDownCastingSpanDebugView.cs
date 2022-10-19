@@ -24,33 +24,56 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2;
+using System.Diagnostics;
 
-public static class SpanExtensions
+namespace MoreSpans;
+
+internal sealed class UpDownCastingSpanDebugView<Tfrom, Tto>
+    where Tfrom : unmanaged
+    where Tto : unmanaged
 {
-    #region Delegates
+    #region Fields
 
-    public delegate T FuncTo<T>(ReadOnlySpan<byte> span)
-        where T : unmanaged;
+    private readonly Tfrom[] _from;
+    private readonly Tto[] _to;
 
-    #endregion Delegates
+    #endregion Fields
 
-    #region Public Methods
+    #region Public Constructors
 
-    public static ConvertingReadOnlySpan<Tfrom, Tto> Converter<Tfrom, Tto>(this ReadOnlySpan<Tfrom> span, ConvertingReadOnlySpan<Tfrom, Tto>.FuncTo func)
-        where Tfrom : unmanaged
-        where Tto : unmanaged =>
-        new(span, func);
+    public UpDownCastingSpanDebugView(UpCastingSpan<Tfrom, Tto> span)
+    {
+        _from = span.Span.ToArray();
+        _to = span.ToArray();
+    }
 
-    public static DownCastingReadOnlySpan<Tfrom, Tto> DownCaster<Tfrom, Tto>(this ReadOnlySpan<Tfrom> span, DownCastingReadOnlySpan<Tfrom, Tto>.FuncTo func)
-        where Tfrom : unmanaged
-        where Tto : unmanaged =>
-        new(span, func);
+    public UpDownCastingSpanDebugView(DownCastingSpan<Tfrom, Tto> span)
+    {
+        _from = span.Span.ToArray();
+        _to = span.ToArray();
+    }
 
-    public static UpCastingReadOnlySpan<Tfrom, Tto> UpCaster<Tfrom, Tto>(this ReadOnlySpan<Tfrom> span, UpCastingReadOnlySpan<Tfrom, Tto>.FuncTo func)
-                where Tfrom : unmanaged
-        where Tto : unmanaged =>
-        new(span, func);
+    public UpDownCastingSpanDebugView(UpCastingReadOnlySpan<Tfrom, Tto> span)
+    {
+        _from = span.Span.ToArray();
+        _to = span.ToArray();
+    }
 
-    #endregion Public Methods
+    public UpDownCastingSpanDebugView(DownCastingReadOnlySpan<Tfrom, Tto> span)
+    {
+        _from = span.Span.ToArray();
+        _to = span.ToArray();
+    }
+
+    #endregion Public Constructors
+
+    #region Properties
+
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public Tfrom[] FromItems => _from;
+
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public Tto[] ToItems => _to;
+
+    #endregion Properties
 }

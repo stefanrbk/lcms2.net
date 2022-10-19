@@ -24,26 +24,29 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2;
 
-public readonly ref struct UpCastingSpan<Tfrom, Tto>
+using System.Diagnostics;
+
+namespace MoreSpans;
+
+[DebuggerTypeProxy("UpDownCastingSpanDebugView<,>")]
+public readonly ref struct DownCastingSpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
 {
     #region Fields
 
-    private readonly FuncTo _funcTo;
-    private readonly FuncFrom _funcFrom;
+    private readonly UpCastFunc<Tto, Tfrom> _funcFrom;
+    private readonly DownCastFunc<Tto, Tfrom> _funcTo;
     private readonly int _size;
-    private readonly Span<Tfrom> _span;
 
     #endregion Fields
 
     #region Public Constructors
 
-    public UpCastingSpan(Span<Tfrom> span, FuncTo funcTo, FuncFrom funcFrom)
+    public DownCastingSpan(Span<Tfrom> span, DownCastFunc<Tto, Tfrom> funcTo, UpCastFunc<Tto, Tfrom> funcFrom)
     {
-        _span = span;
+        Span = span;
         _funcTo = funcTo;
         _funcFrom = funcFrom;
         unsafe
@@ -54,22 +57,59 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
 
     #endregion Public Constructors
 
-    #region Delegates
+    #region Properties
 
-    public delegate Tto FuncTo(ReadOnlySpan<Tfrom> span);
-    public delegate Tfrom[] FuncFrom(Tto value);
+    public Span<Tfrom> Span { get; }
 
-    #endregion Delegates
+    #endregion Properties
 
     #region Indexers
 
-    public Tto this[int index]
+    public Tto[] this[int index]
     {
         get =>
-            _funcTo(_span[(index * _size)..]);
+            _funcTo(Span[index * _size]);
         set =>
-            _funcFrom(value).CopyTo(_span[(index * _size)..]);
+            Span[index * _size] = _funcFrom(value);
+    }
+
+    public DownCastingSpan<Tfrom, Tto> this[Range range]
+    {
+        get
+        {
+            var (start, length) = range.GetOffsetAndLength(Span.Length / _size);
+            return Slice(start, length);
+        }
     }
 
     #endregion Indexers
+
+    #region Public Methods
+
+    public static implicit operator DownCastingReadOnlySpan<Tfrom, Tto>(DownCastingSpan<Tfrom, Tto> span) =>
+        new(span.Span, span._funcTo);
+
+    public static DownCastingSpan<Tfrom, Tto> operator +(DownCastingSpan<Tfrom, Tto> span, int increase) =>
+        span.Slice(increase);
+
+    public static DownCastingSpan<Tfrom, Tto> operator ++(DownCastingSpan<Tfrom, Tto> span) =>
+        span.Slice(1);
+
+    public DownCastingSpan<Tfrom, Tto> Slice(int start) =>
+                new(Span[(start * _size)..], _funcTo, _funcFrom);
+
+    public DownCastingSpan<Tfrom, Tto> Slice(int start, int length) =>
+        new(Span[(start * _size)..(length * _size)], _funcTo, _funcFrom);
+
+    public Tto[] ToArray()
+    {
+        var length = Span.Length * _size;
+        var array = new Tto[length];
+        for (var i = 0; i < Span.Length; i++)
+            this[i].CopyTo(array, i * _size);
+
+        return array;
+    }
+
+    #endregion Public Methods
 }

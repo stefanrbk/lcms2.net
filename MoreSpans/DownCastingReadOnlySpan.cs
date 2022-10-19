@@ -24,22 +24,26 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2;
 
-public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
+using System.Diagnostics;
+
+namespace MoreSpans;
+
+[DebuggerTypeProxy("UpDownCastingSpanDebugView<,>")]
+public readonly ref struct DownCastingReadOnlySpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
 {
     #region Fields
 
-    private readonly FuncTo _funcTo;
+    private readonly DownCastFunc<Tto, Tfrom> _funcTo;
     private readonly int _size;
 
     #endregion Fields
 
     #region Public Constructors
 
-    public UpCastingReadOnlySpan(ReadOnlySpan<Tfrom> span, FuncTo funcTo)
+    public DownCastingReadOnlySpan(ReadOnlySpan<Tfrom> span, DownCastFunc<Tto, Tfrom> funcTo)
     {
         Span = span;
         _funcTo = funcTo;
@@ -51,12 +55,6 @@ public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
 
     #endregion Public Constructors
 
-    #region Delegates
-
-    public delegate Tto FuncTo(ReadOnlySpan<Tfrom> span);
-
-    #endregion Delegates
-
     #region Properties
 
     public ReadOnlySpan<Tfrom> Span { get; }
@@ -65,33 +63,22 @@ public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
 
     #region Indexers
 
-    public Tto this[int index] =>
-            _funcTo(Span[(index * _size)..]);
-
-    public UpCastingReadOnlySpan<Tfrom, Tto> this[Range range]
-    {
-        get
-        {
-            var (start, length) = range.GetOffsetAndLength(Span.Length / _size);
-            return Slice(start, length);
-        }
-    }
+    public Tto[] this[int index] =>
+        _funcTo(Span[index * _size]);
 
     #endregion Indexers
 
     #region Public Methods
 
-    public static UpCastingReadOnlySpan<Tfrom, Tto> operator +(UpCastingReadOnlySpan<Tfrom, Tto> span, int increase) =>
-        span.Slice(increase);
+    public Tto[] ToArray()
+    {
+        var length = Span.Length * _size;
+        var array = new Tto[length];
+        for (var i = 0; i < Span.Length; i++)
+            this[i].CopyTo(array, i * _size);
 
-    public static UpCastingReadOnlySpan<Tfrom, Tto> operator ++(UpCastingReadOnlySpan<Tfrom, Tto> span) =>
-        span.Slice(1);
-
-    public UpCastingReadOnlySpan<Tfrom, Tto> Slice(int start) =>
-                new(Span[(start * _size)..], _funcTo);
-
-    public UpCastingReadOnlySpan<Tfrom, Tto> Slice(int start, int length) =>
-        new(Span[(start * _size)..(length * _size)], _funcTo);
+        return array;
+    }
 
     #endregion Public Methods
 }

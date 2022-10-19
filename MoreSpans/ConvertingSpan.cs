@@ -24,53 +24,73 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2;
+namespace MoreSpans;
 
-public readonly ref struct DownCastingSpan<Tfrom, Tto>
+public readonly ref struct ConvertingSpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
 {
     #region Fields
 
-    private readonly FuncFrom _funcFrom;
-    private readonly FuncTo _funcTo;
-    private readonly int _size;
-    private readonly Span<Tfrom> _span;
+    private readonly ConvertFunc<Tto, Tfrom> _funcFrom;
+    private readonly ConvertFunc<Tfrom, Tto> _funcTo;
 
     #endregion Fields
 
     #region Public Constructors
 
-    public DownCastingSpan(Span<Tfrom> span, FuncTo funcTo, FuncFrom funcFrom)
+    public ConvertingSpan(Span<Tfrom> span, ConvertFunc<Tfrom, Tto> funcTo, ConvertFunc<Tto, Tfrom> funcFrom)
     {
-        _span = span;
+        Span = span;
         _funcTo = funcTo;
         _funcFrom = funcFrom;
-        unsafe
-        {
-            _size = span.Length * sizeof(Tfrom) / sizeof(Tto);
-        }
     }
 
     #endregion Public Constructors
 
-    #region Delegates
+    #region Properties
 
-    public delegate Tfrom FuncFrom(ReadOnlySpan<Tto> span);
+    public Span<Tfrom> Span { get; }
 
-    public delegate Tto[] FuncTo(Tfrom value);
-
-    #endregion Delegates
+    #endregion Properties
 
     #region Indexers
 
-    public Tto[] this[int index]
+    public Tto this[int index]
     {
         get =>
-            _funcTo(_span[index * _size]);
+            _funcTo(Span[index]);
         set =>
-            _span[index * _size] = _funcFrom(value);
+            Span[index] = _funcFrom(value);
+    }
+
+    public ConvertingSpan<Tfrom, Tto> this[Range range]
+    {
+        get
+        {
+            var (start, length) = range.GetOffsetAndLength(Span.Length);
+            return Slice(start, length);
+        }
     }
 
     #endregion Indexers
+
+    #region Public Methods
+
+    public static implicit operator ConvertingReadOnlySpan<Tfrom, Tto>(ConvertingSpan<Tfrom, Tto> span) =>
+        new(span.Span, span._funcTo);
+
+    public static ConvertingSpan<Tfrom, Tto> operator +(ConvertingSpan<Tfrom, Tto> span, int increase) =>
+            span.Slice(increase);
+
+    public static ConvertingSpan<Tfrom, Tto> operator ++(ConvertingSpan<Tfrom, Tto> span) =>
+        span.Slice(1);
+
+    public ConvertingSpan<Tfrom, Tto> Slice(int start) =>
+                new(Span[start..], _funcTo, _funcFrom);
+
+    public ConvertingSpan<Tfrom, Tto> Slice(int start, int length) =>
+        new(Span[start..length], _funcTo, _funcFrom);
+
+    #endregion Public Methods
 }
