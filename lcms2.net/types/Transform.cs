@@ -187,9 +187,29 @@ public class Transform
     private static ushort ReverseFlavor(ushort x) =>
         unchecked((ushort)(0xFFFF - x));
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T>(Span<T> span)
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
+        where T1 : unmanaged
+        where T2 : unmanaged
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ushort ChangeEndian(ReadOnlySpan<byte> span) =>
         ChangeEndian(BitConverter.ToUInt16(span));
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ushort From8to16Reversed(byte value) =>
         From8to16(ReverseFlavor(value));
 
@@ -238,12 +258,7 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? ptr[1..].Span
@@ -573,12 +588,7 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? acc[sizeof(byte)..]
@@ -644,12 +654,7 @@ public class Transform
             ptr += extra;
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return ptr.Span;
     }
@@ -737,12 +742,7 @@ public class Transform
             acc = acc[extra..];
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return acc;
     }
@@ -803,12 +803,7 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? ptr[1..].Span
@@ -849,12 +844,7 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? ptr[1..].Span
@@ -906,12 +896,7 @@ public class Transform
         }
 
         if (extra is 0 && swapFirst)
-        {
-            var tmp = wIn[0];
-
-            wIn.CopyTo(wIn[1..]);
-            wIn[nChan - 1] = tmp;
-        }
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? ptr[1..].Span
@@ -958,6 +943,8 @@ public class Transform
             wIn.CopyTo(wIn[1..]);
             wIn[nChan - 1] = tmp;
         }
+
+            RollingShift(wIn[..nChan]);
 
         return inputFormat.Planar
             ? ptr[1..].Span
