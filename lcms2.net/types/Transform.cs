@@ -224,6 +224,1006 @@ public class Transform
         wIn[2] = (b + 128f) / 255f;
     }
 
+    private Span<byte> Pack1Byte(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+
+        return ptr[1..].Span;
+    }
+
+    private Span<byte> Pack1ByteReversed(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, s => From16to8(ReverseFlavor(s)));
+        ptr[0] = wOut[0];
+
+        return ptr[1..].Span;
+    }
+
+    private Span<byte> Pack1ByteSkip1(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+
+        return ptr[2..].Span;
+    }
+
+    private Span<byte> Pack1ByteSkip1SwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[1] = wOut[0];
+
+        return ptr[2..].Span;
+    }
+
+    private Span<byte> Pack1Word(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+
+        return ptr[1..].Span;
+    }
+
+    private Span<byte> Pack1WordBigEndian(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> Pack1WordReversed(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ReverseFlavor(s)));
+        ptr[0] = wOut[0];
+
+        return ptr[1..].Span;
+    }
+
+    private Span<byte> Pack1WordSkip1(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+
+        return ptr[2..].Span;
+    }
+
+    private Span<byte> Pack1WordSkip1SwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[1] = wOut[0];
+
+        return ptr[2..].Span;
+    }
+
+    private Span<byte> Pack3Bytes(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> Pack3BytesAndSkip1(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3BytesAndSkip1Optimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[0] = (byte)(wOut[0] & 0xFF);
+        output[1] = (byte)(wOut[1] & 0xFF);
+        output[2] = (byte)(wOut[2] & 0xFF);
+
+        return output[4..];
+    }
+
+    private Span<byte> Pack3BytesAndSkip1Swap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[1] = wOut[2];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3BytesAndSkip1SwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[1] = wOut[0];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3BytesAndSkip1SwapFirstOptimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[1] = (byte)(wOut[0] & 0xFF);
+        output[2] = (byte)(wOut[1] & 0xFF);
+        output[3] = (byte)(wOut[2] & 0xFF);
+
+        return output[4..];
+    }
+
+    private Span<byte> Pack3BytesAndSkip1SwapOptimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[1] = (byte)(wOut[2] & 0xFF);
+        output[2] = (byte)(wOut[1] & 0xFF);
+        output[3] = (byte)(wOut[0] & 0xFF);
+
+        return output[4..];
+    }
+
+    private Span<byte> Pack3BytesAndSkip1SwapSwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[2];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3BytesAndSkip1SwapSwapFirstOptimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[0] = (byte)(wOut[2] & 0xFF);
+        output[1] = (byte)(wOut[1] & 0xFF);
+        output[2] = (byte)(wOut[0] & 0xFF);
+
+        return output[4..];
+    }
+
+    private Span<byte> Pack3BytesOptimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[0] = (byte)(wOut[0] & 0xFF);
+        output[1] = (byte)(wOut[1] & 0xFF);
+        output[2] = (byte)(wOut[2] & 0xFF);
+
+        return output[3..];
+    }
+
+    private Span<byte> Pack3BytesSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[2];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[0];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> Pack3BytesSwapOptimized(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        output[0] = (byte)(wOut[2] & 0xFF);
+        output[1] = (byte)(wOut[1] & 0xFF);
+        output[2] = (byte)(wOut[0] & 0xFF);
+
+        return output[3..];
+    }
+
+    private Span<byte> Pack3Words(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> Pack3WordsAndSkip1(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3WordsAndSkip1Swap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[1] = wOut[2];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3WordsAndSkip1SwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[1] = wOut[0];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3WordsAndSkip1SwapSwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[2];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack3WordsBigEndian(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
+        ptr[0] = wOut[0];
+
+        return ptr[1..].Span;
+    }
+
+    private Span<byte> Pack3WordsSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[2];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[0];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> Pack4Bytes(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4BytesReverse(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, s => ReverseFlavor(From16to8(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4BytesSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[3];
+        ptr[1] = wOut[2];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4BytesSwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[3];
+        ptr[1] = wOut[0];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4BytesSwapSwapFirst(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[2];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[0];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4Words(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4WordsBigEndian(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4WordsReverse(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ReverseFlavor(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack4WordsSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[3];
+        ptr[1] = wOut[2];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[0];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> Pack6Bytes(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+        ptr[4] = wOut[4];
+        ptr[5] = wOut[5];
+
+        return ptr[6..].Span;
+    }
+
+    private Span<byte> Pack6BytesSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, From16to8);
+        ptr[0] = wOut[5];
+        ptr[1] = wOut[4];
+        ptr[2] = wOut[3];
+        ptr[3] = wOut[2];
+        ptr[4] = wOut[1];
+        ptr[5] = wOut[0];
+
+        return ptr[6..].Span;
+    }
+
+    private Span<byte> Pack6Words(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+        ptr[3] = wOut[3];
+        ptr[4] = wOut[4];
+        ptr[5] = wOut[5];
+
+        return ptr[6..].Span;
+    }
+
+    private Span<byte> Pack6WordsSwap(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
+        ptr[0] = wOut[5];
+        ptr[1] = wOut[4];
+        ptr[2] = wOut[3];
+        ptr[3] = wOut[2];
+        ptr[4] = wOut[1];
+        ptr[5] = wOut[0];
+
+        return ptr[6..].Span;
+    }
+
+    private Span<byte> PackALabV2_8(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, s => From16to8(FromLabV4ToLabV2(s)));
+        ptr[1] = wOut[0];
+        ptr[2] = wOut[1];
+        ptr[3] = wOut[2];
+
+        return ptr[4..].Span;
+    }
+
+    private Span<byte> PackChunkyBytes(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var premul = outputFormat.PremultipliedAlpha;
+        var extraFirst = doSwap ^ swapFirst;
+        var v = (ushort)0;
+        var alphaFactor = 0;
+
+        var swap1 = output;
+        var ptr = output.Converter(From8to16, From16to8);
+
+        if (extraFirst)
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[0]);
+
+            output = output[extra..];
+        }
+        else
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[nChan]);
+        }
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index];
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = ReverseFlavor(v);
+
+            if (premul && alphaFactor != 0)
+                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+
+            ptr[0] = v;
+            ptr++;
+        }
+
+        if (!extraFirst)
+            ptr += extra;
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return ptr.Span;
+    }
+
+    private Span<byte> PackChunkyWords(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var nChan = outputFormat.Channels;
+        var swapEndian = outputFormat.EndianSwap;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var premul = outputFormat.PremultipliedAlpha;
+        var extraFirst = doSwap ^ swapFirst;
+        var v = (ushort)0;
+        var alphaFactor = 0;
+
+        var ptr = output.UpCaster(BitConverter.ToUInt16, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (extraFirst)
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[0]);
+
+            ptr += extra;
+        }
+        else
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[nChan]);
+        }
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index];
+
+            if (swapEndian)
+                v = ChangeEndian(v);
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = ReverseFlavor(v);
+
+            if (premul && alphaFactor != 0)
+                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+
+            ptr[0] = v;
+            ptr++;
+        }
+
+        if (!extraFirst)
+            ptr += extra;
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return ptr.Span;
+    }
+
+    private Span<byte> PackDoubleFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 655.35 : 65535.0;
+        var v = 0d;
+
+        var ptr = output.UpCaster(BitConverter.ToDouble, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index] / maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
+    private Span<byte> PackDoublesFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 100.0 : 1.0;
+        var v = 0d;
+
+        var ptr = output.UpCaster(BitConverter.ToDouble, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index] * maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
+    private Span<byte> PackFloatFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 655.35 : 65535.0;
+        var v = 0d;
+
+        var ptr = output.UpCaster(BitConverter.ToSingle, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index] / maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = (float)v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
+    private Span<byte> PackFloatsFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var swapFirst = outputFormat.SwapFirst;
+        var planar = outputFormat.Planar;
+        var extraFirst = doSwap ^ swapFirst;
+        var maximum = outputFormat.IsInkSpace ? 100.0 : 1.0;
+        var v = 0d;
+
+        var ptr = output.UpCaster(BitConverter.ToSingle, BitConverter.GetBytes);
+        var swap1 = ptr;
+
+        if (planar)
+            stride /= outputFormat.PixelSize;
+        else
+            stride = 1;
+
+        var start = extraFirst ? extra : 0;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            v = wOut[index] * maximum;
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = maximum - v;
+
+            ptr[(i + start) * stride] = (float)v;
+        }
+
+        if (extra is 0 && swapFirst)
+            RollingShift(swap1[..nChan]);
+
+        return planar
+            ? swap1[1..].Span
+            : swap1[(nChan + extra)..].Span;
+    }
+
+    private Span<byte> PackLabDoubleFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
+        var lab = new LabEncoded(wOut).ToLab();
+
+        if (outputFormat.Planar)
+        {
+            @out[0] = lab.L;
+            @out[stride] = lab.a;
+            @out[stride * 2] = lab.b;
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            lab.ToArray().CopyTo(@out);
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackLabDoubleFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = wOut[0] * 100.0;
+            @out[stride] = (wOut[1] * 255.0) - 128.0;
+            @out[stride * 2] = (wOut[2] * 255.0) - 128.0;
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = wOut[0] * 100.0;
+            @out[1] = (wOut[1] * 255.0) - 128.0;
+            @out[2] = (wOut[2] * 255.0) - 128.0;
+
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackLabFloatFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
+        var lab = new LabEncoded(wOut).ToLab();
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = (float)lab.L;
+            @out[stride] = (float)lab.a;
+            @out[stride * 2] = (float)lab.b;
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = (float)lab.L;
+            @out[1] = (float)lab.a;
+            @out[2] = (float)lab.b;
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackLabFloatFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = (float)(wOut[0] * 100.0);
+            @out[stride] = (float)((wOut[1] * 255.0) - 128.0);
+            @out[stride * 2] = (float)((wOut[2] * 255.0) - 128.0);
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = (float)(wOut[0] * 100.0);
+            @out[1] = (float)((wOut[1] * 255.0) - 128.0);
+            @out[2] = (float)((wOut[2] * 255.0) - 128.0);
+
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackLabV2_16(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(FromLabV4ToLabV2(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> PackLabV2_8(ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    {
+        var ptr = output.Converter<byte, ushort>(null!, s => From16to8(FromLabV4ToLabV2(s)));
+        ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
+
+        return ptr[3..].Span;
+    }
+
+    private Span<byte> PackPlanarBytes(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var swapFirst = outputFormat.SwapFirst;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var premul = outputFormat.PremultipliedAlpha;
+        var alphaFactor = 0;
+
+        var init = output;
+        var ptr = output.Converter(From8to16, From16to8);
+
+        if (extraFirst)
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[0]);
+
+            output = output[(extra * stride)..];
+        }
+        else
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[nChan]);
+        }
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index];
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = ReverseFlavor(v);
+
+            if (premul && alphaFactor != 0)
+                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+
+            ptr[0] = v;
+            ptr += stride;
+        }
+
+        return init[1..];
+    }
+
+    private Span<byte> PackPlanarWords(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var nChan = outputFormat.Channels;
+        var doSwap = outputFormat.SwapAll;
+        var swapFirst = outputFormat.SwapFirst;
+        var reverse = outputFormat.Flavor;
+        var extra = outputFormat.ExtraSamples;
+        var extraFirst = doSwap ^ swapFirst;
+        var premul = outputFormat.PremultipliedAlpha;
+        var swapEndian = outputFormat.EndianSwap;
+        var alphaFactor = 0;
+
+        var ptr = output.UpCaster(BitConverter.ToUInt16, BitConverter.GetBytes);
+        var init = ptr;
+
+        stride /= sizeof(ushort);
+
+        if (extraFirst)
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[0]);
+
+            ptr += extra;
+        }
+        else
+        {
+            if (premul && extra != 0)
+                alphaFactor = ToFixedDomain(ptr[nChan * stride]);
+        }
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = doSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index];
+
+            if (swapEndian)
+                v = ChangeEndian(v);
+
+            if (reverse is ColorFlavor.Subtractive)
+                v = ReverseFlavor(v);
+
+            if (premul && alphaFactor != 0)
+                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+
+            ptr[0] = v;
+            ptr += stride;
+        }
+
+        return init[1..].Span;
+    }
+
+    private Span<byte> PackXYZDoubleFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
+        var xyz = XYZ.FromEncodedArray(wOut);
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = xyz.X;
+            @out[stride] = xyz.Y;
+            @out[stride * 2] = xyz.Z;
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            xyz.ToArray().CopyTo(@out);
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackXYZDoubleFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, double>(null!, s => BitConverter.GetBytes(s * maxEncodableXYZ));
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = wOut[0];
+            @out[stride] = wOut[1];
+            @out[stride * 2] = wOut[2];
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = wOut[0];
+            @out[1] = wOut[1];
+            @out[2] = wOut[2];
+
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackXYZFloatFrom16(ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
+        var xyz = XYZ.FromEncodedArray(wOut);
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = (float)xyz.X;
+            @out[stride] = (float)xyz.Y;
+            @out[stride * 2] = (float)xyz.Z;
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = (float)xyz.X;
+            @out[1] = (float)xyz.Y;
+            @out[2] = (float)xyz.Z;
+
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
+    private Span<byte> PackXYZFloatFromFloat(ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    {
+        var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
+
+        if (outputFormat.Planar)
+        {
+            stride /= outputFormat.PixelSize;
+
+            @out[0] = wOut[0];
+            @out[stride] = wOut[1];
+            @out[stride * 2] = wOut[2];
+
+            return @out[1..].Span;
+        }
+        else
+        {
+            @out[0] = wOut[0];
+            @out[1] = wOut[1];
+            @out[2] = wOut[2];
+
+            return @out[(3 + outputFormat.ExtraSamples)..].Span;
+        }
+    }
+
     private ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
             ReverseFlavor(BitConverter.ToUInt16(span));
 
