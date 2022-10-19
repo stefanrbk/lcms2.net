@@ -66,14 +66,20 @@ public struct XYZ : ICloneable
     public static explicit operator xyY(XYZ xyz) =>
         xyz.ToxyY();
 
+    public static XYZ FromEncodedArray(ReadOnlySpan<ushort> xyz) =>
+        new(XYZ2Float(xyz[0]), XYZ2Float(xyz[1]), XYZ2Float(xyz[2]));
+
     public static implicit operator XYZ((double, double, double) v) =>
-                new(v.Item1, v.Item2, v.Item3);
+                    new(v.Item1, v.Item2, v.Item3);
 
     public static Lab operator %(XYZ xyz, XYZ whitepoint) =>
         xyz.ToLab(whitepoint);
 
     public object Clone() =>
                new XYZ(X, Y, Z);
+
+    public double[] ToArray() =>
+        new double[] { X, Y, Z };
 
     public Lab ToLab(XYZ? whitePoint = null)
     {

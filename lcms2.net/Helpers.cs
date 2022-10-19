@@ -356,7 +356,10 @@ internal static class Helpers
     }
 
     internal static ushort XYZ2Fix(double d) =>
-                                                                                                                                            QuickSaturateWord(d * 32768.0);
+        QuickSaturateWord(d * 32768.0);
+
+    internal static double XYZ2Float(ushort v) =>
+        S15Fixed16toDouble(v << 1);
 
     #endregion Internal Methods
 }

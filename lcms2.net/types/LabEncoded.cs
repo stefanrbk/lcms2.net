@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
 public struct LabEncoded : ICloneable
@@ -40,6 +41,14 @@ public struct LabEncoded : ICloneable
 
     public LabEncoded(ushort l, ushort a, ushort b) =>
         (L, this.a, this.b) = (l, a, b);
+
+    public LabEncoded(ReadOnlySpan<ushort> lab)
+    {
+        if (lab.Length < 3)
+            L = a = b = default;
+        else
+            (L, a, b) = (lab[0], lab[1], lab[2]);
+    }
 
     #endregion Public Constructors
 

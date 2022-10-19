@@ -43,6 +43,14 @@ public struct Lab : ICloneable
     public Lab(double l, double a, double b) =>
         (L, this.a, this.b) = (l, a, b);
 
+    public Lab(ReadOnlySpan<double> lab)
+    {
+        if (lab.Length < 3)
+            L = a = b = default;
+        else
+            (L, a, b) = (lab[0], lab[1], lab[2]);
+    }
+
     #endregion Public Constructors
 
     #region Properties
@@ -93,6 +101,9 @@ public struct Lab : ICloneable
 
     public object Clone() =>
                new Lab(L, a, b);
+
+    public double[] ToArray() =>
+        new double[] { L, a, b };
 
     public LabEncoded ToLabEncoded()
     {
