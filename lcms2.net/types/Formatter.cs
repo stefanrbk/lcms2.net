@@ -83,7 +83,7 @@ internal struct Formatters16
 
     public Formatter16 Frm;
     public uint Mask;
-    public Signature Type;
+    public uint Type;
 
     #endregion Fields
 }
@@ -94,7 +94,7 @@ internal struct FormattersFloat
 
     public FormatterFloat Frm;
     public uint Mask;
-    public Signature Type;
+    public uint Type;
 
     #endregion Fields
 }
