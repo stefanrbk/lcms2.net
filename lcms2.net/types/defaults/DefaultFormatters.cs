@@ -588,6 +588,81 @@ internal static class DefaultFormatters
 
     #region Internal Methods
 
+    internal static Formatter GetInput(uint input, PackFlag flags)
+    {
+        Formatter fr = default;
+
+        switch (flags)
+        {
+            case PackFlag.Ushort:
+                {
+                    foreach (var f in InputFormatters16)
+                    {
+                        if ((input & ~f.Mask) == f.Type)
+                        {
+                            fr.Fmt16In = f.Frm;
+                            break;
+                        }
+                    }
+                }
+                break;
+
+            case PackFlag.Float:
+                {
+                    foreach (var f in InputFormattersFloat)
+                    {
+                        if ((input & ~f.Mask) == f.Type)
+                        {
+                            fr.FmtFloatIn = f.Frm;
+                            break;
+                        }
+                    }
+                }
+                break;
+        }
+
+        return fr;
+    }
+
+    internal static Formatter GetOutput(uint input, PackFlag flags)
+    {
+        Formatter fr = default;
+
+        // Optimization is only a hint
+        input &= ~OPTIMIZED_SH(1);
+
+        switch (flags)
+        {
+            case PackFlag.Ushort:
+                {
+                    foreach (var f in OutputFormatters16)
+                    {
+                        if ((input & ~f.Mask) == f.Type)
+                        {
+                            fr.Fmt16Out = f.Frm;
+                            break;
+                        }
+                    }
+                }
+                break;
+
+            case PackFlag.Float:
+                {
+                    foreach (var f in OutputFormattersFloat)
+                    {
+                        if ((input & ~f.Mask) == f.Type)
+                        {
+                            fr.FmtFloatOut = f.Frm;
+                            break;
+                        }
+                    }
+                }
+                break;
+        }
+
+        return fr;
+    }
+
     internal static Span<byte> Pack1Byte(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
