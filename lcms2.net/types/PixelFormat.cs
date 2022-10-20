@@ -1511,6 +1511,7 @@ public readonly struct PixelFormat
     public static uint ENDIAN16_SH(uint value) =>
         value << 11;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static explicit operator PixelFormat(uint value) =>
         new(value);
 
