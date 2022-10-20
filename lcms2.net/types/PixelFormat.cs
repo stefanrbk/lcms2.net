@@ -1375,6 +1375,33 @@ public readonly struct PixelFormat
 
     #region Properties
 
+    public static uint AnyChannels =>
+        CHANNELS_SH(15);
+
+    public static uint AnyEndian =>
+        ENDIAN16_SH(1);
+
+    public static uint AnyExtra =>
+        EXTRA_SH(7);
+
+    public static uint AnyFlavor =>
+        FLAVOR_SH(1);
+
+    public static uint AnyPlanar =>
+        PLANAR_SH(1);
+
+    public static uint AnyPremul =>
+        PREMUL_SH(1);
+
+    public static uint AnySpace =>
+        COLORSPACE_SH((Colorspace)31);
+
+    public static uint AnySwap =>
+        DOSWAP_SH(1);
+
+    public static uint AnySwapFirst =>
+        SWAPFIRST_SH(1);
+
     public byte Bytes =>
         BYTES(this);
 
