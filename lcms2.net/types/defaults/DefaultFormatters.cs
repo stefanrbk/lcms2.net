@@ -302,6 +302,288 @@ internal static class DefaultFormatters
             UnrollHalfToFloat),
     };
 
+    private static readonly Formatters16Output[] OutputFormatters16 = new Formatters16Output[]
+    {
+        new(
+            Lab_DBL,
+            AnyPlanar | AnyExtra,
+            PackLabDoubleFrom16),
+        new(
+            XYZ_DBL,
+            AnyPlanar | AnyExtra,
+            PackXYZDoubleFrom16),
+
+        // --------------------------------
+        new(
+            Lab_FLT,
+            AnyPlanar | AnyExtra,
+            PackLabFloatFrom16),
+        new(
+            XYZ_FLT,
+            AnyPlanar | AnyExtra,
+            PackXYZFloatFrom16),
+
+        // --------------------------------
+        new(
+            FLOAT_SH(1) | BYTES_SH(0),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyChannels | AnyPlanar | AnyExtra | AnySpace,
+            PackDoubleFrom16),
+        new(
+            FLOAT_SH(1) | BYTES_SH(4),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyChannels | AnyPlanar | AnyExtra | AnySpace,
+            PackFloatFrom16),
+        new(FLOAT_SH(1) | BYTES_SH(2),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyChannels | AnyPlanar | AnyExtra | AnySpace,
+            PackHalfFrom16),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(1) | BYTES_SH(1),
+            AnySpace,
+            Pack1Byte),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(1) | EXTRA_SH(1),
+            AnySpace,
+            Pack1ByteSkip1),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack1ByteSkip1SwapFirst),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(1) | FLAVOR_SH(1),
+            AnySpace,
+            Pack1ByteReversed),
+
+        // --------------------------------
+        new(
+            LabV2_8,
+            0,
+            PackLabV2_8),
+        new(
+            ALabV2_8,
+            0,
+            PackALabV2_8),
+        new(
+            LabV2_16,
+            0,
+            PackLabV2_16),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesOptimized),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1Optimized),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1SwapFirstOptimized),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1SwapSwapFirstOptimized),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | EXTRA_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1SwapOptimized),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | OPTIMIZED_SH(1),
+            AnySpace,
+            Pack3BytesSwapOptimized),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1),
+            AnySpace,
+            Pack3Bytes),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1SwapFirst),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1SwapSwapFirst),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | EXTRA_SH(1),
+            AnySpace,
+            Pack3BytesAndSkip1Swap),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1),
+            AnySpace,
+            Pack3BytesSwap),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(1),
+            AnySpace,
+            Pack4Bytes),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(1) | FLAVOR_SH(1),
+            AnySpace,
+            Pack4BytesReverse),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack4BytesSwapFirst),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(1) | DOSWAP_SH(1),
+            AnySpace,
+            Pack4BytesSwap),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack4BytesSwapSwapFirst),
+        new(
+            CHANNELS_SH(6) | BYTES_SH(1),
+            AnySpace,
+            Pack6Bytes),
+        new(
+            CHANNELS_SH(6) | BYTES_SH(1) | DOSWAP_SH(1),
+            AnySpace,
+            Pack6BytesSwap),
+
+        // --------------------------------
+        new(
+            BYTES_SH(1),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyExtra | AnyChannels | AnySpace | AnyPremul,
+            PackChunkyBytes),
+
+        // --------------------------------
+        new(
+            BYTES_SH(1) | PLANAR_SH(1),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyExtra | AnyChannels | AnySpace | AnyPremul,
+            PackPlanarBytes),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(1) | BYTES_SH(2),
+            AnySpace,
+            Pack1Word),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(2) | EXTRA_SH(1),
+            AnySpace,
+            Pack1WordSkip1),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(2) | EXTRA_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack1WordSkip1SwapFirst),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(2) | FLAVOR_SH(1),
+            AnySpace,
+            Pack1WordReversed),
+        new(
+            CHANNELS_SH(1) | BYTES_SH(2) | ENDIAN16_SH(1),
+            AnySpace,
+            Pack1WordBigEndian),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2),
+            AnySpace,
+            Pack3Words),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1),
+            AnySpace,
+            Pack3WordsSwap),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1),
+            AnySpace,
+            Pack3WordsBigEndian),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | EXTRA_SH(1),
+            AnySpace,
+            Pack3WordsAndSkip1),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | EXTRA_SH(1) | DOSWAP_SH(1),
+            AnySpace,
+            Pack3WordsAndSkip1Swap),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | EXTRA_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack3WordsAndSkip1SwapFirst),
+        new(
+            CHANNELS_SH(3) | BYTES_SH(2) | EXTRA_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1),
+            AnySpace,
+            Pack3WordsAndSkip1SwapSwapFirst),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(4) | BYTES_SH(2),
+            AnySpace,
+            Pack4Words),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(2) | FLAVOR_SH(1),
+            AnySpace,
+            Pack4WordsReverse),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(2) | DOSWAP_SH(1),
+            AnySpace,
+            Pack4WordsSwap),
+        new(
+            CHANNELS_SH(4) | BYTES_SH(2) | ENDIAN16_SH(1),
+            AnySpace,
+            Pack4WordsBigEndian),
+
+        // --------------------------------
+        new(
+            CHANNELS_SH(6) | BYTES_SH(2),
+            AnySpace,
+            Pack6Words),
+        new(
+            CHANNELS_SH(6) | BYTES_SH(2) | DOSWAP_SH(1),
+            AnySpace,
+            Pack6WordsSwap),
+
+        // --------------------------------
+        new(
+            BYTES_SH(2),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyEndian | AnyExtra | AnyChannels | AnySpace | AnyPremul,
+            PackChunkyWords),
+        new(
+            BYTES_SH(2) | PLANAR_SH(1),
+            AnyFlavor | AnyEndian | AnySwap | AnyExtra | AnyChannels | AnySpace | AnyPremul,
+            PackPlanarWords),
+    };
+
+    private static readonly FormattersFloatOutput[] OutputFormattersFloat = new FormattersFloatOutput[]
+    {
+        new(
+            Lab_FLT,
+            AnyPlanar | AnyExtra,
+            PackLabFloatFromFloat),
+        new(
+            XYZ_FLT,
+            AnyPlanar | AnyExtra,
+            PackXYZFloatFromFloat),
+
+        // --------------------------------
+        new(
+            Lab_DBL,
+            AnyPlanar | AnyExtra,
+            PackLabDoubleFromFloat),
+        new(
+            XYZ_DBL,
+            AnyPlanar | AnyExtra,
+            PackXYZDoubleFromFloat),
+
+        // --------------------------------
+        new(
+            FLOAT_SH(1) | BYTES_SH(4),
+            AnyPlanar | AnyFlavor | AnySwapFirst | AnySwap | AnyExtra | AnyChannels | AnySpace,
+            PackFloatsFromFloat),
+        new(
+            FLOAT_SH(1) | BYTES_SH(0),
+            AnyPlanar | AnyFlavor | AnySwapFirst | AnySwap | AnyExtra | AnyChannels | AnySpace,
+            PackDoublesFromFloat),
+        new(FLOAT_SH(1) | BYTES_SH(2),
+            AnyFlavor | AnySwapFirst | AnySwap | AnyExtra | AnyChannels | AnySpace,
+            PackHalfFromFloat),
+    };
+
     #endregion Fields
 
     #region Internal Methods
