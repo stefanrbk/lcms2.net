@@ -1539,6 +1539,7 @@ public readonly struct PixelFormat
     public static uint FLOAT_SH(uint value) =>
         value << 22;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator uint(PixelFormat format) =>
             format.value;
 
