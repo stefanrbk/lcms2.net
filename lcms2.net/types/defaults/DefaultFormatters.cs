@@ -1123,11 +1123,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackChunkyBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var premul = info.outputFormat.PremultipliedAlpha;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var premul = info.outputFormat.HasPremultipliedAlpha;
         var extraFirst = doSwap ^ swapFirst;
         var v = (ushort)0;
         var alphaFactor = 0;
@@ -1176,12 +1176,12 @@ internal static class DefaultFormatters
     private static Span<byte> PackChunkyWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var nChan = info.outputFormat.Channels;
-        var swapEndian = info.outputFormat.EndianSwap;
-        var doSwap = info.outputFormat.SwapAll;
+        var swapEndian = info.outputFormat.HasEndianSwap;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var premul = info.outputFormat.PremultipliedAlpha;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var premul = info.outputFormat.HasPremultipliedAlpha;
         var extraFirst = doSwap ^ swapFirst;
         var v = (ushort)0;
         var alphaFactor = 0;
@@ -1233,11 +1233,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 655.35 : 65535.0;
         var v = 0d;
@@ -1275,11 +1275,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackDoublesFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 100.0 : 1.0;
         var v = 0d;
@@ -1317,11 +1317,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 655.35 : 65535.0;
         var v = 0d;
@@ -1359,11 +1359,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackFloatsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 100.0 : 1.0;
         var v = 0d;
@@ -1401,11 +1401,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackHalfFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 655.35f : 65535.0f;
 
@@ -1442,11 +1442,11 @@ internal static class DefaultFormatters
     private static Span<byte> PackHalfFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
+        var doSwap = info.outputFormat.HasSwapAll;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
-        var swapFirst = info.outputFormat.SwapFirst;
-        var planar = info.outputFormat.Planar;
+        var swapFirst = info.outputFormat.HasSwapFirst;
+        var planar = info.outputFormat.IsPlanar;
         var extraFirst = doSwap ^ swapFirst;
         var maximum = info.outputFormat.IsInkSpace ? 100f : 1f;
 
@@ -1485,7 +1485,7 @@ internal static class DefaultFormatters
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
         var lab = new LabEncoded(wOut).ToLab();
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             @out[0] = lab.L;
             @out[stride] = lab.a;
@@ -1504,7 +1504,7 @@ internal static class DefaultFormatters
     {
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1529,7 +1529,7 @@ internal static class DefaultFormatters
         var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
         var lab = new LabEncoded(wOut).ToLab();
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1552,7 +1552,7 @@ internal static class DefaultFormatters
     {
         var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1595,12 +1595,12 @@ internal static class DefaultFormatters
     private static Span<byte> PackPlanarBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
-        var swapFirst = info.outputFormat.SwapFirst;
+        var doSwap = info.outputFormat.HasSwapAll;
+        var swapFirst = info.outputFormat.HasSwapFirst;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var premul = info.outputFormat.PremultipliedAlpha;
+        var premul = info.outputFormat.HasPremultipliedAlpha;
         var alphaFactor = 0;
 
         var init = output;
@@ -1641,13 +1641,13 @@ internal static class DefaultFormatters
     private static Span<byte> PackPlanarWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
-        var doSwap = info.outputFormat.SwapAll;
-        var swapFirst = info.outputFormat.SwapFirst;
+        var doSwap = info.outputFormat.HasSwapAll;
+        var swapFirst = info.outputFormat.HasSwapFirst;
         var reverse = info.outputFormat.Flavor;
         var extra = info.outputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var premul = info.outputFormat.PremultipliedAlpha;
-        var swapEndian = info.outputFormat.EndianSwap;
+        var premul = info.outputFormat.HasPremultipliedAlpha;
+        var swapEndian = info.outputFormat.HasEndianSwap;
         var alphaFactor = 0;
 
         var ptr = output.UpCaster(BitConverter.ToUInt16, BitConverter.GetBytes);
@@ -1695,7 +1695,7 @@ internal static class DefaultFormatters
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
         var xyz = XYZ.FromEncodedArray(wOut);
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1716,7 +1716,7 @@ internal static class DefaultFormatters
     {
         var @out = output.UpCaster<byte, double>(null!, s => BitConverter.GetBytes(s * maxEncodableXYZ));
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1741,7 +1741,7 @@ internal static class DefaultFormatters
         var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
         var xyz = XYZ.FromEncodedArray(wOut);
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1765,7 +1765,7 @@ internal static class DefaultFormatters
     {
         var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
 
-        if (info.outputFormat.Planar)
+        if (info.outputFormat.IsPlanar)
         {
             stride /= info.outputFormat.PixelSize;
 
@@ -1817,12 +1817,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
         stride /= info.inputFormat.PixelSize;
@@ -1847,7 +1847,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2151,12 +2151,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> Unroll8ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
 
         stride /= info.inputFormat.PixelSize;
 
@@ -2177,7 +2177,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? acc[sizeof(byte)..]
             : acc[((nChan + extra) * sizeof(byte))..];
     }
@@ -2214,10 +2214,10 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollAnyWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
-        var swapEndian = info.inputFormat.EndianSwap;
-        var doSwap = info.inputFormat.SwapAll;
+        var swapEndian = info.inputFormat.HasEndianSwap;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc,
@@ -2249,10 +2249,10 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollAnyWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
-        var swapEndian = info.inputFormat.EndianSwap;
-        var doSwap = info.inputFormat.SwapAll;
+        var swapEndian = info.inputFormat.HasEndianSwap;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extraFirst = doSwap ^ swapFirst;
 
         var alpha = extraFirst ? acc[0] : acc[nChan - 1];
@@ -2286,11 +2286,11 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollChunkyBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
-        var premul = info.inputFormat.PremultipliedAlpha;
+        var premul = info.inputFormat.HasPremultipliedAlpha;
 
         var extraFirst = doSwap ^ swapFirst;
         var alphaFactor = 1;
@@ -2348,13 +2348,13 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollDoublesToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
-        var premul = info.inputFormat.PremultipliedAlpha;
+        var planar = info.inputFormat.IsPlanar;
+        var premul = info.inputFormat.HasPremultipliedAlpha;
         var maximum = info.inputFormat.IsInkSpace ? 100d : 1d;
         var alphaFactor = 1d;
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
@@ -2392,7 +2392,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2400,12 +2400,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
         var maximum = info.inputFormat.IsInkSpace ? 655.35 : 65535.0;
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
@@ -2433,7 +2433,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2441,13 +2441,13 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollFloatsToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
-        var premul = info.inputFormat.PremultipliedAlpha;
+        var planar = info.inputFormat.IsPlanar;
+        var premul = info.inputFormat.HasPremultipliedAlpha;
         var maximum = info.inputFormat.IsInkSpace ? 100f : 1f;
         var alphaFactor = 1f;
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
@@ -2485,7 +2485,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2493,12 +2493,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
         var maximum = info.inputFormat.IsInkSpace ? 655.35 : 65535.0;
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
@@ -2526,7 +2526,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2534,12 +2534,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollHalfTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
         var maximum = info.inputFormat.IsInkSpace ? 655.35f : 65535.0f;
         var ptr = new UpCastingReadOnlySpan<byte, Half>(acc, BitConverter.ToHalf);
 
@@ -2564,7 +2564,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2572,12 +2572,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollHalfToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
-        var planar = info.inputFormat.Planar;
+        var planar = info.inputFormat.IsPlanar;
         var maximum = info.inputFormat.IsInkSpace ? 100f : 1f;
         var ptr = new UpCastingReadOnlySpan<byte, Half>(acc, BitConverter.ToHalf);
 
@@ -2601,7 +2601,7 @@ internal static class DefaultFormatters
         if (extra is 0 && swapFirst)
             RollingShift(wIn[..nChan]);
 
-        return info.inputFormat.Planar
+        return info.inputFormat.IsPlanar
             ? ptr[1..].Span
             : ptr[(nChan + extra)..].Span;
     }
@@ -2612,7 +2612,7 @@ internal static class DefaultFormatters
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
         stride /= sizeof(double);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             var pos_L = ptr;
             var pos_a = ptr[stride..];
@@ -2641,7 +2641,7 @@ internal static class DefaultFormatters
     {
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             stride /= info.inputFormat.PixelSize;
 
@@ -2666,7 +2666,7 @@ internal static class DefaultFormatters
         Lab lab;
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             var pos_L = ptr;
             var pos_a = ptr[stride..];
@@ -2695,7 +2695,7 @@ internal static class DefaultFormatters
     {
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             stride /= info.inputFormat.PixelSize;
 
@@ -2775,12 +2775,12 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollPlanarBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var doSwap = info.inputFormat.HasSwapAll;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var reverse = info.inputFormat.Flavor;
         var extraFirst = doSwap ^ swapFirst;
         var extra = info.inputFormat.ExtraSamples;
-        var premul = info.inputFormat.PremultipliedAlpha;
+        var premul = info.inputFormat.HasPremultipliedAlpha;
         var init = acc[1..];
         var alphaFactor = 1;
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
@@ -2823,9 +2823,9 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollPlanarWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
+        var doSwap = info.inputFormat.HasSwapAll;
         var reverse = info.inputFormat.Flavor;
-        var swapEndian = info.inputFormat.EndianSwap;
+        var swapEndian = info.inputFormat.HasEndianSwap;
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
         var init = ptr[1..].Span;
 
@@ -2853,10 +2853,10 @@ internal static class DefaultFormatters
     private static ReadOnlySpan<byte> UnrollPlanarWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
-        var doSwap = info.inputFormat.SwapAll;
-        var swapFirst = info.inputFormat.SwapFirst;
+        var doSwap = info.inputFormat.HasSwapAll;
+        var swapFirst = info.inputFormat.HasSwapFirst;
         var reverse = info.inputFormat.Flavor;
-        var swapEndian = info.inputFormat.EndianSwap;
+        var swapEndian = info.inputFormat.HasEndianSwap;
         var extraFirst = doSwap ^ swapFirst;
 
         var alpha = extraFirst ? acc[0] : acc[(nChan - 1) * stride];
@@ -2895,7 +2895,7 @@ internal static class DefaultFormatters
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
         stride /= sizeof(double);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             var posX = ptr;
             var posY = ptr[stride..];
@@ -2927,7 +2927,7 @@ internal static class DefaultFormatters
             s =>
                 BitConverter.ToDouble(s) / maxEncodableXYZ);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             stride /= info.inputFormat.PixelSize;
 
@@ -2953,7 +2953,7 @@ internal static class DefaultFormatters
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
         stride /= sizeof(float);
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             var posX = ptr;
             var posY = ptr[stride..];
@@ -2985,7 +2985,7 @@ internal static class DefaultFormatters
             s =>
                 (float)(BitConverter.ToSingle(s) / maxEncodableXYZ));
 
-        if (info.inputFormat.Planar)
+        if (info.inputFormat.IsPlanar)
         {
             stride /= info.inputFormat.PixelSize;
 

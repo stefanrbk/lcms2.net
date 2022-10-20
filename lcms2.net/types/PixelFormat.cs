@@ -1408,14 +1408,8 @@ public readonly struct PixelFormat
     public byte Channels =>
         CHANNELS(this);
 
-    public bool Chunky =>
-        !Planar;
-
     public Colorspace Colorspace =>
         COLORSPACE(this);
-
-    public bool EndianSwap =>
-        ENDIAN16(this);
 
     public byte ExtraSamples =>
         EXTRA(this);
@@ -1425,11 +1419,26 @@ public readonly struct PixelFormat
             ? ColorFlavor.Subtractive
             : ColorFlavor.Additive;
 
-    public bool Float =>
-        FLOAT(this);
+    public bool HasEndianSwap =>
+        ENDIAN16(this);
 
-    public bool Int =>
-        !Float;
+    public bool HasPremultipliedAlpha =>
+        PREMUL(this);
+
+    public bool HasSwapAll =>
+        DOSWAP(this);
+
+    public bool HasSwapFirst =>
+        SWAPFIRST(this);
+
+    public bool Is8Bit =>
+        Bytes is 1;
+
+    public bool IsChunky =>
+            !IsPlanar;
+
+    public bool IsFloat =>
+        FLOAT(this);
 
     public bool IsInkSpace =>
         Colorspace is
@@ -1447,25 +1456,19 @@ public readonly struct PixelFormat
             Colorspace.MCH14 or
             Colorspace.MCH15;
 
-    public bool Optimized =>
-            OPTIMIZED(this);
+    public bool IsInt =>
+        !IsFloat;
+
+    public bool IsOptimized =>
+        OPTIMIZED(this);
+
+    public bool IsPlanar =>
+        PLANAR(this);
 
     public ushort PixelSize =>
-        Bytes is 0
+            Bytes is 0
             ? (ushort)sizeof(ushort)
             : Bytes;
-
-    public bool Planar =>
-            PLANAR(this);
-
-    public bool PremultipliedAlpha =>
-        PREMUL(this);
-
-    public bool SwapAll =>
-        DOSWAP(this);
-
-    public bool SwapFirst =>
-        SWAPFIRST(this);
 
     #endregion Properties
 
