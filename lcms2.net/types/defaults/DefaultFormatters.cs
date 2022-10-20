@@ -36,7 +36,7 @@ internal static class DefaultFormatters
 {
     #region Fields
 
-    internal static readonly Formatters16Input[] InputFormatters16 = new Formatters16Input[]
+    private static readonly Formatters16Input[] InputFormatters16 = new Formatters16Input[]
     {
         new(
             Lab_DBL,
@@ -239,7 +239,7 @@ internal static class DefaultFormatters
             UnrollAnyWordsPremul),
     };
 
-    internal static readonly FormattersFloatInput[] InputFormattersFloat = new FormattersFloatInput[]
+    private static readonly FormattersFloatInput[] InputFormattersFloat = new FormattersFloatInput[]
     {
         new(
             Lab_DBL,
