@@ -525,8 +525,7 @@ public static class State
 
                 anterior = newEntry;
 
-                if (newHead.factoryList is null)
-                    newHead.factoryList = newEntry;
+                newHead.factoryList ??= newEntry;
             }
 
             state._chunks[(int)Chunks.FormattersPlugin] = newHead;

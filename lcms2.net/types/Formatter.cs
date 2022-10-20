@@ -40,7 +40,7 @@ public delegate Span<byte> Formatter16Output(Transform cmmCargo, ReadOnlySpan<us
 ///     The factory to build a <see cref="Formatter"/> of a specified type.
 /// </summary>
 /// <remarks>Implements the <c>cmsFormatterFactory</c> typedef.</remarks>
-public delegate Formatter FormatterFactory(Signature type, FormatterDirection dir, PackFlag flags);
+public delegate Formatter FormatterFactory(uint type, FormatterDirection dir, PackFlag flags);
 
 /// <summary>
 ///     Formatter for <see cref="float"/> values.
