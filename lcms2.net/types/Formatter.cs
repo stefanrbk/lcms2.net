@@ -32,7 +32,9 @@ namespace lcms2.types;
 ///     Formatter for <see cref="ushort"/> values.
 /// </summary>
 /// <remarks>Implements the <c>cmsFormatter16</c> typedef.</remarks>
-public delegate byte[] Formatter16(ref Transform cmmCargo, ushort[] values, out byte[] buffer, int stride);
+public delegate ReadOnlySpan<byte> Formatter16Input(Transform cmmCargo, Span<ushort> values, ReadOnlySpan<byte> buffer, int stride);
+
+public delegate Span<byte> Formatter16Output(Transform cmmCargo, ReadOnlySpan<ushort> values, Span<byte> buffer, int stride);
 
 /// <summary>
 ///     The factory to build a <see cref="Formatter"/> of a specified type.
@@ -44,7 +46,9 @@ public delegate Formatter FormatterFactory(Signature type, FormatterDirection di
 ///     Formatter for <see cref="float"/> values.
 /// </summary>
 /// <remarks>Implements the <c>cmsFormatterFloat</c> typedef.</remarks>
-public delegate byte[] FormatterFloat(ref Transform cmmCargo, float[] values, out byte[] buffer, int stride);
+public delegate ReadOnlySpan<byte> FormatterFloatInput(Transform cmmCargo, Span<float> values, ReadOnlySpan<byte> buffer, int stride);
+
+public delegate Span<byte> FormatterFloatOutput(Transform cmmCargo, ReadOnlySpan<float> values, Span<byte> buffer, int stride);
 
 /// <summary>
 ///     The requested direction of the <see cref="Formatter"/>.
@@ -71,30 +75,102 @@ public enum PackFlag
 public struct Formatter
 {
     [FieldOffset(0)]
-    public Formatter16 Fmt16;
+    public Formatter16Input Fmt16In;
 
     [FieldOffset(0)]
-    public FormatterFloat FmtFloat;
+    public Formatter16Output Fmt16Out;
+
+    [FieldOffset(0)]
+    public FormatterFloatInput FmtFloatIn;
+
+    [FieldOffset(0)]
+    public FormatterFloatOutput FmtFloatOut;
 }
 
-internal struct Formatters16
+internal struct Formatters16Input
 {
     #region Fields
 
-    public Formatter16 Frm;
+    public Formatter16Input Frm;
     public uint Mask;
     public uint Type;
 
     #endregion Fields
+
+    #region Public Constructors
+
+    public Formatters16Input(uint type, uint mask, Formatter16Input fn)
+    {
+        Type = type;
+        Mask = mask;
+        Frm = fn;
+    }
+
+    #endregion Public Constructors
 }
 
-internal struct FormattersFloat
+internal struct Formatters16Output
 {
     #region Fields
 
-    public FormatterFloat Frm;
+    public Formatter16Output Frm;
     public uint Mask;
     public uint Type;
 
     #endregion Fields
+
+    #region Public Constructors
+
+    public Formatters16Output(uint type, uint mask, Formatter16Output fn)
+    {
+        Type = type;
+        Mask = mask;
+        Frm = fn;
+    }
+
+    #endregion Public Constructors
+}
+
+internal struct FormattersFloatInput
+{
+    #region Fields
+
+    public FormatterFloatInput Frm;
+    public uint Mask;
+    public uint Type;
+
+    #endregion Fields
+
+    #region Public Constructors
+
+    public FormattersFloatInput(uint type, uint mask, FormatterFloatInput fn)
+    {
+        Type = type;
+        Mask = mask;
+        Frm = fn;
+    }
+
+    #endregion Public Constructors
+}
+
+internal struct FormattersFloatOutput
+{
+    #region Fields
+
+    public FormatterFloatOutput Frm;
+    public uint Mask;
+    public uint Type;
+
+    #endregion Fields
+
+    #region Public Constructors
+
+    public FormattersFloatOutput(uint type, uint mask, FormatterFloatOutput fn)
+    {
+        Type = type;
+        Mask = mask;
+        Frm = fn;
+    }
+
+    #endregion Public Constructors
 }
