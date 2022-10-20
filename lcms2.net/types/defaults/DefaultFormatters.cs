@@ -663,7 +663,47 @@ internal static class DefaultFormatters
         return fr;
     }
 
-    internal static Span<byte> Pack1Byte(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    #endregion Internal Methods
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ChangeEndian(ushort w) =>
+        (ushort)((ushort)(w << 8) | w >> 8);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ChangeEndian(ReadOnlySpan<byte> span) =>
+        ChangeEndian(BitConverter.ToUInt16(span));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort From8to16Reversed(byte value) =>
+        From8to16(ReverseFlavor(value));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort FromLabV2ToLabV4(ushort x)
+    {
+        var a = (x << 8 | x) >> 8;
+        return a > 0xFFFF
+            ? (ushort)0xFFFF
+            : (ushort)a;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort FromLabV4ToLabV2(ushort x) =>
+        (ushort)(((x << 8) + 0x80) / 257);
+
+    private static void Lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
+    {
+        var L = lab4[0] / 655.35f;
+        var a = lab4[1] / 257f - 128f;
+        var b = lab4[2] / 257f - 128f;
+
+        wIn[0] = L / 100f;
+        wIn[1] = (a + 128f) / 255f;
+        wIn[2] = (b + 128f) / 255f;
+    }
+
+    private static Span<byte> Pack1Byte(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -671,7 +711,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static Span<byte> Pack1ByteReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1ByteReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, s => From16to8(ReverseFlavor(s)));
         ptr[0] = wOut[0];
@@ -679,7 +719,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static Span<byte> Pack1ByteSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1ByteSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -687,7 +727,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static Span<byte> Pack1ByteSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1ByteSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[1] = wOut[0];
@@ -695,7 +735,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static Span<byte> Pack1Word(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1Word(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -703,7 +743,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static Span<byte> Pack1WordBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1WordBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
         ptr[0] = wOut[0];
@@ -713,7 +753,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> Pack1WordReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1WordReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ReverseFlavor(s)));
         ptr[0] = wOut[0];
@@ -721,7 +761,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static Span<byte> Pack1WordSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1WordSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -729,7 +769,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static Span<byte> Pack1WordSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack1WordSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[1] = wOut[0];
@@ -737,7 +777,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static Span<byte> Pack3Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -747,7 +787,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -757,7 +797,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1Optimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1Optimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[0] = (byte)(wOut[0] & 0xFF);
         output[1] = (byte)(wOut[1] & 0xFF);
@@ -766,7 +806,7 @@ internal static class DefaultFormatters
         return output[4..];
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[1] = wOut[2];
@@ -776,7 +816,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[1] = wOut[0];
@@ -786,7 +826,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1SwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1SwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[1] = (byte)(wOut[0] & 0xFF);
         output[2] = (byte)(wOut[1] & 0xFF);
@@ -795,7 +835,7 @@ internal static class DefaultFormatters
         return output[4..];
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1SwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1SwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[1] = (byte)(wOut[2] & 0xFF);
         output[2] = (byte)(wOut[1] & 0xFF);
@@ -804,7 +844,7 @@ internal static class DefaultFormatters
         return output[4..];
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[2];
@@ -814,7 +854,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[0] = (byte)(wOut[2] & 0xFF);
         output[1] = (byte)(wOut[1] & 0xFF);
@@ -823,7 +863,7 @@ internal static class DefaultFormatters
         return output[4..];
     }
 
-    internal static Span<byte> Pack3BytesOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[0] = (byte)(wOut[0] & 0xFF);
         output[1] = (byte)(wOut[1] & 0xFF);
@@ -832,7 +872,7 @@ internal static class DefaultFormatters
         return output[3..];
     }
 
-    internal static Span<byte> Pack3BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[2];
@@ -842,7 +882,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> Pack3BytesSwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3BytesSwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         output[0] = (byte)(wOut[2] & 0xFF);
         output[1] = (byte)(wOut[1] & 0xFF);
@@ -851,7 +891,7 @@ internal static class DefaultFormatters
         return output[3..];
     }
 
-    internal static Span<byte> Pack3Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -861,7 +901,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> Pack3WordsAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -871,7 +911,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3WordsAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[1] = wOut[2];
@@ -881,7 +921,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3WordsAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[1] = wOut[0];
@@ -891,7 +931,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3WordsAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[2];
@@ -901,7 +941,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack3WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
         ptr[0] = wOut[0];
@@ -909,7 +949,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static Span<byte> Pack3WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack3WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[2];
@@ -919,7 +959,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> Pack4Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -930,7 +970,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4BytesReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4BytesReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, s => ReverseFlavor(From16to8(s)));
         ptr[0] = wOut[0];
@@ -941,7 +981,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[3];
@@ -952,7 +992,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4BytesSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4BytesSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[3];
@@ -963,7 +1003,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4BytesSwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4BytesSwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[2];
@@ -974,7 +1014,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -985,7 +1025,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
         ptr[0] = wOut[0];
@@ -996,7 +1036,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4WordsReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4WordsReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ReverseFlavor(s)));
         ptr[0] = wOut[0];
@@ -1007,7 +1047,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack4WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack4WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[3];
@@ -1018,7 +1058,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> Pack6Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack6Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[0];
@@ -1031,7 +1071,7 @@ internal static class DefaultFormatters
         return ptr[6..].Span;
     }
 
-    internal static Span<byte> Pack6BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack6BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
         ptr[0] = wOut[5];
@@ -1044,7 +1084,7 @@ internal static class DefaultFormatters
         return ptr[6..].Span;
     }
 
-    internal static Span<byte> Pack6Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack6Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[0];
@@ -1057,7 +1097,7 @@ internal static class DefaultFormatters
         return ptr[6..].Span;
     }
 
-    internal static Span<byte> Pack6WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> Pack6WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, BitConverter.GetBytes);
         ptr[0] = wOut[5];
@@ -1070,7 +1110,7 @@ internal static class DefaultFormatters
         return ptr[6..].Span;
     }
 
-    internal static Span<byte> PackALabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> PackALabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, s => From16to8(FromLabV4ToLabV2(s)));
         ptr[1] = wOut[0];
@@ -1080,7 +1120,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static Span<byte> PackChunkyBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> PackChunkyBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1133,7 +1173,7 @@ internal static class DefaultFormatters
         return ptr.Span;
     }
 
-    internal static Span<byte> PackChunkyWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> PackChunkyWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var nChan = info.outputFormat.Channels;
         var swapEndian = info.outputFormat.EndianSwap;
@@ -1190,7 +1230,7 @@ internal static class DefaultFormatters
         return ptr.Span;
     }
 
-    internal static Span<byte> PackDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1232,7 +1272,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackDoublesFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackDoublesFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1274,7 +1314,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1316,7 +1356,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackFloatsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackFloatsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1358,7 +1398,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackHalfFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackHalfFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1399,7 +1439,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackHalfFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackHalfFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1440,7 +1480,7 @@ internal static class DefaultFormatters
             : swap1[(nChan + extra)..].Span;
     }
 
-    internal static Span<byte> PackLabDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackLabDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
         var lab = new LabEncoded(wOut).ToLab();
@@ -1460,7 +1500,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackLabDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackLabDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
 
@@ -1484,7 +1524,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackLabFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackLabFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
         var lab = new LabEncoded(wOut).ToLab();
@@ -1508,7 +1548,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackLabFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackLabFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, float>(null!, BitConverter.GetBytes);
 
@@ -1532,7 +1572,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackLabV2_16(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> PackLabV2_16(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(FromLabV4ToLabV2(s)));
         ptr[0] = wOut[0];
@@ -1542,7 +1582,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> PackLabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
+    private static Span<byte> PackLabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, s => From16to8(FromLabV4ToLabV2(s)));
         ptr[0] = wOut[0];
@@ -1552,7 +1592,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static Span<byte> PackPlanarBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackPlanarBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1598,7 +1638,7 @@ internal static class DefaultFormatters
         return init[1..];
     }
 
-    internal static Span<byte> PackPlanarWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackPlanarWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.SwapAll;
@@ -1650,7 +1690,7 @@ internal static class DefaultFormatters
         return init[1..].Span;
     }
 
-    internal static Span<byte> PackXYZDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackXYZDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, double>(null!, BitConverter.GetBytes);
         var xyz = XYZ.FromEncodedArray(wOut);
@@ -1672,7 +1712,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackXYZDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackXYZDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, double>(null!, s => BitConverter.GetBytes(s * maxEncodableXYZ));
 
@@ -1696,7 +1736,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackXYZFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackXYZFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
         var xyz = XYZ.FromEncodedArray(wOut);
@@ -1721,7 +1761,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static Span<byte> PackXYZFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
+    private static Span<byte> PackXYZFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, int stride)
     {
         var @out = output.UpCaster<byte, float>(null!, s => BitConverter.GetBytes((float)(s * maxEncodableXYZ)));
 
@@ -1745,7 +1785,36 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static byte ReverseFlavor(byte x) =>
+        unchecked((byte)(0xFF - x));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ReverseFlavor(ushort x) =>
+        unchecked((ushort)(0xFFFF - x));
+
+    private static ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
+        ReverseFlavor(BitConverter.ToUInt16(span));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T>(Span<T> span)
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
+        where T1 : unmanaged
+        where T2 : unmanaged
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    private static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -1783,21 +1852,21 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1Byte(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1Byte(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
 
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1ByteReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1ByteReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = ReverseFlavor(From8to16(acc[0])); acc = acc[1..]; // L
 
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1ByteSkip1(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1ByteSkip1(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
         acc = acc[1..];
@@ -1805,7 +1874,7 @@ internal static class DefaultFormatters
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1ByteSkip2(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1ByteSkip2(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = From8to16(acc[0]); acc = acc[1..]; // L
         acc = acc[2..];
@@ -1813,21 +1882,21 @@ internal static class DefaultFormatters
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1Word(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1Word(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // L
 
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1WordReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1WordReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = ReverseFlavor(BitConverter.ToUInt16(acc)); acc = acc[2..]; // L
 
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll1WordSkip3(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll1WordSkip3(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         wIn[0] = wIn[1] = wIn[2] = BitConverter.ToUInt16(acc); acc = acc[2..]; // L
         acc = acc[8..];
@@ -1835,7 +1904,7 @@ internal static class DefaultFormatters
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll2Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll2Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1845,7 +1914,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll2Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll2Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -1855,7 +1924,7 @@ internal static class DefaultFormatters
         return ptr[2..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1866,7 +1935,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3BytesSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1878,7 +1947,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3BytesSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1890,7 +1959,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3BytesSkip1SwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1SwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1902,7 +1971,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1913,7 +1982,7 @@ internal static class DefaultFormatters
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -1924,7 +1993,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3WordsSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3WordsSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -1936,7 +2005,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3WordsSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3WordsSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -1948,7 +2017,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll3WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll3WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -1959,7 +2028,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1971,7 +2040,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4BytesReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4BytesReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16Reversed);
 
@@ -1983,7 +2052,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -1995,7 +2064,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4BytesSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4BytesSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -2007,7 +2076,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4BytesSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4BytesSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -2019,7 +2088,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -2031,7 +2100,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4WordsReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4WordsReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, ReverseFlavor);
 
@@ -2043,7 +2112,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -2055,7 +2124,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4WordsSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4WordsSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -2067,7 +2136,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll4WordsSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> Unroll4WordsSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -2079,7 +2148,7 @@ internal static class DefaultFormatters
         return ptr[4..].Span;
     }
 
-    internal static ReadOnlySpan<byte> Unroll8ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> Unroll8ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2113,7 +2182,7 @@ internal static class DefaultFormatters
             : acc[((nChan + extra) * sizeof(byte))..];
     }
 
-    internal static ReadOnlySpan<byte> UnrollALabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollALabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -2125,7 +2194,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollALabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollALabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, s => FromLabV2ToLabV4(From8to16(s)));
 
@@ -2142,7 +2211,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollAnyWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollAnyWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
         var swapEndian = info.inputFormat.EndianSwap;
@@ -2177,7 +2246,7 @@ internal static class DefaultFormatters
         return ptr.Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollAnyWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollAnyWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
         var swapEndian = info.inputFormat.EndianSwap;
@@ -2214,7 +2283,7 @@ internal static class DefaultFormatters
         return ptr.Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollChunkyBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollChunkyBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2265,7 +2334,7 @@ internal static class DefaultFormatters
         return acc;
     }
 
-    internal static ReadOnlySpan<byte> UnrollDouble1Chan(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollDouble1Chan(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
@@ -2276,7 +2345,7 @@ internal static class DefaultFormatters
         return ptr[1..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollDoublesToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollDoublesToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2328,7 +2397,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2369,7 +2438,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollFloatsToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollFloatsToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2421,7 +2490,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2462,7 +2531,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollHalfTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollHalfTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2500,7 +2569,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollHalfToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollHalfToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2537,7 +2606,7 @@ internal static class DefaultFormatters
             : ptr[(nChan + extra)..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollLabDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         Lab lab;
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
@@ -2568,7 +2637,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollLabDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
 
@@ -2592,7 +2661,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollLabFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         Lab lab;
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
@@ -2622,7 +2691,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollLabFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
 
@@ -2646,7 +2715,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabV2_16(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollLabV2_16(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
 
@@ -2657,7 +2726,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabV2_16ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollLabV2_16ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(
             acc,
@@ -2676,7 +2745,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollLabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
 
@@ -2687,7 +2756,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollLabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
+    private static ReadOnlySpan<byte> UnrollLabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> acc, int _)
     {
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, s => FromLabV2ToLabV4(From8to16(s)));
 
@@ -2703,7 +2772,7 @@ internal static class DefaultFormatters
         return ptr[3..].Span;
     }
 
-    internal static ReadOnlySpan<byte> UnrollPlanarBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollPlanarBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2751,7 +2820,7 @@ internal static class DefaultFormatters
         return init;
     }
 
-    internal static ReadOnlySpan<byte> UnrollPlanarWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollPlanarWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2781,7 +2850,7 @@ internal static class DefaultFormatters
         return init;
     }
 
-    internal static ReadOnlySpan<byte> UnrollPlanarWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollPlanarWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.SwapAll;
@@ -2820,7 +2889,7 @@ internal static class DefaultFormatters
         return init;
     }
 
-    internal static ReadOnlySpan<byte> UnrollXYZDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollXYZDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         XYZ xyz;
         var ptr = new UpCastingReadOnlySpan<byte, double>(acc, BitConverter.ToDouble);
@@ -2851,7 +2920,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollXYZDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollXYZDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var ptr = new UpCastingReadOnlySpan<byte, double>(
             acc,
@@ -2878,7 +2947,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollXYZFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollXYZFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         XYZ xyz;
         var ptr = new UpCastingReadOnlySpan<byte, float>(acc, BitConverter.ToSingle);
@@ -2909,7 +2978,7 @@ internal static class DefaultFormatters
         }
     }
 
-    internal static ReadOnlySpan<byte> UnrollXYZFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
+    private static ReadOnlySpan<byte> UnrollXYZFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var ptr = new UpCastingReadOnlySpan<byte, float>(
             acc,
@@ -2934,75 +3003,6 @@ internal static class DefaultFormatters
 
             return ptr[(3 + info.inputFormat.ExtraSamples)..].Span;
         }
-    }
-
-    #endregion Internal Methods
-
-    #region Private Methods
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ChangeEndian(ushort w) =>
-        (ushort)((ushort)(w << 8) | w >> 8);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ChangeEndian(ReadOnlySpan<byte> span) =>
-        ChangeEndian(BitConverter.ToUInt16(span));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort From8to16Reversed(byte value) =>
-        From8to16(ReverseFlavor(value));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort FromLabV2ToLabV4(ushort x)
-    {
-        var a = (x << 8 | x) >> 8;
-        return a > 0xFFFF
-            ? (ushort)0xFFFF
-            : (ushort)a;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort FromLabV4ToLabV2(ushort x) =>
-        (ushort)(((x << 8) + 0x80) / 257);
-
-    private static void Lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
-    {
-        var L = lab4[0] / 655.35f;
-        var a = lab4[1] / 257f - 128f;
-        var b = lab4[2] / 257f - 128f;
-
-        wIn[0] = L / 100f;
-        wIn[1] = (a + 128f) / 255f;
-        wIn[2] = (b + 128f) / 255f;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ReverseFlavor(byte x) =>
-        unchecked((byte)(0xFF - x));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ReverseFlavor(ushort x) =>
-        unchecked((ushort)(0xFFFF - x));
-
-    private static ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
-        ReverseFlavor(BitConverter.ToUInt16(span));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T>(Span<T> span)
-    {
-        var tmp = span[^1];
-        span[..^1].CopyTo(span[1..]);
-        span[0] = tmp;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
-        where T1 : unmanaged
-        where T2 : unmanaged
-    {
-        var tmp = span[^1];
-        span[..^1].CopyTo(span[1..]);
-        span[0] = tmp;
     }
 
     #endregion Private Methods
