@@ -28,74 +28,12 @@ using MoreSpans;
 
 using System.Runtime.CompilerServices;
 
-namespace lcms2.types;
+namespace lcms2.types.defaults;
 
 internal static class DefaultFormatters
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ChangeEndian(ushort w) =>
-        (ushort)((ushort)(w << 8) | (w >> 8));
+    #region Internal Methods
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ChangeEndian(ReadOnlySpan<byte> span) =>
-        ChangeEndian(BitConverter.ToUInt16(span));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort From8to16Reversed(byte value) =>
-        From8to16(ReverseFlavor(value));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort FromLabV2ToLabV4(ushort x)
-    {
-        var a = ((x << 8) | x) >> 8;
-        return (a > 0xFFFF)
-            ? (ushort)0xFFFF
-            : (ushort)a;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort FromLabV4ToLabV2(ushort x) =>
-        (ushort)(((x << 8) + 0x80) / 257);
-
-    private static void Lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
-    {
-        var L = lab4[0] / 655.35f;
-        var a = (lab4[1] / 257f) - 128f;
-        var b = (lab4[2] / 257f) - 128f;
-
-        wIn[0] = L / 100f;
-        wIn[1] = (a + 128f) / 255f;
-        wIn[2] = (b + 128f) / 255f;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ReverseFlavor(byte x) =>
-        unchecked((byte)(0xFF - x));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ReverseFlavor(ushort x) =>
-        unchecked((ushort)(0xFFFF - x));
-
-    private static ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
-        ReverseFlavor(BitConverter.ToUInt16(span));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T>(Span<T> span)
-    {
-        var tmp = span[^1];
-        span[..^1].CopyTo(span[1..]);
-        span[0] = tmp;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
-        where T1 : unmanaged
-        where T2 : unmanaged
-    {
-        var tmp = span[^1];
-        span[..^1].CopyTo(span[1..]);
-        span[0] = tmp;
-    }
     internal static Span<byte> Pack1Byte(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, int _)
     {
         var ptr = output.Converter<byte, ushort>(null!, From16to8);
@@ -543,7 +481,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index];
 
@@ -551,7 +489,7 @@ internal static class DefaultFormatters
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
-                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+                v = (ushort)(v * alphaFactor + 0x8000 >> 16);
 
             ptr[0] = v;
             ptr++;
@@ -597,7 +535,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index];
 
@@ -608,7 +546,7 @@ internal static class DefaultFormatters
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
-                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+                v = (ushort)(v * alphaFactor + 0x8000 >> 16);
 
             ptr[0] = v;
             ptr++;
@@ -647,7 +585,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index] / maximum;
 
@@ -689,7 +627,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index] * maximum;
 
@@ -731,7 +669,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index] / maximum;
 
@@ -773,7 +711,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             v = wOut[index] * maximum;
 
@@ -814,7 +752,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             var v = wOut[index] / maximum;
 
@@ -855,7 +793,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             var v = wOut[index] * maximum;
 
@@ -902,16 +840,16 @@ internal static class DefaultFormatters
             stride /= info.outputFormat.PixelSize;
 
             @out[0] = wOut[0] * 100.0;
-            @out[stride] = (wOut[1] * 255.0) - 128.0;
-            @out[stride * 2] = (wOut[2] * 255.0) - 128.0;
+            @out[stride] = wOut[1] * 255.0 - 128.0;
+            @out[stride * 2] = wOut[2] * 255.0 - 128.0;
 
             return @out[1..].Span;
         }
         else
         {
             @out[0] = wOut[0] * 100.0;
-            @out[1] = (wOut[1] * 255.0) - 128.0;
-            @out[2] = (wOut[2] * 255.0) - 128.0;
+            @out[1] = wOut[1] * 255.0 - 128.0;
+            @out[2] = wOut[2] * 255.0 - 128.0;
 
             return @out[(3 + info.outputFormat.ExtraSamples)..].Span;
         }
@@ -950,16 +888,16 @@ internal static class DefaultFormatters
             stride /= info.outputFormat.PixelSize;
 
             @out[0] = (float)(wOut[0] * 100.0);
-            @out[stride] = (float)((wOut[1] * 255.0) - 128.0);
-            @out[stride * 2] = (float)((wOut[2] * 255.0) - 128.0);
+            @out[stride] = (float)(wOut[1] * 255.0 - 128.0);
+            @out[stride * 2] = (float)(wOut[2] * 255.0 - 128.0);
 
             return @out[1..].Span;
         }
         else
         {
             @out[0] = (float)(wOut[0] * 100.0);
-            @out[1] = (float)((wOut[1] * 255.0) - 128.0);
-            @out[2] = (float)((wOut[2] * 255.0) - 128.0);
+            @out[1] = (float)(wOut[1] * 255.0 - 128.0);
+            @out[2] = (float)(wOut[2] * 255.0 - 128.0);
 
             return @out[(3 + info.outputFormat.ExtraSamples)..].Span;
         }
@@ -1014,7 +952,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             var v = wOut[index];
 
@@ -1022,7 +960,7 @@ internal static class DefaultFormatters
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
-                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+                v = (ushort)(v * alphaFactor + 0x8000 >> 16);
 
             ptr[0] = v;
             ptr += stride;
@@ -1063,7 +1001,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             var v = wOut[index];
 
@@ -1074,7 +1012,7 @@ internal static class DefaultFormatters
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
-                v = (ushort)(((v * alphaFactor) + 0x8000) >> 16);
+                v = (ushort)(v * alphaFactor + 0x8000 >> 16);
 
             ptr[0] = v;
             ptr += stride;
@@ -1177,6 +1115,7 @@ internal static class DefaultFormatters
             return @out[(3 + info.outputFormat.ExtraSamples)..].Span;
         }
     }
+
     internal static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
     {
         var nChan = info.inputFormat.Channels;
@@ -1196,7 +1135,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 (float)(planar
                     ? ptr[(i + start) * stride]
@@ -1529,7 +1468,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v = (float)acc[(i + start) * (planar ? stride : 1)];
 
             v /= 255.0f;
@@ -1593,7 +1532,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v = ptr[0];
 
             wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor(v) : v;
@@ -1627,7 +1566,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v = (uint)ptr[0];
 
             if (swapEndian)
@@ -1673,7 +1612,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
 
             uint v = From8to16(acc[0]);
             v = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : v;
@@ -1738,7 +1677,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 planar
                     ? ptr[(i + start) * stride]
@@ -1780,7 +1719,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 (float)(planar
                     ? ptr[(i + start) * stride]
@@ -1831,7 +1770,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 planar
                     ? ptr[(i + start) * stride]
@@ -1873,7 +1812,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 planar
                     ? ptr[(i + start) * stride]
@@ -1912,7 +1851,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 planar
                     ? (float)ptr[(i + start) * stride]
@@ -1950,7 +1889,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v =
                 planar
                     ? (float)ptr[(i + start) * stride]
@@ -2165,7 +2104,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             uint v = ptr[0];
 
             v = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : v;
@@ -2199,7 +2138,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v = ptr[0];
 
             if (swapEndian)
@@ -2235,7 +2174,7 @@ internal static class DefaultFormatters
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = doSwap ? (nChan - i - 1) : i;
+            var index = doSwap ? nChan - i - 1 : i;
             var v = (uint)ptr[0];
 
             if (swapEndian)
@@ -2367,4 +2306,75 @@ internal static class DefaultFormatters
             return ptr[(3 + info.inputFormat.ExtraSamples)..].Span;
         }
     }
+
+    #endregion Internal Methods
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ChangeEndian(ushort w) =>
+        (ushort)((ushort)(w << 8) | w >> 8);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ChangeEndian(ReadOnlySpan<byte> span) =>
+        ChangeEndian(BitConverter.ToUInt16(span));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort From8to16Reversed(byte value) =>
+        From8to16(ReverseFlavor(value));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort FromLabV2ToLabV4(ushort x)
+    {
+        var a = (x << 8 | x) >> 8;
+        return a > 0xFFFF
+            ? (ushort)0xFFFF
+            : (ushort)a;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort FromLabV4ToLabV2(ushort x) =>
+        (ushort)(((x << 8) + 0x80) / 257);
+
+    private static void Lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
+    {
+        var L = lab4[0] / 655.35f;
+        var a = lab4[1] / 257f - 128f;
+        var b = lab4[2] / 257f - 128f;
+
+        wIn[0] = L / 100f;
+        wIn[1] = (a + 128f) / 255f;
+        wIn[2] = (b + 128f) / 255f;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static byte ReverseFlavor(byte x) =>
+        unchecked((byte)(0xFF - x));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort ReverseFlavor(ushort x) =>
+        unchecked((ushort)(0xFFFF - x));
+
+    private static ushort ReverseFlavor(ReadOnlySpan<byte> span) =>
+        ReverseFlavor(BitConverter.ToUInt16(span));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T>(Span<T> span)
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
+        where T1 : unmanaged
+        where T2 : unmanaged
+    {
+        var tmp = span[^1];
+        span[..^1].CopyTo(span[1..]);
+        span[0] = tmp;
+    }
+
+    #endregion Private Methods
 }
