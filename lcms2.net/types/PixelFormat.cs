@@ -26,6 +26,7 @@
 //
 
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace lcms2.types;
 
@@ -171,6 +172,7 @@ public readonly struct PixelFormat
             COLORSPACE_SH(Colorspace.RGB) |
             CHANNELS_SH(3) |
             BYTES_SH(2) |
+            EXTRA_SH(1) |
             DOSWAP_SH(1));
 
     public static readonly PixelFormat ALab_8 =
@@ -1577,6 +1579,54 @@ public readonly struct PixelFormat
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint SWAPFIRST_SH(uint value) =>
         value << 14;
+
+    public override string? ToString()
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendFormat("{0:x8}", value)
+          .Append(" (")
+          .Append(Channels)
+          .Append(" channels, ")
+          .Append(Bytes == 0 ? 8 : Bytes)
+          .Append(" bytes, ")
+          .Append(Enum.GetName(typeof(Colorspace), Colorspace))
+          .Append(" colorspace");
+
+        if (ExtraSamples is not 0)
+        {
+            sb.Append(", ")
+              .Append(ExtraSamples)
+              .Append(" extra samples");
+        }
+
+        if (Flavor is ColorFlavor.Subtractive)
+            sb.Append(", reversed");
+
+        if (HasEndianSwap)
+            sb.Append(", big endian");
+
+        if (HasPremultipliedAlpha)
+            sb.Append(", premultiplied alpha");
+
+        if (HasSwapAll)
+            sb.Append(", swap all");
+
+        if (HasSwapFirst)
+            sb.Append(", swap first");
+
+        if (IsFloat)
+            sb.Append(", float");
+
+        if (IsOptimized)
+            sb.Append(", optimized");
+
+        if (IsPlanar)
+            sb.Append(", planar");
+
+        return sb.Append(')')
+                 .ToString();
+    }
 
     #endregion Public Methods
 }
