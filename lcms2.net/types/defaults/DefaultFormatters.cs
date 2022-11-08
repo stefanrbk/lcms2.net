@@ -941,6 +941,8 @@ internal static class DefaultFormatters
     {
         var ptr = output.UpCaster<byte, ushort>(null!, s => BitConverter.GetBytes(ChangeEndian(s)));
         ptr[0] = wOut[0];
+        ptr[1] = wOut[1];
+        ptr[2] = wOut[2];
 
         return ptr[1..].Span;
     }
@@ -2781,8 +2783,6 @@ internal static class DefaultFormatters
         var init = acc[1..];
         var alphaFactor = 1;
         var ptr = new ConvertingReadOnlySpan<byte, ushort>(acc, From8to16);
-
-        stride /= sizeof(ushort);
 
         if (extraFirst)
         {
