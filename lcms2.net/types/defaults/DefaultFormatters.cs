@@ -1166,7 +1166,7 @@ internal static class DefaultFormatters
             ptr += extra;
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return ptr.Span;
     }
@@ -1223,7 +1223,7 @@ internal static class DefaultFormatters
             ptr += extra;
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return ptr.Span;
     }
@@ -1263,7 +1263,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1305,7 +1305,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1347,7 +1347,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1389,7 +1389,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1430,7 +1430,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1471,7 +1471,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(swap1[..nChan]);
+            RollingShiftPack(swap1[..nChan]);
 
         return planar
             ? swap1[1..].Span
@@ -1795,7 +1795,9 @@ internal static class DefaultFormatters
         ReverseFlavor(BitConverter.ToUInt16(span));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T>(Span<T> span)
+    private static void RollingShiftPack<T1, T2>(UpCastingSpan<T1, T2> span)
+        where T1 : unmanaged
+        where T2 : unmanaged
     {
         var tmp = span[^1];
         span[..^1].CopyTo(span[1..]);
@@ -1803,13 +1805,29 @@ internal static class DefaultFormatters
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RollingShift<T1, T2>(UpCastingSpan<T1, T2> span)
-        where T1 : unmanaged
-        where T2 : unmanaged
+    private static void RollingShiftPack<T>(Span<T> span)
     {
         var tmp = span[^1];
         span[..^1].CopyTo(span[1..]);
         span[0] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShiftUnroll<T1, T2>(UpCastingSpan<T1, T2> span)
+        where T1 : unmanaged
+        where T2 : unmanaged
+    {
+        var tmp = span[0];
+        span[1..].CopyTo(span[..^1]);
+        span[^1] = tmp;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RollingShiftUnroll<T>(Span<T> span)
+    {
+        var tmp = span[0];
+        span[1..].CopyTo(span[..^1]);
+        span[^1] = tmp;
     }
 
     private static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> acc, int stride)
@@ -1843,7 +1861,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2173,7 +2191,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? acc[sizeof(byte)..]
@@ -2240,7 +2258,7 @@ internal static class DefaultFormatters
             ptr += extra;
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return ptr.Span;
     }
@@ -2328,7 +2346,7 @@ internal static class DefaultFormatters
             acc = acc[extra..];
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return acc;
     }
@@ -2389,7 +2407,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2430,7 +2448,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2482,7 +2500,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2523,7 +2541,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2561,7 +2579,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
@@ -2598,7 +2616,7 @@ internal static class DefaultFormatters
         }
 
         if (extra is 0 && swapFirst)
-            RollingShift(wIn[..nChan]);
+            RollingShiftUnroll(wIn[..nChan]);
 
         return info.inputFormat.IsPlanar
             ? ptr[1..].Span
