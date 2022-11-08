@@ -25,10 +25,12 @@
 //---------------------------------------------------------------------------------
 //
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace MoreSpans;
 
-[DebuggerTypeProxy("UpDownCastingSpanDebugView<,>")]
+[DebuggerTypeProxy(typeof(UpCastingReadOnlySpan<,>.DebugView))]
+[DebuggerDisplay("{ToString()}")]
 public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
@@ -46,15 +48,15 @@ public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
     {
         Span = span;
         _funcTo = funcTo;
-        unsafe
-        {
-            _size = span.Length * sizeof(Tfrom) / sizeof(Tto);
-        }
+        _size = Unsafe.SizeOf<Tto>() / Unsafe.SizeOf<Tfrom>();
     }
 
     #endregion Public Constructors
 
     #region Properties
+
+    public int Length =>
+        Span.Length / _size;
 
     public ReadOnlySpan<Tfrom> Span { get; }
 
@@ -100,5 +102,52 @@ public readonly ref struct UpCastingReadOnlySpan<Tfrom, Tto>
         return array;
     }
 
+    public override string ToString() =>
+        $"MoreSpans.UpCastingReadOnlySpan<{typeof(Tfrom).Name},{typeof(Tto).Name}>[{Span.Length} -> {Length}]";
+
     #endregion Public Methods
+
+    #region Classes
+
+    internal sealed class DebugView
+    {
+        #region Public Constructors
+
+        public DebugView(UpCastingReadOnlySpan<Tfrom, Tto> span)
+        {
+            Items = new string[span.Length];
+            GetterFunction = span._funcTo;
+            var size = span._size;
+
+            for (var i = 0; i < span.Length; i++)
+            {
+                var temp = span.Span[(i * size)..];
+                var value = temp[..size].ToArray();
+                object get;
+                try
+                {
+                    get = span._funcTo(value);
+                }
+                catch (Exception e)
+                {
+                    get = e;
+                }
+
+                Items[i] = $"{value} -Get-> {get}";
+            }
+        }
+
+        #endregion Public Constructors
+
+        #region Properties
+
+        public UpCastFunc<Tfrom, Tto> GetterFunction { get; }
+
+        [DebuggerDisplay("")]
+        public string[] Items { get; }
+
+        #endregion Properties
+    }
+
+    #endregion Classes
 }

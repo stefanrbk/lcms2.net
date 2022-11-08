@@ -24,8 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+using System.Diagnostics;
+
 namespace MoreSpans;
 
+[DebuggerTypeProxy(typeof(ConvertingReadOnlySpan<,>.DebugView))]
+[DebuggerDisplay("{ToString()}")]
 public readonly ref struct ConvertingReadOnlySpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
@@ -47,6 +51,9 @@ public readonly ref struct ConvertingReadOnlySpan<Tfrom, Tto>
     #endregion Public Constructors
 
     #region Properties
+
+    public int Length =>
+        Span.Length;
 
     public ReadOnlySpan<Tfrom> Span { get; }
 
@@ -80,7 +87,52 @@ public readonly ref struct ConvertingReadOnlySpan<Tfrom, Tto>
                 new(Span[start..], _funcTo);
 
     public ConvertingReadOnlySpan<Tfrom, Tto> Slice(int start, int length) =>
-        new(Span[start..length], _funcTo);
+        new(Span.Slice(start, length), _funcTo);
+
+    public override string ToString() =>
+        $"MoreSpans.ConvertingSpan<{typeof(Tfrom).Name},{typeof(Tto).Name}>[{Length}]";
 
     #endregion Public Methods
+
+    #region Classes
+
+    internal sealed class DebugView
+    {
+        #region Public Constructors
+
+        public DebugView(ConvertingReadOnlySpan<Tfrom, Tto> span)
+        {
+            Items = new string[span.Length];
+            GetterFunction = span._funcTo;
+
+            for (var i = 0; i < span.Length; i++)
+            {
+                var value = span.Span[i];
+                object get;
+                try
+                {
+                    get = span._funcTo(value);
+                }
+                catch (Exception e)
+                {
+                    get = e;
+                }
+
+                Items[i] = $"{value} -Get-> {get}";
+            }
+        }
+
+        #endregion Public Constructors
+
+        #region Properties
+
+        public ConvertFunc<Tfrom, Tto> GetterFunction { get; }
+
+        [DebuggerDisplay("")]
+        public string[] Items { get; }
+
+        #endregion Properties
+    }
+
+    #endregion Classes
 }

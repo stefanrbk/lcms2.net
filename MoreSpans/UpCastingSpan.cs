@@ -26,10 +26,12 @@
 //
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace MoreSpans;
 
-[DebuggerTypeProxy("UpDownCastingSpanDebugView<,>")]
+[DebuggerTypeProxy(typeof(UpCastingSpan<,>.DebugView))]
+[DebuggerDisplay("{ToString()}")]
 public readonly ref struct UpCastingSpan<Tfrom, Tto>
     where Tfrom : unmanaged
     where Tto : unmanaged
@@ -49,10 +51,7 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
         Span = span;
         _funcTo = funcTo;
         _funcFrom = funcFrom;
-        unsafe
-        {
-            _size = span.Length * sizeof(Tfrom) / sizeof(Tto);
-        }
+        _size = Unsafe.SizeOf<Tto>() / Unsafe.SizeOf<Tfrom>();
     }
 
     #endregion Public Constructors
@@ -88,7 +87,7 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
     {
         get
         {
-            var (start, length) = range.GetOffsetAndLength(Span.Length / _size);
+            var (start, length) = range.GetOffsetAndLength(Length);
             return Slice(start, length);
         }
     }
@@ -121,11 +120,26 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
             destination[i] = this[i];
     }
 
+    public void CopyTo(UpCastingSpan<Tfrom, Tto> destination)
+    {
+        var length = Span.Length / _size;
+        if (SpanExtensions.SpanIntersectsBefore<Tfrom>(Span, destination.Span))
+        {
+            for (var i = length - 1; i >= 0; i--)
+                destination[i] = this[i];
+        }
+        else
+        {
+            for (var i = 0; i < length; i++)
+                destination[i] = this[i];
+        }
+    }
+
     public UpCastingSpan<Tfrom, Tto> Slice(int start) =>
                         new(Span[(start * _size)..], _funcTo, _funcFrom);
 
     public UpCastingSpan<Tfrom, Tto> Slice(int start, int length) =>
-        new(Span[(start * _size)..(length * _size)], _funcTo, _funcFrom);
+        new(Span.Slice(start * _size, length * _size), _funcTo, _funcFrom);
 
     public Tto[] ToArray()
     {
@@ -137,6 +151,9 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
         return array;
     }
 
+    public override string ToString() =>
+        $"MoreSpans.UpCastingSpan<{typeof(Tfrom).Name},{typeof(Tto).Name}>[{Span.Length} -> {Length}]";
+
     #endregion Public Methods
 
     //public void CopyTo<T>(DownCastingSpan<T, Tto> destination)
@@ -146,4 +163,65 @@ public readonly ref struct UpCastingSpan<Tfrom, Tto>
     //    for (var i = 0; i < length; i++)
     //        destination[i];
     //}
+
+    #region Classes
+
+    internal sealed class DebugView
+    {
+        #region Public Constructors
+
+        public DebugView(UpCastingSpan<Tfrom, Tto> span)
+        {
+            Items = new string[span.Length];
+            GetterFunction = span._funcTo;
+            SetterFunction = span._funcFrom;
+            var size = span._size;
+
+            for (var i = 0; i < span.Length; i++)
+            {
+                var temp = span.Span[(i * size)..];
+                var value = temp[..size].ToArray();
+                object get;
+                try
+                {
+                    get = span._funcTo(value);
+                }
+                catch (Exception e)
+                {
+                    get = e;
+                }
+                object? set = null;
+                if (get is Tto v)
+                {
+                    try
+                    {
+                        set = span._funcFrom(v);
+                    }
+                    catch (Exception e)
+                    {
+                        set = e;
+                    }
+                }
+
+                Items[i] = get is not Tto
+                    ? $"{value} -Get-> {get}"
+                    : $"{value} -Get-> {get} -Set-> {set}";
+            }
+        }
+
+        #endregion Public Constructors
+
+        #region Properties
+
+        public UpCastFunc<Tfrom, Tto> GetterFunction { get; }
+
+        [DebuggerDisplay("")]
+        public string[] Items { get; }
+
+        public DownCastFunc<Tfrom, Tto> SetterFunction { get; }
+
+        #endregion Properties
+    }
+
+    #endregion Classes
 }

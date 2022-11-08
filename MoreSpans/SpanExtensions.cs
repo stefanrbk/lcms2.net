@@ -25,6 +25,9 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace MoreSpans;
 
 public static class SpanExtensions
@@ -87,6 +90,21 @@ public static class SpanExtensions
         new(span, funcTo, funcFrom);
 
     #endregion Public Methods
+
+    #region Internal Methods
+
+    internal static bool SpanIntersectsBefore<T>(ReadOnlySpan<T> origin, ReadOnlySpan<T> target)
+    {
+        var size = Unsafe.SizeOf<T>();
+        var distance = (long)Unsafe.ByteOffset(ref MemoryMarshal.GetReference(origin), ref MemoryMarshal.GetReference(target));
+        if (distance < 0)
+            return true;
+        else if (distance > 0)
+            return distance < origin.Length * size;
+        return true;
+    }
+
+    #endregion Internal Methods
 
     //public static void CopyTo<T, Tto>(this ReadOnlySpan<Tto> span, DownCastingSpan<T, Tto> destination)
     //    where T : unmanaged
