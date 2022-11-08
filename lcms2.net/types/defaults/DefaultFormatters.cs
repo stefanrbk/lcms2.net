@@ -1140,7 +1140,7 @@ internal static class DefaultFormatters
             if (premul && extra != 0)
                 alphaFactor = ToFixedDomain(ptr[0]);
 
-            output = output[extra..];
+            ptr = ptr[extra..];
         }
         else
         {
@@ -1611,7 +1611,7 @@ internal static class DefaultFormatters
             if (premul && extra != 0)
                 alphaFactor = ToFixedDomain(ptr[0]);
 
-            output = output[(extra * stride)..];
+            ptr = ptr[(extra * stride)..];
         }
         else
         {
