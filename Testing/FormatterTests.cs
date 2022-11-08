@@ -232,6 +232,23 @@ public static class FormatterTests
         return !_formatterFailed;
     }
 
+    public static bool CheckFormattersHalf()
+    {
+        for (var i = 0; i < 0xFFFF; i++)
+        {
+            var f = (float)BitConverter.UInt16BitsToHalf((ushort)i);
+
+            if (Single.IsFinite(f))
+            {
+                var j = BitConverter.HalfToUInt16Bits((Half)f);
+
+                if (i != j)
+                    return Fail($"{i} != {j} ({f}) in Half float support!");
+            }
+        }
+        return true;
+    }
+
     #endregion Public Methods
 
     #region Private Methods

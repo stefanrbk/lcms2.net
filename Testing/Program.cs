@@ -176,6 +176,7 @@ if (doCheckTests)
     Console.WriteLine("\nChange buffers format");
     Check("Usual formatters", frm.CheckFormatters16);
     Check("Floating point formatters", frm.CheckFormattersFloat);
+    Check("Half formatters", frm.CheckFormattersHalf);
 }
 
 if (doPluginTests)
