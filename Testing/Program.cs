@@ -28,6 +28,7 @@ using lcms2.state;
 using lcms2.testbed;
 
 using cs = lcms2.testbed.ColorspaceTests;
+using frm = lcms2.testbed.FormatterTests;
 using helper = lcms2.testbed.HelpersTests;
 using interp = lcms2.testbed.InterpolationTests;
 using lut = lcms2.testbed.LutTests;
@@ -171,6 +172,10 @@ if (doCheckTests)
     Check("XYZ to XYZ LUT (float only)", lut.CheckXyz2XyzLut);
     Check("Lab to Lab MAT LUT (float only)", lut.CheckLab2LabMatLut);
     Check("Named Color LUT", lut.CheckNamedColorLut);
+
+    Console.WriteLine("\nChange buffers format");
+    Check("Usual formatters", frm.CheckFormatters16);
+    Check("Floating point formatters", frm.CheckFormattersFloat);
 }
 
 if (doPluginTests)
