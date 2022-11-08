@@ -1122,7 +1122,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var premul = info.outputFormat.HasPremultipliedAlpha;
@@ -1152,7 +1152,7 @@ internal static class DefaultFormatters
 
             v = wOut[index];
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
@@ -1176,7 +1176,7 @@ internal static class DefaultFormatters
         var nChan = info.outputFormat.Channels;
         var swapEndian = info.outputFormat.HasEndianSwap;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var premul = info.outputFormat.HasPremultipliedAlpha;
@@ -1209,7 +1209,7 @@ internal static class DefaultFormatters
             if (swapEndian)
                 v = ChangeEndian(v);
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
@@ -1232,7 +1232,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1256,7 +1256,7 @@ internal static class DefaultFormatters
 
             v = wOut[index] / maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = v;
@@ -1274,7 +1274,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1298,7 +1298,7 @@ internal static class DefaultFormatters
 
             v = wOut[index] * maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = v;
@@ -1316,7 +1316,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1340,7 +1340,7 @@ internal static class DefaultFormatters
 
             v = wOut[index] / maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = (float)v;
@@ -1358,7 +1358,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1382,7 +1382,7 @@ internal static class DefaultFormatters
 
             v = wOut[index] * maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = (float)v;
@@ -1400,7 +1400,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1423,7 +1423,7 @@ internal static class DefaultFormatters
 
             var v = wOut[index] / maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = (Half)v;
@@ -1441,7 +1441,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var swapFirst = info.outputFormat.HasSwapFirst;
         var planar = info.outputFormat.IsPlanar;
@@ -1464,7 +1464,7 @@ internal static class DefaultFormatters
 
             var v = wOut[index] * maximum;
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             ptr[(i + start) * stride] = (Half)v;
@@ -1595,7 +1595,7 @@ internal static class DefaultFormatters
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
         var swapFirst = info.outputFormat.HasSwapFirst;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
         var premul = info.outputFormat.HasPremultipliedAlpha;
@@ -1623,7 +1623,7 @@ internal static class DefaultFormatters
 
             var v = wOut[index];
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
@@ -1641,7 +1641,7 @@ internal static class DefaultFormatters
         var nChan = info.outputFormat.Channels;
         var doSwap = info.outputFormat.HasSwapAll;
         var swapFirst = info.outputFormat.HasSwapFirst;
-        var reverse = info.outputFormat.Flavor;
+        var reverse = info.outputFormat.Flavor is ColorFlavor.Subtractive;
         var extra = info.outputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
         var premul = info.outputFormat.HasPremultipliedAlpha;
@@ -1675,7 +1675,7 @@ internal static class DefaultFormatters
             if (swapEndian)
                 v = ChangeEndian(v);
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = ReverseFlavor(v);
 
             if (premul && alphaFactor != 0)
@@ -1834,7 +1834,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -1857,7 +1857,7 @@ internal static class DefaultFormatters
 
             v /= 65535.0f;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+            wIn[index] = reverse ? 1 - v : v;
         }
 
         if (extra is 0 && swapFirst)
@@ -2168,7 +2168,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2187,7 +2187,7 @@ internal static class DefaultFormatters
 
             v /= 255.0f;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+            wIn[index] = reverse ? 1 - v : v;
         }
 
         if (extra is 0 && swapFirst)
@@ -2232,7 +2232,7 @@ internal static class DefaultFormatters
         var nChan = info.inputFormat.Channels;
         var swapEndian = info.inputFormat.HasEndianSwap;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2250,7 +2250,7 @@ internal static class DefaultFormatters
             var index = doSwap ? nChan - i - 1 : i;
             var v = ptr[0];
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor(v) : v;
+            wIn[index] = reverse ? ReverseFlavor(v) : v;
             ptr++;
         }
 
@@ -2268,7 +2268,7 @@ internal static class DefaultFormatters
         var nChan = info.inputFormat.Channels;
         var swapEndian = info.inputFormat.HasEndianSwap;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extraFirst = doSwap ^ swapFirst;
 
@@ -2290,7 +2290,7 @@ internal static class DefaultFormatters
             v = (v << 16) / alpha_factor;
             if (v > 0xFFFF) v = 0xFFFF;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : (ushort)v;
+            wIn[index] = reverse ? ReverseFlavor((ushort)v) : (ushort)v;
             ptr++;
         }
 
@@ -2304,7 +2304,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var premul = info.inputFormat.HasPremultipliedAlpha;
@@ -2330,7 +2330,7 @@ internal static class DefaultFormatters
             var index = doSwap ? nChan - i - 1 : i;
 
             uint v = From8to16(acc[0]);
-            v = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : v;
+            v = reverse ? ReverseFlavor((ushort)v) : v;
 
             if (premul && alphaFactor > 0)
             {
@@ -2366,7 +2366,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2403,7 +2403,7 @@ internal static class DefaultFormatters
 
             v /= maximum;
 
-            wIn[index] = (float)(reverse is ColorFlavor.Subtractive ? 1 - v : v);
+            wIn[index] = (float)(reverse ? 1 - v : v);
         }
 
         if (extra is 0 && swapFirst)
@@ -2418,7 +2418,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2442,7 +2442,7 @@ internal static class DefaultFormatters
 
             var vi = QuickSaturateWord(v * maximum);
 
-            vi = reverse is ColorFlavor.Subtractive ? ReverseFlavor(vi) : vi;
+            vi = reverse ? ReverseFlavor(vi) : vi;
 
             wIn[index] = vi;
         }
@@ -2459,7 +2459,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2496,7 +2496,7 @@ internal static class DefaultFormatters
 
             v /= maximum;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+            wIn[index] = reverse ? 1 - v : v;
         }
 
         if (extra is 0 && swapFirst)
@@ -2511,7 +2511,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2535,7 +2535,7 @@ internal static class DefaultFormatters
 
             var vi = QuickSaturateWord(v * maximum);
 
-            vi = reverse is ColorFlavor.Subtractive ? ReverseFlavor(vi) : vi;
+            vi = reverse ? ReverseFlavor(vi) : vi;
 
             wIn[index] = vi;
         }
@@ -2552,7 +2552,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2572,7 +2572,7 @@ internal static class DefaultFormatters
                     ? (float)ptr[(i + start) * stride]
                     : (float)ptr[i + start];
 
-            if (reverse is ColorFlavor.Subtractive)
+            if (reverse)
                 v = maximum - v;
 
             wIn[index] = QuickSaturateWord((double)v * maximum);
@@ -2590,7 +2590,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapFirst = info.inputFormat.HasSwapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var extraFirst = doSwap ^ swapFirst;
@@ -2612,7 +2612,7 @@ internal static class DefaultFormatters
 
             v /= maximum;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? 1 - v : v;
+            wIn[index] = reverse ? 1 - v : v;
         }
 
         if (extra is 0 && swapFirst)
@@ -2794,7 +2794,7 @@ internal static class DefaultFormatters
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
         var swapFirst = info.inputFormat.HasSwapFirst;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var extraFirst = doSwap ^ swapFirst;
         var extra = info.inputFormat.ExtraSamples;
         var premul = info.inputFormat.HasPremultipliedAlpha;
@@ -2820,7 +2820,7 @@ internal static class DefaultFormatters
             var index = doSwap ? nChan - i - 1 : i;
             uint v = ptr[0];
 
-            v = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : v;
+            v = reverse ? ReverseFlavor((ushort)v) : v;
 
             if (premul && alphaFactor > 0)
             {
@@ -2839,7 +2839,7 @@ internal static class DefaultFormatters
     {
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapEndian = info.inputFormat.HasEndianSwap;
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc, BitConverter.ToUInt16);
         var init = ptr[1..].Span;
@@ -2857,7 +2857,7 @@ internal static class DefaultFormatters
             if (swapEndian)
                 v = ChangeEndian(v);
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor(v) : v;
+            wIn[index] = reverse ? ReverseFlavor(v) : v;
 
             ptr += stride;
         }
@@ -2870,7 +2870,7 @@ internal static class DefaultFormatters
         var nChan = info.inputFormat.Channels;
         var doSwap = info.inputFormat.HasSwapAll;
         var swapFirst = info.inputFormat.HasSwapFirst;
-        var reverse = info.inputFormat.Flavor;
+        var reverse = info.inputFormat.Flavor is ColorFlavor.Subtractive;
         var swapEndian = info.inputFormat.HasEndianSwap;
         var extraFirst = doSwap ^ swapFirst;
 
@@ -2896,7 +2896,7 @@ internal static class DefaultFormatters
             v = (v << 16) / alpha_factor;
             if (v > 0xFFFF) v = 0xFFFF;
 
-            wIn[index] = reverse is ColorFlavor.Subtractive ? ReverseFlavor((ushort)v) : (ushort)v;
+            wIn[index] = reverse ? ReverseFlavor((ushort)v) : (ushort)v;
 
             ptr += stride;
         }
