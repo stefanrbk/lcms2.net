@@ -672,10 +672,6 @@ internal static class DefaultFormatters
         (ushort)((ushort)(w << 8) | w >> 8);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort ChangeEndian(ReadOnlySpan<byte> span) =>
-        ChangeEndian(BitConverter.ToUInt16(span));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort From8to16Reversed(byte value) =>
         From8to16(ReverseFlavor(value));
 
@@ -2222,7 +2218,8 @@ internal static class DefaultFormatters
         var extraFirst = doSwap ^ swapFirst;
         var ptr = new UpCastingReadOnlySpan<byte, ushort>(acc,
             swapEndian
-                ? ChangeEndian
+                ? s =>
+                    ChangeEndian(BitConverter.ToUInt16(s))
                 : BitConverter.ToUInt16);
 
         if (extraFirst)
