@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.io;
 using lcms2.types;
 
 namespace lcms2;
@@ -44,6 +45,9 @@ public static class Lcms2
     internal const int typesInLcmsPlugin = 20;
 
     #endregion Fields
+
+    public static Stream cmsOpenIOhandlerFromNULL() =>
+        new NullStream();
 }
 
 public delegate object? DupUserDataFn(object? state, in object? data);
