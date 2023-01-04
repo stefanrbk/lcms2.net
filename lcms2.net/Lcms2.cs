@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.io;
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2;
@@ -46,8 +47,73 @@ public static class Lcms2
 
     #endregion Fields
 
+    #region Public Methods
+
+    public static void cmsCloseIOhandler(Stream io) =>
+        io.Close();
+
+    public static Stream? cmsOpenIOhandlerFromFile(object? state, string fileName, IOHandler.AccessMode accessMode)
+    {
+        Stream? fm = null;
+        try
+        {
+            fm = accessMode switch
+            {
+                IOHandler.AccessMode.Read => File.Open(fileName, FileMode.Open),
+                IOHandler.AccessMode.Write => File.Open(fileName, FileMode.Create),
+                _ => throw new Exception(),
+            };
+        }
+        catch (Exception)
+        {
+            State.SignalError(state, ErrorCode.File, accessMode switch
+            {
+                IOHandler.AccessMode.Read => $"Could not open file '{fileName}'",
+                IOHandler.AccessMode.Write => $"Could not create file '{fileName}'",
+                _ => $"Unknown access mode '{accessMode}'"
+            });
+        }
+
+        return fm;
+    }
+
+    public static Stream? cmsOpenIOhandlerFromMem(object? state, byte[] buffer, int size, IOHandler.AccessMode accessMode)
+    {
+        switch (accessMode)
+        {
+            case IOHandler.AccessMode.Read:
+                if (size < 0)
+                {
+                    State.SignalError(state, ErrorCode.Seek, "Cannot read a file of negative size.");
+                    return null;
+                }
+
+                var fm = new MemoryStream(size);
+                fm.Write(buffer, 0, size);
+                fm.Flush();
+                fm.Seek(0, SeekOrigin.Begin);
+
+                return fm;
+
+            case IOHandler.AccessMode.Write:
+                if (size < 0)
+                {
+                    State.SignalError(state, ErrorCode.Seek, "Cannot create IO with a negative size.");
+                    return null;
+                }
+
+                return new MemoryStream(buffer, 0, size, true);
+
+            default:
+                State.SignalError(state, ErrorCode.UnknownExtension, $"Unknown access mode '{accessMode}'");
+                return null;
+        }
+    }
+
     public static Stream cmsOpenIOhandlerFromNULL() =>
-        new NullStream();
+            new NullStream();
+
+    #endregion Public Methods
 }
 
 public delegate object? DupUserDataFn(object? state, in object? data);
