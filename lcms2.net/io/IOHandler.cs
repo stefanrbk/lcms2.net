@@ -34,6 +34,16 @@ namespace lcms2.io;
 
 public static class IOHandler
 {
+    #region Enums
+
+    public enum AccessMode
+    {
+        Read,
+        Write,
+    }
+
+    #endregion Enums
+
     #region Public Methods
 
     /// <summary>
