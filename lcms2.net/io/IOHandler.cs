@@ -46,6 +46,18 @@ public static class IOHandler
 
     #region Public Methods
 
+    public static DateTimeNumber AdjustEndianness(DateTimeNumber date)
+    {
+        date.Seconds = AdjustEndianness(date.Seconds);
+        date.Minutes = AdjustEndianness(date.Minutes);
+        date.Hours = AdjustEndianness(date.Hours);
+        date.Day = AdjustEndianness(date.Day);
+        date.Month = AdjustEndianness(date.Month);
+        date.Year = AdjustEndianness(date.Year);
+
+        return date;
+    }
+
     /// <summary>
     ///     Swaps the endianness of a <see cref="ushort"/> on little endian machines. ICC Profiles
     ///     are stored in big endian and requires "adjustment".
