@@ -43,6 +43,10 @@ public static class Lcms2
 
     public static readonly XYZ PerceptualBlack = (0.00336, 0.0034731, 0.00287);
 
+    public const uint MagicNumber = 0x61637370;
+    public const uint LcmsSignature = 0x6C636D73;
+
+    internal const int maxTableTag = 100;
     internal const int typesInLcmsPlugin = 20;
 
     #endregion Fields
