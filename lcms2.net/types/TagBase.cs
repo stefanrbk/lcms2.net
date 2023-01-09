@@ -24,13 +24,13 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
 public unsafe struct TagBase
 {
     #region Fields
 
-    public static readonly int SizeOf = sizeof(TagBase);
     public fixed byte Reserved[4];
     public Signature Signature;
 

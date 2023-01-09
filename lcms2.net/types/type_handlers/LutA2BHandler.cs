@@ -27,6 +27,8 @@
 using lcms2.io;
 using lcms2.plugins;
 
+using System.Runtime.CompilerServices;
+
 namespace lcms2.types.type_handlers;
 
 public class LutA2BHandler : TagTypeHandler
@@ -53,7 +55,7 @@ public class LutA2BHandler : TagTypeHandler
     {
         numItems = 0;
 
-        var baseOffset = io.Tell() - TagBase.SizeOf;
+        var baseOffset = io.Tell() - Unsafe.SizeOf<TagBase>();
 
         if (!io.ReadUInt8Number(out var inputChan)) return null;
         if (!io.ReadUInt8Number(out var outputChan)) return null;
@@ -103,7 +105,7 @@ public class LutA2BHandler : TagTypeHandler
 
         var lut = (Pipeline)value;
 
-        var baseOffset = io.Tell() - TagBase.SizeOf;
+        var baseOffset = io.Tell() - Unsafe.SizeOf<TagBase>();
 
         if (lut.elements is not null &&
             !lut.CheckAndRetreiveStagesAtoB(out a, out clut, out m, out matrix, out b))
