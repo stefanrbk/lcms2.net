@@ -56,6 +56,21 @@ public static class Lcms2
     public static void cmsCloseIOhandler(Stream io) =>
         io.Close();
 
+    public static IccProfile cmsCreateProfilePlaceholder(object? state) =>
+        new(state);
+
+    public static object? cmsGetProfileContextID(IccProfile profile) =>
+        profile.ContextId;
+
+    public static Stream? cmsGetProfileIOhandler(IccProfile profile) =>
+        profile.IOhandler;
+
+    public static int cmsGetTagCount(IccProfile profile) =>
+            (int)profile.TagCount;
+
+    public static Signature cmsGetTagSignature(IccProfile profile, int n) =>
+        profile.GetTagName(n);
+
     public static Stream? cmsOpenIOhandlerFromFile(object? state, string fileName, IOHandler.AccessMode accessMode)
     {
         Stream? fm = null;
@@ -115,7 +130,67 @@ public static class Lcms2
     }
 
     public static Stream cmsOpenIOhandlerFromNULL() =>
-            new NullStream();
+        new NullStream();
+
+    public static uint cmsGetHeaderRenderingIntent(IccProfile profile) =>
+        profile.RenderingIntent;
+
+    public static void cmsSetHeaderRenderingIntent(IccProfile profile, uint renderingIntent) =>
+        profile.RenderingIntent = renderingIntent;
+
+    public static uint cmsGetHeaderCreator(IccProfile profile) =>
+        profile.Creator;
+
+    public static uint cmsGetHeaderModel(IccProfile profile) =>
+        profile.Model;
+
+    public static void cmsSetHeaderModel(IccProfile profile, uint model) =>
+        profile.Model = model;
+
+    public static ulong cmsGetHeaderAttributes(IccProfile profile) =>
+        profile.Attributes;
+
+    public static void cmsSetHeaderAttributes(IccProfile profile, ulong attributes) =>
+        profile.Attributes = attributes;
+
+    public static ProfileID cmsGetHeaderProfileID(IccProfile profile) =>
+        profile.ProfileID;
+
+    public static void cmsSetHeaderProfileID(IccProfile profile, ProfileID id) =>
+        profile.ProfileID = id;
+
+    public static DateTime cmsGetHeaderCreationDateTime(IccProfile profile) =>
+        profile.Created;
+
+    public static Signature cmsGetPCS(IccProfile profile) =>
+        profile.PCS;
+
+    public static void cmsSetPCS(IccProfile profile, Signature pcs) =>
+        profile.PCS = pcs;
+
+    public static Signature cmsGetColorSpace(IccProfile profile) =>
+        profile.ColorSpace;
+
+    public static void cmsSetColorSpace(IccProfile profile, Signature colorSpace) =>
+        profile.ColorSpace = colorSpace;
+
+    public static Signature cmsGetDeviceClass(IccProfile profile) =>
+        profile.DeviceClass;
+
+    public static void cmsSetDeviceClass(IccProfile profile, Signature deviceClass) =>
+        profile.DeviceClass = deviceClass;
+
+    public static uint cmsGetEncodedICCversion(IccProfile profile) =>
+        profile.EncodedVersion;
+
+    public static void cmsSetEncodedICCversion(IccProfile profile, uint version) =>
+        profile.EncodedVersion = version;
+
+    public static double cmsGetProfileVersion(IccProfile profile) =>
+        profile.Version;
+
+    public static void cmsSetProfileVersion(IccProfile profile, double version) =>
+        profile.Version = version;
 
     #endregion Public Methods
 }
