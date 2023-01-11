@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
 using lcms2.types;
 
 using System.Buffers.Binary;
@@ -348,6 +349,20 @@ public static class IOHandler
 
         value = (x, y, z);
         return true;
+    }
+
+    public static bool Seek(this Stream io, uint offset)
+    {
+        try
+        {
+            io.Seek(offset, SeekOrigin.Begin);
+            return true;
+        }
+        catch
+        {
+            State.SignalError(null, ErrorCode.File, "Seek error; probably corrupted file");
+            return false;
+        }
     }
 
     public static long Tell(this Stream io) =>
