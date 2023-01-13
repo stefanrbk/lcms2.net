@@ -51,13 +51,19 @@ internal static class Helpers
 
     #region Internal Methods
 
+    internal static ushort ab2Fix2(double ab) =>
+        QuickSaturateWord((ab + 128.0) * 256.0);
+
+    internal static ushort ab2Fix4(double ab) =>
+        QuickSaturateWord((ab + 128.0) * 257.0);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignLong(long x) =>
         (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long AlignMem(long x) =>
-        (x + (alignPtr.Value - 1)) & ~(alignPtr.Value - 1);
+(x + (alignPtr.Value - 1)) & ~(alignPtr.Value - 1);
 
     internal static double Atan2Deg(double a, double b)
     {
@@ -75,6 +81,42 @@ internal static class Helpers
 
         return h;
     }
+
+    internal static double ClampabDoubleV2(double ab) =>
+                ab switch
+                {
+                    < minEncodableAb2 => minEncodableAb2,
+                    > maxEncodableAb2 => maxEncodableAb2,
+                    _ => ab
+                };
+
+    internal static double ClampabDoubleV4(double ab) =>
+        ab switch
+        {
+            < minEncodableAb4 => minEncodableAb4,
+            > maxEncodableAb4 => maxEncodableAb4,
+            _ => ab
+        };
+
+    internal static double ClampLDoubleV2(double l)
+    {
+        const double lMax = 0xFFFF * 100.0 / 0xFF00;
+
+        return l switch
+        {
+            < 0 => 0,
+            > lMax => lMax,
+            _ => l
+        };
+    }
+
+    internal static double ClampLDoubleV4(double l) =>
+        l switch
+        {
+            < 0 => 0,
+            > 100.0 => 100.0,
+            _ => l
+        };
 
     internal static uint CubeSize(ReadOnlySpan<uint> dims, int b)
     {
@@ -203,6 +245,12 @@ internal static class Helpers
             @out[i] = QuickSaturateWord(@in[i] * 65535);
     }
 
+    internal static ushort L2Fix2(double l) =>
+                                                            QuickSaturateWord(l * 652.8);
+
+    internal static ushort L2Fix4(double l) =>
+        QuickSaturateWord(l * 655.35);
+
     internal static ushort QuantizeValue(double i, uint maxSamples) =>
         /**  Original Code (cmslut.c line: 732)
          **
@@ -306,6 +354,12 @@ internal static class Helpers
         if (rv != rc / n) return unchecked((uint)-1);
         return rc;
     }
+
+    internal static ushort XYZ2Fix(double d) =>
+        QuickSaturateWord(d * 32768.0);
+
+    internal static double XYZ2Float(ushort v) =>
+        S15Fixed16toDouble(v << 1);
 
     #endregion Internal Methods
 }

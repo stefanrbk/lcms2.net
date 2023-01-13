@@ -91,20 +91,20 @@ public class Transform
     internal Signature exitColorSpace;
     internal XYZ exitWhitePoint;
     internal FreeUserDataFn? freeUserData;
-    internal Formatter16? fromInput;
-    internal FormatterFloat? fromInputFloat;
+    internal Formatter16Input? fromInput;
+    internal FormatterFloatInput? fromInputFloat;
     internal Pipeline gamutCheck;
     internal NamedColorList inputColorant;
-    internal Signature inputFormat, outputFormat;
+    internal PixelFormat inputFormat, outputFormat;
     internal Pipeline lut;
     internal TransformFn? oldXform;
     internal NamedColorList outputColorant;
     internal Signature renderingIntent;
     internal Sequence sequence;
     internal object? state;
-    internal Formatter16? toOutput;
+    internal Formatter16Output? toOutput;
 
-    internal FormatterFloat? toOutputFloat;
+    internal FormatterFloatOutput? toOutputFloat;
 
     internal Transform2Fn? xform;
 
@@ -124,14 +124,14 @@ public class Transform
     ///     Retrieve 16 bit formatters
     /// </summary>
     /// <remarks>Implements the <c>_cmsGetTransformFormatters16</c> function.</remarks>
-    public (Formatter16? FromInput, Formatter16? ToOutput) Formatters16 =>
+    public (Formatter16Input? FromInput, Formatter16Output? ToOutput) Formatters16 =>
         (fromInput, toOutput);
 
     /// <summary>
     ///     Retrieve float formatters
     /// </summary>
     /// <remarks>Implements the <c>_cmsGetTransformFormattersFloat</c> function.</remarks>
-    public (FormatterFloat? FromInput, FormatterFloat? ToOutput) FormattersFloat =>
+    public (FormatterFloatInput? FromInput, FormatterFloatOutput? ToOutput) FormattersFloat =>
         (fromInputFloat, toOutputFloat);
 
     public NamedColorList? NamedColorList =>

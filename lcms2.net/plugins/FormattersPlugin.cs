@@ -26,6 +26,7 @@
 //
 using lcms2.state;
 using lcms2.types;
+using lcms2.types.defaults;
 
 namespace lcms2.plugins;
 
@@ -111,4 +112,23 @@ internal sealed class FormattersPluginChunk
     internal static FormattersPluginChunk Default => new();
 
     #endregion Properties
+
+    #region Internal Methods
+
+    internal Formatter GetFormatter(PixelFormat type, FormatterDirection dir, PackFlag flags)
+    {
+        for (var f = factoryList; f is not null; f = f.next)
+        {
+            var fn = f.factory?.Invoke(type, dir, flags);
+            if (fn is not null)
+                return fn ?? default;
+        }
+
+        // Revert to default
+        return (dir is FormatterDirection.Input)
+            ? DefaultFormatters.GetInput(type, flags)
+            : DefaultFormatters.GetOutput(type, flags);
+    }
+
+    #endregion Internal Methods
 }

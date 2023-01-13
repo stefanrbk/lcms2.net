@@ -24,13 +24,25 @@
 //
 //---------------------------------------------------------------------------------
 //
+namespace lcms2.types;
 
-// This file is used by Code Analysis to maintain SuppressMessage attributes that are applied to
-// this project. Project-level suppressions either have no target or are given a specific target and
-// scoped to a namespace, type, member, etc.
+public partial struct Signature
+{
+    #region Classes
 
-using System.Diagnostics.CodeAnalysis;
+    public static class Platform
+    {
+        #region Fields
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyY")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyYTripple")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Lcms2 public static methods start with \"cms\"", Scope = "member", Target = "~T:lcms2.Lcms2")]
+        public static readonly Signature Macintosh = new("APPL");
+        public static readonly Signature Microsoft = new("MSFT");
+        public static readonly Signature Solaris = new("SUNW");
+        public static readonly Signature SGI = new("SGI ");
+        public static readonly Signature Taligent = new("TGNT");
+        public static readonly Signature Unices = new("*nix"); // From argyll -- Not official
+
+        #endregion Fields
+    }
+
+    #endregion Classes
+}

@@ -183,6 +183,21 @@ public static class State
             lhg.handler(state, errorCode, String.Format(errorText, args));
     }
 
+    internal static TagDescriptor? GetTagDescriptor(object? state, Signature sig)
+    {
+        var chunk = State.GetTagPlugin(state);
+
+        for (var pt = chunk.tags; pt is not null; pt = pt.Next)
+
+            if (sig == pt.Signature) return pt.Descriptor;
+
+        for (var pt = TagPluginChunk.supportedTags; pt is not null; pt = pt.Next)
+
+            if (sig == pt.Signature) return pt.Descriptor;
+
+        return null;
+    }
+
     #endregion Internal Methods
 
     #region Classes
@@ -525,8 +540,7 @@ public static class State
 
                 anterior = newEntry;
 
-                if (newHead.factoryList is null)
-                    newHead.factoryList = newEntry;
+                newHead.factoryList ??= newEntry;
             }
 
             state._chunks[(int)Chunks.FormattersPlugin] = newHead;

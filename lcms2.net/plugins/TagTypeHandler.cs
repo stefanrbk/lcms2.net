@@ -53,7 +53,7 @@ public abstract partial class TagTypeHandler
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
-    public virtual uint ICCVersion { get; }
+    public virtual uint ICCVersion { get; internal set; }
 
     /// <summary>
     ///     Signature of the type
@@ -63,7 +63,7 @@ public abstract partial class TagTypeHandler
     /// <summary>
     ///     Additional parameter used by the calling thread
     /// </summary>
-    public virtual object? StateContainer { get; }
+    public virtual object? StateContainer { get; internal set; }
 
     #endregion Properties
 

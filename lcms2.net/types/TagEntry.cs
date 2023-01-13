@@ -24,13 +24,16 @@
 //
 //---------------------------------------------------------------------------------
 //
+using System.Runtime.InteropServices;
 
-// This file is used by Code Analysis to maintain SuppressMessage attributes that are applied to
-// this project. Project-level suppressions either have no target or are given a specific target and
-// scoped to a namespace, type, member, etc.
+namespace lcms2.types;
 
-using System.Diagnostics.CodeAnalysis;
+[StructLayout(LayoutKind.Explicit)]
+public struct TagEntry
+{
+    [FieldOffset(0)] public uint sig;
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyY")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyYTripple")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Lcms2 public static methods start with \"cms\"", Scope = "member", Target = "~T:lcms2.Lcms2")]
+    [FieldOffset(4)] public uint offset;
+
+    [FieldOffset(8)] public uint size;
+}

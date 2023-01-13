@@ -28,6 +28,20 @@ namespace lcms2.io;
 
 public class NullStream : Stream
 {
+    /** Original Code (cmsio0.c line: 36)
+     **
+     ** // NULL stream, for taking care of used space -------------------------------------
+     **
+     ** // NULL IOhandler basically does nothing but keep track on how many bytes have been
+     ** // written. This is handy when creating profiles, where the file size is needed in the
+     ** // header. Then, whole profile is serialized across NULL IOhandler and a second pass
+     ** // writes the bytes to the pertinent IOhandler.
+     **
+     ** typedef struct {
+     **     cmsUInt32Number Pointer;         // Points to current location
+     ** } FILENULL;
+     **/
+
     #region Fields
 
     private long _length;
@@ -37,9 +51,13 @@ public class NullStream : Stream
     #region Properties
 
     public override bool CanRead => true;
+
     public override bool CanSeek => true;
+
     public override bool CanWrite => true;
+
     public override long Length => _length;
+
     public override long Position { get; set; }
 
     #endregion Properties
@@ -51,6 +69,21 @@ public class NullStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
+        /** Original Code (cmsio0.cs line 47)
+         **
+         ** static
+         ** cmsUInt32Number NULLRead(cmsIOHANDLER* iohandler, void *Buffer, cmsUInt32Number size, cmsUInt32Number count)
+         ** {
+         **     FILENULL* ResData = (FILENULL*) iohandler ->stream;
+         **
+         **     cmsUInt32Number len = size * count;
+         **     ResData -> Pointer += len;
+         **     return count;
+         **
+         **     cmsUNUSED_PARAMETER(Buffer);
+         ** }
+         **/
+
         _length = count;
         Position += _length;
         return count;
@@ -58,6 +91,18 @@ public class NullStream : Stream
 
     public override long Seek(long offset, SeekOrigin origin)
     {
+        /** Original Code (cmsio0.cs line 59)
+         **
+         ** static
+         ** cmsBool  NULLSeek(cmsIOHANDLER* iohandler, cmsUInt32Number offset)
+         ** {
+         **     FILENULL* ResData = (FILENULL*) iohandler ->stream;
+         **
+         **     ResData ->Pointer = offset;
+         **     return TRUE;
+         ** }
+         **/
+
         switch (origin)
         {
             case SeekOrigin.Begin:
@@ -81,6 +126,23 @@ public class NullStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count)
     {
+        /** Original Code (cmsio0.cs line 75)
+         **
+         ** static
+         ** cmsBool  NULLWrite(cmsIOHANDLER* iohandler, cmsUInt32Number size, const void *Ptr)
+         ** {
+         **     FILENULL* ResData = (FILENULL*) iohandler ->stream;
+         **
+         **     ResData ->Pointer += size;
+         **     if (ResData ->Pointer > iohandler->UsedSpace)
+         **         iohandler->UsedSpace = ResData ->Pointer;
+         **
+         **     return TRUE;
+         **
+         **     cmsUNUSED_PARAMETER(Ptr);
+         ** }
+         **/
+
         Position += count;
         if (Position > _length)
             _length = Position;

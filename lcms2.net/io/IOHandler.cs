@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
 using lcms2.types;
 
 using System.Buffers.Binary;
@@ -34,7 +35,29 @@ namespace lcms2.io;
 
 public static class IOHandler
 {
+    #region Enums
+
+    public enum AccessMode
+    {
+        Read,
+        Write,
+    }
+
+    #endregion Enums
+
     #region Public Methods
+
+    public static DateTimeNumber AdjustEndianness(DateTimeNumber date)
+    {
+        date.Seconds = AdjustEndianness(date.Seconds);
+        date.Minutes = AdjustEndianness(date.Minutes);
+        date.Hours = AdjustEndianness(date.Hours);
+        date.Day = AdjustEndianness(date.Day);
+        date.Month = AdjustEndianness(date.Month);
+        date.Year = AdjustEndianness(date.Year);
+
+        return date;
+    }
 
     /// <summary>
     ///     Swaps the endianness of a <see cref="ushort"/> on little endian machines. ICC Profiles
@@ -326,6 +349,20 @@ public static class IOHandler
 
         value = (x, y, z);
         return true;
+    }
+
+    public static bool Seek(this Stream io, uint offset)
+    {
+        try
+        {
+            io.Seek(offset, SeekOrigin.Begin);
+            return true;
+        }
+        catch
+        {
+            State.SignalError(null, ErrorCode.File, "Seek error; probably corrupted file");
+            return false;
+        }
     }
 
     public static long Tell(this Stream io) =>

@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 global using static lcms2.Helpers;
+global using static lcms2.Lcms2;
 
 using System.Runtime.CompilerServices;
 

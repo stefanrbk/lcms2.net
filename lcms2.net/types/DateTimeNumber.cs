@@ -24,18 +24,26 @@
 //
 //---------------------------------------------------------------------------------
 //
+using System.Runtime.InteropServices;
+
 namespace lcms2.types;
 
+[StructLayout(LayoutKind.Explicit)]
 public struct DateTimeNumber : ICloneable
 {
     #region Fields
 
-    public ushort Day;
-    public ushort Hours;
-    public ushort Minutes;
-    public ushort Month;
-    public ushort Seconds;
-    public ushort Year;
+    [FieldOffset(4)] public ushort Day;
+
+    [FieldOffset(6)] public ushort Hours;
+
+    [FieldOffset(8)] public ushort Minutes;
+
+    [FieldOffset(2)] public ushort Month;
+
+    [FieldOffset(10)] public ushort Seconds;
+
+    [FieldOffset(0)] public ushort Year;
 
     #endregion Fields
 

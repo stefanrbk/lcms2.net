@@ -25,12 +25,60 @@
 //---------------------------------------------------------------------------------
 //
 
-// This file is used by Code Analysis to maintain SuppressMessage attributes that are applied to
-// this project. Project-level suppressions either have no target or are given a specific target and
-// scoped to a namespace, type, member, etc.
+using System.Diagnostics;
 
-using System.Diagnostics.CodeAnalysis;
+namespace MoreSpans;
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyY")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyYTripple")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Lcms2 public static methods start with \"cms\"", Scope = "member", Target = "~T:lcms2.Lcms2")]
+[DebuggerTypeProxy("UpDownCastingSpanDebugView<,>")]
+public readonly ref struct DownCastingReadOnlySpan<Tfrom, Tto>
+    where Tfrom : unmanaged
+    where Tto : unmanaged
+{
+    #region Fields
+
+    private readonly DownCastFunc<Tto, Tfrom> _funcTo;
+    private readonly int _size;
+
+    #endregion Fields
+
+    #region Public Constructors
+
+    public DownCastingReadOnlySpan(ReadOnlySpan<Tfrom> span, DownCastFunc<Tto, Tfrom> funcTo)
+    {
+        Span = span;
+        _funcTo = funcTo;
+        unsafe
+        {
+            _size = span.Length * sizeof(Tfrom) / sizeof(Tto);
+        }
+    }
+
+    #endregion Public Constructors
+
+    #region Properties
+
+    public ReadOnlySpan<Tfrom> Span { get; }
+
+    #endregion Properties
+
+    #region Indexers
+
+    public Tto[] this[int index] =>
+        _funcTo(Span[index * _size]);
+
+    #endregion Indexers
+
+    #region Public Methods
+
+    public Tto[] ToArray()
+    {
+        var length = Span.Length * _size;
+        var array = new Tto[length];
+        for (var i = 0; i < Span.Length; i++)
+            this[i].CopyTo(array, i * _size);
+
+        return array;
+    }
+
+    #endregion Public Methods
+}
