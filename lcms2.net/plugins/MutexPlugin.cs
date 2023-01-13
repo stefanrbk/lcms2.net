@@ -39,19 +39,19 @@ public delegate object? CreateMutexFunction(object? state);
 ///     Function to destroy a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsDestroyMutexFnPtrType</c> typedef.</remarks>
-public delegate void DestroyMutexFunction(object? state, ref object mtx);
+public delegate void DestroyMutexFunction(object? state, ref object? mtx);
 
 /// <summary>
 ///     Function to lock a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsLockMutexFnPtrType</c> typedef.</remarks>
-public delegate bool LockMutexFunction(object? state, ref object mtx);
+public delegate bool LockMutexFunction(object? state, ref object? mtx);
 
 /// <summary>
 ///     Function to unlock a mutex
 /// </summary>
 /// <remarks>Implements the <c>_cmsUnlockMutexFnPtrType</c> typedef.</remarks>
-public delegate void UnlockMutexFunction(object? state, ref object mtx);
+public delegate void UnlockMutexFunction(object? state, ref object? mtx);
 
 /// <summary>
 ///     Mutex plugin
@@ -107,22 +107,22 @@ public sealed class MutexPlugin : Plugin
         return new Mutex();
     }
 
-    internal static void DefaultDestroy(object? _context, ref object mtx)
+    internal static void DefaultDestroy(object? _context, ref object? mtx)
     {
-        var mutex = (Mutex)mtx;
-        mutex.Dispose();
+        var mutex = (Mutex?)mtx;
+        mutex?.Dispose();
     }
 
-    internal static bool DefaultLock(object? _context, ref object mtx)
+    internal static bool DefaultLock(object? _context, ref object? mtx)
     {
-        var mutex = (Mutex)mtx;
-        return mutex.WaitOne();
+        var mutex = (Mutex?)mtx;
+        return mutex?.WaitOne() ?? true;
     }
 
-    internal static void DefaultUnlock(object? _context, ref object mtx)
+    internal static void DefaultUnlock(object? _context, ref object? mtx)
     {
-        var mutex = (Mutex)mtx;
-        mutex.ReleaseMutex();
+        var mutex = (Mutex?)mtx;
+        mutex?.ReleaseMutex();
     }
 
     internal static bool RegisterPlugin(object? context, MutexPlugin? plugin)
