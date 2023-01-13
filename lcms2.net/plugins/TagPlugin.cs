@@ -267,23 +267,4 @@ internal sealed class TagPluginChunk
     internal static TagPluginChunk Default => new();
 
     #endregion Properties
-
-    #region Internal Methods
-
-    internal TagDescriptor GetTagDescriptor(object? state, Signature sig)
-    {
-        var chunk = State.GetTagPlugin(state);
-
-        for (var pt = chunk.tags; pt is not null; pt = pt.Next)
-
-            if (sig == pt.Signature) return pt.Descriptor;
-
-        for (var pt = supportedTags; pt is not null; pt = pt.Next)
-
-            if (sig == pt.Signature) return pt.Descriptor;
-
-        return null;
-    }
-
-    #endregion Internal Methods
 }
