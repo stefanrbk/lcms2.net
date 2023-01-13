@@ -32,13 +32,13 @@ using System.Runtime.CompilerServices;
 
 namespace lcms2.types;
 
-public unsafe struct IccProfile
+public unsafe struct IccProfile : ICloneable
 {
     #region Fields
 
-    private readonly object?[] tagPtrs = new object?[maxTableTag];
+    private IRawTag?[] tagPtrs = new IRawTag?[maxTableTag];
 
-    private readonly TagTypeHandler?[] tagTypeHandlers = new TagTypeHandler?[maxTableTag];
+    private TagTypeHandler?[] tagTypeHandlers = new TagTypeHandler?[maxTableTag];
 
     private bool isWrite;
     private fixed uint tagLinked[maxTableTag];
@@ -121,6 +121,47 @@ public unsafe struct IccProfile
     /// </summary>
     public bool IsTag(Signature sig) =>
         SearchTag(sig, false) >= 0;
+
+    public uint SaveToStream(Stream? io)
+    {
+        ref var Icc = ref this;
+
+        if (!State.GetMutexPlugin(ContextId).@lock(ContextId, ref Icc.usrMutex)) return 0;
+
+        var Keep = (IccProfile?)Clone();
+
+        var PrevIO = IOhandler = cmsOpenIOhandlerFromNULL();
+
+        // Pass #1 does compute offsets
+
+        if (!WriteHeader(0)) goto Error;
+        if (!SaveTags(ref Keep)) goto Error;
+
+        var UsedSpace = (uint)PrevIO.Length;
+
+        // Pass #2 does save to iohandler
+
+        if (io is not null)
+        {
+            Icc.IOhandler = io;
+            if (!SetLinks()) goto Error;
+            if (!WriteHeader(UsedSpace)) goto Error;
+            if (!SaveTags(ref Keep)) goto Error;
+        }
+
+        this = Keep!.Value;
+        PrevIO.Dispose();
+        State.GetMutexPlugin(ContextId).unlock(ContextId, ref Icc.usrMutex);
+
+        return UsedSpace;
+
+    Error:
+        PrevIO.Dispose();
+        this = Keep!.Value;
+        State.GetMutexPlugin(ContextId).unlock(ContextId, ref Icc.usrMutex);
+
+        return 0;
+    }
 
     #endregion Public Methods
 
@@ -454,6 +495,128 @@ public unsafe struct IccProfile
         return val;
     }
 
+    private bool SetLinks()
+    {
+        for (var i = 0; i < TagCount; i++)
+        {
+            if (tagLinked[i] != 0)
+            {
+                var lnk = new Signature(tagLinked[i]);
+
+                var j = SearchTag(lnk, false);
+                if (j >= 0)
+                {
+                    tagOffsets[i] = tagOffsets[j];
+                    tagSizes[i] = tagSizes[j];
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private bool SaveTags(ref IccProfile? fileOrig)
+    {
+        ref var icc = ref this;
+        var io = IOhandler;
+        if (io is null) return false;
+        var version = Version;
+
+        for (var i = 0; i < TagCount; i++)
+        {
+            if (tagNames[i] == 0) continue;
+
+            var tagName = new Signature(tagNames[i]);
+
+            // Linked tags are not written
+            if (tagLinked[i] != 0) continue;
+
+            var begin = tagOffsets[i] = (uint)io.Length;
+
+            var data = tagPtrs[i];
+
+            if (data is null)
+            {
+                // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
+                // In this case a blind copy of the block data is performed
+                if (fileOrig is not null && tagOffsets[i] != 0)
+                {
+                    var orig = fileOrig.Value;
+                    if (orig.IOhandler is not null)
+                    {
+                        var tagSize = orig.tagSizes[i];
+                        var tagOffset = orig.tagOffsets[i];
+
+                        if (!orig.IOhandler.Seek(tagOffset)) return false;
+
+                        var mem = new byte[tagSize];
+
+                        try
+                        {
+                            orig.IOhandler.ReadExactly(mem);
+                            io.Write(mem);
+                        }
+                        catch
+                        {
+                            return false;
+                        }
+
+                        icc.tagSizes[i] = (uint)(io.Length - begin);
+
+                        // Align to 32 bit boundary.
+                        if (!io.WriteAlignment()) return false;
+                    }
+                }
+
+                continue;
+            }
+
+            // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
+            if (icc.tagSaveAsRaw[i])
+            {
+                if (!data.WriteRaw(io)) return false;
+            }
+            else
+            {
+                // Search for support on this tag
+                var tagDescriptor = State.GetTagDescriptor(ContextId, tagName);
+                if (tagDescriptor is null) continue;        // Unsupported, ignore it
+
+                var dataObj = (object)data;
+
+                var type = tagDescriptor.DecideType is not null
+                    ? tagDescriptor.DecideType(version, ref dataObj)
+                    : tagDescriptor.SupportedTypes[0];
+
+                var typeHandler = TagTypeHandler.GetHandler(ContextId, type);
+
+                if (typeHandler is null)
+                {
+                    State.SignalError(ContextId, ErrorCode.Internal, $"(Internal) no handler for tag {tagName}");
+                    continue;
+                }
+
+                var tagBase = new TagBase(typeHandler.Signature);
+                if (!io.Write(tagBase)) return false;
+
+                typeHandler.StateContainer = ContextId;
+                typeHandler.ICCVersion = EncodedVersion;
+                if (!typeHandler.Write(io, data, tagDescriptor.ElementCount))
+                {
+                    State.SignalError(ContextId, ErrorCode.Write, $"Couldn't write type '{tagBase.Signature}'");
+                    return false;
+                }
+            }
+
+            icc.tagSizes[i] = (uint)(io.Length - begin);
+
+            // Align to 32 bit boundary
+            if (!io.WriteAlignment()) return false;
+        }
+
+        return true;
+    }
+
     private int SearchOneTag(Signature sig)
     {
         for (var i = 0; i < TagCount; i++)
@@ -463,6 +626,16 @@ public unsafe struct IccProfile
         }
 
         return -1;
+    }
+
+    public object Clone()
+    {
+        var result = (IccProfile)MemberwiseClone();
+
+        result.tagTypeHandlers = ((TagTypeHandler?[])tagTypeHandlers.Clone());
+        result.tagPtrs = (IRawTag?[])tagPtrs.Clone();
+
+        return result;
     }
 
     #endregion Private Methods
