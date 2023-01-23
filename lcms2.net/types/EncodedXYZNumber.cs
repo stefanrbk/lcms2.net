@@ -24,56 +24,13 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2.state;
+using S15Fixed16Number = System.Int32;
 
-public delegate void LogErrorHandlerFunction(object? context, ErrorCode errorCode, string text);
+namespace lcms2.types;
 
-public enum ErrorCode
+public struct EncodedXYZNumber
 {
-    Undefined,
-    File,
-    Range,
-    Internal,
-    Null,
-    Read,
-    Seek,
-    Write,
-    UnknownExtension,
-    ColorspaceCheck,
-    AlreadyDefined,
-    BadSignature,
-    CorruptionDetected,
-    NotSuitable,
-}
-
-internal sealed class LogErrorHandler
-{
-    #region Fields
-
-    internal static LogErrorHandler global = new() { handler = DefaultLogErrorHandlerFunction };
-
-    // Set to null for global fallback
-    internal LogErrorHandlerFunction? handler;
-
-    #endregion Fields
-
-    #region Private Constructors
-
-    private LogErrorHandler()
-    { }
-
-    #endregion Private Constructors
-
-    #region Properties
-
-    internal static LogErrorHandler Default => new() { handler = DefaultLogErrorHandlerFunction };
-
-    #endregion Properties
-
-    #region Internal Methods
-
-    internal static void DefaultLogErrorHandlerFunction(object? _context, ErrorCode _errorCode, string _text)
-    { }
-
-    #endregion Internal Methods
+    public S15Fixed16Number X;
+    public S15Fixed16Number Y;
+    public S15Fixed16Number Z;
 }
