@@ -24,53 +24,22 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2.io;
+namespace lcms2;
 
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
-
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
-
-internal delegate bool SeekFn(IOHandler io, uint offset);
-
-internal delegate bool CloseFn(IOHandler io);
-
-internal delegate uint TellFn(IOHandler io);
-
-public class IOHandler
+public sealed class NullMutex : IMutex
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    public static IMutex Create(Context? context) =>
+        new NullMutex();
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
+    public void Destroy(Context? _)
+    { }
 
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
-    {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
-    }
+    public void Dispose()
+    { }
 
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
+    public bool Lock(Context? _) =>
+        true;
 
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
-
-    public bool Close(IOHandler io) =>
-        close(io);
-
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
+    public void Unlock(Context? _)
+    { }
 }

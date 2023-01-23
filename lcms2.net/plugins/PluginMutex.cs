@@ -24,53 +24,31 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2.io;
+using lcms2.types;
 
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
+namespace lcms2.plugins;
 
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
-
-internal delegate bool SeekFn(IOHandler io, uint offset);
-
-internal delegate bool CloseFn(IOHandler io);
-
-internal delegate uint TellFn(IOHandler io);
-
-public class IOHandler
+public class PluginMutex : PluginBase
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    public CreateMutexFn CreateMutex { get; internal set; }
+    public DestroyMutexFn DestroyMutex { get; internal set; }
+    public LockMutexFn LockMutex { get; internal set; }
+    public UnlockMutexFn UnlockMutex { get; internal set; }
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
+    public PluginMutex(
+        uint expectedVersion,
+        Signature magic,
+        Signature type,
+        CreateMutexFn createMutex,
+        DestroyMutexFn destroyMutex,
+        LockMutexFn lockMutex,
+        UnlockMutexFn unlockMutex)
 
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
+        : base(expectedVersion, magic, type)
     {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
+        CreateMutex = createMutex;
+        DestroyMutex = destroyMutex;
+        LockMutex = lockMutex;
+        UnlockMutex = unlockMutex;
     }
-
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
-
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
-
-    public bool Close(IOHandler io) =>
-        close(io);
-
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
 }

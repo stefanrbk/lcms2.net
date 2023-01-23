@@ -24,53 +24,27 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2.io;
+namespace lcms2;
 
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
-
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
-
-internal delegate bool SeekFn(IOHandler io, uint offset);
-
-internal delegate bool CloseFn(IOHandler io);
-
-internal delegate uint TellFn(IOHandler io);
-
-public class IOHandler
+public class DefaultMutex : IMutex
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    private readonly Mutex mutex;
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
+    public DefaultMutex() =>
+        mutex = new Mutex();
 
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
-    {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
-    }
+    public static IMutex Create(Context? context) =>
+        new DefaultMutex();
 
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
+    public void Dispose() =>
+        mutex.Dispose();
 
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
+    public bool Lock(Context? context) =>
+        mutex.WaitOne();
 
-    public bool Close(IOHandler io) =>
-        close(io);
+    public void Unlock(Context? context) =>
+        mutex.ReleaseMutex();
 
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
+    public void Destroy(Context? context) =>
+        Dispose();
 }

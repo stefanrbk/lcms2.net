@@ -24,53 +24,28 @@
 //
 //---------------------------------------------------------------------------------
 //
-namespace lcms2.io;
+namespace lcms2.plugins;
 
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
+public delegate IMutex CreateMutexFn(Context? context);
 
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
+public delegate void DestroyMutexFn(Context? context, IMutex mutex);
 
-internal delegate bool SeekFn(IOHandler io, uint offset);
+public delegate bool LockMutexFn(Context? context, IMutex mutex);
 
-internal delegate bool CloseFn(IOHandler io);
+public delegate void UnlockMutexFn(Context? context, IMutex mutex);
 
-internal delegate uint TellFn(IOHandler io);
-
-public class IOHandler
+internal class MutexPluginChunkType
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    public CreateMutexFn CreateFn;
+    public DestroyMutexFn DestroyFn;
+    public LockMutexFn LockFn;
+    public UnlockMutexFn UnlockFn;
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
-
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
+    public MutexPluginChunkType(CreateMutexFn createFn, DestroyMutexFn destroyFn, LockMutexFn lockFn, UnlockMutexFn unlockFn)
     {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
+        CreateFn = createFn;
+        DestroyFn = destroyFn;
+        LockFn = lockFn;
+        UnlockFn = unlockFn;
     }
-
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
-
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
-
-    public bool Close(IOHandler io) =>
-        close(io);
-
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
 }

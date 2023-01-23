@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ namespace lcms2;
 
 public delegate void FreeUserDataFn(object? state, ref object data);
 
-public static class Lcms2
+public static partial class Lcms2
 {
     #region Fields
 
@@ -71,15 +71,15 @@ public static class Lcms2
     public static Signature cmsGetTagSignature(IccProfile profile, int n) =>
         profile.GetTagName(n);
 
-    public static Stream? cmsOpenIOhandlerFromFile(object? state, string fileName, IOHandler.AccessMode accessMode)
+    public static Stream? cmsOpenIOhandlerFromFile(object? state, string fileName, IOHandlerHelpers.AccessMode accessMode)
     {
         Stream? fm = null;
         try
         {
             fm = accessMode switch
             {
-                IOHandler.AccessMode.Read => File.Open(fileName, FileMode.Open),
-                IOHandler.AccessMode.Write => File.Open(fileName, FileMode.Create),
+                IOHandlerHelpers.AccessMode.Read => File.Open(fileName, FileMode.Open),
+                IOHandlerHelpers.AccessMode.Write => File.Open(fileName, FileMode.Create),
                 _ => throw new Exception(),
             };
         }
@@ -87,8 +87,8 @@ public static class Lcms2
         {
             State.SignalError(state, ErrorCode.File, accessMode switch
             {
-                IOHandler.AccessMode.Read => $"Could not open file '{fileName}'",
-                IOHandler.AccessMode.Write => $"Could not create file '{fileName}'",
+                IOHandlerHelpers.AccessMode.Read => $"Could not open file '{fileName}'",
+                IOHandlerHelpers.AccessMode.Write => $"Could not create file '{fileName}'",
                 _ => $"Unknown access mode '{accessMode}'"
             });
         }
@@ -96,11 +96,11 @@ public static class Lcms2
         return fm;
     }
 
-    public static Stream? cmsOpenIOhandlerFromMem(object? state, byte[] buffer, int size, IOHandler.AccessMode accessMode)
+    public static Stream? cmsOpenIOhandlerFromMem(object? state, byte[] buffer, int size, IOHandlerHelpers.AccessMode accessMode)
     {
         switch (accessMode)
         {
-            case IOHandler.AccessMode.Read:
+            case IOHandlerHelpers.AccessMode.Read:
                 if (size < 0)
                 {
                     State.SignalError(state, ErrorCode.Seek, "Cannot read a file of negative size.");
@@ -114,7 +114,7 @@ public static class Lcms2
 
                 return fm;
 
-            case IOHandler.AccessMode.Write:
+            case IOHandlerHelpers.AccessMode.Write:
                 if (size < 0)
                 {
                     State.SignalError(state, ErrorCode.Seek, "Cannot create IO with a negative size.");
