@@ -33,33 +33,28 @@ public static partial class Lcms2
 {
     private const double defaultAdaptationStateValue = 1.0;
 
-    private static readonly AdaptationStateChunkType defaultAdaptationStateChunk = new()
+    private static AdaptationStateChunkType defaultAdaptationStateChunk => new()
     {
         AdaptationState = defaultAdaptationStateValue
     };
 
-    private static AdaptationStateChunkType globalAdaptationStateChunk = new()
-    {
-        AdaptationState = defaultAdaptationStateValue
-    };
+    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = defaultAdaptationStateChunk;
 
     private static readonly ushort[] defaultAlarmCodesValue = { 0x7F00, 0x7F00, 0x7F00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    private static readonly AlarmCodesChunkType defaultAlarmCodesChunk = new()
+    private static AlarmCodesChunkType defaultAlarmCodesChunk => new()
     {
-        AlarmCodes = defaultAlarmCodesValue
+        AlarmCodes = (ushort[])defaultAlarmCodesValue.Clone(),
     };
 
-    private static AlarmCodesChunkType globalAlarmCodesChunk = new()
-    {
-        AlarmCodes = (ushort[])defaultAlarmCodesValue.Clone()
-    };
+    private static readonly AlarmCodesChunkType globalAlarmCodesChunk = defaultAlarmCodesChunk;
 
     internal static void _cmsAllocAdaptationStateChunk(Context ctx, Context? src = null)
     {
-        var from = (AdaptationStateChunkType?)src?.chunks[(int)Chunks.AdaptationStateContext] ?? defaultAdaptationStateChunk;
-
-        ((AdaptationStateChunkType)ctx.chunks[(int)Chunks.AdaptationStateContext]!).AdaptationState = from.AdaptationState;
+        ctx.chunks[(int)Chunks.AdaptationStateContext] =
+            src?.chunks[(int)Chunks.AdaptationStateContext] is AdaptationStateChunkType chunk
+            ? new AdaptationStateChunkType() { AdaptationState = chunk.AdaptationState }
+            : defaultAdaptationStateChunk;
     }
 
     public static double cmsSetAdaptationStateTHR(Context? context, double d)
@@ -100,8 +95,9 @@ public static partial class Lcms2
 
     internal static void _cmsAllocAlarmCodesChunk(Context ctx, Context? src = null)
     {
-        var from = (AlarmCodesChunkType?)src?.chunks[(int)Chunks.AlarmCodesContext] ?? defaultAlarmCodesChunk;
-
-        from.AlarmCodes.CopyTo(((AlarmCodesChunkType)ctx.chunks[(int)Chunks.AlarmCodesContext]!).AlarmCodes.AsSpan());
+        ctx.chunks[(int)Chunks.AlarmCodesContext] =
+            src?.chunks[(int)Chunks.AlarmCodesContext] is AlarmCodesChunkType chunk
+            ? new AlarmCodesChunkType() { AlarmCodes = (ushort[])chunk.AlarmCodes.Clone() }
+            : defaultAlarmCodesChunk;
     }
 }

@@ -67,10 +67,16 @@ public static partial class Lcms2
         (_, __, ___) => { };
 #endif
 
+    private static LogErrorChunkType defaultLogErrorChunk =>
+        new()
+        {
+            LogErrorHandler = defaultLogErrorHandler,
+        };
+
     /// <summary>
     ///     Global context storage
     /// </summary>
-    private static LogErrorHandler globalLogErrorHandler = defaultLogErrorHandler!;
+    private static readonly LogErrorChunkType globalLogErrorChunk = defaultLogErrorChunk;
 
     /// <summary>
     ///     "Allocates" and inits error logger container for a given context.
@@ -81,8 +87,10 @@ public static partial class Lcms2
     /// </remarks>
     internal static void _cmsAllocLogErrorChunk(Context ctx, Context? src = null)
     {
-        ctx.chunks[(int)Chunks.Logger] =
-            (LogErrorHandler?)src?.chunks[(int)Chunks.Logger] ?? defaultLogErrorHandler;
+        ctx.chunks[(int)Chunks.Logger] = new LogErrorChunkType()
+        {
+            LogErrorHandler = ((LogErrorChunkType?)src?.chunks[(int)Chunks.Logger])?.LogErrorHandler ?? defaultLogErrorHandler,
+        };
     }
 
     /// <summary>
@@ -139,9 +147,9 @@ public static partial class Lcms2
     private static void defMtxUnlock(Context? id, IMutex mtx) =>
         mtx.Unlock(id);
 
-    private static readonly MutexPluginChunkType globalMutexPluginChunk = new(defMtxCreate, defMtxDestroy, defMtxLock, defMtxUnlock);
+    private static readonly MutexPluginChunkType globalMutexPluginChunk = defaultMutexChunk;
 
-    private static MutexPluginChunkType defaultMutexChunk = new(defMtxCreate, defMtxDestroy, defMtxLock, defMtxUnlock);
+    private static MutexPluginChunkType defaultMutexChunk => new(defMtxCreate, defMtxDestroy, defMtxLock, defMtxUnlock);
 
     /// <summary>
     ///     "Allocates" and inits mutex container.
@@ -153,7 +161,13 @@ public static partial class Lcms2
     internal static void _cmsAllocMutexPluginChunk(Context ctx, Context? src = null)
     {
         ctx.chunks[(int)Chunks.MutexPlugin] =
-            (MutexPluginChunkType?)src?.chunks[(int)Chunks.MutexPlugin] ?? defaultMutexChunk;
+            src?.chunks[(int)Chunks.MutexPlugin] is MutexPluginChunkType chunk
+            ? new MutexPluginChunkType(
+                chunk.CreateFn,
+                chunk.DestroyFn,
+                chunk.LockFn,
+                chunk.UnlockFn)
+            : defaultMutexChunk;
     }
 
     internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
@@ -211,4 +225,4 @@ public static partial class Lcms2
     }
 }
 
-public delegate void LogErrorHandler(object? context, ErrorCode errorCode, string text);
+public delegate void LogErrorHandler(Context? context, ErrorCode errorCode, string text);

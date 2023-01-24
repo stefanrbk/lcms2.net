@@ -47,10 +47,10 @@ public static unsafe partial class Lcms2
         chunks = new object?[(int)Chunks.Max]
         {
             null,
-            globalLogErrorHandler,
+            globalLogErrorChunk,
             globalAlarmCodesChunk,
             globalAdaptationStateChunk,
-            InterpolationPluginChunk.global,
+            globalInterpPluginChunk,
             ParametricCurvesPluginChunk.global,
             FormattersPluginChunk.global,
             TagTypePluginChunk.TagType.global,
@@ -498,6 +498,7 @@ public static unsafe partial class Lcms2
     /// </remarks>
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
+        _cmsRegisterInterpPlugin(context, null);
         _cmsRegisterMutexPlugin(context, null);
     }
 
@@ -506,6 +507,7 @@ public static unsafe partial class Lcms2
         _cmsAllocLogErrorChunk(ctx, src);
         _cmsAllocAlarmCodesChunk(ctx, src);
         _cmsAllocAdaptationStateChunk(ctx, src);
+        _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
     }
 
