@@ -156,7 +156,7 @@ public static partial class Lcms2
             (MutexPluginChunkType?)src?.chunks[(int)Chunks.MutexPlugin] ?? defaultMutexChunk;
     }
 
-    internal static bool _cmsRegisterMutexPlugin(Context context, PluginBase? data)
+    internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
     {
         var ctx = (MutexPluginChunkType)_cmsContextGetClientChunk(context, Chunks.MutexPlugin)!;
 
