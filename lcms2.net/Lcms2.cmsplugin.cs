@@ -499,6 +499,7 @@ public static unsafe partial class Lcms2
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
         _cmsRegisterInterpPlugin(context, null);
+        _cmsRegisterParametricCurvesPlugin(context, null);
         _cmsRegisterMutexPlugin(context, null);
     }
 
@@ -508,6 +509,7 @@ public static unsafe partial class Lcms2
         _cmsAllocAlarmCodesChunk(ctx, src);
         _cmsAllocAdaptationStateChunk(ctx, src);
         _cmsAllocInterpPluginChunk(ctx, src);
+        _cmsAllocCurvesPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
     }
 
