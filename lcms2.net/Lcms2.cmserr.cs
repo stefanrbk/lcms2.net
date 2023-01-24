@@ -59,7 +59,7 @@ public static partial class Lcms2
     /// <summary>
     ///     The default error logger does nothing.
     /// </summary>
-    private static LogErrorHandler defaultLogErrorHandler =
+    private static readonly LogErrorHandler defaultLogErrorHandler =
 #if DEBUG
         (_, e, t) => Console.Error.WriteLine($"[lcms ErrorCode.{Enum.GetName(e)}]: {t}");
 
@@ -70,7 +70,7 @@ public static partial class Lcms2
     /// <summary>
     ///     Global context storage
     /// </summary>
-    private static readonly LogErrorHandler globalLogErrorHandler = defaultLogErrorHandler!;
+    private static LogErrorHandler globalLogErrorHandler = defaultLogErrorHandler!;
 
     /// <summary>
     ///     "Allocates" and inits error logger container for a given context.

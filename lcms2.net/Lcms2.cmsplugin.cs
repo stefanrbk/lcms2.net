@@ -48,8 +48,8 @@ public static unsafe partial class Lcms2
         {
             null,
             globalLogErrorHandler,
-            AlarmCodes.global,
-            AdaptationState.global,
+            globalAlarmCodesChunk,
+            globalAdaptationStateChunk,
             InterpolationPluginChunk.global,
             ParametricCurvesPluginChunk.global,
             FormattersPluginChunk.global,
@@ -504,6 +504,8 @@ public static unsafe partial class Lcms2
     private static void AllocChunks(Context ctx, Context? src)
     {
         _cmsAllocLogErrorChunk(ctx, src);
+        _cmsAllocAlarmCodesChunk(ctx, src);
+        _cmsAllocAdaptationStateChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
     }
 

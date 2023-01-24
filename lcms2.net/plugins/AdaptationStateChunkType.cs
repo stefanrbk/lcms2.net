@@ -26,26 +26,7 @@
 //
 namespace lcms2.plugins;
 
-public delegate IMutex CreateMutexFn(Context? context);
-
-public delegate void DestroyMutexFn(Context? context, IMutex mutex);
-
-public delegate bool LockMutexFn(Context? context, IMutex mutex);
-
-public delegate void UnlockMutexFn(Context? context, IMutex mutex);
-
-internal sealed class MutexPluginChunkType
+internal sealed class AdaptationStateChunkType
 {
-    public CreateMutexFn CreateFn;
-    public DestroyMutexFn DestroyFn;
-    public LockMutexFn LockFn;
-    public UnlockMutexFn UnlockFn;
-
-    public MutexPluginChunkType(CreateMutexFn createFn, DestroyMutexFn destroyFn, LockMutexFn lockFn, UnlockMutexFn unlockFn)
-    {
-        CreateFn = createFn;
-        DestroyFn = destroyFn;
-        LockFn = lockFn;
-        UnlockFn = unlockFn;
-    }
+    public double AdaptationState;
 }
