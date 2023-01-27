@@ -76,8 +76,7 @@ public static partial class Lcms2
 
             Anterior = newEntry;
 
-            if (newHead.ParametricCurves is null)
-                newHead.ParametricCurves = newEntry;
+            newHead.ParametricCurves ??= newEntry;
         }
 
         ctx.chunks[(int)Chunks.CurvesPlugin] = newHead;
