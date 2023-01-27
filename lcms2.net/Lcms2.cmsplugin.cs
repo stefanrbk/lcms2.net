@@ -51,8 +51,8 @@ public static unsafe partial class Lcms2
             globalAlarmCodesChunk,
             globalAdaptationStateChunk,
             globalInterpPluginChunk,
-            ParametricCurvesPluginChunk.global,
-            FormattersPluginChunk.global,
+            globalCurvePluginChunk,
+            globalFormattersPluginChunk,
             TagTypePluginChunk.TagType.global,
             TagPluginChunk.global,
             RenderingIntentsPluginChunk.global,
@@ -417,20 +417,24 @@ public static unsafe partial class Lcms2
 
             switch (Plugin)
             {
-                case PluginMutex mutex:
-                    {
-                        if (mutex.Type != Signature.Plugin.Mutex)
-                            return false;
-
-                        if (!_cmsRegisterMutexPlugin(id, mutex))
-                            return false;
-                        break;
-                    }
-                default:
-                    {
-                        cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
+                case PluginFormatters formatters:
+                    if (formatters.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, formatters))
                         return false;
-                    }
+                    break;
+
+                case PluginParametricCurves curves:
+                    if (curves.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, curves))
+                        return false;
+                    break;
+
+                case PluginMutex mutex:
+                    if (mutex.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, mutex))
+                        return false;
+                    break;
+
+                default:
+                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
+                    return false;
             }
         }
 
@@ -499,7 +503,11 @@ public static unsafe partial class Lcms2
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
         _cmsRegisterInterpPlugin(context, null);
+
+        _cmsRegisterFormattersPlugin(context, null);
+
         _cmsRegisterParametricCurvesPlugin(context, null);
+
         _cmsRegisterMutexPlugin(context, null);
     }
 
@@ -510,6 +518,8 @@ public static unsafe partial class Lcms2
         _cmsAllocAdaptationStateChunk(ctx, src);
         _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocCurvesPluginChunk(ctx, src);
+        _cmsAllocFormattersPluginChunk(ctx, src);
+
         _cmsAllocMutexPluginChunk(ctx, src);
     }
 
