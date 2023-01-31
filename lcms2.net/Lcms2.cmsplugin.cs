@@ -53,10 +53,10 @@ public static unsafe partial class Lcms2
             globalInterpPluginChunk,
             globalCurvePluginChunk,
             globalFormattersPluginChunk,
-            TagTypePluginChunk.TagType.global,
+            globalTagTypePluginChunk,
             TagPluginChunk.global,
             RenderingIntentsPluginChunk.global,
-            TagTypePluginChunk.MPE.global,
+            globalMPETypePluginChunk,
             OptimizationPluginChunk.global,
             TransformPluginChunk.global,
             globalMutexPluginChunk,
@@ -417,6 +417,17 @@ public static unsafe partial class Lcms2
 
             switch (Plugin)
             {
+                case PluginTagType tagType:
+                    if (tagType.Type == Signature.Plugin.TagType)
+                    {
+                        return _cmsRegisterTagTypePlugin(id, tagType);
+                    }
+                    else if (tagType.Type == Signature.Plugin.MultiProcessElement)
+                    {
+                        return _cmsRegisterMultiProcessElementPlugin(id, tagType);
+                    }
+                    return false;
+
                 case PluginFormatters formatters:
                     if (formatters.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, formatters))
                         return false;
@@ -503,10 +514,12 @@ public static unsafe partial class Lcms2
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
         _cmsRegisterInterpPlugin(context, null);
+        _cmsRegisterTagTypePlugin(context, null);
 
         _cmsRegisterFormattersPlugin(context, null);
 
         _cmsRegisterParametricCurvesPlugin(context, null);
+        _cmsRegisterMultiProcessElementPlugin(context, null);
 
         _cmsRegisterMutexPlugin(context, null);
     }
@@ -519,6 +532,8 @@ public static unsafe partial class Lcms2
         _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocCurvesPluginChunk(ctx, src);
         _cmsAllocFormattersPluginChunk(ctx, src);
+        _cmsAllocTagTypePluginChunk(ctx, src);
+        _cmsAllocMPETypePluginChunk(ctx, src);
 
         _cmsAllocMutexPluginChunk(ctx, src);
     }
