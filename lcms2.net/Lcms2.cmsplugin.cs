@@ -54,7 +54,7 @@ public static unsafe partial class Lcms2
             globalCurvePluginChunk,
             globalFormattersPluginChunk,
             globalTagTypePluginChunk,
-            TagPluginChunk.global,
+            globalTagPluginChunk,
             RenderingIntentsPluginChunk.global,
             globalMPETypePluginChunk,
             OptimizationPluginChunk.global,
@@ -433,6 +433,11 @@ public static unsafe partial class Lcms2
                         return false;
                     break;
 
+                case PluginTag tag:
+                    if (tag.Type != Signature.Plugin.Tag || !_cmsRegisterTagPlugin(id, tag))
+                        return false;
+                    break;
+
                 case PluginParametricCurves curves:
                     if (curves.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, curves))
                         return false;
@@ -515,7 +520,7 @@ public static unsafe partial class Lcms2
     {
         _cmsRegisterInterpPlugin(context, null);
         _cmsRegisterTagTypePlugin(context, null);
-
+        _cmsRegisterTagPlugin(context, null);
         _cmsRegisterFormattersPlugin(context, null);
 
         _cmsRegisterParametricCurvesPlugin(context, null);
@@ -534,6 +539,7 @@ public static unsafe partial class Lcms2
         _cmsAllocFormattersPluginChunk(ctx, src);
         _cmsAllocTagTypePluginChunk(ctx, src);
         _cmsAllocMPETypePluginChunk(ctx, src);
+        _cmsAllocTagPluginChunk(ctx, src);
 
         _cmsAllocMutexPluginChunk(ctx, src);
     }

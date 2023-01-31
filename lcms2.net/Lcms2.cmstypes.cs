@@ -45,6 +45,13 @@ public static partial class Lcms2
 
     internal static readonly TagTypePluginChunkType globalTagTypePluginChunk = defaultTagTypePluginChunk;
 
+    internal static CmsTagLinkedList supportedTags = null!;
+
+    internal static TagPluginChunkType defaultTagPluginChunk =>
+        new();
+
+    internal static readonly TagPluginChunkType globalTagPluginChunk = defaultTagPluginChunk;
+
     private static bool RegisterTypesPlugin(Context? id, PluginBase? Data, Chunks pos)
     {
         var ctx = (TagTypePluginChunkType)_cmsContextGetClientChunk(id, pos)!;
@@ -83,7 +90,7 @@ public static partial class Lcms2
             newHead.TagTypes ??= newEntry;
         }
 
-        ctx.chunks[(int)Chunks.TagTypePlugin] = newHead;
+        ctx.chunks[(int)loc] = newHead;
     }
 
     internal static void _cmsAllocTagTypePluginChunk(Context ctx, Context? src = null)
@@ -117,4 +124,60 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterMultiProcessElementPlugin(Context? id, PluginBase? Data) =>
         RegisterTypesPlugin(id, Data, Chunks.MPEPlugin);
+
+    private static void DupTagList(Context ctx, in Context src)
+    {
+        var newHead = new TagPluginChunkType();
+        var head = (TagPluginChunkType)src.chunks[(int)Chunks.TagPlugin]!;
+        CmsTagLinkedList? Anterior = null;
+
+        // Walk the list copying all nodes
+        for (var entry = head.Tag;
+            entry is not null;
+            entry = entry.Next)
+        {
+            var newEntry = new CmsTagLinkedList(entry.Signature, entry.Descriptor);
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            if (Anterior is not null)
+                Anterior.Next = newEntry;
+
+            Anterior = newEntry;
+
+            newHead.Tag ??= newEntry;
+        }
+
+        ctx.chunks[(int)Chunks.TagPlugin] = newHead;
+    }
+
+    internal static void _cmsAllocTagPluginChunk(Context ctx, Context? src = null)
+    {
+        if (src is not null)
+        {
+            DupTagList(ctx, src);
+        }
+        else
+        {
+            ctx.chunks[(int)Chunks.TagPlugin] = defaultTagPluginChunk;
+        }
+    }
+
+    internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase? Data)
+    {
+        var ctx = (TagPluginChunkType)_cmsContextGetClientChunk(id, Chunks.TagPlugin)!;
+
+        if (Data is PluginTag Plugin)
+        {
+            var pt = new CmsTagLinkedList(Plugin.Signature, Plugin.Descriptor, ctx.Tag);
+
+            ctx.Tag = pt;
+
+            return true;
+        }
+        else
+        {
+            ctx.Tag = null;
+            return true;
+        }
+    }
 }
