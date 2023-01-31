@@ -58,7 +58,7 @@ public static unsafe partial class Lcms2
             globalIntentsPluginChunk,
             globalMPETypePluginChunk,
             globalOptimizationPluginChunk,
-            TransformPluginChunk.global,
+            globalTransformPluginChunk,
             globalMutexPluginChunk,
         }
     };
@@ -458,6 +458,11 @@ public static unsafe partial class Lcms2
                         Plugin.Type == Signature.Plugin.Optimization &&
                         _cmsRegisterOptimizationPlugin(id, Plugin);
 
+                case PluginTransform:
+                    return
+                        Plugin.Type == Signature.Plugin.Translform &&
+                        _cmsRegisterTransformPlugin(id, Plugin);
+
                 case PluginMutex:
                     if (Plugin.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, Plugin))
                         return false;
@@ -541,7 +546,7 @@ public static unsafe partial class Lcms2
         _cmsRegisterParametricCurvesPlugin(context, null);
         _cmsRegisterMultiProcessElementPlugin(context, null);
         _cmsRegisterOptimizationPlugin(context, null);
-
+        _cmsRegisterTransformPlugin(context, null);
         _cmsRegisterMutexPlugin(context, null);
     }
 
@@ -558,7 +563,7 @@ public static unsafe partial class Lcms2
         _cmsAllocTagPluginChunk(ctx, src);
         _cmsAllocIntentsPluginChunk(ctx, src);
         _cmsAllocOptimizationPluginChunk(ctx, src);
-
+        _cmsAllocTransformPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
     }
 

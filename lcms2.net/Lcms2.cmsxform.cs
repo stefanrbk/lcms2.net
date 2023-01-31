@@ -49,6 +49,11 @@ public static partial class Lcms2
 
     private static readonly AlarmCodesChunkType globalAlarmCodesChunk = defaultAlarmCodesChunk;
 
+    internal static TransformPluginChunkType defaultTransformPluginChunk =>
+        new();
+
+    internal static readonly TransformPluginChunkType globalTransformPluginChunk = defaultTransformPluginChunk;
+
     internal static void _cmsAllocAdaptationStateChunk(Context ctx, Context? src = null)
     {
         ctx.chunks[(int)Chunks.AdaptationStateContext] =
@@ -99,5 +104,77 @@ public static partial class Lcms2
             src?.chunks[(int)Chunks.AlarmCodesContext] is AlarmCodesChunkType chunk
             ? new AlarmCodesChunkType() { AlarmCodes = (ushort[])chunk.AlarmCodes.Clone() }
             : defaultAlarmCodesChunk;
+    }
+
+    private static void DupPluginTransformList(Context ctx, in Context src)
+    {
+        var newHead = new TransformPluginChunkType();
+        var head = (TransformPluginChunkType)src.chunks[(int)Chunks.TransformPlugin]!;
+        CmsTransformCollection? Anterior = null;
+
+        // Walk the list copying all nodes
+        for (var entry = head.TransformCollection;
+            entry is not null;
+            entry = entry.Next)
+        {
+            var newEntry = new CmsTransformCollection
+            {
+                OldXform = entry.OldXform
+            };
+
+            if (entry.OldXform)
+                newEntry.OldFactory = entry.OldFactory;
+            else
+                newEntry.Factory = entry.Factory;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            if (Anterior is not null)
+                Anterior.Next = newEntry;
+
+            Anterior = newEntry;
+
+            newHead.TransformCollection ??= newEntry;
+        }
+
+        ctx.chunks[(int)Chunks.TransformPlugin] = newHead;
+    }
+
+    internal static void _cmsAllocTransformPluginChunk(Context ctx, Context? src)
+    {
+        if (src is not null)
+        {
+            // Dpulicate the list
+            DupPluginTransformList(ctx, src);
+        }
+        else
+        {
+            ctx.chunks[(int)Chunks.TransformPlugin] = defaultTransformPluginChunk;
+        }
+    }
+
+    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase? Data)
+    {
+        var ctx = (TransformPluginChunkType)_cmsContextGetClientChunk(id, Chunks.TransformPlugin)!;
+
+        if (Data is PluginTransform Plugin)
+        {
+            if (Plugin.xform is null && Plugin.legacy_xform is null)
+                return false;
+
+            ctx.TransformCollection = new CmsTransformCollection()
+            {
+                OldXform = Plugin.ExpectedVersion < 2080,
+                Factory = Plugin.xform,
+                OldFactory = Plugin.legacy_xform,
+                Next = ctx.TransformCollection
+            };
+
+            return true;
+        }
+        else
+        {
+            ctx.TransformCollection = null;
+            return true;
+        }
     }
 }
