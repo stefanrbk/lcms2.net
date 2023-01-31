@@ -55,7 +55,7 @@ public static unsafe partial class Lcms2
             globalFormattersPluginChunk,
             globalTagTypePluginChunk,
             globalTagPluginChunk,
-            RenderingIntentsPluginChunk.global,
+            globalIntentsPluginChunk,
             globalMPETypePluginChunk,
             OptimizationPluginChunk.global,
             TransformPluginChunk.global,
@@ -417,34 +417,44 @@ public static unsafe partial class Lcms2
 
             switch (Plugin)
             {
-                case PluginTagType tagType:
-                    if (tagType.Type == Signature.Plugin.TagType)
+                case PluginInterpolation:
+                    if (Plugin.Type != Signature.Plugin.Interpolation || !_cmsRegisterInterpPlugin(id, Plugin))
+                        return false;
+                    break;
+
+                case PluginTagType:
+                    if (Plugin.Type == Signature.Plugin.TagType)
                     {
-                        return _cmsRegisterTagTypePlugin(id, tagType);
+                        return _cmsRegisterTagTypePlugin(id, Plugin);
                     }
-                    else if (tagType.Type == Signature.Plugin.MultiProcessElement)
+                    else if (Plugin.Type == Signature.Plugin.MultiProcessElement)
                     {
-                        return _cmsRegisterMultiProcessElementPlugin(id, tagType);
+                        return _cmsRegisterMultiProcessElementPlugin(id, Plugin);
                     }
                     return false;
 
-                case PluginFormatters formatters:
-                    if (formatters.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, formatters))
+                case PluginTag:
+                    if (Plugin.Type != Signature.Plugin.Tag || !_cmsRegisterTagPlugin(id, Plugin))
                         return false;
                     break;
 
-                case PluginTag tag:
-                    if (tag.Type != Signature.Plugin.Tag || !_cmsRegisterTagPlugin(id, tag))
+                case PluginFormatters:
+                    if (Plugin.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, Plugin))
                         return false;
                     break;
 
-                case PluginParametricCurves curves:
-                    if (curves.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, curves))
+                case PluginRenderingIntent:
+                    return
+                        Plugin.Type == Signature.Plugin.RenderingIntent &&
+                        _cmsRegisterRenderingIntentPlugin(id, Plugin);
+
+                case PluginParametricCurves:
+                    if (Plugin.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, Plugin))
                         return false;
                     break;
 
-                case PluginMutex mutex:
-                    if (mutex.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, mutex))
+                case PluginMutex:
+                    if (Plugin.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, Plugin))
                         return false;
                     break;
 
@@ -522,7 +532,7 @@ public static unsafe partial class Lcms2
         _cmsRegisterTagTypePlugin(context, null);
         _cmsRegisterTagPlugin(context, null);
         _cmsRegisterFormattersPlugin(context, null);
-
+        _cmsRegisterRenderingIntentPlugin(context, null);
         _cmsRegisterParametricCurvesPlugin(context, null);
         _cmsRegisterMultiProcessElementPlugin(context, null);
 
@@ -540,6 +550,7 @@ public static unsafe partial class Lcms2
         _cmsAllocTagTypePluginChunk(ctx, src);
         _cmsAllocMPETypePluginChunk(ctx, src);
         _cmsAllocTagPluginChunk(ctx, src);
+        _cmsAllocIntentsPluginChunk(ctx, src);
 
         _cmsAllocMutexPluginChunk(ctx, src);
     }
