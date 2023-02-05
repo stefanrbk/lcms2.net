@@ -2,6 +2,32 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
 //                2022      Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -222,7 +248,7 @@ public static class Utils
     public static void Die(string reason)
     {
         WriteRed(() => Console.Error.WriteLine($"\n{reason}"));
-        Environment.Exit(-1);
+        Environment.Exit(1);
     }
 
     public static void Dot() =>
@@ -303,13 +329,21 @@ public static class Utils
         return true;
     }
 
-    public static void PrintSupportedIntents()
+    public static unsafe void PrintSupportedIntents()
     {
-        var values = State.GetSupportedIntents(200, out _);
+        var codes = stackalloc uint[200];
+        var descriptions = new string?[200];
+        var intents = cmsGetSupportedIntents(200, codes, descriptions);
 
         Console.WriteLine("Supported intents:");
-        foreach (var value in values)
-            Console.WriteLine($"\t{value.Code} - {value.Desc}");
+        for (var i = 0; i < 200; i++)
+        {
+            if (codes[i] is not 0)
+            {
+                Console.WriteLine($"\t{codes[i]} - {descriptions[i]}");
+            }
+        }
+
         Console.WriteLine();
     }
 

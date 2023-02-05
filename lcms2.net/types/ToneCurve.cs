@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -459,7 +459,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
             var val = g.EvalSegmentedFn(r);
 
             // Round and saturate
-            g.table16[i] = QuickSaturateWord(val * 65535.0);
+            g.table16[i] = _cmsQuickSaturateWord(val * 65535.0);
         }
 
         return g;
@@ -800,7 +800,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
         // Check for 16 bit table. If so, this is a limited-precision tone curve
         if (NumSegments == 0)
         {
-            var i = QuickSaturateWord(v * 65535.0);
+            var i = _cmsQuickSaturateWord(v * 65535.0);
             var o = Eval(i);
 
             return o / 65535.0f;
@@ -1024,7 +1024,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
                 // if collapsed, then use any
                 if (x1 == x2)
                 {
-                    result.table16[i] = QuickSaturateWord(ascending ? y2 : y1);
+                    result.table16[i] = _cmsQuickSaturateWord(ascending ? y2 : y1);
                     continue;
                 }
                 else
@@ -1035,7 +1035,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
                 }
             }
 
-            result.table16[i] = QuickSaturateWord((a * y) + b);
+            result.table16[i] = _cmsQuickSaturateWord((a * y) + b);
         }
 
         return result;
@@ -1227,7 +1227,7 @@ public sealed class ToneCurve : ICloneable, IDisposable
                             for (var i = 0; i < numItems; i++)
                             {
                                 // Clamp to ushort
-                                table16[i] = QuickSaturateWord(z[i + 1]);
+                                table16[i] = _cmsQuickSaturateWord(z[i + 1]);
                             }
                         }
                     }

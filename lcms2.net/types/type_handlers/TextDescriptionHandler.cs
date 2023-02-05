@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -161,7 +161,7 @@ public class TextDescriptionHandler : TagTypeHandler
         var lenText = text!.Length + 1;
         // Compute a total tag size requirement
         var lenTagRequirement = 8 + 4 + lenText + 4 + 4 + (2 * lenText) + 2 + 1 + 67;
-        var lenAligned = (uint)AlignLong(lenTagRequirement);
+        var lenAligned = (uint)_cmsAlignLong(lenTagRequirement);
 
         // * uint count; * Description length
         // * sbyte desc[count] * NULL terminated ascii string

@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -2357,7 +2357,7 @@ internal static class DefaultFormatters
 
         var inks = ptr[0];
 
-        wIn[0] = wIn[1] = wIn[2] = QuickSaturateWord(inks * 65535.0);
+        wIn[0] = wIn[1] = wIn[2] = _cmsQuickSaturateWord(inks * 65535.0);
 
         return ptr[1..].Span;
     }
@@ -2440,7 +2440,7 @@ internal static class DefaultFormatters
                     ? ptr[(i + start) * stride]
                     : ptr[i + start]);
 
-            var vi = QuickSaturateWord(v * maximum);
+            var vi = _cmsQuickSaturateWord(v * maximum);
 
             vi = reverse ? ReverseFlavor(vi) : vi;
 
@@ -2533,7 +2533,7 @@ internal static class DefaultFormatters
                     ? ptr[(i + start) * stride]
                     : ptr[i + start];
 
-            var vi = QuickSaturateWord(v * maximum);
+            var vi = _cmsQuickSaturateWord(v * maximum);
 
             vi = reverse ? ReverseFlavor(vi) : vi;
 
@@ -2575,7 +2575,7 @@ internal static class DefaultFormatters
             if (reverse)
                 v = maximum - v;
 
-            wIn[index] = QuickSaturateWord((double)v * maximum);
+            wIn[index] = _cmsQuickSaturateWord((double)v * maximum);
         }
 
         if (extra is 0 && swapFirst)
