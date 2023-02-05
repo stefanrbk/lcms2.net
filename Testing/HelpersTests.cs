@@ -56,19 +56,6 @@ namespace lcms2.testbed;
 
 public static class HelpersTests
 {
-    #region Public Methods
-
-    public static bool TestSingleFixed8_8(double value)
-    {
-        var f = DoubleToU8Fixed8(value);
-        var roundTrip = U8Fixed8toDouble(f);
-        var error = Math.Abs(value - roundTrip);
-
-        return error <= FixedPrecision8_8;
-    }
-
-    #endregion Public Methods
-
     #region Internal Methods
 
     internal static unsafe bool Sanity()
@@ -96,13 +83,13 @@ public static class HelpersTests
         const double d50y2 = 1.0;
         const double d50z2 = 0.82490540;
 
-        var xe = DoubleToS15Fixed16(D50.X);
-        var ye = DoubleToS15Fixed16(D50.Y);
-        var ze = DoubleToS15Fixed16(D50.Z);
+        var xe = _cmsDoubleTo15Fixed16(D50.X);
+        var ye = _cmsDoubleTo15Fixed16(D50.Y);
+        var ze = _cmsDoubleTo15Fixed16(D50.Z);
 
-        var x = S15Fixed16toDouble(xe);
-        var y = S15Fixed16toDouble(ye);
-        var z = S15Fixed16toDouble(ze);
+        var x = _cms15Fixed16toDouble(xe);
+        var y = _cms15Fixed16toDouble(ye);
+        var z = _cms15Fixed16toDouble(ze);
 
         var dx = Math.Abs(D50.X - x);
         var dy = Math.Abs(D50.Y - y);
@@ -113,13 +100,13 @@ public static class HelpersTests
         if (euc > 1E-5)
             return Fail($"D50 roundtrip |err| > ({euc}) ");
 
-        xe = DoubleToS15Fixed16(d50x2);
-        ye = DoubleToS15Fixed16(d50y2);
-        ze = DoubleToS15Fixed16(d50z2);
+        xe = _cmsDoubleTo15Fixed16(d50x2);
+        ye = _cmsDoubleTo15Fixed16(d50y2);
+        ze = _cmsDoubleTo15Fixed16(d50z2);
 
-        x = S15Fixed16toDouble(xe);
-        y = S15Fixed16toDouble(ye);
-        z = S15Fixed16toDouble(ze);
+        x = _cms15Fixed16toDouble(xe);
+        y = _cms15Fixed16toDouble(ye);
+        z = _cms15Fixed16toDouble(ze);
 
         dx = Math.Abs(d50x2 - x);
         dy = Math.Abs(d50y2 - y);
@@ -156,10 +143,10 @@ public static class HelpersTests
 
     internal static bool CheckQuickFloor()
     {
-        if (QuickFloor(1.234) is not 1 ||
-            QuickFloor(32767.234) is not 32767 ||
-            QuickFloor(-1.234) is not -2 ||
-            QuickFloor(-32767.1) is not -32768)
+        if (_cmsQuickFloor(1.234) is not 1 ||
+            _cmsQuickFloor(32767.234) is not 32767 ||
+            _cmsQuickFloor(-1.234) is not -2 ||
+            _cmsQuickFloor(-32767.1) is not -32768)
         {
             Die("\nOOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!\n\n" +
                 "Please use the \"(No Fast Floor)\" configuration toggles.\n");
@@ -172,7 +159,7 @@ public static class HelpersTests
     {
         for (var i = 0; i < UInt16.MaxValue; i++)
         {
-            if (QuickFloorWord(i + 0.1234) != i)
+            if (_cmsQuickFloorWord(i + 0.1234) != i)
             {
                 Die("\nOOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!\n\nPlease use the \"(No Fast Floor)\" configuration toggles.\n");
                 return false;
@@ -185,10 +172,19 @@ public static class HelpersTests
 
     #region Private Methods
 
+    private static bool TestSingleFixed8_8(double value)
+    {
+        var f = _cmsDoubleTo8Fixed8(value);
+        var roundTrip = _cms8Fixed8toDouble(f);
+        var error = Math.Abs(value - roundTrip);
+
+        return error <= FixedPrecision8_8;
+    }
+
     private static bool TestSingleFixed15_16(double value)
     {
-        var f = DoubleToS15Fixed16(value);
-        var roundTrip = S15Fixed16toDouble(f);
+        var f = _cmsDoubleTo15Fixed16(value);
+        var roundTrip = _cms15Fixed16toDouble(f);
         var error = Math.Abs(value - roundTrip);
 
         return error <= FixedPrecision15_16;
