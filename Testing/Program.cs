@@ -100,6 +100,8 @@ Check("Fixed point 15.16 representation", Helper.CheckFixedPoint15_16);
 Check("Fixed point 8.8 representation", Helper.CheckFixedPoint8_8);
 Check("D50 roundtrip", Helper.CheckD50Roundtrip);
 
+// TODO: Add utility profile test here!
+
 if (doCheckTests)
 {
     Console.WriteLine("\nForward 1D interpolation");
