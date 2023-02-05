@@ -76,6 +76,46 @@ public static partial class Lcms2
         }
     }
 
+    public static unsafe uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[] Descriptions) =>
+        cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
+
+    public static unsafe uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[] Descriptions)
+    {
+        var ctx = (IntentsPluginChunkType)_cmsContextGetClientChunk(ContextID, Chunks.IntentPlugin)!;
+        uint nIntents;
+        CmsIntentsList? pt;
+
+        for (nIntents = 0, pt = ctx.Intents; pt is not null; pt = pt.Next)
+        {
+            if (nIntents < nMax)
+            {
+                if (Codes is not null)
+                    Codes[nIntents] = pt.Intent;
+
+                if (nIntents < Descriptions.Length)
+                    Descriptions[nIntents] = pt.Description;
+            }
+
+            nIntents++;
+        }
+
+        for (pt = defaultIntents; pt is not null; pt = pt.Next)
+        {
+            if (nIntents < nMax)
+            {
+                if (Codes is not null)
+                    Codes[nIntents] = pt.Intent;
+
+                if (nIntents < Descriptions.Length)
+                    Descriptions[nIntents] = pt.Description;
+            }
+
+            nIntents++;
+        }
+
+        return nIntents;
+    }
+
     internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase? Data)
     {
         var ctx = (IntentsPluginChunkType)_cmsContextGetClientChunk(id, Chunks.IntentPlugin)!;
