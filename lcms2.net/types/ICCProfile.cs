@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -268,28 +268,28 @@ public unsafe struct IccProfile : ICloneable
         var header = Unsafe.Read<IccHeader>(buffer);
 
         // Validate file as an ICC profile
-        if (IOHandler.AdjustEndianness(header.magic) != MagicNumber)
+        if (IOHandlerHelpers.AdjustEndianness(header.magic) != MagicNumber)
         {
             State.SignalError(ContextId, ErrorCode.BadSignature, "Not an ICC profile, invalid signature");
             return false;
         }
 
         // Adjust endianness of the used parameters
-        DeviceClass = new(IOHandler.AdjustEndianness(header.renderingIntent));
-        ColorSpace = new(IOHandler.AdjustEndianness(header.colorSpace));
-        PCS = new(IOHandler.AdjustEndianness(header.pcs));
+        DeviceClass = new(IOHandlerHelpers.AdjustEndianness(header.renderingIntent));
+        ColorSpace = new(IOHandlerHelpers.AdjustEndianness(header.colorSpace));
+        PCS = new(IOHandlerHelpers.AdjustEndianness(header.pcs));
 
-        RenderingIntent = IOHandler.AdjustEndianness(header.renderingIntent);
-        Flags = IOHandler.AdjustEndianness(header.flags);
-        Manufacturer = IOHandler.AdjustEndianness(header.manufacturer);
-        Model = IOHandler.AdjustEndianness(header.model);
-        Creator = IOHandler.AdjustEndianness(header.creator);
+        RenderingIntent = IOHandlerHelpers.AdjustEndianness(header.renderingIntent);
+        Flags = IOHandlerHelpers.AdjustEndianness(header.flags);
+        Manufacturer = IOHandlerHelpers.AdjustEndianness(header.manufacturer);
+        Model = IOHandlerHelpers.AdjustEndianness(header.model);
+        Creator = IOHandlerHelpers.AdjustEndianness(header.creator);
 
-        Attributes = IOHandler.AdjustEndianness(header.attributes);
-        EncodedVersion = IOHandler.AdjustEndianness(header.version);
+        Attributes = IOHandlerHelpers.AdjustEndianness(header.attributes);
+        EncodedVersion = IOHandlerHelpers.AdjustEndianness(header.version);
 
         // Get size as reported in header
-        var headerSize = IOHandler.AdjustEndianness(header.size);
+        var headerSize = IOHandlerHelpers.AdjustEndianness(header.size);
 
         // Make sure headerSize is lower than profile size
         var length = (uint)io.Length;
@@ -297,7 +297,7 @@ public unsafe struct IccProfile : ICloneable
             headerSize = length;
 
         // Get creation date/time
-        Created = IOHandler.AdjustEndianness(header.date);
+        Created = IOHandlerHelpers.AdjustEndianness(header.date);
 
         ProfileID = header.profileID;
 
@@ -384,42 +384,42 @@ public unsafe struct IccProfile : ICloneable
 
         if (io is null) return false;
 
-        Header.size = IOHandler.AdjustEndianness(usedSpace);
-        Header.cmmId = IOHandler.AdjustEndianness(LcmsSignature);
-        Header.version = IOHandler.AdjustEndianness(EncodedVersion);
+        Header.size = IOHandlerHelpers.AdjustEndianness(usedSpace);
+        Header.cmmId = IOHandlerHelpers.AdjustEndianness(LcmsSignature);
+        Header.version = IOHandlerHelpers.AdjustEndianness(EncodedVersion);
 
-        Header.deviceClass = IOHandler.AdjustEndianness(DeviceClass);
-        Header.colorSpace = IOHandler.AdjustEndianness(ColorSpace);
-        Header.pcs = IOHandler.AdjustEndianness(PCS);
+        Header.deviceClass = IOHandlerHelpers.AdjustEndianness(DeviceClass);
+        Header.colorSpace = IOHandlerHelpers.AdjustEndianness(ColorSpace);
+        Header.pcs = IOHandlerHelpers.AdjustEndianness(PCS);
 
         // NOTE: in v4 timestamp must by in UTC rather than in local time
         Header.date = (DateTimeNumber)Created;
 
-        Header.magic = IOHandler.AdjustEndianness(MagicNumber);
+        Header.magic = IOHandlerHelpers.AdjustEndianness(MagicNumber);
 
         Header.platform = Environment.OSVersion.Platform switch
         {
-            PlatformID.Win32NT => IOHandler.AdjustEndianness(Signature.Platform.Microsoft),
-            PlatformID.Unix => IOHandler.AdjustEndianness(Signature.Platform.Unices),
-            _ => IOHandler.AdjustEndianness(Signature.Platform.Macintosh),
+            PlatformID.Win32NT => IOHandlerHelpers.AdjustEndianness(Signature.Platform.Microsoft),
+            PlatformID.Unix => IOHandlerHelpers.AdjustEndianness(Signature.Platform.Unices),
+            _ => IOHandlerHelpers.AdjustEndianness(Signature.Platform.Macintosh),
         };
 
-        Header.flags = IOHandler.AdjustEndianness(Flags);
-        Header.manufacturer = IOHandler.AdjustEndianness(Manufacturer);
-        Header.model = IOHandler.AdjustEndianness(Model);
+        Header.flags = IOHandlerHelpers.AdjustEndianness(Flags);
+        Header.manufacturer = IOHandlerHelpers.AdjustEndianness(Manufacturer);
+        Header.model = IOHandlerHelpers.AdjustEndianness(Model);
 
-        Header.attributes = IOHandler.AdjustEndianness(Attributes);
+        Header.attributes = IOHandlerHelpers.AdjustEndianness(Attributes);
 
         // Rendering intent in the header (for embedded profiles
-        Header.renderingIntent = IOHandler.AdjustEndianness(RenderingIntent);
+        Header.renderingIntent = IOHandlerHelpers.AdjustEndianness(RenderingIntent);
 
         // Illuminant is always D50
-        Header.illuminant.X = (int)IOHandler.AdjustEndianness((uint)DoubleToS15Fixed16(D50.X));
-        Header.illuminant.Y = (int)IOHandler.AdjustEndianness((uint)DoubleToS15Fixed16(D50.Y));
-        Header.illuminant.Z = (int)IOHandler.AdjustEndianness((uint)DoubleToS15Fixed16(D50.Z));
+        Header.illuminant.X = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.X));
+        Header.illuminant.Y = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.Y));
+        Header.illuminant.Z = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.Z));
 
         // Created by LittleCMS (that's me!)
-        Header.creator = IOHandler.AdjustEndianness(LcmsSignature);
+        Header.creator = IOHandlerHelpers.AdjustEndianness(LcmsSignature);
 
         Unsafe.InitBlock(Header.reserved, 0, 28);
 
@@ -453,9 +453,9 @@ public unsafe struct IccProfile : ICloneable
         {
             if (tagNames[i] == 0) continue; // It is just a placeholder
 
-            Tag.sig = IOHandler.AdjustEndianness(tagNames[i]);
-            Tag.offset = IOHandler.AdjustEndianness(tagOffsets[i]);
-            Tag.size = IOHandler.AdjustEndianness(tagSizes[i]);
+            Tag.sig = IOHandlerHelpers.AdjustEndianness(tagNames[i]);
+            Tag.offset = IOHandlerHelpers.AdjustEndianness(tagOffsets[i]);
+            Tag.size = IOHandlerHelpers.AdjustEndianness(tagSizes[i]);
 
             Unsafe.Write(buffer, Tag);
             try

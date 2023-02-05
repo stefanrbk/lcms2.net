@@ -12,6 +12,8 @@
 	<Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
 
 	<IsPublishable>False</IsPublishable>
+
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">

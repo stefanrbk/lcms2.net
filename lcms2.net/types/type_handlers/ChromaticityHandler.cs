@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -106,8 +106,8 @@ public class ChromaticityHandler : TagTypeHandler
 
     private static bool SaveOne(double x, double y, Stream io)
     {
-        if (!io.Write(DoubleToS15Fixed16(x))) return false;
-        if (!io.Write(DoubleToS15Fixed16(y))) return false;
+        if (!io.Write(_cmsDoubleTo15Fixed16(x))) return false;
+        if (!io.Write(_cmsDoubleTo15Fixed16(y))) return false;
 
         return true;
     }
