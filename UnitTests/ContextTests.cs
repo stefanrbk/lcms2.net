@@ -29,7 +29,7 @@ using lcms2.state;
 namespace lcms2.tests;
 
 [TestFixture(TestOf = typeof(Context))]
-public class StateTests : TestBase
+public class ContextTests : TestBase
 {
     #region Public Methods
 
