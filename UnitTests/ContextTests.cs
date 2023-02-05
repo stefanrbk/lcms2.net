@@ -34,6 +34,36 @@ public class ContextTests : TestBase
     #region Public Methods
 
     [Test]
+    public void GlobalContextDoesntHaveNullChunks()
+    {
+        var ctx = _cmsGetContext(null);
+
+        Assert.Multiple(() =>
+        {
+            for (int i = 1; i < (int)Chunks.Max; i++)
+            {
+                Assert.That(ctx.chunks[i], Is.Not.Null, $"Chunk {i}");
+            }
+        });
+    }
+
+    [Test]
+    public void NewContextDoesntHaveNullChunks()
+    {
+        var ctx = cmsCreateContext(null, null)!;
+
+        Assert.Multiple(() =>
+        {
+            for (int i = 1; i < (int)Chunks.Max; i++)
+            {
+                Assert.That(ctx.chunks[i], Is.Not.Null, $"Chunk {i}");
+            }
+        });
+
+        cmsDeleteContext(ctx);
+    }
+
+    [Test]
     public void SetLogErrorHandlerSetsLogger()
     {
         var logger = Substitute.For<LogErrorHandler>();

@@ -42,9 +42,13 @@ public static unsafe partial class Lcms2
     private static readonly object contextPoolHeadMutex = new();
     private static Context? contextPoolHead;
 
-    private static readonly Context globalContext = new()
+    private static readonly Context globalContext;
+
+    static Lcms2()
     {
-        chunks = new object?[(int)Chunks.Max]
+        globalContext = new()
+        {
+            chunks = new object?[(int)Chunks.Max]
         {
             null,
             globalLogErrorChunk,
@@ -61,7 +65,8 @@ public static unsafe partial class Lcms2
             globalTransformPluginChunk,
             globalMutexPluginChunk,
         }
-    };
+        };
+    }
 
     internal static ushort _cmsAdjustEndianess16(ushort Word)
     {
