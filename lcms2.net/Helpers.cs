@@ -2,6 +2,32 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
 //                2022      Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -33,16 +59,9 @@ internal static class Helpers
 {
     #region Fields
 
-    internal const double determinantTolerance = 0.0001;
     internal const int maxChannels = 16;
-    internal const double maxEncodableAb2 = (65535.0 / 256.0) - 128.0;
-    internal const double maxEncodableAb4 = 127.0;
-    internal const double maxEncodableXYZ = 1 + (32767.0 / 32768.0);
     internal const int maxInputDimensions = 15;
     internal const ushort maxNodesInCurve = 4097;
-    internal const int maxStageChannels = 128;
-    internal const double minEncodableAb2 = -128.0;
-    internal const double minEncodableAb4 = -128.0;
     internal const float minusInf = -1e22f;
     internal const float plusInf = 1e22f;
     internal static Lazy<long> alignPtr = new(new Func<long>(() => { unsafe { return sizeof(nuint); } }), LazyThreadSafetyMode.ExecutionAndPublication);
@@ -189,17 +208,6 @@ internal static class Helpers
         return t * t * t;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int FixedRestToInt(int x) =>
-        x & 0xFFFF;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int FixedToInt(int x) =>
-        x >> 16;
-
-    internal static byte From16to8(ushort rgb) =>
-        (byte)((((rgb * (uint)65281) + 8388608) >> 24) & 0xFF);
-
     internal static void From16ToFloat(ReadOnlySpan<ushort> @in, Span<float> @out, int n)
     {
         /**  Original Code (cmslut.c line: 92)
@@ -218,9 +226,6 @@ internal static class Helpers
         for (var i = 0; i < n; i++)
             @out[i] = @in[i] / 65535f;
     }
-
-    internal static ushort From8to16(byte rgb) =>
-        (ushort)((rgb << 8) | rgb);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int FromFixedDomain(int a) =>
@@ -300,10 +305,6 @@ internal static class Helpers
             >= 65535.0 => 0xFFFF,
             _ => QuickFloorWord(d),
         };
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int RoundFixedToInt(int x) =>
-        (x + 0x8000) >> 16;
 
     internal static double S15Fixed16toDouble(int value)
     {
