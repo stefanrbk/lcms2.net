@@ -83,12 +83,17 @@ if (exhaustive)
 
 Console.WriteLine();
 Console.Write("\tInstalling error logger ... ");
+cmsSetLogErrorHandler(FatalErrorQuit);
+WriteLineGreen("done\n");
+
+Console.Write("\tInstalling old error logger ... ");
 lcms2.state.State.SetLogErrorHandler(FatalErrorQuit);
 WriteLineGreen("done\n");
 
 PrintSupportedIntents();
 
 Console.WriteLine("\nBasic operations");
+Check("Sanity check", Helper.Sanity);
 Check("quick floor", Helper.CheckQuickFloor);
 Check("quick floor word", Helper.CheckQuickFloorWord);
 Check("Fixed point 15.16 representation", Helper.CheckFixedPoint15_16);

@@ -2,6 +2,32 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
 //                2022      Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -24,6 +50,8 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.types;
+
 namespace lcms2.testbed;
 
 public static class HelpersTests
@@ -43,23 +71,42 @@ public static class HelpersTests
 
     #region Internal Methods
 
+    internal static unsafe bool Sanity()
+    {
+#pragma warning disable CS8519 // The given expression never matches the provided pattern.
+        if (sizeof(byte) is not 1) return false;
+        if (sizeof(sbyte) is not 1) return false;
+        if (sizeof(ushort) is not 2) return false;
+        if (sizeof(short) is not 2) return false;
+        if (sizeof(uint) is not 4) return false;
+        if (sizeof(int) is not 4) return false;
+        if (sizeof(ulong) is not 8) return false;
+        if (sizeof(long) is not 8) return false;
+        if (sizeof(float) is not 4) return false;
+        if (sizeof(double) is not 8) return false;
+        if (sizeof(Signature) is not 4) return false;
+#pragma warning restore CS8519 // The given expression never matches the provided pattern.
+
+        return true;
+    }
+
     internal static bool CheckD50Roundtrip()
     {
         const double d50x2 = 0.96420288;
         const double d50y2 = 1.0;
         const double d50z2 = 0.82490540;
 
-        var xe = DoubleToS15Fixed16(Lcms2.D50.X);
-        var ye = DoubleToS15Fixed16(Lcms2.D50.Y);
-        var ze = DoubleToS15Fixed16(Lcms2.D50.Z);
+        var xe = DoubleToS15Fixed16(D50.X);
+        var ye = DoubleToS15Fixed16(D50.Y);
+        var ze = DoubleToS15Fixed16(D50.Z);
 
         var x = S15Fixed16toDouble(xe);
         var y = S15Fixed16toDouble(ye);
         var z = S15Fixed16toDouble(ze);
 
-        var dx = Math.Abs(Lcms2.D50.X - x);
-        var dy = Math.Abs(Lcms2.D50.Y - y);
-        var dz = Math.Abs(Lcms2.D50.Z - z);
+        var dx = Math.Abs(D50.X - x);
+        var dy = Math.Abs(D50.Y - y);
+        var dz = Math.Abs(D50.Z - z);
 
         var euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
 
