@@ -98,9 +98,9 @@ public static partial class Lcms2
     /// </summary>
     public static void cmsSetLogErrorHandlerTHR(Context? context, LogErrorHandler? fn)
     {
-        ref var lhg = ref _cmsContextGetClientChunk(context, Chunks.Logger);
+        var lhg = (LogErrorChunkType)_cmsContextGetClientChunk(context, Chunks.Logger)!;
 
-        lhg = fn ?? defaultLogErrorHandler;
+        lhg.LogErrorHandler = fn ?? defaultLogErrorHandler;
     }
 
     /// <summary>
@@ -116,9 +116,9 @@ public static partial class Lcms2
     public static void cmsSignalError(Context? context, ErrorCode errorCode, string text, params object?[] args)
     {
         // Check for the context, if specified go there. If not, go for the global
-        var lhg = (LogErrorHandler?)_cmsContextGetClientChunk(context, Chunks.Logger);
+        var lhg = (LogErrorChunkType)_cmsContextGetClientChunk(context, Chunks.Logger)!;
         if (lhg is not null)
-            lhg(context, errorCode, String.Format(text, args));
+            lhg.LogErrorHandler?.Invoke(context, errorCode, String.Format(text, args));
     }
 
     /// <summary>

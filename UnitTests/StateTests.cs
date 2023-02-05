@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -26,11 +26,9 @@
 //
 using lcms2.state;
 
-using static lcms2.state.State;
+namespace lcms2.tests;
 
-namespace lcms2.tests.state;
-
-[TestFixture(TestOf = typeof(State))]
+[TestFixture(TestOf = typeof(Context))]
 public class StateTests : TestBase
 {
     #region Public Methods
@@ -38,11 +36,11 @@ public class StateTests : TestBase
     [Test]
     public void SetLogErrorHandlerSetsLogger()
     {
-        var logger = Substitute.For<LogErrorHandlerFunction>();
+        var logger = Substitute.For<LogErrorHandler>();
 
-        SignalError(null, ErrorCode.Undefined, "This isn't logged.");
-        SetLogErrorHandler(logger);
-        SignalError(null, ErrorCode.Undefined, "This does get logged.");
+        cmsSignalError(null, ErrorCode.Undefined, "This isn't logged.");
+        cmsSetLogErrorHandler(logger);
+        cmsSignalError(null, ErrorCode.Undefined, "This does get logged.");
 
         Assert.That(logger.ReceivedCalls().Count(), Is.EqualTo(1));
     }
@@ -50,17 +48,17 @@ public class StateTests : TestBase
     [Test]
     public void SetLogErrorHandlerSetsLoggerForProvidedState()
     {
-        var state1 = CreateStateContainer();
-        var state2 = CreateStateContainer();
+        var state1 = cmsCreateContext(null, null);
+        var state2 = cmsCreateContext(null, null);
 
-        var logger1 = Substitute.For<LogErrorHandlerFunction>();
-        var logger2 = Substitute.For<LogErrorHandlerFunction>();
+        var logger1 = Substitute.For<LogErrorHandler>();
+        var logger2 = Substitute.For<LogErrorHandler>();
 
-        SetLogErrorHandler(state1, logger1);
-        SetLogErrorHandler(state2, logger2);
+        cmsSetLogErrorHandlerTHR(state1, logger1);
+        cmsSetLogErrorHandlerTHR(state2, logger2);
 
-        SignalError(state1, ErrorCode.Undefined, "This is logger1.");
-        SignalError(state2, ErrorCode.Undefined, "This is logger2.");
+        cmsSignalError(state1, ErrorCode.Undefined, "This is logger1.");
+        cmsSignalError(state2, ErrorCode.Undefined, "This is logger2.");
 
         Assert.Multiple(() =>
         {
@@ -74,8 +72,8 @@ public class StateTests : TestBase
             Assert.That((string?)logger2.ReceivedCalls().First().GetArguments()[2], Does.Contain("logger2"));
         });
 
-        DeleteStateContainer(state1);
-        DeleteStateContainer(state2);
+        cmsDeleteContext(state1);
+        cmsDeleteContext(state2);
     }
 
     #endregion Public Methods
