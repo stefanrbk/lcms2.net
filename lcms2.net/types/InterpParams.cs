@@ -378,8 +378,8 @@ public class InterpParams : ICloneable
         var px = Fclamp(input[0]) * p.Domain[0];
         var py = Fclamp(input[1]) * p.Domain[1];
 
-        var x0 = QuickFloor(px); var fx = px - x0;
-        var y0 = QuickFloor(py); var fy = py - y0;
+        var x0 = _cmsQuickFloor(px); var fx = px - x0;
+        var y0 = _cmsQuickFloor(py); var fy = py - y0;
 
         x0 *= p.Opta[1];
         var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : p.Opta[1]);
@@ -630,7 +630,7 @@ public class InterpParams : ICloneable
         var tmp2 = new float[maxStageChannels];
 
         var pk = Fclamp(input[0]) * p.Domain[0];
-        var k0 = QuickFloor(pk);
+        var k0 = _cmsQuickFloor(pk);
         var rest = pk - k0;
 
         k0 *= p.Opta[3];
@@ -708,7 +708,7 @@ public class InterpParams : ICloneable
         var tmp2 = new float[maxStageChannels];
 
         var pk = Fclamp(i[0]) * p.Domain[0];
-        var k0 = QuickFloor(pk);
+        var k0 = _cmsQuickFloor(pk);
         var rest = pk - k0;
 
         var K0 = p.Opta[--x] * k0;

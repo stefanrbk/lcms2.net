@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -142,7 +142,7 @@ public static class IOHandlerHelpers
         value = 0;
         if (!io.ReadInt32Number(out var tmp)) return false;
 
-        value = S15Fixed16toDouble(tmp);
+        value = _cms15Fixed16toDouble(tmp);
         return true;
     }
 
@@ -155,7 +155,7 @@ public static class IOHandlerHelpers
     {
         var buffer = new byte[4];
         var at = io.Tell();
-        var nextAligned = AlignLong(at);
+        var nextAligned = _cmsAlignLong(at);
         var bytesToNextAlignedPos = nextAligned - at;
 
         return bytesToNextAlignedPos == 0
@@ -524,7 +524,7 @@ public static class IOHandlerHelpers
     /// <remarks>Implements the <c>_cmsWrite15Fixed16Number</c> function.</remarks>
     /// <returns>Whether the write operation was successful</returns>
     public static bool Write(this Stream io, double n) =>
-        io.Write(DoubleToS15Fixed16(n));
+        io.Write(_cmsDoubleTo15Fixed16(n));
 
     /// <summary>
     ///     Writes a <see cref="XYZ"/> value to the <see cref="Stream"/>.
@@ -578,7 +578,7 @@ public static class IOHandlerHelpers
     {
         var buffer = new byte[4];
         var at = io.Tell();
-        var nextAligned = AlignLong(at);
+        var nextAligned = _cmsAlignLong(at);
         var bytesToNextAlignedPos = nextAligned - at;
 
         if (bytesToNextAlignedPos == 0) return true;

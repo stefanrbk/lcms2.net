@@ -24,33 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 //
-//---------------------------------------------------------------------------------
-//
-//  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-//---------------------------------------------------------------------------------
-//
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace lcms2;
@@ -71,18 +44,10 @@ internal static class Helpers
     #region Internal Methods
 
     internal static ushort ab2Fix2(double ab) =>
-        QuickSaturateWord((ab + 128.0) * 256.0);
+        _cmsQuickSaturateWord((ab + 128.0) * 256.0);
 
     internal static ushort ab2Fix4(double ab) =>
-        QuickSaturateWord((ab + 128.0) * 257.0);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignLong(long x) =>
-        (x + (sizeof(uint) - 1)) & ~(sizeof(uint) - 1);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long AlignMem(long x) =>
-(x + (alignPtr.Value - 1)) & ~(alignPtr.Value - 1);
+        _cmsQuickSaturateWord((ab + 128.0) * 257.0);
 
     internal static double Atan2Deg(double a, double b)
     {
@@ -182,12 +147,6 @@ internal static class Helpers
     internal static double Deg2Rad(double deg) =>
         deg * Math.PI / 180.0;
 
-    internal static int DoubleToS15Fixed16(double value) =>
-            (int)Math.Floor((value * 65536.0) + 0.5);
-
-    internal static ushort DoubleToU8Fixed8(double value) =>
-        (ushort)((DoubleToS15Fixed16(value) >> 8) & 0xffff);
-
     internal static double F(double t)
     {
         const double limit = 24.0 / 116.0 * (24.0 / 116.0) * (24.0 / 116.0);
@@ -247,14 +206,14 @@ internal static class Helpers
          ** }
          **/
         for (var i = 0; i < n; i++)
-            @out[i] = QuickSaturateWord(@in[i] * 65535);
+            @out[i] = _cmsQuickSaturateWord(@in[i] * 65535);
     }
 
     internal static ushort L2Fix2(double l) =>
-                                                            QuickSaturateWord(l * 652.8);
+        _cmsQuickSaturateWord(l * 652.8);
 
     internal static ushort L2Fix4(double l) =>
-        QuickSaturateWord(l * 655.35);
+        _cmsQuickSaturateWord(l * 655.35);
 
     internal static ushort QuantizeValue(double i, uint maxSamples) =>
         /**  Original Code (cmslut.c line: 732)
@@ -269,56 +228,7 @@ internal static class Helpers
          **  }
          **/
 
-        QuickSaturateWord(i * 65535.0 / (maxSamples - 1));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [ExcludeFromCodeCoverage]
-    internal static int QuickFloor(double val)
-    {
-#if DONT_USE_FAST_FLOOR
-        return (int)Math.Floor(val);
-#else
-        const double magic = 68719476736.0 * 1.5;
-        unsafe
-        {
-            val += magic;
-            if (BitConverter.IsLittleEndian)
-                return *(int*)&val >> 16; // take val, a double, and pretend the first half is an int and shift
-            else
-            {
-                int* ptr = (int*)&val;
-                return *++ptr >> 16;
-            }
-        }
-#endif
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort QuickFloorWord(double d) =>
-        (ushort)(QuickFloor(d - 32767.0) + 32767);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort QuickSaturateWord(double d) =>
-        (d += 0.5) switch
-        {
-            <= 0 => 0,
-            >= 65535.0 => 0xFFFF,
-            _ => QuickFloorWord(d),
-        };
-
-    internal static double S15Fixed16toDouble(int value)
-    {
-        var sign = value < 0 ? -1 : 1;
-        value = Math.Abs(value);
-
-        var whole = (ushort)((value >> 16) & 0xffff);
-        var fracPart = (ushort)(value & 0xffff);
-
-        var mid = fracPart / 65536.0;
-        var floater = whole + mid;
-
-        return sign * floater;
-    }
+        _cmsQuickSaturateWord(i * 65535.0 / (maxSamples - 1));
 
     internal static double Sqr(double v) =>
         v * v;
@@ -326,14 +236,6 @@ internal static class Helpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int ToFixedDomain(int a) =>
         a + ((a + 0x7FFF) / 0xFFFF);
-
-    internal static double U8Fixed8toDouble(ushort value)
-    {
-        var lsb = (byte)(value & 0xff);
-        var msb = (byte)((value >> 8) & 0xff);
-
-        return msb + (lsb / 256.0);
-    }
 
     internal static uint Uipow(uint n, uint a, uint b)
     {
@@ -357,10 +259,10 @@ internal static class Helpers
     }
 
     internal static ushort XYZ2Fix(double d) =>
-        QuickSaturateWord(d * 32768.0);
+        _cmsQuickSaturateWord(d * 32768.0);
 
     internal static double XYZ2Float(ushort v) =>
-        S15Fixed16toDouble(v << 1);
+        _cms15Fixed16toDouble(v << 1);
 
     #endregion Internal Methods
 }

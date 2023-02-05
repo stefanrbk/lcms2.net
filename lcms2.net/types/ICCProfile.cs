@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -414,9 +414,9 @@ public unsafe struct IccProfile : ICloneable
         Header.renderingIntent = IOHandlerHelpers.AdjustEndianness(RenderingIntent);
 
         // Illuminant is always D50
-        Header.illuminant.X = (int)IOHandlerHelpers.AdjustEndianness((uint)DoubleToS15Fixed16(D50.X));
-        Header.illuminant.Y = (int)IOHandlerHelpers.AdjustEndianness((uint)DoubleToS15Fixed16(D50.Y));
-        Header.illuminant.Z = (int)IOHandlerHelpers.AdjustEndianness((uint)DoubleToS15Fixed16(D50.Z));
+        Header.illuminant.X = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.X));
+        Header.illuminant.Y = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.Y));
+        Header.illuminant.Z = (int)IOHandlerHelpers.AdjustEndianness((uint)_cmsDoubleTo15Fixed16(D50.Z));
 
         // Created by LittleCMS (that's me!)
         Header.creator = IOHandlerHelpers.AdjustEndianness(LcmsSignature);
