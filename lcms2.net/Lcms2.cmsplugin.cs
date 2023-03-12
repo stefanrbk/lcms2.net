@@ -26,10 +26,10 @@
 //
 
 using lcms2.io;
-using lcms2.plugins;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -40,33 +40,9 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     private static readonly object contextPoolHeadMutex = new();
-    private static Context? contextPoolHead;
+    private static Context* contextPoolHead;
 
-    private static readonly Context globalContext;
-
-    static Lcms2()
-    {
-        globalContext = new()
-        {
-            chunks = new object?[(int)Chunks.Max]
-        {
-            null,
-            globalLogErrorChunk,
-            globalAlarmCodesChunk,
-            globalAdaptationStateChunk,
-            globalInterpPluginChunk,
-            globalCurvePluginChunk,
-            globalFormattersPluginChunk,
-            globalTagTypePluginChunk,
-            globalTagPluginChunk,
-            globalIntentsPluginChunk,
-            globalMPETypePluginChunk,
-            globalOptimizationPluginChunk,
-            globalTransformPluginChunk,
-            globalMutexPluginChunk,
-        }
-        };
-    }
+    private static readonly Context* globalContext;
 
     internal static ushort _cmsAdjustEndianess16(ushort Word)
     {
@@ -93,10 +69,12 @@ public static unsafe partial class Lcms2
         return DWord;
     }
 
-    internal static void _cmsAdjustEndianess64(ulong* Result, ulong QWord)
+    internal static void _cmsAdjustEndianess64(ulong* Result, ulong* QWord)
     {
-        var pIn = (byte*)&QWord;
+        var pIn = (byte*)QWord;
         var pOut = (byte*)Result;
+
+        _cmsAssert(Result);
 
         pOut[7] = pIn[0];
         pOut[6] = pIn[1];
@@ -108,30 +86,36 @@ public static unsafe partial class Lcms2
         pOut[0] = pIn[7];
     }
 
-    internal static bool _cmsReadUInt8Number(IOHandler io, byte* n)
+    internal static bool _cmsReadUInt8Number(IOHandler* io, byte* n)
     {
         byte tmp;
 
-        if (io.Read(io, &tmp, sizeof(byte), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(byte), 1) != 1)
             return false;
 
         if (n is not null) *n = tmp;
         return true;
     }
 
-    internal static bool _cmsReadUInt16Number(IOHandler io, ushort* n)
+    internal static bool _cmsReadUInt16Number(IOHandler* io, ushort* n)
     {
         ushort tmp;
 
-        if (io.Read(io, &tmp, sizeof(ushort), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(ushort), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess16(tmp);
         return true;
     }
 
-    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, ushort* array)
+    internal static bool _cmsReadUInt16Array(IOHandler* io, uint n, ushort* array)
     {
+        _cmsAssert(io);
+
         for (var i = 0; i < n; i++)
         {
             if (array is not null)
@@ -148,22 +132,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadUInt32Number(IOHandler io, uint* n)
+    internal static bool _cmsReadUInt32Number(IOHandler* io, uint* n)
     {
         uint tmp;
 
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess32(tmp);
         return true;
     }
 
-    internal static bool _cmsReadFloat32Number(IOHandler io, float* n)
+    internal static bool _cmsReadFloat32Number(IOHandler* io, float* n)
     {
         uint tmp;
 
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null)
@@ -182,22 +170,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadUInt64Number(IOHandler io, ulong* n)
+    internal static bool _cmsReadUInt64Number(IOHandler* io, ulong* n)
     {
         ulong tmp;
 
-        if (io.Read(io, &tmp, sizeof(ulong), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(ulong), 1) != 1)
             return false;
 
-        if (n is not null) _cmsAdjustEndianess64(n, tmp);
+        if (n is not null) _cmsAdjustEndianess64(n, &tmp);
         return true;
     }
 
-    internal static bool _cmsRead15Fixed16Number(IOHandler io, double* n)
+    internal static bool _cmsRead15Fixed16Number(IOHandler* io, double* n)
     {
         uint tmp;
 
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null)
@@ -206,11 +198,13 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadXYZNumber(IOHandler io, CIEXYZ* XYZ)
+    internal static bool _cmsReadXYZNumber(IOHandler* io, CIEXYZ* XYZ)
     {
         EncodedXYZNumber xyz;
 
-        if (io.Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
             return false;
 
         if (XYZ is not null)
@@ -223,18 +217,27 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsWriteUInt8Number(IOHandler io, byte n) =>
-        io.Write(io, sizeof(byte), &n);
-
-    internal static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
+    internal static bool _cmsWriteUInt8Number(IOHandler* io, byte n)
     {
-        var tmp = _cmsAdjustEndianess16(n);
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(ushort), &tmp);
+        return io->Write(io, sizeof(byte), &n);
     }
 
-    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, in ushort* array)
+    internal static bool _cmsWriteUInt16Number(IOHandler* io, ushort n)
     {
+        _cmsAssert(io);
+
+        var tmp = _cmsAdjustEndianess16(n);
+
+        return io->Write(io, sizeof(ushort), &tmp);
+    }
+
+    internal static bool _cmsWriteUInt16Array(IOHandler* io, uint n, in ushort* array)
+    {
+        _cmsAssert(io);
+        _cmsAssert(array);
+
         for (var i = 0; i < n; i++)
         {
             if (!_cmsWriteUInt16Number(io, array[i])) return false;
@@ -243,45 +246,57 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsWriteUInt32Number(IOHandler io, uint n)
+    internal static bool _cmsWriteUInt32Number(IOHandler* io, uint n)
     {
+        _cmsAssert(io);
+
         var tmp = _cmsAdjustEndianess32(n);
 
-        return io.Write(io, sizeof(uint), &tmp);
+        return io->Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteFloat32Number(IOHandler io, float n)
+    internal static bool _cmsWriteFloat32Number(IOHandler* io, float n)
     {
+        _cmsAssert(io);
+
         var tmp = *(uint*)(void*)&n;
         tmp = _cmsAdjustEndianess32(tmp);
 
-        return io.Write(io, sizeof(uint), &tmp);
+        return io->Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
+    internal static bool _cmsWriteUInt64Number(IOHandler* io, ulong n)
     {
         ulong tmp;
-        _cmsAdjustEndianess64(&tmp, n);
 
-        return io.Write(io, sizeof(ulong), &tmp);
+        _cmsAssert(io);
+
+        _cmsAdjustEndianess64(&tmp, &n);
+
+        return io->Write(io, sizeof(ulong), &tmp);
     }
 
-    internal static bool _cmsWrite15Fixed16Number(IOHandler io, uint n)
+    internal static bool _cmsWrite15Fixed16Number(IOHandler* io, uint n)
     {
+        _cmsAssert(io);
+
         var tmp = _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n));
 
-        return io.Write(io, sizeof(uint), &tmp);
+        return io->Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ XYZ)
+    internal static bool _cmsWriteXYZNumber(IOHandler* io, CIEXYZ* XYZ)
     {
         EncodedXYZNumber xyz;
 
-        xyz.X = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.X));
-        xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
-        xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
+        _cmsAssert(io);
+        _cmsAssert(XYZ);
 
-        return io.Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
+        xyz.X = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->X));
+        xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Y));
+        xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Z));
+
+        return io->Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
     }
 
     internal static double _cms8Fixed8toDouble(ushort fixed8)
@@ -315,78 +330,95 @@ public static unsafe partial class Lcms2
     internal static S15Fixed16Number _cmsDoubleTo15Fixed16(double v) =>
         (S15Fixed16Number)Math.Floor((v * 65536.0) + 0.5);
 
-    internal static DateTime _cmsDecodeDateTimeNumber(DateTimeNumber source)
+    internal static void _cmsDecodeDateTimeNumber(DateTimeNumber* Source, DateTime* Dest)
     {
-        var sec = _cmsAdjustEndianess16(source.Seconds);
-        var min = _cmsAdjustEndianess16(source.Minutes);
-        var hour = _cmsAdjustEndianess16(source.Hours);
-        var day = _cmsAdjustEndianess16(source.Day);
-        var mon = _cmsAdjustEndianess16(source.Month);
-        var year = _cmsAdjustEndianess16(source.Year);
+        _cmsAssert(Dest);
+        _cmsAssert(Source);
 
-        return new(year, mon, day, hour, min, sec);
+        var sec = _cmsAdjustEndianess16(Source->Seconds);
+        var min = _cmsAdjustEndianess16(Source->Minutes);
+        var hour = _cmsAdjustEndianess16(Source->Hours);
+        var day = _cmsAdjustEndianess16(Source->Day);
+        var mon = _cmsAdjustEndianess16(Source->Month);
+        var year = _cmsAdjustEndianess16(Source->Year);
+
+        *Dest = new(year, mon, day, hour, min, sec);
     }
 
-    internal static void _cmsEncodeDateTimeNumber(DateTimeNumber* dest, DateTime source)
+    internal static void _cmsEncodeDateTimeNumber(DateTimeNumber* dest, DateTime* source)
     {
-        dest->Seconds = _cmsAdjustEndianess16((ushort)source.Second);
-        dest->Minutes = _cmsAdjustEndianess16((ushort)source.Minute);
-        dest->Hours = _cmsAdjustEndianess16((ushort)source.Hour);
-        dest->Day = _cmsAdjustEndianess16((ushort)source.Day);
-        dest->Month = _cmsAdjustEndianess16((ushort)source.Month);
-        dest->Year = _cmsAdjustEndianess16((ushort)source.Year);
+        _cmsAssert(dest);
+        _cmsAssert(source);
+
+        dest->Seconds = _cmsAdjustEndianess16((ushort)source->Second);
+        dest->Minutes = _cmsAdjustEndianess16((ushort)source->Minute);
+        dest->Hours = _cmsAdjustEndianess16((ushort)source->Hour);
+        dest->Day = _cmsAdjustEndianess16((ushort)source->Day);
+        dest->Month = _cmsAdjustEndianess16((ushort)source->Month);
+        dest->Year = _cmsAdjustEndianess16((ushort)source->Year);
     }
 
-    internal static Signature _cmsReadTypeBase(IOHandler io)
+    internal static Signature _cmsReadTypeBase(IOHandler* io)
     {
         TagBase Base;
 
-        if (io.Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
+        _cmsAssert(io);
+
+        if (io->Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
             return default;
 
         return new(_cmsAdjustEndianess32(Base.Signature));
     }
 
-    internal static bool _cmsWriteTypeBase(IOHandler io, Signature sig)
+    internal static bool _cmsWriteTypeBase(IOHandler* io, Signature sig)
     {
         TagBase Base;
 
+        _cmsAssert(io);
+
         Base.Signature = new(_cmsAdjustEndianess32(sig));
-        return io.Write(io, (uint)sizeof(TagBase), &Base);
+        return io->Write(io, (uint)sizeof(TagBase), &Base);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint _cmsALIGNLONG(uint x) =>
         (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
 
-    internal static bool _cmsReadAlignment(IOHandler io)
+    internal static bool _cmsReadAlignment(IOHandler* io)
     {
         var Buffer = stackalloc byte[4];
 
-        var At = io.Tell(io);
+        _cmsAssert(io);
+
+        var At = io->Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io.Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
+        return io->Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
     }
 
-    internal static bool _cmsWriteAlignment(IOHandler io)
+    internal static bool _cmsWriteAlignment(IOHandler* io)
     {
         var Buffer = stackalloc byte[4];
 
-        var At = io.Tell(io);
+        _cmsAssert(io);
+
+        var At = io->Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io.Write(io, BytesToNextAlignedPos, Buffer);
+        return io->Write(io, BytesToNextAlignedPos, Buffer);
     }
 
-    internal static bool _cmsIOPrintf(IOHandler io, string frm, params object[] args)
+    internal static bool _cmsIOPrintf(IOHandler* io, string frm, params object[] args)
     {
+        _cmsAssert(io);
+        _cmsAssert(frm);
+
         var str = new StringBuilder(String.Format(frm, args));
         str.Replace(',', '.');
         if (str.Length > 2047) return false;
@@ -394,96 +426,114 @@ public static unsafe partial class Lcms2
 
         fixed (byte* ptr = buffer)
         {
-            return io.Write(io, (uint)str.Length, ptr);
+            return io->Write(io, (uint)str.Length, ptr);
         }
     }
 
-    public static bool cmsPlugin(PluginBase plugin) =>
+    internal static T* _cmsPluginMalloc<T>(Context* ContextID) where T : struct =>
+        (T*)_cmsPluginMalloc(ContextID, (uint)sizeof(T));
+
+    internal static void* _cmsPluginMalloc(Context* ContextID, uint size)
+    {
+        var ctx = _cmsGetContext(ContextID);
+
+        if (ctx->MemPool is null)
+        {
+            if (ContextID is null)
+            {
+                ctx->MemPool = _cmsCreateSubAlloc(null, 2 * 1024);
+                if (ctx->MemPool is null) return null;
+            }
+            else
+            {
+                cmsSignalError(ContextID, ErrorCode.CorruptionDetected, "NULL memory pool on context");
+                return null;
+            }
+        }
+
+        return _cmsSubAlloc(ctx->MemPool, size);
+    }
+
+    public static bool cmsPlugin(void* plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, PluginBase? Plugin)
+    public static bool cmsPluginTHR(Context* id, void* Plug_in)
     {
-        for (
-            ;
-            Plugin is not null;
-            Plugin = Plugin.Next)
+        for (var Plugin = (PluginBase*)Plug_in;
+             Plugin is not null;
+             Plugin = Plugin->Next)
         {
-            if (Plugin.Magic != Signature.Plugin.MagicNumber)
+            if (Plugin->Magic != Signature.Plugin.MagicNumber)
             {
                 cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
                 return false;
             }
 
-            if (Plugin.ExpectedVersion > Version)
+            if (Plugin->ExpectedVersion > LCMS_VERSION)
             {
-                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {Version}");
+                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin->ExpectedVersion}, current version is {LCMS_VERSION}");
                 return false;
             }
 
-            switch (Plugin)
+            if (Plugin->Type == Signature.Plugin.MemHandler)
             {
-                case PluginInterpolation:
-                    if (Plugin.Type != Signature.Plugin.Interpolation || !_cmsRegisterInterpPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginTagType:
-                    if (Plugin.Type == Signature.Plugin.TagType)
-                    {
-                        return _cmsRegisterTagTypePlugin(id, Plugin);
-                    }
-                    else if (Plugin.Type == Signature.Plugin.MultiProcessElement)
-                    {
-                        return _cmsRegisterMultiProcessElementPlugin(id, Plugin);
-                    }
-                    return false;
-
-                case PluginTag:
-                    if (Plugin.Type != Signature.Plugin.Tag || !_cmsRegisterTagPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginFormatters:
-                    if (Plugin.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginRenderingIntent:
-                    return
-                        Plugin.Type == Signature.Plugin.RenderingIntent &&
-                        _cmsRegisterRenderingIntentPlugin(id, Plugin);
-
-                case PluginParametricCurves:
-                    if (Plugin.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginOptimization:
-                    return
-                        Plugin.Type == Signature.Plugin.Optimization &&
-                        _cmsRegisterOptimizationPlugin(id, Plugin);
-
-                case PluginTransform:
-                    return
-                        Plugin.Type == Signature.Plugin.Translform &&
-                        _cmsRegisterTransformPlugin(id, Plugin);
-
-                case PluginMutex:
-                    if (Plugin.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                default:
-                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
-                    return false;
+                if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Interpolation)
+            {
+                if (!_cmsRegisterInterpPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.TagType)
+            {
+                if (!_cmsRegisterTagTypePlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Tag)
+            {
+                if (!_cmsRegisterTagPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Formatters)
+            {
+                if (!_cmsRegisterFormattersPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.RenderingIntent)
+            {
+                if (!_cmsRegisterRenderingIntentPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.ParametricCurve)
+            {
+                if (!_cmsRegisterParametricCurvesPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.MultiProcessElement)
+            {
+                if (!_cmsRegisterMultiProcessElementPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Optimization)
+            {
+                if (!_cmsRegisterOptimizationPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Transform)
+            {
+                if (!_cmsRegisterTransformPlugin(id, Plugin)) return false;
+            }
+            else if (Plugin->Type == Signature.Plugin.Mutex)
+            {
+                if (!_cmsRegisterMutexPlugin(id, Plugin)) return false;
+            }
+            else
+            {
+                cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin->Type}'");
+                return false;
             }
         }
 
+        // Keep a reference to the plug-in
         return true;
     }
 
-    internal static Context _cmsGetContext(Context? id)
+    internal static Context* _cmsGetContext(Context* ContextID)
     {
+        Context* id = *(Context**)&ContextID;
+
         // On null, use global settings
         if (id is null)
             return globalContext;
@@ -491,7 +541,7 @@ public static unsafe partial class Lcms2
         // Search
         lock (contextPoolHeadMutex)
         {
-            for (var ctx = contextPoolHead; ctx is not null; ctx = ctx.next)
+            for (var ctx = contextPoolHead; ctx is not null; ctx = ctx->Next)
             {
                 // Found it?
                 if (id == ctx)
@@ -502,23 +552,27 @@ public static unsafe partial class Lcms2
         return globalContext;
     }
 
-    internal static ref object? _cmsContextGetClientChunk(Context? id, Chunks mc)
+    internal static void* _cmsContextGetClientChunk(Context* ContextID, Chunks mc)
     {
         if (mc is < 0 or >= Chunks.Max)
         {
-            cmsSignalError(id, ErrorCode.Internal, "Bad context client -- possible corruption");
+            cmsSignalError(ContextID, ErrorCode.Internal, "Bad context client -- possible corruption");
+            Debug.Fail("Bad context client -- possible corruption");
 
-            return ref globalContext.chunks[(int)Chunks.UserPtr];
+            return globalContext->chunks[Chunks.UserPtr];
         }
 
-        var ctx = _cmsGetContext(id);
-        ref var ptr = ref ctx.chunks[(int)mc];
+        var ctx = _cmsGetContext(ContextID);
+        var ptr = ctx->chunks[mc];
 
-        if (ptr is not null) return ref ptr;
+        if (ptr is not null) return ptr;
 
         // A null ptr means no special settings for that context, and this reverts to globals
-        return ref globalContext.chunks[(int)mc];
+        return globalContext->chunks[mc];
     }
+
+    internal static T* _cmsContextGetClientChunk<T>(Context* ContextID, Chunks mc) where T : struct =>
+        (T*)_cmsContextGetClientChunk(ContextID, mc);
 
     /// <summary>
     ///     This function returns the given context its default, pristene state, as if no
@@ -541,8 +595,9 @@ public static unsafe partial class Lcms2
     ///     <see cref="cmsPluginTHR"/> may register many different plug-ins
     ///     simultaneously, then there is no way to identify which plug-in to unregister.
     /// </remarks>
-    public static void cmsUnregisterPluginsTHR(Context? context)
+    public static void cmsUnregisterPluginsTHR(Context* context)
     {
+        _cmsRegisterMemHandlerPlugin(context, null);
         _cmsRegisterInterpPlugin(context, null);
         _cmsRegisterTagTypePlugin(context, null);
         _cmsRegisterTagPlugin(context, null);
@@ -555,11 +610,31 @@ public static unsafe partial class Lcms2
         _cmsRegisterMutexPlugin(context, null);
     }
 
-    private static void AllocChunks(Context ctx, Context? src)
+    internal static PluginMemHandler* _cmsFindMemoryPlugin(void* PluginBundle)
+    {
+        for (var Plugin = (PluginBase*)PluginBundle;
+            Plugin is not null;
+            Plugin = Plugin->Next)
+        {
+            if (Plugin->Magic == Signature.Plugin.MagicNumber &&
+                Plugin->ExpectedVersion <= LCMS_VERSION &&
+                Plugin->Type == Signature.Plugin.MemHandler)
+            {
+                // Found!
+                return (PluginMemHandler*)Plugin;
+            }
+        }
+
+        // Nope, revert to defaults
+        return null;
+    }
+
+    private static void AllocChunks(Context* ctx, Context* src, bool trace = false)
     {
         _cmsAllocLogErrorChunk(ctx, src);
         _cmsAllocAlarmCodesChunk(ctx, src);
         _cmsAllocAdaptationStateChunk(ctx, src);
+        _cmsAllocMemPluginChunk(ctx, src);
         _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocCurvesPluginChunk(ctx, src);
         _cmsAllocFormattersPluginChunk(ctx, src);
@@ -570,6 +645,24 @@ public static unsafe partial class Lcms2
         _cmsAllocOptimizationPluginChunk(ctx, src);
         _cmsAllocTransformPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
+
+        static void PrintContext(Context* ctx, string name)
+        {
+            if (ctx is null)
+            {
+                Console.WriteLine($"\n{name}\tnull");
+            }
+            else
+            {
+                Console.WriteLine($"\n{name}\t{(ulong)ctx}");
+                Console.WriteLine($"\t\tNext\t{(ctx->Next is null ? "null" : (ulong)ctx->Next)}");
+                Console.WriteLine($"\t\tMemPool\t{(ctx->MemPool is null ? "null" : (ulong)ctx->MemPool)}");
+                Console.WriteLine($"\t\tDefaultMemoryManager\t{ctx->DefaultMemoryManager}");
+                Console.WriteLine($"\t\tchunks");
+                for (var i = 0; i < (int)Chunks.Max; i++)
+                    Console.WriteLine($"\t\t\t{Enum.GetName((Chunks)i)}\t{(ulong)ctx->chunks[(Chunks)i]}");
+            }
+        }
     }
 
     /// <summary>
@@ -578,30 +671,60 @@ public static unsafe partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(PluginBase? Plugin, object? UserData)
+    public static Context* cmsCreateContext(void* Plugin, void* UserData)
     {
-        // Create the context object.
-        var ctx = new Context();
+        Context fakeContext;
+        fakeContext.chunks.parent = &fakeContext;
+
+        _cmsInstallAllocFunctions(_cmsFindMemoryPlugin(Plugin), &fakeContext.DefaultMemoryManager);
+
+        fakeContext.chunks[Chunks.UserPtr] = UserData;
+        fakeContext.chunks[Chunks.MemPlugin] = &fakeContext.DefaultMemoryManager;
+
+        // Create the context structure.
+        var ctx = _cmsMalloc<Context>(&fakeContext);
+        if (ctx is null) return null; // Something very wrong happened!
+
+        // Init the structure and the memory manager
+        memset(ctx, 0);
+        ctx->chunks.parent = ctx;
+
+        // Keep memory manager
+        memcpy(&ctx->DefaultMemoryManager, &fakeContext.DefaultMemoryManager);
 
         // Maintain the linked list (with proper locking)
         lock (contextPoolHeadMutex)
         {
-            ctx.next = contextPoolHead;
+            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
+            ctx->Next = contextPoolHead;
             contextPoolHead = ctx;
+            //Console.WriteLine("\nAdded to the pool");
+            //for (var c = contextPoolHead; c is not null; c = c->Next)
+            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
+            //Console.WriteLine("\tend");
         }
 
-        ctx.chunks[(int)Chunks.UserPtr] = UserData;
+        ctx->chunks[Chunks.UserPtr] = UserData;
+        ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
+
+        // Now we can allocate the pool by using default memory manager
+        ctx->MemPool = _cmsCreateSubAlloc(*(Context**)&ctx, 22 * (uint)sizeof(void*)); // default size about 22 pointers
+        if (ctx->MemPool is null)
+        {
+            cmsDeleteContext(*(Context**)&ctx);
+            return null;
+        }
 
         AllocChunks(ctx, null);
 
         // Setup the plug-ins
-        if (!cmsPluginTHR(ctx, Plugin))
+        if (!cmsPluginTHR(*(Context**)&ctx, Plugin))
         {
-            cmsDeleteContext(ctx);
+            cmsDeleteContext(*(Context**)&ctx);
             return null;
         }
 
-        return ctx;
+        return *(Context**)&ctx;
     }
 
     /// <summary>
@@ -611,28 +734,49 @@ public static unsafe partial class Lcms2
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger.<br/>
     ///     If <see langword="null"/>, the pointer to user-defined data of the original will be used.
     /// </param>
-    public static Context? cmsDupContext(Context? context, object? NewUserData)
+    public static Context* cmsDupContext(Context* context, void* NewUserData)
     {
-        var ctx = new Context();
         var src = _cmsGetContext(context);
 
-        var userData = NewUserData ?? src.chunks[(int)Chunks.UserPtr];
+        var userData = (NewUserData is not null) ? NewUserData : src->chunks[Chunks.UserPtr];
+
+        var ctx = _cmsMalloc<Context>(context);
+        if (ctx is null)
+            return null;    // Something very wrong happened
+        ctx->chunks.parent = ctx;
+
+        // Setup default memory allocators
+        memcpy(&ctx->DefaultMemoryManager, &src->DefaultMemoryManager);
 
         // Maintain the linked list
         lock (contextPoolHeadMutex)
         {
-            ctx.next = contextPoolHead;
+            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
+            ctx->Next = contextPoolHead;
             contextPoolHead = ctx;
+            //Console.WriteLine("\nAdded to the pool");
+            //for (var c = contextPoolHead; c is not null; c = c->Next)
+            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
+            //Console.WriteLine("\tend");
         }
 
-        ctx.chunks[(int)Chunks.UserPtr] = userData;
+        ctx->chunks[Chunks.UserPtr] = userData;
+        ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
 
-        AllocChunks(ctx, src);
+        ctx->MemPool = _cmsCreateSubAlloc(ctx, 22 * (uint)sizeof(void*));
+        if (ctx->MemPool is null)
+        {
+            cmsDeleteContext(ctx);
+            return null;
+        }
+
+        // Allocate all required chunks.
+        AllocChunks(ctx, src, true);
 
         // Make sure no one failed
         for (var i = (int)Chunks.Logger; i < (int)Chunks.Max; i++)
         {
-            if (ctx.chunks[i] is null)
+            if (ctx->chunks[(Chunks)i] is null)
             {
                 cmsDeleteContext(ctx);
                 return null;
@@ -643,28 +787,40 @@ public static unsafe partial class Lcms2
     }
 
     /// <summary>
-    ///     Frees any resources associated with the given <see cref="Context"/>,
+    ///     Frees any resources associated with the given <see cref="Context*"/>,
     ///     and destroys the placeholder.
     /// </summary>
     /// <remarks>
     ///     <paramref name="context"/> can no longer be used in any THR operation.
     /// </remarks>
-    public static void cmsDeleteContext(Context? context)
+    public static void cmsDeleteContext(Context* ctx)
     {
-        if (context is null)
+        Context fakeContext = default;
+        fakeContext.chunks.parent = &fakeContext;
+
+        if (ctx is null)
             return;
 
-        var ctx = context;
+        memcpy(&fakeContext.DefaultMemoryManager, &ctx->DefaultMemoryManager);
+
+        fakeContext.chunks[Chunks.UserPtr] = ctx->chunks[Chunks.UserPtr];
+        fakeContext.chunks[Chunks.MemPlugin] = &fakeContext.DefaultMemoryManager;
 
         // Get rid of plugins
         cmsUnregisterPluginsTHR(ctx);
 
+        // Since all memory is allocated in the private pool, all we need to do is destroy the pool
+        if (ctx->MemPool is not null)
+            _cmsSubAllocDestroy(ctx->MemPool);
+        ctx->MemPool = null;
+
         // Maintain list
         lock (contextPoolHeadMutex)
         {
+            //Console.WriteLine($"\nRemoving Context {(ulong)ctx:x16}");
             if (contextPoolHead == ctx)
             {
-                contextPoolHead = ctx.next;
+                contextPoolHead = ctx->Next;
             }
             else
             {
@@ -672,16 +828,23 @@ public static unsafe partial class Lcms2
                 for (
                     var prev = contextPoolHead;
                     prev is not null;
-                    prev = prev.next)
+                    prev = prev->Next)
                 {
-                    if (prev.next == ctx)
+                    if (prev->Next == ctx)
                     {
-                        prev.next = ctx.next;
+                        prev->Next = ctx->Next;
                         break;
                     }
                 }
             }
+            //Console.WriteLine("\nRemoved from the pool");
+            //for (var c = contextPoolHead; c is not null; c = c->Next)
+            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
+            //Console.WriteLine("\tend");
         }
+
+        // free the memory block itself
+        _cmsFree(&fakeContext, ctx);
     }
 
     /// <summary>
@@ -691,8 +854,8 @@ public static unsafe partial class Lcms2
     /// <remarks>
     ///     This can be used to change the user data if needed, but probably not thread safe!
     /// </remarks>
-    public static ref object? cmsGetContextUserData(Context? context) =>
-        ref _cmsContextGetClientChunk(context, Chunks.UserPtr);
+    public static void* cmsGetContextUserData(Context* context) =>
+        _cmsContextGetClientChunk(context, Chunks.UserPtr);
 
     /// <summary>
     ///     Provides thread-safe time
@@ -701,9 +864,76 @@ public static unsafe partial class Lcms2
     ///     <see cref="DateTime.UtcNow"/> is already thread-safe.
     ///     Providing for completeness.
     /// </remarks>
-    internal static bool _cmsGetTime(out DateTime ptr_time)
+    internal static bool _cmsGetTime(DateTime* ptr_time)
     {
-        ptr_time = DateTime.UtcNow;
+        *ptr_time = DateTime.UtcNow;
         return true;
+    }
+
+    private static void AllocPluginChunk<T>(Context* ctx, in Context* src, Chunks mc, T* defaultChunk) where T : struct
+    {
+        _cmsAssert(ctx);
+
+        var from = (src is not null) ? src->chunks[mc] : defaultChunk;
+
+        _cmsAssert(from);
+        ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, from);
+    }
+
+    private static void AllocPluginChunk<T>(Context* ctx, in Context* src, delegate*<Context*, in Context*, Chunks, void> dup, Chunks mc, T* defaultChunk) where T : struct
+    {
+        Debug.Assert(ctx is not null);
+
+        if (src is not null)
+        {
+            // Duplicate the list
+            dup(ctx, src, mc);
+        }
+        else
+        {
+            ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, defaultChunk);
+        }
+    }
+
+    private static void DupPluginList<TChunk, TList>(Context* ctx, in Context* src, Chunks mc) where TChunk : struct, IListOffset where TList : struct, INextOffset
+    {
+        var newHead = new TChunk();
+        var head = (TChunk*)src->chunks[mc];
+        TList* Anterior = null;
+
+        Debug.Assert(head is not null);
+
+        // Walk the list copying all nodes
+        for (var entry = *List(head);
+            entry is not null;
+            entry = *Next(entry))
+        {
+            var newEntry = _cmsSubAllocDup<TList>(ctx->MemPool, entry);
+
+            if (newEntry is null)
+                return;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            *Next(newEntry) = null;
+            if (Anterior is not null)
+                *Next(Anterior) = newEntry;
+
+            Anterior = newEntry;
+
+            if (*List(&newHead) is null)
+                *List(&newHead) = newEntry;
+        }
+
+        ctx->chunks[mc] = _cmsSubAllocDup<TChunk>(ctx->MemPool, &newHead);
+
+        TList** Next(TList* ptr)
+        {
+            return (TList**)((byte*)ptr + TList.NextOffset);
+        }
+
+        TList** List(TChunk* ptr)
+        {
+            return (TList**)((byte*)ptr + TChunk.ListOffset);
+        }
     }
 }

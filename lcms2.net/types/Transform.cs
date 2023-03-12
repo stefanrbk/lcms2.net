@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,152 +24,46 @@
 //
 //---------------------------------------------------------------------------------
 //
-using System.Runtime.InteropServices;
-
 namespace lcms2.types;
 
-/// <summary>
-///     Transform factory
-/// </summary>
-/// <remarks>Implements the <c>_cmsTransform2Factory</c> typedef.</remarks>
-public delegate void Transform2Factory(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
-
-/// <summary>
-///     Transform function
-/// </summary>
-/// <remarks>Implements the <c>_cmsTransform2Fn</c> typedef.</remarks>
-public delegate void Transform2Fn(Transform cargo, object inputBuffer, object outputBuffer, int pixelsPerLine, int lineCount, Stride stride);
-
-/// <summary>
-///     Transform factory
-/// </summary>
-/// <remarks>Implements the <c>_cmsTransformFactory</c> typedef.</remarks>
-public delegate void TransformFactory(TransformFn xform, object? userData, object inputBuffer, object outputBuffer, int size, int stride);
-
-/// <summary>
-///     Legacy function, handles just ONE scanline.
-/// </summary>
-/// <remarks>Implements the <c>_cmsTransformFn</c> typedef.</remarks>
-public delegate void TransformFn(Transform cargo, object inputBuffer, object outputBuffer, int size, int stride);
-
-public unsafe struct Cache
+public unsafe struct Transform
 {
-    #region Fields
+    public uint InputFormat, OutputFormat;
 
-    public fixed ushort CacheIn[maxChannels];
-    public fixed ushort CacheOut[maxChannels];
+    public delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void> xform;
 
-    #endregion Fields
-}
+    public delegate*<Transform*, ushort*, byte*, uint, byte*> FromInput;
+    public delegate*<Transform*, ushort*, byte*, uint, byte*> ToOutput;
 
-/// <summary>
-///     Stride info for a transform.
-/// </summary>
-/// <remarks>Implements the <c>cmsStride</c> struct.</remarks>
-public struct Stride
-{
-    #region Fields
+    public delegate*<Transform*, float*, byte*, uint, byte*> FromInputFloat;
+    public delegate*<Transform*, float*, byte*, uint, byte*> ToInputFloat;
 
-    public int BytesPerLineIn;
-    public int BytesPerLineOut;
-    public int BytesPerPlaneIn;
-    public int BytesPerPlaneOut;
+    public Cache Cache;
 
-    #endregion Fields
-}
+    public Pipeline* Lut;
 
-public class Transform
-{
-    #region Fields
+    public Pipeline* GamutCheck;
 
-    internal double adaptationState;
+    public NamedColorList* InputColorant;
+    public NamedColorList* OutputColorant;
 
-    internal Cache cache;
+    public Signature EntryColorSpace;
+    public Signature ExitColorSpace;
 
-    internal Signature entryColorSpace;
-    internal XYZ entryWhitePoint;
-    internal Signature exitColorSpace;
-    internal XYZ exitWhitePoint;
-    internal FreeUserDataFn? freeUserData;
-    internal Formatter16Input? fromInput;
-    internal FormatterFloatInput? fromInputFloat;
-    internal Pipeline gamutCheck;
-    internal NamedColorList inputColorant;
-    internal PixelFormat inputFormat, outputFormat;
-    internal Pipeline lut;
-    internal TransformFn? oldXform;
-    internal NamedColorList outputColorant;
-    internal Signature renderingIntent;
-    internal Sequence sequence;
-    internal object? state;
-    internal Formatter16Output? toOutput;
+    public CIEXYZ EntryWhitePoint;
+    public CIEXYZ ExitWhitePoint;
 
-    internal FormatterFloatOutput? toOutputFloat;
+    public Sequence? Sequence;
 
-    internal Transform2Fn? xform;
+    public uint dwOriginalFlags;
+    public double AdaptationState;
 
-    #endregion Fields
+    public uint RenderingIntent;
 
-    #region Properties
+    public Context* ContextID;
 
-    /// <summary>
-    ///     Retrieve original flags
-    /// </summary>
-    /// <remarks>
-    ///     Implements the <c>_cmsGetTransformFlags</c> and <c>_cmsGetTransformUserData</c> functions.
-    /// </remarks>
-    public uint Flags { get; internal set; }
+    public void* UserData;
+    public delegate*<Context*, void*, void> FreeUserData;
 
-    /// <summary>
-    ///     Retrieve 16 bit formatters
-    /// </summary>
-    /// <remarks>Implements the <c>_cmsGetTransformFormatters16</c> function.</remarks>
-    public (Formatter16Input? FromInput, Formatter16Output? ToOutput) Formatters16 =>
-        (fromInput, toOutput);
-
-    /// <summary>
-    ///     Retrieve float formatters
-    /// </summary>
-    /// <remarks>Implements the <c>_cmsGetTransformFormattersFloat</c> function.</remarks>
-    public (FormatterFloatInput? FromInput, FormatterFloatOutput? ToOutput) FormattersFloat =>
-        (fromInputFloat, toOutputFloat);
-
-    public NamedColorList? NamedColorList =>
-        /** Original Code (cmsnamed.c line: 756)
-         **
-         ** // Retrieve the named color list from a transform. Should be first element in the LUT
-         ** cmsNAMEDCOLORLIST* CMSEXPORT cmsGetNamedColorList(cmsHTRANSFORM xform)
-         ** {
-         **     _cmsTRANSFORM* v = (_cmsTRANSFORM*) xform;
-         **     cmsStage* mpe  = v ->Lut->Elements;
-         **
-         **     if (mpe ->Type != cmsSigNamedColorElemType) return NULL;
-         **     return (cmsNAMEDCOLORLIST*) mpe ->Data;
-         ** }
-         **/
-        (lut.elements?.Data as Stage.NamedColorData)?.List;
-
-    /// <summary>
-    ///     User data as specified by the factory
-    /// </summary>
-    /// <remarks>
-    ///     Implements the <c>_cmsSetTransformUserData</c> and <c>_cmsGetTransformUserData</c> functions.
-    /// </remarks>
-    public object? UserData { get; set; }
-
-    #endregion Properties
-
-    #region Structs
-
-    [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct Factory
-    {
-        [FieldOffset(0)]
-        public TransformFactory LegacyXform;
-
-        [FieldOffset(0)]
-        public Transform2Factory Xform;
-    }
-
-    #endregion Structs
+    public delegate*<Transform*, in void*, void*, uint, uint, void> OldXform;
 }

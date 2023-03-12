@@ -25,113 +25,89 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.plugins;
+using lcms2.state;
 
 namespace lcms2;
 
-public static partial class Lcms2
+public static unsafe partial class Lcms2
 {
-    internal static CmsIntentsList defaultIntents = null!;
+    internal static IntentsList defaultIntents;
 
-    internal static IntentsPluginChunkType defaultIntentsPluginChunk =>
-        new();
+    internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
 
-    internal static readonly IntentsPluginChunkType globalIntentsPluginChunk = defaultIntentsPluginChunk;
+    internal static readonly IntentsPluginChunkType* globalIntentsPluginChunk;
 
-    private static void DupPluginIntentsList(Context ctx, in Context src)
+    internal static void _cmsAllocIntentsPluginChunk(Context* ctx, in Context* src)
     {
-        var newHead = new IntentsPluginChunkType();
-        var head = (IntentsPluginChunkType)src.chunks[(int)Chunks.IntentPlugin]!;
-        CmsIntentsList? Anterior = null;
-
-        // Walk the list copying all nodes
-        for (var entry = head.Intents;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = new CmsIntentsList(entry.Intent, entry.Description, entry.Link);
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.Intents ??= newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.IntentPlugin] = newHead;
+        fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
+            AllocPluginChunk(ctx, src, &DupPluginList<IntentsPluginChunkType, IntentsList>, Chunks.IntentPlugin, @default);
     }
 
-    internal static void _cmsAllocIntentsPluginChunk(Context ctx, Context? src = null)
-    {
-        if (src is not null)
-        {
-            // Dpulicate the list
-            DupPluginIntentsList(ctx, src);
-        }
-        else
-        {
-            ctx.chunks[(int)Chunks.IntentPlugin] = defaultIntentsPluginChunk;
-        }
-    }
-
-    public static unsafe uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[] Descriptions) =>
+    public static uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[]? Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
-    public static unsafe uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[] Descriptions)
+    public static uint cmsGetSupportedIntentsTHR(Context* ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
     {
-        var ctx = (IntentsPluginChunkType)_cmsContextGetClientChunk(ContextID, Chunks.IntentPlugin)!;
+        var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(ContextID, Chunks.IntentPlugin);
         uint nIntents;
-        CmsIntentsList? pt;
+        IntentsList* pt;
 
-        for (nIntents = 0, pt = ctx.Intents; pt is not null; pt = pt.Next)
+        for (nIntents = 0, pt = ctx->Intents; pt is not null; pt = pt->Next)
         {
             if (nIntents < nMax)
             {
                 if (Codes is not null)
-                    Codes[nIntents] = pt.Intent;
+                    Codes[nIntents] = pt->Intent;
 
-                if (nIntents < Descriptions.Length)
-                    Descriptions[nIntents] = pt.Description;
+                if (nIntents < Descriptions?.Length)
+                    Descriptions[nIntents] = pt->Description;
             }
 
             nIntents++;
         }
-
-        for (pt = defaultIntents; pt is not null; pt = pt.Next)
+        fixed (IntentsList* defIntents = &defaultIntents)
         {
-            if (nIntents < nMax)
+            for (pt = defIntents; pt is not null; pt = pt->Next)
             {
-                if (Codes is not null)
-                    Codes[nIntents] = pt.Intent;
+                if (nIntents < nMax)
+                {
+                    if (Codes is not null)
+                        Codes[nIntents] = pt->Intent;
 
-                if (nIntents < Descriptions.Length)
-                    Descriptions[nIntents] = pt.Description;
+                    if (nIntents < Descriptions?.Length)
+                        Descriptions[nIntents] = pt->Description;
+                }
+
+                nIntents++;
             }
-
-            nIntents++;
         }
 
         return nIntents;
     }
 
-    internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase? Data)
+    internal static bool _cmsRegisterRenderingIntentPlugin(Context* id, PluginBase* Data)
     {
-        var ctx = (IntentsPluginChunkType)_cmsContextGetClientChunk(id, Chunks.IntentPlugin)!;
+        var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(id, Chunks.IntentPlugin);
+        var Plugin = (PluginRenderingIntent*)Data;
 
-        if (Data is PluginRenderingIntent Plugin)
+        // Do we have to reset the custom intents?
+        if (Data is null)
         {
-            var pt = new CmsIntentsList(Plugin.Intent, Plugin.Description, Plugin.Link, ctx.Intents);
-
-            ctx.Intents = pt;
-
+            ctx->Intents = null;
             return true;
         }
-        else
-        {
-            ctx.Intents = null;
-            return true;
-        }
+
+        var fl = _cmsPluginMalloc<IntentsList>(id);
+        if (fl is null) return false;
+
+        fl->Intent = Plugin->Intent;
+        fl->Description = Plugin->Description;
+
+        fl->Link = Plugin->Link;
+
+        fl->Next = ctx->Intents;
+        ctx->Intents = fl;
+
+        return true;
     }
 }

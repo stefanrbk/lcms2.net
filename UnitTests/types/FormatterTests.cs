@@ -24,10 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.state;
+using lcms2.old;
+using lcms2.old.state;
+using lcms2.old.types;
 using lcms2.types;
 
-using static lcms2.types.PixelFormat;
+using static lcms2.old.types.PixelFormat;
 
 namespace lcms2.tests.types;
 

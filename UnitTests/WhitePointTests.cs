@@ -24,6 +24,8 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.old;
+
 namespace lcms2.tests;
 
 [TestFixture(TestOf = typeof(WhitePoint))]

@@ -32,20 +32,9 @@ namespace lcms2.types;
 [StructLayout(LayoutKind.Explicit)]
 public unsafe struct TagBase
 {
-    #region Fields
-
-    [FieldOffset(4)]
-    public fixed byte Reserved[4];
-
-    [FieldOffset(0)]
-    public Signature Signature;
-
-    #endregion Fields
-
-    #region Public Constructors
+    [FieldOffset(4)] public fixed sbyte Reserved[4];
+    [FieldOffset(0)] public Signature Signature;
 
     public TagBase(Signature sig) =>
         Signature = sig;
-
-    #endregion Public Constructors
 }

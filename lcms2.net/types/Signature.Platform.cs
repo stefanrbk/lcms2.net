@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -34,12 +34,12 @@ public partial struct Signature
     {
         #region Fields
 
-        public static readonly Signature Macintosh = new("APPL");
-        public static readonly Signature Microsoft = new("MSFT");
-        public static readonly Signature Solaris = new("SUNW");
-        public static readonly Signature SGI = new("SGI ");
-        public static readonly Signature Taligent = new("TGNT");
-        public static readonly Signature Unices = new("*nix"); // From argyll -- Not official
+        public static readonly Signature Macintosh = new("APPL"u8);
+        public static readonly Signature Microsoft = new("MSFT"u8);
+        public static readonly Signature Solaris = new("SUNW"u8);
+        public static readonly Signature SGI = new("SGI"u8);
+        public static readonly Signature Taligent = new("TGNT"u8);
+        public static readonly Signature Unices = new("*nix"u8); // From argyll -- Not official
 
         #endregion Fields
     }

@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.old.types;
 using lcms2.types;
 
 namespace lcms2.tests.types;
@@ -97,7 +98,7 @@ public class InterpParamsTests : TestBase
         var lut = Pipeline.Alloc(null, 3, 3);
         Assert.That(lut, Is.Not.Null);
 
-        var clut = Stage.AllocCLut16bit(null, 2, 3, 3, table);
+        var clut = old.types.Stage.AllocCLut16bit(null, 2, 3, 3, table);
         lut.InsertStage(StageLoc.AtBegin, clut);
 
         lut.EvalReverse(target, result, null);
@@ -160,7 +161,7 @@ public class InterpParamsTests : TestBase
         var lut = Pipeline.Alloc(null, 4, 3);
         Assert.That(lut, Is.Not.Null);
 
-        var clut = Stage.AllocCLut16bit(null, 2, 4, 3, table);
+        var clut = old.types.Stage.AllocCLut16bit(null, 2, 4, 3, table);
         lut.InsertStage(StageLoc.AtBegin, clut);
 
         // Check if the LUT is behaving as expected
@@ -218,7 +219,7 @@ public class InterpParamsTests : TestBase
         var dims = _checkXDDims[inputChans - 3][..(int)inputChans];
 
         var lut = Pipeline.Alloc(null, inputChans, 3);
-        var mpe = Stage.AllocCLut16bit(null, dims, inputChans, 3, null);
+        var mpe = old.types.Stage.AllocCLut16bit(null, dims, inputChans, 3, null);
 
         Assert.Multiple(() =>
         {
@@ -429,7 +430,7 @@ public class InterpParamsTests : TestBase
     public void XDInterpTest([Range(3u, 4u)] uint inputChans)
     {
         var lut = Pipeline.Alloc(null, inputChans, 3);
-        var mpe = Stage.AllocCLut16bit(null, 9, inputChans, 3, null);
+        var mpe = old.types.Stage.AllocCLut16bit(null, 9, inputChans, 3, null);
 
         Assert.Multiple(() =>
         {

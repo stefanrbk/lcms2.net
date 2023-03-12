@@ -25,38 +25,28 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
 namespace lcms2;
 
-public sealed class Context
+public unsafe struct Context
 {
-    #region Fields
+    internal Context* Next;
+    internal SubAllocator* MemPool;
+    internal MemPluginChunkType DefaultMemoryManager;
+    internal ContextChunks chunks;
+    private fixed long actualChunks[(int)Chunks.Max];
 
-    internal Context? next;
-    internal object?[] chunks = new object[(int)Chunks.Max];
+    public struct ContextChunks
+    {
+        internal Context* parent;
 
-    #endregion Fields
+        internal void* this[Chunks c]
+        {
+            get =>
+                ((void**)parent->actualChunks)[(int)c];
+            set =>
+                ((void**)parent->actualChunks)[(int)c] = value;
+        }
+    }
 }
-
-#region Enums
-
-internal enum Chunks
-{
-    UserPtr,
-    Logger,
-    AlarmCodesContext,
-    AdaptationStateContext,
-    InterpPlugin,
-    CurvesPlugin,
-    FormattersPlugin,
-    TagTypePlugin,
-    TagPlugin,
-    IntentPlugin,
-    MPEPlugin,
-    OptimizationPlugin,
-    TransformPlugin,
-    MutexPlugin,
-
-    Max
-}
-
-#endregion Enums

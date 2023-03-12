@@ -25,71 +25,43 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.plugins;
+using lcms2.state;
+using lcms2.types;
 
 namespace lcms2;
 
-public static partial class Lcms2
+public static unsafe partial class Lcms2
 {
-    internal static FormattersPluginChunkType defaultFormattersPluginChunk =>
-        new();
+    internal static readonly FormattersPluginChunkType FormattersPluginChunk;
 
-    internal static FormattersPluginChunkType globalFormattersPluginChunk = defaultFormattersPluginChunk;
+    internal static readonly FormattersPluginChunkType* globalFormattersPluginChunk;
 
-    private static void DupFormatterFactoryList(Context ctx, in Context src)
+    internal static void _cmsAllocFormattersPluginChunk(Context* ctx, in Context* src)
     {
-        var newHead = new FormattersPluginChunkType();
-        var head = (FormattersPluginChunkType)src.chunks[(int)Chunks.FormattersPlugin]!;
-        CmsFormattersFactoryList? Anterior = null;
-
-        // Walk the list copying all nodes
-        for (var entry = head.FactoryList;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = new CmsFormattersFactoryList();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.FactoryList ??= newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.FormattersPlugin] = newHead;
+        fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
+            AllocPluginChunk(ctx, src, &DupPluginList<FormattersPluginChunkType, FormattersFactoryList>, Chunks.FormattersPlugin, @default);
     }
 
-    internal static void _cmsAllocFormattersPluginChunk(Context ctx, Context? src = null)
+    internal static bool _cmsRegisterFormattersPlugin(Context* ContextID, PluginBase* Data)
     {
-        if (src is not null)
-        {
-            // Duplicate the list
-            DupFormatterFactoryList(ctx, src);
-        }
-        else
-        {
-            ctx.chunks[(int)Chunks.FormattersPlugin] = defaultFormattersPluginChunk;
-        }
-    }
+        var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
+        var Plugin = (PluginFormatters*)Data;
 
-    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase? Data)
-    {
-        var ctx = (FormattersPluginChunkType)_cmsContextGetClientChunk(ContextID, Chunks.FormattersPlugin)!;
+        // Reset to build-in defaults
+        if (Data is null)
+        {
+            ctx->FactoryList = null;
+            return true;
+        }
 
-        if (Data is PluginFormatters Plugin)
-        {
-            ctx.FactoryList = new CmsFormattersFactoryList()
-            {
-                Factory = Plugin.FormattersFactory,
-                Next = ctx.FactoryList,
-            };
-        }
-        else
-        {
-            ctx.FactoryList = null;
-        }
+        var fl = _cmsPluginMalloc<FormattersFactoryList>(ContextID);
+        if (fl is null) return false;
+
+        fl->Factory = Plugin->FormattersFactory;
+
+        fl->Next = ctx->FactoryList;
+        ctx->FactoryList = fl;
+
         return true;
     }
 }

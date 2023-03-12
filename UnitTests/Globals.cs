@@ -24,7 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.state;
+using lcms2.old.state;
 
 namespace lcms2.tests;
 

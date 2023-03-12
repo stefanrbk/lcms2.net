@@ -24,15 +24,16 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2;
 
-public interface IMutex : IDisposable
+public unsafe interface IMutex : IDisposable
 {
-    abstract static IMutex Create(Context? context);
+    abstract static IMutex Create(Context* context);
 
-    bool Lock(Context? context);
+    bool Lock(Context* context);
 
-    void Unlock(Context? context);
+    void Unlock(Context* context);
 
-    void Destroy(Context? context);
+    void Destroy(Context* context);
 }

@@ -24,72 +24,50 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.plugins;
+using lcms2.state;
+using lcms2.types;
 
 namespace lcms2;
 
-public static partial class Lcms2
+public static unsafe partial class Lcms2
 {
-    internal static CmsOptimizationCollection defaultOptimization = null!;
+    internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
-    internal static OptimizationPluginChunkType defaultOptimizationPluginChunk =>
-        new();
+    internal static readonly OptimizationPluginChunkType* globalOptimizationPluginChunk;
 
-    internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = defaultOptimizationPluginChunk;
-
-    private static void DupPluginOptimizationList(Context ctx, in Context src)
+    internal static void _cmsAllocOptimizationPluginChunk(Context* ctx, in Context* src)
     {
-        var newHead = new OptimizationPluginChunkType();
-        var head = (OptimizationPluginChunkType)src.chunks[(int)Chunks.OptimizationPlugin]!;
-        CmsOptimizationCollection? Anterior = null;
-
-        // Walk the list copying all nodes
-        for (var entry = head.OptimizationCollection;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = new CmsOptimizationCollection(entry.OptimizePtr);
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.OptimizationCollection ??= newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.OptimizationPlugin] = newHead;
+        fixed (OptimizationPluginChunkType* @default = &OptimizationPluginChunk)
+            AllocPluginChunk(ctx, src, &DupPluginList<OptimizationPluginChunkType, OptimizationCollection>, Chunks.OptimizationPlugin, @default);
     }
 
-    internal static void _cmsAllocOptimizationPluginChunk(Context ctx, Context? src = null)
+    internal static bool _cmsRegisterOptimizationPlugin(Context* id, PluginBase* Data)
     {
-        if (src is not null)
-        {
-            // Dpulicate the list
-            DupPluginOptimizationList(ctx, src);
-        }
-        else
-        {
-            ctx.chunks[(int)Chunks.OptimizationPlugin] = defaultOptimizationPluginChunk;
-        }
-    }
+        var Plugin = (PluginOptimization*)Data;
+        var ctx = _cmsContextGetClientChunk<OptimizationPluginChunkType>(id, Chunks.OptimizationPlugin);
 
-    internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase? Data)
-    {
-        var ctx = (OptimizationPluginChunkType)_cmsContextGetClientChunk(id, Chunks.OptimizationPlugin)!;
-
-        if (Data is PluginOptimization Plugin)
+        if (Data is null)
         {
-            ctx.OptimizationCollection = new CmsOptimizationCollection(Plugin.OptimizePtr, ctx.OptimizationCollection);
-
+            ctx->OptimizationCollection = null;
             return true;
         }
-        else
-        {
-            ctx.OptimizationCollection = null;
-            return true;
-        }
+
+        // Optimizer callback is required
+        if (Plugin->OptimizePtr is null) return false;
+
+        var fl = _cmsPluginMalloc<OptimizationCollection>(id);
+        if (fl is null) return false;
+
+        // Copy the parameters
+        fl->OptimizePtr = Plugin->OptimizePtr;
+
+        // Keep linked list
+        fl->Next = ctx->OptimizationCollection;
+
+        // Set the head
+        ctx->OptimizationCollection = fl;
+
+        // All is ok
+        return true;
     }
 }

@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -34,17 +34,18 @@ public partial struct Signature
     {
         #region Fields
 
-        public static readonly Signature Formatters = new("frmH");
-        public static readonly Signature Interpolation = new("inpH");
-        public static readonly Signature MagicNumber = new("acpp");
-        public static readonly Signature MultiProcessElement = new("mpeH");
-        public static readonly Signature Mutex = new("mtxH");
-        public static readonly Signature Optimization = new("optH");
-        public static readonly Signature ParametricCurve = new("parH");
-        public static readonly Signature RenderingIntent = new("intH");
-        public static readonly Signature Tag = new("tagH");
-        public static readonly Signature TagType = new("typH");
-        public static readonly Signature Translform = new("xfmH");
+        public static readonly Signature Formatters = new("frmH"u8);
+        public static readonly Signature Interpolation = new("inpH"u8);
+        public static readonly Signature MagicNumber = new("acpp"u8);
+        public static readonly Signature MemHandler = new("memH"u8);
+        public static readonly Signature MultiProcessElement = new("mpeH"u8);
+        public static readonly Signature Mutex = new("mtxH"u8);
+        public static readonly Signature Optimization = new("optH"u8);
+        public static readonly Signature ParametricCurve = new("parH"u8);
+        public static readonly Signature RenderingIntent = new("intH"u8);
+        public static readonly Signature Tag = new("tagH"u8);
+        public static readonly Signature TagType = new("typH"u8);
+        public static readonly Signature Transform = new("xfmH"u8);
 
         #endregion Fields
     }

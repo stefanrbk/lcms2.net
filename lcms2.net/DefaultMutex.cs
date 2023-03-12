@@ -24,27 +24,28 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2;
 
-public class DefaultMutex : IMutex
+public unsafe class DefaultMutex : IMutex
 {
     private readonly Mutex mutex;
 
     public DefaultMutex() =>
         mutex = new Mutex();
 
-    public static IMutex Create(Context? context) =>
+    public static IMutex Create(Context* _) =>
         new DefaultMutex();
 
     public void Dispose() =>
         mutex.Dispose();
 
-    public bool Lock(Context? context) =>
+    public bool Lock(Context* _) =>
         mutex.WaitOne();
 
-    public void Unlock(Context? context) =>
+    public void Unlock(Context* _) =>
         mutex.ReleaseMutex();
 
-    public void Destroy(Context? context) =>
+    public void Destroy(Context* _) =>
         Dispose();
 }

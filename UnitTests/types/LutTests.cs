@@ -24,11 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.old.types;
 using lcms2.types;
 
 namespace lcms2.tests.types;
 
-[TestFixture, TestOf(typeof(Pipeline)), TestOf(typeof(Stage))]
+[TestFixture, TestOf(typeof(Pipeline)), TestOf(typeof(old.types.Stage))]
 public class LutTests : TestBase
 {
     #region Fields
@@ -544,7 +545,7 @@ public class LutTests : TestBase
             var name = $"#{i}";
             nc.Append(name, pcs, colorant);
         }
-        lut.InsertStage(StageLoc.AtEnd, Stage.AllocNamedColor(nc, false));
+        lut.InsertStage(StageLoc.AtEnd, old.types.Stage.AllocNamedColor(nc, false));
 
         var inw = new ushort[3];
         var outw = new ushort[3];
@@ -592,13 +593,13 @@ public class LutTests : TestBase
 
         lut.InsertStage(
             StageLoc.AtEnd,
-            Stage.AllocToneCurves(null, 3, id3));
+            old.types.Stage.AllocToneCurves(null, 3, id3));
     }
 
     private static void AddIdentityClut16(ref Pipeline lut) =>
             lut.InsertStage(
             StageLoc.AtEnd,
-            Stage.AllocCLut16bit(
+            old.types.Stage.AllocCLut16bit(
                 null,
                 2,
                 3,
@@ -621,7 +622,7 @@ public class LutTests : TestBase
     private static void AddIdentityClutFloat(ref Pipeline lut) =>
         lut.InsertStage(
             StageLoc.AtEnd,
-            Stage.AllocCLutFloat(
+            old.types.Stage.AllocCLutFloat(
                 null,
                 2,
                 3,
@@ -644,7 +645,7 @@ public class LutTests : TestBase
     private static void AddIdentityMatrix(ref Pipeline lut) =>
                 lut.InsertStage(
             StageLoc.AtEnd,
-            Stage.AllocMatrix(
+            old.types.Stage.AllocMatrix(
                 null,
                 3,
                 3,

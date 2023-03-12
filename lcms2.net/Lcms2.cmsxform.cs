@@ -25,53 +25,43 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.plugins;
+using lcms2.state;
+using lcms2.types;
 
 namespace lcms2;
 
-public static partial class Lcms2
+public static unsafe partial class Lcms2
 {
     private const double defaultAdaptationStateValue = 1.0;
 
-    private static AdaptationStateChunkType defaultAdaptationStateChunk => new()
+    private static readonly AdaptationStateChunkType AdaptationStateChunk = new() { AdaptationState = defaultAdaptationStateValue };
+
+    private static readonly AdaptationStateChunkType* globalAdaptationStateChunk;
+
+    private static readonly AlarmCodesChunkType AlarmCodesChunk = new();
+
+    private static readonly AlarmCodesChunkType* globalAlarmCodesChunk;
+
+    internal static readonly TransformPluginChunkType TransformPluginChunk = new();
+
+    internal static readonly TransformPluginChunkType* globalTransformPluginChunk;
+
+    internal static void _cmsAllocAdaptationStateChunk(Context* ctx, in Context* src)
     {
-        AdaptationState = defaultAdaptationStateValue
-    };
-
-    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = defaultAdaptationStateChunk;
-
-    private static readonly ushort[] defaultAlarmCodesValue = { 0x7F00, 0x7F00, 0x7F00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-    private static AlarmCodesChunkType defaultAlarmCodesChunk => new()
-    {
-        AlarmCodes = (ushort[])defaultAlarmCodesValue.Clone(),
-    };
-
-    private static readonly AlarmCodesChunkType globalAlarmCodesChunk = defaultAlarmCodesChunk;
-
-    internal static TransformPluginChunkType defaultTransformPluginChunk =>
-        new();
-
-    internal static readonly TransformPluginChunkType globalTransformPluginChunk = defaultTransformPluginChunk;
-
-    internal static void _cmsAllocAdaptationStateChunk(Context ctx, Context? src = null)
-    {
-        ctx.chunks[(int)Chunks.AdaptationStateContext] =
-            src?.chunks[(int)Chunks.AdaptationStateContext] is AdaptationStateChunkType chunk
-            ? new AdaptationStateChunkType() { AdaptationState = chunk.AdaptationState }
-            : defaultAdaptationStateChunk;
+        fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
+            AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
     }
 
-    public static double cmsSetAdaptationStateTHR(Context? context, double d)
+    public static double cmsSetAdaptationStateTHR(Context* context, double d)
     {
-        var ptr = (AdaptationStateChunkType)_cmsContextGetClientChunk(context, Chunks.AdaptationStateContext)!;
+        var ptr = _cmsContextGetClientChunk<AdaptationStateChunkType>(context, Chunks.AdaptationStateContext);
 
         // Get previous value for return
-        var prev = ptr.AdaptationState;
+        var prev = ptr->AdaptationState;
 
         // Set the value if d is positive or zero
         if (d >= 0)
-            ptr.AdaptationState = d;
+            ptr->AdaptationState = d;
 
         // Always return previous value
         return prev;
@@ -80,101 +70,67 @@ public static partial class Lcms2
     public static double cmsSetAdaptationState(double d) =>
         cmsSetAdaptationStateTHR(null, d);
 
-    public static void cmsSetAlarmCodesTHR(Context? context, ReadOnlySpan<ushort> AlarmCodesP)
+    public static void cmsSetAlarmCodesTHR(Context* context, in ushort* AlarmCodesP)
     {
-        var contextAlarmCodes = (AlarmCodesChunkType)_cmsContextGetClientChunk(context, Chunks.AlarmCodesContext)!;
-        AlarmCodesP.CopyTo(contextAlarmCodes.AlarmCodes);
+        var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
+        _cmsAssert(contextAlarmCodes is not null); // Can't happen
+        memcpy(contextAlarmCodes->AlarmCodes, AlarmCodesP, (uint)sizeof(ushort) * cmsMAXCHANNELS);
     }
 
-    public static void cmsGetAlarmCodesTHR(Context? context, Span<ushort> AlarmCodesP)
+    public static void cmsGetAlarmCodesTHR(Context* context, ushort* AlarmCodesP)
     {
-        var contextAlarmCodes = (AlarmCodesChunkType)_cmsContextGetClientChunk(context, Chunks.AlarmCodesContext)!;
-        contextAlarmCodes.AlarmCodes.CopyTo(AlarmCodesP);
+        var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
+        _cmsAssert(contextAlarmCodes is not null); // Can't happen
+        memcpy(AlarmCodesP, contextAlarmCodes->AlarmCodes, (uint)sizeof(ushort) * cmsMAXCHANNELS);
     }
 
-    public static void cmsSetAlarmCodes(ReadOnlySpan<ushort> AlarmCodes) =>
+    public static void cmsSetAlarmCodes(in ushort* AlarmCodes) =>
         cmsSetAlarmCodesTHR(null, AlarmCodes);
 
-    public static void cmsGetAlarmCodes(Span<ushort> AlarmCodes) =>
+    public static void cmsGetAlarmCodes(ushort* AlarmCodes) =>
         cmsGetAlarmCodesTHR(null, AlarmCodes);
 
-    internal static void _cmsAllocAlarmCodesChunk(Context ctx, Context? src = null)
+    internal static void _cmsAllocAlarmCodesChunk(Context* ctx, in Context* src)
     {
-        ctx.chunks[(int)Chunks.AlarmCodesContext] =
-            src?.chunks[(int)Chunks.AlarmCodesContext] is AlarmCodesChunkType chunk
-            ? new AlarmCodesChunkType() { AlarmCodes = (ushort[])chunk.AlarmCodes.Clone() }
-            : defaultAlarmCodesChunk;
+        fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
+            AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
     }
 
-    private static void DupPluginTransformList(Context ctx, in Context src)
+    internal static void _cmsAllocTransformPluginChunk(Context* ctx, in Context* src)
     {
-        var newHead = new TransformPluginChunkType();
-        var head = (TransformPluginChunkType)src.chunks[(int)Chunks.TransformPlugin]!;
-        CmsTransformCollection? Anterior = null;
-
-        // Walk the list copying all nodes
-        for (var entry = head.TransformCollection;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = new CmsTransformCollection
-            {
-                OldXform = entry.OldXform
-            };
-
-            if (entry.OldXform)
-                newEntry.OldFactory = entry.OldFactory;
-            else
-                newEntry.Factory = entry.Factory;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.TransformCollection ??= newEntry;
-        }
-
-        ctx.chunks[(int)Chunks.TransformPlugin] = newHead;
+        fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
+            AllocPluginChunk(ctx, src, &DupPluginList<TransformPluginChunkType, TransformCollection>, Chunks.TransformPlugin, @default);
     }
 
-    internal static void _cmsAllocTransformPluginChunk(Context ctx, Context? src)
+    internal static bool _cmsRegisterTransformPlugin(Context* id, PluginBase* Data)
     {
-        if (src is not null)
+        var Plugin = (PluginTransform*)Data;
+        var ctx = _cmsContextGetClientChunk<TransformPluginChunkType>(id, Chunks.TransformPlugin);
+
+        if (Data is null)
         {
-            // Dpulicate the list
-            DupPluginTransformList(ctx, src);
-        }
-        else
-        {
-            ctx.chunks[(int)Chunks.TransformPlugin] = defaultTransformPluginChunk;
-        }
-    }
-
-    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase? Data)
-    {
-        var ctx = (TransformPluginChunkType)_cmsContextGetClientChunk(id, Chunks.TransformPlugin)!;
-
-        if (Data is PluginTransform Plugin)
-        {
-            if (Plugin.xform is null && Plugin.legacy_xform is null)
-                return false;
-
-            ctx.TransformCollection = new CmsTransformCollection()
-            {
-                OldXform = Plugin.ExpectedVersion < 2080,
-                Factory = Plugin.xform,
-                OldFactory = Plugin.legacy_xform,
-                Next = ctx.TransformCollection
-            };
-
+            // Free the chain. Memory is safely freed at exit
+            ctx->TransformCollection = null;
             return true;
         }
-        else
-        {
-            ctx.TransformCollection = null;
-            return true;
-        }
+
+        // Factory callback is required
+        if (Plugin->factories.xform is null) return false;
+
+        var fl = _cmsPluginMalloc<TransformCollection>(id);
+        if (fl is null) return false;
+
+        // Check for full xform plug-ins previous to 2.8, we would need an adapter in that case
+        fl->OldXform = Plugin->@base.ExpectedVersion < 2080;
+
+        // Copy the parameters
+        fl->Factory = Plugin->factories.xform;
+
+        // Keep linked list
+        fl->Next = ctx->TransformCollection;
+        ctx->TransformCollection = fl;
+
+        // All is ok
+        return true;
     }
 }

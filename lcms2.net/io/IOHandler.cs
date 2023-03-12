@@ -24,53 +24,20 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.io;
 
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
-
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
-
-internal delegate bool SeekFn(IOHandler io, uint offset);
-
-internal delegate bool CloseFn(IOHandler io);
-
-internal delegate uint TellFn(IOHandler io);
-
-public class IOHandler
+public unsafe struct IOHandler
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    internal Stream? stream;
+    internal Context* contextID;
+    internal uint usedSpace;
+    internal uint reportedSize;
+    internal string? physicalFile;
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
-
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
-    {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
-    }
-
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
-
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
-
-    public bool Close(IOHandler io) =>
-        close(io);
-
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
+    internal delegate*<IOHandler*, void*, uint, uint, uint> Read;
+    internal delegate*<IOHandler*, uint, bool> Seek;
+    internal delegate*<IOHandler*, bool> Close;
+    internal delegate*<IOHandler*, uint> Tell;
+    internal delegate*<IOHandler*, uint, in void*, bool> Write;
 }

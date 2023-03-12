@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -34,47 +34,47 @@ public partial struct Signature
     {
         #region Fields
 
-        public static readonly Signature Chromaticity = new("chrm");
-        public static readonly Signature ColorantOrder = new("clro");
-        public static readonly Signature ColorantTable = new("clrt");
+        public static readonly Signature Chromaticity = new("chrm"u8);
+        public static readonly Signature ColorantOrder = new("clro"u8);
+        public static readonly Signature ColorantTable = new("clrt"u8);
         public static readonly Signature CorbisBrokenXYZ = new(0x17A505B8);
-        public static readonly Signature CrdInfo = new("crdi");
-        public static readonly Signature Curve = new("curv");
-        public static readonly Signature Data = new("data");
-        public static readonly Signature DateTime = new("dtim");
-        public static readonly Signature DeviceSettings = new("devs");
-        public static readonly Signature Dict = new("dict");
-        public static readonly Signature Lut16 = new("mft2");
-        public static readonly Signature Lut8 = new("mft1");
-        public static readonly Signature LutAtoB = new("mAB ");
-        public static readonly Signature LutBtoA = new("mBA ");
-        public static readonly Signature Measurement = new("meas");
+        public static readonly Signature CrdInfo = new("crdi"u8);
+        public static readonly Signature Curve = new("curv"u8);
+        public static readonly Signature Data = new("data"u8);
+        public static readonly Signature DateTime = new("dtim"u8);
+        public static readonly Signature DeviceSettings = new("devs"u8);
+        public static readonly Signature Dict = new("dict"u8);
+        public static readonly Signature Lut16 = new("mft2"u8);
+        public static readonly Signature Lut8 = new("mft1"u8);
+        public static readonly Signature LutAtoB = new("mAB"u8);
+        public static readonly Signature LutBtoA = new("mBA"u8);
+        public static readonly Signature Measurement = new("meas"u8);
         public static readonly Signature MonacoBrokenCurve = new(0x9478EE00);
-        public static readonly Signature MultiLocalizedUnicode = new("mluc");
-        public static readonly Signature MultiProcessElement = new("mpet");
+        public static readonly Signature MultiLocalizedUnicode = new("mluc"u8);
+        public static readonly Signature MultiProcessElement = new("mpet"u8);
 
         [Obsolete("Use NamedColor2")]
-        public static readonly Signature NamedColor = new("ncol");
+        public static readonly Signature NamedColor = new("ncol"u8);
 
-        public static readonly Signature NamedColor2 = new("ncl2");
-        public static readonly Signature ParametricCurve = new("para");
-        public static readonly Signature ProfileSequenceDesc = new("pseq");
-        public static readonly Signature ProfileSequenceId = new("psid");
-        public static readonly Signature ResponseCurveSet16 = new("rcs2");
-        public static readonly Signature S15Fixed16Array = new("sf32");
-        public static readonly Signature Screening = new("scrn");
-        public static readonly Signature Signature = new("sig ");
-        public static readonly Signature Text = new("text");
-        public static readonly Signature TextDescription = new("desc");
-        public static readonly Signature U16Fixed16Array = new("uf32");
-        public static readonly Signature UcrBg = new("bfd ");
-        public static readonly Signature UInt16Array = new("ui16");
-        public static readonly Signature UInt32Array = new("ui32");
-        public static readonly Signature UInt64Array = new("ui64");
-        public static readonly Signature UInt8Array = new("ui08");
-        public static readonly Signature Vcgt = new("vcgt");
-        public static readonly Signature ViewingConditions = new("view");
-        public static readonly Signature XYZ = new("XYZ ");
+        public static readonly Signature NamedColor2 = new("ncl2"u8);
+        public static readonly Signature ParametricCurve = new("para"u8);
+        public static readonly Signature ProfileSequenceDesc = new("pseq"u8);
+        public static readonly Signature ProfileSequenceId = new("psid"u8);
+        public static readonly Signature ResponseCurveSet16 = new("rcs2"u8);
+        public static readonly Signature S15Fixed16Array = new("sf32"u8);
+        public static readonly Signature Screening = new("scrn"u8);
+        public static readonly Signature Signature = new("sig"u8);
+        public static readonly Signature Text = new("text"u8);
+        public static readonly Signature TextDescription = new("desc"u8);
+        public static readonly Signature U16Fixed16Array = new("uf32"u8);
+        public static readonly Signature UcrBg = new("bfd"u8);
+        public static readonly Signature UInt16Array = new("ui16"u8);
+        public static readonly Signature UInt32Array = new("ui32"u8);
+        public static readonly Signature UInt64Array = new("ui64"u8);
+        public static readonly Signature UInt8Array = new("ui08"u8);
+        public static readonly Signature Vcgt = new("vcgt"u8);
+        public static readonly Signature ViewingConditions = new("view"u8);
+        public static readonly Signature XYZ = new("XYZ"u8);
 
         #endregion Fields
     }

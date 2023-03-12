@@ -24,7 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.types;
+using lcms2.old.types;
 
 namespace lcms2.tests.types;
 
