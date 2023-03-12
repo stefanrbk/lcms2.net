@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,37 +24,133 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.old.state;
+
+using lcms2.state;
+using lcms2.types;
+
+using System.Runtime.InteropServices;
 
 namespace lcms2.tests;
 
-public static class Globals
+public static unsafe class Globals
 {
-    #region Fields
-
     public const string FixedTest = "Fixed Test";
     public const double FloatPrecision = 1E-5;
     public const string RandomTest = "Random Test";
     public const double S15Fixed16Precision = 1.0 / 65535.0;
     public const double U8Fixed8Precision = 1.0 / 255.0;
-    public static readonly object? TestState;
-
-    #endregion Fields
-
-    #region Public Constructors
+    public static readonly PluginMemHandler* DebugMemHandler;
+    internal static uint thread;
+    private static object memVarsMutex = new();
+    internal static uint TotalMemory;
+    internal static uint MaxAllocated;
+    internal static uint SingleHit;
 
     static Globals()
     {
-        TestState = State.CreateStateContainer();
-        State.SetLogErrorHandler(
-            TestState,
-            (_, ec, text) =>
-                Console.Error.WriteLine($"({nameof(ErrorCode)}.{Enum.GetName(typeof(ErrorCode), ec)}): {text}"));
+        DebugMemHandler = (PluginMemHandler*)NativeMemory.AllocZeroed((uint)sizeof(PluginMemHandler));
+
+        DebugMemHandler->@base.Magic = Signature.Plugin.MagicNumber;
+        DebugMemHandler->@base.ExpectedVersion = 2060;
+        DebugMemHandler->@base.Type = Signature.Plugin.MemHandler;
+
+        DebugMemHandler->MallocPtr = &DebugMalloc;
+        DebugMemHandler->FreePtr = &DebugFree;
+        DebugMemHandler->ReallocPtr = &DebugRealloc;
     }
 
-    #endregion Public Constructors
+    public static Context* DbgThread() =>
+        (Context*)(void*)((byte*)null + (Interlocked.Increment(ref thread) % 0xff0));
 
-    #region Public Methods
+    private static void* DebugMalloc(Context* ContextID, uint size)
+    {
+        if (size <= 0)
+            Assert.Fail("malloc requested with zero bytes");
+
+        lock (memVarsMutex)
+        {
+            TotalMemory += size;
+
+            if (TotalMemory > MaxAllocated)
+                MaxAllocated = TotalMemory;
+
+            if (size > SingleHit) SingleHit = size;
+        }
+
+        try
+        {
+            var blk = (MemoryBlock*)NativeMemory.Alloc(size + (uint)sizeof(MemoryBlock));
+
+            blk->KeepSize = size;
+            blk->WhoAllocated = ContextID;
+            blk->DontCheck = 0;
+
+            return (byte*)blk + (uint)sizeof(MemoryBlock);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void DebugFree(Context* ContextID, void* Ptr)
+    {
+        if (Ptr is null)
+            Assert.Fail("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
+
+        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+        TotalMemory -= blk->KeepSize;
+
+        if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
+            Assert.Fail($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
+
+        NativeMemory.Free(blk);
+    }
+
+    private static void* DebugRealloc(Context* ContextID, void* Ptr, uint NewSize)
+    {
+        var NewPtr = DebugMalloc(ContextID, NewSize);
+        if (Ptr is null) return NewPtr;
+
+        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+        var max_sz = blk->KeepSize > NewSize ? NewSize : blk->KeepSize;
+        NativeMemory.Copy(Ptr, NewPtr, max_sz);
+        DebugFree(ContextID, Ptr);
+
+        return NewPtr;
+    }
+
+    private static string MemStr(uint size) =>
+        size switch
+        {
+            > 1024 * 1024 => $"{size / (1024 * 1024)} Mb",
+            > 1024 => $"{size / 1024} Kb",
+            _ => $"{size} bytes",
+        };
+
+    public static void TestMemoryLeaks(bool ok)
+    {
+        if (TotalMemory > 0)
+            Console.WriteLine($"Ok, but {MemStr(TotalMemory)} are left!");
+    }
+
+    public static void DebugMemDontCheckThis(void* Ptr)
+    {
+        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+
+        blk->DontCheck = 1;
+    }
+
+    public static Context* WatchDogContext(void* usr)
+    {
+        var ctx = cmsCreateContext(DebugMemHandler, usr);
+
+        if (ctx is null)
+            Assert.Fail("Unable to create memory managed context");
+
+        DebugMemDontCheckThis(ctx);
+        return ctx;
+    }
 
     public static void IsGoodDouble(string message, double actual, double expected, double delta) =>
             Assert.That(actual, Is.EqualTo(expected).Within(delta), message);
@@ -90,6 +186,4 @@ public static class Globals
 
     public static double Sqr(double v) =>
         v * v;
-
-    #endregion Public Methods
 }

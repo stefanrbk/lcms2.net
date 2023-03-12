@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,27 +24,25 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.old;
+//namespace lcms2.tests;
 
-namespace lcms2.tests;
+//[TestFixture(TestOf = typeof(WhitePoint))]
+//public class WhitePointTests
+//{
+//    #region Public Methods
 
-[TestFixture(TestOf = typeof(WhitePoint))]
-public class WhitePointTests
-{
-    #region Public Methods
+//    [Test, Category(RandomTest)]
+//    public void CheckTemp2Chroma(
+//        [Random(4000, 25000, 20, Distinct = true)]
+//            int j)
+//    {
+//        var white = WhitePoint.FromTemp(j);
+//        var v = WhitePoint.ToTemp(white);
 
-    [Test, Category(RandomTest)]
-    public void CheckTemp2Chroma(
-        [Random(4000, 25000, 20, Distinct = true)]
-            int j)
-    {
-        var white = WhitePoint.FromTemp(j);
-        var v = WhitePoint.ToTemp(white);
+//        Assert.That(v, Is.Not.NaN);
 
-        Assert.That(v, Is.Not.NaN);
+//        Assert.That(v, Is.EqualTo(j).Within(100));
+//    }
 
-        Assert.That(v, Is.EqualTo(j).Within(100));
-    }
-
-    #endregion Public Methods
-}
+//    #endregion Public Methods
+//}

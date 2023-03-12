@@ -51,16 +51,12 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
-
 namespace lcms2.tests;
 
-public abstract unsafe class TestBase
+public unsafe struct MemoryBlock
 {
-    [SetUp]
-    public virtual void SetUp() =>
-        cmsSetLogErrorHandler(&Logger);
-
-    private static void Logger(Context* _, ErrorCode errorCode, string message) =>
-        Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), errorCode)}: {message}");
+    public uint KeepSize;
+    public Context* WhoAllocated;
+    public uint DontCheck;
+    public ulong alignment;
 }
