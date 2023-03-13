@@ -25,9 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe struct MAT3
+public struct CIExyYTRIPLE
 {
-    internal fixed double v[9];
+    public CIExyY Red;
+    public CIExyY Green;
+    public CIExyY Blue;
 }

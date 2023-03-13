@@ -25,9 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe struct MAT3
+public struct CIELCh
 {
-    internal fixed double v[9];
+    public double L;
+    public double C;
+    public double h;
 }

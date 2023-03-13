@@ -25,9 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe struct MAT3
+public struct CIExyY
 {
-    internal fixed double v[9];
+    public double x;
+    public double y;
+    public double Y;
 }

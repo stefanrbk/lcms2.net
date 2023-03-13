@@ -658,13 +658,13 @@ public static unsafe partial class Lcms2
 
     public static uint cmsGetToneCurveEstimatedTableEntries(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
         return t->nEntries;
     }
 
     public static ushort* cmsGetToneCurveEstimatedTable(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
         return t->Table16;
     }
 
@@ -678,7 +678,7 @@ public static unsafe partial class Lcms2
     {
         var nGridPoints = 4096u;
 
-        _cmsAssert(Segments is not null);
+        _cmsAssert(Segments);
 
         // Optimization for identity curves.
         if (nSegments is 1 && Segments[0].Type is 1)
@@ -746,7 +746,7 @@ public static unsafe partial class Lcms2
         int Pos = 0;
         var c = GetParametricCurveByType(ContextID, Type, &Pos);
 
-        _cmsAssert(Params is not null);
+        _cmsAssert(Params);
 
         if (c is null)
         {
@@ -801,7 +801,7 @@ public static unsafe partial class Lcms2
 
     public static void cmsFreeToneCurveTriple(ToneCurve** Curve)
     {
-        _cmsAssert(Curve is not null);
+        _cmsAssert(Curve);
 
         if (Curve[0] is not null) cmsFreeToneCurve(Curve[0]);
         if (Curve[1] is not null) cmsFreeToneCurve(Curve[1]);
@@ -823,11 +823,14 @@ public static unsafe partial class Lcms2
         ToneCurve* Yreversed = null;
         float* Res = null;
 
-        _cmsAssert(X is not null);
-        _cmsAssert(Y is not null);
+        _cmsAssert(X);
+        _cmsAssert(Y);
 
         Yreversed = cmsReverseToneCurveEx(nResultingPoints, Y);
         if (Yreversed is null) goto Error;
+
+        Res = _cmsCalloc<float>(ContextID, nResultingPoints);
+        if (Res is null) goto Error;
 
         // Iterate
         for (var i = 0; i < nResultingPoints; i++)
@@ -842,7 +845,7 @@ public static unsafe partial class Lcms2
 
     Error:
         if (Res is not null) _cmsFree(ContextID, Res);
-        if (Yreversed is not null) _cmsFree(ContextID, Yreversed);
+        if (Yreversed is not null) cmsFreeToneCurve(Yreversed);
 
         return @out;
     }
@@ -899,7 +902,7 @@ public static unsafe partial class Lcms2
     {
         double a = 0, b = 0, y, x1, y1, x2, y2;
 
-        _cmsAssert(InCurve is not null);
+        _cmsAssert(InCurve);
 
         // Try to reverse it analytically whatever possible
 
@@ -933,7 +936,7 @@ public static unsafe partial class Lcms2
                 x2 = InCurve->Table16[j + 1];
 
                 y1 = (j * 65535.0) / (InCurve->nEntries - 1);
-                y2 = ((j - 1) * 65535.0) / (InCurve->nEntries - 1);
+                y2 = ((j + 1) * 65535.0) / (InCurve->nEntries - 1);
 
                 // If collapsed, then use any
                 if (x1 == x2)
@@ -957,7 +960,7 @@ public static unsafe partial class Lcms2
 
     public static ToneCurve* cmsReverseToneCurve(in ToneCurve* InGamma)
     {
-        _cmsAssert(InGamma is not null);
+        _cmsAssert(InGamma);
 
         return cmsReverseToneCurveEx(4096, InGamma);
     }
@@ -1127,7 +1130,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsIsToneCurveLinear(in ToneCurve* Curve)
     {
-        _cmsAssert(Curve is not null);
+        _cmsAssert(Curve);
 
         for (var i = 0; i < Curve->nEntries; i++)
         {
@@ -1141,7 +1144,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsIsToneCurveMonotonic(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         // Degenerated curves are monotonic? Ok, let's pass them
         var n = t->nEntries;
@@ -1180,21 +1183,21 @@ public static unsafe partial class Lcms2
 
     public static bool cmsIsToneCurveDescending(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         return t->Table16[0] > t->Table16[t->nEntries - 1];
     }
 
     public static bool cmsIsToneMultisegment(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         return t->nSegments > 1;
     }
 
     public static int cmsGetToneCurveParametricType(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         if (t->nSegments is not 1) return 0;
         return t->Segments[0].Type;
@@ -1202,7 +1205,7 @@ public static unsafe partial class Lcms2
 
     public static float cmsEvalToneCurveFloat(in ToneCurve* Curve, float v)
     {
-        _cmsAssert(Curve is not null);
+        _cmsAssert(Curve);
 
         // Check for 16 bit table. If so, this is a limited-precision tone curve
         if (Curve->nSegments is 0)
@@ -1216,11 +1219,11 @@ public static unsafe partial class Lcms2
         return (float)EvalSegmentedFn(Curve, v);
     }
 
-    public static float cmsEvalToneCurve16(in ToneCurve* Curve, ushort v)
+    public static ushort cmsEvalToneCurve16(in ToneCurve* Curve, ushort v)
     {
         ushort @out;
 
-        _cmsAssert(Curve is not null);
+        _cmsAssert(Curve);
 
         Curve->InterpParams->Interpolation.Lerp16(&v, &@out, Curve->InterpParams);
         return @out;
@@ -1228,7 +1231,7 @@ public static unsafe partial class Lcms2
 
     public static double cmsEstimateGamma(in ToneCurve* t, double Precision)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         double sum = 0, sum2 = 0, n = 0;
 
@@ -1260,7 +1263,7 @@ public static unsafe partial class Lcms2
 
     public static double* cmsGetToneCurveParams(in ToneCurve* t)
     {
-        _cmsAssert(t is not null);
+        _cmsAssert(t);
 
         return (t->nSegments is not 1)
             ? null

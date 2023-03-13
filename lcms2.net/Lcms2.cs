@@ -155,6 +155,9 @@ public static unsafe partial class Lcms2
     internal const int PT_MCH15 = 29;
     internal const int PT_LabV2 = 30;
 
+    internal const uint FLAGS_HIGHRESPRECALC = 0x0400;
+    internal const uint FLAGS_LOWRESPRECALC = 0x0800;
+
     #endregion lcms2.h
 
     #region lcms2_plugin.h
@@ -299,6 +302,19 @@ public static unsafe partial class Lcms2
 
             // WhitePoint defaults
             free(D50XYZ);
+            free(D50xyY);
+
+            // Colorspace endpoints
+            free(RGBblack);
+            free(RGBwhite);
+            free(CMYKblack);
+            free(CMYKwhite);
+            free(LABblack);
+            free(LABwhite);
+            free(CMYblack);
+            free(CMYwhite);
+            free(GrayBlack);
+            free(GrayWhite);
         }
     }
 
@@ -454,8 +470,32 @@ public static unsafe partial class Lcms2
 
         D50XYZ = alloc<CIEXYZ>();
         *D50XYZ = new() { X = cmsD50X, Y = cmsD50Y, Z = cmsD50Z };
+        D50xyY = alloc<CIExyY>();
+        cmsXYZ2xyY(D50xyY, D50XYZ);
 
         #endregion WhitePoint defaults
+
+        #region Colorspace endpoints
+
+        RGBblack = calloc<ushort>(4);
+        RGBwhite = calloc<ushort>(4);
+        CMYKblack = calloc<ushort>(4);
+        CMYKwhite = calloc<ushort>(4);
+        LABblack = calloc<ushort>(4);
+        LABwhite = calloc<ushort>(4);
+        CMYblack = calloc<ushort>(4);
+        CMYwhite = calloc<ushort>(4);
+        GrayBlack = calloc<ushort>(4);
+        GrayWhite = calloc<ushort>(4);
+
+        RGBwhite[0] = RGBwhite[1] = RGBwhite[2] = 0xffff;
+        CMYKblack[0] = CMYKblack[1] = CMYKblack[2] = CMYKblack[3] = 0xffff;
+        LABblack[1] = LABblack[2] = LABwhite[1] = LABwhite[2] = 0x8080;
+        LABwhite[0] = 0xffff;
+        CMYblack[0] = CMYblack[1] = CMYblack[2] = 0xffff;
+        GrayWhite[0] = 0xffff;
+
+        #endregion Colorspace endpoints
     }
 
     internal static void* alloc(nuint size) =>

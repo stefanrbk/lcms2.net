@@ -130,7 +130,7 @@ public static unsafe partial class Lcms2
     }
 
     // Inverse of a matrix b = a^(-1)
-    internal static bool _MAT3inverse(in MAT3* a, MAT3* b)
+    internal static bool _cmsMAT3inverse(in MAT3* a, MAT3* b)
     {
         var av = (VEC3*)a;
         var bv = (VEC3*)b;
@@ -164,7 +164,7 @@ public static unsafe partial class Lcms2
 
         memmove(&m, a);
 
-        if (!_MAT3inverse(&m, &a_1)) return false;  // Singular matrix
+        if (!_cmsMAT3inverse(&m, &a_1)) return false;  // Singular matrix
 
         _cmsMAT3eval(x, &a_1, b);
         return true;

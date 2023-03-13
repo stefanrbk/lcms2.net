@@ -118,41 +118,41 @@ if (doCheckTests)
     Check("7D interpolation with granularity", Check7DinterpGranular);
     Check("8D interpolation with granularity", Check8DinterpGranular);
 
-    //Console.WriteLine("\nEncoding of colorspaces");
+    Console.WriteLine("\nEncoding of colorspaces");
 
-    //Check("Lab to LCh and back (float only)", CheckLab2LCh);
-    //Check("Lab to XYZ and back (float only)", CheckLab2XYZ);
-    //Check("Lab to xyY and back (float only)", CheckLab2xyY);
-    //Check("Lab V2 encoding", CheckLabV2EncodingTest);
-    //Check("Lab V4 encoding", CheckLabV4EncodingTest);
+    Check("Lab to LCh and back (float only)", CheckLab2LCh);
+    Check("Lab to XYZ and back (float only)", CheckLab2XYZ);
+    Check("Lab to xyY and back (float only)", CheckLab2xyY);
+    Check("Lab V2 encoding", CheckLabV2encoding);
+    Check("Lab V4 encoding", CheckLabV4encoding);
 
-    //Console.WriteLine("\nBlackBody");
-    //Check("Blackbody radiator", CheckTemp2Chroma);
+    Console.WriteLine("\nBlackBody");
+    Check("Blackbody radiator", CheckTemp2CHRM);
 
-    //Console.WriteLine("\nTone curves");
-    //Check("Linear gamma curves (16 bits)", CheckGammaCreation16);
-    //Check("Linear gamma curves (float)", CheckGammaCreationFloat);
+    Console.WriteLine("\nTone curves");
+    Check("Linear gamma curves (16 bits)", CheckGammaCreation16);
+    Check("Linear gamma curves (float)", CheckGammaCreationFlt);
 
-    //Check("Curve 1.8 (float)", CheckGamma18);
-    //Check("Curve 2.2 (float)", CheckGamma22);
-    //Check("Curve 3.0 (float)", CheckGamma30);
+    Check("Curve 1.8 (float)", CheckGamma18);
+    Check("Curve 2.2 (float)", CheckGamma22);
+    Check("Curve 3.0 (float)", CheckGamma30);
 
-    //Check("Curve 1.8 (table)", CheckGamma18Table);
-    //Check("Curve 2.2 (table)", CheckGamma22Table);
-    //Check("Curve 3.0 (table)", CheckGamma30Table);
+    Check("Curve 1.8 (table)", CheckGamma18Table);
+    Check("Curve 2.2 (table)", CheckGamma22Table);
+    Check("Curve 3.0 (table)", CheckGamma30Table);
 
-    //Check("Curve 1.8 (word table)", CheckGamma18TableWord);
-    //Check("Curve 2.2 (word table)", CheckGamma22TableWord);
-    //Check("Curve 3.0 (word table)", CheckGamma30TableWord);
+    Check("Curve 1.8 (word table)", CheckGamma18TableWord);
+    Check("Curve 2.2 (word table)", CheckGamma22TableWord);
+    Check("Curve 3.0 (word table)", CheckGamma30TableWord);
 
-    //Check("Parametric curves", CheckParametricToneCurves);
+    Check("Parametric curves", CheckParametricToneCurves);
 
-    //Check("Join curves", CheckJointCurves);
-    //Check("Join curves descending", CheckJointCurvesDescending);
-    //Check("Join curves degenerated", CheckReverseDegenerated);
-    //Check("Join curves sRGB (Float)", CheckJointFloatCurvesSrgb);
-    //Check("Join curves sRGB (16 bits)", CheckJoint16CurvesSrgb);
-    //Check("Join curves sigmoidal", CheckJointCurvesSShaped);
+    Check("Join curves", CheckJointCurves);
+    Check("Join curves descending", CheckJointCurvesDescending);
+    Check("Join curves degenerated", CheckReverseDegenerated);
+    Check("Join curves sRGB (Float)", CheckJointFloatCurves_sRGB);
+    Check("Join curves sRGB (16 bits)", CheckJoint16Curves_sRGB);
+    Check("Join curves sigmoidal", CheckJointCurvesSShaped);
 
     //Console.WriteLine("\nLUT basics");
     //Check("LUT creation & dup", CheckLutCreation);

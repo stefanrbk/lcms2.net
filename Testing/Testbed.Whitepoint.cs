@@ -24,10 +24,27 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.types;
 
-namespace lcms2;
+namespace lcms2.testbed;
 
-public unsafe struct MAT3
+internal static unsafe partial class Testbed
 {
-    internal fixed double v[9];
+    public static bool CheckTemp2CHRM()
+    {
+        CIExyY White;
+        double v, max = 0.0;
+
+        for (var j = 4000; j < 25000; j++)
+        {
+            cmsWhitePointFromTemp(&White, j);
+            if (!cmsTempFromWhitePoint(&v, &White)) return false;
+
+            var d = Math.Abs(v - j);
+            if (d > max) max = d;
+        }
+
+        // the actual resolution is 100 degrees
+        return max < 100;
+    }
 }

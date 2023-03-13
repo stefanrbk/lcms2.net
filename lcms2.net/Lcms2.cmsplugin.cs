@@ -532,7 +532,7 @@ public static unsafe partial class Lcms2
 
     internal static Context* _cmsGetContext(Context* ContextID)
     {
-        Context* id = *(Context**)&ContextID;
+        Context* id = ContextID;
 
         // On null, use global settings
         if (id is null)
