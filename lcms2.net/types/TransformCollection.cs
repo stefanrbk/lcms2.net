@@ -31,7 +31,7 @@ namespace lcms2.types;
 
 public unsafe struct TransformCollection : INextOffset
 {
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>, void**, delegate*<Context*, void*, void>, Pipeline**, uint*, uint*, uint*, bool> Factory;
+    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> Factory;
 
     public bool OldXform;
     public TransformCollection* Next;

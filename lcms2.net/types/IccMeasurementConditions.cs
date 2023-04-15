@@ -25,28 +25,13 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
+namespace lcms2.types;
 
-namespace lcms2;
-
-public unsafe struct Context
+public struct IccMeasurementConditions
 {
-    internal Context* Next;
-    internal SubAllocator* MemPool;
-    internal MemPluginChunkType DefaultMemoryManager;
-    internal ContextChunks chunks;
-    private fixed long actualChunks[(int)Chunks.Max];
-
-    public struct ContextChunks
-    {
-        internal Context* parent;
-
-        internal void* this[Chunks c]
-        {
-            get =>
-                ((void**)parent->actualChunks)[(int)c];
-            set =>
-                ((void**)parent->actualChunks)[(int)c] = value;
-        }
-    }
+    public uint Observer;
+    public CIEXYZ Backing;
+    public uint Geometry;
+    public double Flare;
+    public IlluminantType IlluminantType;
 }

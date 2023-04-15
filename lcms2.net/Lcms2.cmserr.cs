@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
@@ -41,16 +42,38 @@ public static unsafe partial class Lcms2
     public static int cmsGetEncodedCMMversion() =>
         LCMS_VERSION;
 
-    public static int cmsstrcasecmp(string? s1, string? s2) =>
-        String.Compare(s1, s2, ignoreCase: true);
+    public static int cmsstrcasecmp(in byte* s1, in byte* s2)
+    {
+        var ss1 = s1;
+        var ss2 = s2;
 
-    public static long cmsfilelength(FileStream f)
+        var us1 = (char)*s1;
+        var us2 = (char)*s2;
+
+        while (Char.ToUpper(us1) == Char.ToUpper(us2))
+        {
+            us1 = (char)*++ss1;
+            us2 = (char)*++ss2;
+
+            if (us1 is '\0')
+                return 0;
+        }
+
+        return Char.ToUpper((char)*--ss1) - Char.ToUpper((char)*--ss2);
+    }
+
+    public static long cmsfilelength(FILE* f)
     {
         try
         {
-            var p = f.Position; // register current file position
-            var n = f.Seek(0, SeekOrigin.End);
-            f.Seek(p, SeekOrigin.Begin);
+            var p = ftell(f); // register current file position
+            if (p is -1) return -1;
+
+            if (fseek(f, 0, SEEK_END) is not 0)
+                return -1;
+
+            var n = ftell(f);
+            fseek(f, p, SEEK_SET);  // file position restored
 
             return n;
         }
@@ -66,7 +89,7 @@ public static unsafe partial class Lcms2
 
         try
         {
-            return NativeMemory.Alloc(size);
+            return alloc(size);
         }
         catch (Exception)
         {
@@ -86,7 +109,7 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsFreeDefaultFn(Context* _, void* Ptr)
     {
-        if (Ptr is not null) NativeMemory.Free(Ptr);
+        if (Ptr is not null) free(Ptr);
     }
 
     internal static void* _cmsReallocDefaultFn(Context* _, void* Ptr, uint size)
@@ -180,7 +203,7 @@ public static unsafe partial class Lcms2
         // context internal data should be malloce'd by using those functions.
         if (Data is null)
         {
-            var ctx = *(Context**)&ContextID;
+            var ctx = *&ContextID;
 
             // Return to the default allocators
             if (ctx is not null)
@@ -211,7 +234,10 @@ public static unsafe partial class Lcms2
         (T*)_cmsMalloc(ContextID, size);
 
     internal static T* _cmsMalloc<T>(Context* ContextID) where T : struct =>
-        (T*)_cmsMalloc(ContextID, (uint)sizeof(T));
+        (T*)_cmsMalloc(ContextID, _sizeof<T>());
+
+    internal static T** _cmsMalloc2<T>(Context* ContextID) where T : struct =>
+        (T**)_cmsMalloc<nint>(ContextID);
 
     internal static void* _cmsMallocZero(Context* ContextID, uint size)
     {
@@ -223,7 +249,10 @@ public static unsafe partial class Lcms2
         (T*)_cmsMallocZero(ContextID, size);
 
     internal static T* _cmsMallocZero<T>(Context* ContextID) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, (uint)sizeof(T));
+        (T*)_cmsMallocZero(ContextID, _sizeof<T>());
+
+    internal static T** _cmsMallocZero2<T>(Context* ContextID) where T : struct =>
+        (T**)_cmsMallocZero<nint>(ContextID);
 
     internal static void* _cmsCalloc(Context* ContextID, uint num, uint size)
     {
@@ -235,7 +264,10 @@ public static unsafe partial class Lcms2
         (T*)_cmsCalloc(ContextID, num, size);
 
     internal static T* _cmsCalloc<T>(Context* ContextID, uint num) where T : struct =>
-        (T*)_cmsCalloc(ContextID, num, (uint)sizeof(T));
+        (T*)_cmsCalloc(ContextID, num, _sizeof<T>());
+
+    internal static T** _cmsCalloc2<T>(Context* ContextID, uint num) =>
+        (T**)_cmsCalloc<nint>(ContextID, num);
 
     internal static void* _cmsRealloc(Context* ContextID, void* Ptr, uint size)
     {
@@ -261,11 +293,17 @@ public static unsafe partial class Lcms2
         return ptr->DupPtr(ContextID, Org, size);
     }
 
-    internal static T* _cmsDupMem<T>(Context* ContextID, in void* Org, uint size) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, size);
+    internal static T* _cmsDupMem<T>(Context* ContextID, in void* Org, uint num) where T : struct =>
+        (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>());
 
     internal static T* _cmsDupMem<T>(Context* ContextID, in void* Org) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, (uint)sizeof(T));
+        (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
+
+    internal static T** _cmsDupMem2<T>(Context* ContextID, in void* Org, uint num) where T : struct =>
+        (T**)_cmsDupMem<nint>(ContextID, Org, num * _sizeof<nint>());
+
+    internal static T** _cmsDupMem2<T>(Context* ContextID, in void* Org) where T : struct =>
+        (T**)_cmsDupMem<nint>(ContextID, Org);
 
     internal static SubAllocator.Chunk* _cmsCreateSubAllocChunk(Context* ContextID, uint Initial)
     {
@@ -327,7 +365,10 @@ public static unsafe partial class Lcms2
     }
 
     internal static T* _cmsSubAlloc<T>(SubAllocator* sub) where T : struct =>
-        (T*)_cmsSubAlloc(sub, (uint)sizeof(T));
+        (T*)_cmsSubAlloc(sub, _sizeof<T>());
+
+    internal static T** _cmsSubAlloc2<T>(SubAllocator* sub) =>
+        (T**)_cmsSubAlloc<nint>(sub);
 
     internal static void* _cmsSubAlloc(SubAllocator* sub, int size) =>
         _cmsSubAlloc(sub, (uint)size);
@@ -359,7 +400,10 @@ public static unsafe partial class Lcms2
     }
 
     internal static T* _cmsSubAllocDup<T>(SubAllocator* s, in void* ptr) where T : struct =>
-        (T*)_cmsSubAllocDup(s, ptr, (uint)sizeof(T));
+        (T*)_cmsSubAllocDup(s, ptr, _sizeof<T>());
+
+    internal static T** _cmsSubAllocDup2<T>(SubAllocator* s, in void* ptr) where T : struct =>
+        (T**)_cmsSubAllocDup<nint>(s, ptr);
 
     internal static void* _cmsSubAllocDup(SubAllocator* s, in void* ptr, int size) =>
         _cmsSubAllocDup(s, ptr, (uint)size);
@@ -444,33 +488,37 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Utility function to print signatures
     /// </summary>
-    internal static void _cmsTagSignature2String(out string str, Signature sig)
+    internal static void _cmsTagSignature2String(byte* str, Signature sig)
     {
-        var buf = stackalloc sbyte[5];
-
         // Convert to big endian
         var be = _cmsAdjustEndianess32((uint)sig);
 
         // Move characters
-        memcpy(buf, &be, 4);
+        memcpy(str, &be, 4);
 
         // Make sure of terminator
-        buf[4] = 0;
-
-        str = new(buf);
+        str[4] = 0;
     }
 
-    private static IMutex defMtxCreate(Context* id) =>
-        DefaultMutex.Create(id);
+    private static void* defMtxCreate(Context* id)
+    {
+        var ptr_mutex = _cmsMalloc<MUTEX>(id);
+        ptr_mutex->Mutex = new Mutex(false);
+        return ptr_mutex;
+    }
 
-    private static void defMtxDestroy(Context* id, IMutex mtx) =>
-        mtx.Destroy(id);
+    private static void defMtxDestroy(Context* id, void* mtx)
+    {
+        ((MUTEX*)mtx)->Mutex.Dispose();
+        ((MUTEX*)mtx)->Mutex = null!;
+        _cmsFree(id, mtx);
+    }
 
-    private static bool defMtxLock(Context* id, IMutex mtx) =>
-        mtx.Lock(id);
+    private static bool defMtxLock(Context* _, void* mtx) =>
+        ((MUTEX*)mtx)->Mutex.WaitOne();
 
-    private static void defMtxUnlock(Context* id, IMutex mtx) =>
-        mtx.Unlock(id);
+    private static void defMtxUnlock(Context* id, void* mtx) =>
+        ((MUTEX*)mtx)->Mutex.ReleaseMutex();
 
     private static readonly MutexPluginChunkType* globalMutexPluginChunk;
 
@@ -522,7 +570,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static IMutex? _cmsCreateMutex(Context* context)
+    internal static void* _cmsCreateMutex(Context* context)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 
@@ -531,7 +579,7 @@ public static unsafe partial class Lcms2
         return ptr->CreateFn(context);
     }
 
-    internal static void _cmsDestroyMutex(Context* context, IMutex mutex)
+    internal static void _cmsDestroyMutex(Context* context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 
@@ -541,7 +589,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsLockMutex(Context* context, IMutex mutex)
+    internal static bool _cmsLockMutex(Context* context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 
@@ -550,7 +598,7 @@ public static unsafe partial class Lcms2
         return ptr->LockFn(context, mutex);
     }
 
-    internal static void _cmsUnlockMutex(Context* context, IMutex mutex)
+    internal static void _cmsUnlockMutex(Context* context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 

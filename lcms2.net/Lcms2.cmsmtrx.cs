@@ -25,6 +25,8 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 using System.Runtime.CompilerServices;
 
 namespace lcms2;
@@ -132,8 +134,8 @@ public static unsafe partial class Lcms2
     // Inverse of a matrix b = a^(-1)
     internal static bool _cmsMAT3inverse(in MAT3* a, MAT3* b)
     {
-        var av = (VEC3*)a;
-        var bv = (VEC3*)b;
+        var av = (VEC3*)a->v;
+        var bv = (VEC3*)b->v;
         double det, c0, c1, c2;
 
         c0 = (av[1].n[1] * av[2].n[2]) - (av[1].n[2] * av[2].n[1]);

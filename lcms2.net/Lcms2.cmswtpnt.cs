@@ -249,9 +249,9 @@ public static unsafe partial class Lcms2
         var yb = Primrs->Blue.y;
 
         // Build Primaries matrix
-        _cmsVEC3init(&((VEC3*)&Primaries.v)[0], xr, xg, xb);
-        _cmsVEC3init(&((VEC3*)&Primaries.v)[1], yr, yg, yb);
-        _cmsVEC3init(&((VEC3*)&Primaries.v)[2], 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
+        _cmsVEC3init(&((VEC3*)Primaries.v)[0], xr, xg, xb);
+        _cmsVEC3init(&((VEC3*)Primaries.v)[1], yr, yg, yb);
+        _cmsVEC3init(&((VEC3*)Primaries.v)[2], 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
 
         // Result = Primaries ^ (-1) inverse matrix
         if (!_cmsMAT3inverse(&Primaries, &Result)) return false;
@@ -262,9 +262,9 @@ public static unsafe partial class Lcms2
         _cmsMAT3eval(&Coef, &Result, &WhitePoint);
 
         // Give us the Coefs, then I build transformation matrix
-        _cmsVEC3init(&((VEC3*)&r->v)[0], Coef.n[VX] * xr, Coef.n[VY] * xg, Coef.n[VZ] * xb);
-        _cmsVEC3init(&((VEC3*)&r->v)[1], Coef.n[VX] * yr, Coef.n[VY] * yg, Coef.n[VZ] * yb);
-        _cmsVEC3init(&((VEC3*)&r->v)[2], Coef.n[VX] * (1.0 - xr - yr), Coef.n[VY] * (1.0 - xg - yg), Coef.n[VZ] * (1.0 - xb - yb));
+        _cmsVEC3init(&((VEC3*)r->v)[0], Coef.n[VX] * xr, Coef.n[VY] * xg, Coef.n[VZ] * xb);
+        _cmsVEC3init(&((VEC3*)r->v)[1], Coef.n[VX] * yr, Coef.n[VY] * yg, Coef.n[VZ] * yb);
+        _cmsVEC3init(&((VEC3*)r->v)[2], Coef.n[VX] * (1.0 - xr - yr), Coef.n[VY] * (1.0 - xg - yg), Coef.n[VZ] * (1.0 - xb - yb));
 
         return _cmsAdaptMatrixToD50(r, WhitePt);
     }

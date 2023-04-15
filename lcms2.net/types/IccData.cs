@@ -25,11 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-[Flags]
-public enum SamplerFlag : uint
+public unsafe struct IccData
 {
-    None = 0,
-    Inspect = 0x01000000,
+    public uint len;
+    public uint flag;
+    public fixed byte data[1];
 }

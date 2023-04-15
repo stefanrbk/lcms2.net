@@ -25,16 +25,16 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.io;
-using lcms2.types;
+using lcms2.state;
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe struct IccProfile
+public unsafe struct Profile
 {
     public IOHandler* IOHandler;
     public Context* ContextID;
 
-    public DateTime Create;
+    public DateTime Created;
 
     public uint Version;
     public Signature DeviceClass;
@@ -55,11 +55,33 @@ public unsafe struct IccProfile
     public fixed uint TagSizes[MAX_TABLE_TAG];
     public fixed uint TagOffsets[MAX_TABLE_TAG];
     public fixed bool TagSaveAsRaw[MAX_TABLE_TAG];
-    public void** TagPtrs;
-    public TagTypeHandler** TagTypeHandlers;
+    public fixed long TagPtrs[MAX_TABLE_TAG];
+    public fixed long TagTypeHandlers[MAX_TABLE_TAG];
 
     public bool IsWrite;
 
     public object? UsrMutexManaged;
     public void* UserMutex;
+
+    public struct Header
+    {
+        public uint size;
+        public Signature cmmId;
+        public uint version;
+        public Signature deviceClass;
+        public Signature colorSpace;
+        public Signature pcs;
+        public DateTimeNumber date;
+        public Signature magic;
+        public Signature platform;
+        public uint flags;
+        public Signature manufacturer;
+        public uint model;
+        public ulong attributes;
+        public uint renderingIntent;
+        public EncodedXYZNumber illuminant;
+        public Signature creator;
+        public ProfileID profileID;
+        public fixed sbyte reserved[28];
+    }
 }

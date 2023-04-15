@@ -276,7 +276,7 @@ public static unsafe partial class Lcms2
         return io->Write(io, sizeof(ulong), &tmp);
     }
 
-    internal static bool _cmsWrite15Fixed16Number(IOHandler* io, uint n)
+    internal static bool _cmsWrite15Fixed16Number(IOHandler* io, double n)
     {
         _cmsAssert(io);
 
@@ -463,7 +463,7 @@ public static unsafe partial class Lcms2
              Plugin is not null;
              Plugin = Plugin->Next)
         {
-            if (Plugin->Magic != Signature.Plugin.MagicNumber)
+            if (Plugin->Magic != cmsMagicNumber)
             {
                 cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
                 return false;
@@ -475,54 +475,55 @@ public static unsafe partial class Lcms2
                 return false;
             }
 
-            if (Plugin->Type == Signature.Plugin.MemHandler)
+            switch ((uint)Plugin->Type)
             {
-                if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Interpolation)
-            {
-                if (!_cmsRegisterInterpPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.TagType)
-            {
-                if (!_cmsRegisterTagTypePlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Tag)
-            {
-                if (!_cmsRegisterTagPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Formatters)
-            {
-                if (!_cmsRegisterFormattersPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.RenderingIntent)
-            {
-                if (!_cmsRegisterRenderingIntentPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.ParametricCurve)
-            {
-                if (!_cmsRegisterParametricCurvesPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.MultiProcessElement)
-            {
-                if (!_cmsRegisterMultiProcessElementPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Optimization)
-            {
-                if (!_cmsRegisterOptimizationPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Transform)
-            {
-                if (!_cmsRegisterTransformPlugin(id, Plugin)) return false;
-            }
-            else if (Plugin->Type == Signature.Plugin.Mutex)
-            {
-                if (!_cmsRegisterMutexPlugin(id, Plugin)) return false;
-            }
-            else
-            {
-                cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin->Type}'");
-                return false;
+                case cmsPluginMemHandlerSig:
+                    if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginInterpolationSig:
+                    if (!_cmsRegisterInterpPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTagTypeSig:
+                    if (!_cmsRegisterTagTypePlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTagSig:
+                    if (!_cmsRegisterTagPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginFormattersSig:
+                    if (!_cmsRegisterFormattersPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginRenderingIntentSig:
+                    if (!_cmsRegisterRenderingIntentPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginParametricCurveSig:
+                    if (!_cmsRegisterParametricCurvesPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginMultiProcessElementSig:
+                    if (!_cmsRegisterMultiProcessElementPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginOptimizationSig:
+                    if (!_cmsRegisterOptimizationPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTransformSig:
+                    if (!_cmsRegisterTransformPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginMutexSig:
+                    if (!_cmsRegisterMutexPlugin(id, Plugin)) return false;
+                    break;
+
+                default:
+                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin->Type}'");
+                    return false;
             }
         }
 
@@ -571,6 +572,7 @@ public static unsafe partial class Lcms2
         return globalContext->chunks[mc];
     }
 
+    [DebuggerStepThrough]
     internal static T* _cmsContextGetClientChunk<T>(Context* ContextID, Chunks mc) where T : struct =>
         (T*)_cmsContextGetClientChunk(ContextID, mc);
 
@@ -616,9 +618,9 @@ public static unsafe partial class Lcms2
             Plugin is not null;
             Plugin = Plugin->Next)
         {
-            if (Plugin->Magic == Signature.Plugin.MagicNumber &&
+            if ((uint)Plugin->Magic is cmsMagicNumber &&
                 Plugin->ExpectedVersion <= LCMS_VERSION &&
-                Plugin->Type == Signature.Plugin.MemHandler)
+                (uint)Plugin->Type is cmsPluginMemHandlerSig)
             {
                 // Found!
                 return (PluginMemHandler*)Plugin;
@@ -708,23 +710,23 @@ public static unsafe partial class Lcms2
         ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
-        ctx->MemPool = _cmsCreateSubAlloc(*(Context**)&ctx, 22 * (uint)sizeof(void*)); // default size about 22 pointers
+        ctx->MemPool = _cmsCreateSubAlloc(*&ctx, 22 * (uint)sizeof(void*)); // default size about 22 pointers
         if (ctx->MemPool is null)
         {
-            cmsDeleteContext(*(Context**)&ctx);
+            cmsDeleteContext(*&ctx);
             return null;
         }
 
         AllocChunks(ctx, null);
 
         // Setup the plug-ins
-        if (!cmsPluginTHR(*(Context**)&ctx, Plugin))
+        if (!cmsPluginTHR(*&ctx, Plugin))
         {
-            cmsDeleteContext(*(Context**)&ctx);
+            cmsDeleteContext(*&ctx);
             return null;
         }
 
-        return *(Context**)&ctx;
+        return *&ctx;
     }
 
     /// <summary>

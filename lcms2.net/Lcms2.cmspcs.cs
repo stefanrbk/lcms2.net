@@ -464,7 +464,7 @@ public static unsafe partial class Lcms2
         var nChannles = cmsChannelsOf(Colorspace);
 
         // HighResPrecalc is maximum resolution
-        if ((dwFlags & FLAGS_HIGHRESPRECALC) is not 0)
+        if ((dwFlags & cmsFLAGS_HIGHRESPRECALC) is not 0)
         {
             return nChannles switch
             {
@@ -475,7 +475,7 @@ public static unsafe partial class Lcms2
         }
 
         // LowResPrecalc is lower resolution
-        if ((dwFlags & FLAGS_LOWRESPRECALC) is not 0)
+        if ((dwFlags & cmsFLAGS_LOWRESPRECALC) is not 0)
         {
             return nChannles switch
             {
@@ -497,45 +497,42 @@ public static unsafe partial class Lcms2
     internal static bool _cmsEndPointsBySpace(Signature Space, ushort** White, ushort** Black, uint* nOutputs)
     {
         // Only most common spaces
-        if (Space == Signature.Colorspace.Gray)
+        switch ((uint)Space)
         {
-            if (White is not null) *White = GrayWhite;
-            if (Black is not null) *Black = GrayBlack;
-            if (nOutputs is not null) *nOutputs = 1;
+            case cmsSigGrayData:
+                if (White is not null) *White = GrayWhite;
+                if (Black is not null) *Black = GrayBlack;
+                if (nOutputs is not null) *nOutputs = 1;
 
-            return true;
-        }
-        else if (Space == Signature.Colorspace.Rgb)
-        {
-            if (White is not null) *White = RGBwhite;
-            if (Black is not null) *Black = RGBblack;
-            if (nOutputs is not null) *nOutputs = 3;
+                return true;
 
-            return true;
-        }
-        else if (Space == Signature.Colorspace.Lab)
-        {
-            if (White is not null) *White = LABwhite;
-            if (Black is not null) *Black = LABblack;
-            if (nOutputs is not null) *nOutputs = 3;
+            case cmsSigRgbData:
+                if (White is not null) *White = RGBwhite;
+                if (Black is not null) *Black = RGBblack;
+                if (nOutputs is not null) *nOutputs = 3;
 
-            return true;
-        }
-        else if (Space == Signature.Colorspace.Cmyk)
-        {
-            if (White is not null) *White = CMYKwhite;
-            if (Black is not null) *Black = CMYKblack;
-            if (nOutputs is not null) *nOutputs = 4;
+                return true;
 
-            return true;
-        }
-        else if (Space == Signature.Colorspace.Cmy)
-        {
-            if (White is not null) *White = CMYwhite;
-            if (Black is not null) *Black = CMYblack;
-            if (nOutputs is not null) *nOutputs = 3;
+            case cmsSigLabData:
+                if (White is not null) *White = LABwhite;
+                if (Black is not null) *Black = LABblack;
+                if (nOutputs is not null) *nOutputs = 3;
 
-            return true;
+                return true;
+
+            case cmsSigCmykData:
+                if (White is not null) *White = CMYKwhite;
+                if (Black is not null) *Black = CMYKblack;
+                if (nOutputs is not null) *nOutputs = 4;
+
+                return true;
+
+            case cmsSigCmyData:
+                if (White is not null) *White = CMYwhite;
+                if (Black is not null) *Black = CMYblack;
+                if (nOutputs is not null) *nOutputs = 3;
+
+                return true;
         }
 
         return false;
@@ -544,259 +541,132 @@ public static unsafe partial class Lcms2
     internal static Signature _cmsICCcolorSpace(int OutNotation) =>
         OutNotation switch
         {
-            1 or PT_GRAY => Signature.Colorspace.Gray,
-            2 or PT_RGB => Signature.Colorspace.Rgb,
-            PT_CMY => Signature.Colorspace.Cmy,
-            PT_CMYK => Signature.Colorspace.Cmyk,
-            PT_YCbCr => Signature.Colorspace.YCbCr,
-            PT_YUV => Signature.Colorspace.Luv,
-            PT_XYZ => Signature.Colorspace.XYZ,
-            PT_Lab or PT_LabV2 => Signature.Colorspace.Lab,
-            PT_YUVK => Signature.Colorspace.LuvK,
-            PT_HSV => Signature.Colorspace.Hsv,
-            PT_HLS => Signature.Colorspace.Hls,
-            PT_Yxy => Signature.Colorspace.Yxy,
-            PT_MCH1 => Signature.Colorspace.MCH1,
-            PT_MCH2 => Signature.Colorspace.MCH2,
-            PT_MCH3 => Signature.Colorspace.MCH3,
-            PT_MCH4 => Signature.Colorspace.MCH4,
-            PT_MCH5 => Signature.Colorspace.MCH5,
-            PT_MCH6 => Signature.Colorspace.MCH6,
-            PT_MCH7 => Signature.Colorspace.MCH7,
-            PT_MCH8 => Signature.Colorspace.MCH8,
-            PT_MCH9 => Signature.Colorspace.MCH9,
-            PT_MCH10 => Signature.Colorspace.MCHA,
-            PT_MCH11 => Signature.Colorspace.MCHB,
-            PT_MCH12 => Signature.Colorspace.MCHC,
-            PT_MCH13 => Signature.Colorspace.MCHD,
-            PT_MCH14 => Signature.Colorspace.MCHE,
-            PT_MCH15 => Signature.Colorspace.MCHF,
+            1 or
+            PT_GRAY => cmsSigGrayData,
+            2 or
+            PT_RGB => cmsSigRgbData,
+            PT_CMY => cmsSigCmyData,
+            PT_CMYK => cmsSigCmykData,
+            PT_YCbCr => cmsSigYCbCrData,
+            PT_YUV => cmsSigLuvData,
+            PT_XYZ => cmsSigXYZData,
+            PT_Lab or
+            PT_LabV2 => cmsSigLabData,
+            PT_YUVK => cmsSigLuvKData,
+            PT_HSV => cmsSigHsvData,
+            PT_HLS => cmsSigHlsData,
+            PT_Yxy => cmsSigYxyData,
+            PT_MCH1 => cmsSigMCH1Data,
+            PT_MCH2 => cmsSigMCH2Data,
+            PT_MCH3 => cmsSigMCH3Data,
+            PT_MCH4 => cmsSigMCH4Data,
+            PT_MCH5 => cmsSigMCH5Data,
+            PT_MCH6 => cmsSigMCH6Data,
+            PT_MCH7 => cmsSigMCH7Data,
+            PT_MCH8 => cmsSigMCH8Data,
+            PT_MCH9 => cmsSigMCH9Data,
+            PT_MCH10 => cmsSigMCHAData,
+            PT_MCH11 => cmsSigMCHBData,
+            PT_MCH12 => cmsSigMCHCData,
+            PT_MCH13 => cmsSigMCHDData,
+            PT_MCH14 => cmsSigMCHEData,
+            PT_MCH15 => cmsSigMCHFData,
             _ => default
         };
 
-    internal static int _cmsLCMScolorSpace(Signature ProfileSpace)
-    {
-        if (ProfileSpace == Signature.Colorspace.Gray)
+    internal static int _cmsLCMScolorSpace(Signature ProfileSpace) =>
+        (uint)ProfileSpace switch
         {
-            return PT_GRAY;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Rgb)
-        {
-            return PT_RGB;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color1 ||
-                         ProfileSpace == Signature.Colorspace.MCH1)
-        {
-            return PT_MCH1;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color2 ||
-                         ProfileSpace == Signature.Colorspace.MCH2)
-        {
-            return PT_MCH2;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color3 ||
-                         ProfileSpace == Signature.Colorspace.MCH3)
-        {
-            return PT_MCH3;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color4 ||
-                         ProfileSpace == Signature.Colorspace.MCH4)
-        {
-            return PT_MCH4;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color5 ||
-                         ProfileSpace == Signature.Colorspace.MCH5)
-        {
-            return PT_MCH5;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color6 ||
-                         ProfileSpace == Signature.Colorspace.MCH6)
-        {
-            return PT_MCH6;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color7 ||
-                         ProfileSpace == Signature.Colorspace.MCH7)
-        {
-            return PT_MCH7;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color8 ||
-                         ProfileSpace == Signature.Colorspace.MCH8)
-        {
-            return PT_MCH8;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color9 ||
-                         ProfileSpace == Signature.Colorspace.MCH9)
-        {
-            return PT_MCH9;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color10 ||
-                         ProfileSpace == Signature.Colorspace.MCHA)
-        {
-            return PT_MCH10;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color11 ||
-                         ProfileSpace == Signature.Colorspace.MCHB)
-        {
-            return PT_MCH11;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color12 ||
-                         ProfileSpace == Signature.Colorspace.MCHC)
-        {
-            return PT_MCH12;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color13 ||
-                         ProfileSpace == Signature.Colorspace.MCHD)
-        {
-            return PT_MCH13;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color14 ||
-                         ProfileSpace == Signature.Colorspace.MCHE)
-        {
-            return PT_MCH14;
-        }
-        else if (ProfileSpace == Signature.Colorspace.Color15 ||
-                         ProfileSpace == Signature.Colorspace.MCHF)
-        {
-            return PT_MCH15;
-        }
-        else
-        {
-            return default;
-        }
-    }
+            cmsSigGrayData => PT_GRAY,
+            cmsSigRgbData => PT_RGB,
+            cmsSigCmyData => PT_CMY,
+            cmsSigCmykData => PT_CMYK,
+            cmsSigYCbCrData => PT_YCbCr,
+            cmsSigLuvData => PT_YUV,
+            cmsSigXYZData => PT_XYZ,
+            cmsSigLabData => PT_Lab,
+            cmsSigLuvKData => PT_YUVK,
+            cmsSigHsvData => PT_HSV,
+            cmsSigHlsData => PT_HLS,
+            cmsSigYxyData => PT_Yxy,
+            cmsSig1colorData or
+            cmsSigMCH1Data => PT_MCH1,
+            cmsSig2colorData or
+            cmsSigMCH2Data => PT_MCH2,
+            cmsSig3colorData or
+            cmsSigMCH3Data => PT_MCH3,
+            cmsSig4colorData or
+            cmsSigMCH4Data => PT_MCH4,
+            cmsSig5colorData or
+            cmsSigMCH5Data => PT_MCH5,
+            cmsSig6colorData or
+            cmsSigMCH6Data => PT_MCH6,
+            cmsSig7colorData or
+            cmsSigMCH7Data => PT_MCH7,
+            cmsSig8colorData or
+            cmsSigMCH8Data => PT_MCH8,
+            cmsSig9colorData or
+            cmsSigMCH9Data => PT_MCH9,
+            cmsSig10colorData or
+            cmsSigMCHAData => PT_MCH10,
+            cmsSig11colorData or
+            cmsSigMCHBData => PT_MCH11,
+            cmsSig12colorData or
+            cmsSigMCHCData => PT_MCH12,
+            cmsSig13colorData or
+            cmsSigMCHDData => PT_MCH13,
+            cmsSig14colorData or
+            cmsSigMCHEData => PT_MCH14,
+            cmsSig15colorData or
+            cmsSigMCHFData => PT_MCH15,
+            _ => 0,
+        };
 
-    public static uint cmsChannelsOf(Signature Colorspace)
-    {
-        if (Colorspace == Signature.Colorspace.MCH1 ||
-            Colorspace == Signature.Colorspace.Color1 ||
-            Colorspace == Signature.Colorspace.Gray)
+    public static uint cmsChannelsOf(Signature Colorspace) =>
+        (uint)Colorspace switch
         {
-            return 1;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH2 ||
-                 Colorspace == Signature.Colorspace.Color2)
-        {
-            return 2;
-        }
-        else if (Colorspace == Signature.Colorspace.XYZ ||
-                 Colorspace == Signature.Colorspace.Lab ||
-                 Colorspace == Signature.Colorspace.Luv ||
-                 Colorspace == Signature.Colorspace.YCbCr ||
-                 Colorspace == Signature.Colorspace.Yxy ||
-                 Colorspace == Signature.Colorspace.Rgb ||
-                 Colorspace == Signature.Colorspace.Hsv ||
-                 Colorspace == Signature.Colorspace.Hls ||
-                 Colorspace == Signature.Colorspace.Cmy ||
-                 Colorspace == Signature.Colorspace.MCH3 ||
-                 Colorspace == Signature.Colorspace.Color3)
-        {
-            return 3;
-        }
-        else if (Colorspace == Signature.Colorspace.LuvK ||
-                 Colorspace == Signature.Colorspace.Cmyk ||
-                 Colorspace == Signature.Colorspace.MCH4 ||
-                 Colorspace == Signature.Colorspace.Color4)
-        {
-            return 4;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH5 ||
-                 Colorspace == Signature.Colorspace.Color5)
-        {
-            return 5;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH6 ||
-                 Colorspace == Signature.Colorspace.Color6)
-        {
-            return 6;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH7 ||
-                 Colorspace == Signature.Colorspace.Color7)
-        {
-            return 7;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH8 ||
-                 Colorspace == Signature.Colorspace.Color8)
-        {
-            return 8;
-        }
-        else if (Colorspace == Signature.Colorspace.MCH9 ||
-                 Colorspace == Signature.Colorspace.Color9)
-        {
-            return 9;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHA ||
-                 Colorspace == Signature.Colorspace.Color10)
-        {
-            return 10;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHB ||
-                 Colorspace == Signature.Colorspace.Color11)
-        {
-            return 11;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHC ||
-                 Colorspace == Signature.Colorspace.Color12)
-        {
-            return 12;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHD ||
-                 Colorspace == Signature.Colorspace.Color13)
-        {
-            return 13;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHE ||
-                 Colorspace == Signature.Colorspace.Color14)
-        {
-            return 14;
-        }
-        else if (Colorspace == Signature.Colorspace.MCHF ||
-                 Colorspace == Signature.Colorspace.Color15)
-        {
-            return 15;
-        }
-        else
-        {
-            return 3;
-        }
-    }
+            cmsSigMCH1Data or
+            cmsSig1colorData or
+            cmsSigGrayData => 1,
+            cmsSigMCH2Data or
+            cmsSig2colorData => 2,
+            cmsSigXYZData or
+            cmsSigLabData or
+            cmsSigLuvData or
+            cmsSigYCbCrData or
+            cmsSigYxyData or
+            cmsSigRgbData or
+            cmsSigHsvData or
+            cmsSigHlsData or
+            cmsSigCmyData or
+            cmsSigMCH3Data or
+            cmsSig3colorData => 3,
+            cmsSigLuvKData or
+            cmsSigCmykData or
+            cmsSigMCH4Data or
+            cmsSig4colorData => 4,
+            cmsSigMCH5Data or
+            cmsSig5colorData => 5,
+            cmsSigMCH6Data or
+            cmsSig6colorData => 6,
+            cmsSigMCH7Data or
+            cmsSig7colorData => 7,
+            cmsSigMCH8Data or
+            cmsSig8colorData => 8,
+            cmsSigMCH9Data or
+            cmsSig9colorData => 9,
+            cmsSigMCHAData or
+            cmsSig10colorData => 10,
+            cmsSigMCHBData or
+            cmsSig11colorData => 11,
+            cmsSigMCHCData or
+            cmsSig12colorData => 12,
+            cmsSigMCHDData or
+            cmsSig13colorData => 13,
+            cmsSigMCHEData or
+            cmsSig14colorData => 14,
+            cmsSigMCHFData or
+            cmsSig15colorData => 15,
+            _ => 3,
+        };
 }

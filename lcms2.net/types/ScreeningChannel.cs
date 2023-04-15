@@ -25,27 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe class DefaultMutex : IMutex
+public struct ScreeningChannel
 {
-    private readonly Mutex mutex;
-
-    public DefaultMutex() =>
-        mutex = new Mutex();
-
-    public static IMutex Create(Context* _) =>
-        new DefaultMutex();
-
-    public void Dispose() =>
-        mutex.Dispose();
-
-    public bool Lock(Context* _) =>
-        mutex.WaitOne();
-
-    public void Unlock(Context* _) =>
-        mutex.ReleaseMutex();
-
-    public void Destroy(Context* _) =>
-        Dispose();
+    public double Frequency;
+    public double ScreenAngle;
+    public uint SpotShape;
 }

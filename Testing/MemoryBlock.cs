@@ -25,6 +25,8 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
 namespace lcms2.testbed;
 
 public unsafe struct MemoryBlock

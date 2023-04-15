@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
 
-using Microsoft.CodeAnalysis;
+using System;
 
 namespace CodeGen
 {

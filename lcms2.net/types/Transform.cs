@@ -24,6 +24,8 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
+
 namespace lcms2.types;
 
 public unsafe struct Transform
@@ -36,7 +38,7 @@ public unsafe struct Transform
     public delegate*<Transform*, ushort*, byte*, uint, byte*> ToOutput;
 
     public delegate*<Transform*, float*, byte*, uint, byte*> FromInputFloat;
-    public delegate*<Transform*, float*, byte*, uint, byte*> ToInputFloat;
+    public delegate*<Transform*, float*, byte*, uint, byte*> ToOutputFloat;
 
     public Cache Cache;
 
@@ -53,7 +55,7 @@ public unsafe struct Transform
     public CIEXYZ EntryWhitePoint;
     public CIEXYZ ExitWhitePoint;
 
-    public Sequence? Sequence;
+    public Sequence* Sequence;
 
     public uint dwOriginalFlags;
     public double AdaptationState;

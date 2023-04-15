@@ -33,7 +33,7 @@ public unsafe struct IntentsList : INextOffset
 {
     public uint Intent;
     public string Description;
-    public delegate*<Context*, uint, uint*, IccProfile**, bool*, double*, uint, Pipeline*> Link;
+    public delegate*<Context*, uint, uint*, Profile**, bool*, double*, uint, Pipeline*> Link;
     public IntentsList* Next;
 
     public static nuint NextOffset { get; } = (nuint)(sizeof(uint) + (sizeof(nuint) * 2));

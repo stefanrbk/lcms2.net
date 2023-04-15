@@ -24,31 +24,30 @@
 //
 //---------------------------------------------------------------------------------
 //
-//using lcms2.old;
 
-//namespace lcms2.testbed;
+namespace lcms2.state;
 
-//public static class WhitePointTests
-//{
-//    #region Public Methods
+#region Enums
 
-//    public static bool CheckTemp2Chroma()
-//    {
-//        var max = 0.0;
-//        for (var j = 4000; j < 25000; j++)
-//        {
-//            var white = WhitePoint.FromTemp(j);
-//            var v = WhitePoint.ToTemp(white);
+internal enum Chunks
+{
+    UserPtr,
+    Logger,
+    AlarmCodesContext,
+    AdaptationStateContext,
+    MemPlugin,
+    InterpPlugin,
+    CurvesPlugin,
+    FormattersPlugin,
+    TagTypePlugin,
+    TagPlugin,
+    IntentPlugin,
+    MPEPlugin,
+    OptimizationPlugin,
+    TransformPlugin,
+    MutexPlugin,
 
-//            if (Double.IsNaN(v)) return false;
+    Max
+}
 
-//            var d = Math.Abs(v - j);
-//            if (d > max) max = d;
-//        }
-
-//        // the actual resolution is 100 degrees
-//        return max < 100;
-//    }
-
-//    #endregion Public Methods
-//}
+#endregion Enums

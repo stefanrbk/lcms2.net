@@ -29,5 +29,5 @@ namespace lcms2.state;
 
 internal interface INextOffset
 {
-    abstract static nuint NextOffset { get; }
+    static abstract nuint NextOffset { get; }
 }

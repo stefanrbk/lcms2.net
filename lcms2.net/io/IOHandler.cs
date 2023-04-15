@@ -25,15 +25,17 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
 namespace lcms2.io;
 
 public unsafe struct IOHandler
 {
-    internal Stream? stream;
+    internal void* stream;
     internal Context* contextID;
-    internal uint usedSpace;
+    internal uint UsedSpace;
     internal uint reportedSize;
-    internal string? physicalFile;
+    internal string physicalFile;
 
     internal delegate*<IOHandler*, void*, uint, uint, uint> Read;
     internal delegate*<IOHandler*, uint, bool> Seek;

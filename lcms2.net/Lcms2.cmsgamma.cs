@@ -37,8 +37,8 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     private const ushort maxNodesInCurve = 4097;
-    private const float minusInf = -1e22f;
-    private const float plusInf = 1e22f;
+    private const float MINUS_INF = -1e22f;
+    private const float PLUS_INF = 1e22f;
 
     private static readonly int[] defaultCurvesFunctionTypes = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 108, 109 };
     private static readonly uint[] defaultCurvesParameterCounts = new uint[] { 1, 3, 4, 5, 7, 4, 5, 5, 1, 1 };
@@ -204,7 +204,7 @@ public static unsafe partial class Lcms2
             p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             if (p->Segments is null) goto Error;
 
-            p->Evals = (delegate*<int, in double*, double, double>*)_cmsCalloc(ContextID, nSegments, (uint)sizeof(nuint));
+            p->Evals = (delegate*<int, in double*, double, double>*)_cmsCalloc<nint>(ContextID, nSegments);
             if (p->Evals is null) goto Error;
         }
 
@@ -237,7 +237,7 @@ public static unsafe partial class Lcms2
         // is placed in advance to maximize performance.
         if (Segments is not null && (nSegments > 0))
         {
-            p->SegInterp = (InterpParams**)_cmsCalloc(ContextID, nSegments, (uint)sizeof(InterpParams**));
+            p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
 
             for (var i = 0; i < nSegments; i++)
             {
@@ -248,7 +248,7 @@ public static unsafe partial class Lcms2
                 memcpy(&p->Segments[i], &Segments[i], (uint)sizeof(CurveSegment));
 
                 p->Segments[i].SampledPoints = Segments[i].Type == 0 && Segments[i].SampledPoints is not null
-                    ? _cmsDupMem<float>(ContextID, Segments[i].SampledPoints, sizeof(float) * Segments[i].nGridPoints)
+                    ? _cmsDupMem<float>(ContextID, Segments[i].SampledPoints, Segments[i].nGridPoints)
                     : (float*)null;
 
                 var c = GetParametricCurveByType(ContextID, Segments[i].Type, null);
@@ -319,7 +319,7 @@ public static unsafe partial class Lcms2
                         ? R
                         : 0
                     : Abs(Params[0]) < MATRIX_DET_TOLERANCE
-                        ? plusInf
+                        ? PLUS_INF
                         : Pow(R, 1 / Params[0]);
 
                 break;
@@ -645,15 +645,15 @@ public static unsafe partial class Lcms2
                 }
 
                 if (Double.IsPositiveInfinity(Out))
-                    return plusInf;
+                    return PLUS_INF;
                 else if (Double.IsNegativeInfinity(Out))
-                    return minusInf;
+                    return MINUS_INF;
 
                 return Out;
             }
         }
 
-        return minusInf;
+        return MINUS_INF;
     }
 
     public static uint cmsGetToneCurveEstimatedTableEntries(in ToneCurve* t)
@@ -708,7 +708,7 @@ public static unsafe partial class Lcms2
 
         // A segmented tone curve should have function segments in the first and last positions
         // Initialize segmented curve part up to 0 to constant value = samples[0]
-        Seg[0].x0 = minusInf;
+        Seg[0].x0 = MINUS_INF;
         Seg[0].x1 = 0f;
         Seg[0].Type = 6;
 
@@ -728,7 +728,7 @@ public static unsafe partial class Lcms2
 
         // Final segment is constant = lastsample
         Seg[2].x0 = 1f;
-        Seg[2].x1 = plusInf;
+        Seg[2].x1 = PLUS_INF;
         Seg[2].Type = 6;
 
         Seg[2].Params[0] = 1;
@@ -754,8 +754,8 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        Seg0.x0 = minusInf;
-        Seg0.x1 = plusInf;
+        Seg0.x0 = MINUS_INF;
+        Seg0.x1 = PLUS_INF;
         Seg0.Type = Type;
 
         var size = c->ParameterCount[Pos] * sizeof(double);
@@ -935,8 +935,8 @@ public static unsafe partial class Lcms2
                 x1 = InCurve->Table16[j];
                 x2 = InCurve->Table16[j + 1];
 
-                y1 = (j * 65535.0) / (InCurve->nEntries - 1);
-                y2 = ((j + 1) * 65535.0) / (InCurve->nEntries - 1);
+                y1 = j * 65535.0 / (InCurve->nEntries - 1);
+                y2 = (j + 1) * 65535.0 / (InCurve->nEntries - 1);
 
                 // If collapsed, then use any
                 if (x1 == x2)
@@ -1134,7 +1134,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < Curve->nEntries; i++)
         {
-            var diff = Abs((int)Curve->Table16[i] - _cmsQuantizeVal(i, Curve->nEntries));
+            var diff = Abs(Curve->Table16[i] - _cmsQuantizeVal(i, Curve->nEntries));
             if (diff > 0x0f)
                 return false;
         }

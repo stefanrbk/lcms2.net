@@ -48,7 +48,7 @@ public static unsafe class Globals
 
     static Globals()
     {
-        DebugMemHandler = (PluginMemHandler*)NativeMemory.AllocZeroed((uint)sizeof(PluginMemHandler));
+        DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
 
         DebugMemHandler->@base.Magic = Signature.Plugin.MagicNumber;
         DebugMemHandler->@base.ExpectedVersion = 2060;
@@ -79,7 +79,7 @@ public static unsafe class Globals
 
         try
         {
-            var blk = (MemoryBlock*)NativeMemory.Alloc(size + (uint)sizeof(MemoryBlock));
+            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock));
 
             blk->KeepSize = size;
             blk->WhoAllocated = ContextID;
@@ -104,7 +104,7 @@ public static unsafe class Globals
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
             Assert.Fail($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
 
-        NativeMemory.Free(blk);
+        free(blk);
     }
 
     private static void* DebugRealloc(Context* ContextID, void* Ptr, uint NewSize)

@@ -25,9 +25,26 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.state;
 
-public unsafe struct MAT3
+public unsafe struct Context
 {
-    internal fixed double v[9];
+    internal Context* Next;
+    internal SubAllocator* MemPool;
+    internal MemPluginChunkType DefaultMemoryManager;
+    internal ContextChunks chunks;
+    private fixed long actualChunks[(int)Chunks.Max];
+
+    public struct ContextChunks
+    {
+        internal Context* parent;
+
+        internal void* this[Chunks c]
+        {
+            get =>
+                ((void**)parent->actualChunks)[(int)c];
+            set =>
+                ((void**)parent->actualChunks)[(int)c] = value;
+        }
+    }
 }

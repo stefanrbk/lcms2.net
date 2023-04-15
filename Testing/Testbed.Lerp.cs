@@ -172,7 +172,7 @@ internal static unsafe partial class Testbed
 
             var errors = sb.ToString();
             if (!String.IsNullOrEmpty(errors))
-                Err.WriteLine(new TextRed(errors));
+                ErrorWriteLine($"{{red:{errors}}}");
         }
         return rc;
     }
@@ -231,7 +231,7 @@ internal static unsafe partial class Testbed
 
             var errors = sb.ToString();
             if (!String.IsNullOrEmpty(errors))
-                Err.WriteLine(new TextRed(errors));
+                ErrorWriteLine($"{{red:{errors}}}");
         }
         return rc;
     }
@@ -290,7 +290,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            Con.Write(new TextRed($"|Err|<{MaxErr} "));
+            ConsoleWrite($"|Err|<{MaxErr} ");
 
         _cmsFreeInterpParams(p);
         return true;
@@ -353,7 +353,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            Con.Write(new TextRed($"|Err|<{MaxErr} "));
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -415,7 +415,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            Con.Write(new TextRed($"|Err|<{MaxErr} "));
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -477,7 +477,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            Con.Write(new TextRed($"|Err|<{MaxErr} "));
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -547,7 +547,7 @@ internal static unsafe partial class Testbed
         var errors = sb.ToString();
         var rc = String.IsNullOrEmpty(errors);
         if (HasConsole && !rc)
-            Err.WriteLine(new TextRed(errors));
+            ErrorWriteLine($"{{red:{errors}}}");
 
         return rc;
     }
@@ -602,7 +602,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            Con.Write($"|Err|<{MaxErr} ");
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
 
         return Validate3DInterpolationValues(check, isGood);
@@ -658,7 +658,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            Con.Write($"|Err|<{MaxErr} ");
+            ConsoleWrite($"|Err|<{MaxErr} ");
 
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
@@ -742,7 +742,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            Con.Write($"|Err|<{MaxErr} ");
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
     }
@@ -794,7 +794,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            Con.Write($"|Err|<{MaxErr} ");
+            ConsoleWrite($"|Err|<{MaxErr} ");
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
     }
@@ -1004,10 +1004,10 @@ internal static unsafe partial class Testbed
         (ushort)((a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8) / m);
 
     private static ushort Fn8D2(uint m, ushort a1, ushort a2, ushort a3, ushort a4 = 0, ushort a5 = 0, ushort a6 = 0, ushort a7 = 0, ushort a8 = 0) =>
-        (ushort)((a1 + 3 * a2 + 3 * a3 + a4 + a5 + a6 + a7 + a8) / (m + 4));
+        (ushort)((a1 + (3 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 4));
 
     private static ushort Fn8D3(uint m, ushort a1, ushort a2, ushort a3, ushort a4 = 0, ushort a5 = 0, ushort a6 = 0, ushort a7 = 0, ushort a8 = 0) =>
-        (ushort)((3 * a1 + 2 * a2 + 3 * a3 + a4 + a5 + a6 + a7 + a8) / (m + 5));
+        (ushort)(((3 * a1) + (2 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 5));
 
     private static bool Sampler3D(in ushort* In, ushort* Out, void* _)
     {

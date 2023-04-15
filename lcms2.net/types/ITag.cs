@@ -32,5 +32,5 @@ public unsafe interface ITag : ICloneable, IDisposable
 {
     bool WriteRaw(IOHandler* io);
 
-    abstract static ITag ReadRaw(IOHandler* io);
+    static abstract ITag ReadRaw(IOHandler* io);
 }

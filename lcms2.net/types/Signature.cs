@@ -31,8 +31,8 @@ public readonly unsafe partial struct Signature : ICloneable
 {
     #region Fields
 
-    public static readonly Signature LcmsSignature = new("lcms"u8);
-    public static readonly Signature MagicNumber = new("ascp"u8);
+    //public static readonly Signature LcmsSignature = new("lcms"u8);
+    //public static readonly Signature MagicNumber = new("ascp"u8);
 
     private readonly uint _value;
 
@@ -60,13 +60,17 @@ public readonly unsafe partial struct Signature : ICloneable
     public static implicit operator uint(Signature v) =>
         v._value;
 
+    public static implicit operator Signature(uint v) =>
+        new(v);
+
     public object Clone() =>
         new Signature(_value);
 
     public override string ToString()
     {
-        _cmsTagSignature2String(out var result, this);
-        return result;
+        var buf = stackalloc byte[5];
+        _cmsTagSignature2String(buf, this);
+        return new((sbyte*)buf);
     }
 
     #endregion Public Methods

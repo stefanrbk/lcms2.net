@@ -29,5 +29,5 @@ namespace lcms2.state;
 
 internal interface IListOffset
 {
-    abstract static nuint ListOffset { get; }
+    static abstract nuint ListOffset { get; }
 }

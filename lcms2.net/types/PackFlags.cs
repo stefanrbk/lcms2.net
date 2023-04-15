@@ -25,10 +25,10 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.state;
+namespace lcms2.types;
 
 public enum PackFlags
 {
-    Bits16,
+    Ushort,
     Float,
 }

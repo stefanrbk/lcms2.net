@@ -29,7 +29,7 @@ namespace lcms2.types;
 
 public unsafe struct NamedColor
 {
-    public string? Name;
+    public fixed byte Name[cmsMAX_PATH];
     public fixed ushort PCS[3];
     public fixed ushort DeviceColorant[cmsMAXCHANNELS];
 }

@@ -31,5 +31,5 @@ namespace lcms2.state;
 public unsafe struct PluginFormatters
 {
     public PluginBase @base;
-    public delegate*<uint, FormatterDirection, uint, Formatter> FormattersFactory;
+    public delegate*<uint, FormatterDirection, PackFlags, Formatter> FormattersFactory;
 }

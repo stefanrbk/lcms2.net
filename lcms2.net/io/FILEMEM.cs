@@ -24,29 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+namespace lcms2.io;
 
-namespace lcms2;
-#region Enums
-
-internal enum Chunks
+public unsafe struct FILEMEM
 {
-    UserPtr,
-    Logger,
-    AlarmCodesContext,
-    AdaptationStateContext,
-    MemPlugin,
-    InterpPlugin,
-    CurvesPlugin,
-    FormattersPlugin,
-    TagTypePlugin,
-    TagPlugin,
-    IntentPlugin,
-    MPEPlugin,
-    OptimizationPlugin,
-    TransformPlugin,
-    MutexPlugin,
-
-    Max
+    public byte* Block;
+    public uint Size;
+    public uint Pointer;
+    public bool FreeBlockOnClose;
 }
-
-#endregion Enums

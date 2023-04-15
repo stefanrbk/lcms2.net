@@ -97,7 +97,7 @@ internal static unsafe partial class Testbed
             if (Err > MaxErr) MaxErr = Err;
         }
 
-        if (MaxErr > 0) Err.Write(new TextRed($"|Err|<{MaxErr * 65535} "));
+        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);
@@ -136,7 +136,7 @@ internal static unsafe partial class Testbed
             if (err > MaxErr) MaxErr = err;
         }
 
-        if (MaxErr > 0) Err.Write(new TextRed($"|Err|<{MaxErr * 65535} "));
+        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);
@@ -175,7 +175,7 @@ internal static unsafe partial class Testbed
             if (err > MaxErr) MaxErr = err;
         }
 
-        if (MaxErr > 0) Err.Write(new TextRed($"|Err|<{MaxErr * 65535} "));
+        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);

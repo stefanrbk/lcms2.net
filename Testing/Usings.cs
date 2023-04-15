@@ -24,7 +24,5 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using lcms2;
-
 global using static lcms2.Lcms2;
 global using static lcms2.testbed.Testbed;

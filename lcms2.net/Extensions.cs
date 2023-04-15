@@ -25,6 +25,8 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 namespace lcms2;
 
 public static class Extensions

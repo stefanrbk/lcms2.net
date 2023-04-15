@@ -30,6 +30,7 @@ using lcms2.types;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace lcms2.testbed;
 
@@ -53,10 +54,10 @@ internal static unsafe partial class Testbed
 
     public static readonly int SIZE_OF_MEM_HEADER = sizeof(MemoryBlock);
 
-    public readonly static PluginMemHandler* DebugMemHandler;
+    public static readonly PluginMemHandler* DebugMemHandler;
     public static bool HasConsole = !Console.IsInputRedirected;
 
-    private readonly static Destructor Finalizer = new();
+    private static readonly Destructor Finalizer = new();
     private static uint thread = 1;
 
     public static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> =>
@@ -65,7 +66,8 @@ internal static unsafe partial class Testbed
     [DoesNotReturn]
     public static void Die(string reason)
     {
-        Err.WriteLine(new TextRed($"\n{reason}"));
+        ErrorWriteLine();
+        ErrorWriteLine($"{{red:{reason}}}");
         Environment.Exit(1);
     }
 
@@ -73,17 +75,17 @@ internal static unsafe partial class Testbed
     {
         ~Destructor()
         {
-            NativeMemory.Free(DebugMemHandler);
+            free(DebugMemHandler);
         }
     }
 
     static Testbed()
     {
-        DebugMemHandler = (PluginMemHandler*)NativeMemory.AllocZeroed((uint)sizeof(PluginMemHandler));
+        DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
 
-        DebugMemHandler->@base.Magic = Signature.Plugin.MagicNumber;
+        DebugMemHandler->@base.Magic = cmsMagicNumber;
         DebugMemHandler->@base.ExpectedVersion = 2060;
-        DebugMemHandler->@base.Type = Signature.Plugin.MemHandler;
+        DebugMemHandler->@base.Type = cmsPluginMemHandlerSig;
 
         DebugMemHandler->MallocPtr = &DebugMalloc;
         DebugMemHandler->FreePtr = &DebugFree;
@@ -109,7 +111,7 @@ internal static unsafe partial class Testbed
 
         try
         {
-            var blk = (MemoryBlock*)NativeMemory.Alloc(size + (uint)sizeof(MemoryBlock));
+            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock));
 
             blk->KeepSize = size;
             blk->WhoAllocated = ContextID;
@@ -133,8 +135,11 @@ internal static unsafe partial class Testbed
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
             Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
-
-        NativeMemory.Free(blk);
+        try
+        {
+            free(blk);
+        }
+        catch { }
     }
 
     public static void* DebugRealloc(Context* ContextID, void* Ptr, uint NewSize)
@@ -152,8 +157,8 @@ internal static unsafe partial class Testbed
 
     public static void DebugMemPrintTotals()
     {
-        Con.WriteLine("[Memory statistics]");
-        Con.WriteLine($"Allocated = {TotalMemory} MaxAlloc = {MaxAllocated} Single block hit = {SingleHit}");
+        ConsoleWriteLine("[Memory statistics]");
+        ConsoleWriteLine($"Allocated = {TotalMemory} MaxAlloc = {MaxAllocated} Single block hit = {SingleHit}");
     }
 
     public static void DebugMemDontCheckThis(void* Ptr)
@@ -174,9 +179,9 @@ internal static unsafe partial class Testbed
     public static void TestMemoryLeaks(bool ok)
     {
         if (TotalMemory > 0)
-            Con.WriteLine("Ok, but ", new TextRed(MemStr(TotalMemory)), " are left!");
+            ConsoleWriteLine($"Ok, but {{red:{MemStr(TotalMemory)}}}, are left!");
         else if (ok)
-            Con.WriteLine(new TextGreen("Ok."));
+            ConsoleWriteLine("{green:Ok.}");
     }
 
     public static void* PluginMemHander() =>
@@ -200,10 +205,10 @@ internal static unsafe partial class Testbed
         cmsSetLogErrorHandler(&FatalErrorQuit);
 
     public static void Dot() =>
-        Con.Write(".");
+        ConsoleWrite(".");
 
     public static void Say(string str) =>
-        Con.Write(str);
+        ConsoleWrite(str);
 
     public static bool Fail(string text)
     {
@@ -222,7 +227,7 @@ internal static unsafe partial class Testbed
     public static void Check(string title, Func<bool> test)
     {
         if (HasConsole)
-            Con.Write($"Checking {title} ...");
+            ConsoleWrite($"Checking {title} ...");
 
         ReasonToFailBuffer = String.Empty;
         SubTestBuffer = String.Empty;
@@ -237,15 +242,15 @@ internal static unsafe partial class Testbed
         }
         else
         {
-            Err.WriteLine(new TextRed("FAIL!"));
+            ErrorWriteLine("{red:FAIL!}");
 
             if (!String.IsNullOrEmpty(SubTestBuffer))
-                Err.WriteLine($"{title}: [{SubTestBuffer}]\n\t{ReasonToFailBuffer}");
+                ErrorWriteLine($"{title}: [{SubTestBuffer}]\n\t{ReasonToFailBuffer}");
             else
-                Err.WriteLine($"{title}:\n\t{ReasonToFailBuffer}");
+                ErrorWriteLine($"{title}:\n\t{ReasonToFailBuffer}");
 
             if (SimultaneousErrors > 1)
-                Err.WriteLine("\tMore than one (", new TextRed(SimultaneousErrors), ") errors were reported");
+                ErrorWriteLine($"\tMore than one ({{red:{SimultaneousErrors}}}) errors were reported");
 
             TotalFail++;
         }
@@ -253,27 +258,27 @@ internal static unsafe partial class Testbed
 
     public static bool CheckExhaustive()
     {
-        Con.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
+        ConsoleWrite("Run exhaustive tests? (y/N) (N in 5 sec) ");
         var key = WaitForKey(5000);
         if (key.HasValue)
         {
             if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
             {
                 if (key.Value.Key is ConsoleKey.Enter)
-                    Con.WriteLine("N");
+                    ConsoleWriteLine("N");
                 else
-                    Con.WriteLine(key.Value.KeyChar.ToString());
+                    ConsoleWriteLine(key.Value.KeyChar.ToString());
                 return false;
             }
             else if (key.Value.Key is ConsoleKey.Y)
             {
-                Con.WriteLine(key.Value.KeyChar.ToString());
+                ConsoleWrite(key.Value.KeyChar.ToString());
                 return true;
             }
         }
         else
         {
-            Con.WriteLine();
+            ConsoleWriteLine();
         }
 
         return false;
@@ -302,13 +307,13 @@ internal static unsafe partial class Testbed
         var descriptions = new string?[200];
         var intents = cmsGetSupportedIntents(200, codes, descriptions);
 
-        Con.WriteLine("Supported intents:");
+        ConsoleWriteLine("Supported intents:");
         for (var i = 0; i < intents; i++)
         {
-            Con.WriteLine($"\t{codes[i]} - {descriptions[i]}");
+            ConsoleWriteLine($"\t{codes[i]} - {descriptions[i]}");
         }
 
-        Con.WriteLine();
+        ConsoleWriteLine();
     }
 
     public static bool IsGoodVal(string title, double @in, double @out, double max)
@@ -346,31 +351,52 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    internal static void _write(TextWriter w, params object[] args)
+    internal static void ConsoleWrite(string str) =>
+        _write(str, Console.Out);
+
+    internal static void ConsoleWriteLine(string str = "") =>
+        _write(str + '\n', Console.Out);
+
+    internal static void ErrorWrite(string str) =>
+        _write(str, Console.Error);
+
+    internal static void ErrorWriteLine(string str = "") =>
+        _write(str + '\n', Console.Error);
+
+    private static void _write(string str, TextWriter w)
     {
-        foreach (var arg in args)
+        var value = new Queue<char>(str.AsSpan().ToArray());
+        var color = new StringBuilder();
+
+        while (value.Count > 0)
         {
-            switch (arg)
+            var ch = value.Dequeue();
+            if (ch is '{')
             {
-                case Text t:
-                    if (t.fColor is not null)
-                        Console.ForegroundColor = t.fColor.Value;
+                color.Clear();
+                do
+                {
+                    color.Append(value.Peek());
+                } while (value.Dequeue() is not ':');
 
-                    if (t.bColor is not null)
-                        Console.BackgroundColor = t.bColor.Value;
+                switch (color.ToString().ToLower())
+                {
+                    case "green:":
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        break;
 
-                    w.Write(t.value);
-
-                    Console.ResetColor();
-                    break;
-
-                case string s:
-                    w.Write(s);
-                    break;
-
-                default:
-                    w.Write(arg);
-                    break;
+                    case "red:":
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        break;
+                }
+            }
+            else if (ch is '}')
+            {
+                Console.ResetColor();
+            }
+            else
+            {
+                w.Write(ch);
             }
         }
     }

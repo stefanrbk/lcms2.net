@@ -29,8 +29,8 @@ namespace lcms2.state;
 
 internal unsafe struct MutexPluginChunkType
 {
-    public delegate*<Context*, IMutex> CreateFn;
-    public delegate*<Context*, IMutex, void> DestroyFn;
-    public delegate*<Context*, IMutex, bool> LockFn;
-    public delegate*<Context*, IMutex, void> UnlockFn;
+    public delegate*<Context*, void*> CreateFn;
+    public delegate*<Context*, void*, void> DestroyFn;
+    public delegate*<Context*, void*, bool> LockFn;
+    public delegate*<Context*, void*, void> UnlockFn;
 }

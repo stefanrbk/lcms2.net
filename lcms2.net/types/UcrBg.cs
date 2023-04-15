@@ -25,11 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.state;
+namespace lcms2.types;
 
-[Flags]
-public enum PackFlag
+public unsafe struct UcrBg
 {
-    Ushort = 0,
-    Float = 1,
+    public ToneCurve* Ucr;
+    public ToneCurve* Bg;
+    public Mlu* Desc;
 }

@@ -33,7 +33,7 @@ public struct MluEntry
     public ushort Country;
     public ushort Language;
     public uint Len;
-    public uint OffsetToStr;
+    public uint StrW;
 
     #endregion Fields
 }

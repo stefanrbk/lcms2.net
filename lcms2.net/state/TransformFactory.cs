@@ -34,8 +34,8 @@ namespace lcms2.state;
 public unsafe struct TransformFactory
 {
     [FieldOffset(0)]
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, void>, void**, delegate*<Context*, void*, void>, Pipeline**, uint*, uint*, uint*, bool> legacy_xform;
+    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> legacy_xform;
 
     [FieldOffset(0)]
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>, void**, delegate*<Context*, void*, void>, Pipeline**, uint*, uint*, uint*, bool> xform;
+    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> xform;
 }

@@ -28,7 +28,7 @@ using lcms2.testbed;
 
 var now = DateTime.Now;
 
-Con.WriteLine($"LittleCMS.net {LCMS_VERSION / 1000.0:#.##} test bed {now:MMM d yyyy HH:mm:ss}");
+ConsoleWriteLine($"LittleCMS.net {LCMS_VERSION / 1000.0:#.##} test bed {now:MMM d yyyy HH:mm:ss}");
 
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
 
@@ -43,24 +43,24 @@ var doZooTests = cliResult.Value.DoZoo;
 
 if (exhaustive)
 {
-    Con.WriteLine("Running exhaustive tests (will take a while...)");
+    ConsoleWriteLine("Running exhaustive tests (will take a while...)");
 }
 
 unsafe
 {
-    Con.Write("Installing debug memory plug-in ... ");
+    ConsoleWrite("Installing debug memory plug-in ... ");
     cmsPlugin(DebugMemHandler);
-    Con.WriteLine(new TextGreen("done."));
+    ConsoleWriteLine("{green:done.}");
 
-    Con.Write("Installing error logger ... ");
+    ConsoleWrite("Installing error logger ... ");
     cmsSetLogErrorHandler(&FatalErrorQuit);
-    Con.WriteLine(new TextGreen("done."));
+    ConsoleWriteLine("{green:done.}");
 }
 
 PrintSupportedIntents();
 
-Con.WriteLine();
-Con.WriteLine("Basic operations");
+ConsoleWriteLine();
+ConsoleWriteLine("Basic operations");
 Check("Sanity check", CheckBaseTypes);
 Check("quick floor", CheckQuickFloor);
 Check("quick floor word", CheckQuickFloorWord);
@@ -72,8 +72,8 @@ Check("D50 roundtrip", CheckD50Roundtrip);
 
 if (doCheckTests)
 {
-    Con.WriteLine();
-    Con.WriteLine("Forward 1D interpolation");
+    ConsoleWriteLine();
+    ConsoleWriteLine("Forward 1D interpolation");
     Check("1D interpolation in 2pt tables", Check1DLerp2);
     Check("1D interpolation in 3pt tables", Check1DLerp3);
     Check("1D interpolation in 4pt tables", Check1DLerp4);
@@ -154,38 +154,39 @@ if (doCheckTests)
     Check("Join curves sRGB (16 bits)", CheckJoint16Curves_sRGB);
     Check("Join curves sigmoidal", CheckJointCurvesSShaped);
 
-    //Console.WriteLine("\nLUT basics");
-    //Check("LUT creation & dup", CheckLutCreation);
-    //Check("1 Stage LUT ", Check1StageLut);
-    //Check("2 Stage LUT ", Check2StageLut);
-    //Check("2 Stage LUT (16 bits)", Check2Stage16Lut);
-    //Check("3 Stage LUT ", Check3StageLut);
-    //Check("3 Stage LUT (16 bits)", Check3Stage16Lut);
-    //Check("4 Stage LUT ", Check4StageLut);
-    //Check("4 Stage LUT (16 bits)", Check4Stage16Lut);
-    //Check("5 Stage LUT ", Check5StageLut);
-    //Check("5 Stage LUT (16 bits)", Check5Stage16Lut);
-    //Check("6 Stage LUT ", Check6StageLut);
-    //Check("6 Stage LUT (16 bits)", Check6Stage16Lut);
+    Console.WriteLine("\nLUT basics");
+    Check("LUT creation & dup", CheckLUTcreation);
+    Check("1 Stage LUT ", Check1StageLUT);
+    Check("2 Stage LUT ", Check2StageLUT);
+    Check("2 Stage LUT (16 bits)", Check2Stage16LUT);
+    Check("3 Stage LUT ", Check3StageLUT);
+    Check("3 Stage LUT (16 bits)", Check3Stage16LUT);
+    Check("4 Stage LUT ", Check4StageLUT);
+    Check("4 Stage LUT (16 bits)", Check4Stage16LUT);
+    Check("5 Stage LUT ", Check5StageLUT);
+    Check("5 Stage LUT (16 bits)", Check5Stage16LUT);
+    Check("6 Stage LUT ", Check6StageLUT);
+    Check("6 Stage LUT (16 bits)", Check6Stage16LUT);
 
-    //Console.WriteLine("\nLUT operation");
-    //Check("Lab to Lab LUT (float only)", CheckLab2LabLut);
-    //Check("XYZ to XYZ LUT (float only)", CheckXyz2XyzLut);
-    //Check("Lab to Lab MAT LUT (float only)", CheckLab2LabMatLut);
-    //Check("Named Color LUT", CheckNamedColorLut);
+    Console.WriteLine("\nLUT operation");
+    Check("Lab to Lab LUT (float only)", CheckLab2LabLUT);
+    Check("XYZ to XYZ LUT (float only)", CheckXYZ2XYZLUT);
+    Check("Lab to Lab MAT LUT (float only)", CheckLab2LabMatLUT);
+    Check("Named Color LUT", CheckNamedColorLUT);
 
-    //Console.WriteLine("\nFormatter basic operation");
-    //Check("Usual formatters", CheckFormatters16);
-    //Check("Floating point formatters", CheckFormattersFloat);
-    //Check("Half formatters", CheckFormattersHalf);
+    Console.WriteLine("\nFormatter basic operation");
+    Check("Usual formatters", CheckFormatters16);
+    Check("Floating point formatters", CheckFormattersFloat);
+    Check("Half formatters", CheckFormattersHalf);
 
-    //Console.WriteLine("\nChange buffers format");
+    Console.WriteLine("\nChange buffers format");
+    //Check("ChangeBuffersFormat", CheckChangeBufferFormats);
 }
 
 if (doPluginTests)
 {
-    Con.WriteLine();
-    Con.WriteLine("Plugin tests");
+    ConsoleWriteLine();
+    ConsoleWriteLine("Plugin tests");
     Check("Context memory handling", CheckAllocContext);
     Check("Simple context functionality", CheckSimpleContext);
     Check("Alarm codes context", CheckAlarmColorsContext);

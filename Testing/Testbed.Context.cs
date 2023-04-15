@@ -24,6 +24,8 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed

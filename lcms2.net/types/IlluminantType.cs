@@ -25,19 +25,17 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-internal unsafe struct SubAllocator
+public enum IlluminantType : uint
 {
-    public Context* ContextID;
-    public Chunk* h;
-
-    internal struct Chunk
-    {
-        public byte* Block;
-        public uint BlockSize;
-        public uint Used;
-
-        public Chunk* next;
-    }
+    Unknown = 0,
+    D50 = 1,
+    D65 = 2,
+    D93 = 3,
+    F2 = 4,
+    D55 = 5,
+    A = 6,
+    E = 7,
+    F8 = 8,
 }

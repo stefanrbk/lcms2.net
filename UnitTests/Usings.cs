@@ -50,12 +50,9 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using NSubstitute;
-
 global using NUnit.Framework;
 
 global using static lcms2.Lcms2;
-global using static lcms2.tests.Globals;
 
 using System.Diagnostics.CodeAnalysis;
 

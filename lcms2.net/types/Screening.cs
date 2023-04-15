@@ -25,15 +25,17 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2;
+namespace lcms2.types;
 
-public unsafe interface IMutex : IDisposable
+/// <summary>
+/// Must allocate (sizeof(<see cref="Screening"/>) - 1) + (sizeof(<see cref="ScreeningChannel"/>) * cmsMAXCHANNELS)
+/// </summary>
+public unsafe struct Screening
 {
-    abstract static IMutex Create(Context* context);
-
-    bool Lock(Context* context);
-
-    void Unlock(Context* context);
-
-    void Destroy(Context* context);
+    public uint Flag;
+    public uint nChannels;
+    /// <summary>
+    /// Must cast to <see cref="ScreeningChannel"/>*
+    /// </summary>
+    public fixed byte Channels[1];
 }
