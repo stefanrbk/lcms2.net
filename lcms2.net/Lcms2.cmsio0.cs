@@ -314,40 +314,44 @@ public static unsafe partial class Lcms2
         var iohandler = _cmsMallocZero<IOHandler>(ContextID);
         if (iohandler is null) return null;
 
-        switch (AccessMode)
+        switch (AccessMode[0])
         {
-            case "r":
+            case 'r':
                 fm = fopen(FileName, "rb");
                 if (fm is null)
                 {
+                    _cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"File '{FileName}' not found");
-                    goto Error;
+                    return null;
                 }
                 fileLen = (int)cmsfilelength(fm);
                 if (fileLen < 0)
                 {
                     fclose(fm);
+                    _cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"Cannot get size of file '{FileName}'");
-                    goto Error;
+                    return null;
                 }
 
                 iohandler->reportedSize = (uint)fileLen;
                 break;
 
-            case "w":
+            case 'w':
                 fm = fopen(FileName, "wb");
                 if (fm is null)
                 {
+                    _cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"Couldn't create '{FileName}'");
-                    goto Error;
+                    return null;
                 }
 
                 iohandler->reportedSize = 0;
                 break;
 
             default:
+                _cmsFree(ContextID, iohandler);
                 cmsSignalError(ContextID, ErrorCode.File, $"Unknown access mode '{AccessMode}'");
-                goto Error;
+                return null;
         }
 
         iohandler->contextID = ContextID;
@@ -364,11 +368,6 @@ public static unsafe partial class Lcms2
         iohandler->Write = &FileWrite;
 
         return iohandler;
-
-    Error:
-        if (fm is not null) _cmsFree(ContextID, fm);
-        if (iohandler is not null) _cmsFree(ContextID, iohandler);
-        return null;
     }
 
     public static IOHandler* cmsOpenIOhandlerFromStream(Context* ContextID, Stream Stream)
@@ -642,7 +641,7 @@ public static unsafe partial class Lcms2
             Icc->TagSizes[Icc->TagCount] = Tag.size;
 
             // Search for links
-            for (var j = 0; j < Icc->TagCount; i++)
+            for (var j = 0; j < Icc->TagCount; j++)
             {
                 if ((Icc->TagOffsets[j] == Tag.offset) &&
                     (Icc->TagSizes[j] == Tag.size))
@@ -940,7 +939,7 @@ public static unsafe partial class Lcms2
 
             var Begin = Icc->TagOffsets[i] = io->UsedSpace;
 
-            var Data = (byte*)((void**)Icc->TagPtrs)[i];
+            var Data = (byte*)(void*)Icc->TagPtrs[i];
 
             if (Data is not null)
             {
@@ -1410,7 +1409,7 @@ public static unsafe partial class Lcms2
         }
 
         // Fill fields on icc structure
-        ((TagTypeHandler**)Icc->TagTypeHandlers)[i] = TypeHandler;
+        Icc->TagTypeHandlers[i] = (long)TypeHandler;
         Icc->TagNames[i] = sig;
         Icc->TagSizes[i] = 0;
         Icc->TagOffsets[i] = 0;
@@ -1418,9 +1417,9 @@ public static unsafe partial class Lcms2
         var LocalTagTypeHandler = *TypeHandler;
         LocalTagTypeHandler.ContextID = Icc->ContextID;
         LocalTagTypeHandler.ICCVersion = Icc->Version;
-        ((void**)Icc->TagPtrs)[i] = LocalTagTypeHandler.DupPtr(&LocalTagTypeHandler, data, TagDescriptor->ElemCount);
+        Icc->TagPtrs[i] = (long)LocalTagTypeHandler.DupPtr(&LocalTagTypeHandler, data, TagDescriptor->ElemCount);
 
-        if (((void**)Icc->TagPtrs)[i] is null)
+        if (((void*)Icc->TagPtrs[i]) is null)
         {
             _cmsTagSignature2String((byte*)TypeString, Type);
             _cmsTagSignature2String((byte*)SigString, sig);

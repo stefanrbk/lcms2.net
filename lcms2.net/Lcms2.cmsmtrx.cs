@@ -39,43 +39,43 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsVEC3init(VEC3* r, double x, double y, double z)
     {
-        r->n[VX] = x;
-        r->n[VY] = y;
-        r->n[VZ] = z;
+        r->X = x;
+        r->Y = y;
+        r->Z = z;
     }
 
     internal static void _cmsVEC3minus(VEC3* r, in VEC3* a, in VEC3* b)
     {
-        r->n[VX] = a->n[VX] - b->n[VX];
-        r->n[VY] = a->n[VY] - b->n[VY];
-        r->n[VZ] = a->n[VZ] - b->n[VZ];
+        r->X = a->X - b->X;
+        r->Y = a->Y - b->Y;
+        r->Z = a->Z - b->Z;
     }
 
     internal static void _cmsVEC3cross(VEC3* r, in VEC3* u, in VEC3* v)
     {
-        r->n[VX] = (u->n[VY] * v->n[VZ]) - (v->n[VY] * u->n[VZ]);
-        r->n[VY] = (u->n[VZ] * v->n[VX]) - (v->n[VZ] * u->n[VX]);
-        r->n[VZ] = (u->n[VX] * v->n[VY]) - (v->n[VX] * u->n[VY]);
+        r->X = (u->Y * v->Z) - (v->Y * u->Z);
+        r->Y = (u->Z * v->X) - (v->Z * u->X);
+        r->Z = (u->X * v->Y) - (v->X * u->Y);
     }
 
     internal static double _cmsVEC3dot(in VEC3* u, in VEC3* v) =>
-        (u->n[VX] * v->n[VX]) + (u->n[VY] * v->n[VY]) + (u->n[VZ] * v->n[VZ]);
+        (u->X * v->X) + (u->Y * v->Y) + (u->Z * v->Z);
 
     // Euclidean length
     internal static double _cmsVEC3length(in VEC3* a)
     {
         return Math.Sqrt(
-            (a->n[VX] * a->n[VX]) +
-            (a->n[VY] * a->n[VY]) +
-            (a->n[VZ] * a->n[VZ]));
+            (a->X * a->X) +
+            (a->Y * a->Y) +
+            (a->Z * a->Z));
     }
 
     // Euclidean distance
     internal static double _cmsVEC3distance(in VEC3* a, in VEC3* b)
     {
-        double d1 = a->n[VX] - b->n[VX];
-        double d2 = a->n[VY] - b->n[VY];
-        double d3 = a->n[VZ] - b->n[VZ];
+        double d1 = a->X - b->X;
+        double d2 = a->Y - b->Y;
+        double d3 = a->Z - b->Z;
 
         return Math.Sqrt((d1 * d1) + (d2 * d2) + (d3 * d3));
     }
@@ -96,9 +96,9 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsMAT3isIdentity(in MAT3* a)
     {
-        var av = (VEC3*)a;
+        var av = &a->X;
         MAT3 Identity;
-        var Identityv = (VEC3*)&Identity;
+        var Identityv = &Identity.X;
         int i, j;
 
         _cmsMAT3identity(&Identity);
@@ -107,7 +107,7 @@ public static unsafe partial class Lcms2
         {
             for (j = 0; j < 3; j++)
             {
-                if (!CloseEnough(av[i].n[j], Identityv[i].n[j])) return false;
+                if (!CloseEnough((&av[i].X)[j], (&Identityv[i].X)[j])) return false;
             }
         }
 
@@ -123,7 +123,7 @@ public static unsafe partial class Lcms2
 
         double ROWCOL(int i, int j)
         {
-            return (av[i].n[0] * bv[0].n[j]) + (av[i].n[1] * bv[1].n[j]) + (av[i].n[2] * bv[2].n[j]);
+            return ((&av[i].X)[0] * (&bv[0].X)[j]) + ((&av[i].X)[1] * (&bv[1].X)[j]) + ((&av[i].X)[2] * (&bv[2].X)[j]);
         }
 
         _cmsVEC3init(&rv[0], ROWCOL(0, 0), ROWCOL(0, 1), ROWCOL(0, 2));
@@ -134,27 +134,33 @@ public static unsafe partial class Lcms2
     // Inverse of a matrix b = a^(-1)
     internal static bool _cmsMAT3inverse(in MAT3* a, MAT3* b)
     {
-        var av = (VEC3*)a->v;
-        var bv = (VEC3*)b->v;
+        var av = &a->X;
+        var bv = &b->X;
+        var av0 = &a->X.X;
+        var av1 = &a->Y.X;
+        var av2 = &a->Z.X;
+        var bv0 = &b->X.X;
+        var bv1 = &b->Y.X;
+        var bv2 = &b->Z.X;
         double det, c0, c1, c2;
 
-        c0 = (av[1].n[1] * av[2].n[2]) - (av[1].n[2] * av[2].n[1]);
-        c1 = (-av[1].n[0] * av[2].n[2]) + (av[1].n[2] * av[2].n[0]);
-        c2 = (av[1].n[0] * av[2].n[1]) - (av[1].n[1] * av[2].n[0]);
+        c0 = (av1[1] * av2[2]) - (av1[2] * av2[1]);
+        c1 = (-av1[0] * av2[2]) + (av1[2] * av2[0]);
+        c2 = (av1[0] * av2[1]) - (av1[1] * av2[0]);
 
-        det = (av[0].n[0] * c0) + (av[0].n[1] * c1) + (av[0].n[2] * c2);
+        det = (av0[0] * c0) + (av0[1] * c1) + (av0[2] * c2);
 
         if (Math.Abs(det) < MATRIX_DET_TOLERANCE) return false;  // singular matrix; can't invert
 
-        bv[0].n[0] = c0 / det;
-        bv[0].n[1] = ((av[0].n[2] * av[2].n[1]) - (av[0].n[1] * av[2].n[2])) / det;
-        bv[0].n[2] = ((av[0].n[1] * av[1].n[2]) - (av[0].n[2] * av[1].n[1])) / det;
-        bv[1].n[0] = c1 / det;
-        bv[1].n[1] = ((av[0].n[0] * av[2].n[2]) - (av[0].n[2] * av[2].n[0])) / det;
-        bv[1].n[2] = ((av[0].n[2] * av[1].n[0]) - (av[0].n[0] * av[1].n[2])) / det;
-        bv[2].n[0] = c2 / det;
-        bv[2].n[1] = ((av[0].n[1] * av[2].n[0]) - (av[0].n[0] * av[2].n[1])) / det;
-        bv[2].n[2] = ((av[0].n[0] * av[1].n[1]) - (av[0].n[1] * av[1].n[0])) / det;
+        bv0[0] = c0 / det;
+        bv0[1] = ((av0[2] * av2[1]) - (av0[1] * av2[2])) / det;
+        bv0[2] = ((av0[1] * av1[2]) - (av0[2] * av1[1])) / det;
+        bv1[0] = c1 / det;
+        bv1[1] = ((av0[0] * av2[2]) - (av0[2] * av2[0])) / det;
+        bv1[2] = ((av0[2] * av1[0]) - (av0[0] * av1[2])) / det;
+        bv2[0] = c2 / det;
+        bv2[1] = ((av0[1] * av2[0]) - (av0[0] * av2[1])) / det;
+        bv2[2] = ((av0[0] * av1[1]) - (av0[1] * av1[0])) / det;
 
         return true;
     }
@@ -175,10 +181,13 @@ public static unsafe partial class Lcms2
     // Evaluate a vector across a matrix
     internal static void _cmsMAT3eval(VEC3* r, in MAT3* a, in VEC3* v)
     {
-        var av = (VEC3*)a;
+        var av = &a->X;
+        var av0 = &av->X;
+        var av1 = &av->Y;
+        var av2 = &av->Z;
 
-        r->n[VX] = (av[0].n[VX] * v->n[VX]) + (av[0].n[VY] * v->n[VY]) + (av[0].n[VZ] * v->n[VZ]);
-        r->n[VY] = (av[1].n[VX] * v->n[VX]) + (av[1].n[VY] * v->n[VY]) + (av[1].n[VZ] * v->n[VZ]);
-        r->n[VZ] = (av[2].n[VX] * v->n[VX]) + (av[2].n[VY] * v->n[VY]) + (av[2].n[VZ] * v->n[VZ]);
+        r->X = (av0[VX] * v->X) + (av0[VY] * v->Y) + (av0[VZ] * v->Z);
+        r->Y = (av1[VX] * v->X) + (av1[VY] * v->Y) + (av1[VZ] * v->Z);
+        r->Z = (av2[VX] * v->X) + (av2[VY] * v->Y) + (av2[VZ] * v->Z);
     }
 }

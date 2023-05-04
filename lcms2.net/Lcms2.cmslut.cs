@@ -1573,6 +1573,8 @@ public static unsafe partial class Lcms2
         var xd = stackalloc float[4];
         var fxd = stackalloc float[4];
         VEC3 tmp, tmp2;
+        double* tmpn = &tmp.X;
+        double* tmp2n = &tmp2.X;
         MAT3 Jacobian;
         var Jacobianv = (VEC3*)&Jacobian;
 
@@ -1634,23 +1636,23 @@ public static unsafe partial class Lcms2
 
                 cmsPipelineEvalFloat(xd, fxd, lut);
 
-                Jacobianv[0].n[j] = (fxd[0] - fx[0]) / JACOBIAN_EPSILON;
-                Jacobianv[1].n[j] = (fxd[1] - fx[1]) / JACOBIAN_EPSILON;
-                Jacobianv[2].n[j] = (fxd[2] - fx[2]) / JACOBIAN_EPSILON;
+                (&Jacobianv[0].X)[j] = (fxd[0] - fx[0]) / JACOBIAN_EPSILON;
+                (&Jacobianv[1].X)[j] = (fxd[1] - fx[1]) / JACOBIAN_EPSILON;
+                (&Jacobianv[2].X)[j] = (fxd[2] - fx[2]) / JACOBIAN_EPSILON;
             }
 
             // Solve system
-            tmp2.n[0] = fx[0] - Target[0];
-            tmp2.n[1] = fx[1] - Target[1];
-            tmp2.n[2] = fx[2] - Target[2];
+            tmp2n[0] = fx[0] - Target[0];
+            tmp2n[1] = fx[1] - Target[1];
+            tmp2n[2] = fx[2] - Target[2];
 
             if (!_cmsMAT3solve(&tmp, &Jacobian, &tmp2))
                 return false;
 
             // Move our guess
-            x[0] -= (float)tmp.n[0];
-            x[1] -= (float)tmp.n[1];
-            x[2] -= (float)tmp.n[2];
+            x[0] -= (float)tmpn[0];
+            x[1] -= (float)tmpn[1];
+            x[2] -= (float)tmpn[2];
 
             // Some clipping....
             for (j = 0; j < 3; j++)

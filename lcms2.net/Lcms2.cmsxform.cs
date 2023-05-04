@@ -737,7 +737,7 @@ public static unsafe partial class Lcms2
         {
             var hProfile = hProfiles[i];
 
-            var lIsInput = (uint)PostColorSpace is not cmsSigXYZData or cmsSigLabData;
+            var lIsInput = (uint)PostColorSpace is not cmsSigXYZData and not cmsSigLabData;
 
             if (hProfile is null) return false;
 

@@ -118,9 +118,9 @@ public static unsafe partial class Lcms2
         if (PtrRed is null || PtrGreen is null || PtrBlue is null)
             return false;
 
-        _cmsVEC3init(&((VEC3*)r->v)[0], PtrRed->X, PtrGreen->X, PtrBlue->X);
-        _cmsVEC3init(&((VEC3*)r->v)[1], PtrRed->Y, PtrGreen->Y, PtrBlue->Y);
-        _cmsVEC3init(&((VEC3*)r->v)[2], PtrRed->Z, PtrGreen->Z, PtrBlue->Z);
+        _cmsVEC3init(&r->X, PtrRed->X, PtrGreen->X, PtrBlue->X);
+        _cmsVEC3init(&r->Y, PtrRed->Y, PtrGreen->Y, PtrBlue->Y);
+        _cmsVEC3init(&r->Z, PtrRed->Z, PtrGreen->Z, PtrBlue->Z);
 
         return true;
     }
@@ -179,6 +179,7 @@ public static unsafe partial class Lcms2
         var Shapes = stackalloc ToneCurve*[3];
         var ContextID = cmsGetProfileContextID(hProfile); ;
         MAT3 Mat;
+        VEC3* Matv = &Mat.X;
 
         if (!ReadIccMatrixRGB2XYZ(&Mat, hProfile)) return null;
 
@@ -188,7 +189,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < 3; i++)
             for (var j = 0; j < 3; j++)
-                ((VEC3*)Mat.v)[i].n[j] *= InpAdj;
+                (&Matv[i].X)[j] *= InpAdj;
 
         Shapes[0] = (ToneCurve*)cmsReadTag(hProfile, cmsSigRedTRCTag);
         Shapes[1] = (ToneCurve*)cmsReadTag(hProfile, cmsSigGreenTRCTag);
@@ -204,15 +205,15 @@ public static unsafe partial class Lcms2
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, (double*)&Mat, null)))
         {
             goto Error;
+        }
 
-            // Note that it is certainly possible a single profile would have a LUT based
-            // tag for output working in lab and a matrix-shaper for the fallback cases.
-            // This is not allowed by the spec, but this code is tolerant to those cases
-            if ((uint)cmsGetPCS(hProfile) is cmsSigLabData)
-            {
-                if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(ContextID)))
-                    goto Error;
-            }
+        // Note that it is certainly possible a single profile would have a LUT based
+        // tag for output working in lab and a matrix-shaper for the fallback cases.
+        // This is not allowed by the spec, but this code is tolerant to those cases
+        if ((uint)cmsGetPCS(hProfile) is cmsSigLabData)
+        {
+            if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(ContextID)))
+                goto Error;
         }
 
         return Lut;
@@ -397,6 +398,7 @@ public static unsafe partial class Lcms2
         var Shapes = stackalloc ToneCurve*[3];
         var InvShapes = stackalloc ToneCurve*[3];
         MAT3 Mat, Inv;
+        VEC3* Invv = &Inv.X;
 
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -412,7 +414,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < 3; i++)
             for (var j = 0; j < 3; j++)
-                ((VEC3*)Inv.v)[i].n[j] *= OutpAdj;
+                (&Invv[i].X)[j] *= OutpAdj;
 
         Shapes[0] = (ToneCurve*)cmsReadTag(hProfile, cmsSigRedTRCTag);
         Shapes[1] = (ToneCurve*)cmsReadTag(hProfile, cmsSigGreenTRCTag);

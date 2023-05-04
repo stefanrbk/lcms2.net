@@ -188,9 +188,9 @@ public static unsafe partial class Lcms2
         _cmsMAT3eval(&ConeDestRGB, Chad, &ConeDestXYZ);
 
         // Build matrix
-        _cmsVEC3init(&((VEC3*)&Cone.v)[0], ConeDestRGB.n[0] / ConeSourceRGB.n[0], 0.0, 0.0);
-        _cmsVEC3init(&((VEC3*)&Cone.v)[1], 0.0, ConeDestRGB.n[1] / ConeSourceRGB.n[1], 0.0);
-        _cmsVEC3init(&((VEC3*)&Cone.v)[2], 0.0, 0.0, ConeDestRGB.n[2] / ConeSourceRGB.n[2]);
+        _cmsVEC3init(&Cone.X, ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0);
+        _cmsVEC3init(&Cone.Y, 0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0);
+        _cmsVEC3init(&Cone.Z, 0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z);
 
         // Normalize
         _cmsMAT3per(&Tmp, &Cone, Chad);
@@ -236,7 +236,9 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsBuildRGB2XYZtransferMatrix(MAT3* r, in CIExyY* WhitePt, in CIExyYTRIPLE* Primrs)
     {
+        VEC3* rv = &r->X;
         VEC3 WhitePoint, Coef;
+        double* Coefn = &Coef.X;
         MAT3 Result, Primaries;
 
         var xn = WhitePt->x;
@@ -249,9 +251,9 @@ public static unsafe partial class Lcms2
         var yb = Primrs->Blue.y;
 
         // Build Primaries matrix
-        _cmsVEC3init(&((VEC3*)Primaries.v)[0], xr, xg, xb);
-        _cmsVEC3init(&((VEC3*)Primaries.v)[1], yr, yg, yb);
-        _cmsVEC3init(&((VEC3*)Primaries.v)[2], 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
+        _cmsVEC3init(&Primaries.X, xr, xg, xb);
+        _cmsVEC3init(&Primaries.Y, yr, yg, yb);
+        _cmsVEC3init(&Primaries.Z, 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
 
         // Result = Primaries ^ (-1) inverse matrix
         if (!_cmsMAT3inverse(&Primaries, &Result)) return false;
@@ -262,9 +264,9 @@ public static unsafe partial class Lcms2
         _cmsMAT3eval(&Coef, &Result, &WhitePoint);
 
         // Give us the Coefs, then I build transformation matrix
-        _cmsVEC3init(&((VEC3*)r->v)[0], Coef.n[VX] * xr, Coef.n[VY] * xg, Coef.n[VZ] * xb);
-        _cmsVEC3init(&((VEC3*)r->v)[1], Coef.n[VX] * yr, Coef.n[VY] * yg, Coef.n[VZ] * yb);
-        _cmsVEC3init(&((VEC3*)r->v)[2], Coef.n[VX] * (1.0 - xr - yr), Coef.n[VY] * (1.0 - xg - yg), Coef.n[VZ] * (1.0 - xb - yb));
+        _cmsVEC3init(&rv[0], Coefn[VX] * xr, Coefn[VY] * xg, Coefn[VZ] * xb);
+        _cmsVEC3init(&rv[1], Coefn[VX] * yr, Coefn[VY] * yg, Coefn[VZ] * yb);
+        _cmsVEC3init(&rv[2], Coefn[VX] * (1.0 - xr - yr), Coefn[VY] * (1.0 - xg - yg), Coefn[VZ] * (1.0 - xb - yb));
 
         return _cmsAdaptMatrixToD50(r, WhitePt);
     }
@@ -277,6 +279,7 @@ public static unsafe partial class Lcms2
     {
         MAT3 Bradford;
         VEC3 In, Out;
+        double* Outn = &Out.X;
 
         _cmsAssert(Result);
         _cmsAssert(SourceWhitePt);
@@ -288,9 +291,9 @@ public static unsafe partial class Lcms2
         _cmsVEC3init(&In, Value->X, Value->Y, Value->Z);
         _cmsMAT3eval(&Out, &Bradford, &In);
 
-        Result->X = Out.n[0];
-        Result->Y = Out.n[1];
-        Result->Z = Out.n[2];
+        Result->X = Outn[0];
+        Result->Y = Outn[1];
+        Result->Z = Outn[2];
 
         return true;
     }

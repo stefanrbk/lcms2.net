@@ -38,6 +38,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
+    internal static readonly List<(FILE file, int count)> OpenFiles = new();
     internal static readonly List<(nuint, nuint)> AllocList = new();
     internal static bool PrintAllocs;
 
@@ -1547,6 +1548,17 @@ public static unsafe partial class Lcms2
         return dest;
     }
 
+    internal static int strcmp(byte* sLeft, byte* sRight)
+    {
+        int val;
+        do
+        {
+            val = *sLeft - *sRight;
+        } while (val is 0 && *sLeft++ is not 0 && *sRight++ is not 0);
+
+        return val;
+    }
+
     internal static int sprintf(byte* buffer, string format, params object[] args)
     {
         var str = String.Format(format, args).AsSpan();
@@ -1597,7 +1609,8 @@ public static unsafe partial class Lcms2
 
         try
         {
-            return (int)file.Seek(offset, origin is SEEK_CUR ? SeekOrigin.Current : origin is SEEK_END ? SeekOrigin.End : SeekOrigin.Begin);
+            file.Seek(offset, origin is SEEK_CUR ? SeekOrigin.Current : origin is SEEK_END ? SeekOrigin.End : SeekOrigin.Begin);
+            return 0;
         }
         catch
         {
@@ -1647,15 +1660,27 @@ public static unsafe partial class Lcms2
     internal static int fclose(FILE* stream)
     {
         var file = stream->Stream;
+        var filename = stream->Filename;
         free(stream);
 
-        try
+        var index = OpenFiles.FindIndex(i => i.file.Filename == filename);
+        var f = OpenFiles[index];
+        f.count--;
+        if (f.count == 0)
         {
-            file.Close();
+            OpenFiles.RemoveAt(index);
+            try
+            {
+                file.Close();
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
         }
-        catch (Exception)
+        else
         {
-            return -1;
+            OpenFiles[index] = f;
         }
 
         return 0;
@@ -1663,33 +1688,49 @@ public static unsafe partial class Lcms2
 
     internal static FILE* fopen(string filename, string mode)
     {
-        FileStream stream;
-        var options = new FileStreamOptions
+        Stream stream;
+        int index = OpenFiles.FindIndex(i => i.file.Filename == filename);
+        if (index is not -1)
         {
-            Mode = FileMode.Create
-        };
-        try
+            var f = OpenFiles[index];
+            f.count++;
+            OpenFiles[index] = f;
+            stream = f.file.Stream;
+        }
+        else
         {
-            if (mode.Contains('r'))
+            try
             {
-                options.Mode = FileMode.Open;
+                var options = new FileStreamOptions();
+                if (mode.Contains('r'))
+                {
+                    options.Mode = FileMode.Open;
+                    options.Access = FileAccess.Read;
+                }
+                else if (mode.Contains('w'))
+                {
+                    options.Mode = FileMode.Create;
+                    options.Access = FileAccess.ReadWrite;
+                }
+                else
+                {
+                    return null;
+                }
+                stream = File.Open(filename, options);
             }
-            else if (mode.Contains('w'))
-            {
-                options.Mode = FileMode.Create;
-            }
-            else
+            catch
             {
                 return null;
             }
-            stream = File.Open(filename, options);
-        }
-        catch
-        {
-            return null;
         }
         var file = alloc<FILE>();
         file->Stream = stream;
+        file->Filename = filename;
+
+        if (index is -1)
+        {
+            OpenFiles.Add((*file, 1));
+        }
 
         return file;
     }

@@ -156,17 +156,17 @@ public static unsafe partial class Lcms2
                 if (!_cmsBuildRGB2XYZtransferMatrix(&MColorants, &MaxWhite, Primaries))
                     goto Error;
 
-                Colorants.Red.X = ((VEC3*)MColorants.v)[0].n[0];
-                Colorants.Red.Y = ((VEC3*)MColorants.v)[1].n[0];
-                Colorants.Red.Z = ((VEC3*)MColorants.v)[2].n[0];
+                Colorants.Red.X = MColorants.X.X;
+                Colorants.Red.Y = MColorants.Y.X;
+                Colorants.Red.Z = MColorants.Z.X;
 
-                Colorants.Green.X = ((VEC3*)MColorants.v)[0].n[1];
-                Colorants.Green.Y = ((VEC3*)MColorants.v)[1].n[1];
-                Colorants.Green.Z = ((VEC3*)MColorants.v)[2].n[1];
+                Colorants.Green.X = MColorants.X.Y;
+                Colorants.Green.Y = MColorants.Y.Y;
+                Colorants.Green.Z = MColorants.Z.Y;
 
-                Colorants.Blue.X = ((VEC3*)MColorants.v)[0].n[2];
-                Colorants.Blue.Y = ((VEC3*)MColorants.v)[1].n[2];
-                Colorants.Blue.Z = ((VEC3*)MColorants.v)[2].n[2];
+                Colorants.Blue.X = MColorants.X.Z;
+                Colorants.Blue.Y = MColorants.Y.Z;
+                Colorants.Blue.Z = MColorants.Z.Z;
 
                 if (!cmsWriteTag(hICC, cmsSigRedColorantTag, &Colorants.Red)) goto Error;
                 if (!cmsWriteTag(hICC, cmsSigBlueColorantTag, &Colorants.Blue)) goto Error;
@@ -213,7 +213,7 @@ public static unsafe partial class Lcms2
     public static Profile* cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction) =>
         cmsCreateRGBProfileTHR(null, WhitePoint, Primaries, TransferFunction);
 
-    public static Profile* cmsCreateGrayProfileTHR(Context* ContextID, in CIExyY* WhitePoint, ToneCurve** TransferFunction)
+    public static Profile* cmsCreateGrayProfileTHR(Context* ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
     {
         CIEXYZ tmp;
 
@@ -257,7 +257,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve** TransferFunction) =>
+    public static Profile* cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve* TransferFunction) =>
         cmsCreateGrayProfileTHR(null, WhitePoint, TransferFunction);
 
     public static Profile* cmsCreateLinearizationDeviceLinkTHR(Context* ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)

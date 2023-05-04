@@ -25,9 +25,19 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.types;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct MAT3
 {
-    internal fixed double v[9];
+    [FieldOffset(0)]
+    public VEC3 X;
+
+    [FieldOffset(24)]
+    public VEC3 Y;
+
+    [FieldOffset(48)]
+    public VEC3 Z;
 }

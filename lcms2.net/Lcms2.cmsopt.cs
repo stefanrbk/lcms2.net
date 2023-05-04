@@ -186,7 +186,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < 3; i++)
         {
             for (var j = 0; j < 3; j++)
-                if (!CloseEnoughFloat(((VEC3*)a->v)[i].n[j], ((VEC3*)Identity.v)[i].n[j])) return false;
+                if (!CloseEnoughFloat(((double*)a)[(i * 3) + 1], ((double*)&Identity)[(i * 3) + 1])) return false;
         }
 
         return true;
@@ -1408,6 +1408,7 @@ public static unsafe partial class Lcms2
 
     private static bool SetMatShaper(Pipeline* Dest, ToneCurve** Curve1, MAT3* Mat, VEC3* Off, ToneCurve** Curve2, uint* OutputFormat)
     {
+        var Offn = &Off->X;
         bool Is8Bits = _cmsFormatterIs8bit(*OutputFormat);
 
         // Allocate a big chunk of memory to store precomputed tables
@@ -1430,7 +1431,7 @@ public static unsafe partial class Lcms2
         {
             for (var j = 0; j < 3; j++)
             {
-                p->Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(((VEC3*)Mat->v)[i].n[j]);
+                p->Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(((double*)Mat)[i * 3 + 1]);
             }
         }
 
@@ -1442,7 +1443,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                p->Off[i] = DOUBLE_TO_1FIXED14(Off->n[i]);
+                p->Off[i] = DOUBLE_TO_1FIXED14(Offn[i]);
             }
         }
 

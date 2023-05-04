@@ -25,9 +25,19 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct VEC3
 {
-    public fixed double n[3];
+    [FieldOffset(0)]
+    public double X;
+
+    [FieldOffset(8)]
+    public double Y;
+
+    [FieldOffset(16)]
+    public double Z;
 }

@@ -79,9 +79,9 @@ public static unsafe partial class Lcms2
         var by = -cmsD50_XYZ()->Y * (BlackPointOut->Y - BlackPointIn->Y) / ty;
         var bz = -cmsD50_XYZ()->Z * (BlackPointOut->Z - BlackPointIn->Z) / tz;
 
-        _cmsVEC3init(&((VEC3*)m->v)[0], ax, 0, 0);
-        _cmsVEC3init(&((VEC3*)m->v)[1], 0, ay, 0);
-        _cmsVEC3init(&((VEC3*)m->v)[2], 0, 0, az);
+        _cmsVEC3init(&m->X, ax, 0, 0);
+        _cmsVEC3init(&m->Y, 0, ay, 0);
+        _cmsVEC3init(&m->Z, 0, 0, az);
         _cmsVEC3init(off, bx, by, bz);
     }
 
@@ -89,6 +89,8 @@ public static unsafe partial class Lcms2
     {
         // Convert D50 across inverse CHAD to get the absolute white point
         VEC3 d, s;
+        double* sn = &s.X;
+        double* dn = &d.X;
         CIEXYZ Dest;
         CIExyY DestChromaticity;
         double TempK;
@@ -97,15 +99,15 @@ public static unsafe partial class Lcms2
         m1 = *Chad;
         if (!_cmsMAT3inverse(&m1, &m2)) return -1.0;
 
-        s.n[VX] = cmsD50_XYZ()->X;
-        s.n[VY] = cmsD50_XYZ()->Y;
-        s.n[VZ] = cmsD50_XYZ()->Z;
+        sn[VX] = cmsD50_XYZ()->X;
+        sn[VY] = cmsD50_XYZ()->Y;
+        sn[VZ] = cmsD50_XYZ()->Z;
 
         _cmsMAT3eval(&d, &m2, &s);
 
-        Dest.X = d.n[VX];
-        Dest.Y = d.n[VY];
-        Dest.Z = d.n[VZ];
+        Dest.X = dn[VX];
+        Dest.Y = dn[VY];
+        Dest.Z = dn[VZ];
 
         cmsXYZ2xyY(&DestChromaticity, &Dest);
 
@@ -138,9 +140,9 @@ public static unsafe partial class Lcms2
         // TODO: Follow Marc Mahy's recommendation to check if CHAD is same by using M1*M2 == M2*M1. If so, do nothing.
         // TODO: Add support for ArgyllArts tag
 
-        _cmsVEC3init(&((VEC3*)Scale.v)[0], WhitePointIn->X / WhitePointOut->X, 0, 0);
-        _cmsVEC3init(&((VEC3*)Scale.v)[1], 0, WhitePointIn->Y / WhitePointOut->Y, 0);
-        _cmsVEC3init(&((VEC3*)Scale.v)[2], 0, 0, WhitePointIn->Z / WhitePointOut->Z);
+        _cmsVEC3init(&Scale.X, WhitePointIn->X / WhitePointOut->X, 0, 0);
+        _cmsVEC3init(&Scale.Y, 0, WhitePointIn->Y / WhitePointOut->Y, 0);
+        _cmsVEC3init(&Scale.Z, 0, 0, WhitePointIn->Z / WhitePointOut->Z);
 
         // Adaptation state
         if (AdaptationState is 1.0)
@@ -222,6 +224,8 @@ public static unsafe partial class Lcms2
         MAT3* m,
         VEC3* off)
     {
+        double* offn = &off->X;
+
         // m and off are set to identity and this is detected later on
         _cmsMAT3identity(m);
         _cmsVEC3init(off, 0, 0, 0);
@@ -271,7 +275,7 @@ public static unsafe partial class Lcms2
         // y' = (Mx'c + Off) /c = Mx' + (Off / c)
 
         for (var k = 0; k < 3; k++)
-            off->n[k] /= MAX_ENCODEABLE_XYZ;
+            offn[k] /= MAX_ENCODEABLE_XYZ;
 
         return true;
     }
@@ -397,7 +401,7 @@ public static unsafe partial class Lcms2
             // First profile is used as input unless devicelink or abstract
             var isInput = ((i is 0) && !isDeviceLink) ||
                 // Else use profile in the input direction if current space is not PCS
-                (uint)CurrentColorSpace is not cmsSigXYZData or cmsSigLabData;
+                (uint)CurrentColorSpace is not cmsSigXYZData and not cmsSigLabData;
 
             Intent = TheIntents[i];
 

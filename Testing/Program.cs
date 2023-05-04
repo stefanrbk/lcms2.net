@@ -68,7 +68,13 @@ Check("Fixed point 15.16 representation", CheckFixedPoint15_16);
 Check("Fixed point 8.8 representation", CheckFixedPoint8_8);
 Check("D50 roundtrip", CheckD50Roundtrip);
 
-// TODO: Add utility profile test here!
+// Create utility profiles
+if (doCheckTests || doSpeedTests)
+{
+    ConsoleWriteLine();
+    ConsoleWriteLine("Profiles");
+    Check("Creation of test profiles", CreateTestProfiles);
+}
 
 if (doCheckTests)
 {
@@ -180,7 +186,10 @@ if (doCheckTests)
     Check("Half formatters", CheckFormattersHalf);
 
     Console.WriteLine("\nChange buffers format");
-    //Check("ChangeBuffersFormat", CheckChangeBufferFormats);
+    Check("ChangeBuffersFormat", CheckChangeBufferFormats);
+
+    Console.WriteLine("\nMLU");
+    Check("Multilocalized Unicode", CheckMLU);
 }
 
 if (doPluginTests)
@@ -196,5 +205,9 @@ if (doPluginTests)
 DebugMemPrintTotals();
 
 cmsUnregisterPlugins();
+
+// Cleanup
+if (doCheckTests || doSpeedTests)
+    RemoveTestProfiles();
 
 return TotalFail;

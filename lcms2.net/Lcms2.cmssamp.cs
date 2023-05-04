@@ -208,6 +208,7 @@ public static unsafe partial class Lcms2
         double sum_y = 0, sum_yx = 0, sum_yx2 = 0;
         MAT3 m;
         VEC3 v, res;
+        double* resn = &res.X;
 
         if (n < 4) return 0;
 
@@ -226,17 +227,17 @@ public static unsafe partial class Lcms2
             sum_yx2 += yn * xn * xn;
         }
 
-        _cmsVEC3init(&((VEC3*)m.v)[0], n, sum_x, sum_x2);
-        _cmsVEC3init(&((VEC3*)m.v)[1], sum_x, sum_x2, sum_x3);
-        _cmsVEC3init(&((VEC3*)m.v)[2], sum_x2, sum_x3, sum_x4);
+        _cmsVEC3init(&m.X, n, sum_x, sum_x2);
+        _cmsVEC3init(&m.Y, sum_x, sum_x2, sum_x3);
+        _cmsVEC3init(&m.Z, sum_x2, sum_x3, sum_x4);
 
         _cmsVEC3init(&v, sum_y, sum_yx, sum_yx2);
 
         if (!_cmsMAT3solve(&res, &m, &v)) return 0;
 
-        var a = res.n[2];
-        var b = res.n[1];
-        var c = res.n[0];
+        var a = resn[2];
+        var b = resn[1];
+        var c = resn[0];
 
         if (Math.Abs(a) < 1e-10)
         {
