@@ -76,7 +76,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromNULL(Context* ContextID)
+    public static IOHandler* cmsOpenIOhandlerFromNULL(Context ContextID)
     {
         var iohandler = _cmsMallocZero<IOHandler>(ContextID);
         if (iohandler is null) return null;
@@ -181,7 +181,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromMem(Context* ContextID, void* Buffer, uint size, string AccessMode)
+    public static IOHandler* cmsOpenIOhandlerFromMem(Context ContextID, void* Buffer, uint size, string AccessMode)
     {
         FILEMEM* fm = null;
 
@@ -303,7 +303,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromFile(Context* ContextID, string FileName, string AccessMode)
+    public static IOHandler* cmsOpenIOhandlerFromFile(Context ContextID, string FileName, string AccessMode)
     {
         FILE* fm = null;
         int fileLen;
@@ -370,7 +370,7 @@ public static unsafe partial class Lcms2
         return iohandler;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromStream(Context* ContextID, Stream Stream)
+    public static IOHandler* cmsOpenIOhandlerFromStream(Context ContextID, Stream Stream)
     {
         IOHandler* iohandler = null;
 
@@ -408,12 +408,12 @@ public static unsafe partial class Lcms2
     public static bool cmsCloseIOhandler(IOHandler* io) =>
         io->Close(io);
 
-    public static IOHandler* cmsGetProfileIOhandler(Profile* Icc) =>
+    public static IOHandler* cmsGetProfileIOhandler(HPROFILE Icc) =>
         Icc is not null
-            ? Icc->IOHandler
+            ? ((Profile*)Icc)->IOHandler
             : null;
 
-    public static Profile* cmsCreateProfilePlaceholder(Context* ContextID)
+    public static HPROFILE cmsCreateProfilePlaceholder(Context ContextID)
     {
         var Icc = _cmsMallocZero<Profile>(ContextID);
         if (Icc is null) return null;
@@ -440,18 +440,20 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Context* cmsGetProfileContextID(Profile* Icc) =>
+    public static Context cmsGetProfileContextID(HPROFILE Icc) =>
         Icc is not null
-            ? Icc->ContextID
+            ? ((Profile*)Icc)->ContextID
             : null;
 
-    public static int cmsGetProfileTagCount(Profile* Icc) =>
+    public static int cmsGetProfileTagCount(HPROFILE Icc) =>
         Icc is not null
-            ? (int)Icc->TagCount
+            ? (int)((Profile*)Icc)->TagCount
             : -1;
 
-    public static Signature cmsGetTagSignature(Profile* Icc, uint n)
+    public static Signature cmsGetTagSignature(HPROFILE hProfile, uint n)
     {
+        var Icc = (Profile*)hProfile;
+
         if (n > Icc->TagCount || n >= MAX_TABLE_TAG)
             return default;
 
@@ -548,8 +550,8 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsIsTag(Profile* Icc, Signature sig) =>
-        _cmsSearchTag(Icc, sig, false) >= 0;
+    public static bool cmsIsTag(HPROFILE Icc, Signature sig) =>
+        _cmsSearchTag((Profile*)Icc, sig, false) >= 0;
 
     private static uint _validatedVersion(uint DWord)
     {
@@ -727,74 +729,74 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static uint cmsGetHeaderRenderingIntent(Profile* Icc) =>
-        Icc->RenderingIntent;
+    public static uint cmsGetHeaderRenderingIntent(HPROFILE Icc) =>
+        ((Profile*)Icc)->RenderingIntent;
 
-    public static void cmsSetHeaderRenderingIntent(Profile* Icc, uint RenderingIntent) =>
-        Icc->RenderingIntent = RenderingIntent;
+    public static void cmsSetHeaderRenderingIntent(HPROFILE Icc, uint RenderingIntent) =>
+        ((Profile*)Icc)->RenderingIntent = RenderingIntent;
 
-    public static uint cmsGetHeaderFlags(Profile* Icc) =>
-        Icc->flags;
+    public static uint cmsGetHeaderFlags(HPROFILE Icc) =>
+        ((Profile*)Icc)->flags;
 
-    public static void cmsSetHeaderFlags(Profile* Icc, uint Flags) =>
-        Icc->flags = Flags;
+    public static void cmsSetHeaderFlags(HPROFILE Icc, uint Flags) =>
+        ((Profile*)Icc)->flags = Flags;
 
-    public static uint cmsGetHeaderManufacturer(Profile* Icc) =>
-        Icc->manufacturer;
+    public static uint cmsGetHeaderManufacturer(HPROFILE Icc) =>
+        ((Profile*)Icc)->manufacturer;
 
-    public static void cmsSetHeaderManufacturer(Profile* Icc, uint manufacturer) =>
-        Icc->manufacturer = manufacturer;
+    public static void cmsSetHeaderManufacturer(HPROFILE Icc, uint manufacturer) =>
+        ((Profile*)Icc)->manufacturer = manufacturer;
 
-    public static uint cmsGetHeaderCreator(Profile* Icc) =>
-        Icc->creator;
+    public static uint cmsGetHeaderCreator(HPROFILE Icc) =>
+        ((Profile*)Icc)->creator;
 
-    public static uint cmsGetHeaderModel(Profile* Icc) =>
-        Icc->model;
+    public static uint cmsGetHeaderModel(HPROFILE Icc) =>
+        ((Profile*)Icc)->model;
 
-    public static void cmsSetHeaderModel(Profile* Icc, uint model) =>
-        Icc->model = model;
+    public static void cmsSetHeaderModel(HPROFILE Icc, uint model) =>
+        ((Profile*)Icc)->model = model;
 
-    public static void cmsGetHeaderAttributes(Profile* Icc, ulong* Flags) =>
-        *Flags = Icc->attributes;
+    public static void cmsGetHeaderAttributes(HPROFILE Icc, ulong* Flags) =>
+        *Flags = ((Profile*)Icc)->attributes;
 
-    public static void cmsSetHeaderAttributes(Profile* Icc, ulong Flags) =>
-        Icc->attributes = Flags;
+    public static void cmsSetHeaderAttributes(HPROFILE Icc, ulong Flags) =>
+        ((Profile*)Icc)->attributes = Flags;
 
-    public static void cmsGetHeaderProfileID(Profile* Icc, byte* ProfileID) =>
-        memmove(ProfileID, Icc->ProfileID.id8, 16);
+    public static void cmsGetHeaderProfileID(HPROFILE Icc, byte* ProfileID) =>
+        memmove(ProfileID, ((Profile*)Icc)->ProfileID.id8, 16);
 
-    public static void cmsSetHeaderProfileID(Profile* Icc, byte* ProfileID) =>
-        memmove(Icc->ProfileID.id8, ProfileID, 16);
+    public static void cmsSetHeaderProfileID(HPROFILE Icc, byte* ProfileID) =>
+        memmove(((Profile*)Icc)->ProfileID.id8, ProfileID, 16);
 
-    public static bool cmsGetHeaderCreationDateTime(Profile* Icc, DateTime* Dest)
+    public static bool cmsGetHeaderCreationDateTime(HPROFILE Icc, DateTime* Dest)
     {
-        memmove(Dest, &Icc->Created, (uint)sizeof(DateTime));
+        memmove(Dest, &((Profile*)Icc)->Created, (uint)sizeof(DateTime));
         return true;
     }
 
-    public static Signature cmsGetPCS(Profile* Icc) =>
-        Icc->PCS;
+    public static Signature cmsGetPCS(HPROFILE Icc) =>
+        ((Profile*)Icc)->PCS;
 
-    public static void cmsSetPCS(Profile* Icc, Signature pcs) =>
-        Icc->PCS = pcs;
+    public static void cmsSetPCS(HPROFILE Icc, Signature pcs) =>
+        ((Profile*)Icc)->PCS = pcs;
 
-    public static Signature cmsGetColorSpace(Profile* Icc) =>
-        Icc->ColorSpace;
+    public static Signature cmsGetColorSpace(HPROFILE Icc) =>
+        ((Profile*)Icc)->ColorSpace;
 
-    public static void cmsSetColorSpace(Profile* Icc, Signature sig) =>
-        Icc->ColorSpace = sig;
+    public static void cmsSetColorSpace(HPROFILE Icc, Signature sig) =>
+        ((Profile*)Icc)->ColorSpace = sig;
 
-    public static Signature cmsGetDeviceClass(Profile* Icc) =>
-        Icc->DeviceClass;
+    public static Signature cmsGetDeviceClass(HPROFILE Icc) =>
+        ((Profile*)Icc)->DeviceClass;
 
-    public static void cmsSetDeviceClass(Profile* Icc, Signature sig) =>
-        Icc->DeviceClass = sig;
+    public static void cmsSetDeviceClass(HPROFILE Icc, Signature sig) =>
+        ((Profile*)Icc)->DeviceClass = sig;
 
-    public static uint cmsGetEncodedICCVersion(Profile* Icc) =>
-        Icc->Version;
+    public static uint cmsGetEncodedICCVersion(HPROFILE Icc) =>
+        ((Profile*)Icc)->Version;
 
-    public static void cmsSetEncodedICCVersion(Profile* Icc, uint Version) =>
-        Icc->Version = Version;
+    public static void cmsSetEncodedICCVersion(HPROFILE Icc, uint Version) =>
+        ((Profile*)Icc)->Version = Version;
 
     private static uint BaseToBase(uint @in, int BaseIn, int BaseOut)
     {
@@ -816,18 +818,20 @@ public static unsafe partial class Lcms2
         return @out;
     }
 
-    public static void cmsSetProfileVersion(Profile* Icc, double Version) =>
+    public static void cmsSetProfileVersion(HPROFILE Icc, double Version) =>
         // 4.2 -> 0x04200000
-        Icc->Version = BaseToBase((uint)Math.Floor((Version * 100.0) + 0.5), 10, 16) << 16;
+        ((Profile*)Icc)->Version = BaseToBase((uint)Math.Floor((Version * 100.0) + 0.5), 10, 16) << 16;
 
-    public static double cmsGetProfileVersion(Profile* Icc) =>
+    public static double cmsGetProfileVersion(HPROFILE Icc) =>
         // 0x04200000 -> 4.2
-        BaseToBase(Icc->Version >> 16, 16, 10) / 100.0;
+        BaseToBase(((Profile*)Icc)->Version >> 16, 16, 10) / 100.0;
 
-    public static Profile* cmsOpenProfileFromIOHandlerTHR(Context* ContextID, IOHandler* io)
+    public static Profile* cmsOpenProfileFromIOHandlerTHR(Context ContextID, IOHandler* io)
     {
-        var NewIcc = cmsCreateProfilePlaceholder(ContextID);
-        if (NewIcc is null) return null;
+        var hEmpty = cmsCreateProfilePlaceholder(ContextID);
+        if (hEmpty is null) return null;
+
+        var NewIcc = (Profile*)hEmpty;
 
         NewIcc->IOHandler = io;
         if (!_cmsReadHeader(NewIcc)) goto Error;
@@ -837,10 +841,12 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromIOHandler2THR(Context* ContextID, IOHandler* io, bool write)
+    public static Profile* cmsOpenProfileFromIOHandler2THR(Context ContextID, IOHandler* io, bool write)
     {
-        var NewIcc = cmsCreateProfilePlaceholder(ContextID);
-        if (NewIcc is null) return null;
+        var hEmpty = cmsCreateProfilePlaceholder(ContextID);
+        if (hEmpty is null) return null;
+
+        var NewIcc = (Profile*)hEmpty;
 
         NewIcc->IOHandler = io;
         if (write)
@@ -856,10 +862,12 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromFileTHR(Context* ContextID, string FileName, string Access)
+    public static Profile* cmsOpenProfileFromFileTHR(Context ContextID, string FileName, string Access)
     {
-        var NewIcc = cmsCreateProfilePlaceholder(ContextID);
-        if (NewIcc is null) return null;
+        var hEmpty = cmsCreateProfilePlaceholder(ContextID);
+        if (hEmpty is null) return null;
+
+        var NewIcc = (Profile*)hEmpty;
 
         NewIcc->IOHandler = cmsOpenIOhandlerFromFile(ContextID, FileName, Access);
         if (NewIcc->IOHandler is null) goto Error;
@@ -881,10 +889,12 @@ public static unsafe partial class Lcms2
     public static Profile* cmsOpenProfileFromFile(string FileName, string Access) =>
         cmsOpenProfileFromFileTHR(null, FileName, Access);
 
-    public static Profile* cmsOpenProfileFromStreamTHR(Context* ContextID, Stream ICCProfile, string Access)
+    public static Profile* cmsOpenProfileFromStreamTHR(Context ContextID, Stream ICCProfile, string Access)
     {
-        var NewIcc = cmsCreateProfilePlaceholder(ContextID);
-        if (NewIcc is null) return null;
+        var hEmpty = cmsCreateProfilePlaceholder(ContextID);
+        if (hEmpty is null) return null;
+
+        var NewIcc = (Profile*)hEmpty;
 
         NewIcc->IOHandler = cmsOpenIOhandlerFromStream(ContextID, ICCProfile);
         if (NewIcc->IOHandler is null) goto Error;
@@ -906,10 +916,12 @@ public static unsafe partial class Lcms2
     public static Profile* cmsOpenProfileFromStream(Stream ICCProfile, string Access) =>
         cmsOpenProfileFromStreamTHR(null, ICCProfile, Access);
 
-    public static Profile* cmsOpenProfileFromMemTHR(Context* ContextID, void* MemPtr, uint Size)
+    public static Profile* cmsOpenProfileFromMemTHR(Context ContextID, void* MemPtr, uint Size)
     {
-        var NewIcc = cmsCreateProfilePlaceholder(ContextID);
-        if (NewIcc is null) return null;
+        var hEmpty = cmsCreateProfilePlaceholder(ContextID);
+        if (hEmpty is null) return null;
+
+        var NewIcc = (Profile*)hEmpty;
 
         NewIcc->IOHandler = cmsOpenIOhandlerFromMem(ContextID, MemPtr, Size, "r");
         if (NewIcc->IOHandler is null) goto Error;
@@ -1044,11 +1056,13 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static uint cmsSaveProfileToIOhandler(Profile* Icc, IOHandler* io)
+    public static uint cmsSaveProfileToIOhandler(HPROFILE hProfile, IOHandler* io)
     {
         Profile Keep;
 
-        _cmsAssert(Icc);
+        _cmsAssert(hProfile);
+
+        var Icc = (Profile*)hProfile;
 
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
         memmove(&Keep, Icc, sizeof(Profile));
@@ -1093,7 +1107,7 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    public static bool cmsSaveProfileToFile(Profile* hProfile, string FileName)
+    public static bool cmsSaveProfileToFile(HPROFILE hProfile, string FileName)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var io = cmsOpenIOhandlerFromFile(ContextID, FileName, "w");
@@ -1114,7 +1128,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static bool cmsSaveProfileToStream(Profile* hProfile, Stream Stream)
+    public static bool cmsSaveProfileToStream(HPROFILE hProfile, Stream Stream)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var io = cmsOpenIOhandlerFromStream(ContextID, Stream);
@@ -1127,7 +1141,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static bool cmsSaveProfileToMem(Profile* hProfile, void* MemPtr, uint* BytesNeeded)
+    public static bool cmsSaveProfileToMem(HPROFILE hProfile, void* MemPtr, uint* BytesNeeded)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -1171,8 +1185,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static bool cmsCloseProfile(Profile* Icc)
+    public static bool cmsCloseProfile(HPROFILE hProfile)
     {
+        var Icc = (Profile*)hProfile;
         var rc = true;
 
         if (Icc is null) return false;
@@ -1209,12 +1224,14 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    public static void* cmsReadTag(Profile* Icc, Signature sig)
+    public static void* cmsReadTag(HPROFILE hProfile, Signature sig)
     {
         TagDescriptor* TagDescriptor;
         Signature BaseType;
         uint ElemCount;
         var str = stackalloc sbyte[5];
+
+        var Icc = (Profile*)hProfile;
 
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return null;
 
@@ -1316,8 +1333,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Signature _cmsGetTagTrueType(Profile* Icc, Signature sig)
+    internal static Signature _cmsGetTagTrueType(HPROFILE hProfile, Signature sig)
     {
+        var Icc = (Profile*)hProfile;
+
         // Search for given tag in Icc profile directory
         var n = _cmsSearchTag(Icc, sig, true);
         if (n < 0) return 0;                        // Not found, return null
@@ -1327,8 +1346,10 @@ public static unsafe partial class Lcms2
         return TypeHandler->Signature;
     }
 
-    public static bool cmsWriteTag(Profile* Icc, Signature sig, in void* data)
+    public static bool cmsWriteTag(HPROFILE hProfile, Signature sig, in void* data)
     {
+        var Icc = (Profile*)hProfile;
+
         var TypeString = stackalloc sbyte[5];
         var SigString = stackalloc sbyte[5];
         Signature Type;
@@ -1435,8 +1456,10 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    public static uint cmsReadRawTag(Profile* Icc, Signature sig, void* data, uint BufferSize)
+    public static uint cmsReadRawTag(HPROFILE hProfile, Signature sig, void* data, uint BufferSize)
     {
+        var Icc = (Profile*)hProfile;
+
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
 
         // Search for given tag in ICC profile directory
@@ -1543,9 +1566,11 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    public static bool cmsWriteRawTag(Profile* Icc, Signature sig, in void* data, uint Size)
+    public static bool cmsWriteRawTag(HPROFILE hProfile, Signature sig, in void* data, uint Size)
     {
         int i;
+
+        var Icc = (Profile*)hProfile;
 
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return false;
 
@@ -1575,9 +1600,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsLinkTag(Profile* Icc, Signature sig, Signature dest)
+    public static bool cmsLinkTag(HPROFILE hProfile, Signature sig, Signature dest)
     {
         int i;
+
+        var Icc = (Profile*)hProfile;
 
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return false;
 
@@ -1600,8 +1627,10 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static Signature cmsTagLinkedTo(Profile* Icc, Signature sig)
+    public static Signature cmsTagLinkedTo(HPROFILE hProfile, Signature sig)
     {
+        var Icc = (Profile*)hProfile;
+
         // Search for given tag in ICC profile directory
         var i = _cmsSearchTag(Icc, sig, false);
         if (i < 0) return 0;        // Not found, return 0
