@@ -46,13 +46,13 @@ public static unsafe partial class Lcms2
 
     internal static readonly TransformPluginChunkType* globalTransformPluginChunk;
 
-    internal static void _cmsAllocAdaptationStateChunk(Context* ctx, in Context* src)
+    internal static void _cmsAllocAdaptationStateChunk(Context ctx, in Context src)
     {
         fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
             AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
     }
 
-    public static double cmsSetAdaptationStateTHR(Context* context, double d)
+    public static double cmsSetAdaptationStateTHR(Context context, double d)
     {
         var ptr = _cmsContextGetClientChunk<AdaptationStateChunkType>(context, Chunks.AdaptationStateContext);
 
@@ -70,14 +70,14 @@ public static unsafe partial class Lcms2
     public static double cmsSetAdaptationState(double d) =>
         cmsSetAdaptationStateTHR(null, d);
 
-    public static void cmsSetAlarmCodesTHR(Context* context, in ushort* AlarmCodesP)
+    public static void cmsSetAlarmCodesTHR(Context context, in ushort* AlarmCodesP)
     {
         var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
         _cmsAssert(contextAlarmCodes); // Can't happen
         memcpy(contextAlarmCodes->AlarmCodes, AlarmCodesP, (uint)sizeof(ushort) * cmsMAXCHANNELS);
     }
 
-    public static void cmsGetAlarmCodesTHR(Context* context, ushort* AlarmCodesP)
+    public static void cmsGetAlarmCodesTHR(Context context, ushort* AlarmCodesP)
     {
         var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
         _cmsAssert(contextAlarmCodes); // Can't happen
@@ -90,15 +90,15 @@ public static unsafe partial class Lcms2
     public static void cmsGetAlarmCodes(ushort* AlarmCodes) =>
         cmsGetAlarmCodesTHR(null, AlarmCodes);
 
-    internal static void _cmsAllocAlarmCodesChunk(Context* ctx, in Context* src)
+    internal static void _cmsAllocAlarmCodesChunk(Context ctx, in Context src)
     {
         fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
             AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
     }
 
-    public static void cmsDeleteTransform(Transform* hTransform)
+    public static void cmsDeleteTransform(HTRANSFORM hTransform)
     {
-        var p = hTransform;
+        var p = (Transform*)hTransform;
         _cmsAssert(p);
 
         if (p->GamutCheck is not null)
@@ -117,7 +117,7 @@ public static unsafe partial class Lcms2
             cmsFreeProfileSequenceDescription(p->Sequence);
 
         if (p->UserData is not null)
-            p->FreeUserData(p->ContextID, p->UserData);
+            p->FreeUserData!(p->ContextID, p->UserData);
 
         _cmsFree(p->ContextID, p);
     }
@@ -125,12 +125,12 @@ public static unsafe partial class Lcms2
     // PixelSize already defined in Lcms2.cmspack.cs
 
     public static void cmsDoTransform(
-        Transform* Transform,
+        HTRANSFORM Transform,
         in void* InputBuffer,
         void* OutputBuffer,
         uint Size)
     {
-        var p = Transform;
+        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = 0;  // Not used
@@ -142,13 +142,13 @@ public static unsafe partial class Lcms2
     }
 
     public static void cmsDoTransformStride(
-        Transform* Transform,
+        HTRANSFORM Transform,
         in void* InputBuffer,
         void* OutputBuffer,
         uint Size,
         uint Stride)
     {
-        var p = Transform;
+        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = 0;  // Not used
@@ -160,7 +160,7 @@ public static unsafe partial class Lcms2
     }
 
     public static void cmsDoTransformLineStride(
-        Transform* Transform,
+        HTRANSFORM Transform,
         in void* InputBuffer,
         void* OutputBuffer,
         uint PixelsPerLine,
@@ -170,7 +170,7 @@ public static unsafe partial class Lcms2
         uint BytesPerPlaneIn,
         uint BytesPerPlaneOut)
     {
-        var p = Transform;
+        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = BytesPerLineIn;
@@ -500,7 +500,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void _cmsAllocTransformPluginChunk(Context* ctx, in Context* src)
+    internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context src)
     {
         fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
             AllocPluginChunk(ctx, src, &DupPluginList<TransformPluginChunkType, TransformCollection>, Chunks.TransformPlugin, @default);
@@ -524,14 +524,14 @@ public static unsafe partial class Lcms2
             void* accum = (byte*)InputBuffer + strideIn;
             void* output = (byte*)OutputBuffer + strideOut;
 
-            CMMcargo->OldXform(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
+            CMMcargo->OldXform!(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
 
             strideIn += Stride->BytesPerLineIn;
             strideOut += Stride->BytesPerLineOut;
         }
     }
 
-    internal static bool _cmsRegisterTransformPlugin(Context* id, PluginBase* Data)
+    internal static bool _cmsRegisterTransformPlugin(Context id, PluginBase* Data)
     {
         var Plugin = (PluginTransform*)Data;
         var ctx = _cmsContextGetClientChunk<TransformPluginChunkType>(id, Chunks.TransformPlugin);
@@ -563,7 +563,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static void _cmsSetTransformUserData(Transform* CMMcargo, void* ptr, delegate*<Context*, void*, void> FreePrivateDataFn)
+    internal static void _cmsSetTransformUserData(Transform* CMMcargo, void* ptr, FreeUserDataFn? FreePrivateDataFn)
     {
         _cmsAssert(CMMcargo);
         CMMcargo->UserData = ptr;
@@ -578,8 +578,8 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsGetTransformFormatters16(
         Transform* CMMcargo,
-        delegate*<Transform*, ushort*, byte*, uint, byte*>* FromInput,
-        delegate*<Transform*, ushort*, byte*, uint, byte*>* ToOutput)
+        Formatter16* FromInput,
+        Formatter16* ToOutput)
     {
         _cmsAssert(CMMcargo);
         if (FromInput is not null) *FromInput = CMMcargo->FromInput;
@@ -588,8 +588,8 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsGetTransformFormattersFloat(
         Transform* CMMcargo,
-        delegate*<Transform*, float*, byte*, uint, byte*>* FromInput,
-        delegate*<Transform*, float*, byte*, uint, byte*>* ToOutput)
+        FormatterFloat* FromInput,
+        FormatterFloat* ToOutput)
     {
         _cmsAssert(CMMcargo);
         if (FromInput is not null) *FromInput = CMMcargo->FromInputFloat;
@@ -603,7 +603,7 @@ public static unsafe partial class Lcms2
     }
 
     private static Transform* AllocEmptyTransform(
-        Context* ContextID,
+        Context ContextID,
         Pipeline* lut,
         uint Intent,
         uint* InputFormat,
@@ -627,7 +627,7 @@ public static unsafe partial class Lcms2
                     Plugin is not null;
                     Plugin = Plugin->Next)
                 {
-                    if (Plugin->Factory(&p->xform, &p->UserData, &p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
+                    if (Plugin->Factory(p->xform, &p->UserData, p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
                     {
                         // Last plugin in the declaration order takes control. We just keep
                         // the original parameters as a logging.
@@ -651,8 +651,8 @@ public static unsafe partial class Lcms2
                         // Save the day? (Ignore the warning)
                         if (Plugin->OldXform)
                         {
-                            p->OldXform = (delegate*<Transform*, in void*, void*, uint, uint, void>)p->xform;
-                            p->xform = &_cmsTransform2toTransformAdaptor;
+                            p->OldXform = *(TransformFn*)&p->xform;
+                            p->xform = _cmsTransform2toTransformAdaptor;
                         }
 
                         return p;
@@ -680,15 +680,15 @@ public static unsafe partial class Lcms2
             }
 
             p->xform = ((*dwFlags & cmsFLAGS_NULLTRANSFORM) is not 0)
-                ? &NullFloatXFORM
+                ? NullFloatXFORM
                 // Float transforms don't use cache, always are non-null
-                : &FloatXFORM;
+                : FloatXFORM;
         }
         else
         {
             if (*InputFormat is 0 && *OutputFormat is 0)
             {
-                p->FromInput = p->ToOutput = null;
+                p->FromInput = p->ToOutput = null!;
                 *dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
             }
             else
@@ -710,11 +710,11 @@ public static unsafe partial class Lcms2
 
             p->xform = (*dwFlags & cmsFLAGS_NULLTRANSFORM, *dwFlags & cmsFLAGS_NOCACHE, *dwFlags & cmsFLAGS_GAMUTCHECK) switch
             {
-                (not 0, _, _) => &NullXFORM,
-                (_, not 0, not 0) => &PrecalculatedXFORMGamutCheck,
-                (_, not 0, _) => &PrecalculatedXFORM,
-                (_, _, not 0) => &CachedXFORMGamutCheck,
-                _ => &CachedXFORM,
+                (not 0, _, _) => NullXFORM,
+                (_, not 0, not 0) => PrecalculatedXFORMGamutCheck,
+                (_, not 0, _) => PrecalculatedXFORM,
+                (_, _, not 0) => CachedXFORMGamutCheck,
+                _ => CachedXFORM,
             };
         }
 
@@ -726,7 +726,7 @@ public static unsafe partial class Lcms2
         return p;
     }
 
-    private static bool GetXFormColorSpaces(uint nProfiles, Profile** hProfiles, Signature* Input, Signature* Output)
+    private static bool GetXFormColorSpaces(uint nProfiles, HPROFILE* hProfiles, Signature* Input, Signature* Output)
     {
         if (nProfiles is 0) return false;
         if (hProfiles[0] is null) return false;
@@ -804,13 +804,13 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateExtendedTransform(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         uint* Intents,
         double* AdaptationStates,
-        Profile* hGamutProfile,
+        HPROFILE hGamutProfile,
         uint nGamutPCSposition,
         uint InputFormat,
         uint OutputFormat,
@@ -945,8 +945,8 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateMultiprofileTransformTHR(
-        Context* ContextID,
-        Profile** hProfiles,
+        Context ContextID,
+        HPROFILE* hProfiles,
         uint InputFormat,
         uint OutputFormat,
         uint nProfiles,
@@ -974,7 +974,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateMultiprofileTransform(
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         uint InputFormat,
         uint OutputFormat,
         uint nProfiles,
@@ -983,41 +983,41 @@ public static unsafe partial class Lcms2
         cmsCreateMultiprofileTransformTHR(null, hProfiles, InputFormat, OutputFormat, nProfiles, Intent, dwFlags);
 
     public static Transform* cmsCreateTransformTHR(
-        Context* ContextID,
-        Profile* Input,
+        Context ContextID,
+        HPROFILE Input,
         uint InputFormat,
-        Profile* Output,
+        HPROFILE Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags)
     {
-        var hArray = stackalloc Profile*[2] { Input, Output };
+        var hArray = stackalloc HPROFILE[2] { Input, Output };
 
         return cmsCreateMultiprofileTransformTHR(ContextID, hArray, InputFormat, OutputFormat, Output is null ? 1u : 2u, Intent, dwFlags);
     }
 
     public static Transform* cmsCreateTransform(
-        Profile* Input,
+        HPROFILE Input,
         uint InputFormat,
-        Profile* Output,
+        HPROFILE Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags) =>
         cmsCreateTransformTHR(null, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
 
     public static Transform* cmsCreateProofingTransformTHR(
-        Context* ContextID,
-        Profile* InputProfile,
+        Context ContextID,
+        HPROFILE InputProfile,
         uint InputFormat,
-        Profile* OutputProfile,
+        HPROFILE OutputProfile,
         uint OutputFormat,
-        Profile* ProofingProfile,
+        HPROFILE ProofingProfile,
         uint nIntent,
         uint ProofingIntent,
         uint dwFlags)
     {
         var DoBPC = (dwFlags & cmsFLAGS_BLACKPOINTCOMPENSATION) is not 0;
-        var hArray = stackalloc Profile*[4] { InputProfile, ProofingProfile, ProofingProfile, OutputProfile };
+        var hArray = stackalloc HPROFILE[4] { InputProfile, ProofingProfile, ProofingProfile, OutputProfile };
         var Intents = stackalloc uint[4] { nIntent, nIntent, INTENT_RELATIVE_COLORIMETRIC, ProofingIntent };
         var BPC = stackalloc bool[4] { DoBPC, DoBPC, false, false };
         var Adaptation = stackalloc double[4];
@@ -1031,33 +1031,34 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateProofingTransform(
-        Profile* InputProfile,
+        HPROFILE InputProfile,
         uint InputFormat,
-        Profile* OutputProfile,
+        HPROFILE OutputProfile,
         uint OutputFormat,
-        Profile* ProofingProfile,
+        HPROFILE ProofingProfile,
         uint nIntent,
         uint ProofingIntent,
         uint dwFlags) =>
         cmsCreateProofingTransformTHR(null, InputProfile, InputFormat, OutputProfile, OutputFormat, ProofingProfile, nIntent, ProofingIntent, dwFlags);
 
-    public static Context* cmsGetTransformContextID(Transform* xform) =>
+    public static Context cmsGetTransformContextID(HTRANSFORM xform) =>
         xform is not null
-            ? xform->ContextID
+            ? ((Transform*)xform)->ContextID
             : null;
 
-    public static uint cmsGetTransformInputFormat(Transform* xform) =>
+    public static uint cmsGetTransformInputFormat(HTRANSFORM xform) =>
         xform is not null
-            ? xform->InputFormat
+            ? ((Transform*)xform)->InputFormat
             : 0;
 
-    public static uint cmsGetTransformOutputFormat(Transform* xform) =>
+    public static uint cmsGetTransformOutputFormat(HTRANSFORM xform) =>
         xform is not null
-            ? xform->OutputFormat
+            ? ((Transform*)xform)->OutputFormat
             : 0;
 
-    public static bool cmsChangeBuffersFormat(Transform* xform, uint InputFormat, uint OutputFormat)
+    public static bool cmsChangeBuffersFormat(HTRANSFORM hTransform, uint InputFormat, uint OutputFormat)
     {
+        var xform = (Transform*)hTransform;
         // We only can afford to change formatters if previous transform is at least 16 bits
         if ((xform->dwOriginalFlags & cmsFLAGS_CAN_CHANGE_FORMATTER) is 0)
         {
