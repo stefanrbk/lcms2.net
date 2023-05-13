@@ -27,9 +27,9 @@
 
 namespace lcms2.state;
 
-public unsafe struct Context
+public unsafe struct Context_struct
 {
-    internal Context* Next;
+    internal Context Next;
     internal SubAllocator* MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
     internal ContextChunks chunks;
@@ -37,7 +37,7 @@ public unsafe struct Context
 
     public struct ContextChunks
     {
-        internal Context* parent;
+        internal Context parent;
 
         internal void* this[Chunks c]
         {
