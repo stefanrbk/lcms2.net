@@ -32,7 +32,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    public static Mlu* cmsMLUalloc(Context* ContextID, uint nItems)
+    public static Mlu* cmsMLUalloc(Context ContextID, uint nItems)
     {
         if (nItems is 0)
             nItems = 2;
@@ -457,7 +457,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static NamedColorList* cmsAllocNamedColorList(Context* ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
+    public static NamedColorList* cmsAllocNamedColorList(Context ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
     {
         var v = _cmsMallocZero<NamedColorList>(ContextID);
 
@@ -646,9 +646,9 @@ public static unsafe partial class Lcms2
             cmsSigNamedColorElemType,
             1,
             UsePCS ? 3 : NamedColorList->ColorantCount,
-            UsePCS ? &EvalNamedColorPCS : &EvalNamedColor,
-            &DupNamedColorList,
-            &FreeNamedColorList,
+            UsePCS ? EvalNamedColorPCS : EvalNamedColor,
+            DupNamedColorList,
+            FreeNamedColorList,
             cmsDupNamedColorList(NamedColorList));
 
     public static NamedColorList* cmsGetNamedColorList(Transform* xform)
@@ -659,7 +659,7 @@ public static unsafe partial class Lcms2
         return (NamedColorList*)mpe->Data;
     }
 
-    public static Sequence* cmsAllocProfileSequenceDescription(Context* ContextID, uint n)
+    public static Sequence* cmsAllocProfileSequenceDescription(Context ContextID, uint n)
     {
         // In a absolutely arbitrary way, I hereby decide to allow a maxim of 255 profiles linked
         // in a devicelink. It makes not sense anyway and may be used for exploits, so let's close the door!
@@ -741,7 +741,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static void* cmsDictAlloc(Context* ContextID)
+    public static void* cmsDictAlloc(Context ContextID)
     {
         var dict = _cmsMallocZero<Dictionary>(ContextID);
         if (dict is null) return null;
@@ -775,7 +775,7 @@ public static unsafe partial class Lcms2
         _cmsFree(dict->ContextID, dict);
     }
 
-    private static char* DupWcs(Context* ContextID, in char* ptr)
+    private static char* DupWcs(Context ContextID, in char* ptr)
     {
         if (ptr is null) return null;
         return _cmsDupMem<char>(ContextID, ptr, mywcslen(ptr) + 1);

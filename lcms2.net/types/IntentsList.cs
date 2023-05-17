@@ -29,12 +29,10 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct IntentsList : INextOffset
+public unsafe struct IntentsList
 {
     public uint Intent;
     public string Description;
-    public delegate*<Context*, uint, uint*, Profile**, bool*, double*, uint, Pipeline*> Link;
+    public IntentFn Link;
     public IntentsList* Next;
-
-    public static nuint NextOffset { get; } = (nuint)(sizeof(uint) + (sizeof(nuint) * 2));
 }

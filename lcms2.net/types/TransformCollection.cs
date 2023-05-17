@@ -29,12 +29,10 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct TransformCollection : INextOffset
+public unsafe struct TransformCollection
 {
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> Factory;
+    public Transform2Factory Factory;
 
     public bool OldXform;
     public TransformCollection* Next;
-
-    public static nuint NextOffset { get; } = (nuint)(sizeof(nuint) + sizeof(bool));
 }

@@ -20,6 +20,19 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">
     <Optimize>True</Optimize>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (No Fast Floor)|AnyCPU'">
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

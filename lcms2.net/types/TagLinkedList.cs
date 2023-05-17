@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct TagLinkedList : INextOffset
+public unsafe struct TagLinkedList
 {
     public Signature Signature;
     public TagDescriptor Descriptor;
@@ -41,6 +41,4 @@ public unsafe struct TagLinkedList : INextOffset
         Signature = sig;
         Next = next;
     }
-
-    public static nuint NextOffset { get; } = (nuint)(sizeof(Signature) + sizeof(TagDescriptor));
 }

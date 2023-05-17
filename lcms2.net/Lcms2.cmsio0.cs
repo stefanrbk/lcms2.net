@@ -92,11 +92,11 @@ public static unsafe partial class Lcms2
         iohandler->reportedSize = 0;
         iohandler->physicalFile = String.Empty;
 
-        iohandler->Read = &NULLRead;
-        iohandler->Seek = &NULLSeek;
-        iohandler->Close = &NULLClose;
-        iohandler->Tell = &NULLTell;
-        iohandler->Write = &NULLWrite;
+        iohandler->Read = NULLRead;
+        iohandler->Seek = NULLSeek;
+        iohandler->Close = NULLClose;
+        iohandler->Tell = NULLTell;
+        iohandler->Write = NULLWrite;
 
         return iohandler;
 
@@ -238,11 +238,11 @@ public static unsafe partial class Lcms2
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
 
-        iohandler->Read = &MemoryRead;
-        iohandler->Seek = &MemorySeek;
-        iohandler->Close = &MemoryClose;
-        iohandler->Tell = &MemoryTell;
-        iohandler->Write = &MemoryWrite;
+        iohandler->Read = MemoryRead;
+        iohandler->Seek = MemorySeek;
+        iohandler->Close = MemoryClose;
+        iohandler->Tell = MemoryTell;
+        iohandler->Write = MemoryWrite;
 
         return iohandler;
 
@@ -361,11 +361,11 @@ public static unsafe partial class Lcms2
         // Keep track of the original file
         iohandler->physicalFile = FileName;
 
-        iohandler->Read = &FileRead;
-        iohandler->Seek = &FileSeek;
-        iohandler->Close = &FileClose;
-        iohandler->Tell = &FileTell;
-        iohandler->Write = &FileWrite;
+        iohandler->Read = FileRead;
+        iohandler->Seek = FileSeek;
+        iohandler->Close = FileClose;
+        iohandler->Tell = FileTell;
+        iohandler->Write = FileWrite;
 
         return iohandler;
     }
@@ -393,11 +393,11 @@ public static unsafe partial class Lcms2
         iohandler->reportedSize = (uint)fileSize;
         iohandler->physicalFile = String.Empty;
 
-        iohandler->Read = &FileRead;
-        iohandler->Seek = &FileSeek;
-        iohandler->Close = &FileClose;
-        iohandler->Tell = &FileTell;
-        iohandler->Write = &FileWrite;
+        iohandler->Read = FileRead;
+        iohandler->Seek = FileSeek;
+        iohandler->Close = FileClose;
+        iohandler->Tell = FileTell;
+        iohandler->Write = FileWrite;
 
     Error:
         if (file is not null) free(file);

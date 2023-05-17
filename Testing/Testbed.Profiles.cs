@@ -30,7 +30,7 @@ namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
 {
-    private static Profile* Create_AboveRGB()
+    private static HPROFILE Create_AboveRGB()
     {
         var Curve = stackalloc ToneCurve*[3];
         CIExyYTRIPLE Primaries = new()
@@ -65,7 +65,7 @@ internal static unsafe partial class Testbed
         return hProfile;
     }
 
-    private static Profile* Create_Gray22()
+    private static HPROFILE Create_Gray22()
     {
         var Curve = cmsBuildGamma(DbgThread(), 2.2);
         if (Curve is null) return null;
@@ -76,7 +76,7 @@ internal static unsafe partial class Testbed
         return hProfile;
     }
 
-    private static Profile* Create_Gray30()
+    private static HPROFILE Create_Gray30()
     {
         var Curve = cmsBuildGamma(DbgThread(), 3.0);
         if (Curve is null) return null;
@@ -87,7 +87,7 @@ internal static unsafe partial class Testbed
         return hProfile;
     }
 
-    private static Profile* Create_GrayLab()
+    private static HPROFILE Create_GrayLab()
     {
         var Curve = cmsBuildGamma(DbgThread(), 1.0);
         if (Curve is null) return null;
@@ -99,7 +99,7 @@ internal static unsafe partial class Testbed
         return hProfile;
     }
 
-    private static Profile* Create_CMYK_DeviceLink()
+    private static HPROFILE Create_CMYK_DeviceLink()
     {
         var Tab = stackalloc ToneCurve*[4];
         var Curve = cmsBuildGamma(DbgThread(), 3.0);
@@ -188,7 +188,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static Profile* CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
+    private static HPROFILE CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
     {
         FakeCMYKParams p;
 
@@ -220,7 +220,7 @@ internal static unsafe partial class Testbed
         if (BToA0 is null) return null;
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, 3, 4, null);
         if (CLUT is null) return null;
-        if (!cmsStageSampleCLut16bit(CLUT, &ForwardSampler, &p, 0)) return null;
+        if (!cmsStageSampleCLut16bit(CLUT, ForwardSampler, &p, 0)) return null;
 
         cmsPipelineInsertStage(BToA0, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 3));
         cmsPipelineInsertStage(BToA0, StageLoc.AtEnd, CLUT);
@@ -233,7 +233,7 @@ internal static unsafe partial class Testbed
         if (AToB0 is null) return null;
         CLUT = cmsStageAllocCLut16bit(ContextID, 17, 4, 3, null);
         if (CLUT is null) return null;
-        if (!cmsStageSampleCLut16bit(CLUT, &ReverseSampler, &p, 0)) return null;
+        if (!cmsStageSampleCLut16bit(CLUT, ReverseSampler, &p, 0)) return null;
 
         cmsPipelineInsertStage(AToB0, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 4));
         cmsPipelineInsertStage(AToB0, StageLoc.AtEnd, CLUT);
@@ -254,7 +254,7 @@ internal static unsafe partial class Testbed
         return hICC;
     }
 
-    private static bool OneVirtual(Profile* h, string SubTestTxt, string FileName)
+    private static bool OneVirtual(HPROFILE h, string SubTestTxt, string FileName)
     {
         SubTest(SubTestTxt);
         if (h is null) return false;

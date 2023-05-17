@@ -34,9 +34,11 @@ public unsafe struct TagDescriptor
     public uint nSupportedTypes;
     public fixed uint SupportedTypes[MAX_TYPES_IN_LCMS_PLUGIN];
 
-    public delegate*<double, in void*, Signature> DecideType;
+    public delegate Signature TagTypeDecider(double ICCVersion, in void* Data);
 
-    public TagDescriptor(uint elemCount, Signature[] supportedTypes, delegate*<double, in void*, Signature> decideType)
+    public TagTypeDecider DecideType;
+
+    public TagDescriptor(uint elemCount, Signature[] supportedTypes, TagTypeDecider decideType)
     {
         ElemCount = elemCount;
         nSupportedTypes = (uint)supportedTypes.Length;

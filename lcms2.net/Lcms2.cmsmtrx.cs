@@ -134,33 +134,25 @@ public static unsafe partial class Lcms2
     // Inverse of a matrix b = a^(-1)
     internal static bool _cmsMAT3inverse(in MAT3* a, MAT3* b)
     {
-        var av = &a->X;
-        var bv = &b->X;
-        var av0 = &a->X.X;
-        var av1 = &a->Y.X;
-        var av2 = &a->Z.X;
-        var bv0 = &b->X.X;
-        var bv1 = &b->Y.X;
-        var bv2 = &b->Z.X;
         double det, c0, c1, c2;
 
-        c0 = (av1[1] * av2[2]) - (av1[2] * av2[1]);
-        c1 = (-av1[0] * av2[2]) + (av1[2] * av2[0]);
-        c2 = (av1[0] * av2[1]) - (av1[1] * av2[0]);
+        c0 = a->Y.Y * a->Z.Z - a->Y.Z * a->Z.Y;
+        c1 = -a->Y.X * a->Z.Z + a->Y.Z * a->Z.X;
+        c2 = a->Y.X * a->Z.Y - a->Y.Y * a->Z.X;
 
-        det = (av0[0] * c0) + (av0[1] * c1) + (av0[2] * c2);
+        det = a->X.X * c0 + a->X.Y * c1 + a->X.Z * c2;
 
         if (Math.Abs(det) < MATRIX_DET_TOLERANCE) return false;  // singular matrix; can't invert
 
-        bv0[0] = c0 / det;
-        bv0[1] = ((av0[2] * av2[1]) - (av0[1] * av2[2])) / det;
-        bv0[2] = ((av0[1] * av1[2]) - (av0[2] * av1[1])) / det;
-        bv1[0] = c1 / det;
-        bv1[1] = ((av0[0] * av2[2]) - (av0[2] * av2[0])) / det;
-        bv1[2] = ((av0[2] * av1[0]) - (av0[0] * av1[2])) / det;
-        bv2[0] = c2 / det;
-        bv2[1] = ((av0[1] * av2[0]) - (av0[0] * av2[1])) / det;
-        bv2[2] = ((av0[0] * av1[1]) - (av0[1] * av1[0])) / det;
+        b->X.X = c0 / det;
+        b->X.Y = (a->X.Z * a->Z.Y - a->X.Y * a->Z.Z) / det;
+        b->X.Z = (a->X.Y * a->Y.Z - a->X.Z * a->Y.Y) / det;
+        b->Y.X = c1 / det;
+        b->Y.Y = (a->X.X * a->Z.Z - a->X.Z * a->Z.X) / det;
+        b->Y.Z = (a->X.Z * a->Y.X - a->X.X * a->Y.Z) / det;
+        b->Z.X = c2 / det;
+        b->Z.Y = (a->X.Y * a->Z.X - a->X.X * a->Z.Y) / det;
+        b->Z.Z = (a->X.X * a->Y.Y - a->X.Y * a->Y.X) / det;
 
         return true;
     }
@@ -186,8 +178,8 @@ public static unsafe partial class Lcms2
         var av1 = &av->Y;
         var av2 = &av->Z;
 
-        r->X = (av0[VX] * v->X) + (av0[VY] * v->Y) + (av0[VZ] * v->Z);
-        r->Y = (av1[VX] * v->X) + (av1[VY] * v->Y) + (av1[VZ] * v->Z);
-        r->Z = (av2[VX] * v->X) + (av2[VY] * v->Y) + (av2[VZ] * v->Z);
+        r->X = a->X.X * v->X + a->X.Y * v->Y + a->X.Z * v->Z;
+        r->Y = a->Y.X * v->X + a->Y.Y * v->Y + a->Y.Z * v->Z;
+        r->Z = a->Z.X * v->X + a->Z.Y * v->Y + a->Z.Z * v->Z;
     }
 }

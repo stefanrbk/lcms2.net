@@ -38,13 +38,46 @@ public static unsafe partial class Lcms2
 
     internal static readonly IntentsPluginChunkType* globalIntentsPluginChunk;
 
-    internal static void _cmsAllocIntentsPluginChunk(Context* ctx, in Context* src)
+    internal static void DupPluginIntentsList(Context ctx, in Context src)
     {
-        fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
-            AllocPluginChunk(ctx, src, &DupPluginList<IntentsPluginChunkType, IntentsList>, Chunks.IntentPlugin, @default);
+        IntentsPluginChunkType* head = (IntentsPluginChunkType*)src->chunks[Chunks.IntentPlugin];
+        IntentsList* Anterior = null, entry;
+        IntentsPluginChunkType newHead = default;
+
+        _cmsAssert(ctx);
+        _cmsAssert(head);
+
+        // Walk the list copying all nodes
+        for (entry = head->Intents;
+             entry is not null;
+             entry = entry->Next)
+        {
+            var newEntry = _cmsSubAlloc<IntentsList>(ctx->MemPool);
+
+            if (newEntry is null)
+                return;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.Intents is null)
+                newHead.Intents = newEntry;
+        }
+
+        ctx->chunks[Chunks.IntentPlugin] = _cmsSubAllocDup<IntentsPluginChunkType>(ctx->MemPool, &newHead);
     }
 
-    private static IntentsList* SearchIntent(Context* ContextID, uint Intent)
+    internal static void _cmsAllocIntentsPluginChunk(Context ctx, in Context src)
+    {
+        fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
+            AllocPluginChunk(ctx, src, DupPluginIntentsList, Chunks.IntentPlugin, @default);
+    }
+
+    private static IntentsList* SearchIntent(Context ContextID, uint Intent)
     {
         var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(ContextID, Chunks.IntentPlugin);
 
@@ -217,7 +250,7 @@ public static unsafe partial class Lcms2
 
     private static bool ComputeConversion(
         uint i,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         uint Intent,
         bool BPC,
         double AdaptationState,
@@ -236,10 +269,10 @@ public static unsafe partial class Lcms2
             CIEXYZ WhitePointIn, WhitePointOut;
             MAT3 ChromaticAdaptationMatrixIn, ChromaticAdaptationMatrixOut;
 
-            _cmsReadMeadiaWhitePoint(&WhitePointIn, hProfiles[i - 1]);
+            _cmsReadMediaWhitePoint(&WhitePointIn, hProfiles[i - 1]);
             _cmsReadCHAD(&ChromaticAdaptationMatrixIn, hProfiles[i - 1]);
 
-            _cmsReadMeadiaWhitePoint(&WhitePointOut, hProfiles[i]);
+            _cmsReadMediaWhitePoint(&WhitePointOut, hProfiles[i]);
             _cmsReadCHAD(&ChromaticAdaptationMatrixOut, hProfiles[i]);
 
             if (!ComputeAbsoluteIntent(AdaptationState, &WhitePointIn, &ChromaticAdaptationMatrixIn, &WhitePointOut, &ChromaticAdaptationMatrixOut, m))
@@ -368,16 +401,16 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* DefaultICCintents(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint* TheIntents,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
     {
         Pipeline* Lut = null, Result;
-        Profile* hProfile;
+        HPROFILE hProfile;
         MAT3 m;
         VEC3 off;
         Signature ColorSpaceIn, ColorSpaceOut = cmsSigLabData, CurrentColorSpace, ClassSig;
@@ -493,10 +526,10 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsDefaultICCintents(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint* TheIntents,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags) =>
@@ -542,10 +575,10 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* BlackPreservingKOnlyIntents(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint* TheIntents,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -555,7 +588,7 @@ public static unsafe partial class Lcms2
         var ICCIntents = stackalloc uint[256];
         Stage* CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
-        Profile* hLastProfile;
+        HPROFILE hLastProfile;
 
         // Sanity check
         if (nProfiles is < 1 or > 255) return null;
@@ -611,7 +644,7 @@ public static unsafe partial class Lcms2
             goto Error2;
 
         // Sample it. We cannot afford pre/post linearization this time.
-        if (!cmsStageSampleCLut16bit(CLUT, &BlackPreservingGrayOnlySampler, &bp, 0))
+        if (!cmsStageSampleCLut16bit(CLUT, BlackPreservingGrayOnlySampler, &bp, 0))
             goto Error;
 
         // Insert possible devicelinks at the end
@@ -734,10 +767,10 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* BlackPreservingKPlaneIntents(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint* TheIntents,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -747,7 +780,7 @@ public static unsafe partial class Lcms2
         var ICCIntents = stackalloc uint[256];
         Stage* CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
-        Profile* hLastProfile, hLab;
+        HPROFILE hLastProfile, hLab;
 
         // Sanity check
         if (nProfiles is < 1 or > 255) return null;
@@ -834,7 +867,7 @@ public static unsafe partial class Lcms2
         if (!cmsPipelineInsertStage(Result, StageLoc.AtBegin, CLUT))
             goto Cleanup;
 
-        cmsStageSampleCLut16bit(CLUT, &BlackPreservingSampler, &bp, 0);
+        cmsStageSampleCLut16bit(CLUT, BlackPreservingSampler, &bp, 0);
 
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
@@ -861,10 +894,10 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsLinkProfiles(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint* TheIntents,
-        Profile** hProfiles,
+        HPROFILE* hProfiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -910,7 +943,7 @@ public static unsafe partial class Lcms2
         return Intent->Link(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
     }
 
-    public static uint cmsGetSupportedIntentsTHR(Context* ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
+    public static uint cmsGetSupportedIntentsTHR(Context ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
     {
         var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(ContextID, Chunks.IntentPlugin);
         uint nIntents;
@@ -949,7 +982,7 @@ public static unsafe partial class Lcms2
     public static uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[]? Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
-    internal static bool _cmsRegisterRenderingIntentPlugin(Context* id, PluginBase* Data)
+    internal static bool _cmsRegisterRenderingIntentPlugin(Context id, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(id, Chunks.IntentPlugin);
         var Plugin = (PluginRenderingIntent*)Data;

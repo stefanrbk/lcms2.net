@@ -33,7 +33,7 @@ namespace lcms2;
 public unsafe struct Dictionary
 {
     internal Entry* head;
-    internal Context* ContextID;
+    internal Context ContextID;
 
     public struct Entry
     {

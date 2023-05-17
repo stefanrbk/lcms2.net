@@ -29,10 +29,8 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct OptimizationCollection : INextOffset
+public unsafe struct OptimizationCollection
 {
-    public delegate*<Pipeline**, uint, uint*, uint*, uint*, bool> OptimizePtr;
+    public OPToptimizeFn OptimizePtr;
     public OptimizationCollection* Next;
-
-    public static nuint NextOffset { get; } = (nuint)sizeof(nuint);
 }

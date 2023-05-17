@@ -986,12 +986,12 @@ public static unsafe partial class Lcms2
         globalMemPluginChunk = alloc<MemPluginChunkType>();
         *globalMemPluginChunk = new()
         {
-            MallocPtr = &_cmsMallocDefaultFn,
-            MallocZeroPtr = &_cmsMallocZeroDefaultFn,
-            FreePtr = &_cmsFreeDefaultFn,
-            ReallocPtr = &_cmsReallocDefaultFn,
-            CallocPtr = &_cmsCallocDefaultFn,
-            DupPtr = &_cmsDupDefaultFn
+            MallocPtr = _cmsMallocDefaultFn,
+            MallocZeroPtr = _cmsMallocZeroDefaultFn,
+            FreePtr = _cmsFreeDefaultFn,
+            ReallocPtr = _cmsReallocDefaultFn,
+            CallocPtr = _cmsCallocDefaultFn,
+            DupPtr = _cmsDupDefaultFn
         };
 
         // Interpolation Plugin
@@ -1016,55 +1016,55 @@ public static unsafe partial class Lcms2
         // Tag Type Plugin
         supportedTagTypes = calloc<TagTypeLinkedList>(31);
 
-        supportedTagTypes[0] = new(new(cmsSigChromaticityType, &Type_Chromaticity_Read, &Type_Chromaticity_Write, &Type_Chromaticity_Dup, &Type_Chromaticity_Free, null, 0), &supportedTagTypes[1]);
-        supportedTagTypes[1] = new(new(cmsSigColorantOrderType, &Type_ColorantOrderType_Read, &Type_ColorantOrderType_Write, &Type_ColorantOrderType_Dup, &Type_ColorantOrderType_Free, null, 0), &supportedTagTypes[2]);
-        supportedTagTypes[2] = new(new(cmsSigS15Fixed16ArrayType, &Type_S15Fixed16_Read, &Type_S15Fixed16_Write, &Type_S15Fixed16_Dup, &Type_S15Fixed16_Free, null, 0), &supportedTagTypes[3]);
-        supportedTagTypes[3] = new(new(cmsSigU16Fixed16ArrayType, &Type_U16Fixed16_Read, &Type_U16Fixed16_Write, &Type_U16Fixed16_Dup, &Type_U16Fixed16_Free, null, 0), &supportedTagTypes[4]);
-        supportedTagTypes[4] = new(new(cmsSigTextType, &Type_Text_Read, &Type_Text_Write, &Type_Text_Dup, &Type_Text_Free, null, 0), &supportedTagTypes[5]);
-        supportedTagTypes[5] = new(new(cmsSigTextDescriptionType, &Type_Text_Description_Read, &Type_Text_Description_Write, &Type_Text_Description_Dup, &Type_Text_Description_Free, null, 0), &supportedTagTypes[6]);
-        supportedTagTypes[6] = new(new(cmsSigCurveType, &Type_Curve_Read, &Type_Curve_Write, &Type_Curve_Dup, &Type_Curve_Free, null, 0), &supportedTagTypes[7]);
-        supportedTagTypes[7] = new(new(cmsSigParametricCurveType, &Type_ParametricCurve_Read, &Type_ParametricCurve_Write, &Type_ParametricCurve_Dup, &Type_ParametricCurve_Free, null, 0), &supportedTagTypes[8]);
-        supportedTagTypes[8] = new(new(cmsSigDateTimeType, &Type_DateTime_Read, &Type_DateTime_Write, &Type_DateTime_Dup, &Type_DateTime_Free, null, 0), &supportedTagTypes[9]);
-        supportedTagTypes[9] = new(new(cmsSigLut8Type, &Type_LUT8_Read, &Type_LUT8_Write, &Type_LUT8_Dup, &Type_LUT8_Free, null, 0), &supportedTagTypes[10]);
-        supportedTagTypes[10] = new(new(cmsSigLut16Type, &Type_LUT16_Read, &Type_LUT16_Write, &Type_LUT16_Dup, &Type_LUT16_Free, null, 0), &supportedTagTypes[11]);
-        supportedTagTypes[11] = new(new(cmsSigColorantTableType, &Type_ColorantTable_Read, &Type_ColorantTable_Write, &Type_ColorantTable_Dup, &Type_ColorantTable_Free, null, 0), &supportedTagTypes[12]);
-        supportedTagTypes[12] = new(new(cmsSigNamedColor2Type, &Type_NamedColor_Read, &Type_NamedColor_Write, &Type_NamedColor_Dup, &Type_NamedColor_Free, null, 0), &supportedTagTypes[13]);
-        supportedTagTypes[13] = new(new(cmsSigMultiLocalizedUnicodeType, &Type_MLU_Read, &Type_MLU_Write, &Type_MLU_Dup, &Type_MLU_Free, null, 0), &supportedTagTypes[14]);
-        supportedTagTypes[14] = new(new(cmsSigProfileSequenceDescType, &Type_ProfileSequenceDesc_Read, &Type_ProfileSequenceDesc_Write, &Type_ProfileSequenceDesc_Dup, &Type_ProfileSequenceDesc_Free, null, 0), &supportedTagTypes[15]);
-        supportedTagTypes[15] = new(new(cmsSigSignatureType, &Type_Signature_Read, &Type_Signature_Write, &Type_Signature_Dup, &Type_Signature_Free, null, 0), &supportedTagTypes[16]);
-        supportedTagTypes[16] = new(new(cmsSigMeasurementType, &Type_Measurement_Read, &Type_Measurement_Write, &Type_Measurement_Dup, &Type_Measurement_Free, null, 0), &supportedTagTypes[17]);
-        supportedTagTypes[17] = new(new(cmsSigDataType, &Type_Data_Read, &Type_Data_Write, &Type_Data_Dup, &Type_Data_Free, null, 0), &supportedTagTypes[18]);
-        supportedTagTypes[18] = new(new(cmsSigLutAtoBType, &Type_LUTA2B_Read, &Type_LUTA2B_Write, &Type_LUTA2B_Dup, &Type_LUTA2B_Free, null, 0), &supportedTagTypes[19]);
-        supportedTagTypes[19] = new(new(cmsSigLutBtoAType, &Type_LUTB2A_Read, &Type_LUTB2A_Write, &Type_LUTB2A_Dup, &Type_LUTB2A_Free, null, 0), &supportedTagTypes[20]);
-        supportedTagTypes[20] = new(new(cmsSigUcrBgType, &Type_UcrBg_Read, &Type_UcrBg_Write, &Type_UcrBg_Dup, &Type_UcrBg_Free, null, 0), &supportedTagTypes[21]);
-        supportedTagTypes[21] = new(new(cmsSigCrdInfoType, &Type_CrdInfo_Read, &Type_CrdInfo_Write, &Type_CrdInfo_Dup, &Type_CrdInfo_Free, null, 0), &supportedTagTypes[22]);
-        supportedTagTypes[22] = new(new(cmsSigMultiProcessElementType, &Type_MPE_Read, &Type_MPE_Write, &Type_MPE_Dup, &Type_MPE_Free, null, 0), &supportedTagTypes[23]);
-        supportedTagTypes[23] = new(new(cmsSigScreeningType, &Type_Screening_Read, &Type_Screening_Write, &Type_Screening_Dup, &Type_Screening_Free, null, 0), &supportedTagTypes[24]);
-        supportedTagTypes[24] = new(new(cmsSigViewingConditionsType, &Type_ViewingConditions_Read, &Type_ViewingConditions_Write, &Type_ViewingConditions_Dup, &Type_ViewingConditions_Free, null, 0), &supportedTagTypes[25]);
-        supportedTagTypes[25] = new(new(cmsSigXYZType, &Type_XYZ_Read, &Type_XYZ_Write, &Type_XYZ_Dup, &Type_XYZ_Free, null, 0), &supportedTagTypes[26]);
-        supportedTagTypes[26] = new(new(cmsCorbisBrokenXYZtype, &Type_XYZ_Read, &Type_XYZ_Write, &Type_XYZ_Dup, &Type_XYZ_Free, null, 0), &supportedTagTypes[27]);
-        supportedTagTypes[27] = new(new(cmsMonacoBrokenCurveType, &Type_Curve_Read, &Type_Curve_Write, &Type_Curve_Dup, &Type_Curve_Free, null, 0), &supportedTagTypes[28]);
-        supportedTagTypes[28] = new(new(cmsSigProfileSequenceIdType, &Type_ProfileSequenceId_Read, &Type_ProfileSequenceId_Write, &Type_ProfileSequenceId_Dup, &Type_ProfileSequenceId_Free, null, 0), &supportedTagTypes[29]);
-        supportedTagTypes[29] = new(new(cmsSigDictType, &Type_Dictionary_Read, &Type_Dictionary_Write, &Type_Dictionary_Dup, &Type_Dictionary_Free, null, 0), &supportedTagTypes[30]);
-        supportedTagTypes[30] = new(new(cmsSigVcgtType, &Type_vcgt_Read, &Type_vcgt_Write, &Type_vcgt_Dup, &Type_vcgt_Free, null, 0), null);
+        supportedTagTypes[0] = new(new(cmsSigChromaticityType, Type_Chromaticity_Read, Type_Chromaticity_Write, Type_Chromaticity_Dup, Type_Chromaticity_Free, null, 0), &supportedTagTypes[1]);
+        supportedTagTypes[1] = new(new(cmsSigColorantOrderType, Type_ColorantOrderType_Read, Type_ColorantOrderType_Write, Type_ColorantOrderType_Dup, Type_ColorantOrderType_Free, null, 0), &supportedTagTypes[2]);
+        supportedTagTypes[2] = new(new(cmsSigS15Fixed16ArrayType, Type_S15Fixed16_Read, Type_S15Fixed16_Write, Type_S15Fixed16_Dup, Type_S15Fixed16_Free, null, 0), &supportedTagTypes[3]);
+        supportedTagTypes[3] = new(new(cmsSigU16Fixed16ArrayType, Type_U16Fixed16_Read, Type_U16Fixed16_Write, Type_U16Fixed16_Dup, Type_U16Fixed16_Free, null, 0), &supportedTagTypes[4]);
+        supportedTagTypes[4] = new(new(cmsSigTextType, Type_Text_Read, Type_Text_Write, Type_Text_Dup, Type_Text_Free, null, 0), &supportedTagTypes[5]);
+        supportedTagTypes[5] = new(new(cmsSigTextDescriptionType, Type_Text_Description_Read, Type_Text_Description_Write, Type_Text_Description_Dup, Type_Text_Description_Free, null, 0), &supportedTagTypes[6]);
+        supportedTagTypes[6] = new(new(cmsSigCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0), &supportedTagTypes[7]);
+        supportedTagTypes[7] = new(new(cmsSigParametricCurveType, Type_ParametricCurve_Read, Type_ParametricCurve_Write, Type_ParametricCurve_Dup, Type_ParametricCurve_Free, null, 0), &supportedTagTypes[8]);
+        supportedTagTypes[8] = new(new(cmsSigDateTimeType, Type_DateTime_Read, Type_DateTime_Write, Type_DateTime_Dup, Type_DateTime_Free, null, 0), &supportedTagTypes[9]);
+        supportedTagTypes[9] = new(new(cmsSigLut8Type, Type_LUT8_Read, Type_LUT8_Write, Type_LUT8_Dup, Type_LUT8_Free, null, 0), &supportedTagTypes[10]);
+        supportedTagTypes[10] = new(new(cmsSigLut16Type, Type_LUT16_Read, Type_LUT16_Write, Type_LUT16_Dup, Type_LUT16_Free, null, 0), &supportedTagTypes[11]);
+        supportedTagTypes[11] = new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, Type_ColorantTable_Dup, Type_ColorantTable_Free, null, 0), &supportedTagTypes[12]);
+        supportedTagTypes[12] = new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, Type_NamedColor_Dup, Type_NamedColor_Free, null, 0), &supportedTagTypes[13]);
+        supportedTagTypes[13] = new(new(cmsSigMultiLocalizedUnicodeType, Type_MLU_Read, Type_MLU_Write, Type_MLU_Dup, Type_MLU_Free, null, 0), &supportedTagTypes[14]);
+        supportedTagTypes[14] = new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Type_ProfileSequenceDesc_Dup, Type_ProfileSequenceDesc_Free, null, 0), &supportedTagTypes[15]);
+        supportedTagTypes[15] = new(new(cmsSigSignatureType, Type_Signature_Read, Type_Signature_Write, Type_Signature_Dup, Type_Signature_Free, null, 0), &supportedTagTypes[16]);
+        supportedTagTypes[16] = new(new(cmsSigMeasurementType, Type_Measurement_Read, Type_Measurement_Write, Type_Measurement_Dup, Type_Measurement_Free, null, 0), &supportedTagTypes[17]);
+        supportedTagTypes[17] = new(new(cmsSigDataType, Type_Data_Read, Type_Data_Write, Type_Data_Dup, Type_Data_Free, null, 0), &supportedTagTypes[18]);
+        supportedTagTypes[18] = new(new(cmsSigLutAtoBType, Type_LUTA2B_Read, Type_LUTA2B_Write, Type_LUTA2B_Dup, Type_LUTA2B_Free, null, 0), &supportedTagTypes[19]);
+        supportedTagTypes[19] = new(new(cmsSigLutBtoAType, Type_LUTB2A_Read, Type_LUTB2A_Write, Type_LUTB2A_Dup, Type_LUTB2A_Free, null, 0), &supportedTagTypes[20]);
+        supportedTagTypes[20] = new(new(cmsSigUcrBgType, Type_UcrBg_Read, Type_UcrBg_Write, Type_UcrBg_Dup, Type_UcrBg_Free, null, 0), &supportedTagTypes[21]);
+        supportedTagTypes[21] = new(new(cmsSigCrdInfoType, Type_CrdInfo_Read, Type_CrdInfo_Write, Type_CrdInfo_Dup, Type_CrdInfo_Free, null, 0), &supportedTagTypes[22]);
+        supportedTagTypes[22] = new(new(cmsSigMultiProcessElementType, Type_MPE_Read, Type_MPE_Write, Type_MPE_Dup, Type_MPE_Free, null, 0), &supportedTagTypes[23]);
+        supportedTagTypes[23] = new(new(cmsSigScreeningType, Type_Screening_Read, Type_Screening_Write, Type_Screening_Dup, Type_Screening_Free, null, 0), &supportedTagTypes[24]);
+        supportedTagTypes[24] = new(new(cmsSigViewingConditionsType, Type_ViewingConditions_Read, Type_ViewingConditions_Write, Type_ViewingConditions_Dup, Type_ViewingConditions_Free, null, 0), &supportedTagTypes[25]);
+        supportedTagTypes[25] = new(new(cmsSigXYZType, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0), &supportedTagTypes[26]);
+        supportedTagTypes[26] = new(new(cmsCorbisBrokenXYZtype, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0), &supportedTagTypes[27]);
+        supportedTagTypes[27] = new(new(cmsMonacoBrokenCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0), &supportedTagTypes[28]);
+        supportedTagTypes[28] = new(new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Type_ProfileSequenceId_Dup, Type_ProfileSequenceId_Free, null, 0), &supportedTagTypes[29]);
+        supportedTagTypes[29] = new(new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0), &supportedTagTypes[30]);
+        supportedTagTypes[30] = new(new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0), null);
 
         fixed (TagTypePluginChunkType* plugin = &TagTypePluginChunk)
             globalTagTypePluginChunk = dup(plugin);
 
         // Tag Plugin
         supportedTags = calloc<TagLinkedList>(64);
-        supportedTags[0] = new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B), &supportedTags[1]);
-        supportedTags[1] = new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B), &supportedTags[2]);
-        supportedTags[2] = new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B), &supportedTags[3]);
-        supportedTags[3] = new(cmsSigBToA0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[4]);
-        supportedTags[4] = new(cmsSigBToA1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[5]);
-        supportedTags[5] = new(cmsSigBToA2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[6]);
-        supportedTags[6] = new(cmsSigRedColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype), &supportedTags[7]);
-        supportedTags[7] = new(cmsSigGreenColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype), &supportedTags[8]);
-        supportedTags[8] = new(cmsSigBlueColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype), &supportedTags[9]);
-        supportedTags[9] = new(cmsSigRedTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType), &supportedTags[10]);
-        supportedTags[10] = new(cmsSigGreenTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType), &supportedTags[11]);
-        supportedTags[11] = new(cmsSigBlueTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType), &supportedTags[12]);
+        supportedTags[0] = new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[1]);
+        supportedTags[1] = new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[2]);
+        supportedTags[2] = new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[3]);
+        supportedTags[3] = new(cmsSigBToA0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[4]);
+        supportedTags[4] = new(cmsSigBToA1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[5]);
+        supportedTags[5] = new(cmsSigBToA2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[6]);
+        supportedTags[6] = new(cmsSigRedColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype), &supportedTags[7]);
+        supportedTags[7] = new(cmsSigGreenColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype), &supportedTags[8]);
+        supportedTags[8] = new(cmsSigBlueColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype), &supportedTags[9]);
+        supportedTags[9] = new(cmsSigRedTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType), &supportedTags[10]);
+        supportedTags[10] = new(cmsSigGreenTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType), &supportedTags[11]);
+        supportedTags[11] = new(cmsSigBlueTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType), &supportedTags[12]);
         supportedTags[12] = new(cmsSigCalibrationDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null), &supportedTags[13]);
         supportedTags[13] = new(cmsSigCharTargetTag, new(1, new Signature[] { cmsSigTextType, }, null), &supportedTags[14]);
         supportedTags[14] = new(cmsSigChromaticAdaptationTag, new(9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null), &supportedTags[15]);
@@ -1072,20 +1072,20 @@ public static unsafe partial class Lcms2
         supportedTags[16] = new(cmsSigColorantOrderTag, new(1, new Signature[] { cmsSigColorantOrderType, }, null), &supportedTags[17]);
         supportedTags[17] = new(cmsSigColorantTableTag, new(1, new Signature[] { cmsSigColorantTableType, }, null), &supportedTags[18]);
         supportedTags[18] = new(cmsSigColorantTableOutTag, new(1, new Signature[] { cmsSigColorantTableType, }, null), &supportedTags[19]);
-        supportedTags[19] = new(cmsSigCopyrightTag, new(1, new Signature[] { cmsSigTextType, cmsSigMultiLocalizedUnicodeType, cmsSigTextDescriptionType, }, &DecideTextType), &supportedTags[20]);
+        supportedTags[19] = new(cmsSigCopyrightTag, new(1, new Signature[] { cmsSigTextType, cmsSigMultiLocalizedUnicodeType, cmsSigTextDescriptionType, }, DecideTextType), &supportedTags[20]);
         supportedTags[20] = new(cmsSigDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null), &supportedTags[21]);
-        supportedTags[21] = new(cmsSigDeviceMfgDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType), &supportedTags[22]);
-        supportedTags[22] = new(cmsSigDeviceModelDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType), &supportedTags[23]);
-        supportedTags[23] = new(cmsSigGamutTag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[24]);
-        supportedTags[24] = new(cmsSigGrayTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, }, &DecideCurveType), &supportedTags[25]);
+        supportedTags[21] = new(cmsSigDeviceMfgDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType), &supportedTags[22]);
+        supportedTags[22] = new(cmsSigDeviceModelDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType), &supportedTags[23]);
+        supportedTags[23] = new(cmsSigGamutTag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[24]);
+        supportedTags[24] = new(cmsSigGrayTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, }, DecideCurveType), &supportedTags[25]);
         supportedTags[25] = new(cmsSigLuminanceTag, new(1, new Signature[] { cmsSigXYZType, }, null), &supportedTags[26]);
         supportedTags[26] = new(cmsSigMediaBlackPointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null), &supportedTags[27]);
         supportedTags[27] = new(cmsSigMediaWhitePointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null), &supportedTags[28]);
         supportedTags[28] = new(cmsSigNamedColor2Tag, new(1, new Signature[] { cmsSigNamedColor2Type, }, null), &supportedTags[29]);
-        supportedTags[29] = new(cmsSigPreview0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[30]);
-        supportedTags[30] = new(cmsSigPreview1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[31]);
-        supportedTags[31] = new(cmsSigPreview2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A), &supportedTags[32]);
-        supportedTags[32] = new(cmsSigProfileDescriptionTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType), &supportedTags[33]);
+        supportedTags[29] = new(cmsSigPreview0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[30]);
+        supportedTags[30] = new(cmsSigPreview1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[31]);
+        supportedTags[31] = new(cmsSigPreview2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A), &supportedTags[32]);
+        supportedTags[32] = new(cmsSigProfileDescriptionTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType), &supportedTags[33]);
         supportedTags[33] = new(cmsSigProfileSequenceDescTag, new(1, new Signature[] { cmsSigProfileSequenceDescType, }, null), &supportedTags[34]);
         supportedTags[34] = new(cmsSigTechnologyTag, new(1, new Signature[] { cmsSigSignatureType, }, null), &supportedTags[35]);
         supportedTags[35] = new(cmsSigColorimetricIntentImageStateTag, new(1, new Signature[] { cmsSigSignatureType, }, null), &supportedTags[36]);
@@ -1098,7 +1098,7 @@ public static unsafe partial class Lcms2
         supportedTags[42] = new(cmsSigPs2CRD3Tag, new(1, new Signature[] { cmsSigDataType, }, null), &supportedTags[43]);
         supportedTags[43] = new(cmsSigPs2CSATag, new(1, new Signature[] { cmsSigDataType, }, null), &supportedTags[44]);
         supportedTags[44] = new(cmsSigPs2RenderingIntentTag, new(1, new Signature[] { cmsSigDataType, }, null), &supportedTags[45]);
-        supportedTags[45] = new(cmsSigViewingCondDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType), &supportedTags[46]);
+        supportedTags[45] = new(cmsSigViewingCondDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType), &supportedTags[46]);
         supportedTags[46] = new(cmsSigUcrBgTag, new(1, new Signature[] { cmsSigUcrBgType, }, null), &supportedTags[47]);
         supportedTags[47] = new(cmsSigCrdInfoTag, new(1, new Signature[] { cmsSigCrdInfoType, }, null), &supportedTags[48]);
         supportedTags[48] = new(cmsSigDToB0Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null), &supportedTags[49]);
@@ -1129,9 +1129,9 @@ public static unsafe partial class Lcms2
         supportedMPEtypes = calloc<TagTypeLinkedList>(5);
         supportedMPEtypes[0] = new(new(cmsSigBAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[1]);
         supportedMPEtypes[1] = new(new(cmsSigEAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[2]);
-        supportedMPEtypes[2] = new(new(cmsSigCurveSetElemType, &Type_MPEcurve_Read, &Type_MPEcurve_Write, &GenericMPEdup, &GenericMPEfree, null, 0), &supportedMPEtypes[3]);
-        supportedMPEtypes[3] = new(new(cmsSigMatrixElemType, &Type_MPEmatrix_Read, &Type_MPEmatrix_Write, &GenericMPEdup, &GenericMPEfree, null, 0), &supportedMPEtypes[4]);
-        supportedMPEtypes[4] = new(new(cmsSigCLutElemType, &Type_MPEclut_Read, &Type_MPEclut_Write, &GenericMPEdup, &GenericMPEfree, null, 0), null);
+        supportedMPEtypes[2] = new(new(cmsSigCurveSetElemType, Type_MPEcurve_Read, Type_MPEcurve_Write, GenericMPEdup, GenericMPEfree, null, 0), &supportedMPEtypes[3]);
+        supportedMPEtypes[3] = new(new(cmsSigMatrixElemType, Type_MPEmatrix_Read, Type_MPEmatrix_Write, GenericMPEdup, GenericMPEfree, null, 0), &supportedMPEtypes[4]);
+        supportedMPEtypes[4] = new(new(cmsSigCLutElemType, Type_MPEclut_Read, Type_MPEclut_Write, GenericMPEdup, GenericMPEfree, null, 0), null);
 
         fixed (TagTypePluginChunkType* plugin = &MPETypePluginChunk)
             globalMPETypePluginChunk = dup(plugin);
@@ -1149,7 +1149,7 @@ public static unsafe partial class Lcms2
             globalMutexPluginChunk = dup(plugin);
 
         // Global Context
-        globalContext = (Context*)alloc((nuint)sizeof(Context));
+        globalContext = (Context)alloc((nuint)sizeof(Context_struct));
         *globalContext = new()
         {
             Next = null,
@@ -1271,10 +1271,10 @@ public static unsafe partial class Lcms2
         #region Optimization defaults
 
         DefaultOptimization = calloc<OptimizationCollection>(4);
-        DefaultOptimization[0] = new() { OptimizePtr = &OptimizeByJoiningCurves, Next = &DefaultOptimization[1] };
-        DefaultOptimization[1] = new() { OptimizePtr = &OptimizeMatrixShaper, Next = &DefaultOptimization[2] };
-        DefaultOptimization[2] = new() { OptimizePtr = &OptimizeByComputingLinearization, Next = &DefaultOptimization[3] };
-        DefaultOptimization[3] = new() { OptimizePtr = &OptimizeByResampling, Next = null };
+        DefaultOptimization[0] = new() { OptimizePtr = OptimizeByJoiningCurves, Next = &DefaultOptimization[1] };
+        DefaultOptimization[1] = new() { OptimizePtr = OptimizeMatrixShaper, Next = &DefaultOptimization[2] };
+        DefaultOptimization[2] = new() { OptimizePtr = OptimizeByComputingLinearization, Next = &DefaultOptimization[3] };
+        DefaultOptimization[3] = new() { OptimizePtr = OptimizeByResampling, Next = null };
 
         #endregion Optimization defaults
 
@@ -1285,70 +1285,70 @@ public static unsafe partial class Lcms2
         {
             Intent = INTENT_PERCEPTUAL,
             Description = "Perceptual",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[1]
         };
         defaultIntents[1] = new()
         {
             Intent = INTENT_RELATIVE_COLORIMETRIC,
             Description = "Relative colorimetric",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[2]
         };
         defaultIntents[2] = new()
         {
             Intent = INTENT_SATURATION,
             Description = "Saturation",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[3]
         };
         defaultIntents[3] = new()
         {
             Intent = INTENT_ABSOLUTE_COLORIMETRIC,
             Description = "Absolute colorimetric",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[4]
         };
         defaultIntents[4] = new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
             Description = "Perceptual preserving black ink",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[5]
         };
         defaultIntents[5] = new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
             Description = "Relative colorimetric preserving black ink",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[6]
         };
         defaultIntents[6] = new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
             Description = "Saturation preserving black ink",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[7]
         };
         defaultIntents[7] = new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
             Description = "Perceptual preserving black plane",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[8]
         };
         defaultIntents[8] = new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
             Description = "Relative colorimetric preserving black plane",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = &defaultIntents[9]
         };
         defaultIntents[9] = new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
             Description = "Saturation preserving black plane",
-            Link = &DefaultICCintents,
+            Link = DefaultICCintents,
             Next = null
         };
 
@@ -1394,8 +1394,8 @@ public static unsafe partial class Lcms2
         if (typeof(T) == typeof(Screening))
             return (uint)sizeof(Screening) - 1 + ((uint)sizeof(ScreeningChannel) * cmsMAXCHANNELS);
 
-        if (typeof(T) == typeof(Context))
-            return (uint)sizeof(Context) - 1;
+        if (typeof(T) == typeof(Context_struct))
+            return (uint)sizeof(Context_struct) - 1;
 
         return (uint)sizeof(T);
     }

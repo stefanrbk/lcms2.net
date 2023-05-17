@@ -32,8 +32,8 @@ namespace lcms2.types;
 public unsafe struct InterpFunction
 {
     [FieldOffset(0)]
-    public delegate*<in ushort*, ushort*, in InterpParams*, void> Lerp16;
+    public InterpFn16 Lerp16;
 
     [FieldOffset(0)]
-    public delegate*<in float*, float*, in InterpParams*, void> LerpFloat;
+    public InterpFnFloat LerpFloat;
 }

@@ -32,7 +32,7 @@ namespace lcms2.types;
 public unsafe struct Profile
 {
     public IOHandler* IOHandler;
-    public Context* ContextID;
+    public Context ContextID;
 
     public DateTime Created;
 

@@ -33,17 +33,17 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     internal static Transform* _cmsChain2Lab(
-        Context* ContextID,
+        Context ContextID,
         uint nProfiles,
         uint InputFormat,
         uint OutputFormat,
         in uint* Intents,
-        in Profile** hProfiles,
+        in HPROFILE* hProfiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
     {
-        var ProfileList = stackalloc Profile*[256];
+        var ProfileList = stackalloc HPROFILE[256];
         var BPCList = stackalloc bool[256];
         var AdaptationList = stackalloc double[256];
         var IntentList = stackalloc uint[256];
@@ -80,11 +80,11 @@ public static unsafe partial class Lcms2
     }
 
     private static ToneCurve* ComputeKToLstar(
-        Context* ContextID,
+        Context ContextID,
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
-        in Profile** hProfiles,
+        in HPROFILE* hProfiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
@@ -121,11 +121,11 @@ public static unsafe partial class Lcms2
     }
 
     internal static ToneCurve* _cmsBuildKToneCurve(
-        Context* ContextID,
+        Context ContextID,
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
-        in Profile** hProfiles,
+        in HPROFILE* hProfiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
@@ -247,15 +247,15 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsCreateGamutCheckPipeline(
-        Context* ContextID,
-        Profile** hProfiles,
+        Context ContextID,
+        HPROFILE* hProfiles,
         bool* BPC,
         uint* Intents,
         double* AdaptationStates,
         uint nGamutPCSposition,
-        Profile* hGamut)
+        HPROFILE hGamut)
     {
-        var ProfileList = stackalloc Profile*[256];
+        var ProfileList = stackalloc HPROFILE[256];
         var BPCList = stackalloc bool[256];
         var AdaptationList = stackalloc double[256];
         var IntentList = stackalloc uint[256];
@@ -330,7 +330,7 @@ public static unsafe partial class Lcms2
                 }
                 else
                 {
-                    cmsStageSampleCLut16bit(CLUT, &GamutSampler, &Chain, 0);
+                    cmsStageSampleCLut16bit(CLUT, GamutSampler, &Chain, 0);
                 }
             }
         }
@@ -383,7 +383,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static double cmsDetectTAC(Profile* hProfile)
+    public static double cmsDetectTAC(HPROFILE hProfile)
     {
         TACestimator bp;
         var GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
@@ -499,7 +499,7 @@ public static unsafe partial class Lcms2
         public T B;
     }
 
-    public static double cmsDetectRGBProfileGamma(Profile* hProfile, double threshold)
+    public static double cmsDetectRGBProfileGamma(HPROFILE hProfile, double threshold)
 
     {
         var rgb = stackalloc Rgb<ushort>[256];

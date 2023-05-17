@@ -32,22 +32,27 @@ namespace lcms2.types;
 public unsafe struct TagTypeHandler
 {
     public Signature Signature;
-    public Context* ContextID;
+    public Context ContextID;
 
-    public delegate*<TagTypeHandler*, IOHandler*, uint*, uint, void*> ReadPtr;
-    public delegate*<TagTypeHandler*, IOHandler*, void*, uint, bool> WritePtr;
-    public delegate*<TagTypeHandler*, in void*, uint, void*> DupPtr;
-    public delegate*<TagTypeHandler*, void*, void> FreePtr;
+    public delegate void* ReadFn(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag);
+    public delegate bool WriteFn(TagTypeHandler* self, IOHandler* io, void* Ptr, uint nItems);
+    public delegate void* DupFn(TagTypeHandler* self, in void* Ptr, uint nItems);
+    public delegate void FreeFn(TagTypeHandler* self, void* Ptr);
+
+    public ReadFn ReadPtr;
+    public WriteFn WritePtr;
+    public DupFn DupPtr;
+    public FreeFn FreePtr;
 
     public uint ICCVersion;
 
     public TagTypeHandler(
         Signature signature,
-        delegate*<TagTypeHandler*, IOHandler*, uint*, uint, void*> readPtr,
-        delegate*<TagTypeHandler*, IOHandler*, void*, uint, bool> writePtr,
-        delegate*<TagTypeHandler*, in void*, uint, void*> dupPtr,
-        delegate*<TagTypeHandler*, void*, void> freePtr,
-        Context* contextID,
+        ReadFn readPtr,
+        WriteFn writePtr,
+        DupFn dupPtr,
+        FreeFn freePtr,
+        Context contextID,
         uint iCCVersion)
     {
         Signature = signature;

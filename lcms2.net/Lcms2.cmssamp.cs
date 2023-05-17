@@ -40,13 +40,13 @@ public static unsafe partial class Lcms2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmax<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a > b) ? a : b;
 
-    private static Transform* CreateRoundtripXForm(Profile* hProfile, uint nIntent)
+    private static Transform* CreateRoundtripXForm(HPROFILE hProfile, uint nIntent)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var hLab = cmsCreateLab4ProfileTHR(ContextID, null);
         var BPC = stackalloc bool[4] { false, false, false, false };
         var States = stackalloc double[4] { 1, 1, 1, 1 };
-        var hProfiles = stackalloc Profile*[4];
+        var hProfiles = stackalloc HPROFILE[4];
         var Intents = stackalloc uint[4];
 
         hProfiles[0] = hLab; hProfiles[1] = hProfile; hProfiles[2] = hProfile; hProfiles[3] = hLab;
@@ -59,7 +59,7 @@ public static unsafe partial class Lcms2
         return xform;
     }
 
-    private static bool BlackPointAsDarkerColorant(Profile* hInput, uint Intent, CIEXYZ* BlackPoint, uint _)
+    private static bool BlackPointAsDarkerColorant(HPROFILE hInput, uint Intent, CIEXYZ* BlackPoint, uint _)
     {
         ushort* Black;
         uint nChannels;
@@ -120,7 +120,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool BlackPointUsingPerceptualBlack(CIEXYZ* BlackPoint, Profile* hProfile)
+    private static bool BlackPointUsingPerceptualBlack(CIEXYZ* BlackPoint, HPROFILE hProfile)
     {
         CIELab LabIn, LabOut;
         CIEXYZ BlackXYZ;
@@ -156,7 +156,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    public static bool cmsDetectBlackPoint(CIEXYZ* BlackPoint, Profile* hProfile, uint Intent, uint dwFlags)
+    public static bool cmsDetectBlackPoint(CIEXYZ* BlackPoint, HPROFILE hProfile, uint Intent, uint dwFlags)
     {
         // Make sure the device class is adequate
         var devClass = cmsGetDeviceClass(hProfile);
@@ -258,7 +258,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, Profile* hProfile, uint Intent, uint dwFlags)
+    public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, HPROFILE hProfile, uint Intent, uint dwFlags)
     {
         Transform* hRoundTrip = null;
         CIELab InitialLab, destLab, Lab;

@@ -31,11 +31,11 @@ namespace lcms2.types;
 
 public unsafe interface IMutex : IDisposable
 {
-    static abstract IMutex Create(Context* context);
+    static abstract IMutex Create(Context context);
 
-    bool Lock(Context* context);
+    bool Lock(Context context);
 
-    void Unlock(Context* context);
+    void Unlock(Context context);
 
-    void Destroy(Context* context);
+    void Destroy(Context context);
 }

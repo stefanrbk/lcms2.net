@@ -29,10 +29,8 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-internal unsafe struct FormattersFactoryList : INextOffset
+internal unsafe struct FormattersFactoryList
 {
-    public delegate*<uint, FormatterDirection, PackFlags, Formatter> Factory;
+    public FormatterFactory Factory;
     public FormattersFactoryList* Next;
-
-    public static nuint NextOffset { get; } = (nuint)(sizeof(nuint) * 2);
 }

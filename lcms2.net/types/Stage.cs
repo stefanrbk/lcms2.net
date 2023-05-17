@@ -31,15 +31,15 @@ namespace lcms2.types;
 
 public unsafe struct Stage
 {
-    public Context* ContextID;
+    public Context ContextID;
     public Signature Type;
     public Signature Implements;
     public uint InputChannels;
     public uint OutputChannels;
 
-    public delegate*<in float*, float*, in Stage*, void> EvalPtr;
-    public delegate*<Stage*, void*> DupElemPtr;
-    public delegate*<Stage*, void> FreePtr;
+    public StageEvalFn EvalPtr;
+    public StageDupElemFn? DupElemPtr;
+    public StageFreeElemFn? FreePtr;
 
     public void* Data;
 

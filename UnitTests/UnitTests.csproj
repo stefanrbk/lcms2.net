@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -18,6 +18,19 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">
 		<Optimize>True</Optimize>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (No Fast Floor)|AnyCPU'">
+	  <LangVersion>preview</LangVersion>
 	</PropertyGroup>
 
   <ItemGroup>

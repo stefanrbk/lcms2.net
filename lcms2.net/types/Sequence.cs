@@ -31,7 +31,7 @@ namespace lcms2.types;
 public unsafe struct Sequence
 {
     public uint n;
-    public Context* ContextID;
+    public Context ContextID;
     public ProfileSequenceDescription* seq;
 }
 

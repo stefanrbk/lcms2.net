@@ -459,11 +459,11 @@ public static unsafe partial class Lcms2
 
     public static bool cmsPluginTHR(Context id, void* Plug_in)
     {
-        for (var Plugin = (PluginBase*)Plug_in;
+        for (var Plugin = &((PluginMemHandler*)Plug_in)->@base;
              Plugin is not null;
              Plugin = Plugin->Next)
         {
-            if (Plugin->Magic != cmsMagicNumber)
+            if (Plugin->Magic != cmsPluginMagicNumber)
             {
                 cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
                 return false;
@@ -882,60 +882,19 @@ public static unsafe partial class Lcms2
         ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, from);
     }
 
-    private static void AllocPluginChunk<T>(Context ctx, in Context src, delegate*<Context, in Context, Chunks, void> dup, Chunks mc, T* defaultChunk) where T : struct
+    private delegate void DupPlugin(Context ctx, in Context src);
+    private static void AllocPluginChunk<T>(Context ctx, in Context src, DupPlugin dup, Chunks mc, T* defaultChunk) where T : struct
     {
         Debug.Assert(ctx is not null);
 
         if (src is not null)
         {
             // Duplicate the list
-            dup(ctx, src, mc);
+            dup(ctx, src);
         }
         else
         {
             ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, defaultChunk);
-        }
-    }
-
-    private static void DupPluginList<TChunk, TList>(Context ctx, in Context src, Chunks mc) where TChunk : struct, IListOffset where TList : struct, INextOffset
-    {
-        var newHead = new TChunk();
-        var head = (TChunk*)src->chunks[mc];
-        TList* Anterior = null;
-
-        Debug.Assert(head is not null);
-
-        // Walk the list copying all nodes
-        for (var entry = *List(head);
-            entry is not null;
-            entry = *Next(entry))
-        {
-            var newEntry = _cmsSubAllocDup<TList>(ctx->MemPool, entry);
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            *Next(newEntry) = null;
-            if (Anterior is not null)
-                *Next(Anterior) = newEntry;
-
-            Anterior = newEntry;
-
-            if (*List(&newHead) is null)
-                *List(&newHead) = newEntry;
-        }
-
-        ctx->chunks[mc] = _cmsSubAllocDup<TChunk>(ctx->MemPool, &newHead);
-
-        TList** Next(TList* ptr)
-        {
-            return (TList**)((byte*)ptr + TList.NextOffset);
-        }
-
-        TList** List(TChunk* ptr)
-        {
-            return (TList**)((byte*)ptr + TChunk.ListOffset);
         }
     }
 }

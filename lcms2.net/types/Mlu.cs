@@ -30,7 +30,7 @@ namespace lcms2.types;
 
 public unsafe struct Mlu
 {
-    public Context* ContextID;
+    public Context ContextID;
 
     public uint AllocatedEntries;
     public uint UsedEntries;

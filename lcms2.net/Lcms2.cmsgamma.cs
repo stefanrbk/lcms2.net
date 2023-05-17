@@ -45,7 +45,7 @@ public static unsafe partial class Lcms2
 
     private static readonly ParametricCurvesCollection defaultCurves = new()
     {
-        Evaluator = &DefaultEvalParametricFn,
+        Evaluator = DefaultEvalParametricFn,
         nFunctions = 10,
     };
 
@@ -56,7 +56,7 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Duplicates the plug-in in the new context.
     /// </summary>
-    private static void DupPluginCurvesList(Context* ctx, in Context* src)
+    private static void DupPluginCurvesList(Context ctx, in Context src)
     {
         var newHead = new CurvesPluginChunkType();
         var head = (CurvesPluginChunkType*)src->chunks[Chunks.CurvesPlugin];
@@ -86,13 +86,13 @@ public static unsafe partial class Lcms2
         ctx->chunks[Chunks.CurvesPlugin] = _cmsSubAllocDup<CurvesPluginChunkType>(ctx->MemPool, &newHead);
     }
 
-    internal static void _cmsAllocCurvesPluginChunk(Context* ctx, in Context* src)
+    internal static void _cmsAllocCurvesPluginChunk(Context ctx, in Context src)
     {
         fixed (CurvesPluginChunkType* @default = &CurvesPluginChunk)
-            AllocPluginChunk(ctx, src, &DupPluginList<CurvesPluginChunkType, ParametricCurvesCollection>, Chunks.CurvesPlugin, @default);
+            AllocPluginChunk(ctx, src, DupPluginCurvesList, Chunks.CurvesPlugin, @default);
     }
 
-    internal static bool _cmsRegisterParametricCurvesPlugin(Context* ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterParametricCurvesPlugin(Context ContextID, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin);
         var Plugin = (PluginParametricCurves*)Data;
@@ -136,7 +136,7 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static ParametricCurvesCollection* GetParametricCurveByType(Context* ContextID, int Type, int* index)
+    private static ParametricCurvesCollection* GetParametricCurveByType(Context ContextID, int Type, int* index)
     {
         int Position;
         var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin);
@@ -172,7 +172,7 @@ public static unsafe partial class Lcms2
     }
 
     private static ToneCurve* AllocateToneCurveStruct(
-        Context* ContextID, uint nEntries,
+        Context ContextID, uint nEntries,
         uint nSegments, in CurveSegment* Segments,
         in ushort* Values)
     {
@@ -204,7 +204,7 @@ public static unsafe partial class Lcms2
             p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             if (p->Segments is null) goto Error;
 
-            p->Evals = (delegate*<int, in double*, double, double>*)_cmsCalloc<nint>(ContextID, nSegments);
+            p->Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
             if (p->Evals is null) goto Error;
         }
 
@@ -668,13 +668,13 @@ public static unsafe partial class Lcms2
         return t->Table16;
     }
 
-    public static ToneCurve* cmsBuildTabulatedToneCurve16(Context* ContextID, uint nEntries, in ushort* Values) =>
+    public static ToneCurve* cmsBuildTabulatedToneCurve16(Context ContextID, uint nEntries, in ushort* Values) =>
         AllocateToneCurveStruct(ContextID, nEntries, 0, null, Values);
 
     private static uint EntriesByGamma(double Gamma) =>
         (Abs(Gamma - 1.0) < 0.001) ? 2u : 4096u;
 
-    public static ToneCurve* cmsBuildSegmentedToneCurve(Context* ContextID, uint nSegments, in CurveSegment* Segments)
+    public static ToneCurve* cmsBuildSegmentedToneCurve(Context ContextID, uint nSegments, in CurveSegment* Segments)
     {
         var nGridPoints = 4096u;
 
@@ -702,7 +702,7 @@ public static unsafe partial class Lcms2
         return g;
     }
 
-    public static ToneCurve* cmsBuildTabulatedToneCurveFloat(Context* ContextID, uint nEntries, in float* values)
+    public static ToneCurve* cmsBuildTabulatedToneCurveFloat(Context ContextID, uint nEntries, in float* values)
     {
         var Seg = stackalloc CurveSegment[3];
 
@@ -740,7 +740,7 @@ public static unsafe partial class Lcms2
         return cmsBuildSegmentedToneCurve(ContextID, 3, Seg);
     }
 
-    public static ToneCurve* cmsBuildParametricToneCurve(Context* ContextID, int Type, in double* Params)
+    public static ToneCurve* cmsBuildParametricToneCurve(Context ContextID, int Type, in double* Params)
     {
         CurveSegment Seg0;
         int Pos = 0;
@@ -764,7 +764,7 @@ public static unsafe partial class Lcms2
         return cmsBuildSegmentedToneCurve(ContextID, 1, &Seg0);
     }
 
-    public static ToneCurve* cmsBuildGamma(Context* ContextID, double Gamma) =>
+    public static ToneCurve* cmsBuildGamma(Context ContextID, double Gamma) =>
         cmsBuildParametricToneCurve(ContextID, 1, &Gamma);
 
     public static void cmsFreeToneCurve(ToneCurve* Curve)
@@ -817,7 +817,7 @@ public static unsafe partial class Lcms2
         return AllocateToneCurveStruct(In->InterpParams->ContextID, In->nEntries, In->nSegments, In->Segments, In->Table16);
     }
 
-    public static ToneCurve* cmsJoinToneCurve(Context* ContextID, in ToneCurve* X, in ToneCurve* Y, uint nResultingPoints)
+    public static ToneCurve* cmsJoinToneCurve(Context ContextID, in ToneCurve* X, in ToneCurve* Y, uint nResultingPoints)
     {
         ToneCurve* @out = null;
         ToneCurve* Yreversed = null;
@@ -965,7 +965,7 @@ public static unsafe partial class Lcms2
         return cmsReverseToneCurveEx(4096, InGamma);
     }
 
-    private static bool smooth2(Context* ContextID, float* w, float* y,
+    private static bool smooth2(Context ContextID, float* w, float* y,
                     float* z, float lambda, int m)
     {
         int i, i1, i2;

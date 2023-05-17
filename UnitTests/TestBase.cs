@@ -60,8 +60,8 @@ public abstract unsafe class TestBase
 {
     [SetUp]
     public virtual void SetUp() =>
-        cmsSetLogErrorHandler(&Logger);
+        cmsSetLogErrorHandler(Logger);
 
-    private static void Logger(Context* _, ErrorCode errorCode, string message) =>
+    private static void Logger(Context _, ErrorCode errorCode, string message) =>
         Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), errorCode)}: {message}");
 }

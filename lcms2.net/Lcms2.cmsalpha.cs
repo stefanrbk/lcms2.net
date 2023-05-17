@@ -155,17 +155,17 @@ public static unsafe partial class Lcms2
             _ => -1             // not recognized
         };
 
-    private static readonly delegate*<void*, in void*, void>[,] FormattersAlpha = new delegate*<void*, in void*, void>[,]
+    private static readonly FormatterAlphaFn[,] FormattersAlpha = new FormatterAlphaFn[,]
     {
-        { &copy8, &from8to16, &from8to16SE, &from8toHLF, &from8toFLT, &from8toDBL },
-        { &from16to8, &copy16, &from16to16, &from16toHLF, &from16toFLT, &from16toDBL },
-        { &from16SEto8, &from16to16, &copy16, &from16SEtoHLF, &from16SEtoFLT, &from16SEtoDBL },
-        { &fromHLFto8, &fromHLFto16, &fromHLFto16SE, &copy16, &fromHLFtoFLT, &fromHLFtoDBL },
-        { &fromFLTto8, &fromFLTto16, &fromFLTto16SE, &fromFLTtoHLF, &copy32, &fromFLTtoDBL },
-        { &fromDBLto8, &fromDBLto16, &fromDBLto16SE, &fromDBLtoHLF, &fromDBLtoFLT, &copy64 },
+        { copy8, from8to16, from8to16SE, from8toHLF, from8toFLT, from8toDBL },
+        { from16to8, copy16, from16to16, from16toHLF, from16toFLT, from16toDBL },
+        { from16SEto8, from16to16, copy16, from16SEtoHLF, from16SEtoFLT, from16SEtoDBL },
+        { fromHLFto8, fromHLFto16, fromHLFto16SE, copy16, fromHLFtoFLT, fromHLFtoDBL },
+        { fromFLTto8, fromFLTto16, fromFLTto16SE, fromFLTtoHLF, copy32, fromFLTtoDBL },
+        { fromDBLto8, fromDBLto16, fromDBLto16SE, fromDBLtoHLF, fromDBLtoFLT, copy64 },
     };
 
-    internal static delegate*<void*, in void*, void> _cmsGetFormatterAlpha(Context* id, uint @in, uint @out)
+    internal static FormatterAlphaFn? _cmsGetFormatterAlpha(Context id, uint @in, uint @out)
     {
         var in_n = FormatterPos(@in);
         var out_n = FormatterPos(@out);

@@ -36,13 +36,13 @@ public static unsafe partial class Lcms2
     private static readonly InterpPluginChunkType InterpPluginChunk = new();
     private static readonly InterpPluginChunkType* globalInterpPluginChunk;
 
-    internal static void _cmsAllocInterpPluginChunk(Context* ctx, in Context* src)
+    internal static void _cmsAllocInterpPluginChunk(Context ctx, in Context src)
     {
         fixed (InterpPluginChunkType* @default = &InterpPluginChunk)
             AllocPluginChunk(ctx, src, Chunks.InterpPlugin, @default);
     }
 
-    internal static bool _cmsRegisterInterpPlugin(Context* ctx, PluginBase* Data)
+    internal static bool _cmsRegisterInterpPlugin(Context ctx, PluginBase* Data)
     {
         var Plugin = (PluginInterpolation*)Data;
         var ptr = _cmsContextGetClientChunk<InterpPluginChunkType>(ctx, Chunks.InterpPlugin);
@@ -60,7 +60,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsSetInterpolationRoutine(Context* ctx, InterpParams* p)
+    internal static bool _cmsSetInterpolationRoutine(Context ctx, InterpParams* p)
     {
         var ptr = _cmsContextGetClientChunk<InterpPluginChunkType>(ctx, Chunks.InterpPlugin);
 
@@ -80,7 +80,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParamsEx(
-        Context* ContextID, in uint* nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context ContextID, in uint* nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
     {
         var dwFlags = (uint)flags;
 
@@ -126,7 +126,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParams(
-        Context* ContextID, uint nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context ContextID, uint nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
     {
         var Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
@@ -1021,16 +1021,16 @@ public static unsafe partial class Lcms2
                 if (nOutputChannels is 1)
                 {
                     if (isFloat)
-                        interpolation.LerpFloat = &LinLerp1Dfloat;
+                        interpolation.LerpFloat = LinLerp1Dfloat;
                     else
-                        interpolation.Lerp16 = &LinLerp1D;
+                        interpolation.Lerp16 = LinLerp1D;
                 }
                 else
                 {
                     if (isFloat)
-                        interpolation.LerpFloat = &Eval1InputFloat;
+                        interpolation.LerpFloat = Eval1InputFloat;
                     else
-                        interpolation.Lerp16 = &Eval1Input;
+                        interpolation.Lerp16 = Eval1Input;
                 }
 
                 break;
@@ -1038,9 +1038,9 @@ public static unsafe partial class Lcms2
             case 2: // Duotone
 
                 if (isFloat)
-                    interpolation.LerpFloat = &BilinearInterpFloat;
+                    interpolation.LerpFloat = BilinearInterpFloat;
                 else
-                    interpolation.Lerp16 = &BilinearInterp16;
+                    interpolation.Lerp16 = BilinearInterp16;
 
                 break;
 
@@ -1049,124 +1049,124 @@ public static unsafe partial class Lcms2
                 if (isTriliniar)
                 {
                     if (isFloat)
-                        interpolation.LerpFloat = &TrilinearInterpFloat;
+                        interpolation.LerpFloat = TrilinearInterpFloat;
                     else
-                        interpolation.Lerp16 = &TrilinearInterp16;
+                        interpolation.Lerp16 = TrilinearInterp16;
                 }
                 else
                 {
                     if (isFloat)
-                        interpolation.LerpFloat = &TetrahedralInterpFloat;
+                        interpolation.LerpFloat = TetrahedralInterpFloat;
                     else
-                        interpolation.Lerp16 = &TetrahedralInterp16;
+                        interpolation.Lerp16 = TetrahedralInterp16;
                 }
                 break;
 
             case 4: // CMYK lut
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval4InputsFloat;
+                    interpolation.LerpFloat = Eval4InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval4Inputs;
+                    interpolation.Lerp16 = Eval4Inputs;
 
                 break;
 
             case 5:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval5InputsFloat;
+                    interpolation.LerpFloat = Eval5InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval5Inputs;
+                    interpolation.Lerp16 = Eval5Inputs;
 
                 break;
 
             case 6:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval6InputsFloat;
+                    interpolation.LerpFloat = Eval6InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval6Inputs;
+                    interpolation.Lerp16 = Eval6Inputs;
 
                 break;
 
             case 7:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval7InputsFloat;
+                    interpolation.LerpFloat = Eval7InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval7Inputs;
+                    interpolation.Lerp16 = Eval7Inputs;
 
                 break;
 
             case 8:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval8InputsFloat;
+                    interpolation.LerpFloat = Eval8InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval8Inputs;
+                    interpolation.Lerp16 = Eval8Inputs;
 
                 break;
 
             case 9:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval9InputsFloat;
+                    interpolation.LerpFloat = Eval9InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval9Inputs;
+                    interpolation.Lerp16 = Eval9Inputs;
 
                 break;
 
             case 10:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval10InputsFloat;
+                    interpolation.LerpFloat = Eval10InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval10Inputs;
+                    interpolation.Lerp16 = Eval10Inputs;
 
                 break;
 
             case 11:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval11InputsFloat;
+                    interpolation.LerpFloat = Eval11InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval11Inputs;
+                    interpolation.Lerp16 = Eval11Inputs;
 
                 break;
 
             case 12:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval12InputsFloat;
+                    interpolation.LerpFloat = Eval12InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval12Inputs;
+                    interpolation.Lerp16 = Eval12Inputs;
 
                 break;
 
             case 13:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval13InputsFloat;
+                    interpolation.LerpFloat = Eval13InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval13Inputs;
+                    interpolation.Lerp16 = Eval13Inputs;
 
                 break;
 
             case 14:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval14InputsFloat;
+                    interpolation.LerpFloat = Eval14InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval14Inputs;
+                    interpolation.Lerp16 = Eval14Inputs;
 
                 break;
 
             case 15:
 
                 if (isFloat)
-                    interpolation.LerpFloat = &Eval15InputsFloat;
+                    interpolation.LerpFloat = Eval15InputsFloat;
                 else
-                    interpolation.Lerp16 = &Eval15Inputs;
+                    interpolation.Lerp16 = Eval15Inputs;
 
                 break;
         }

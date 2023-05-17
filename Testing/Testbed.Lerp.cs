@@ -1208,7 +1208,7 @@ internal static unsafe partial class Testbed
     {
         var lut = cmsPipelineAlloc(DbgThread(), 3, 3);
         var mpe = cmsStageAllocCLut16bit(DbgThread(), 9, 3, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler3D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler3D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1234,7 +1234,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 3, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 3, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler3D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler3D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1258,7 +1258,7 @@ internal static unsafe partial class Testbed
     {
         var lut = cmsPipelineAlloc(DbgThread(), 4, 3);
         var mpe = cmsStageAllocCLut16bit(DbgThread(), 9, 4, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler4D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler4D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1284,7 +1284,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 4, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 4, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler4D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler4D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1310,7 +1310,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 5, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 5, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler5D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler5D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1336,7 +1336,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 6, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 6, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler6D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler6D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1362,7 +1362,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 7, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 7, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler7D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler7D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy
@@ -1388,7 +1388,7 @@ internal static unsafe partial class Testbed
 
         var lut = cmsPipelineAlloc(DbgThread(), 8, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 8, 3, null);
-        cmsStageSampleCLut16bit(mpe, &Sampler8D, null, SamplerFlag.None);
+        cmsStageSampleCLut16bit(mpe, Sampler8D, null, SamplerFlag.None);
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, mpe);
 
         // Check accuracy

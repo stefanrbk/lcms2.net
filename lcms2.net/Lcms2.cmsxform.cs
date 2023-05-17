@@ -500,10 +500,43 @@ public static unsafe partial class Lcms2
         }
     }
 
+    internal static void DupPluginTransformList(Context ctx, in Context src)
+    {
+        TransformPluginChunkType* head = (TransformPluginChunkType*)src->chunks[Chunks.TransformPlugin];
+        TransformCollection* Anterior = null, entry;
+        TransformPluginChunkType newHead = default;
+
+        _cmsAssert(ctx);
+        _cmsAssert(head);
+
+        // Walk the list copying all nodes
+        for (entry = head->TransformCollection;
+             entry is not null;
+             entry = entry->Next)
+        {
+            var newEntry = _cmsSubAlloc<TransformCollection>(ctx->MemPool);
+
+            if (newEntry is null)
+                return;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.TransformCollection is null)
+                newHead.TransformCollection = newEntry;
+        }
+
+        ctx->chunks[Chunks.TransformPlugin] = _cmsSubAllocDup<TransformPluginChunkType>(ctx->MemPool, &newHead);
+    }
+
     internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context src)
     {
         fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
-            AllocPluginChunk(ctx, src, &DupPluginList<TransformPluginChunkType, TransformCollection>, Chunks.TransformPlugin, @default);
+            AllocPluginChunk(ctx, src, DupPluginTransformList, Chunks.TransformPlugin, @default);
     }
 
     internal static void _cmsTransform2toTransformAdaptor(

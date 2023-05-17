@@ -45,7 +45,7 @@ public static unsafe partial class Lcms2
     internal const double InpAdj = 1 / MAX_ENCODEABLE_XYZ;
     internal const double OutpAdj = MAX_ENCODEABLE_XYZ;
 
-    internal static bool _cmsReadMeadiaWhitePoint(CIEXYZ* Dest, Profile* hProfile)
+    internal static bool _cmsReadMediaWhitePoint(CIEXYZ* Dest, HPROFILE hProfile)
     {
         _cmsAssert(Dest);
 
@@ -73,7 +73,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadCHAD(MAT3* Dest, Profile* hProfile)
+    internal static bool _cmsReadCHAD(MAT3* Dest, HPROFILE hProfile)
     {
         _cmsAssert(Dest);
 
@@ -107,7 +107,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool ReadIccMatrixRGB2XYZ(MAT3* r, Profile* hProfile)
+    private static bool ReadIccMatrixRGB2XYZ(MAT3* r, HPROFILE hProfile)
     {
         _cmsAssert(r);
 
@@ -125,7 +125,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static Pipeline* BuildGrayInputMatrixPipeline(Profile* hProfile)
+    private static Pipeline* BuildGrayInputMatrixPipeline(HPROFILE hProfile)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -174,7 +174,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static Pipeline* BuildRGBInputMatrixShaper(Profile* hProfile)
+    private static Pipeline* BuildRGBInputMatrixShaper(HPROFILE hProfile)
     {
         var Shapes = stackalloc ToneCurve*[3];
         var ContextID = cmsGetProfileContextID(hProfile); ;
@@ -223,7 +223,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadFloatInputTag(Profile* hProfile, Signature tagFloat)
+    internal static Pipeline* _cmsReadFloatInputTag(HPROFILE hProfile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var Lut = cmsPipelineDup((Pipeline*)cmsReadTag(hProfile, tagFloat));
@@ -263,7 +263,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadInputLUT(Profile* hProfile, uint Intent)
+    internal static Pipeline* _cmsReadInputLUT(HPROFILE hProfile, uint Intent)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -356,7 +356,7 @@ public static unsafe partial class Lcms2
         return BuildRGBInputMatrixShaper(hProfile);
     }
 
-    private static Pipeline* BuildGrayOutputPipeline(Profile* hProfile)
+    private static Pipeline* BuildGrayOutputPipeline(HPROFILE hProfile)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -393,7 +393,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static Pipeline* BuildRGBOutputMatrixShaper(Profile* hProfile)
+    private static Pipeline* BuildRGBOutputMatrixShaper(HPROFILE hProfile)
     {
         var Shapes = stackalloc ToneCurve*[3];
         var InvShapes = stackalloc ToneCurve*[3];
@@ -473,7 +473,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static Pipeline* _cmsReadFloatOutputTag(Profile* hProfile, Signature tagFloat)
+    internal static Pipeline* _cmsReadFloatOutputTag(HPROFILE hProfile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var Lut = cmsPipelineDup((Pipeline*)cmsReadTag(hProfile, tagFloat));
@@ -517,7 +517,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadOutputLUT(Profile* hProfile, uint Intent)
+    internal static Pipeline* _cmsReadOutputLUT(HPROFILE hProfile, uint Intent)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
 
@@ -586,7 +586,7 @@ public static unsafe partial class Lcms2
         return BuildRGBOutputMatrixShaper(hProfile);
     }
 
-    internal static Pipeline* _cmsReadFloatDevicelinkTag(Profile* hProfile, Signature tagFloat)
+    internal static Pipeline* _cmsReadFloatDevicelinkTag(HPROFILE hProfile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(hProfile);
         var Lut = cmsPipelineDup((Pipeline*)cmsReadTag(hProfile, tagFloat));
@@ -627,7 +627,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadDevicelinkLUT(Profile* hProfile, uint Intent)
+    internal static Pipeline* _cmsReadDevicelinkLUT(HPROFILE hProfile, uint Intent)
     {
         Pipeline* Lut;
         var ContextID = cmsGetProfileContextID(hProfile);
@@ -715,7 +715,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static bool cmsIsMatrixShaper(Profile* hProfile) =>
+    public static bool cmsIsMatrixShaper(HPROFILE hProfile) =>
         (uint)cmsGetColorSpace(hProfile) switch
         {
             cmsSigGrayData => cmsIsTag(hProfile, cmsSigGrayTRCTag),
@@ -728,7 +728,7 @@ public static unsafe partial class Lcms2
             _ => false,
         };
 
-    public static bool cmsIsCLUT(Profile* hProfile, uint Intent, uint UsedDirection)
+    public static bool cmsIsCLUT(HPROFILE hProfile, uint Intent, uint UsedDirection)
     {
         Signature* TagTable;
 
@@ -754,7 +754,7 @@ public static unsafe partial class Lcms2
         return cmsIsTag(hProfile, TagTable[Intent]);
     }
 
-    public static bool cmsIsIntentSupported(Profile* hProfile, uint Intent, uint UsedDirection) =>
+    public static bool cmsIsIntentSupported(HPROFILE hProfile, uint Intent, uint UsedDirection) =>
         cmsIsCLUT(hProfile, Intent, UsedDirection) ||
         // Is there any matrix-shaper? If so, the intent is supported. This is a bit odd, since V2 matrix shaper
         // does not fully support relative colorimetric because they cannot deal with non-zero black points, but
@@ -762,7 +762,7 @@ public static unsafe partial class Lcms2
         // the accuracy would be less than optimal in rel.col and v2 case.
         cmsIsMatrixShaper(hProfile);
 
-    internal static Sequence* _cmsReadProfileSequence(Profile* hProfile)
+    internal static Sequence* _cmsReadProfileSequence(HPROFILE hProfile)
     {
         // Take profile sequence description first
         var ProfileSeq = (Sequence*)cmsReadTag(hProfile, cmsSigProfileSequenceDescTag);
@@ -793,7 +793,7 @@ public static unsafe partial class Lcms2
         return NewSeq;
     }
 
-    internal static bool _cmsWriteProfileSequence(Profile* hProfile, in Sequence* seq)
+    internal static bool _cmsWriteProfileSequence(HPROFILE hProfile, in Sequence* seq)
     {
         if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, seq)) return false;
 
@@ -803,7 +803,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static Mlu* GetMLUFromProfile(Profile* h, Signature sig)
+    private static Mlu* GetMLUFromProfile(HPROFILE h, Signature sig)
     {
         var mlu = (Mlu*)cmsReadTag(h, sig);
         if (mlu is null) return null;
@@ -811,7 +811,7 @@ public static unsafe partial class Lcms2
         return cmsMLUdup(mlu);
     }
 
-    internal static Sequence* _cmsCompileProfileSequence(Context* ContextID, uint nProfiles, Profile** hProfiles)
+    internal static Sequence* _cmsCompileProfileSequence(Context ContextID, uint nProfiles, HPROFILE* hProfiles)
     {
         var seq = cmsAllocProfileSequenceDescription(ContextID, nProfiles);
 

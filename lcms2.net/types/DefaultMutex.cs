@@ -36,18 +36,18 @@ public unsafe class DefaultMutex : IMutex
     public DefaultMutex() =>
         mutex = new Mutex();
 
-    public static IMutex Create(Context* _) =>
+    public static IMutex Create(Context _) =>
         new DefaultMutex();
 
     public void Dispose() =>
         mutex.Dispose();
 
-    public bool Lock(Context* _) =>
+    public bool Lock(Context _) =>
         mutex.WaitOne();
 
-    public void Unlock(Context* _) =>
+    public void Unlock(Context _) =>
         mutex.ReleaseMutex();
 
-    public void Destroy(Context* _) =>
+    public void Destroy(Context _) =>
         Dispose();
 }

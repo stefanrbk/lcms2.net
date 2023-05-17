@@ -29,14 +29,12 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-internal unsafe struct ParametricCurvesCollection : INextOffset
+internal unsafe struct ParametricCurvesCollection
 {
     public uint nFunctions;
     public fixed int FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
     public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
-    public delegate*<int, in double*, double, double> Evaluator;
+    public ParametricCurveEvaluator Evaluator;
 
     public ParametricCurvesCollection* Next;
-
-    public static nuint NextOffset { get; } = (nuint)(sizeof(uint) + (sizeof(int) * MAX_TYPES_IN_LCMS_PLUGIN) + (sizeof(uint) * MAX_TYPES_IN_LCMS_PLUGIN) + sizeof(nuint));
 }

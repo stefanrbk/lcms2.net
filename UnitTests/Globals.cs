@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+global using unsafe Context = lcms2.state.Context_struct*;
 
 using lcms2.state;
 using lcms2.types;
@@ -50,19 +51,19 @@ public static unsafe class Globals
     {
         DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
 
-        DebugMemHandler->@base.Magic = Signature.Plugin.MagicNumber;
+        DebugMemHandler->@base.Magic = cmsPluginMagicNumber;
         DebugMemHandler->@base.ExpectedVersion = 2060;
-        DebugMemHandler->@base.Type = Signature.Plugin.MemHandler;
+        DebugMemHandler->@base.Type = cmsPluginMemHandlerSig;
 
-        DebugMemHandler->MallocPtr = &DebugMalloc;
-        DebugMemHandler->FreePtr = &DebugFree;
-        DebugMemHandler->ReallocPtr = &DebugRealloc;
+        DebugMemHandler->MallocPtr = DebugMalloc;
+        DebugMemHandler->FreePtr = DebugFree;
+        DebugMemHandler->ReallocPtr = DebugRealloc;
     }
 
-    public static Context* DbgThread() =>
-        (Context*)(void*)((byte*)null + (Interlocked.Increment(ref thread) % 0xff0));
+    public static Context DbgThread() =>
+        (Context)(void*)((byte*)null + (Interlocked.Increment(ref thread) % 0xff0));
 
-    private static void* DebugMalloc(Context* ContextID, uint size)
+    private static void* DebugMalloc(Context ContextID, uint size)
     {
         if (size <= 0)
             Assert.Fail("malloc requested with zero bytes");
@@ -93,7 +94,7 @@ public static unsafe class Globals
         }
     }
 
-    private static void DebugFree(Context* ContextID, void* Ptr)
+    private static void DebugFree(Context ContextID, void* Ptr)
     {
         if (Ptr is null)
             Assert.Fail("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
@@ -107,7 +108,7 @@ public static unsafe class Globals
         free(blk);
     }
 
-    private static void* DebugRealloc(Context* ContextID, void* Ptr, uint NewSize)
+    private static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
     {
         var NewPtr = DebugMalloc(ContextID, NewSize);
         if (Ptr is null) return NewPtr;
@@ -141,7 +142,7 @@ public static unsafe class Globals
         blk->DontCheck = 1;
     }
 
-    public static Context* WatchDogContext(void* usr)
+    public static Context WatchDogContext(void* usr)
     {
         var ctx = cmsCreateContext(DebugMemHandler, usr);
 

@@ -32,8 +32,8 @@ namespace lcms2.types;
 public unsafe struct Formatter
 {
     [FieldOffset(0)]
-    public delegate*<Transform*, ushort*, byte*, uint, byte*> Fmt16;
+    public Formatter16 Fmt16;
 
     [FieldOffset(0)]
-    public delegate*<Transform*, float*, byte*, uint, byte*> FmtFloat;
+    public FormatterFloat FmtFloat;
 }

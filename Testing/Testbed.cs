@@ -24,6 +24,9 @@
 //
 //---------------------------------------------------------------------------------
 //
+global using unsafe Context = lcms2.state.Context_struct*;
+global using unsafe HPROFILE = void*;
+
 using lcms2.state;
 using lcms2.types;
 
@@ -54,10 +57,19 @@ internal static unsafe partial class Testbed
 
     public static readonly int SIZE_OF_MEM_HEADER = sizeof(MemoryBlock);
 
-    public static readonly PluginMemHandler* DebugMemHandler;
+    public static readonly PluginMemHandler DebugMemHandler = new()
+    {
+        @base = new()
+        {
+            ExpectedVersion = 2060,
+            Magic = cmsPluginMagicNumber,
+            Type = cmsPluginMemHandlerSig,
+        },
+        MallocPtr = DebugMalloc,
+        FreePtr = DebugFree,
+        ReallocPtr = DebugRealloc,
+    };
     public static bool HasConsole = !Console.IsInputRedirected;
-
-    private static readonly Destructor Finalizer = new();
     private static uint thread = 1;
 
     public static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> =>
@@ -71,33 +83,12 @@ internal static unsafe partial class Testbed
         Environment.Exit(1);
     }
 
-    private class Destructor
+    public static Context DbgThread()
     {
-        ~Destructor()
-        {
-            free(DebugMemHandler);
-        }
+        return (Context)(void*)((byte*)null + (thread++ % 0xff0));
     }
 
-    static Testbed()
-    {
-        DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
-
-        DebugMemHandler->@base.Magic = cmsMagicNumber;
-        DebugMemHandler->@base.ExpectedVersion = 2060;
-        DebugMemHandler->@base.Type = cmsPluginMemHandlerSig;
-
-        DebugMemHandler->MallocPtr = &DebugMalloc;
-        DebugMemHandler->FreePtr = &DebugFree;
-        DebugMemHandler->ReallocPtr = &DebugRealloc;
-    }
-
-    public static Context* DbgThread()
-    {
-        return (Context*)(void*)((byte*)null + (thread++ % 0xff0));
-    }
-
-    public static void* DebugMalloc(Context* ContextID, uint size)
+    public static void* DebugMalloc(Context ContextID, uint size)
     {
         if (size <= 0)
             Die("malloc requested with zero bytes");
@@ -125,7 +116,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    public static void DebugFree(Context* ContextID, void* Ptr)
+    public static void DebugFree(Context ContextID, void* Ptr)
     {
         if (Ptr is null)
             Die("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
@@ -142,7 +133,7 @@ internal static unsafe partial class Testbed
         catch { }
     }
 
-    public static void* DebugRealloc(Context* ContextID, void* Ptr, uint NewSize)
+    public static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
     {
         var NewPtr = DebugMalloc(ContextID, NewSize);
         if (Ptr is null) return NewPtr;
@@ -184,25 +175,25 @@ internal static unsafe partial class Testbed
             ConsoleWriteLine("{green:Ok.}");
     }
 
-    public static void* PluginMemHander() =>
-        DebugMemHandler;
-
-    public static Context* WatchDogContext(void* usr)
+    public static Context WatchDogContext(void* usr)
     {
-        var ctx = cmsCreateContext(DebugMemHandler, usr);
+        fixed (void* handler = &DebugMemHandler)
+        {
+            var ctx = cmsCreateContext(handler, usr);
 
-        if (ctx is null)
-            Die("Unable to create memory managed context");
+            if (ctx is null)
+                Die("Unable to create memory managed context");
 
-        DebugMemDontCheckThis(ctx);
-        return ctx;
+            DebugMemDontCheckThis(ctx);
+            return ctx;
+        }
     }
 
-    public static void FatalErrorQuit(Context* _1, ErrorCode _2, string text) =>
+    public static void FatalErrorQuit(Context _1, ErrorCode _2, string text) =>
         Die(text);
 
     public static void ResetFatalError() =>
-        cmsSetLogErrorHandler(&FatalErrorQuit);
+        cmsSetLogErrorHandler(FatalErrorQuit);
 
     public static void Dot() =>
         ConsoleWrite(".");

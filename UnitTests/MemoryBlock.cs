@@ -58,7 +58,7 @@ namespace lcms2.tests;
 public unsafe struct MemoryBlock
 {
     public uint KeepSize;
-    public Context* WhoAllocated;
+    public Context WhoAllocated;
     public uint DontCheck;
     public ulong alignment;
 }

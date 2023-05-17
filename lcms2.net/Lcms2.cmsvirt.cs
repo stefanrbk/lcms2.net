@@ -34,7 +34,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static bool SetTextTags(Profile* hProfile, in char* Description)
+    private static bool SetTextTags(HPROFILE hProfile, in char* Description)
     {
         Mlu* DescriptionMLU, CopyrightMLU;
         var rc = false;
@@ -64,7 +64,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static bool SetSeqDescTag(Profile* hProfile, in byte* Model)
+    private static bool SetSeqDescTag(HPROFILE hProfile, in byte* Model)
     {
         var rc = false;
         var ContextID = cmsGetProfileContextID(hProfile);
@@ -96,7 +96,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static Profile* cmsCreateRGBProfileTHR(Context* ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction)
+    public static HPROFILE cmsCreateRGBProfileTHR(Context ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction)
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
@@ -210,10 +210,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction) =>
+    public static HPROFILE cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction) =>
         cmsCreateRGBProfileTHR(null, WhitePoint, Primaries, TransferFunction);
 
-    public static Profile* cmsCreateGrayProfileTHR(Context* ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
+    public static HPROFILE cmsCreateGrayProfileTHR(Context ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
     {
         CIEXYZ tmp;
 
@@ -257,10 +257,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve* TransferFunction) =>
+    public static HPROFILE cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve* TransferFunction) =>
         cmsCreateGrayProfileTHR(null, WhitePoint, TransferFunction);
 
-    public static Profile* cmsCreateLinearizationDeviceLinkTHR(Context* ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)
+    public static HPROFILE cmsCreateLinearizationDeviceLinkTHR(Context ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)
     {
         var hICC = cmsCreateProfilePlaceholder(ContextID);
         if (hICC is null) return null;
@@ -304,7 +304,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateLinearizationDeviceLink(Signature ColorSpace, ToneCurve** TransferFunctions) =>
+    public static HPROFILE cmsCreateLinearizationDeviceLink(Signature ColorSpace, ToneCurve** TransferFunctions) =>
         cmsCreateLinearizationDeviceLinkTHR(null, ColorSpace, TransferFunctions);
 
     private static bool InkLimitingSampler(in ushort* In, ushort* Out, void* Cargo)
@@ -344,7 +344,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static Profile* cmsCreateInkLimitingDeviceLinkTHR(Context* ContextID, Signature ColorSpace, double Limit)
+    public static HPROFILE cmsCreateInkLimitingDeviceLinkTHR(Context ContextID, Signature ColorSpace, double Limit)
     {
         if ((uint)ColorSpace is not cmsSigCmykData)
         {
@@ -379,7 +379,7 @@ public static unsafe partial class Lcms2
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, nChannels, nChannels, null);
         if (CLUT is null) goto Error;
 
-        if (!cmsStageSampleCLut16bit(CLUT, &InkLimitingSampler, &Limit, 0)) goto Error;
+        if (!cmsStageSampleCLut16bit(CLUT, InkLimitingSampler, &Limit, 0)) goto Error;
 
         if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, nChannels)) ||
             !cmsPipelineInsertStage(LUT, StageLoc.AtEnd, CLUT) ||
@@ -411,10 +411,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateInkLimitingDeviceLink(Signature ColorSpace, double Limit) =>
+    public static HPROFILE cmsCreateInkLimitingDeviceLink(Signature ColorSpace, double Limit) =>
         cmsCreateInkLimitingDeviceLinkTHR(null, ColorSpace, Limit);
 
-    public static Profile* cmsCreateLab2ProfileTHR(Context* ContextID, in CIExyY* WhitePoint)
+    public static HPROFILE cmsCreateLab2ProfileTHR(Context ContextID, in CIExyY* WhitePoint)
     {
         Pipeline* LUT = null;
 
@@ -451,10 +451,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateLab2Profile(in CIExyY* WhitePoint) =>
+    public static HPROFILE cmsCreateLab2Profile(in CIExyY* WhitePoint) =>
         cmsCreateLab2ProfileTHR(null, WhitePoint);
 
-    public static Profile* cmsCreateLab4ProfileTHR(Context* ContextID, in CIExyY* WhitePoint)
+    public static HPROFILE cmsCreateLab4ProfileTHR(Context ContextID, in CIExyY* WhitePoint)
     {
         Pipeline* LUT = null;
 
@@ -491,10 +491,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateLab4Profile(in CIExyY* WhitePoint) =>
+    public static HPROFILE cmsCreateLab4Profile(in CIExyY* WhitePoint) =>
         cmsCreateLab4ProfileTHR(null, WhitePoint);
 
-    public static Profile* cmsCreateXYZProfileTHR(Context* ContextID)
+    public static HPROFILE cmsCreateXYZProfileTHR(Context ContextID)
     {
         Pipeline* LUT = null;
 
@@ -531,10 +531,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateXYZProfile() =>
+    public static HPROFILE cmsCreateXYZProfile() =>
         cmsCreateXYZProfileTHR(null);
 
-    private static ToneCurve* Build_sRGBGamma(Context* ContextID)
+    private static ToneCurve* Build_sRGBGamma(Context ContextID)
     {
         var Parameters = stackalloc double[5]
         {
@@ -548,7 +548,7 @@ public static unsafe partial class Lcms2
         return cmsBuildParametricToneCurve(ContextID, 4, Parameters);
     }
 
-    public static Profile* cmsCreate_sRGBProfileTHR(Context* ContextID)
+    public static HPROFILE cmsCreate_sRGBProfileTHR(Context ContextID)
     {
         var D65 = new CIExyY() { x = 0.3127, y = 0.3290, Y = 1.0 };
         var Rec709Primaries = new CIExyYTRIPLE()
@@ -577,7 +577,7 @@ public static unsafe partial class Lcms2
         return hsRGB;
     }
 
-    public static Profile* cmsCreate_sRGBProfile() =>
+    public static HPROFILE cmsCreate_sRGBProfile() =>
         cmsCreate_sRGBProfileTHR(null);
 
     private struct BCHSWADJUSTS
@@ -618,8 +618,8 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static Profile* cmsCreateBCHSWabstractProfileTHR(
-        Context* ContextID,
+    public static HPROFILE cmsCreateBCHSWabstractProfileTHR(
+        Context ContextID,
         uint nLUTPoints,
         double Bright,
         double Contrast,
@@ -671,7 +671,7 @@ public static unsafe partial class Lcms2
         var CLUT = cmsStageAllocCLut16bitGranular(ContextID, Dimensions, 3, 3, null);
         if (CLUT is null) goto Error;
 
-        if (!cmsStageSampleCLut16bit(CLUT, &bchswSampler, &bchsw, SamplerFlag.None))
+        if (!cmsStageSampleCLut16bit(CLUT, bchswSampler, &bchsw, SamplerFlag.None))
             goto Error;
 
         if (!cmsPipelineInsertStage(Pipeline, StageLoc.AtEnd, CLUT))
@@ -697,7 +697,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateBCHSWabstractProfile(
+    public static HPROFILE cmsCreateBCHSWabstractProfile(
         uint nLUTPoints,
         double Bright,
         double Contrast,
@@ -707,7 +707,7 @@ public static unsafe partial class Lcms2
         uint TempDest) =>
         cmsCreateBCHSWabstractProfileTHR(null, nLUTPoints, Bright, Contrast, Hue, Saturation, TempSrc, TempDest);
 
-    public static Profile* cmsCreateNULLProfileTHR(Context* ContextID)
+    public static HPROFILE cmsCreateNULLProfileTHR(Context ContextID)
     {
         var EmptyTab = stackalloc ToneCurve*[3];
         var Zero = stackalloc ushort[2] { 0, 0 };
@@ -759,13 +759,13 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsCreateNULLProfile() =>
+    public static HPROFILE cmsCreateNULLProfile() =>
         cmsCreateNULLProfileTHR(null);
 
     private static bool IsPCS(Signature ColorSpace) =>
         (uint)ColorSpace is cmsSigXYZData or cmsSigLabData;
 
-    private static void FixColorSpaces(Profile* hProfile, Signature ColorSpace, Signature PCS, uint dwFlags)
+    private static void FixColorSpaces(HPROFILE hProfile, Signature ColorSpace, Signature PCS, uint dwFlags)
     {
         var (cls, cp, pcs) = ((dwFlags & cmsFLAGS_GUESSDEVICECLASS) is not 0, IsPCS(ColorSpace), IsPCS(PCS)) switch
         {
@@ -780,10 +780,10 @@ public static unsafe partial class Lcms2
         cmsSetPCS(hProfile, pcs);
     }
 
-    private static Profile* CreateNamedColorDevicelink(Transform* xform)
+    private static HPROFILE CreateNamedColorDevicelink(Transform* xform)
     {
         var v = xform;
-        Profile* hICC = null;
+        HPROFILE hICC = null;
         NamedColorList* nc2 = null, Original = null;
 
         // Create an empty placeholder
@@ -881,9 +881,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsTransform2DeviceLink(Transform* hTransform, double Version, uint dwFlags)
+    public static HPROFILE cmsTransform2DeviceLink(Transform* hTransform, double Version, uint dwFlags)
     {
-        Profile* hProfile = null;
+        HPROFILE hProfile = null;
         var xform = hTransform;
         Pipeline* LUT = null;
         var ContextID = cmsGetTransformContextID(hTransform);

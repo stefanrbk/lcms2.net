@@ -26,19 +26,21 @@
 //
 using lcms2.state;
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace lcms2.types;
 
 public unsafe struct Transform
 {
     public uint InputFormat, OutputFormat;
 
-    public delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void> xform;
+    public Transform2Fn xform;
 
-    public delegate*<Transform*, ushort*, byte*, uint, byte*> FromInput;
-    public delegate*<Transform*, ushort*, byte*, uint, byte*> ToOutput;
+    public Formatter16 FromInput;
+    public Formatter16 ToOutput;
 
-    public delegate*<Transform*, float*, byte*, uint, byte*> FromInputFloat;
-    public delegate*<Transform*, float*, byte*, uint, byte*> ToOutputFloat;
+    public FormatterFloat FromInputFloat;
+    public FormatterFloat ToOutputFloat;
 
     public Cache Cache;
 
@@ -62,10 +64,10 @@ public unsafe struct Transform
 
     public uint RenderingIntent;
 
-    public Context* ContextID;
+    public Context ContextID;
 
     public void* UserData;
-    public delegate*<Context*, void*, void> FreeUserData;
+    public FreeUserDataFn? FreeUserData;
 
-    public delegate*<Transform*, in void*, void*, uint, uint, void> OldXform;
+    public TransformFn? OldXform;
 }
