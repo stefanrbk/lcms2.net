@@ -27,9 +27,11 @@
 
 namespace lcms2.types;
 
-public struct IccViewingConditions
+public struct ViewingConditions
 {
-    public CIEXYZ IlluminantXYZ;
-    public CIEXYZ SurroundXYZ;
-    public IlluminantType IlluminantType;
+    public CIEXYZ whitePoint;
+    public double Yb;
+    public double La;
+    public uint surround;
+    public double D_value;
 }

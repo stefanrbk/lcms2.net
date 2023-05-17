@@ -26,10 +26,15 @@
 //
 
 namespace lcms2.types;
-
-public struct CIEJCh
+public unsafe struct CAM02COLOR
 {
-    public double J;
-    public double C;
-    public double h;
+    public fixed double XYZ[3];
+    public fixed double RGB[3];
+    public fixed double RGBc[3];
+    public fixed double RGBp[3];
+    public fixed double RGBpa[3];
+    public double a, b, h, e, H, A, J, Q, s, t, C, M;
+    public fixed double abC[2];
+    public fixed double abs[2];
+    public fixed double abM[2];
 }

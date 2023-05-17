@@ -27,9 +27,13 @@
 
 namespace lcms2.types;
 
-public struct IccViewingConditions
+public unsafe struct CIECAM02
 {
-    public CIEXYZ IlluminantXYZ;
-    public CIEXYZ SurroundXYZ;
-    public IlluminantType IlluminantType;
+    public CAM02COLOR adoptedWhite;
+    public double LA, Yb;
+    public double F, c, Nc;
+    public uint surround;
+    public double n, Nbb, Ncb, z, FL, D;
+
+    public Context ContextID;
 }

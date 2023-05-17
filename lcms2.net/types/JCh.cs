@@ -27,9 +27,9 @@
 
 namespace lcms2.types;
 
-public struct IccViewingConditions
+public struct JCh
 {
-    public CIEXYZ IlluminantXYZ;
-    public CIEXYZ SurroundXYZ;
-    public IlluminantType IlluminantType;
+    public double J;
+    public double C;
+    public double h;
 }
