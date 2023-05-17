@@ -31,11 +31,11 @@ public unsafe struct PluginMemHandler
 {
     public PluginBase @base;
 
-    public delegate*<Context*, uint, void*> MallocPtr;
-    public delegate*<Context*, void*, void> FreePtr;
-    public delegate*<Context*, void*, uint, void*> ReallocPtr;
+    public MallocFnPtrType MallocPtr;
+    public FreeFnPtrType FreePtr;
+    public ReallocFnPtrType ReallocPtr;
 
-    public delegate*<Context*, uint, void*> MallocZeroPtr;
-    public delegate*<Context*, uint, uint, void*> CallocPtr;
-    public delegate*<Context*, in void*, uint, void*> DupPtr;
+    public MallocZerocFnPtrType MallocZeroPtr;
+    public CallocFnPtrType CallocPtr;
+    public DupFnPtrType DupPtr;
 }

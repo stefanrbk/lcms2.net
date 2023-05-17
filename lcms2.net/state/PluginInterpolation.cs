@@ -32,5 +32,6 @@ namespace lcms2.state;
 public unsafe struct PluginInterpolation
 {
     public PluginBase @base;
-    public delegate*<uint, uint, uint, InterpFunction> InterpolatorsFactory;
+
+    public InterpFnFactory InterpolatorsFactory;
 }

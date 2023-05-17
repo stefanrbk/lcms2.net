@@ -31,5 +31,5 @@ namespace lcms2.state;
 
 internal unsafe struct LogErrorChunkType
 {
-    public delegate*<Context*, ErrorCode, string, void> LogErrorHandler;
+    public LogErrorHandlerFunction LogErrorHandler;
 }

@@ -31,8 +31,8 @@ public unsafe struct PluginMutex
 {
     public PluginBase @base;
 
-    public delegate*<Context*, void*> CreateMutexPtr;
-    public delegate*<Context*, void*, void> DestroyMutexPtr;
-    public delegate*<Context*, void*, bool> LockMutexPtr;
-    public delegate*<Context*, void*, void> UnlockMutexPtr;
+    public CreateMutexFnPtrType CreateMutexPtr;
+    public DestroyMutexFnPtrType DestroyMutexPtr;
+    public LockMutexFnPtrType LockMutexPtr;
+    public UnlockMutexFnPtrType UnlockMutexPtr;
 }

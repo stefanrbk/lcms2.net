@@ -29,9 +29,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct CurvesPluginChunkType : IListOffset
+internal unsafe struct CurvesPluginChunkType
 {
     public ParametricCurvesCollection* ParametricCurves;
-
-    public static nuint ListOffset { get; } = 0;
 }

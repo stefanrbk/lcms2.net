@@ -28,9 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct OptimizationPluginChunkType : IListOffset
+internal unsafe struct OptimizationPluginChunkType
 {
     public OptimizationCollection* OptimizationCollection;
-
-    public static nuint ListOffset { get; } = 0;
 }

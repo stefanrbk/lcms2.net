@@ -31,11 +31,11 @@ using System.Runtime.InteropServices;
 namespace lcms2.state;
 
 [StructLayout(LayoutKind.Explicit)]
-public unsafe struct TransformFactory
+public unsafe struct TransformFactories
 {
     [FieldOffset(0)]
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> legacy_xform;
+    public TransformFactory legacy_xform;
 
     [FieldOffset(0)]
-    public delegate*<delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>*, void**, delegate*<Context*, void*, void>*, Pipeline**, uint*, uint*, uint*, bool> xform;
+    public Transform2Factory xform;
 }

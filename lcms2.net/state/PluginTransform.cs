@@ -30,5 +30,5 @@ namespace lcms2.state;
 public unsafe struct PluginTransform
 {
     public PluginBase @base;
-    public TransformFactory factories;
+    public TransformFactories factories;
 }

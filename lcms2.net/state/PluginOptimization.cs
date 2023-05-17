@@ -31,5 +31,5 @@ namespace lcms2.state;
 public unsafe struct PluginOptimization
 {
     public PluginBase @base;
-    public delegate*<Pipeline**, uint, uint*, uint*, uint*, bool> OptimizePtr;
+    public OPToptimizeFn OptimizePtr;
 }

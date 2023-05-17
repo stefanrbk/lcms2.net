@@ -29,10 +29,10 @@ namespace lcms2.state;
 
 internal unsafe struct MemPluginChunkType
 {
-    public delegate*<Context*, uint, void*> MallocPtr;
-    public delegate*<Context*, uint, void*> MallocZeroPtr;
-    public delegate*<Context*, void*, void> FreePtr;
-    public delegate*<Context*, void*, uint, void*> ReallocPtr;
-    public delegate*<Context*, uint, uint, void*> CallocPtr;
-    public delegate*<Context*, in void*, uint, void*> DupPtr;
+    public MallocFnPtrType MallocPtr;
+    public MallocZerocFnPtrType MallocZeroPtr;
+    public FreeFnPtrType FreePtr;
+    public ReallocFnPtrType ReallocPtr;
+    public CallocFnPtrType CallocPtr;
+    public DupFnPtrType DupPtr;
 }

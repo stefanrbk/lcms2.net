@@ -32,6 +32,6 @@ public unsafe struct PluginRenderingIntent
 {
     public PluginBase @base;
     public uint Intent;
-    public delegate*<Context*, uint, uint*, Profile**, bool*, double*, uint, Pipeline*> Link;
+    public IntentFn Link;
     public string Description;
 }

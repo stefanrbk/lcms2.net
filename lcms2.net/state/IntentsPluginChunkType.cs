@@ -27,9 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe struct IntentsPluginChunkType : IListOffset
+internal unsafe struct IntentsPluginChunkType
 {
     public IntentsList* Intents;
-
-    public static nuint ListOffset { get; } = 0;
 }

@@ -35,5 +35,5 @@ public unsafe struct PluginParametricCurves
     public fixed uint FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
     public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
 
-    public delegate*<int, in double*, double, double> Evaluator;
+    public ParametricCurveEvaluator Evaluator;
 }

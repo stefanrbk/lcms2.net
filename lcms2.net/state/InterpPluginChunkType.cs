@@ -31,5 +31,5 @@ namespace lcms2.state;
 
 internal unsafe struct InterpPluginChunkType
 {
-    public delegate*<uint, uint, uint, InterpFunction> Interpolators;
+    public InterpFnFactory Interpolators;
 }

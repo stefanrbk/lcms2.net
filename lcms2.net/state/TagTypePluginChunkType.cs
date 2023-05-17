@@ -29,9 +29,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct TagTypePluginChunkType : IListOffset
+internal unsafe struct TagTypePluginChunkType
 {
     public TagTypeLinkedList* TagTypes;
-
-    public static nuint ListOffset { get; } = 0;
 }

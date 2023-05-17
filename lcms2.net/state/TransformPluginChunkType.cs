@@ -28,9 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct TransformPluginChunkType : IListOffset
+internal unsafe struct TransformPluginChunkType
 {
     public TransformCollection* TransformCollection;
-
-    public static nuint ListOffset { get; } = 0;
 }
