@@ -290,7 +290,7 @@ public static unsafe partial class Lcms2
         (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
     [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org, uint num) where T : struct =>
-        (T**)_cmsDupMem<nint>(ContextID, Org, num * _sizeof<nint>());
+        (T**)_cmsDupMem<nint>(ContextID, Org, num);
     [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : struct =>
         (T**)_cmsDupMem<nint>(ContextID, Org);

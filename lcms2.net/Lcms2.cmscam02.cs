@@ -397,6 +397,46 @@ public static unsafe partial class Lcms2
         CAM02COLOR clr;
         var lpMod = (CIECAM02*)hModel;
 
-        _cmsAssert()
+        _cmsAssert(lpMod, pIn, pOut);
+
+        memset<CAM02COLOR>(&clr, 0);
+
+        clr.XYZ[0] = pIn->X;
+        clr.XYZ[1] = pIn->Y;
+        clr.XYZ[2] = pIn->Z;
+
+        clr = XYZtoCAT02(clr);
+        clr = ChromaticAdaptation(clr, lpMod);
+        clr = CAT02toHPE(clr);
+        clr = NonlinearCompression(clr, lpMod);
+        clr = ComputeCorrelates(clr, lpMod);
+
+        pOut->J = clr.J;
+        pOut->C = clr.C;
+        pOut->h = clr.h;
+    }
+
+    public static void cmsCIECAM02Reverse(HANDLE hModel, in CIEJCh* pIn, CIEXYZ* pOut)
+    {
+        CAM02COLOR clr;
+        var lpMod = (CIECAM02*)hModel;
+
+        _cmsAssert(lpMod, pIn, pOut);
+
+        memset<CAM02COLOR>(&clr, 0);
+
+        clr.J = pIn->J;
+        clr.C = pIn->C;
+        clr.h = pIn->h;
+
+        clr = InverseCorrelates(clr, lpMod);
+        clr = InverseNonlinearity(clr, lpMod);
+        clr = HPEtoCAT02(clr);
+        clr = InverseChromaticAdaptation(clr, lpMod);
+        clr = CAT02toXYZ(clr);
+
+        pOut->X = clr.XYZ[0];
+        pOut->Y = clr.XYZ[1];
+        pOut->Z = clr.XYZ[2];
     }
 }
