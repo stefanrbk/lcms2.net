@@ -25,46 +25,44 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
+using static lcms2.cgats.CGATS;
 
-using System.Text;
+namespace lcms2.cgats;
 
-namespace lcms2;
-
-public static class Extensions
+internal unsafe struct IT8
 {
-    private static readonly Dictionary<string, nint> allocedStrings = new();
-    private static readonly Destructor Finalize = new();
-    private unsafe sealed class Destructor
-    {
-        ~Destructor()
-        {
-            foreach (var ptr in allocedStrings)
-                free((void*)ptr.Value);
-        }
-    }
-    public static bool IsSet(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is not 0;
+    public uint TablesCount;
+    public uint nTable;
 
-    public static bool IsUnset(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is 0;
+    public TABLE* Tab;
 
-    public static unsafe byte* ToBytePtr(this string str, int? len = null)
-    {
-        if (allocedStrings.TryGetValue(str, out var intPtr))
-            return (byte*)intPtr;
+    // Memory management
+    public OWNEDMEM* MemorySink;
+    public SUBALLOCATOR Allocator;
 
-        len ??= str.Length;
+    // Parser state machine
+    public SYMBOL sy;
+    public int ch;
 
-        var ptr = calloc<byte>((uint)len+1);
-        allocedStrings.Add(str, (nint)ptr);
+    public int inum;
+    public double dnum;
 
-        for (var i = 0; i < len; i++)
-        {
-            ptr[i] = (byte)str[i];
-        }
-        ptr[(int)len] = 0;
+    public @string* id;
+    public @string* str;
 
-        return ptr;
-    }
+    // Allowed keywords & datasets. They have visibility on whole stream
+    public KEYVALUE* ValidKeywords;
+    public KEYVALUE* ValidSampleID;
+
+    public byte* Source;
+    public int lineno;
+
+    public FILECTX** FileStack;
+    public int IncludeSP;
+
+    public byte* MemoryBlock;
+
+    public fixed byte DoubleFormatter[MAXID];
+
+    public Context ContextID;
 }

@@ -25,46 +25,27 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
+namespace lcms2.cgats;
 
-using System.Text;
-
-namespace lcms2;
-
-public static class Extensions
+internal enum SYMBOL
 {
-    private static readonly Dictionary<string, nint> allocedStrings = new();
-    private static readonly Destructor Finalize = new();
-    private unsafe sealed class Destructor
-    {
-        ~Destructor()
-        {
-            foreach (var ptr in allocedStrings)
-                free((void*)ptr.Value);
-        }
-    }
-    public static bool IsSet(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is not 0;
+    SUNDEFINED,
+    SINUM,      // Integer
+    SDNUM,      // Real
+    SIDENT,     // Identifier
+    SSTRING,    // string
+    SCOMMENT,   // comment
+    SEOLN,      // End of line
+    SEOF,       // End of stream
+    SSYNERROR,  // Syntax error found on stream
 
-    public static bool IsUnset(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is 0;
+    // Keywords
 
-    public static unsafe byte* ToBytePtr(this string str, int? len = null)
-    {
-        if (allocedStrings.TryGetValue(str, out var intPtr))
-            return (byte*)intPtr;
-
-        len ??= str.Length;
-
-        var ptr = calloc<byte>((uint)len+1);
-        allocedStrings.Add(str, (nint)ptr);
-
-        for (var i = 0; i < len; i++)
-        {
-            ptr[i] = (byte)str[i];
-        }
-        ptr[(int)len] = 0;
-
-        return ptr;
-    }
+    SBEGIN_DATA,
+    SBEGIN_DATA_FORMAT,
+    SEND_DATA,
+    SEND_DATA_FORMAT,
+    SKEYWORD,
+    SDATA_FORMAT_ID,
+    SINCLUDE
 }

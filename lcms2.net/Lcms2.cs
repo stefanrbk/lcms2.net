@@ -33,6 +33,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace lcms2;
 
@@ -889,7 +890,7 @@ public static unsafe partial class Lcms2
 
     #endregion lcms2_internal.h
 
-    private static readonly Destructor Finalise = new();
+    private static readonly Destructor Finalize = new();
 
     private sealed class Destructor
     {
@@ -1524,13 +1525,29 @@ public static unsafe partial class Lcms2
         return (nint)(ptr - str);
     }
 
+    internal static byte* strncpy(byte* dest, in string src, nuint n)
+    {
+        for(var i = 0; (nuint)i < n; i++)
+        {
+            dest[i] = i < src.Length
+                ? (byte)src[i]
+                : (byte)0;
+        }
+
+        return dest;
+    }
+
     internal static byte* strncpy(byte* dest, in byte* src, nuint n)
     {
-        var strSrc = src;
-        var strDest = dest;
-
-        while (strDest < dest + n)
-            *strDest++ = (*strSrc is not 0) ? *strSrc++ : (byte)0;
+        var srcEnd = false;
+        for (var i = 0; (nuint)i < n; i++)
+        {
+            if (src[i] == 0)
+                srcEnd = true;
+            dest[i] = !srcEnd
+                ? src[i]
+                : (byte)0;
+        }
 
         return dest;
     }
@@ -1559,6 +1576,37 @@ public static unsafe partial class Lcms2
         return val;
     }
 
+    internal static byte* strchr(byte* str, int c)
+    {
+        byte* first = null;
+
+        while(*str is not 0)
+        {
+            if (*str == c)
+            {
+                first = str;
+                break;
+            }
+        }
+
+        return first;
+    }
+
+    internal static  byte* strrchr(byte* str, int c)
+    {
+        byte* last = null;
+
+        while(*str is not 0)
+        {
+            if (*str == c)
+                last = str;
+
+            str++;
+        }
+
+        return last;
+    }
+
     internal static int sprintf(byte* buffer, string format, params object[] args)
     {
         var str = String.Format(format, args).AsSpan();
@@ -1572,6 +1620,56 @@ public static unsafe partial class Lcms2
         *buffer = 0;
 
         return result;
+    }
+
+    internal static int vsnprintf(byte* buffer, nuint count, byte* format, params object[] args) =>
+        snprintf(buffer, count, format, args);
+
+    internal static int snprintf(byte* buffer, nuint count, byte* format, params object[] args)
+    {
+        try
+        {
+            var str = String.Format(new string((sbyte*)format), args);
+            var pos = -1;
+
+            while (str[++pos] is not '\0')
+            {
+                if ((nuint)pos < count - 1)
+                    buffer[pos] = (byte)str[pos];
+            }
+            if ((nuint)pos < count - 1)
+                buffer[pos + 1] = 0;
+            else
+                buffer[count - 1] = 0;
+
+            return pos;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    internal static nint strspn(byte* str, byte* strCharSet)
+    {
+        var strPtr = str;
+        while (*strPtr != 0)
+        {
+            var found = false;
+            var set = strCharSet;
+            while (*set != 0)
+            {
+                if (*strPtr == *set++)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                return (nint)(strPtr - str);
+            strPtr++;
+        }
+        return 0;
     }
 
     internal static nuint fread(void* Buffer, nuint ElementSize, nuint ElementCount, FILE* Stream)

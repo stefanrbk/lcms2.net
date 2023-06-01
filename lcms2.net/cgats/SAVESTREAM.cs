@@ -25,46 +25,16 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
+using lcms2.io;
 
-using System.Text;
+namespace lcms2.cgats;
 
-namespace lcms2;
-
-public static class Extensions
+internal unsafe struct SAVESTREAM
 {
-    private static readonly Dictionary<string, nint> allocedStrings = new();
-    private static readonly Destructor Finalize = new();
-    private unsafe sealed class Destructor
-    {
-        ~Destructor()
-        {
-            foreach (var ptr in allocedStrings)
-                free((void*)ptr.Value);
-        }
-    }
-    public static bool IsSet(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is not 0;
+    public FILE* stream;
 
-    public static bool IsUnset(this SamplerFlag value, SamplerFlag flag) =>
-        (value & flag) is 0;
-
-    public static unsafe byte* ToBytePtr(this string str, int? len = null)
-    {
-        if (allocedStrings.TryGetValue(str, out var intPtr))
-            return (byte*)intPtr;
-
-        len ??= str.Length;
-
-        var ptr = calloc<byte>((uint)len+1);
-        allocedStrings.Add(str, (nint)ptr);
-
-        for (var i = 0; i < len; i++)
-        {
-            ptr[i] = (byte)str[i];
-        }
-        ptr[(int)len] = 0;
-
-        return ptr;
-    }
+    public byte* Base;
+    public byte* Ptr;
+    public uint Used;
+    public uint Max;
 }
