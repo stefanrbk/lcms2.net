@@ -963,6 +963,9 @@ public static unsafe partial class Lcms2
 
             // Lut defaults
             free(AllowedLUTTypes);
+
+            // PS global buffer
+            free(PSBuffer);
         }
     }
 
@@ -1386,6 +1389,12 @@ public static unsafe partial class Lcms2
                 memcpy(&AllowedLUTTypes[i], &ptr[i]);
 
         #endregion Lut defaults
+
+        #region PS
+
+        PSBuffer = calloc<byte>(2048);
+
+        #endregion PS
     }
 
     private static void WriteAllocs(nuint ptr, nuint size, string label)
@@ -1610,6 +1619,22 @@ public static unsafe partial class Lcms2
         }
 
         return dest;
+    }
+
+    internal static byte* strcat(byte* strDestination, in byte* strSource)
+    {
+        var src = strSource;
+        var dst = strDestination;
+
+        while (*dst is not 0)
+            dst++;
+
+        do
+        {
+            *dst = *src;
+        } while (*src++ is not 0);
+
+        return strDestination;
     }
 
     internal static byte* strcpy(byte* dest, in byte* src)
