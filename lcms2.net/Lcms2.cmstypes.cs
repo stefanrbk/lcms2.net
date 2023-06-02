@@ -198,10 +198,10 @@ public static unsafe partial class Lcms2
             return false;
 
         // Let's take the offsets to each element
-        ElementOffsets = _cmsCalloc<uint>(io->contextID, Count);
+        ElementOffsets = _cmsCalloc<uint>(io->ContextID, Count);
         if (ElementOffsets is null) goto Error;
 
-        ElementSizes = _cmsCalloc<uint>(io->contextID, Count);
+        ElementSizes = _cmsCalloc<uint>(io->ContextID, Count);
         if (ElementSizes is null) goto Error;
 
         for (var i = 0; i < Count; i++)
@@ -222,13 +222,13 @@ public static unsafe partial class Lcms2
         }
 
         //Success
-        if (ElementOffsets is not null) _cmsFree(io->contextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->contextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) _cmsFree(io->contextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->contextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
         return false;
     }
 
@@ -244,10 +244,10 @@ public static unsafe partial class Lcms2
         uint* ElementOffsets = null, ElementSizes = null;
 
         // Create table
-        ElementOffsets = _cmsCalloc<uint>(io->contextID, Count);
+        ElementOffsets = _cmsCalloc<uint>(io->ContextID, Count);
         if (ElementOffsets is null) goto Error;
 
-        ElementSizes = _cmsCalloc<uint>(io->contextID, Count);
+        ElementSizes = _cmsCalloc<uint>(io->ContextID, Count);
         if (ElementSizes is null) goto Error;
 
         // Keep starting position of curve offsets
@@ -286,13 +286,13 @@ public static unsafe partial class Lcms2
         if (!io->Seek(io, CurrentPos)) goto Error;
 
         //Success
-        if (ElementOffsets is not null) _cmsFree(io->contextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->contextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) _cmsFree(io->contextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->contextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
         return false;
     }
 

@@ -71,8 +71,8 @@ public static unsafe partial class Lcms2
     {
         var ResData = (FILENULL*)iohandler->stream;
 
-        _cmsFree(iohandler->contextID, ResData);
-        _cmsFree(iohandler->contextID, iohandler);
+        _cmsFree(iohandler->ContextID, ResData);
+        _cmsFree(iohandler->ContextID, iohandler);
         return true;
     }
 
@@ -86,7 +86,7 @@ public static unsafe partial class Lcms2
 
         fm->Pointer = 0;
 
-        iohandler->contextID = ContextID;
+        iohandler->ContextID = ContextID;
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
         iohandler->reportedSize = 0;
@@ -113,7 +113,7 @@ public static unsafe partial class Lcms2
         if (ResData->Pointer + len > ResData->Size)
         {
             len = ResData->Size - ResData->Pointer;
-            cmsSignalError(iohandler->contextID, ErrorCode.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler->ContextID, ErrorCode.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -131,7 +131,7 @@ public static unsafe partial class Lcms2
 
         if (offset > ResData->Size)
         {
-            cmsSignalError(iohandler->contextID, ErrorCode.Seek, "Too few data; probably corrupted profile");
+            cmsSignalError(iohandler->ContextID, ErrorCode.Seek, "Too few data; probably corrupted profile");
             return false;
         }
 
@@ -173,10 +173,10 @@ public static unsafe partial class Lcms2
         var ResData = (FILEMEM*)iohandler->stream;
 
         if (ResData->FreeBlockOnClose)
-            if (ResData->Block is not null) _cmsFree(iohandler->contextID, ResData->Block);
+            if (ResData->Block is not null) _cmsFree(iohandler->ContextID, ResData->Block);
 
-        _cmsFree(iohandler->contextID, ResData);
-        _cmsFree(iohandler->contextID, iohandler);
+        _cmsFree(iohandler->ContextID, ResData);
+        _cmsFree(iohandler->ContextID, iohandler);
 
         return true;
     }
@@ -234,7 +234,7 @@ public static unsafe partial class Lcms2
                 return null;
         }
 
-        iohandler->contextID = ContextID;
+        iohandler->ContextID = ContextID;
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
 
@@ -258,7 +258,7 @@ public static unsafe partial class Lcms2
 
         if (nReaded != count)
         {
-            cmsSignalError(iohandler->contextID, ErrorCode.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler->ContextID, ErrorCode.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -269,7 +269,7 @@ public static unsafe partial class Lcms2
     {
         if (fseek((FILE*)iohandler->stream, offset, SEEK_SET) is not 0)
         {
-            cmsSignalError(iohandler->contextID, ErrorCode.File, "Seek error; probably corrupted file");
+            cmsSignalError(iohandler->ContextID, ErrorCode.File, "Seek error; probably corrupted file");
             return false;
         }
 
@@ -281,7 +281,7 @@ public static unsafe partial class Lcms2
         var t = ftell((FILE*)iohandler->stream);
         if (t is -1)
         {
-            cmsSignalError(iohandler->contextID, ErrorCode.File, "Tell error; probably corrupted file");
+            cmsSignalError(iohandler->ContextID, ErrorCode.File, "Tell error; probably corrupted file");
             return 0;
         }
 
@@ -299,7 +299,7 @@ public static unsafe partial class Lcms2
     private static bool FileClose(IOHandler* iohandler)
     {
         if (fclose((FILE*)iohandler->stream) is not 0) return false;
-        _cmsFree(iohandler->contextID, iohandler);
+        _cmsFree(iohandler->ContextID, iohandler);
         return true;
     }
 
@@ -354,7 +354,7 @@ public static unsafe partial class Lcms2
                 return null;
         }
 
-        iohandler->contextID = ContextID;
+        iohandler->ContextID = ContextID;
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
 
@@ -387,7 +387,7 @@ public static unsafe partial class Lcms2
         iohandler = _cmsMallocZero<IOHandler>(ContextID);
         if (iohandler is null) goto Error;
 
-        iohandler->contextID = ContextID;
+        iohandler->ContextID = ContextID;
         iohandler->stream = file;
         iohandler->UsedSpace = 0;
         iohandler->reportedSize = (uint)fileSize;

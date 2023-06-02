@@ -32,7 +32,7 @@ namespace lcms2.io;
 public unsafe struct IOHandler
 {
     internal void* stream;
-    internal Context contextID;
+    internal Context ContextID;
     internal uint UsedSpace;
     internal uint reportedSize;
     internal string physicalFile;
