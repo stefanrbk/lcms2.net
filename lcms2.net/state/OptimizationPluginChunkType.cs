@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct OptimizationPluginChunkType
+internal unsafe class OptimizationPluginChunkType
 {
     public OptimizationCollection* OptimizationCollection;
 }

@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe struct MemPluginChunkType
+internal class MemPluginChunkType
 {
     public MallocFnPtrType MallocPtr;
     public MallocZerocFnPtrType MallocZeroPtr;

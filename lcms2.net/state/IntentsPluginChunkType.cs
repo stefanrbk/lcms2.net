@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe struct IntentsPluginChunkType
+internal unsafe class IntentsPluginChunkType
 {
     public IntentsList* Intents;
 }

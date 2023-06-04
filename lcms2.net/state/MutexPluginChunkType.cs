@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe struct MutexPluginChunkType
+internal class MutexPluginChunkType
 {
     public CreateMutexFnPtrType CreateFn;
     public DestroyMutexFnPtrType DestroyFn;

@@ -29,7 +29,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct FormattersPluginChunkType
+internal unsafe class FormattersPluginChunkType
 {
     public FormattersFactoryList* FactoryList;
 }

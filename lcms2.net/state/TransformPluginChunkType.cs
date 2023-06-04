@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct TransformPluginChunkType
+internal unsafe class TransformPluginChunkType
 {
     public TransformCollection* TransformCollection;
 }

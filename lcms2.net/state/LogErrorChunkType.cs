@@ -25,11 +25,9 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
-
 namespace lcms2.state;
 
-internal unsafe struct LogErrorChunkType
+internal class LogErrorChunkType
 {
     public LogErrorHandlerFunction LogErrorHandler;
 }
