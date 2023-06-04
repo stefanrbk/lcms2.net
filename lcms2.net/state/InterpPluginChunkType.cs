@@ -25,11 +25,9 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
-
 namespace lcms2.state;
 
-internal unsafe struct InterpPluginChunkType
+internal class InterpPluginChunkType
 {
     public InterpFnFactory Interpolators;
 }

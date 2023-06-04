@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe struct TagPluginChunkType
+internal unsafe class TagPluginChunkType
 {
     public TagLinkedList* Tag;
 }

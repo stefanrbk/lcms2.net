@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe struct AlarmCodesChunkType
+internal class AlarmCodesChunkType
 {
-    public fixed ushort AlarmCodes[cmsMAXCHANNELS];
+    public readonly ushort[] AlarmCodes = new ushort[cmsMAXCHANNELS];
 }

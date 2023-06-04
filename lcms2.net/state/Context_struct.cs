@@ -27,24 +27,23 @@
 
 namespace lcms2.state;
 
-public unsafe struct Context_struct
+public unsafe class Context
 {
     internal Context Next;
     internal SubAllocator* MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
-    internal ContextChunks chunks;
-    private fixed long actualChunks[(int)Chunks.Max];
-
-    public struct ContextChunks
-    {
-        internal Context parent;
-
-        internal void* this[Chunks c]
-        {
-            get =>
-                ((void**)parent->actualChunks)[(int)c];
-            set =>
-                ((void**)parent->actualChunks)[(int)c] = value;
-        }
-    }
+    internal object UserData;
+    internal LogErrorChunkType ErrorLogger;
+    internal AlarmCodesChunkType AlarmCodes;
+    internal MemPluginChunkType MemPlugin;
+    internal InterpPluginChunkType InterpPlugin;
+    internal CurvesPluginChunkType CurvesPlugin;
+    internal FormattersPluginChunkType FormattersPlugin;
+    internal TagTypePluginChunkType TagTypePlugin;
+    internal TagPluginChunkType TagPlugin;
+    internal IntentsPluginChunkType IntentsPlugin;
+    internal TagTypePluginChunkType MPEPlugin;
+    internal OptimizationPluginChunkType OptimizationPlugin;
+    internal TransformPluginChunkType TransformPlugin;
+    internal MutexPluginChunkType MutexPlugin;
 }
