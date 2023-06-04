@@ -51,8 +51,10 @@ public static unsafe partial class Lcms2
     private const GDBPointType GP_MODELED = GDBPointType.Modeled;
 
     private record struct GDBPoint(GDBPointType Type, Spherical p);
-    private record struct GDB(Context ContextID, GDBPoint* Gamut)
+    private struct GDB
     {
+        public Context ContextID;
+        public GDBPoint* Gamut;
         public GDBPoint* GamutPtr(int theta, int alpha) =>
             &Gamut[theta * SECTORS + alpha];
     }
