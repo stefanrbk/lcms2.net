@@ -36,32 +36,42 @@ public static unsafe partial class Lcms2
 
     private static readonly AdaptationStateChunkType AdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
 
-    private static readonly AdaptationStateChunkType* globalAdaptationStateChunk;
+    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
 
     private static readonly AlarmCodesChunkType AlarmCodesChunk = new();
 
-    private static readonly AlarmCodesChunkType* globalAlarmCodesChunk;
+    private static readonly AlarmCodesChunkType globalAlarmCodesChunk = new();
 
     internal static readonly TransformPluginChunkType TransformPluginChunk = new();
 
-    internal static readonly TransformPluginChunkType* globalTransformPluginChunk;
+    internal static readonly TransformPluginChunkType globalTransformPluginChunk = new();
 
-    internal static void _cmsAllocAdaptationStateChunk(Context ctx, in Context src)
+    internal static void _cmsAllocAdaptationStateChunk(Context ctx, in Context? src)
     {
-        fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
-            AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.AdaptationState
+            : AdaptationStateChunk;
+
+        _cmsAssert(from);
+
+        ctx.AdaptationState = (AdaptationStateChunkType)from.Dup(ctx);
+
+        //fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
+        //    AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
     }
 
-    public static double cmsSetAdaptationStateTHR(Context context, double d)
+    public static double cmsSetAdaptationStateTHR(Context? context, double d)
     {
-        var ptr = _cmsContextGetClientChunk<AdaptationStateChunkType>(context, Chunks.AdaptationStateContext);
+        var ptr = _cmsGetContext(context).AdaptationState;
 
         // Get previous value for return
-        var prev = ptr->AdaptationState;
+        var prev = ptr.AdaptationState;
 
         // Set the value if d is positive or zero
         if (d >= 0)
-            ptr->AdaptationState = d;
+            ptr.AdaptationState = d;
 
         // Always return previous value
         return prev;
@@ -70,18 +80,20 @@ public static unsafe partial class Lcms2
     public static double cmsSetAdaptationState(double d) =>
         cmsSetAdaptationStateTHR(null, d);
 
-    public static void cmsSetAlarmCodesTHR(Context context, in ushort* AlarmCodesP)
+    public static void cmsSetAlarmCodesTHR(Context? context, in ushort* AlarmCodesP)
     {
-        var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
+        var contextAlarmCodes = _cmsGetContext(context).AlarmCodes;
         _cmsAssert(contextAlarmCodes); // Can't happen
-        memcpy(contextAlarmCodes->AlarmCodes, AlarmCodesP, (uint)sizeof(ushort) * cmsMAXCHANNELS);
+        for (var i = 0; i < cmsMAXCHANNELS; i++)
+            contextAlarmCodes.AlarmCodes[i] = AlarmCodesP[i];
     }
 
-    public static void cmsGetAlarmCodesTHR(Context context, ushort* AlarmCodesP)
+    public static void cmsGetAlarmCodesTHR(Context? context, ushort* AlarmCodesP)
     {
-        var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext);
+        var contextAlarmCodes = _cmsGetContext(context).AlarmCodes;
         _cmsAssert(contextAlarmCodes); // Can't happen
-        memcpy(AlarmCodesP, contextAlarmCodes->AlarmCodes, (uint)sizeof(ushort) * cmsMAXCHANNELS);
+        for (var i = 0; i < cmsMAXCHANNELS; i++)
+            AlarmCodesP[i] = contextAlarmCodes.AlarmCodes[i];
     }
 
     public static void cmsSetAlarmCodes(in ushort* AlarmCodes) =>
@@ -90,10 +102,20 @@ public static unsafe partial class Lcms2
     public static void cmsGetAlarmCodes(ushort* AlarmCodes) =>
         cmsGetAlarmCodesTHR(null, AlarmCodes);
 
-    internal static void _cmsAllocAlarmCodesChunk(Context ctx, in Context src)
+    internal static void _cmsAllocAlarmCodesChunk(Context ctx, in Context? src)
     {
-        fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
-            AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.AlarmCodes
+            : AlarmCodesChunk;
+
+        _cmsAssert(from);
+
+        ctx.AlarmCodes = (AlarmCodesChunkType)from.Dup(ctx);
+
+        //fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
+        //    AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
     }
 
     public static void cmsDeleteTransform(HTRANSFORM hTransform)
@@ -348,10 +370,10 @@ public static unsafe partial class Lcms2
         p->GamutCheck->Eval16Fn(wIn, &wOutOfGamut, p->GamutCheck->Data);
         if (wOutOfGamut >= 1)
         {
-            var ContextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(p->ContextID, Chunks.AlarmCodesContext);
+            var ContextAlarmCodes = _cmsGetContext(p->ContextID).AlarmCodes;
 
             for (var i = 0; i < p->Lut->OutputChannels; i++)
-                wOut[i] = ContextAlarmCodes->AlarmCodes[i];
+                wOut[i] = ContextAlarmCodes.AlarmCodes[i];
         }
         else
         {
@@ -502,19 +524,19 @@ public static unsafe partial class Lcms2
 
     internal static void DupPluginTransformList(Context ctx, in Context src)
     {
-        TransformPluginChunkType* head = (TransformPluginChunkType*)src->chunks[Chunks.TransformPlugin];
+        TransformPluginChunkType head = src.TransformPlugin;
         TransformCollection* Anterior = null, entry;
-        TransformPluginChunkType newHead = default;
+        TransformPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head->TransformCollection;
+        for (entry = head.TransformCollection;
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TransformCollection>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -530,13 +552,23 @@ public static unsafe partial class Lcms2
                 newHead.TransformCollection = newEntry;
         }
 
-        ctx->chunks[Chunks.TransformPlugin] = _cmsSubAllocDup<TransformPluginChunkType>(ctx->MemPool, &newHead);
+        ctx.TransformPlugin = newHead;
     }
 
-    internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context? src)
     {
-        fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
-            AllocPluginChunk(ctx, src, DupPluginTransformList, Chunks.TransformPlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.TransformPlugin
+            : TransformPluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.TransformPlugin = (TransformPluginChunkType)from.Dup(ctx);
+
+        //fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
+        //    AllocPluginChunk(ctx, src, DupPluginTransformList, Chunks.TransformPlugin, @default);
     }
 
     internal static void _cmsTransform2toTransformAdaptor(
@@ -564,15 +596,15 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsRegisterTransformPlugin(Context id, PluginBase* Data)
+    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase* Data)
     {
         var Plugin = (PluginTransform*)Data;
-        var ctx = _cmsContextGetClientChunk<TransformPluginChunkType>(id, Chunks.TransformPlugin);
+        var ctx = _cmsGetContext(id).TransformPlugin;
 
         if (Data is null)
         {
             // Free the chain. Memory is safely freed at exit
-            ctx->TransformCollection = null;
+            ctx.TransformCollection = null;
             return true;
         }
 
@@ -589,8 +621,8 @@ public static unsafe partial class Lcms2
         fl->Factory = Plugin->factories.xform;
 
         // Keep linked list
-        fl->Next = ctx->TransformCollection;
-        ctx->TransformCollection = fl;
+        fl->Next = ctx.TransformCollection;
+        ctx.TransformCollection = fl;
 
         // All is ok
         return true;
@@ -636,14 +668,14 @@ public static unsafe partial class Lcms2
     }
 
     private static Transform* AllocEmptyTransform(
-        Context ContextID,
+        Context? ContextID,
         Pipeline* lut,
         uint Intent,
         uint* InputFormat,
         uint* OutputFormat,
         uint* dwFlags)
     {
-        var ctx = _cmsContextGetClientChunk<TransformPluginChunkType>(ContextID, Chunks.TransformPlugin);
+        var ctx = _cmsGetContext(ContextID).TransformPlugin;
 
         // Allocate needed memory
         var p = _cmsMallocZero<Transform>(ContextID);
@@ -656,7 +688,7 @@ public static unsafe partial class Lcms2
         {
             if ((*dwFlags & cmsFLAGS_NOOPTIMIZE) is 0)
             {
-                for (var Plugin = ctx->TransformCollection;
+                for (var Plugin = ctx.TransformCollection;
                     Plugin is not null;
                     Plugin = Plugin->Next)
                 {
@@ -837,7 +869,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateExtendedTransform(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         HPROFILE* hProfiles,
         bool* BPC,
@@ -978,7 +1010,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateMultiprofileTransformTHR(
-        Context ContextID,
+        Context? ContextID,
         HPROFILE* hProfiles,
         uint InputFormat,
         uint OutputFormat,
@@ -1016,7 +1048,7 @@ public static unsafe partial class Lcms2
         cmsCreateMultiprofileTransformTHR(null, hProfiles, InputFormat, OutputFormat, nProfiles, Intent, dwFlags);
 
     public static Transform* cmsCreateTransformTHR(
-        Context ContextID,
+        Context? ContextID,
         HPROFILE Input,
         uint InputFormat,
         HPROFILE Output,
@@ -1039,7 +1071,7 @@ public static unsafe partial class Lcms2
         cmsCreateTransformTHR(null, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
 
     public static Transform* cmsCreateProofingTransformTHR(
-        Context ContextID,
+        Context? ContextID,
         HPROFILE InputProfile,
         uint InputFormat,
         HPROFILE OutputProfile,
@@ -1074,7 +1106,7 @@ public static unsafe partial class Lcms2
         uint dwFlags) =>
         cmsCreateProofingTransformTHR(null, InputProfile, InputFormat, OutputProfile, OutputFormat, ProofingProfile, nIntent, ProofingIntent, dwFlags);
 
-    public static Context cmsGetTransformContextID(HTRANSFORM xform) =>
+    public static Context? cmsGetTransformContextID(HTRANSFORM xform) =>
         xform is not null
             ? ((Transform*)xform)->ContextID
             : null;

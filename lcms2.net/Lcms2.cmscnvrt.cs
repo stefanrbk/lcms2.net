@@ -36,23 +36,23 @@ public static unsafe partial class Lcms2
 
     internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
 
-    internal static readonly IntentsPluginChunkType* globalIntentsPluginChunk;
+    internal static readonly IntentsPluginChunkType globalIntentsPluginChunk = new();
 
     internal static void DupPluginIntentsList(Context ctx, in Context src)
     {
-        IntentsPluginChunkType* head = (IntentsPluginChunkType*)src->chunks[Chunks.IntentPlugin];
+        IntentsPluginChunkType head = src.IntentsPlugin;
         IntentsList* Anterior = null, entry;
-        IntentsPluginChunkType newHead = default;
+        IntentsPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head->Intents;
+        for (entry = head.Intents;
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<IntentsList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<IntentsList>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -68,20 +68,23 @@ public static unsafe partial class Lcms2
                 newHead.Intents = newEntry;
         }
 
-        ctx->chunks[Chunks.IntentPlugin] = _cmsSubAllocDup<IntentsPluginChunkType>(ctx->MemPool, &newHead);
+        ctx.IntentsPlugin = newHead;
     }
 
-    internal static void _cmsAllocIntentsPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocIntentsPluginChunk(Context ctx, Context? src)
     {
-        fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
-            AllocPluginChunk(ctx, src, DupPluginIntentsList, Chunks.IntentPlugin, @default);
+        var from = src?.IntentsPlugin ?? IntentsPluginChunk;
+        ctx.IntentsPlugin = (IntentsPluginChunkType)from.Dup(ctx);
+
+        //fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
+        //    AllocPluginChunk(ctx, src, DupPluginIntentsList, Chunks.IntentPlugin, @default);
     }
 
-    private static IntentsList* SearchIntent(Context ContextID, uint Intent)
+    private static IntentsList* SearchIntent(Context? ContextID, uint Intent)
     {
-        var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(ContextID, Chunks.IntentPlugin);
+        var ctx = _cmsGetContext(ContextID).IntentsPlugin;
 
-        for (var pt = ctx->Intents; pt is not null; pt = pt->Next)
+        for (var pt = ctx.Intents; pt is not null; pt = pt->Next)
             if (pt->Intent == Intent) return pt;
 
         for (var pt = defaultIntents; pt is not null; pt = pt->Next)
@@ -943,13 +946,13 @@ public static unsafe partial class Lcms2
         return Intent->Link(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
     }
 
-    public static uint cmsGetSupportedIntentsTHR(Context ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
+    public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
     {
-        var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(ContextID, Chunks.IntentPlugin);
+        var ctx = _cmsGetContext(ContextID).IntentsPlugin;
         uint nIntents;
         IntentsList* pt;
 
-        for (nIntents = 0, pt = ctx->Intents; pt is not null; pt = pt->Next)
+        for (nIntents = 0, pt = ctx.Intents; pt is not null; pt = pt->Next)
         {
             if (nIntents < nMax)
             {
@@ -982,15 +985,15 @@ public static unsafe partial class Lcms2
     public static uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[]? Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
-    internal static bool _cmsRegisterRenderingIntentPlugin(Context id, PluginBase* Data)
+    internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase* Data)
     {
-        var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(id, Chunks.IntentPlugin);
+        var ctx = _cmsGetContext(id).IntentsPlugin;
         var Plugin = (PluginRenderingIntent*)Data;
 
         // Do we have to reset the custom intents?
         if (Data is null)
         {
-            ctx->Intents = null;
+            ctx.Intents = null;
             return true;
         }
 
@@ -1002,8 +1005,8 @@ public static unsafe partial class Lcms2
 
         fl->Link = Plugin->Link;
 
-        fl->Next = ctx->Intents;
-        ctx->Intents = fl;
+        fl->Next = ctx.Intents;
+        ctx.Intents = fl;
 
         return true;
     }

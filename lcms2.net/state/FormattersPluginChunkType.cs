@@ -29,7 +29,37 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class FormattersPluginChunkType
+internal unsafe class FormattersPluginChunkType : IDup
 {
     public FormattersFactoryList* FactoryList;
+
+    public object? Dup(Context ctx)
+    {
+        var head = this;
+        FormattersFactoryList* Anterior = null;
+        FormattersPluginChunkType newHead = new();
+
+        _cmsAssert(head);
+
+        // Walk the list copying all nodes
+        for (var entry = head.FactoryList; entry is not null; entry = entry->Next)
+        {
+            var newEntry = _cmsSubAllocDup<FormattersFactoryList>(ctx.MemPool, entry);
+
+            if (newEntry is null)
+                return null;
+
+            // We want to keep the linked list order
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.FactoryList is null)
+                newHead.FactoryList = newEntry;
+        }
+
+        return newHead;
+    }
 }

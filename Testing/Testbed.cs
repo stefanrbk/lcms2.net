@@ -24,7 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using unsafe Context = lcms2.state.Context_struct*;
 global using unsafe HPROFILE = void*;
 
 using lcms2.state;

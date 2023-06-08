@@ -31,7 +31,7 @@ namespace lcms2.types;
 
 public unsafe struct InterpParams
 {
-    public Context ContextID;
+    public Context? ContextID;
     public uint dwFlags;
     public uint nInputs;
     public uint nOutputs;

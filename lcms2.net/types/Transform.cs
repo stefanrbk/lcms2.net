@@ -64,7 +64,7 @@ public unsafe struct Transform
 
     public uint RenderingIntent;
 
-    public Context ContextID;
+    public Context? ContextID;
 
     public void* UserData;
     public FreeUserDataFn? FreeUserData;

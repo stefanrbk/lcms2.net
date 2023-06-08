@@ -34,9 +34,9 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly FormattersPluginChunkType FormattersPluginChunk;
+    internal static readonly FormattersPluginChunkType FormattersPluginChunk = new();
 
-    internal static readonly FormattersPluginChunkType* globalFormattersPluginChunk;
+    internal static readonly FormattersPluginChunkType globalFormattersPluginChunk = new();
 
     internal static readonly Formatters16[] InputFormatters16 =
         {
@@ -2496,16 +2496,16 @@ public static unsafe partial class Lcms2
 
     private static void DupFormatterFactoryList(Context ctx, in Context src)
     {
-        FormattersPluginChunkType newHead = default;
+        var head = src.FormattersPlugin;
         FormattersFactoryList* Anterior = null;
-        var head = (FormattersPluginChunkType*)src->chunks[Chunks.FormattersPlugin];
+        FormattersPluginChunkType newHead = new();
 
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (var entry = head->FactoryList; entry is not null; entry = entry->Next)
+        for (var entry = head.FactoryList; entry is not null; entry = entry->Next)
         {
-            var newEntry = _cmsSubAllocDup<FormattersFactoryList>(ctx->MemPool, entry);
+            var newEntry = _cmsSubAllocDup<FormattersFactoryList>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -2521,34 +2521,42 @@ public static unsafe partial class Lcms2
                 newHead.FactoryList = newEntry;
         }
 
-        ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, &newHead);
+        ctx.FormattersPlugin = newHead;
     }
 
-    internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context? src)
     {
         _cmsAssert(ctx);
 
-        if (src is not null)
-        {
-            // Duplicate
-            DupFormatterFactoryList(ctx, src);
-        }
-        else
-        {
-            fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
-                ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, @default);
-        }
+        var from = src is not null
+            ? src.FormattersPlugin
+            : FormattersPluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.FormattersPlugin = (FormattersPluginChunkType)from.Dup(ctx);
+
+        //if (src is not null)
+        //{
+        //    // Duplicate
+        //    DupFormatterFactoryList(ctx, src);
+        //}
+        //else
+        //{
+        //    fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
+        //        ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, @default);
+        //}
     }
 
-    internal static bool _cmsRegisterFormattersPlugin(Context ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase* Data)
     {
-        var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
+        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
         var Plugin = (PluginFormatters*)Data;
 
         // Reset to build-in defaults
         if (Data is null)
         {
-            ctx->FactoryList = null;
+            ctx.FactoryList = null;
             return true;
         }
 
@@ -2557,17 +2565,17 @@ public static unsafe partial class Lcms2
 
         fl->Factory = Plugin->FormattersFactory;
 
-        fl->Next = ctx->FactoryList;
-        ctx->FactoryList = fl;
+        fl->Next = ctx.FactoryList;
+        ctx.FactoryList = fl;
 
         return true;
     }
 
-    internal static Formatter _cmsGetFormatter(Context ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
+    internal static Formatter _cmsGetFormatter(Context? ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
     {
-        var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
+        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
-        for (var f = ctx->FactoryList; f is not null; f = f->Next)
+        for (var f = ctx.FactoryList; f is not null; f = f->Next)
         {
             var fn = f->Factory(Type, Dir, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
@@ -2598,7 +2606,7 @@ public static unsafe partial class Lcms2
         return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);
     }
 
-    public static uint cmsFormatterForPCSOfProfile(Profile* hProfile, uint nBytes, bool lIsFloat)
+    public static uint cmsFormatterForPCSOfProfile(HPROFILE hProfile, uint nBytes, bool lIsFloat)
     {
         var ColorSpace = cmsGetPCS(hProfile);
 

@@ -42,30 +42,32 @@ public static unsafe partial class Lcms2
 
     internal static readonly TagTypePluginChunkType MPETypePluginChunk = new();
 
-    internal static readonly TagTypePluginChunkType* globalMPETypePluginChunk;
+    internal static readonly TagTypePluginChunkType globalMPETypePluginChunk = new();
 
     internal static readonly TagTypeLinkedList* supportedTagTypes;
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
 
-    internal static readonly TagTypePluginChunkType* globalTagTypePluginChunk;
+    internal static readonly TagTypePluginChunkType globalTagTypePluginChunk;
 
     internal static readonly TagLinkedList* supportedTags;
 
     internal static readonly TagPluginChunkType TagPluginChunk = new();
 
-    internal static readonly TagPluginChunkType* globalTagPluginChunk;
+    internal static readonly TagPluginChunkType globalTagPluginChunk = new();
 
-    private static bool RegisterTypesPlugin(Context id, PluginBase* Data, Chunks pos)
+    private static bool RegisterTypesPlugin(Context? id, PluginBase* Data, Chunks pos)
     {
         var Plugin = (PluginTagType*)Data;
-        var ctx = _cmsContextGetClientChunk<TagTypePluginChunkType>(id, pos);
+        var ctx = pos is Chunks.MPEPlugin
+            ? _cmsGetContext(id).MPEPlugin
+            : _cmsGetContext(id).TagTypePlugin;
 
         // Calling the function with NULL as plug-in would unregister the plug in
         if (Data is null)
         {
             // There is no need to set free the memory, as pool is destroyed as a whole.
-            ctx->TagTypes = null;
+            ctx.TagTypes = null;
             return true;
         }
 
@@ -74,9 +76,9 @@ public static unsafe partial class Lcms2
         if (pt is null) return false;
 
         pt->Handler = Plugin->Handler;
-        pt->Next = ctx->TagTypes;
+        pt->Next = ctx.TagTypes;
 
-        ctx->TagTypes = pt;
+        ctx.TagTypes = pt;
 
         return true;
     }
@@ -3103,7 +3105,7 @@ public static unsafe partial class Lcms2
         uint nItems;
 
         var NewLUT = (Pipeline*)Cargo;
-        var MPETypePluginChunk = _cmsContextGetClientChunk<TagTypePluginChunkType>(self->ContextID, Chunks.MPEPlugin);
+        var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
 
         // Take signature and channels for each element.
         if (!_cmsReadUInt32Number(io, (uint*)&ElementSig)) return false;
@@ -3112,7 +3114,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, null)) return false;
 
         // Read diverse MPE types
-        var TypeHandler = GetHandler(ElementSig, MPETypePluginChunk->TagTypes, supportedMPEtypes);
+        var TypeHandler = GetHandler(ElementSig, MPETypePluginChunk.TagTypes, supportedMPEtypes);
         if (TypeHandler is null)
         {
             var str = stackalloc byte[5];
@@ -3181,7 +3183,7 @@ public static unsafe partial class Lcms2
         var Lut = (Pipeline*)Ptr;
         var Elem = Lut->Elements;
         uint* ElementOffsets = null, ElementSizes = null;
-        var MPETypePluginChunk = _cmsContextGetClientChunk<TagTypePluginChunkType>(self->ContextID, Chunks.MPEPlugin);
+        var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
         var str = stackalloc byte[5];
 
         var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
@@ -3217,7 +3219,7 @@ public static unsafe partial class Lcms2
 
             var ElementSig = Elem->Type;
 
-            var TypeHandler = GetHandler(ElementSig, MPETypePluginChunk->TagTypes, supportedMPEtypes);
+            var TypeHandler = GetHandler(ElementSig, MPETypePluginChunk.TagTypes, supportedMPEtypes);
             if (TypeHandler is null)
             {
                 _cmsTagSignature2String(str, ElementSig);
@@ -4262,19 +4264,21 @@ public static unsafe partial class Lcms2
 
     internal static void DupTagTypeList(Context ctx, in Context src, Chunks loc)
     {
-        TagTypePluginChunkType* head = (TagTypePluginChunkType*)src->chunks[loc];
+        TagTypePluginChunkType head = loc is Chunks.MPEPlugin
+            ? src.MPEPlugin
+            : src.TagTypePlugin;
         TagTypeLinkedList* Anterior = null, entry;
-        TagTypePluginChunkType newHead = default;
+        TagTypePluginChunkType newHead = new();
 
         _cmsAssert(ctx);
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head->TagTypes;
+        for (entry = head.TagTypes;
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TagTypeLinkedList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -4289,20 +4293,42 @@ public static unsafe partial class Lcms2
             if (newHead.TagTypes is null)
                 newHead.TagTypes = newEntry;
         }
-
-        ctx->chunks[loc] = _cmsSubAllocDup<TagTypePluginChunkType>(ctx->MemPool, &newHead);
+        if (loc is Chunks.MPEPlugin)
+            ctx.MPEPlugin = newHead;
+        else
+            ctx.TagTypePlugin = newHead;
     }
 
-    internal static void _cmsAllocTagTypePluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocTagTypePluginChunk(Context ctx, in Context? src)
     {
-        fixed (TagTypePluginChunkType* @default = &TagTypePluginChunk)
-            AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.TagTypePlugin), Chunks.TagTypePlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.TagTypePlugin
+            : TagTypePluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.TagTypePlugin = (TagTypePluginChunkType)from.Dup(ctx);
+
+        //fixed (TagTypePluginChunkType* @default = &TagTypePluginChunk)
+        //    AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.TagTypePlugin), Chunks.TagTypePlugin, @default);
     }
 
-    internal static void _cmsAllocMPETypePluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocMPETypePluginChunk(Context ctx, in Context? src)
     {
-        fixed (TagTypePluginChunkType* @default = &MPETypePluginChunk)
-            AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.MPEPlugin), Chunks.MPEPlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.MPEPlugin
+            : MPETypePluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.TagTypePlugin = (TagTypePluginChunkType)from.Dup(ctx);
+
+        //fixed (TagTypePluginChunkType* @default = &MPETypePluginChunk)
+        //    AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.MPEPlugin), Chunks.MPEPlugin, @default);
     }
 
     internal static bool _cmsRegisterTagTypePlugin(Context id, PluginBase* Data) =>
@@ -4311,21 +4337,21 @@ public static unsafe partial class Lcms2
     internal static bool _cmsRegisterMultiProcessElementPlugin(Context id, PluginBase* Data) =>
         RegisterTypesPlugin(id, Data, Chunks.MPEPlugin);
 
-    internal static void DupTagList(Context ctx, in Context src)
+    internal static void DupTagList(Context ctx, in Context? src)
     {
-        TagPluginChunkType* head = (TagPluginChunkType*)src->chunks[Chunks.TagPlugin];
+        TagPluginChunkType head = src.TagPlugin;
         TagLinkedList* Anterior = null, entry;
-        TagPluginChunkType newHead = default;
+        TagPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head->Tag;
+        for (entry = head.Tag;
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TagLinkedList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TagLinkedList>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -4341,23 +4367,33 @@ public static unsafe partial class Lcms2
                 newHead.Tag = newEntry;
         }
 
-        ctx->chunks[Chunks.TagPlugin] = _cmsSubAllocDup<TagPluginChunkType>(ctx->MemPool, &newHead);
+        ctx.TagPlugin = newHead;
     }
 
-    internal static void _cmsAllocTagPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocTagPluginChunk(Context ctx, in Context? src)
     {
-        fixed (TagPluginChunkType* @default = &TagPluginChunk)
-            AllocPluginChunk(ctx, src, DupTagList, Chunks.TagPlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.TagPlugin
+            : TagPluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.TagPlugin = (TagPluginChunkType)from.Dup(ctx);
+
+        //fixed (TagPluginChunkType* @default = &TagPluginChunk)
+        //    AllocPluginChunk(ctx, src, DupTagList, Chunks.TagPlugin, @default);
     }
 
-    internal static bool _cmsRegisterTagPlugin(Context id, PluginBase* Data)
+    internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase* Data)
     {
         var Plugin = (PluginTag*)Data;
-        var TagPluginChunk = _cmsContextGetClientChunk<TagPluginChunkType>(id, Chunks.TagPlugin);
+        var TagPluginChunk = _cmsGetContext(id).TagPlugin;
 
         if (Data is null)
         {
-            TagPluginChunk->Tag = null;
+            TagPluginChunk.Tag = null;
             return true;
         }
 
@@ -4366,27 +4402,27 @@ public static unsafe partial class Lcms2
 
         pt->Signature = Plugin->Signature;
         pt->Descriptor = Plugin->Descriptor;
-        pt->Next = TagPluginChunk->Tag;
+        pt->Next = TagPluginChunk.Tag;
 
-        TagPluginChunk->Tag = pt;
+        TagPluginChunk.Tag = pt;
 
         return true;
     }
 
     #endregion Plugin
 
-    internal static TagTypeHandler* _cmsGetTagTypeHandler(Context ContextID, Signature sig)
+    internal static TagTypeHandler* _cmsGetTagTypeHandler(Context? ContextID, Signature sig)
     {
-        var ctx = _cmsContextGetClientChunk<TagTypePluginChunkType>(ContextID, Chunks.TagTypePlugin);
+        var ctx = _cmsGetContext(ContextID).TagTypePlugin;
 
-        return GetHandler(sig, ctx->TagTypes, supportedTagTypes);
+        return GetHandler(sig, ctx.TagTypes, supportedTagTypes);
     }
 
-    internal static TagDescriptor* _cmsGetTagDescriptor(Context ContextID, Signature sig)
+    internal static TagDescriptor* _cmsGetTagDescriptor(Context? ContextID, Signature sig)
     {
-        var TagPluginChunk = _cmsContextGetClientChunk<TagPluginChunkType>(ContextID, Chunks.TagPlugin);
+        var TagPluginChunk = _cmsGetContext(ContextID).TagPlugin;
 
-        for (var pt = TagPluginChunk->Tag; pt is not null; pt = pt->Next)
+        for (var pt = TagPluginChunk.Tag; pt is not null; pt = pt->Next)
             if (sig == pt->Signature) return &pt->Descriptor;
 
         for (var pt = supportedTags; pt is not null; pt = pt->Next)

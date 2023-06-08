@@ -24,6 +24,7 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
 using lcms2.types;
 
 using static System.Math;

@@ -29,7 +29,7 @@ namespace lcms2.state;
 
 internal unsafe struct SubAllocator
 {
-    public Context ContextID;
+    public Context? ContextID;
     public Chunk* h;
 
     internal struct Chunk

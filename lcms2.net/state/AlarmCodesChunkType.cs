@@ -27,7 +27,16 @@
 
 namespace lcms2.state;
 
-internal class AlarmCodesChunkType
+internal class AlarmCodesChunkType : IDup
 {
     public readonly ushort[] AlarmCodes = new ushort[cmsMAXCHANNELS];
+
+    public object? Dup(Context ctx)
+    {
+        var result = new AlarmCodesChunkType();
+
+        AlarmCodes.CopyTo(result.AlarmCodes.AsSpan());
+
+        return result;
+    }
 }

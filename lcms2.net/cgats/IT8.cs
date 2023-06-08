@@ -25,6 +25,8 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
 using static lcms2.cgats.CGATS;
 
 namespace lcms2.cgats;

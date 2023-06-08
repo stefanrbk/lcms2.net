@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal class MemPluginChunkType
+internal class MemPluginChunkType : IDup
 {
     public MallocFnPtrType MallocPtr;
     public MallocZerocFnPtrType MallocZeroPtr;
@@ -35,4 +35,19 @@ internal class MemPluginChunkType
     public ReallocFnPtrType ReallocPtr;
     public CallocFnPtrType CallocPtr;
     public DupFnPtrType DupPtr;
+
+    public object? Dup(Context ctx)
+    {
+        _cmsAssert(ctx);
+
+        return new MemPluginChunkType()
+        {
+            MallocPtr = MallocPtr,
+            MallocZeroPtr = MallocZeroPtr,
+            FreePtr = FreePtr,
+            ReallocPtr = ReallocPtr,
+            CallocPtr = CallocPtr,
+            DupPtr = DupPtr,
+        };
+    }
 }

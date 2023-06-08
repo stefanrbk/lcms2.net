@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.cgats;
+using lcms2.state;
 
 using System.Runtime.CompilerServices;
 

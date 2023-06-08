@@ -30,6 +30,7 @@ using lcms2.types;
 using static lcms2.Lcms2;
 using static System.Math;
 using System.Runtime.ConstrainedExecution;
+using lcms2.state;
 
 namespace lcms2;
 

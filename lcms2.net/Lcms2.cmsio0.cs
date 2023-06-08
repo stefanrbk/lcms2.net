@@ -440,7 +440,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Context cmsGetProfileContextID(HPROFILE Icc) =>
+    public static Context? cmsGetProfileContextID(HPROFILE Icc) =>
         Icc is not null
             ? ((Profile*)Icc)->ContextID
             : null;

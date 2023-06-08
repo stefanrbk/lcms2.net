@@ -26,6 +26,7 @@
 //
 
 using lcms2.io;
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2;

@@ -36,7 +36,7 @@ public static unsafe partial class Lcms2
     internal static readonly OptimizationCollection* DefaultOptimization;
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
-    internal static readonly OptimizationPluginChunkType* globalOptimizationPluginChunk;
+    internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = new();
 
     private struct Prelin8Data
     {
@@ -1570,19 +1570,19 @@ public static unsafe partial class Lcms2
 
     internal static void DupPluginOptimizationList(Context ctx, in Context src)
     {
-        OptimizationPluginChunkType* head = (OptimizationPluginChunkType*)src->chunks[Chunks.OptimizationPlugin];
+        OptimizationPluginChunkType head = src.OptimizationPlugin;
         OptimizationCollection* Anterior = null, entry;
-        OptimizationPluginChunkType newHead = default;
+        OptimizationPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head->OptimizationCollection;
+        for (entry = head.OptimizationCollection;
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<OptimizationCollection>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -1598,23 +1598,32 @@ public static unsafe partial class Lcms2
                 newHead.OptimizationCollection = newEntry;
         }
 
-        ctx->chunks[Chunks.OptimizationPlugin] = _cmsSubAllocDup<OptimizationPluginChunkType>(ctx->MemPool, &newHead);
+        ctx.OptimizationPlugin = newHead;
     }
 
-    internal static void _cmsAllocOptimizationPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocOptimizationPluginChunk(Context ctx, in Context? src)
     {
-        fixed (OptimizationPluginChunkType* @default = &OptimizationPluginChunk)
-            AllocPluginChunk(ctx, src, DupPluginOptimizationList, Chunks.OptimizationPlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.OptimizationPlugin
+            : OptimizationPluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.OptimizationPlugin = (OptimizationPluginChunkType)from.Dup(ctx);
+        //fixed (OptimizationPluginChunkType* @default = &OptimizationPluginChunk)
+        //    AllocPluginChunk(ctx, src, DupPluginOptimizationList, Chunks.OptimizationPlugin, @default);
     }
 
-    internal static bool _cmsRegisterOptimizationPlugin(Context id, PluginBase* Data)
+    internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase* Data)
     {
         var Plugin = (PluginOptimization*)Data;
-        var ctx = _cmsContextGetClientChunk<OptimizationPluginChunkType>(id, Chunks.OptimizationPlugin);
+        var ctx = _cmsGetContext(id).OptimizationPlugin;
 
         if (Data is null)
         {
-            ctx->OptimizationCollection = null;
+            ctx.OptimizationCollection = null;
             return true;
         }
 
@@ -1628,24 +1637,24 @@ public static unsafe partial class Lcms2
         fl->OptimizePtr = Plugin->OptimizePtr;
 
         // Keep linked list
-        fl->Next = ctx->OptimizationCollection;
+        fl->Next = ctx.OptimizationCollection;
 
         // Set the head
-        ctx->OptimizationCollection = fl;
+        ctx.OptimizationCollection = fl;
 
         // All is ok
         return true;
     }
 
     internal static bool _cmsOptimizePipeline(
-        Context ContextID,
+        Context? ContextID,
         Pipeline** PtrLut,
         uint Intent,
         uint* InputFormat,
         uint* OutputFormat,
         uint* dwFlags)
     {
-        var ctx = _cmsContextGetClientChunk<OptimizationPluginChunkType>(ContextID, Chunks.OptimizationPlugin);
+        var ctx = _cmsGetContext(ContextID).OptimizationPlugin;
         var AnySuccess = false;
 
         // A CLUT is being asked, so force this specific optimization
@@ -1685,7 +1694,7 @@ public static unsafe partial class Lcms2
             return false;
 
         // Try plug-in optimizations
-        for (var Opts = ctx->OptimizationCollection;
+        for (var Opts = ctx.OptimizationCollection;
              Opts is not null;
              Opts = Opts->Next)
         {

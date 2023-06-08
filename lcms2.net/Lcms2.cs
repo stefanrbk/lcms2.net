@@ -896,26 +896,6 @@ public static unsafe partial class Lcms2
     {
         ~Destructor()
         {
-            // Context and plugins
-            free(globalContext);
-            free(globalLogErrorChunk);
-            free(globalAlarmCodesChunk);
-            free(globalAdaptationStateChunk);
-            free(globalMemPluginChunk);
-            free(globalInterpPluginChunk);
-            free(globalCurvePluginChunk);
-            free(globalFormattersPluginChunk);
-            free(supportedTagTypes);
-            free(globalTagTypePluginChunk);
-            free(supportedTags);
-            free(globalTagPluginChunk);
-            free(globalIntentsPluginChunk);
-            free(supportedMPEtypes);
-            free(globalMPETypePluginChunk);
-            free(globalOptimizationPluginChunk);
-            free(globalTransformPluginChunk);
-            free(globalMutexPluginChunk);
-
             // WhitePoint defaults
             free(D50XYZ);
             free(D50xyY);
@@ -964,61 +944,61 @@ public static unsafe partial class Lcms2
     {
         #region Context and plugins
 
-        var defaultTag = default(TagLinkedList);
-        var tagNextOffset = (nuint)(&defaultTag.Next) - (nuint)(&defaultTag);
+        //var defaultTag = default(TagLinkedList);
+        //var tagNextOffset = (nuint)(&defaultTag.Next) - (nuint)(&defaultTag);
 
-        var defaultTagType = default(TagTypeLinkedList);
-        var tagTypeNextOffset = (nuint)(&defaultTagType.Next) - (nuint)(&defaultTagType);
+        //var defaultTagType = default(TagTypeLinkedList);
+        //var tagTypeNextOffset = (nuint)(&defaultTagType.Next) - (nuint)(&defaultTagType);
 
         // Error logger
-        fixed (LogErrorChunkType* plugin = &LogErrorChunk)
-            globalLogErrorChunk = dup<LogErrorChunkType>(plugin);
+        //fixed (LogErrorChunkType* plugin = &LogErrorChunk)
+        //    globalLogErrorChunk = dup<LogErrorChunkType>(plugin);
 
         // Alarm Codes
-        fixed (AlarmCodesChunkType* plugin = &AlarmCodesChunk)
-        {
-            plugin->AlarmCodes[0] = plugin->AlarmCodes[1] = plugin->AlarmCodes[2] = 0x7F00;
+        //fixed (AlarmCodesChunkType* plugin = &AlarmCodesChunk)
+        //{
+        //    plugin->AlarmCodes[0] = plugin->AlarmCodes[1] = plugin->AlarmCodes[2] = 0x7F00;
 
-            globalAlarmCodesChunk = dup<AlarmCodesChunkType>(plugin);
-        }
+        //    globalAlarmCodesChunk = dup<AlarmCodesChunkType>(plugin);
+        //}
 
         // Adaptation State
-        fixed (AdaptationStateChunkType* plugin = &AdaptationStateChunk)
-            globalAdaptationStateChunk = dup<AdaptationStateChunkType>(plugin);
+        //fixed (AdaptationStateChunkType* plugin = &AdaptationStateChunk)
+        //    globalAdaptationStateChunk = dup<AdaptationStateChunkType>(plugin);
 
         // Memory Handler
-        globalMemPluginChunk = alloc<MemPluginChunkType>();
-        *globalMemPluginChunk = new()
-        {
-            MallocPtr = _cmsMallocDefaultFn,
-            MallocZeroPtr = _cmsMallocZeroDefaultFn,
-            FreePtr = _cmsFreeDefaultFn,
-            ReallocPtr = _cmsReallocDefaultFn,
-            CallocPtr = _cmsCallocDefaultFn,
-            DupPtr = _cmsDupDefaultFn
-        };
+        //globalMemPluginChunk = alloc<MemPluginChunkType>();
+        //*globalMemPluginChunk = new()
+        //{
+        //    MallocPtr = _cmsMallocDefaultFn,
+        //    MallocZeroPtr = _cmsMallocZeroDefaultFn,
+        //    FreePtr = _cmsFreeDefaultFn,
+        //    ReallocPtr = _cmsReallocDefaultFn,
+        //    CallocPtr = _cmsCallocDefaultFn,
+        //    DupPtr = _cmsDupDefaultFn
+        //};
 
         // Interpolation Plugin
-        fixed (InterpPluginChunkType* plugin = &InterpPluginChunk)
-            globalInterpPluginChunk = dup<InterpPluginChunkType>(plugin);
+        //fixed (InterpPluginChunkType* plugin = &InterpPluginChunk)
+        //    globalInterpPluginChunk = dup<InterpPluginChunkType>(plugin);
 
         // Curves Plugin
-        fixed (ParametricCurvesCollection* curves = &defaultCurves)
-        {
-            fixed (int* defaultFunctionTypes = defaultCurvesFunctionTypes)
-                memcpy(curves->FunctionTypes, defaultFunctionTypes, 10 * sizeof(int));
-            fixed (uint* defaultParameterCount = defaultCurvesParameterCounts)
-                memcpy(curves->ParameterCount, defaultParameterCount, 10 * sizeof(uint));
-        }
-        fixed (CurvesPluginChunkType* plugin = &CurvesPluginChunk)
-            globalCurvePluginChunk = dup<CurvesPluginChunkType>(plugin);
+        //fixed (ParametricCurvesCollection* curves = &defaultCurves)
+        //{
+        //    fixed (int* defaultFunctionTypes = defaultCurvesFunctionTypes)
+        //        memcpy(curves->FunctionTypes, defaultFunctionTypes, 10 * sizeof(int));
+        //    fixed (uint* defaultParameterCount = defaultCurvesParameterCounts)
+        //        memcpy(curves->ParameterCount, defaultParameterCount, 10 * sizeof(uint));
+        //}
+        //fixed (CurvesPluginChunkType* plugin = &CurvesPluginChunk)
+        //    globalCurvePluginChunk = dup<CurvesPluginChunkType>(plugin);
 
         // Formatters Plugin
-        globalFormattersPluginChunk = alloc<FormattersPluginChunkType>();
-        *globalFormattersPluginChunk = new();
+        //globalFormattersPluginChunk = alloc<FormattersPluginChunkType>();
+        //*globalFormattersPluginChunk = new();
 
         // Tag Type Plugin
-        supportedTagTypes = calloc<TagTypeLinkedList>(31);
+        //supportedTagTypes = calloc<TagTypeLinkedList>(31);
 
         supportedTagTypes[0] = new(new(cmsSigChromaticityType, Type_Chromaticity_Read, Type_Chromaticity_Write, Type_Chromaticity_Dup, Type_Chromaticity_Free, null, 0), &supportedTagTypes[1]);
         supportedTagTypes[1] = new(new(cmsSigColorantOrderType, Type_ColorantOrderType_Read, Type_ColorantOrderType_Write, Type_ColorantOrderType_Dup, Type_ColorantOrderType_Free, null, 0), &supportedTagTypes[2]);
@@ -1052,11 +1032,11 @@ public static unsafe partial class Lcms2
         supportedTagTypes[29] = new(new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0), &supportedTagTypes[30]);
         supportedTagTypes[30] = new(new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0), null);
 
-        fixed (TagTypePluginChunkType* plugin = &TagTypePluginChunk)
-            globalTagTypePluginChunk = dup(plugin);
+        //fixed (TagTypePluginChunkType* plugin = &TagTypePluginChunk)
+        //    globalTagTypePluginChunk = dup(plugin);
 
         // Tag Plugin
-        supportedTags = calloc<TagLinkedList>(64);
+        //supportedTags = calloc<TagLinkedList>(64);
         supportedTags[0] = new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[1]);
         supportedTags[1] = new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[2]);
         supportedTags[2] = new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[3]);
@@ -1122,61 +1102,61 @@ public static unsafe partial class Lcms2
         supportedTags[62] = new(cmsSigProfileDescriptionMLTag, new(1, new Signature[] { cmsSigMultiLocalizedUnicodeType, }, null), &supportedTags[63]);
         supportedTags[63] = new(cmsSigArgyllArtsTag, new(9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null), null);
 
-        fixed (TagPluginChunkType* plugin = &TagPluginChunk)
-            globalTagPluginChunk = dup(plugin);
+        //fixed (TagPluginChunkType* plugin = &TagPluginChunk)
+        //    globalTagPluginChunk = dup(plugin);
 
         // Intents Plugin
-        fixed (IntentsPluginChunkType* plugin = &IntentsPluginChunk)
-            globalIntentsPluginChunk = dup(plugin);
+        //fixed (IntentsPluginChunkType* plugin = &IntentsPluginChunk)
+        //    globalIntentsPluginChunk = dup(plugin);
 
         // MPE Type Plugin
-        supportedMPEtypes = calloc<TagTypeLinkedList>(5);
+        //supportedMPEtypes = calloc<TagTypeLinkedList>(5);
         supportedMPEtypes[0] = new(new(cmsSigBAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[1]);
         supportedMPEtypes[1] = new(new(cmsSigEAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[2]);
         supportedMPEtypes[2] = new(new(cmsSigCurveSetElemType, Type_MPEcurve_Read, Type_MPEcurve_Write, GenericMPEdup, GenericMPEfree, null, 0), &supportedMPEtypes[3]);
         supportedMPEtypes[3] = new(new(cmsSigMatrixElemType, Type_MPEmatrix_Read, Type_MPEmatrix_Write, GenericMPEdup, GenericMPEfree, null, 0), &supportedMPEtypes[4]);
         supportedMPEtypes[4] = new(new(cmsSigCLutElemType, Type_MPEclut_Read, Type_MPEclut_Write, GenericMPEdup, GenericMPEfree, null, 0), null);
 
-        fixed (TagTypePluginChunkType* plugin = &MPETypePluginChunk)
-            globalMPETypePluginChunk = dup(plugin);
+        //fixed (TagTypePluginChunkType* plugin = &MPETypePluginChunk)
+        //    globalMPETypePluginChunk = dup(plugin);
 
         // Optimization Plugin
-        fixed (OptimizationPluginChunkType* plugin = &OptimizationPluginChunk)
-            globalOptimizationPluginChunk = dup(plugin);
+        //fixed (OptimizationPluginChunkType* plugin = &OptimizationPluginChunk)
+        //    globalOptimizationPluginChunk = dup(plugin);
 
         // Transform Plugin
-        fixed (TransformPluginChunkType* plugin = &TransformPluginChunk)
-            globalTransformPluginChunk = dup(plugin);
+        //fixed (TransformPluginChunkType* plugin = &TransformPluginChunk)
+        //    globalTransformPluginChunk = dup(plugin);
 
         // Mutex Plugin
-        fixed (MutexPluginChunkType* plugin = &MutexChunk)
-            globalMutexPluginChunk = dup(plugin);
+        //fixed (MutexPluginChunkType* plugin = &MutexChunk)
+        //    globalMutexPluginChunk = dup(plugin);
 
         // Global Context
-        globalContext = (Context)alloc((nuint)sizeof(Context_struct));
-        *globalContext = new()
-        {
-            Next = null,
-            MemPool = null,
-            DefaultMemoryManager = default,
-        };
-        globalContext->chunks.parent = globalContext;
+        //globalContext = (Context)alloc((nuint)sizeof(Context_struct));
+        //*globalContext = new()
+        //{
+        //    Next = null,
+        //    MemPool = null,
+        //    DefaultMemoryManager = default,
+        //};
+        //globalContext->chunks.parent = globalContext;
 
-        globalContext->chunks[Chunks.UserPtr] = null;
-        globalContext->chunks[Chunks.Logger] = globalLogErrorChunk;
-        globalContext->chunks[Chunks.AlarmCodesContext] = globalAlarmCodesChunk;
-        globalContext->chunks[Chunks.AdaptationStateContext] = globalAdaptationStateChunk;
-        globalContext->chunks[Chunks.MemPlugin] = globalMemPluginChunk;
-        globalContext->chunks[Chunks.InterpPlugin] = globalInterpPluginChunk;
-        globalContext->chunks[Chunks.CurvesPlugin] = globalCurvePluginChunk;
-        globalContext->chunks[Chunks.FormattersPlugin] = globalFormattersPluginChunk;
-        globalContext->chunks[Chunks.TagTypePlugin] = globalTagTypePluginChunk;
-        globalContext->chunks[Chunks.TagPlugin] = globalTagPluginChunk;
-        globalContext->chunks[Chunks.IntentPlugin] = globalIntentsPluginChunk;
-        globalContext->chunks[Chunks.MPEPlugin] = globalMPETypePluginChunk;
-        globalContext->chunks[Chunks.OptimizationPlugin] = globalOptimizationPluginChunk;
-        globalContext->chunks[Chunks.TransformPlugin] = globalTransformPluginChunk;
-        globalContext->chunks[Chunks.MutexPlugin] = globalMutexPluginChunk;
+        //globalContext->chunks[Chunks.UserPtr] = null;
+        //globalContext->chunks[Chunks.Logger] = globalLogErrorChunk;
+        //globalContext->chunks[Chunks.AlarmCodesContext] = globalAlarmCodesChunk;
+        //globalContext->chunks[Chunks.AdaptationStateContext] = globalAdaptationStateChunk;
+        //globalContext->chunks[Chunks.MemPlugin] = globalMemPluginChunk;
+        //globalContext->chunks[Chunks.InterpPlugin] = globalInterpPluginChunk;
+        //globalContext->chunks[Chunks.CurvesPlugin] = globalCurvePluginChunk;
+        //globalContext->chunks[Chunks.FormattersPlugin] = globalFormattersPluginChunk;
+        //globalContext->chunks[Chunks.TagTypePlugin] = globalTagTypePluginChunk;
+        //globalContext->chunks[Chunks.TagPlugin] = globalTagPluginChunk;
+        //globalContext->chunks[Chunks.IntentPlugin] = globalIntentsPluginChunk;
+        //globalContext->chunks[Chunks.MPEPlugin] = globalMPETypePluginChunk;
+        //globalContext->chunks[Chunks.OptimizationPlugin] = globalOptimizationPluginChunk;
+        //globalContext->chunks[Chunks.TransformPlugin] = globalTransformPluginChunk;
+        //globalContext->chunks[Chunks.MutexPlugin] = globalMutexPluginChunk;
 
         #endregion Context and plugins
 
@@ -1403,9 +1383,6 @@ public static unsafe partial class Lcms2
     {
         if (typeof(T) == typeof(Screening))
             return (uint)sizeof(Screening) - 1 + ((uint)sizeof(ScreeningChannel) * cmsMAXCHANNELS);
-
-        if (typeof(T) == typeof(Context_struct))
-            return (uint)sizeof(Context_struct) - 1;
 
         return (uint)sizeof(T);
     }

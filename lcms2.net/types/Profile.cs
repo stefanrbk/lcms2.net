@@ -32,7 +32,7 @@ namespace lcms2.types;
 public unsafe struct Profile
 {
     public IOHandler* IOHandler;
-    public Context ContextID;
+    public Context? ContextID;
 
     public DateTime Created;
 
@@ -60,8 +60,7 @@ public unsafe struct Profile
 
     public bool IsWrite;
 
-    public object? UsrMutexManaged;
-    public void* UserMutex;
+    public object? UserMutex;
 
     public struct Header
     {

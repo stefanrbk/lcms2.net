@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2;
@@ -33,12 +34,12 @@ public static unsafe partial class Lcms2
 {
     public delegate void FreeUserDataFn(Context ContextID, void* Data);
     public delegate void* DupUserDataFn(Context ContextID, in void* Data);
-    public delegate void* MallocFnPtrType(Context ContextID, uint size);
-    public delegate void FreeFnPtrType(Context ContextID, void* Ptr);
-    public delegate void* ReallocFnPtrType(Context ContextID, void* Ptr, uint NewSize);
-    public delegate void* MallocZerocFnPtrType(Context ContextID, uint size);
-    public delegate void* CallocFnPtrType(Context ContextID, uint num, uint size);
-    public delegate void* DupFnPtrType(Context ContextID, in void* Org, uint size);
+    public delegate void* MallocFnPtrType(Context? ContextID, uint size);
+    public delegate void FreeFnPtrType(Context? ContextID, void* Ptr);
+    public delegate void* ReallocFnPtrType(Context? ContextID, void* Ptr, uint NewSize);
+    public delegate void* MallocZerocFnPtrType(Context? ContextID, uint size);
+    public delegate void* CallocFnPtrType(Context? ContextID, uint num, uint size);
+    public delegate void* DupFnPtrType(Context? ContextID, in void* Org, uint size);
     public delegate void InterpFn16(in ushort* Input, ushort* Output, in InterpParams* p);
     public delegate void InterpFnFloat(in float* Input, float* Output, in InterpParams* p);
     public delegate InterpFunction InterpFnFactory(uint nInputChannels, uint nOutputChannels, uint dwFlags);
@@ -57,11 +58,11 @@ public static unsafe partial class Lcms2
     public delegate void Transform2Fn(Transform* CMMcargo, in void* InputBuffer, void* OutputBuffer, uint PixelsPerLine, uint LineCount, in Stride* Stride);
     public delegate bool TransformFactory(TransformFn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
     public delegate bool Transform2Factory(Transform2Fn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
-    public delegate void* CreateMutexFnPtrType(Context ContextID);
-    public delegate void DestroyMutexFnPtrType(Context ContextID, void* mtx);
-    public delegate bool LockMutexFnPtrType(Context ContextID, void* mtx);
-    public delegate void UnlockMutexFnPtrType(Context ContextID, void* mtx);
-    public delegate void LogErrorHandlerFunction(Context ContextID, ErrorCode ErrorCode, string Text);
+    public delegate object? CreateMutexFnPtrType(Context? ContextID);
+    public delegate void DestroyMutexFnPtrType(Context? ContextID, object? mtx);
+    public delegate bool LockMutexFnPtrType(Context? ContextID, object? mtx);
+    public delegate void UnlockMutexFnPtrType(Context? ContextID, object? mtx);
+    public delegate void LogErrorHandlerFunction(Context? ContextID, ErrorCode ErrorCode, string Text);
     public delegate bool SAMPLER16(in ushort* In, ushort* Out, void* Cargo);
     public delegate bool SAMPLERFLOAT(in float* In, float* Out, void* Cargo);
 

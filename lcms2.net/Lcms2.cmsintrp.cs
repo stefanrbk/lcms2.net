@@ -34,41 +34,51 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     private static readonly InterpPluginChunkType InterpPluginChunk = new();
-    private static readonly InterpPluginChunkType* globalInterpPluginChunk;
+    private static readonly InterpPluginChunkType globalInterpPluginChunk = new();
 
-    internal static void _cmsAllocInterpPluginChunk(Context ctx, in Context src)
+    internal static void _cmsAllocInterpPluginChunk(Context ctx, in Context? src)
     {
-        fixed (InterpPluginChunkType* @default = &InterpPluginChunk)
-            AllocPluginChunk(ctx, src, Chunks.InterpPlugin, @default);
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.InterpPlugin
+            : InterpPluginChunk;
+
+        _cmsAssert(from);
+
+        ctx.InterpPlugin = (InterpPluginChunkType)from.Dup(ctx);
+
+        //fixed (InterpPluginChunkType* @default = &InterpPluginChunk)
+        //    AllocPluginChunk(ctx, src, Chunks.InterpPlugin, @default);
     }
 
-    internal static bool _cmsRegisterInterpPlugin(Context ctx, PluginBase* Data)
+    internal static bool _cmsRegisterInterpPlugin(Context? ctx, PluginBase* Data)
     {
         var Plugin = (PluginInterpolation*)Data;
-        var ptr = _cmsContextGetClientChunk<InterpPluginChunkType>(ctx, Chunks.InterpPlugin);
+        var ptr = _cmsGetContext(ctx).InterpPlugin;
 
         if (Data is not null)
         {
             // Set replacement functions
-            ptr->Interpolators = Plugin->InterpolatorsFactory;
+            ptr.Interpolators = Plugin->InterpolatorsFactory;
             return true;
         }
         else
         {
-            ptr->Interpolators = null;
+            ptr.Interpolators = null;
             return true;
         }
     }
 
-    internal static bool _cmsSetInterpolationRoutine(Context ctx, InterpParams* p)
+    internal static bool _cmsSetInterpolationRoutine(Context? ctx, InterpParams* p)
     {
-        var ptr = _cmsContextGetClientChunk<InterpPluginChunkType>(ctx, Chunks.InterpPlugin);
+        var ptr = _cmsGetContext(ctx).InterpPlugin;
 
         p->Interpolation.Lerp16 = null;
 
         // Invoke factory, possibly in the Plug-in
-        if (ptr->Interpolators is not null)
-            p->Interpolation = ptr->Interpolators(p->nInputs, p->nOutputs, p->dwFlags);
+        if (ptr.Interpolators is not null)
+            p->Interpolation = ptr.Interpolators(p->nInputs, p->nOutputs, p->dwFlags);
 
         // If unsupported by the plug-in, go for the LittleCMS default.
         // If happens only if an extern plug-in is being used
@@ -80,7 +90,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParamsEx(
-        Context ContextID, in uint* nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context? ContextID, in uint* nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
     {
         var dwFlags = (uint)flags;
 
@@ -126,7 +136,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParams(
-        Context ContextID, uint nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context? ContextID, uint nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
     {
         var Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
 

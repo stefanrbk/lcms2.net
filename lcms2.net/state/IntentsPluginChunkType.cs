@@ -27,7 +27,39 @@
 
 namespace lcms2.state;
 
-internal unsafe class IntentsPluginChunkType
+internal unsafe class IntentsPluginChunkType : IDup
 {
     public IntentsList* Intents;
+
+    public object? Dup(Context ctx)
+    {
+        IntentsPluginChunkType head = this;
+        IntentsList* Anterior = null, entry;
+        IntentsPluginChunkType newHead = new();
+
+        _cmsAssert(ctx);
+
+        // Walk the list copying all nodes
+        for (entry = head.Intents;
+             entry is not null;
+             entry = entry->Next)
+        {
+            var newEntry = _cmsSubAllocDup<IntentsList>(ctx.MemPool, entry);
+
+            if (newEntry is null)
+                return null;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.Intents is null)
+                newHead.Intents = newEntry;
+        }
+
+        return newHead;
+    }
 }

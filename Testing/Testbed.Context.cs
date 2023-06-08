@@ -34,7 +34,7 @@ internal static unsafe partial class Testbed
     {
         var cpy = cmsDupContext(src, Data);
 
-        DebugMemDontCheckThis(cpy);
+        //DebugMemDontCheckThis(cpy);
 
         return cpy;
     }
