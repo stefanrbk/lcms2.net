@@ -930,7 +930,7 @@ public static unsafe partial class Lcms2
             free(DefaultOptimization);
 
             // Intents defaults
-            free(defaultIntents);
+            //free(defaultIntents);
 
             // Lut defaults
             free(AllowedLUTTypes);
@@ -943,7 +943,10 @@ public static unsafe partial class Lcms2
     static Lcms2()
     {
         AllocList = new();
-        globalContext = cmsCreateContext(null, null);
+        globalContext = cmsCreateContext(null, null)!;
+
+        defaultCurvesFunctionTypes.CopyTo(defaultCurves.FunctionTypes.AsSpan());
+        defaultCurvesParameterCounts.CopyTo(defaultCurves.ParameterCount.AsSpan());
 
         #region Context and plugins
 
@@ -1267,77 +1270,73 @@ public static unsafe partial class Lcms2
 
         #region Intents defaults
 
-        defaultIntents = calloc<IntentsList>(10);
-        defaultIntents[0] = new()
+        var defaultIntentsList = new List<IntentsList>(10)
         {
-            Intent = INTENT_PERCEPTUAL,
-            Description = "Perceptual",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[1]
+            new()
+            {
+                Intent = INTENT_PERCEPTUAL,
+                Description = "Perceptual",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_SATURATION,
+                Description = "Saturation",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_ABSOLUTE_COLORIMETRIC,
+                Description = "Absolute colorimetric",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
+                Description = "Perceptual preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
+                Description = "Saturation preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
+                Description = "Perceptual preserving black plane",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric preserving black plane",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
+                Description = "Saturation preserving black plane",
+                Link = DefaultICCintents
+            }
         };
-        defaultIntents[1] = new()
-        {
-            Intent = INTENT_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[2]
-        };
-        defaultIntents[2] = new()
-        {
-            Intent = INTENT_SATURATION,
-            Description = "Saturation",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[3]
-        };
-        defaultIntents[3] = new()
-        {
-            Intent = INTENT_ABSOLUTE_COLORIMETRIC,
-            Description = "Absolute colorimetric",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[4]
-        };
-        defaultIntents[4] = new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
-            Description = "Perceptual preserving black ink",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[5]
-        };
-        defaultIntents[5] = new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black ink",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[6]
-        };
-        defaultIntents[6] = new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
-            Description = "Saturation preserving black ink",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[7]
-        };
-        defaultIntents[7] = new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
-            Description = "Perceptual preserving black plane",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[8]
-        };
-        defaultIntents[8] = new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black plane",
-            Link = DefaultICCintents,
-            Next = &defaultIntents[9]
-        };
-        defaultIntents[9] = new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
-            Description = "Saturation preserving black plane",
-            Link = DefaultICCintents,
-            Next = null
-        };
+        for (var i = 0; i < 9; i++)
+            defaultIntentsList[i].Next = defaultIntentsList[i + 1];
+
+        defaultIntents = defaultIntentsList[0];
 
         #endregion Intents defaults
 

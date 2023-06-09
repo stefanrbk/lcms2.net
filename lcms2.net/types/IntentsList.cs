@@ -29,10 +29,19 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct IntentsList
+public class IntentsList : ICloneable
 {
     public uint Intent;
     public string Description;
     public IntentFn Link;
-    public IntentsList* Next;
+    public IntentsList? Next;
+
+    public object Clone() =>
+        new IntentsList()
+        {
+            Intent = Intent,
+            Description = Description,
+            Link = Link,
+            Next = null
+        };
 }

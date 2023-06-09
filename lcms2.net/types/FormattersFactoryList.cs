@@ -29,8 +29,11 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-internal unsafe struct FormattersFactoryList
+internal class FormattersFactoryList : ICloneable
 {
     public FormatterFactory Factory;
-    public FormattersFactoryList* Next;
+    public FormattersFactoryList? Next;
+
+    public object Clone() =>
+        new FormattersFactoryList() { Factory = Factory, Next = null };
 }

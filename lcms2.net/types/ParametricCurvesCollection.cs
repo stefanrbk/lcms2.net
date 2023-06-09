@@ -24,17 +24,27 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.state;
-
 namespace lcms2.types;
 
-internal unsafe struct ParametricCurvesCollection
+internal class ParametricCurvesCollection : ICloneable
 {
     public uint nFunctions;
-    public fixed int FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
-    public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly int[] FunctionTypes = new int[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly uint[] ParameterCount = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
     public ParametricCurveEvaluator Evaluator;
 
-    public ParametricCurvesCollection* Next;
+    public ParametricCurvesCollection? Next;
+
+    public object Clone()
+    {
+        var result = new ParametricCurvesCollection() { nFunctions = nFunctions, Evaluator = Evaluator };
+
+        for (var i = 0; i < MAX_TYPES_IN_LCMS_PLUGIN; i++)
+        {
+            result.FunctionTypes[i] = FunctionTypes[i];
+            result.ParameterCount[i] = ParameterCount[i];
+        }
+
+        return result;
+    }
 }

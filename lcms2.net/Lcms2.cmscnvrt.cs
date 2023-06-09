@@ -32,7 +32,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly IntentsList* defaultIntents;
+    internal static readonly IntentsList defaultIntents;
 
     internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
 
@@ -41,31 +41,29 @@ public static unsafe partial class Lcms2
     internal static void DupPluginIntentsList(Context ctx, in Context src)
     {
         IntentsPluginChunkType head = src.IntentsPlugin;
-        IntentsList* Anterior = null, entry;
+        IntentsList? Anterior = null, entry;
         IntentsPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
-        _cmsAssert(head);
 
         // Walk the list copying all nodes
         for (entry = head.Intents;
              entry is not null;
-             entry = entry->Next)
+             entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<IntentsList>(ctx.MemPool, entry);
+            var newEntry = (IntentsList)entry.Clone();
 
             if (newEntry is null)
                 return;
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.Intents is null)
-                newHead.Intents = newEntry;
+            newHead.Intents ??= newEntry;
         }
 
         ctx.IntentsPlugin = newHead;
@@ -80,15 +78,15 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, DupPluginIntentsList, Chunks.IntentPlugin, @default);
     }
 
-    private static IntentsList* SearchIntent(Context? ContextID, uint Intent)
+    private static IntentsList? SearchIntent(Context? ContextID, uint Intent)
     {
         var ctx = _cmsGetContext(ContextID).IntentsPlugin;
 
-        for (var pt = ctx.Intents; pt is not null; pt = pt->Next)
-            if (pt->Intent == Intent) return pt;
+        for (var pt = ctx.Intents; pt is not null; pt = pt.Next)
+            if (pt.Intent == Intent) return pt;
 
-        for (var pt = defaultIntents; pt is not null; pt = pt->Next)
-            if (pt->Intent == Intent) return pt;
+        for (var pt = defaultIntents; pt is not null; pt = pt.Next)
+            if (pt.Intent == Intent) return pt;
 
         return null;
     }
@@ -943,38 +941,38 @@ public static unsafe partial class Lcms2
         }
 
         // Call the handler
-        return Intent->Link(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        return Intent.Link(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
     }
 
     public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
     {
         var ctx = _cmsGetContext(ContextID)?.IntentsPlugin;
         uint nIntents = 0;
-        IntentsList* pt;
+        IntentsList? pt;
 
         if (ctx is not null)
-            for (pt = ctx.Intents; pt is not null; pt = pt->Next)
+            for (pt = ctx.Intents; pt is not null; pt = pt.Next)
             {
                 if (nIntents < nMax)
                 {
                     if (Codes is not null)
-                        Codes[nIntents] = pt->Intent;
+                        Codes[nIntents] = pt.Intent;
 
                     if (nIntents < Descriptions?.Length)
-                        Descriptions[nIntents] = pt->Description;
+                        Descriptions[nIntents] = pt.Description;
                 }
 
                 nIntents++;
             }
-        for (pt = defaultIntents; pt is not null; pt = pt->Next)
+        for (pt = defaultIntents; pt is not null; pt = pt.Next)
         {
             if (nIntents < nMax)
             {
                 if (Codes is not null)
-                    Codes[nIntents] = pt->Intent;
+                    Codes[nIntents] = pt.Intent;
 
                 if (nIntents < Descriptions?.Length)
-                    Descriptions[nIntents] = pt->Description;
+                    Descriptions[nIntents] = pt.Description;
             }
 
             nIntents++;
@@ -998,15 +996,15 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        var fl = _cmsPluginMalloc<IntentsList>(id);
+        var fl = new IntentsList();
         if (fl is null) return false;
 
-        fl->Intent = Plugin!.Intent;
-        fl->Description = Plugin.Description;
+        fl.Intent = Plugin!.Intent;
+        fl.Description = Plugin.Description;
 
-        fl->Link = Plugin.Link;
+        fl.Link = Plugin.Link;
 
-        fl->Next = ctx.Intents;
+        fl.Next = ctx.Intents;
         ctx.Intents = fl;
 
         return true;

@@ -31,33 +31,32 @@ namespace lcms2.state;
 
 internal unsafe class CurvesPluginChunkType : IDup
 {
-    public ParametricCurvesCollection* ParametricCurves;
+    public ParametricCurvesCollection? ParametricCurves;
 
     public object? Dup(Context ctx)
     {
         var head = this;
-        ParametricCurvesCollection* Anterior = null;
+        ParametricCurvesCollection? Anterior = null;
         var newHead = new CurvesPluginChunkType();
 
         // Walk the list copying all nodes
         for (var entry = head.ParametricCurves;
             entry is not null;
-            entry = entry->Next)
+            entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<ParametricCurvesCollection>(ctx.MemPool, entry);
+            var newEntry = (ParametricCurvesCollection?)entry.Clone();
 
             if (newEntry is null)
                 return null;
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.ParametricCurves is null)
-                newHead.ParametricCurves = newEntry;
+            newHead.ParametricCurves ??= newEntry;
         }
 
         return newHead;

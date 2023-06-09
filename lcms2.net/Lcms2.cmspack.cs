@@ -2497,28 +2497,27 @@ public static unsafe partial class Lcms2
     private static void DupFormatterFactoryList(Context ctx, in Context src)
     {
         var head = src.FormattersPlugin;
-        FormattersFactoryList* Anterior = null;
+        FormattersFactoryList? Anterior = null;
         FormattersPluginChunkType newHead = new();
 
         _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (var entry = head.FactoryList; entry is not null; entry = entry->Next)
+        for (var entry = head.FactoryList; entry is not null; entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<FormattersFactoryList>(ctx.MemPool, entry);
+            var newEntry = (FormattersFactoryList?)entry.Clone();
 
             if (newEntry is null)
                 return;
 
             // We want to keep the linked list order
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.FactoryList is null)
-                newHead.FactoryList = newEntry;
+            newHead.FactoryList ??= newEntry;
         }
 
         ctx.FormattersPlugin = newHead;
@@ -2560,12 +2559,12 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        var fl = _cmsPluginMalloc<FormattersFactoryList>(ContextID);
+        var fl = new FormattersFactoryList();
         if (fl is null) return false;
 
-        fl->Factory = Plugin!.FormattersFactory;
+        fl.Factory = Plugin!.FormattersFactory;
 
-        fl->Next = ctx.FactoryList;
+        fl.Next = ctx.FactoryList;
         ctx.FactoryList = fl;
 
         return true;
@@ -2575,9 +2574,9 @@ public static unsafe partial class Lcms2
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
-        for (var f = ctx.FactoryList; f is not null; f = f->Next)
+        for (var f = ctx.FactoryList; f is not null; f = f.Next)
         {
-            var fn = f->Factory(Type, Dir, (uint)dwFlags);
+            var fn = f.Factory(Type, Dir, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
         }
 
@@ -2586,6 +2585,7 @@ public static unsafe partial class Lcms2
         {
             FormatterDirection.Input => _cmsGetStockInputFormatter(Type, dwFlags),
             FormatterDirection.Output => _cmsGetStockOutputFormatter(Type, dwFlags),
+            _ => throw new ArgumentException(null, nameof(Dir)),
         };
     }
 
