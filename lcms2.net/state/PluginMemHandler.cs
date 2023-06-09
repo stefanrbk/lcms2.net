@@ -27,15 +27,13 @@
 
 namespace lcms2.state;
 
-public unsafe struct PluginMemHandler
+public class PluginMemHandler : PluginBase
 {
-    public PluginBase @base;
-
     public MallocFnPtrType MallocPtr;
     public FreeFnPtrType FreePtr;
     public ReallocFnPtrType ReallocPtr;
 
-    public MallocZerocFnPtrType MallocZeroPtr;
-    public CallocFnPtrType CallocPtr;
-    public DupFnPtrType DupPtr;
+    public MallocZerocFnPtrType? MallocZeroPtr;
+    public CallocFnPtrType? CallocPtr;
+    public DupFnPtrType? DupPtr;
 }

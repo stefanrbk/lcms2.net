@@ -2548,10 +2548,10 @@ public static unsafe partial class Lcms2
         //}
     }
 
-    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase? Data)
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
-        var Plugin = (PluginFormatters*)Data;
+        var Plugin = (PluginFormatters?)Data;
 
         // Reset to build-in defaults
         if (Data is null)
@@ -2563,7 +2563,7 @@ public static unsafe partial class Lcms2
         var fl = _cmsPluginMalloc<FormattersFactoryList>(ContextID);
         if (fl is null) return false;
 
-        fl->Factory = Plugin->FormattersFactory;
+        fl->Factory = Plugin!.FormattersFactory;
 
         fl->Next = ctx.FactoryList;
         ctx.FactoryList = fl;

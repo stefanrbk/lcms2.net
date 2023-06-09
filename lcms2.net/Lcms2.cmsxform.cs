@@ -596,9 +596,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase? Data)
     {
-        var Plugin = (PluginTransform*)Data;
+        var Plugin = (PluginTransform?)Data;
         var ctx = _cmsGetContext(id).TransformPlugin;
 
         if (Data is null)
@@ -609,16 +609,16 @@ public static unsafe partial class Lcms2
         }
 
         // Factory callback is required
-        if (Plugin->factories.xform is null) return false;
+        if (Plugin!.factories.xform is null) return false;
 
         var fl = _cmsPluginMalloc<TransformCollection>(id);
         if (fl is null) return false;
 
         // Check for full xform plug-ins previous to 2.8, we would need an adapter in that case
-        fl->OldXform = Plugin->@base.ExpectedVersion < 2080;
+        fl->OldXform = Plugin.ExpectedVersion < 2080;
 
         // Copy the parameters
-        fl->Factory = Plugin->factories.xform;
+        fl->Factory = Plugin.factories.xform;
 
         // Keep linked list
         fl->Next = ctx.TransformCollection;

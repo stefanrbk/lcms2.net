@@ -100,10 +100,10 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, DupPluginCurvesList, Chunks.CurvesPlugin, @default);
     }
 
-    internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase? Data)
     {
         var ctx = _cmsGetContext(ContextID).CurvesPlugin;
-        var Plugin = (PluginParametricCurves*)Data;
+        var Plugin = (PluginParametricCurves?)Data;
 
         if (Data is null)
         {
@@ -115,8 +115,8 @@ public static unsafe partial class Lcms2
         if (fl == null) return false;
 
         // Copy the parameters
-        fl->Evaluator = Plugin->Evaluator;
-        fl->nFunctions = Plugin->NumFunctions;
+        fl->Evaluator = Plugin!.Evaluator;
+        fl->nFunctions = Plugin.NumFunctions;
 
         // Make sure no mem overwrites
         if (fl->nFunctions > MAX_TYPES_IN_LCMS_PLUGIN)
@@ -125,8 +125,12 @@ public static unsafe partial class Lcms2
         }
 
         // Copy the data
-        memcpy(fl->FunctionTypes, Plugin->FunctionTypes, fl->nFunctions * sizeof(uint));
-        memcpy(fl->ParameterCount, Plugin->ParameterCount, fl->nFunctions * sizeof(uint));
+        for (var i = 0; i < fl->nFunctions; i++)
+            fl->FunctionTypes[i] = (int)Plugin.FunctionTypes[i];
+        for (var i = 0; i < fl->nFunctions; i++)
+            fl->ParameterCount[i] = Plugin.ParameterCount[i];
+        //memcpy(fl->FunctionTypes, Plugin.FunctionTypes, fl->nFunctions * sizeof(uint));
+        //memcpy(fl->ParameterCount, Plugin.ParameterCount, fl->nFunctions * sizeof(uint));
 
         // Keep linked list
         fl->Next = ctx.ParametricCurves;

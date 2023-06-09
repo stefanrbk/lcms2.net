@@ -29,9 +29,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginInterpolation
+public class PluginInterpolation : PluginBase
 {
-    public PluginBase @base;
-
     public InterpFnFactory InterpolatorsFactory;
 }

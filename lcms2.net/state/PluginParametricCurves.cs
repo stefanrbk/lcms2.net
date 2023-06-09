@@ -27,13 +27,11 @@
 
 namespace lcms2.state;
 
-public unsafe struct PluginParametricCurves
+public class PluginParametricCurves : PluginBase
 {
-    public PluginBase @base;
-
     public uint NumFunctions;
-    public fixed uint FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
-    public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly uint[] FunctionTypes = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly uint[] ParameterCount = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
 
     public ParametricCurveEvaluator Evaluator;
 }

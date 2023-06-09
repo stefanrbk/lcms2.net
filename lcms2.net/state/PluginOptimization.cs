@@ -28,8 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginOptimization
+public class PluginOptimization : PluginBase
 {
-    public PluginBase @base;
     public OPToptimizeFn OptimizePtr;
 }

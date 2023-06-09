@@ -28,9 +28,8 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginRenderingIntent
+public class PluginRenderingIntent : PluginBase
 {
-    public PluginBase @base;
     public uint Intent;
     public IntentFn Link;
     public string Description;

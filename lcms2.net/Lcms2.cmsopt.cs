@@ -1616,9 +1616,9 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, DupPluginOptimizationList, Chunks.OptimizationPlugin, @default);
     }
 
-    internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase? Data)
     {
-        var Plugin = (PluginOptimization*)Data;
+        var Plugin = (PluginOptimization?)Data;
         var ctx = _cmsGetContext(id).OptimizationPlugin;
 
         if (Data is null)
@@ -1628,13 +1628,13 @@ public static unsafe partial class Lcms2
         }
 
         // Optimizer callback is required
-        if (Plugin->OptimizePtr is null) return false;
+        if (Plugin!.OptimizePtr is null) return false;
 
         var fl = _cmsPluginMalloc<OptimizationCollection>(id);
         if (fl is null) return false;
 
         // Copy the parameters
-        fl->OptimizePtr = Plugin->OptimizePtr;
+        fl->OptimizePtr = Plugin.OptimizePtr;
 
         // Keep linked list
         fl->Next = ctx.OptimizationCollection;

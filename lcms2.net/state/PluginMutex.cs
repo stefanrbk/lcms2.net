@@ -27,10 +27,8 @@
 
 namespace lcms2.state;
 
-public unsafe struct PluginMutex
+public class PluginMutex : PluginBase
 {
-    public PluginBase @base;
-
     public CreateMutexFnPtrType CreateMutexPtr;
     public DestroyMutexFnPtrType DestroyMutexPtr;
     public LockMutexFnPtrType LockMutexPtr;

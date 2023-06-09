@@ -174,7 +174,7 @@ public static unsafe partial class Lcms2
         ctx.MemPlugin = from;
     }
 
-    internal static void _cmsInstallAllocFunctions(PluginMemHandler* Plugin, ref MemPluginChunkType ptr)
+    internal static void _cmsInstallAllocFunctions(PluginMemHandler? Plugin, ref MemPluginChunkType ptr)
     {
         if (Plugin is null)
         {
@@ -182,24 +182,19 @@ public static unsafe partial class Lcms2
         }
         else
         {
-            ptr.MallocPtr = Plugin->MallocPtr;
-            ptr.FreePtr = Plugin->FreePtr;
-            ptr.ReallocPtr = Plugin->ReallocPtr;
+            ptr.MallocPtr = Plugin.MallocPtr;
+            ptr.FreePtr = Plugin.FreePtr;
+            ptr.ReallocPtr = Plugin.ReallocPtr;
 
-            // Make sure we revert to defaults
-            ptr.MallocZeroPtr = _cmsMallocZeroDefaultFn;
-            ptr.CallocPtr = _cmsCallocDefaultFn;
-            ptr.DupPtr = _cmsDupDefaultFn;
-
-            if (Plugin->MallocZeroPtr is not null) ptr.MallocZeroPtr = Plugin->MallocZeroPtr;
-            if (Plugin->CallocPtr is not null) ptr.CallocPtr = Plugin->CallocPtr;
-            if (Plugin->DupPtr is not null) ptr.DupPtr = Plugin->DupPtr;
+            ptr.MallocZeroPtr = Plugin.MallocZeroPtr ?? _cmsMallocZeroDefaultFn;
+            ptr.CallocPtr = Plugin.CallocPtr ?? _cmsCallocDefaultFn;
+            ptr.DupPtr = Plugin.DupPtr ?? _cmsDupDefaultFn;
         }
     }
 
-    internal static bool _cmsRegisterMemHandlerPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterMemHandlerPlugin(Context? ContextID, PluginBase? Data)
     {
-        var Plugin = (PluginMemHandler*)Data;
+        var Plugin = (PluginMemHandler?)Data;
 
         // NULL forces to reset to defaults. In this special case, the defaults are stored in the context structure.
         // Remaining plug-ins does NOT have any copy in the context structure, but this is somehow special as the
@@ -215,9 +210,9 @@ public static unsafe partial class Lcms2
         }
 
         // Check for required callbacks
-        if (Plugin->MallocPtr is null ||
-            Plugin->FreePtr is null ||
-            Plugin->ReallocPtr is null) return false;
+        if (Plugin!.MallocPtr is null ||
+            Plugin.FreePtr is null ||
+            Plugin.ReallocPtr is null) return false;
 
         // Set replacement functions
         ref var ptr = ref _cmsGetContext(ContextID).MemPlugin;
@@ -467,7 +462,7 @@ public static unsafe partial class Lcms2
     /// </summary>
     public static void cmsSetLogErrorHandlerTHR(Context? context, LogErrorHandlerFunction Fn)
     {
-        var lhg = _cmsGetContext(context).ErrorLogger;
+        var lhg = _cmsGetContext(context)?.ErrorLogger;
 
         if (lhg is not null)
         {
@@ -560,9 +555,9 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, Chunks.MutexPlugin, @default);
     }
 
-    internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase* data)
+    internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
     {
-        var Plugin = (PluginMutex*)data;
+        var Plugin = (PluginMutex?)data;
         var ctx = _cmsGetContext(context).MutexPlugin;
 
         if (data is null)
@@ -577,12 +572,12 @@ public static unsafe partial class Lcms2
         }
 
         // Factory callback is required
-        if (Plugin->CreateMutexPtr is null || Plugin->DestroyMutexPtr is null || Plugin->LockMutexPtr is null || Plugin->UnlockMutexPtr is null) return false;
+        if (Plugin!.CreateMutexPtr is null || Plugin.DestroyMutexPtr is null || Plugin.LockMutexPtr is null || Plugin.UnlockMutexPtr is null) return false;
 
-        ctx.CreateFn = Plugin->CreateMutexPtr;
-        ctx.DestroyFn = Plugin->DestroyMutexPtr;
-        ctx.LockFn = Plugin->LockMutexPtr;
-        ctx.UnlockFn = Plugin->UnlockMutexPtr;
+        ctx.CreateFn = Plugin.CreateMutexPtr;
+        ctx.DestroyFn = Plugin.DestroyMutexPtr;
+        ctx.LockFn = Plugin.LockMutexPtr;
+        ctx.UnlockFn = Plugin.UnlockMutexPtr;
 
         return true;
     }

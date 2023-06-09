@@ -28,8 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public struct PluginTagType
+public class PluginTagType : PluginBase
 {
-    public PluginBase @base;
     public TagTypeHandler Handler;
 }

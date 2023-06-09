@@ -58,12 +58,10 @@ internal static unsafe partial class Testbed
 
     public static readonly PluginMemHandler DebugMemHandler = new()
     {
-        @base = new()
-        {
-            ExpectedVersion = 2060,
-            Magic = cmsPluginMagicNumber,
-            Type = cmsPluginMemHandlerSig,
-        },
+        Next = null,
+        ExpectedVersion = 2060,
+        Magic = cmsPluginMagicNumber,
+        Type = cmsPluginMemHandlerSig,
         MallocPtr = DebugMalloc,
         FreePtr = DebugFree,
         ReallocPtr = DebugRealloc,
@@ -84,10 +82,10 @@ internal static unsafe partial class Testbed
 
     public static Context DbgThread()
     {
-        return (Context)(void*)((byte*)null + (thread++ % 0xff0));
+        return new() { UserData = thread++ % 0xff0 };
     }
 
-    public static void* DebugMalloc(Context ContextID, uint size)
+    public static void* DebugMalloc(Context? ContextID, uint size)
     {
         if (size <= 0)
             Die("malloc requested with zero bytes");
@@ -115,7 +113,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    public static void DebugFree(Context ContextID, void* Ptr)
+    public static void DebugFree(Context? ContextID, void* Ptr)
     {
         if (Ptr is null)
             Die("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
@@ -124,7 +122,7 @@ internal static unsafe partial class Testbed
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
+            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{blk->WhoAllocated!.GetHashCode()}\nFreed by Context at\t{ContextID!.GetHashCode()}");
         try
         {
             free(blk);
@@ -132,7 +130,7 @@ internal static unsafe partial class Testbed
         catch { }
     }
 
-    public static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
+    public static void* DebugRealloc(Context? ContextID, void* Ptr, uint NewSize)
     {
         var NewPtr = DebugMalloc(ContextID, NewSize);
         if (Ptr is null) return NewPtr;
@@ -174,21 +172,18 @@ internal static unsafe partial class Testbed
             ConsoleWriteLine("{green:Ok.}");
     }
 
-    public static Context WatchDogContext(void* usr)
+    public static Context WatchDogContext(object? usr)
     {
-        fixed (void* handler = &DebugMemHandler)
-        {
-            var ctx = cmsCreateContext(handler, usr);
+        var ctx = cmsCreateContext(DebugMemHandler, usr);
 
-            if (ctx is null)
-                Die("Unable to create memory managed context");
+        if (ctx is null)
+            Die("Unable to create memory managed context");
 
-            DebugMemDontCheckThis(ctx);
-            return ctx;
-        }
+        //DebugMemDontCheckThis(ctx);
+        return ctx;
     }
 
-    public static void FatalErrorQuit(Context _1, ErrorCode _2, string text) =>
+    public static void FatalErrorQuit(Context? _1, ErrorCode _2, string text) =>
         Die(text);
 
     public static void ResetFatalError() =>

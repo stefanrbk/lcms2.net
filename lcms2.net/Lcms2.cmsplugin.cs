@@ -454,28 +454,28 @@ public static unsafe partial class Lcms2
         return _cmsSubAlloc(ctx.MemPool, size);
     }
 
-    public static bool cmsPlugin(void* plugin) =>
+    public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, void* Plug_in)
+    public static bool cmsPluginTHR(Context? id, PluginBase Plug_in)
     {
-        for (var Plugin = &((PluginMemHandler*)Plug_in)->@base;
-             Plugin is not null;
-             Plugin = Plugin->Next)
+        for (var Plugin = Plug_in;
+                Plugin is not null;
+                Plugin = Plugin.Next)
         {
-            if (Plugin->Magic != cmsPluginMagicNumber)
+            if (Plugin.Magic != cmsPluginMagicNumber)
             {
                 cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
                 return false;
             }
 
-            if (Plugin->ExpectedVersion > LCMS_VERSION)
+            if (Plugin.ExpectedVersion > LCMS_VERSION)
             {
-                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin->ExpectedVersion}, current version is {LCMS_VERSION}");
+                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
                 return false;
             }
 
-            switch ((uint)Plugin->Type)
+            switch ((uint)Plugin.Type)
             {
                 case cmsPluginMemHandlerSig:
                     if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
@@ -522,7 +522,7 @@ public static unsafe partial class Lcms2
                     break;
 
                 default:
-                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin->Type}'");
+                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
                     return false;
             }
         }
@@ -589,18 +589,18 @@ public static unsafe partial class Lcms2
         _cmsRegisterMutexPlugin(context, null);
     }
 
-    internal static PluginMemHandler* _cmsFindMemoryPlugin(void* PluginBundle)
+    internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase PluginBundle)
     {
-        for (var Plugin = (PluginBase*)PluginBundle;
+        for (var Plugin = PluginBundle;
             Plugin is not null;
-            Plugin = Plugin->Next)
+            Plugin = Plugin.Next)
         {
-            if ((uint)Plugin->Magic is cmsMagicNumber &&
-                Plugin->ExpectedVersion <= LCMS_VERSION &&
-                (uint)Plugin->Type is cmsPluginMemHandlerSig)
+            if ((uint)Plugin.Magic is cmsMagicNumber &&
+                Plugin.ExpectedVersion <= LCMS_VERSION &&
+                (uint)Plugin.Type is cmsPluginMemHandlerSig)
             {
                 // Found!
-                return (PluginMemHandler*)Plugin;
+                return (PluginMemHandler)Plugin;
             }
         }
 
@@ -650,7 +650,7 @@ public static unsafe partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(void* Plugin, object? UserData)
+    public static Context? cmsCreateContext(PluginBase? Plugin, object? UserData)
     {
         Context fakeContext = new();
 

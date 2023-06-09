@@ -40,7 +40,7 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
-    internal static readonly List<(nuint, nuint)> AllocList = new();
+    internal static readonly List<(nuint, nuint)> AllocList;
     internal static bool PrintAllocs;
 
     #region lcms2.h
@@ -942,6 +942,9 @@ public static unsafe partial class Lcms2
 
     static Lcms2()
     {
+        AllocList = new();
+        globalContext = cmsCreateContext(null, null);
+
         #region Context and plugins
 
         //var defaultTag = default(TagLinkedList);
@@ -998,7 +1001,7 @@ public static unsafe partial class Lcms2
         //*globalFormattersPluginChunk = new();
 
         // Tag Type Plugin
-        //supportedTagTypes = calloc<TagTypeLinkedList>(31);
+        supportedTagTypes = calloc<TagTypeLinkedList>(31);
 
         supportedTagTypes[0] = new(new(cmsSigChromaticityType, Type_Chromaticity_Read, Type_Chromaticity_Write, Type_Chromaticity_Dup, Type_Chromaticity_Free, null, 0), &supportedTagTypes[1]);
         supportedTagTypes[1] = new(new(cmsSigColorantOrderType, Type_ColorantOrderType_Read, Type_ColorantOrderType_Write, Type_ColorantOrderType_Dup, Type_ColorantOrderType_Free, null, 0), &supportedTagTypes[2]);
@@ -1036,7 +1039,7 @@ public static unsafe partial class Lcms2
         //    globalTagTypePluginChunk = dup(plugin);
 
         // Tag Plugin
-        //supportedTags = calloc<TagLinkedList>(64);
+        supportedTags = calloc<TagLinkedList>(64);
         supportedTags[0] = new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[1]);
         supportedTags[1] = new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[2]);
         supportedTags[2] = new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B), &supportedTags[3]);
@@ -1110,7 +1113,7 @@ public static unsafe partial class Lcms2
         //    globalIntentsPluginChunk = dup(plugin);
 
         // MPE Type Plugin
-        //supportedMPEtypes = calloc<TagTypeLinkedList>(5);
+        supportedMPEtypes = calloc<TagTypeLinkedList>(5);
         supportedMPEtypes[0] = new(new(cmsSigBAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[1]);
         supportedMPEtypes[1] = new(new(cmsSigEAcsElemType, null, null, null, null, null, 0), &supportedMPEtypes[2]);
         supportedMPEtypes[2] = new(new(cmsSigCurveSetElemType, Type_MPEcurve_Read, Type_MPEcurve_Write, GenericMPEdup, GenericMPEfree, null, 0), &supportedMPEtypes[3]);

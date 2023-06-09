@@ -28,9 +28,8 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginTag
+public class PluginTag : PluginBase
 {
-    public PluginBase @base;
     public Signature Signature;
     public TagDescriptor Descriptor;
 }

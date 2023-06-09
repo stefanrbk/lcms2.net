@@ -52,15 +52,15 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, Chunks.InterpPlugin, @default);
     }
 
-    internal static bool _cmsRegisterInterpPlugin(Context? ctx, PluginBase* Data)
+    internal static bool _cmsRegisterInterpPlugin(Context? ctx, PluginBase? Data)
     {
-        var Plugin = (PluginInterpolation*)Data;
+        var Plugin = (PluginInterpolation?)Data;
         var ptr = _cmsGetContext(ctx).InterpPlugin;
 
         if (Data is not null)
         {
             // Set replacement functions
-            ptr.Interpolators = Plugin->InterpolatorsFactory;
+            ptr.Interpolators = Plugin!.InterpolatorsFactory;
             return true;
         }
         else

@@ -30,7 +30,7 @@ namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
 {
-    private static Context DupContext(Context src, void* Data)
+    private static Context? DupContext(Context? src, object? Data)
     {
         var cpy = cmsDupContext(src, Data);
 
@@ -41,55 +41,51 @@ internal static unsafe partial class Testbed
 
     public static bool CheckAllocContext()
     {
-        fixed (void* handler = &DebugMemHandler)
-        {
-            var c1 = cmsCreateContext(null, null);      // This creates a context by using the normal malloc
-            DebugMemDontCheckThis(c1);
-            cmsDeleteContext(c1);
+        var c1 = cmsCreateContext(null, null);      // This creates a context by using the normal malloc
+        //DebugMemDontCheckThis(c1);
+        cmsDeleteContext(c1);
 
-            var c2 = cmsCreateContext(handler, null); // This creates a context by using the debug malloc
-            DebugMemDontCheckThis(c2);
-            cmsDeleteContext(c2);
+        var c2 = cmsCreateContext(DebugMemHandler, null); // This creates a context by using the debug malloc
+        //DebugMemDontCheckThis(c2);
+        cmsDeleteContext(c2);
 
-            c1 = cmsCreateContext(null, null);
-            DebugMemDontCheckThis(c1);
+        c1 = cmsCreateContext(null, null);
+        //DebugMemDontCheckThis(c1);
 
-            c2 = cmsCreateContext(handler, null);
-            DebugMemDontCheckThis(c2);
+        c2 = cmsCreateContext(DebugMemHandler, null);
+        //DebugMemDontCheckThis(c2);
 
-            cmsPluginTHR(c1, handler);    // Now the context has custom allocators
+        cmsPluginTHR(c1, DebugMemHandler);    // Now the context has custom allocators
 
-            var c3 = DupContext(c1, null);
-            var c4 = DupContext(c2, null);
+        var c3 = DupContext(c1, null);
+        var c4 = DupContext(c2, null);
 
-            cmsDeleteContext(c1);   // Should be deleted by using normal malloc
-            cmsDeleteContext(c2);   // Should be deleted by using debug malloc
-            cmsDeleteContext(c3);   // Should be deleted by using normal malloc
-            cmsDeleteContext(c4);   // Should be deleted by using debug malloc
+        cmsDeleteContext(c1);   // Should be deleted by using normal malloc
+        cmsDeleteContext(c2);   // Should be deleted by using debug malloc
+        cmsDeleteContext(c3);   // Should be deleted by using normal malloc
+        cmsDeleteContext(c4);   // Should be deleted by using debug malloc
 
-            return true;
-        }
+        return true;
     }
 
     public static bool CheckSimpleContext()
     {
         var a = 1;
         var b = 32;
-        var rc = false;
 
         // This function creates a context with a special
         // memory manager that checks allocation
-        var c1 = WatchDogContext(&a);
+        var c1 = WatchDogContext(a);
         cmsDeleteContext(c1);
 
-        c1 = WatchDogContext(&a);
+        c1 = WatchDogContext(a);
 
         // Let's check duplication
         var c2 = DupContext(c1, null);
         var c3 = DupContext(c2, null);
 
         // User data should have been propagated
-        rc = (*(int*)cmsGetContextUserData(c3)) == 1;
+        bool rc = (int?)cmsGetContextUserData(c3) == 1;
 
         // Free resources
         cmsDeleteContext(c1);
@@ -100,14 +96,14 @@ internal static unsafe partial class Testbed
             return Fail("Creation of user data failed");
 
         // Back to create 3 levels of inheritance
-        c1 = cmsCreateContext(null, &a);
-        DebugMemDontCheckThis(c1);
+        c1 = cmsCreateContext(null, a);
+        //DebugMemDontCheckThis(c1);
 
         c2 = DupContext(c1, null);
-        c3 = DupContext(c2, &b);
+        c3 = DupContext(c2, b);
 
         // New user data should be applied to c3
-        rc = (*(int*)cmsGetContextUserData(c3)) == 32;
+        rc = (int?)cmsGetContextUserData(c3) == 32;
 
         cmsDeleteContext(c1);
         cmsDeleteContext(c2);

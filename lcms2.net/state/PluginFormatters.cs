@@ -24,13 +24,10 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginFormatters
+public class PluginFormatters : PluginBase
 {
-    public PluginBase @base;
-
     public FormatterFactory FormattersFactory;
 }

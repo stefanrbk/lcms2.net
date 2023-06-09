@@ -56,9 +56,9 @@ public static unsafe partial class Lcms2
 
     internal static readonly TagPluginChunkType globalTagPluginChunk = new();
 
-    private static bool RegisterTypesPlugin(Context? id, PluginBase* Data, Chunks pos)
+    private static bool RegisterTypesPlugin(Context? id, PluginBase? Data, Chunks pos)
     {
-        var Plugin = (PluginTagType*)Data;
+        var Plugin = (PluginTagType?)Data;
         var ctx = pos is Chunks.MPEPlugin
             ? _cmsGetContext(id).MPEPlugin
             : _cmsGetContext(id).TagTypePlugin;
@@ -75,7 +75,7 @@ public static unsafe partial class Lcms2
         var pt = _cmsPluginMalloc<TagTypeLinkedList>(id);
         if (pt is null) return false;
 
-        pt->Handler = Plugin->Handler;
+        pt->Handler = Plugin!.Handler;
         pt->Next = ctx.TagTypes;
 
         ctx.TagTypes = pt;
@@ -4325,16 +4325,16 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(from);
 
-        ctx.TagTypePlugin = (TagTypePluginChunkType)from.Dup(ctx);
+        ctx.MPEPlugin = (TagTypePluginChunkType)from.Dup(ctx);
 
         //fixed (TagTypePluginChunkType* @default = &MPETypePluginChunk)
         //    AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.MPEPlugin), Chunks.MPEPlugin, @default);
     }
 
-    internal static bool _cmsRegisterTagTypePlugin(Context id, PluginBase* Data) =>
+    internal static bool _cmsRegisterTagTypePlugin(Context id, PluginBase? Data) =>
         RegisterTypesPlugin(id, Data, Chunks.TagTypePlugin);
 
-    internal static bool _cmsRegisterMultiProcessElementPlugin(Context id, PluginBase* Data) =>
+    internal static bool _cmsRegisterMultiProcessElementPlugin(Context? id, PluginBase? Data) =>
         RegisterTypesPlugin(id, Data, Chunks.MPEPlugin);
 
     internal static void DupTagList(Context ctx, in Context? src)
@@ -4386,9 +4386,9 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, DupTagList, Chunks.TagPlugin, @default);
     }
 
-    internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase? Data)
     {
-        var Plugin = (PluginTag*)Data;
+        var Plugin = (PluginTag?)Data;
         var TagPluginChunk = _cmsGetContext(id).TagPlugin;
 
         if (Data is null)
@@ -4400,8 +4400,8 @@ public static unsafe partial class Lcms2
         var pt = _cmsPluginMalloc<TagLinkedList>(id);
         if (pt == null) return false;
 
-        pt->Signature = Plugin->Signature;
-        pt->Descriptor = Plugin->Descriptor;
+        pt->Signature = Plugin!.Signature;
+        pt->Descriptor = Plugin.Descriptor;
         pt->Next = TagPluginChunk.Tag;
 
         TagPluginChunk.Tag = pt;

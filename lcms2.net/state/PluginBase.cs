@@ -28,10 +28,10 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public unsafe struct PluginBase
+public abstract class PluginBase
 {
     public uint ExpectedVersion;
     public Signature Magic;
-    public PluginBase* Next;
+    public PluginBase? Next;
     public Signature Type;
 }
