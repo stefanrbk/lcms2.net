@@ -2022,7 +2022,7 @@ public static unsafe partial class Lcms2
     private static bool WriteMatrix(TagTypeHandler* _, IOHandler* io, Stage* mpe)
     {
         var zeros = stackalloc double[(int)mpe->OutputChannels];
-        var m = (StageMatrixData*)mpe;
+        var m = (StageMatrixData*)mpe->Data;
 
         memset(zeros, 0, (int)mpe->OutputChannels * sizeof(double));
 
