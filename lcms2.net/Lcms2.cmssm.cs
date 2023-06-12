@@ -123,8 +123,8 @@ public static unsafe partial class Lcms2
     private static void LineOf2Points(Line* line, VEC3* a, VEC3* b)
     {
         VEC3 vA, vU;
-        _cmsVEC3init(&vA, a->X, a->Y, a->Z);
-        _cmsVEC3init(&vU, b->X - a->X,
+        _cmsVEC3init(out vA, a->X, a->Y, a->Z);
+        _cmsVEC3init(out vU, b->X - a->X,
                           b->Y - a->Y,
                           b->Z - a->Z);
         (line->a, line->u) = (vA, vU);
@@ -145,13 +145,13 @@ public static unsafe partial class Lcms2
 
         double sN, sD, tN, tD;
 
-        _cmsVEC3minus(&w0, &a1, &a2);
+        _cmsVEC3minus(out w0, a1, a2);
 
-        var a = _cmsVEC3dot(&u1, &u1);
-        var b = _cmsVEC3dot(&u1, &u2);
-        var c = _cmsVEC3dot(&u2, &u2);
-        var d = _cmsVEC3dot(&u1, &w0);
-        var e = _cmsVEC3dot(&u2, &w0);
+        var a = _cmsVEC3dot(u1, u1);
+        var b = _cmsVEC3dot(u1, u2);
+        var c = _cmsVEC3dot(u2, u2);
+        var d = _cmsVEC3dot(u1, w0);
+        var e = _cmsVEC3dot(u2, w0);
 
         var D = a * c - b * b;      // Denominator
         sD = tD = D;                // default sD = D >= 0
@@ -262,7 +262,7 @@ public static unsafe partial class Lcms2
         _cmsAssert(sp);
 
         // Center L* by subtracting half of its domain, that's 50
-        _cmsVEC3init(&v, Lab->L - 50.0, Lab->a, Lab->b);
+        _cmsVEC3init(out v, Lab->L - 50.0, Lab->a, Lab->b);
 
         // Convert to spherical coordinates
         ToSpherical(sp, &v);
@@ -380,7 +380,7 @@ public static unsafe partial class Lcms2
         ToCartesian(&Lab, &sp);
 
         // Create a ray line from center to this point
-        _cmsVEC3init(&Center, 50.0, 0, 0);
+        _cmsVEC3init(out Center, 50.0, 0, 0);
         LineOf2Points(&ray, &Lab, &Center);
 
         // For all close sectors

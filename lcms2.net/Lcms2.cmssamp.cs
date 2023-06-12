@@ -227,13 +227,13 @@ public static unsafe partial class Lcms2
             sum_yx2 += yn * xn * xn;
         }
 
-        _cmsVEC3init(&m.X, n, sum_x, sum_x2);
-        _cmsVEC3init(&m.Y, sum_x, sum_x2, sum_x3);
-        _cmsVEC3init(&m.Z, sum_x2, sum_x3, sum_x4);
+        _cmsVEC3init(out m.X, n, sum_x, sum_x2);
+        _cmsVEC3init(out m.Y, sum_x, sum_x2, sum_x3);
+        _cmsVEC3init(out m.Z, sum_x2, sum_x3, sum_x4);
 
-        _cmsVEC3init(&v, sum_y, sum_yx, sum_yx2);
+        _cmsVEC3init(out v, sum_y, sum_yx, sum_yx2);
 
-        if (!_cmsMAT3solve(&res, &m, &v)) return 0;
+        if (!_cmsMAT3solve(out res, m, v)) return 0;
 
         var a = resn[2];
         var b = resn[1];

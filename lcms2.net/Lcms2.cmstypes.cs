@@ -1415,7 +1415,7 @@ public static unsafe partial class Lcms2
 
         // Only operates if not identity...
         if ((InputChannels is 3) &&
-            !_cmsMAT3isIdentity((MAT3*)Matrix) &&
+            !_cmsMAT3isIdentity(*(MAT3*)Matrix) &&
             !cmsPipelineInsertStage(NewLUT, StageLoc.AtBegin, cmsStageAllocMatrix(self->ContextID, 3, 3, Matrix, null)))
         {
             goto Error;
@@ -1643,7 +1643,7 @@ public static unsafe partial class Lcms2
 
         // Only operates on 3 channels
         if ((InputChannels is 3) &&
-            !_cmsMAT3isIdentity((MAT3*)Matrix) &&
+            !_cmsMAT3isIdentity(*(MAT3*)Matrix) &&
             !cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocMatrix(self->ContextID, 3, 3, Matrix, null)))
         {
             goto Error;

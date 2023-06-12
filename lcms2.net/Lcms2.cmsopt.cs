@@ -181,7 +181,7 @@ public static unsafe partial class Lcms2
     {
         MAT3 Identity;
 
-        _cmsMAT3identity(&Identity);
+        _cmsMAT3identity(out Identity);
 
         for (var i = 0; i < 3; i++)
         {
@@ -220,7 +220,7 @@ public static unsafe partial class Lcms2
                 }
 
                 // Multiply both matrices to get the result
-                _cmsMAT3per(&res, (MAT3*)m2->Double, (MAT3*)m1->Double);
+                _cmsMAT3per(out res, *(MAT3*)m2->Double, *(MAT3*)m1->Double);
 
                 // Get the next in chain after the matrices
                 var chain = (*pt2)->Next;
@@ -1492,13 +1492,13 @@ public static unsafe partial class Lcms2
             if (Data1->Offset is not null) return false;
 
             // Multiply both matrices to get the result
-            _cmsMAT3per(&res, (MAT3*)Data2->Double, (MAT3*)Data1->Double);
+            _cmsMAT3per(out res, *(MAT3*)Data2->Double, *(MAT3*)Data1->Double);
 
             // Only 2nd matrix has offset, or it is zero
             Offset = Data2->Offset;
 
             // Now the result is in res + Data2->Offset. Maybe it is a plain identity?
-            if (_cmsMAT3isIdentity(&res) && Offset is null)
+            if (_cmsMAT3isIdentity(res) && Offset is null)
             {
                 // We can get rid of full matrix
                 IdentityMat = true;
@@ -1515,7 +1515,7 @@ public static unsafe partial class Lcms2
             // Preserve the offset (may be null as a zero offset)
             Offset = Data->Offset;
 
-            if (_cmsMAT3isIdentity(&res) && Offset is null)
+            if (_cmsMAT3isIdentity(res) && Offset is null)
             {
                 // We can get rid of full matrix
                 IdentityMat = true;

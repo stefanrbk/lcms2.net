@@ -113,10 +113,10 @@ public static unsafe partial class Lcms2
         var by = -cmsD50_XYZ()->Y * (BlackPointOut->Y - BlackPointIn->Y) / ty;
         var bz = -cmsD50_XYZ()->Z * (BlackPointOut->Z - BlackPointIn->Z) / tz;
 
-        _cmsVEC3init(&m->X, ax, 0, 0);
-        _cmsVEC3init(&m->Y, 0, ay, 0);
-        _cmsVEC3init(&m->Z, 0, 0, az);
-        _cmsVEC3init(off, bx, by, bz);
+        _cmsVEC3init(out m->X, ax, 0, 0);
+        _cmsVEC3init(out m->Y, 0, ay, 0);
+        _cmsVEC3init(out m->Z, 0, 0, az);
+        _cmsVEC3init(out *off, bx, by, bz);
     }
 
     private static double CHAD2Temp(in MAT3* Chad)
@@ -131,13 +131,13 @@ public static unsafe partial class Lcms2
         MAT3 m1, m2;
 
         m1 = *Chad;
-        if (!_cmsMAT3inverse(&m1, &m2)) return -1.0;
+        if (!_cmsMAT3inverse(m1, out m2)) return -1.0;
 
-        sn[VX] = cmsD50_XYZ()->X;
-        sn[VY] = cmsD50_XYZ()->Y;
-        sn[VZ] = cmsD50_XYZ()->Z;
+        s.X = cmsD50_XYZ()->X;
+        s.Y = cmsD50_XYZ()->Y;
+        s.Z = cmsD50_XYZ()->Z;
 
-        _cmsMAT3eval(&d, &m2, &s);
+        _cmsMAT3eval(out d, m2, s);
 
         Dest.X = dn[VX];
         Dest.Y = dn[VY];
@@ -174,9 +174,9 @@ public static unsafe partial class Lcms2
         // TODO: Follow Marc Mahy's recommendation to check if CHAD is same by using M1*M2 == M2*M1. If so, do nothing.
         // TODO: Add support for ArgyllArts tag
 
-        _cmsVEC3init(&Scale.X, WhitePointIn->X / WhitePointOut->X, 0, 0);
-        _cmsVEC3init(&Scale.Y, 0, WhitePointIn->Y / WhitePointOut->Y, 0);
-        _cmsVEC3init(&Scale.Z, 0, 0, WhitePointIn->Z / WhitePointOut->Z);
+        _cmsVEC3init(out Scale.X, WhitePointIn->X / WhitePointOut->X, 0, 0);
+        _cmsVEC3init(out Scale.Y, 0, WhitePointIn->Y / WhitePointOut->Y, 0);
+        _cmsVEC3init(out Scale.Z, 0, 0, WhitePointIn->Z / WhitePointOut->Z);
 
         // Adaptation state
         if (AdaptationState is 1.0)
@@ -188,15 +188,15 @@ public static unsafe partial class Lcms2
         else if (AdaptationState is 0.0)
         {
             m1 = *ChromaticAdaptationMatrixOut;
-            _cmsMAT3per(&m2, &m1, &Scale);
+            _cmsMAT3per(out m2, m1, Scale);
             // m2 holds CHAD from output white to D50 times abs. col. scaling
 
             // Observer is not adapted, undo the chromatic adaptation
-            _cmsMAT3per(m, &m2, ChromaticAdaptationMatrixOut);
+            _cmsMAT3per(out *m, m2, *ChromaticAdaptationMatrixOut);
 
             m3 = *ChromaticAdaptationMatrixIn;
-            if (!_cmsMAT3inverse(&m3, &m4)) return false;
-            _cmsMAT3per(m, &m2, &m4);
+            if (!_cmsMAT3inverse(m3, out m4)) return false;
+            _cmsMAT3per(out *m, m2, m4);
         }
         else
         {
@@ -204,8 +204,8 @@ public static unsafe partial class Lcms2
             double TempSrc, TempDest, Temp;
 
             m1 = *ChromaticAdaptationMatrixIn;
-            if (!_cmsMAT3inverse(&m1, &m2)) return false;
-            _cmsMAT3per(&m3, &m2, &Scale);
+            if (!_cmsMAT3inverse(m1, out m2)) return false;
+            _cmsMAT3per(out m3, m2, Scale);
             // m3 holds CHAD from input white to D50 times abs. col. scaling
 
             TempSrc = CHAD2Temp(ChromaticAdaptationMatrixIn);
@@ -213,9 +213,9 @@ public static unsafe partial class Lcms2
 
             if (TempSrc < 0.0 || TempDest < 0.0) return false; // Something went wrong
 
-            if (_cmsMAT3isIdentity(&Scale) && Math.Abs(TempSrc - TempDest) < 1e-2)
+            if (_cmsMAT3isIdentity(Scale) && Math.Abs(TempSrc - TempDest) < 1e-2)
             {
-                _cmsMAT3identity(m);
+                _cmsMAT3identity(out *m);
                 return true;
             }
 
@@ -224,7 +224,7 @@ public static unsafe partial class Lcms2
             // Get a CHAD from whatever output temperature to D50. This replaces output CHAD
             Temp2CHAD(&MixedCHAD, Temp);
 
-            _cmsMAT3per(m, &m3, &MixedCHAD);
+            _cmsMAT3per(out *m, m3, MixedCHAD);
         }
 
         return true;
@@ -238,7 +238,7 @@ public static unsafe partial class Lcms2
         if (m is null && off is null) return true;      // null is allowed as an empty layer
         if (m is null && off is not null) return false; // This is an internal error
 
-        _cmsMAT3identity(&Ident);
+        _cmsMAT3identity(out Ident);
 
         for (var i = 0; i < 3 * 3; i++)
             diff += Math.Abs(((double*)m)[i] - ((double*)&Ident)[i]);
@@ -261,8 +261,8 @@ public static unsafe partial class Lcms2
         double* offn = &off->X;
 
         // m and off are set to identity and this is detected later on
-        _cmsMAT3identity(m);
-        _cmsVEC3init(off, 0, 0, 0);
+        _cmsMAT3identity(out *m);
+        _cmsVEC3init(out *off, 0, 0, 0);
 
         // If intent is abs. colorimetric,
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
@@ -465,8 +465,8 @@ public static unsafe partial class Lcms2
                 }
                 else
                 {
-                    _cmsMAT3identity(&m);
-                    _cmsVEC3init(&off, 0, 0, 0);
+                    _cmsMAT3identity(out m);
+                    _cmsVEC3init(out off, 0, 0, 0);
                 }
 
                 if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, &m, &off))

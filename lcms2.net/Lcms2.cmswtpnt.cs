@@ -178,23 +178,23 @@ public static unsafe partial class Lcms2
         VEC3 ConeSourceXYZ, ConeSourceRGB, ConeDestXYZ, ConeDestRGB;
 
         var Tmp = *Chad;
-        if (!_cmsMAT3inverse(&Tmp, &Chad_Inv)) return false;
+        if (!_cmsMAT3inverse(Tmp, out Chad_Inv)) return false;
 
-        _cmsVEC3init(&ConeSourceXYZ, SourceWhitePoint->X, SourceWhitePoint->Y, SourceWhitePoint->Z);
+        _cmsVEC3init(out ConeSourceXYZ, SourceWhitePoint->X, SourceWhitePoint->Y, SourceWhitePoint->Z);
 
-        _cmsVEC3init(&ConeDestXYZ, DestWhitePoint->X, DestWhitePoint->Y, DestWhitePoint->Z);
+        _cmsVEC3init(out ConeDestXYZ, DestWhitePoint->X, DestWhitePoint->Y, DestWhitePoint->Z);
 
-        _cmsMAT3eval(&ConeSourceRGB, Chad, &ConeSourceXYZ);
-        _cmsMAT3eval(&ConeDestRGB, Chad, &ConeDestXYZ);
+        _cmsMAT3eval(out ConeSourceRGB, *Chad, ConeSourceXYZ);
+        _cmsMAT3eval(out ConeDestRGB, *Chad, ConeDestXYZ);
 
         // Build matrix
-        _cmsVEC3init(&Cone.X, ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0);
-        _cmsVEC3init(&Cone.Y, 0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0);
-        _cmsVEC3init(&Cone.Z, 0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z);
+        _cmsVEC3init(out Cone.X, ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0);
+        _cmsVEC3init(out Cone.Y, 0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0);
+        _cmsVEC3init(out Cone.Z, 0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z);
 
         // Normalize
-        _cmsMAT3per(&Tmp, &Cone, Chad);
-        _cmsMAT3per(Conversion, &Chad_Inv, &Tmp);
+        _cmsMAT3per(out Tmp, Cone, *Chad);
+        _cmsMAT3per(out *Conversion, Chad_Inv, Tmp);
 
         return true;
     }
@@ -229,7 +229,7 @@ public static unsafe partial class Lcms2
         if (!_cmsAdaptationMatrix(&Bradford, null, &Dn, cmsD50_XYZ())) return false;
 
         var Tmp = *r;
-        _cmsMAT3per(r, &Bradford, &Tmp);
+        _cmsMAT3per(out *r, Bradford, Tmp);
 
         return true;
     }
@@ -251,22 +251,22 @@ public static unsafe partial class Lcms2
         var yb = Primrs->Blue.y;
 
         // Build Primaries matrix
-        _cmsVEC3init(&Primaries.X, xr, xg, xb);
-        _cmsVEC3init(&Primaries.Y, yr, yg, yb);
-        _cmsVEC3init(&Primaries.Z, 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
+        _cmsVEC3init(out Primaries.X, xr, xg, xb);
+        _cmsVEC3init(out Primaries.Y, yr, yg, yb);
+        _cmsVEC3init(out Primaries.Z, 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
 
         // Result = Primaries ^ (-1) inverse matrix
-        if (!_cmsMAT3inverse(&Primaries, &Result)) return false;
+        if (!_cmsMAT3inverse(Primaries, out Result)) return false;
 
-        _cmsVEC3init(&WhitePoint, xn / yn, 1.0, (1.0 - xn - yn) / yn);
+        _cmsVEC3init(out WhitePoint, xn / yn, 1.0, (1.0 - xn - yn) / yn);
 
         // Across inverse primaries...
-        _cmsMAT3eval(&Coef, &Result, &WhitePoint);
+        _cmsMAT3eval(out Coef, Result, WhitePoint);
 
         // Give us the Coefs, then I build transformation matrix
-        _cmsVEC3init(&rv[0], Coefn[VX] * xr, Coefn[VY] * xg, Coefn[VZ] * xb);
-        _cmsVEC3init(&rv[1], Coefn[VX] * yr, Coefn[VY] * yg, Coefn[VZ] * yb);
-        _cmsVEC3init(&rv[2], Coefn[VX] * (1.0 - xr - yr), Coefn[VY] * (1.0 - xg - yg), Coefn[VZ] * (1.0 - xb - yb));
+        _cmsVEC3init(out rv[0], Coefn[VX] * xr, Coefn[VY] * xg, Coefn[VZ] * xb);
+        _cmsVEC3init(out rv[1], Coefn[VX] * yr, Coefn[VY] * yg, Coefn[VZ] * yb);
+        _cmsVEC3init(out rv[2], Coefn[VX] * (1.0 - xr - yr), Coefn[VY] * (1.0 - xg - yg), Coefn[VZ] * (1.0 - xb - yb));
 
         return _cmsAdaptMatrixToD50(r, WhitePt);
     }
@@ -288,8 +288,8 @@ public static unsafe partial class Lcms2
 
         if (!_cmsAdaptationMatrix(&Bradford, null, SourceWhitePt, Illuminant)) return false;
 
-        _cmsVEC3init(&In, Value->X, Value->Y, Value->Z);
-        _cmsMAT3eval(&Out, &Bradford, &In);
+        _cmsVEC3init(out In, Value->X, Value->Y, Value->Z);
+        _cmsMAT3eval(out Out, Bradford, In);
 
         Result->X = Outn[0];
         Result->Y = Outn[1];

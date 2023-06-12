@@ -86,7 +86,7 @@ public static unsafe partial class Lcms2
         }
 
         // No CHAD available, default it to identity
-        _cmsMAT3identity(Dest);
+        _cmsMAT3identity(out *Dest);
 
         // V2 display profiles should give D50
         if (cmsGetEncodedICCVersion(hProfile) < 0x04000000)
@@ -97,7 +97,7 @@ public static unsafe partial class Lcms2
 
                 if (White is null)
                 {
-                    _cmsMAT3identity(Dest);
+                    _cmsMAT3identity(out *Dest);
                     return true;
                 }
                 return _cmsAdaptationMatrix(Dest, null, White, cmsD50_XYZ());
@@ -118,9 +118,9 @@ public static unsafe partial class Lcms2
         if (PtrRed is null || PtrGreen is null || PtrBlue is null)
             return false;
 
-        _cmsVEC3init(&r->X, PtrRed->X, PtrGreen->X, PtrBlue->X);
-        _cmsVEC3init(&r->Y, PtrRed->Y, PtrGreen->Y, PtrBlue->Y);
-        _cmsVEC3init(&r->Z, PtrRed->Z, PtrGreen->Z, PtrBlue->Z);
+        _cmsVEC3init(out r->X, PtrRed->X, PtrGreen->X, PtrBlue->X);
+        _cmsVEC3init(out r->Y, PtrRed->Y, PtrGreen->Y, PtrBlue->Y);
+        _cmsVEC3init(out r->Z, PtrRed->Z, PtrGreen->Z, PtrBlue->Z);
 
         return true;
     }
@@ -405,7 +405,7 @@ public static unsafe partial class Lcms2
         if (!ReadIccMatrixRGB2XYZ(&Mat, hProfile))
             return null;
 
-        if (!_cmsMAT3inverse(&Mat, &Inv))
+        if (!_cmsMAT3inverse(Mat, out Inv))
             return null;
 
         // XYZ PCS in encoded in 1.15 format, and the matrix input should come in 0..0xffff range, so

@@ -1606,11 +1606,11 @@ public static unsafe partial class Lcms2
             }
 
             // Solve system
-            tmp2n[0] = fx[0] - Target[0];
-            tmp2n[1] = fx[1] - Target[1];
-            tmp2n[2] = fx[2] - Target[2];
+            tmp2.X = fx[0] - Target[0];
+            tmp2.Y = fx[1] - Target[1];
+            tmp2.Z = fx[2] - Target[2];
 
-            if (!_cmsMAT3solve(&tmp, &Jacobian, &tmp2))
+            if (!_cmsMAT3solve(out tmp, Jacobian, tmp2))
                 return false;
 
             // Move our guess
