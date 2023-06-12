@@ -29,27 +29,17 @@ using System.Runtime.InteropServices;
 namespace lcms2.types;
 
 [StructLayout(LayoutKind.Explicit)]
-public struct DateTimeNumber
+public struct DateTimeNumber(ushort year, ushort month, ushort day, ushort hours, ushort minutes, ushort seconds)
 {
-    [FieldOffset(4)] public ushort Day;
+    [FieldOffset(4)] public ushort Day = day;
 
-    [FieldOffset(6)] public ushort Hours;
+    [FieldOffset(6)] public ushort Hours = hours;
 
-    [FieldOffset(8)] public ushort Minutes;
+    [FieldOffset(8)] public ushort Minutes = minutes;
 
-    [FieldOffset(2)] public ushort Month;
+    [FieldOffset(2)] public ushort Month = month;
 
-    [FieldOffset(10)] public ushort Seconds;
+    [FieldOffset(10)] public ushort Seconds = seconds;
 
-    [FieldOffset(0)] public ushort Year;
-
-    public DateTimeNumber(ushort year, ushort month, ushort day, ushort hours, ushort minutes, ushort seconds)
-    {
-        Year = year;
-        Month = month;
-        Day = day;
-        Hours = hours;
-        Minutes = minutes;
-        Seconds = seconds;
-    }
+    [FieldOffset(0)] public ushort Year = year;
 }

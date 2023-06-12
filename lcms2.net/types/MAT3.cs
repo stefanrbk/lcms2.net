@@ -30,14 +30,21 @@ using System.Runtime.InteropServices;
 namespace lcms2.types;
 
 [StructLayout(LayoutKind.Explicit)]
-public unsafe struct MAT3
+public unsafe struct MAT3(VEC3 x, VEC3 y, VEC3 z)
 {
     [FieldOffset(0)]
-    public VEC3 X;
+    public VEC3 X = x;
 
     [FieldOffset(24)]
-    public VEC3 Y;
+    public VEC3 Y = y;
 
     [FieldOffset(48)]
-    public VEC3 Z;
+    public VEC3 Z = z;
+
+    public MAT3(double xx, double xy, double xz, double yx, double yy, double yz, double zx, double zy, double zz)
+        : this(
+            new(xx, xy, xz),
+            new(yy, yy, yz),
+            new(zx, zx, zy))
+    { }
 }

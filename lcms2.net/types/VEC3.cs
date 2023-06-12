@@ -30,14 +30,14 @@ using System.Runtime.InteropServices;
 namespace lcms2;
 
 [StructLayout(LayoutKind.Explicit)]
-public unsafe struct VEC3
+public unsafe struct VEC3(double x, double y, double z)
 {
     [FieldOffset(0)]
-    public double X;
+    public double X = x;
 
     [FieldOffset(8)]
-    public double Y;
+    public double Y = y;
 
     [FieldOffset(16)]
-    public double Z;
+    public double Z = z;
 }

@@ -31,10 +31,7 @@ namespace lcms2.types;
 
 public unsafe class DefaultMutex : IMutex
 {
-    private readonly Mutex mutex;
-
-    public DefaultMutex() =>
-        mutex = new Mutex();
+    private readonly Mutex mutex = new();
 
     public static IMutex Create(Context _) =>
         new DefaultMutex();

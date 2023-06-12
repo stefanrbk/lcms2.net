@@ -37,149 +37,135 @@ public static unsafe partial class Lcms2
     private static void DSWAP<T>(ref T x, ref T y) =>
         (y, x) = (x, y);
 
-    internal static void _cmsVEC3init(VEC3* r, double x, double y, double z)
-    {
-        r->X = x;
-        r->Y = y;
-        r->Z = z;
-    }
+    internal static void _cmsVEC3init(out VEC3 r, double x, double y, double z) =>
+        r = new(x, y, z);
 
-    internal static void _cmsVEC3minus(VEC3* r, in VEC3* a, in VEC3* b)
-    {
-        r->X = a->X - b->X;
-        r->Y = a->Y - b->Y;
-        r->Z = a->Z - b->Z;
-    }
+    internal static void _cmsVEC3minus(out VEC3 r, VEC3 a, VEC3 b) =>
+        r = new(
+            a.X - b.X,
+            a.Y - b.Y,
+            a.Z - b.Z);
 
-    internal static void _cmsVEC3cross(VEC3* r, in VEC3* u, in VEC3* v)
-    {
-        r->X = (u->Y * v->Z) - (v->Y * u->Z);
-        r->Y = (u->Z * v->X) - (v->Z * u->X);
-        r->Z = (u->X * v->Y) - (v->X * u->Y);
-    }
+    internal static void _cmsVEC3cross(out VEC3 r, VEC3 u, VEC3 v) =>
+        r = new(
+            (u.Y * v.Z) - (v.Y * u.Z),
+            (u.Z * v.X) - (v.Z * u.X),
+            (u.X * v.Y) - (v.X * u.Y));
 
-    internal static double _cmsVEC3dot(in VEC3* u, in VEC3* v) =>
-        (u->X * v->X) + (u->Y * v->Y) + (u->Z * v->Z);
+    internal static double _cmsVEC3dot(VEC3 u, VEC3 v) =>
+        (u.X * v.X) + (u.Y * v.Y) + (u.Z * v.Z);
 
     // Euclidean length
-    internal static double _cmsVEC3length(in VEC3* a)
-    {
-        return Math.Sqrt(
-            (a->X * a->X) +
-            (a->Y * a->Y) +
-            (a->Z * a->Z));
-    }
+    internal static double _cmsVEC3length(VEC3 a) =>
+        Math.Sqrt(
+            (a.X * a.X) +
+            (a.Y * a.Y) +
+            (a.Z * a.Z));
 
     // Euclidean distance
-    internal static double _cmsVEC3distance(in VEC3* a, in VEC3* b)
+    internal static double _cmsVEC3distance(VEC3 a, VEC3 b)
     {
-        double d1 = a->X - b->X;
-        double d2 = a->Y - b->Y;
-        double d3 = a->Z - b->Z;
+        _cmsVEC3minus(out var r, a, b);
 
-        return Math.Sqrt((d1 * d1) + (d2 * d2) + (d3 * d3));
+        return _cmsVEC3length(r);
     }
 
     // 3x3 Identity
-    internal static void _cmsMAT3identity(MAT3* a)
-    {
-        var av = (VEC3*)a;
-        _cmsVEC3init(&av[0], 1.0, 0.0, 0.0);
-        _cmsVEC3init(&av[1], 0.0, 1.0, 0.0);
-        _cmsVEC3init(&av[2], 0.0, 0.0, 1.0);
-    }
+    internal static void _cmsMAT3identity(out MAT3 a) =>
+        a = new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
 
     private static bool CloseEnough(double a, double b)
     {
         return Math.Abs(b - a) < (1.0 / 65535.0);
     }
 
-    internal static bool _cmsMAT3isIdentity(in MAT3* a)
+    internal static bool _cmsMAT3isIdentity(MAT3 a)
     {
-        var av = &a->X;
-        MAT3 Identity;
-        var Identityv = &Identity.X;
-        int i, j;
+        _cmsMAT3identity(out var Identity);
 
-        _cmsMAT3identity(&Identity);
-
-        for (i = 0; i < 3; i++)
-        {
-            for (j = 0; j < 3; j++)
-            {
-                if (!CloseEnough((&av[i].X)[j], (&Identityv[i].X)[j])) return false;
-            }
-        }
-
-        return true;
+        return
+            CloseEnough(a.X.X, Identity.X.X) &&
+            CloseEnough(a.X.Y, Identity.X.Y) &&
+            CloseEnough(a.X.Z, Identity.X.Z) &&
+            CloseEnough(a.Y.X, Identity.Y.X) &&
+            CloseEnough(a.Y.Y, Identity.Y.Y) &&
+            CloseEnough(a.Y.Z, Identity.Y.Z) &&
+            CloseEnough(a.Z.X, Identity.Z.X) &&
+            CloseEnough(a.Z.Y, Identity.Z.Y) &&
+            CloseEnough(a.Z.Z, Identity.Z.Z);
     }
 
     // Multiply two matrices
-    internal static void _cmsMAT3per(MAT3* r, in MAT3* a, in MAT3* b)
+    internal static void _cmsMAT3per(out MAT3 r, MAT3 a, MAT3 b)
     {
-        var av = (VEC3*)a;
-        var bv = (VEC3*)b;
-        var rv = (VEC3*)r;
+        double[,] av = new double[3, 3];
+        double[,] bv = new double[3, 3];
+        av[0, 0] = a.X.X; bv[0, 0] = b.X.X;
+        av[0, 1] = a.X.Y; bv[0, 1] = b.X.Y;
+        av[0, 2] = a.X.Z; bv[0, 2] = b.X.Z;
+        av[1, 0] = a.Y.X; bv[1, 0] = b.Y.X;
+        av[1, 1] = a.Y.Y; bv[1, 1] = b.Y.Y;
+        av[1, 2] = a.Y.Z; bv[1, 2] = b.Y.Z;
+        av[2, 0] = a.Z.X; bv[2, 0] = b.Z.X;
+        av[2, 1] = a.Z.Y; bv[2, 1] = b.Z.Y;
+        av[2, 2] = a.Z.Z; bv[2, 2] = b.Z.Z;
 
         double ROWCOL(int i, int j)
         {
-            return ((&av[i].X)[0] * (&bv[0].X)[j]) + ((&av[i].X)[1] * (&bv[1].X)[j]) + ((&av[i].X)[2] * (&bv[2].X)[j]);
+            return (av[i, 0] * bv[0, j]) + (av[i, 1] * bv[1, j]) + (av[i, 2] * bv[2, j]);
         }
 
-        _cmsVEC3init(&rv[0], ROWCOL(0, 0), ROWCOL(0, 1), ROWCOL(0, 2));
-        _cmsVEC3init(&rv[1], ROWCOL(1, 0), ROWCOL(1, 1), ROWCOL(1, 2));
-        _cmsVEC3init(&rv[2], ROWCOL(2, 0), ROWCOL(2, 1), ROWCOL(2, 2));
+        r = new(
+            ROWCOL(0, 0), ROWCOL(0, 1), ROWCOL(0, 2),
+            ROWCOL(1, 0), ROWCOL(1, 1), ROWCOL(1, 2),
+            ROWCOL(2, 0), ROWCOL(2, 1), ROWCOL(2, 2));
     }
 
     // Inverse of a matrix b = a^(-1)
-    internal static bool _cmsMAT3inverse(in MAT3* a, MAT3* b)
+    internal static bool _cmsMAT3inverse(MAT3 a, out MAT3 b)
     {
         double det, c0, c1, c2;
 
-        c0 = a->Y.Y * a->Z.Z - a->Y.Z * a->Z.Y;
-        c1 = -a->Y.X * a->Z.Z + a->Y.Z * a->Z.X;
-        c2 = a->Y.X * a->Z.Y - a->Y.Y * a->Z.X;
+        c0 = (a.Y.Y * a.Z.Z) - (a.Y.Z * a.Z.Y);
+        c1 = (-a.Y.X * a.Z.Z) + (a.Y.Z * a.Z.X);
+        c2 = (a.Y.X * a.Z.Y) - (a.Y.Y * a.Z.X);
 
-        det = a->X.X * c0 + a->X.Y * c1 + a->X.Z * c2;
+        det = (a.X.X * c0) + (a.X.Y * c1) + (a.X.Z * c2);
 
-        if (Math.Abs(det) < MATRIX_DET_TOLERANCE) return false;  // singular matrix; can't invert
+        if (Math.Abs(det) < MATRIX_DET_TOLERANCE)
+        {
+            b = new MAT3();
+            return false;  // singular matrix; can't invert
+        }
 
-        b->X.X = c0 / det;
-        b->X.Y = (a->X.Z * a->Z.Y - a->X.Y * a->Z.Z) / det;
-        b->X.Z = (a->X.Y * a->Y.Z - a->X.Z * a->Y.Y) / det;
-        b->Y.X = c1 / det;
-        b->Y.Y = (a->X.X * a->Z.Z - a->X.Z * a->Z.X) / det;
-        b->Y.Z = (a->X.Z * a->Y.X - a->X.X * a->Y.Z) / det;
-        b->Z.X = c2 / det;
-        b->Z.Y = (a->X.Y * a->Z.X - a->X.X * a->Z.Y) / det;
-        b->Z.Z = (a->X.X * a->Y.Y - a->X.Y * a->Y.X) / det;
+        b = new(
+            c0 / det,
+            ((a.X.Z * a.Z.Y) - (a.X.Y * a.Z.Z)) / det,
+            ((a.X.Y * a.Y.Z) - (a.X.Z * a.Y.Y)) / det,
+            c1 / det,
+            ((a.X.X * a.Z.Z) - (a.X.Z * a.Z.X)) / det,
+            ((a.X.Z * a.Y.X) - (a.X.X * a.Y.Z)) / det,
+            c2 / det,
+            ((a.X.Y * a.Z.X) - (a.X.X * a.Z.Y)) / det,
+            ((a.X.X * a.Y.Y) - (a.X.Y * a.Y.X)) / det);
 
         return true;
     }
 
     // Solve a system in the form Ax = b
-    internal static bool _cmsMAT3solve(VEC3* x, MAT3* a, VEC3* b)
+    internal static bool _cmsMAT3solve(out VEC3 x, MAT3 a, VEC3 b)
     {
-        MAT3 m, a_1;
+        x = new();
+        if (!_cmsMAT3inverse(a, out var a_1)) return false;  // Singular matrix
 
-        memmove(&m, a);
-
-        if (!_cmsMAT3inverse(&m, &a_1)) return false;  // Singular matrix
-
-        _cmsMAT3eval(x, &a_1, b);
+        _cmsMAT3eval(out x, a_1, b);
         return true;
     }
 
     // Evaluate a vector across a matrix
-    internal static void _cmsMAT3eval(VEC3* r, in MAT3* a, in VEC3* v)
-    {
-        var av = &a->X;
-        var av0 = &av->X;
-        var av1 = &av->Y;
-        var av2 = &av->Z;
-
-        r->X = a->X.X * v->X + a->X.Y * v->Y + a->X.Z * v->Z;
-        r->Y = a->Y.X * v->X + a->Y.Y * v->Y + a->Y.Z * v->Z;
-        r->Z = a->Z.X * v->X + a->Z.Y * v->Y + a->Z.Z * v->Z;
-    }
+    internal static void _cmsMAT3eval(out VEC3 r, MAT3 a, VEC3 v) =>
+        r = new VEC3(
+            (a.X.X * v.X) + (a.X.Y * v.Y) + (a.X.Z * v.Z),
+            (a.Y.X * v.X) + (a.Y.Y * v.Y) + (a.Y.Z * v.Z),
+            (a.Z.X * v.X) + (a.Z.Y * v.Y) + (a.Z.Z * v.Z));
 }
