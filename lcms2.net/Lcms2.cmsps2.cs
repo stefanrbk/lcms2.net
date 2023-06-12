@@ -269,7 +269,7 @@ public static unsafe partial class Lcms2
 
     private struct PsSamplerCargo
     {
-        public StageCLutData* Pipeline;
+        public StageCLutData Pipeline;
         public IOHandler* m;
 
         public int FirstComponent;
@@ -558,7 +558,7 @@ public static unsafe partial class Lcms2
 
         // Dump table.
 
-        for (var i = 0u; i < sc->Pipeline->Params->nOutputs; i++)
+        for (var i = 0u; i < sc->Pipeline.Params->nOutputs; i++)
         {
             var wWordOut = Out[i];
 
@@ -585,7 +585,7 @@ public static unsafe partial class Lcms2
 
         sc.FirstComponent = -1;
         sc.SecondComponent = -1;
-        sc.Pipeline = (StageCLutData*)mpe->Data;
+        sc.Pipeline = (StageCLutData)mpe->Data;
         sc.m = m;
         sc.PreMaj = PreMaj;
         sc.PostMaj = PostMaj;
@@ -597,8 +597,8 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, "[");
 
-        for (var i = 0u; i < sc.Pipeline->Params->nInputs; i++)
-            _cmsIOPrintf(m, " {0:d} ", sc.Pipeline->Params->nSamples[i]);
+        for (var i = 0u; i < sc.Pipeline.Params->nInputs; i++)
+            _cmsIOPrintf(m, " {0:d} ", sc.Pipeline.Params->nSamples[i]);
 
         _cmsIOPrintf(m, " [\n");
 
@@ -849,7 +849,7 @@ public static unsafe partial class Lcms2
     }
 
     private static double* GetPtrToMatrix(Stage* mpe) =>
-        ((StageMatrixData*)mpe->Data)->Double;
+        ((StageMatrixData)mpe->Data).Double;
 
     private static bool WriteInputMatrixShaper(IOHandler* m, HPROFILE hProfile, Stage* Matrix, Stage* Shaper)
     {

@@ -33,14 +33,14 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     internal static Stage* _cmsStageAllocPlaceholder(
-        Context ContextID,
+        Context? ContextID,
         Signature Type,
         uint InputChannels,
         uint OutputChannels,
         StageEvalFn EvalPtr,
         StageDupElemFn? DupElemPtr,
         StageFreeElemFn? FreePtr,
-        void* Data)
+        object? Data)
     {
         var ph = _cmsMallocZero<Stage>(ContextID);
         if (ph is null) return null;
@@ -65,7 +65,7 @@ public static unsafe partial class Lcms2
         memcpy(@out, @in, mpe->InputChannels * sizeof(float));
     }
 
-    public static Stage* cmsStageAllocIdentity(Context ContextID, uint nChannels) =>
+    public static Stage* cmsStageAllocIdentity(Context? ContextID, uint nChannels) =>
         _cmsStageAllocPlaceholder(
             ContextID,
             cmsSigIdentityElemType,
@@ -150,9 +150,9 @@ public static unsafe partial class Lcms2
 
     internal static ToneCurve** _cmsStageGetPtrToCurveSet(in Stage* mpe)
     {
-        var Data = (StageToneCurvesData*)mpe->Data;
+        var Data = (StageToneCurvesData)mpe->Data;
 
-        return Data->TheCurves;
+        return Data.TheCurves;
     }
 
     private static void EvaluateCurves(
@@ -162,14 +162,14 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(mpe);
 
-        var Data = (StageToneCurvesData*)mpe->Data;
+        var Data = (StageToneCurvesData)mpe->Data;
         if (Data is null) return;
 
-        if (Data->TheCurves is null) return;
+        if (Data.TheCurves is null) return;
 
-        for (var i = 0; i < Data->nCurves; i++)
+        for (var i = 0; i < Data.nCurves; i++)
         {
-            Out[i] = cmsEvalToneCurveFloat(Data->TheCurves[i], In[i]);
+            Out[i] = cmsEvalToneCurveFloat(Data.TheCurves[i], In[i]);
         }
     }
 
@@ -177,45 +177,44 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(mpe);
 
-        var Data = (StageToneCurvesData*)mpe->Data;
+        var Data = (StageToneCurvesData)mpe->Data;
         if (Data is null) return;
 
         FreeCurveSetElems(mpe->ContextID, Data);
     }
 
-    private static void FreeCurveSetElems(Context ContextID, StageToneCurvesData* Data)
+    private static void FreeCurveSetElems(Context? ContextID, StageToneCurvesData Data)
     {
-        if (Data->TheCurves is not null)
+        if (Data.TheCurves is not null)
         {
-            for (var i = 0; i < Data->nCurves; i++)
+            for (var i = 0; i < Data.nCurves; i++)
             {
-                if (Data->TheCurves[i] is not null)
+                if (Data.TheCurves[i] is not null)
                 {
-                    cmsFreeToneCurve(Data->TheCurves[i]);
+                    cmsFreeToneCurve(Data.TheCurves[i]);
                 }
             }
         }
 
-        _cmsFree(ContextID, Data->TheCurves);
-        _cmsFree(ContextID, Data);
+        _cmsFree(ContextID, Data.TheCurves);
     }
 
-    private static void* CurveSetDup(Stage* mpe)
+    private static object? CurveSetDup(Stage* mpe)
     {
-        var Data = (StageToneCurvesData*)mpe->Data;
-        var NewElem = _cmsMallocZero<StageToneCurvesData>(mpe->ContextID);
+        var Data = (StageToneCurvesData)mpe->Data;
+        var NewElem = new StageToneCurvesData();
         if (NewElem is null) return null;
 
-        NewElem->nCurves = Data->nCurves;
-        NewElem->TheCurves = _cmsCalloc2<ToneCurve>(mpe->ContextID, NewElem->nCurves);
+        NewElem.nCurves = Data.nCurves;
+        NewElem.TheCurves = _cmsCalloc2<ToneCurve>(mpe->ContextID, NewElem.nCurves);
 
-        if (NewElem->TheCurves is null) goto Error;
+        if (NewElem.TheCurves is null) goto Error;
 
-        for (var i = 0; i < NewElem->nCurves; i++)
+        for (var i = 0; i < NewElem.nCurves; i++)
         {
             // Duplicate each curve. It may fail.
-            NewElem->TheCurves[i] = cmsDupToneCurve(Data->TheCurves[i]);
-            if (NewElem->TheCurves[i] is null) goto Error;
+            NewElem.TheCurves[i] = cmsDupToneCurve(Data.TheCurves[i]);
+            if (NewElem.TheCurves[i] is null) goto Error;
         }
 
         return NewElem;
@@ -225,12 +224,12 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Stage* cmsStageAllocToneCurves(Context ContextID, uint nChannels, in ToneCurve** Curves)
+    public static Stage* cmsStageAllocToneCurves(Context? ContextID, uint nChannels, in ToneCurve** Curves)
     {
         var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, EvaluateCurves, CurveSetDup, CurveSetElemTypeFree, null);
         if (NewMPE is null) return null;
 
-        var NewElem = _cmsMallocZero<StageToneCurvesData>(ContextID);
+        var NewElem = new StageToneCurvesData();
         if (NewElem is null)
         {
             cmsStageFree(NewMPE);
@@ -239,9 +238,9 @@ public static unsafe partial class Lcms2
 
         NewMPE->Data = NewElem;
 
-        NewElem->nCurves = nChannels;
-        NewElem->TheCurves = _cmsCalloc2<ToneCurve>(ContextID, nChannels);
-        if (NewElem->TheCurves is null)
+        NewElem.nCurves = nChannels;
+        NewElem.TheCurves = _cmsCalloc2<ToneCurve>(ContextID, nChannels);
+        if (NewElem.TheCurves is null)
         {
             cmsStageFree(NewMPE);
             return null;
@@ -249,11 +248,11 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChannels; i++)
         {
-            NewElem->TheCurves[i] = Curves is not null
+            NewElem.TheCurves[i] = Curves is not null
                 ? cmsDupToneCurve(Curves[i])
                 : cmsBuildGamma(ContextID, 1.0);
 
-            if (NewElem->TheCurves[i] is null)
+            if (NewElem.TheCurves[i] is null)
             {
                 cmsStageFree(NewMPE);
                 return null;
@@ -263,7 +262,7 @@ public static unsafe partial class Lcms2
         return NewMPE;
     }
 
-    internal static Stage* _cmsStageAllocIdentityCurves(Context ContextID, uint nChannels)
+    internal static Stage* _cmsStageAllocIdentityCurves(Context? ContextID, uint nChannels)
     {
         var mpe = cmsStageAllocToneCurves(ContextID, nChannels, null);
 
@@ -274,17 +273,17 @@ public static unsafe partial class Lcms2
 
     private static void EvaluateMatrix(in float* In, float* Out, in Stage* mpe)
     {
-        var Data = (StageMatrixData*)mpe->Data;
+        var Data = (StageMatrixData)mpe->Data;
 
         // Input is already in 0..1.0 notation
         for (var i = 0; i < mpe->OutputChannels; i++)
         {
             var Tmp = 0.0;
             for (var j = 0; j < mpe->InputChannels; j++)
-                Tmp += In[j] * Data->Double[(i * mpe->InputChannels) + j];
+                Tmp += In[j] * Data.Double[(i * mpe->InputChannels) + j];
 
-            if (Data->Offset is not null)
-                Tmp += Data->Offset[i];
+            if (Data.Offset is not null)
+                Tmp += Data.Offset[i];
 
             Out[i] = (float)Tmp;
         }
@@ -292,37 +291,35 @@ public static unsafe partial class Lcms2
         // Output in 0..1.0 domain
     }
 
-    private static void* MatrixElemDup(Stage* mpe)
+    private static object? MatrixElemDup(Stage* mpe)
     {
-        var Data = (StageMatrixData*)mpe->Data;
+        var Data = (StageMatrixData)mpe->Data;
 
-        var NewElem = _cmsMallocZero<StageMatrixData>(mpe->ContextID);
+        var NewElem = new StageMatrixData();
         if (NewElem is null) return null;
 
         var sz = mpe->InputChannels * mpe->OutputChannels;
 
-        NewElem->Double = _cmsDupMem<double>(mpe->ContextID, Data->Double, sz);
+        NewElem.Double = _cmsDupMem<double>(mpe->ContextID, Data.Double, sz);
 
-        if (Data->Offset is not null)
-            NewElem->Offset = _cmsDupMem<double>(mpe->ContextID, Data->Offset, mpe->OutputChannels);
+        if (Data.Offset is not null)
+            NewElem.Offset = _cmsDupMem<double>(mpe->ContextID, Data.Offset, mpe->OutputChannels);
 
         return NewElem;
     }
 
     private static void MatrixElemTypeFree(Stage* mpe)
     {
-        var Data = (StageMatrixData*)mpe->Data;
+        var Data = (StageMatrixData)mpe->Data;
         if (Data is null) return;
 
-        if (Data->Double is not null)
-            _cmsFree(mpe->ContextID, Data->Double);
-        if (Data->Offset is not null)
-            _cmsFree(mpe->ContextID, Data->Offset);
-
-        _cmsFree(mpe->ContextID, Data);
+        if (Data.Double is not null)
+            _cmsFree(mpe->ContextID, Data.Double);
+        if (Data.Offset is not null)
+            _cmsFree(mpe->ContextID, Data.Offset);
     }
 
-    public static Stage* cmsStageAllocMatrix(Context ContextID, uint Rows, uint Cols, in double* Matrix, in double* Offset)
+    public static Stage* cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, in double* Matrix, in double* Offset)
     {
         var n = Rows * Cols;
 
@@ -335,23 +332,23 @@ public static unsafe partial class Lcms2
         var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigMatrixElemType, Cols, Rows, EvaluateMatrix, MatrixElemDup, MatrixElemTypeFree, null);
         if (NewMPE is null) return null;
 
-        var NewElem = _cmsMallocZero<StageMatrixData>(ContextID);
+        var NewElem = new StageMatrixData();
         if (NewElem is null) goto Error;
         NewMPE->Data = NewElem;
 
-        NewElem->Double = _cmsCalloc<double>(ContextID, n);
-        if (NewElem->Double is null) goto Error;
+        NewElem.Double = _cmsCalloc<double>(ContextID, n);
+        if (NewElem.Double is null) goto Error;
 
         for (var i = 0; i < n; i++)
-            NewElem->Double[i] = Matrix[i];
+            NewElem.Double[i] = Matrix[i];
 
         if (Offset is not null)
         {
-            NewElem->Offset = _cmsCalloc<double>(ContextID, Rows);
-            if (NewElem->Offset is null) goto Error;
+            NewElem.Offset = _cmsCalloc<double>(ContextID, Rows);
+            if (NewElem.Offset is null) goto Error;
 
             for (var i = 0; i < Rows; i++)
-                NewElem->Offset[i] = Offset[i];
+                NewElem.Offset[i] = Offset[i];
         }
 
         return NewMPE;
@@ -363,14 +360,17 @@ public static unsafe partial class Lcms2
 
     private static void EvaluateCLUTfloat(in float* In, float* Out, in Stage* mpe)
     {
-        var Data = (StageCLutData*)mpe->Data;
+        var Data = (StageCLutData?)mpe->Data;
 
-        Data->Params->Interpolation.LerpFloat(In, Out, Data->Params);
+        if (Data is null)
+            return;
+
+        Data.Params->Interpolation.LerpFloat(In, Out, Data.Params);
     }
 
     private static void EvaluateCLUTfloatIn16(in float* In, float* Out, in Stage* mpe)
     {
-        var Data = (StageCLutData*)mpe->Data;
+        var Data = (StageCLutData)mpe->Data;
         var In16 = stackalloc ushort[MAX_STAGE_CHANNELS];
         var Out16 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
@@ -378,7 +378,7 @@ public static unsafe partial class Lcms2
         _cmsAssert(mpe->OutputChannels <= MAX_STAGE_CHANNELS);
 
         FromFloatTo16(In, In16, mpe->InputChannels);
-        Data->Params->Interpolation.Lerp16(In16, Out16, Data->Params);
+        Data.Params->Interpolation.Lerp16(In16, Out16, Data.Params);
         From16ToFloat(Out16, Out, mpe->OutputChannels);
     }
 
@@ -402,66 +402,64 @@ public static unsafe partial class Lcms2
         return rv;
     }
 
-    private static void* CLUTElemDup(Stage* mpe)
+    private static object? CLUTElemDup(Stage* mpe)
     {
-        var Data = (StageCLutData*)mpe->Data;
+        var Data = (StageCLutData)mpe->Data;
 
-        var NewElem = _cmsMallocZero<StageCLutData>(mpe->ContextID);
+        var NewElem = new StageCLutData();
         if (NewElem is null) return null;
 
-        NewElem->nEntries = Data->nEntries;
-        NewElem->HasFloatValues = Data->HasFloatValues;
+        NewElem.nEntries = Data.nEntries;
+        NewElem.HasFloatValues = Data.HasFloatValues;
 
-        if (Data->Tab.T is not null)
+        if (Data.Tab.T is not null)
         {
-            if (Data->HasFloatValues)
+            if (Data.HasFloatValues)
             {
-                NewElem->Tab.TFloat = _cmsDupMem<float>(mpe->ContextID, Data->Tab.TFloat, Data->nEntries);
-                if (NewElem->Tab.TFloat is null)
+                NewElem.Tab.TFloat = _cmsDupMem<float>(mpe->ContextID, Data.Tab.TFloat, Data.nEntries);
+                if (NewElem.Tab.TFloat is null)
                     goto Error;
             }
             else
             {
-                NewElem->Tab.T = _cmsDupMem<ushort>(mpe->ContextID, Data->Tab.T, Data->nEntries);
-                if (NewElem->Tab.T is null)
+                NewElem.Tab.T = _cmsDupMem<ushort>(mpe->ContextID, Data.Tab.T, Data.nEntries);
+                if (NewElem.Tab.T is null)
                     goto Error;
             }
         }
 
-        NewElem->Params = _cmsComputeInterpParamsEx(mpe->ContextID,
-                                                    Data->Params->nSamples,
-                                                    Data->Params->nInputs,
-                                                    Data->Params->nOutputs,
-                                                    NewElem->Tab.T,
-                                                    (LerpFlag)Data->Params->dwFlags);
-        if (NewElem->Params is not null)
+        NewElem.Params = _cmsComputeInterpParamsEx(mpe->ContextID,
+                                                   Data.Params->nSamples,
+                                                   Data.Params->nInputs,
+                                                   Data.Params->nOutputs,
+                                                   NewElem.Tab.T,
+                                                   (LerpFlag)Data.Params->dwFlags);
+        if (NewElem.Params is not null)
             return NewElem;
 
         Error:
-        if (NewElem->Tab.T is not null)
+        if (NewElem.Tab.T is not null)
             // This works for both types
-            _cmsFree(mpe->ContextID, NewElem->Tab.T);
-        _cmsFree(mpe->ContextID, NewElem);
+            _cmsFree(mpe->ContextID, NewElem.Tab.T);
         return null;
     }
 
     private static void CLutElemTypeFree(Stage* mpe)
     {
-        var Data = (StageCLutData*)mpe->Data;
+        var Data = (StageCLutData)mpe->Data;
 
         // Already empty
         if (Data is null) return;
 
         // This works for both types
-        if (Data->Tab.T is not null)
-            _cmsFree(mpe->ContextID, Data->Tab.T);
+        if (Data.Tab.T is not null)
+            _cmsFree(mpe->ContextID, Data.Tab.T);
 
-        _cmsFreeInterpParams(Data->Params);
-        _cmsFree(mpe->ContextID, mpe->Data);
+        _cmsFreeInterpParams(Data.Params);
     }
 
     public static Stage* cmsStageAllocCLut16bitGranular(
-        Context ContextID,
+        Context? ContextID,
         in uint* clutPoints,
         uint inputChan,
         uint outputChan,
@@ -480,7 +478,7 @@ public static unsafe partial class Lcms2
 
         if (NewMPE is null) return null;
 
-        var NewElem = _cmsMallocZero<StageCLutData>(ContextID);
+        var NewElem = new StageCLutData();
         if (NewElem is null)
         {
             cmsStageFree(NewMPE);
@@ -489,8 +487,8 @@ public static unsafe partial class Lcms2
 
         NewMPE->Data = NewElem;
 
-        var n = NewElem->nEntries = outputChan * CubeSize(clutPoints, inputChan);
-        NewElem->HasFloatValues = false;
+        var n = NewElem.nEntries = outputChan * CubeSize(clutPoints, inputChan);
+        NewElem.HasFloatValues = false;
 
         if (n is 0)
         {
@@ -498,8 +496,8 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        NewElem->Tab.T = _cmsCalloc<ushort>(ContextID, n);
-        if (NewElem->Tab.T is null)
+        NewElem.Tab.T = _cmsCalloc<ushort>(ContextID, n);
+        if (NewElem.Tab.T is null)
         {
             cmsStageFree(NewMPE);
             return null;
@@ -509,12 +507,12 @@ public static unsafe partial class Lcms2
         {
             for (var i = 0; i < n; i++)
             {
-                NewElem->Tab.T[i] = Table[i];
+                NewElem.Tab.T[i] = Table[i];
             }
         }
 
-        NewElem->Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem->Tab.T, LerpFlag.Ushort);
-        if (NewElem->Params is null)
+        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab.T, LerpFlag.Ushort);
+        if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);
             return null;
@@ -524,7 +522,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Stage* cmsStageAllocCLut16bit(
-        Context ContextID,
+        Context? ContextID,
         uint nGridPoints,
         uint inputChan,
         uint outputChan,
@@ -540,7 +538,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Stage* cmsStageAllocCLutFloat(
-        Context ContextID,
+        Context? ContextID,
         uint nGridPoints,
         uint inputChan,
         uint outputChan,
@@ -556,7 +554,7 @@ public static unsafe partial class Lcms2
     }
 
     public static Stage* cmsStageAllocCLutFloatGranular(
-        Context ContextID,
+        Context? ContextID,
         in uint* clutPoints,
         uint inputChan,
         uint outputChan,
@@ -578,10 +576,10 @@ public static unsafe partial class Lcms2
             EvaluateCLUTfloat,
             CLUTElemDup,
             CLutElemTypeFree,
-            null);
+            null!);
         if (NewMPE is null) return null;
 
-        var NewElem = _cmsMallocZero<StageCLutData>(ContextID);
+        var NewElem = new StageCLutData();
         if (NewElem is null)
         {
             cmsStageFree(NewMPE);
@@ -591,8 +589,8 @@ public static unsafe partial class Lcms2
         NewMPE->Data = NewElem;
 
         // There is a potential integer overflow on conputing n and nEntries.
-        var n = NewElem->nEntries = outputChan * CubeSize(clutPoints, inputChan);
-        NewElem->HasFloatValues = true;
+        var n = NewElem.nEntries = outputChan * CubeSize(clutPoints, inputChan);
+        NewElem.HasFloatValues = true;
 
         if (n is 0)
         {
@@ -600,8 +598,8 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        NewElem->Tab.TFloat = _cmsCalloc<float>(ContextID, n);
-        if (NewElem->Tab.TFloat is null)
+        NewElem.Tab.TFloat = _cmsCalloc<float>(ContextID, n);
+        if (NewElem.Tab.TFloat is null)
         {
             cmsStageFree(NewMPE);
             return null;
@@ -611,12 +609,12 @@ public static unsafe partial class Lcms2
         {
             for (var i = 0; i < n; i++)
             {
-                NewElem->Tab.TFloat[i] = Table[i];
+                NewElem.Tab.TFloat[i] = Table[i];
             }
         }
 
-        NewElem->Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem->Tab.TFloat, LerpFlag.Float);
-        if (NewElem->Params is null)
+        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab.TFloat, LerpFlag.Float);
+        if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);
             return null;
@@ -635,7 +633,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static Stage* _cmsStageAllocIdentityCLut(Context ContextID, uint nChan)
+    internal static Stage* _cmsStageAllocIdentityCLut(Context? ContextID, uint nChan)
     {
         var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
@@ -668,13 +666,13 @@ public static unsafe partial class Lcms2
 
         if (mpe is null) return false;
 
-        var clut = (StageCLutData*)mpe->Data;
+        var clut = (StageCLutData)mpe->Data;
 
         if (clut is null) return false;
 
-        var nSamples = clut->Params->nSamples;
-        var nInputs = clut->Params->nInputs;
-        var nOutputs = clut->Params->nOutputs;
+        var nSamples = clut.Params->nSamples;
+        var nInputs = clut.Params->nInputs;
+        var nOutputs = clut.Params->nOutputs;
 
         if (nInputs <= 0) return false;
         if (nOutputs <= 0) return false;
@@ -697,10 +695,10 @@ public static unsafe partial class Lcms2
                 In[t] = _cmsQuantizeVal(Colorant, nSamples[t]);
             }
 
-            if (clut->Tab.T is not null)
+            if (clut.Tab.T is not null)
             {
                 for (var t = 0; t < (int)nOutputs; t++)
-                    Out[t] = clut->Tab.T[index + t];
+                    Out[t] = clut.Tab.T[index + t];
             }
 
             if (!Sampler(In, Out, Cargo))
@@ -708,10 +706,10 @@ public static unsafe partial class Lcms2
 
             if (dwFlags.IsUnset(SamplerFlag.Inspect))
             {
-                if (clut->Tab.T is not null)
+                if (clut.Tab.T is not null)
                 {
                     for (var t = 0; t < (int)nOutputs; t++)
-                        clut->Tab.T[index + t] = Out[t];
+                        clut.Tab.T[index + t] = Out[t];
                 }
             }
 
@@ -728,11 +726,11 @@ public static unsafe partial class Lcms2
 
         if (mpe is null) return false;
 
-        var clut = (StageCLutData*)mpe->Data;
+        var clut = (StageCLutData)mpe->Data;
 
-        var nSamples = clut->Params->nSamples;
-        var nInputs = clut->Params->nInputs;
-        var nOutputs = clut->Params->nOutputs;
+        var nSamples = clut.Params->nSamples;
+        var nInputs = clut.Params->nInputs;
+        var nOutputs = clut.Params->nOutputs;
 
         if (nInputs <= 0) return false;
         if (nOutputs <= 0) return false;
@@ -755,10 +753,10 @@ public static unsafe partial class Lcms2
                 In[t] = (float)(_cmsQuantizeVal(Colorant, nSamples[t]) / 65535.0);
             }
 
-            if (clut->Tab.TFloat is not null)
+            if (clut.Tab.TFloat is not null)
             {
                 for (var t = 0; t < (int)nOutputs; t++)
-                    Out[t] = clut->Tab.TFloat[index + t];
+                    Out[t] = clut.Tab.TFloat[index + t];
             }
 
             if (!Sampler(In, Out, Cargo))
@@ -766,10 +764,10 @@ public static unsafe partial class Lcms2
 
             if (dwFlags.IsUnset(SamplerFlag.Inspect))
             {
-                if (clut->Tab.TFloat is not null)
+                if (clut.Tab.TFloat is not null)
                 {
                     for (var t = 0; t < (int)nOutputs; t++)
-                        clut->Tab.TFloat[index + t] = Out[t];
+                        clut.Tab.TFloat[index + t] = Out[t];
                 }
             }
 
@@ -1054,7 +1052,7 @@ public static unsafe partial class Lcms2
     public static Signature cmsStageType(in Stage* mpe) =>
         mpe->Type;
 
-    public static void* cmsStageData(in Stage* mpe) =>
+    public static object? cmsStageData(in Stage* mpe) =>
         mpe->Data;
 
     public static Context cmsGetStageContextID(in Stage* mpe) =>

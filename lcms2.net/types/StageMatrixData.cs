@@ -27,7 +27,7 @@
 
 namespace lcms2.types;
 
-public unsafe struct StageMatrixData
+public unsafe class StageMatrixData
 {
     public double* Double;
     public double* Offset;

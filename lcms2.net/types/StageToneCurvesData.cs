@@ -27,7 +27,7 @@
 
 namespace lcms2.types;
 
-public unsafe struct StageToneCurvesData
+public unsafe class StageToneCurvesData
 {
     public uint nCurves;
     public ToneCurve** TheCurves;

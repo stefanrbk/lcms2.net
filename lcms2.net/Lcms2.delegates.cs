@@ -49,7 +49,7 @@ public static unsafe partial class Lcms2
     public delegate Formatter FormatterFactory(uint Type, FormatterDirection Dir, uint dwFlags);
     public delegate Pipeline* IntentFn(Context ContextID, uint nProfiles, uint* Intents, HPROFILE* hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags);
     public delegate void StageEvalFn(in float* In, float* Out, in Stage* mpe);
-    public delegate void* StageDupElemFn(Stage* mpe);
+    public delegate object? StageDupElemFn(Stage* mpe);
     public delegate void StageFreeElemFn(Stage* mpe);
     public delegate bool OPToptimizeFn(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
     public delegate void PipelineEval16Fn(in ushort* In, ushort* Out, in void* Data);

@@ -207,12 +207,12 @@ public static unsafe partial class Lcms2
             if ((uint)(*pt1)->Implements is cmsSigMatrixElemType && (uint)(*pt2)->Implements is cmsSigMatrixElemType)
             {
                 // Get both matrices
-                var m1 = (StageMatrixData*)cmsStageData(*pt1);
-                var m2 = (StageMatrixData*)cmsStageData(*pt2);
+                var m1 = (StageMatrixData)cmsStageData(*pt1);
+                var m2 = (StageMatrixData)cmsStageData(*pt2);
                 MAT3 res;
 
                 // Input offset and output offset should be zero to use this optimization
-                if (m1->Offset is not null || m2->Offset is not null ||
+                if (m1.Offset is not null || m2.Offset is not null ||
                     cmsStageInputChannels(*pt1) is not 3 || cmsStageOutputChannels(*pt1) is not 3 ||
                     cmsStageInputChannels(*pt2) is not 3 || cmsStageOutputChannels(*pt2) is not 3)
                 {
@@ -220,7 +220,7 @@ public static unsafe partial class Lcms2
                 }
 
                 // Multiply both matrices to get the result
-                _cmsMAT3per(out res, *(MAT3*)m2->Double, *(MAT3*)m1->Double);
+                _cmsMAT3per(out res, *(MAT3*)m2.Double, *(MAT3*)m1.Double);
 
                 // Get the next in chain after the matrices
                 var chain = (*pt2)->Next;
@@ -440,8 +440,8 @@ public static unsafe partial class Lcms2
         uint nChannelsOut,
         uint nChannelsIn)
     {
-        var Grid = (StageCLutData*)CLUT->Data;
-        var p16 = Grid->Params;
+        var Grid = (StageCLutData)CLUT->Data;
+        var p16 = Grid.Params;
         double px, py, pz, pw;
         int x0, y0, z0, w0, index;
 
@@ -524,7 +524,7 @@ public static unsafe partial class Lcms2
         }
 
         for (var i = 0; i < nChannelsOut; i++)
-            Grid->Tab.T[index + i] = Value[i];
+            Grid.Tab.T[index + i] = Value[i];
 
         return true;
     }
@@ -717,19 +717,19 @@ public static unsafe partial class Lcms2
         if (KeepPostLin is not null) cmsStageFree(KeepPostLin);
         cmsPipelineFree(Src);
 
-        var DataCLUT = (StageCLutData*)CLUT->Data;
+        var DataCLUT = (StageCLutData)CLUT->Data;
 
-        var DataSetIn = NewPreLin is null ? null : ((StageToneCurvesData*)NewPreLin->Data)->TheCurves;
-        var DataSetOut = NewPostLin is null ? null : ((StageToneCurvesData*)NewPostLin->Data)->TheCurves;
+        var DataSetIn = NewPreLin is null ? null : ((StageToneCurvesData)NewPreLin->Data).TheCurves;
+        var DataSetOut = NewPostLin is null ? null : ((StageToneCurvesData)NewPostLin->Data).TheCurves;
 
         if (DataSetIn is null && DataSetOut is null)
         {
             _cmsPipelineSetOptimizationParameters(
-                Dest, *(PipelineEval16Fn*)&DataCLUT->Params->Interpolation.Lerp16, DataCLUT->Params, null, null);
+                Dest, *(PipelineEval16Fn*)&DataCLUT.Params->Interpolation.Lerp16, DataCLUT.Params, null, null);
         }
         else
         {
-            var p16 = PrelinOpt16alloc(Dest->ContextID, DataCLUT->Params, Dest->InputChannels, DataSetIn, Dest->OutputChannels, DataSetOut);
+            var p16 = PrelinOpt16alloc(Dest->ContextID, DataCLUT.Params, Dest->InputChannels, DataSetIn, Dest->OutputChannels, DataSetOut);
 
             _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
         }
@@ -980,10 +980,10 @@ public static unsafe partial class Lcms2
             if (last is null) goto Error;
             if ((uint)cmsStageType(last) is cmsSigCurveSetElemType)
             {
-                var Data = (StageToneCurvesData*)cmsStageData(last);
-                for (var i = 0; i < Data->nCurves; i++)
+                var Data = (StageToneCurvesData)cmsStageData(last);
+                for (var i = 0; i < Data.nCurves; i++)
                 {
-                    if (IsDegenerated(Data->TheCurves[i]))
+                    if (IsDegenerated(Data.TheCurves[i]))
                         goto Error;
                 }
             }
@@ -1073,19 +1073,19 @@ public static unsafe partial class Lcms2
         cmsPipelineFree(LutPlusCurves);
 
         var OptimizedPrelinCurves = _cmsStageGetPtrToCurveSet(OptimizedPrelinMpe);
-        var OptimizedPrelinCLUT = (StageCLutData*)OptimizedCLUTmpe->Data;
+        var OptimizedPrelinCLUT = (StageCLutData)OptimizedCLUTmpe->Data;
 
         // Set the evaluator if 8-bit
         if (_cmsFormatterIs8bit(*InputFormat))
         {
-            var p8 = PrelinOpt8alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT->Params, OptimizedPrelinCurves);
+            var p8 = PrelinOpt8alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT.Params, OptimizedPrelinCurves);
             if (p8 is null) goto Error;
 
             _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, p8, Prelin8free, Prelin8dup);
         }
         else
         {
-            var p16 = PrelinOpt16alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT->Params, 3, OptimizedPrelinCurves, 3, null);
+            var p16 = PrelinOpt16alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT.Params, 3, OptimizedPrelinCurves, 3, null);
             if (p16 is null) goto Error;
 
             _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
@@ -1274,13 +1274,13 @@ public static unsafe partial class Lcms2
         {
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtBegin, ObtainedCurves))
                 goto Error;
-            var Data = (StageToneCurvesData*)cmsStageData(ObtainedCurves);
+            var Data = (StageToneCurvesData)cmsStageData(ObtainedCurves);
             ObtainedCurves = null;
 
             // If the curves are to by applied in 8 bits, we can save memory
             if (_cmsFormatterIs8bit(*InputFormat))
             {
-                var c16 = CurvesAlloc(Dest->ContextID, Data->nCurves, 256, Data->TheCurves);
+                var c16 = CurvesAlloc(Dest->ContextID, Data.nCurves, 256, Data.TheCurves);
 
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
@@ -1288,7 +1288,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                var c16 = CurvesAlloc(Dest->ContextID, Data->nCurves, 65536, Data->TheCurves);
+                var c16 = CurvesAlloc(Dest->ContextID, Data.nCurves, 65536, Data.TheCurves);
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
                 _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, c16, CurvesFree, CurvesDup);
@@ -1485,17 +1485,17 @@ public static unsafe partial class Lcms2
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
             // Get both matrices
-            var Data1 = (StageMatrixData*)cmsStageData(Matrix1);
-            var Data2 = (StageMatrixData*)cmsStageData(Matrix2);
+            var Data1 = (StageMatrixData)cmsStageData(Matrix1);
+            var Data2 = (StageMatrixData)cmsStageData(Matrix2);
 
             // Input offset should be zero
-            if (Data1->Offset is not null) return false;
+            if (Data1.Offset is not null) return false;
 
             // Multiply both matrices to get the result
-            _cmsMAT3per(out res, *(MAT3*)Data2->Double, *(MAT3*)Data1->Double);
+            _cmsMAT3per(out res, *(MAT3*)Data2.Double, *(MAT3*)Data1.Double);
 
             // Only 2nd matrix has offset, or it is zero
-            Offset = Data2->Offset;
+            Offset = Data2.Offset;
 
             // Now the result is in res + Data2->Offset. Maybe it is a plain identity?
             if (_cmsMAT3isIdentity(res) && Offset is null)
@@ -1507,13 +1507,13 @@ public static unsafe partial class Lcms2
         else if (cmsPipelineCheckAndRetrieveStages(Src, &Curve1, &Matrix1, &Curve2,
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
-            var Data = (StageMatrixData*)cmsStageData(Matrix1);
+            var Data = (StageMatrixData)cmsStageData(Matrix1);
 
             // Copy the matrix to our result
-            memcpy(&res, (MAT3*)Data->Double);
+            memcpy(&res, (MAT3*)Data.Double);
 
             // Preserve the offset (may be null as a zero offset)
-            Offset = Data->Offset;
+            Offset = Data.Offset;
 
             if (_cmsMAT3isIdentity(res) && Offset is null)
             {
@@ -1547,15 +1547,15 @@ public static unsafe partial class Lcms2
         }
         else
         {
-            var mpeC1 = (StageToneCurvesData*)cmsStageData(Curve1);
-            var mpeC2 = (StageToneCurvesData*)cmsStageData(Curve2);
+            var mpeC1 = (StageToneCurvesData)cmsStageData(Curve1);
+            var mpeC2 = (StageToneCurvesData)cmsStageData(Curve2);
 
             // In this particular optimization, cache does not help as it takes more time to deal with
             // the cache than with the pixel handling
             *dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routinds
-            SetMatShaper(Dest, mpeC1->TheCurves, &res, (VEC3*)Offset, mpeC2->TheCurves, OutputFormat);
+            SetMatShaper(Dest, mpeC1.TheCurves, &res, (VEC3*)Offset, mpeC2.TheCurves, OutputFormat);
         }
 
         cmsPipelineFree(Src);

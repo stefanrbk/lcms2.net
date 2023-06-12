@@ -28,7 +28,7 @@ using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-public unsafe struct StageCLutData
+public unsafe class StageCLutData
 {
     [StructLayout(LayoutKind.Explicit)]
     public struct CmsTab

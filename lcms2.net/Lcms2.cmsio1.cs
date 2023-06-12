@@ -465,10 +465,10 @@ public static unsafe partial class Lcms2
         {
             if ((uint)cmsStageType(Stage) is cmsSigCLutElemType)
             {
-                var CLUT = (StageCLutData*)Stage->Data;
+                var CLUT = (StageCLutData)Stage->Data!;
 
-                CLUT->Params->dwFlags |= (uint)LerpFlag.Trilinear;
-                _cmsSetInterpolationRoutine(Lut->ContextID, CLUT->Params);
+                CLUT.Params->dwFlags |= (uint)LerpFlag.Trilinear;
+                _cmsSetInterpolationRoutine(Lut->ContextID, CLUT.Params);
             }
         }
     }
