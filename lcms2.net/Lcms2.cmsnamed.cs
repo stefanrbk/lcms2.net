@@ -593,50 +593,50 @@ public static unsafe partial class Lcms2
 
     private static void FreeNamedColorList(Stage* mpe)
     {
-        var list = (NamedColorList*)mpe->Data;
+        var list = (BoxPtr<NamedColorList>)mpe->Data;
         cmsFreeNamedColorList(list);
     }
 
-    private static void* DupNamedColorList(Stage* mpe)
+    private static object? DupNamedColorList(Stage* mpe)
     {
-        var list = (NamedColorList*)mpe->Data;
-        return cmsDupNamedColorList(list);
+        var list = (BoxPtr<NamedColorList>)mpe->Data;
+        return new BoxPtr<NamedColorList>(cmsDupNamedColorList(list));
     }
 
     private static void EvalNamedColorPCS(in float* In, float* Out, in Stage* mpe)
     {
-        var NamedColorList = (NamedColorList*)mpe->Data;
+        var NamedColorList = (BoxPtr<NamedColorList>)mpe->Data;
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
-        if (index >= NamedColorList->nColors)
+        if (index >= NamedColorList.Ptr->nColors)
         {
-            cmsSignalError(NamedColorList->ContextID, ErrorCode.Range, $"Color {index} out of range");
+            cmsSignalError(NamedColorList.Ptr->ContextID, ErrorCode.Range, $"Color {index} out of range");
             Out[0] = Out[1] = Out[2] = 0f;
         }
         else
         {
             // Named color always uses Lab
-            Out[0] = (float)(NamedColorList->List[index].PCS[0] / 65535.0);
-            Out[1] = (float)(NamedColorList->List[index].PCS[1] / 65535.0);
-            Out[2] = (float)(NamedColorList->List[index].PCS[2] / 65535.0);
+            Out[0] = (float)(NamedColorList.Ptr->List[index].PCS[0] / 65535.0);
+            Out[1] = (float)(NamedColorList.Ptr->List[index].PCS[1] / 65535.0);
+            Out[2] = (float)(NamedColorList.Ptr->List[index].PCS[2] / 65535.0);
         }
     }
 
     private static void EvalNamedColor(in float* In, float* Out, in Stage* mpe)
     {
-        var NamedColorList = (NamedColorList*)mpe->Data;
+        var NamedColorList = (BoxPtr<NamedColorList>)mpe->Data;
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
-        if (index >= NamedColorList->nColors)
+        if (index >= NamedColorList.Ptr->nColors)
         {
-            cmsSignalError(NamedColorList->ContextID, ErrorCode.Range, $"Color {index} out of range");
-            for (var j = 0; j < NamedColorList->ColorantCount; j++)
+            cmsSignalError(NamedColorList.Ptr->ContextID, ErrorCode.Range, $"Color {index} out of range");
+            for (var j = 0; j < NamedColorList.Ptr->ColorantCount; j++)
                 Out[j] = 0.0f;
         }
         else
         {
-            for (var j = 0; j < NamedColorList->ColorantCount; j++)
-                Out[j] = (float)(NamedColorList->List[index].DeviceColorant[j] / 65535.0);
+            for (var j = 0; j < NamedColorList.Ptr->ColorantCount; j++)
+                Out[j] = (float)(NamedColorList.Ptr->List[index].DeviceColorant[j] / 65535.0);
         }
     }
 
@@ -649,14 +649,14 @@ public static unsafe partial class Lcms2
             UsePCS ? EvalNamedColorPCS : EvalNamedColor,
             DupNamedColorList,
             FreeNamedColorList,
-            cmsDupNamedColorList(NamedColorList));
+            new BoxPtr<NamedColorList>(cmsDupNamedColorList(NamedColorList)));
 
-    public static NamedColorList* cmsGetNamedColorList(Transform* xform)
+    public static BoxPtr<NamedColorList>? cmsGetNamedColorList(Transform* xform)
     {
         var mpe = xform->Lut->Elements;
 
         if (mpe->Type != cmsSigNamedColorElemType) return null;
-        return (NamedColorList*)mpe->Data;
+        return mpe->Data as BoxPtr<NamedColorList>;
     }
 
     public static Sequence* cmsAllocProfileSequenceDescription(Context ContextID, uint n)
