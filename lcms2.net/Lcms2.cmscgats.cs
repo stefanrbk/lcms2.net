@@ -705,7 +705,7 @@ public static unsafe partial class Lcms2
         (T**)AllocChunk(it8, _sizeof<nint>() * count);
 
     private static T* AllocChunk<T>(IT8* it8) where T : struct =>
-        (T*)AllocChunk(it8, (uint)sizeof(T));
+        (T*)AllocChunk(it8, _sizeof<T>());
 
     private static void* AllocChunk(IT8* it8, uint size)
     {
@@ -734,10 +734,10 @@ public static unsafe partial class Lcms2
 
     private static byte* AllocString(IT8* it8, byte* str)
     {
-        var Size = strlen(str) + sizeof(byte);
+        var Size = strlen(str) + (nint)_sizeof<byte>();
 
         var ptr = (byte*)AllocChunk(it8, (uint)Size);
-        if (ptr is not null) memcpy(ptr, str, Size - sizeof(byte));
+        if (ptr is not null) memcpy(ptr, str, Size - (nint)_sizeof<byte>());
 
         return ptr;
     }

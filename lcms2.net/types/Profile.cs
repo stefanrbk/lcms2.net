@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct Profile
+public unsafe class Profile : ICloneable
 {
     public IOHandler? IOHandler;
     public Context? ContextID;
@@ -50,13 +50,13 @@ public unsafe struct Profile
     public ProfileID ProfileID;
 
     public uint TagCount;
-    public fixed uint TagNames[MAX_TABLE_TAG];
-    public fixed uint TagLinked[MAX_TABLE_TAG];
-    public fixed uint TagSizes[MAX_TABLE_TAG];
-    public fixed uint TagOffsets[MAX_TABLE_TAG];
-    public fixed bool TagSaveAsRaw[MAX_TABLE_TAG];
-    public fixed long TagPtrs[MAX_TABLE_TAG];
-    public fixed long TagTypeHandlers[MAX_TABLE_TAG];
+    public readonly Signature[] TagNames = new Signature[MAX_TABLE_TAG];
+    public readonly Signature[] TagLinked = new Signature[MAX_TABLE_TAG];
+    public readonly uint[] TagSizes = new uint[MAX_TABLE_TAG];
+    public readonly uint[] TagOffsets = new uint[MAX_TABLE_TAG];
+    public readonly bool[] TagSaveAsRaw = new bool[MAX_TABLE_TAG];
+    public readonly object?[] TagPtrs = new object?[MAX_TABLE_TAG];
+    public readonly TagTypeHandler*[] TagTypeHandlers = new TagTypeHandler*[MAX_TABLE_TAG];
 
     public bool IsWrite;
 
@@ -82,5 +82,38 @@ public unsafe struct Profile
         public Signature creator;
         public ProfileID profileID;
         public fixed sbyte reserved[28];
+    }
+
+    public object Clone()
+    {
+        var result = new Profile()
+        {
+            attributes = attributes,
+            ColorSpace = ColorSpace,
+            ContextID = ContextID,
+            Created = Created,
+            creator = creator,
+            DeviceClass = DeviceClass,
+            flags = flags,
+            IOHandler = IOHandler,
+            IsWrite = IsWrite,
+            UserMutex = UserMutex,
+            manufacturer = manufacturer,
+            model = model,
+            PCS = PCS,
+            ProfileID = ProfileID,
+            RenderingIntent = RenderingIntent,
+            TagCount = TagCount,
+            Version = Version,
+        };
+        TagNames.CopyTo(result.TagNames, 0);
+        TagLinked.CopyTo(result.TagLinked, 0);
+        TagSizes.CopyTo(result.TagSizes, 0);
+        TagOffsets.CopyTo(result.TagOffsets, 0);
+        TagSaveAsRaw.CopyTo(result.TagSaveAsRaw, 0);
+        TagPtrs.CopyTo(result.TagPtrs, 0);
+        TagTypeHandlers.CopyTo(result.TagTypeHandlers, 0);
+
+        return result;
     }
 }

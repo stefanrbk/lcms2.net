@@ -251,7 +251,7 @@ public static unsafe partial class Lcms2
 
     private static bool ComputeConversion(
         uint i,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         uint Intent,
         bool BPC,
         double AdaptationState,
@@ -270,11 +270,11 @@ public static unsafe partial class Lcms2
             CIEXYZ WhitePointIn, WhitePointOut;
             MAT3 ChromaticAdaptationMatrixIn, ChromaticAdaptationMatrixOut;
 
-            _cmsReadMediaWhitePoint(&WhitePointIn, hProfiles[i - 1]);
-            _cmsReadCHAD(&ChromaticAdaptationMatrixIn, hProfiles[i - 1]);
+            _cmsReadMediaWhitePoint(&WhitePointIn, Profiles[i - 1]);
+            _cmsReadCHAD(&ChromaticAdaptationMatrixIn, Profiles[i - 1]);
 
-            _cmsReadMediaWhitePoint(&WhitePointOut, hProfiles[i]);
-            _cmsReadCHAD(&ChromaticAdaptationMatrixOut, hProfiles[i]);
+            _cmsReadMediaWhitePoint(&WhitePointOut, Profiles[i]);
+            _cmsReadCHAD(&ChromaticAdaptationMatrixOut, Profiles[i]);
 
             if (!ComputeAbsoluteIntent(AdaptationState, &WhitePointIn, &ChromaticAdaptationMatrixIn, &WhitePointOut, &ChromaticAdaptationMatrixOut, m))
                 return false;
@@ -286,8 +286,8 @@ public static unsafe partial class Lcms2
             {
                 CIEXYZ BlackPointIn, BlackPointOut;
 
-                cmsDetectBlackPoint(&BlackPointIn, hProfiles[i - 1], Intent, 0);
-                cmsDetectDestinationBlackPoint(&BlackPointOut, hProfiles[i], Intent, 0);
+                cmsDetectBlackPoint(&BlackPointIn, Profiles[i - 1], Intent, 0);
+                cmsDetectDestinationBlackPoint(&BlackPointOut, Profiles[i], Intent, 0);
 
                 // If black points are equal, then do nothing
                 if (BlackPointIn.X != BlackPointOut.X ||
@@ -405,13 +405,13 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
     {
         Pipeline* Lut = null, Result;
-        HPROFILE hProfile;
+        Profile Profile;
         MAT3 m;
         VEC3 off;
         Signature ColorSpaceIn, ColorSpaceOut = cmsSigLabData, CurrentColorSpace, ClassSig;
@@ -424,12 +424,12 @@ public static unsafe partial class Lcms2
         Result = cmsPipelineAlloc(ContextID, 0, 0);
         if (Result is null) return null;
 
-        CurrentColorSpace = cmsGetColorSpace(hProfiles[0]);
+        CurrentColorSpace = cmsGetColorSpace(Profiles[0]);
 
         for (var i = 0u; i < nProfiles; i++)
         {
-            hProfile = hProfiles[i];
-            ClassSig = cmsGetDeviceClass(hProfile);
+            Profile = Profiles[i];
+            ClassSig = cmsGetDeviceClass(Profile);
             var isDeviceLink = (uint)ClassSig is cmsSigLinkClass or cmsSigAbstractClass;
 
             // First profile is used as input unless devicelink or abstract
@@ -440,8 +440,8 @@ public static unsafe partial class Lcms2
             Intent = TheIntents[i];
 
             (ColorSpaceIn, ColorSpaceOut) = (isInput || isDeviceLink)
-                ? (cmsGetColorSpace(hProfile), cmsGetPCS(hProfile))
-                : (cmsGetPCS(hProfile), cmsGetColorSpace(hProfile));
+                ? (cmsGetColorSpace(Profile), cmsGetPCS(Profile))
+                : (cmsGetPCS(Profile), cmsGetColorSpace(Profile));
 
             if (!ColorSpaceIsCompatible(ColorSpaceIn, CurrentColorSpace))
             {
@@ -454,13 +454,13 @@ public static unsafe partial class Lcms2
             if (isDeviceLink || (((uint)ClassSig is cmsSigNamedColorClass) && (nProfiles is 1)))
             {
                 // Get the involved LUT from the profile
-                Lut = _cmsReadDevicelinkLUT(hProfile, Intent);
+                Lut = _cmsReadDevicelinkLUT(Profile, Intent);
                 if (Lut is null) goto Error;
 
                 // What about abstract profiles?
                 if ((uint)ClassSig is cmsSigAbstractClass && i > 0)
                 {
-                    if (!ComputeConversion(i, hProfiles, Intent, BPC[i], AdaptationStates[i], &m, &off))
+                    if (!ComputeConversion(i, Profiles, Intent, BPC[i], AdaptationStates[i], &m, &off))
                         goto Error;
                 }
                 else
@@ -477,16 +477,16 @@ public static unsafe partial class Lcms2
                 if (isInput)
                 {
                     // Input direction means non-pcs connection, so proceed like devicelinks
-                    Lut = _cmsReadInputLUT(hProfile, Intent);
+                    Lut = _cmsReadInputLUT(Profile, Intent);
                     if (Lut is null) goto Error;
                 }
                 else
                 {
                     // Output direction means PCS connection. Intent may apply here
-                    Lut = _cmsReadOutputLUT(hProfile, Intent);
+                    Lut = _cmsReadOutputLUT(Profile, Intent);
                     if (Lut is null) goto Error;
 
-                    if (!ComputeConversion(i, hProfiles, Intent, BPC[i], AdaptationStates[i], &m, &off)) goto Error;
+                    if (!ComputeConversion(i, Profiles, Intent, BPC[i], AdaptationStates[i], &m, &off)) goto Error;
                     if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, &m, &off)) goto Error;
                 }
             }
@@ -530,11 +530,11 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags) =>
-        DefaultICCintents(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        DefaultICCintents(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
 
     private static uint TranslateNonICCIntents(uint Intent) =>
         Intent switch
@@ -579,7 +579,7 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -589,7 +589,7 @@ public static unsafe partial class Lcms2
         var ICCIntents = stackalloc uint[256];
         Stage* CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
-        HPROFILE hLastProfile;
+        Profile hLastProfile;
 
         // Sanity check
         if (nProfiles is < 1 or > 255) return null;
@@ -600,11 +600,11 @@ public static unsafe partial class Lcms2
 
         // Trim all CMYK devicelinks at the end
         lastProfilePos = nProfiles - 1;
-        hLastProfile = hProfiles[lastProfilePos];
+        hLastProfile = Profiles[lastProfilePos];
 
         while (lastProfilePos > 1)
         {
-            hLastProfile = hProfiles[--lastProfilePos];
+            hLastProfile = Profiles[--lastProfilePos];
             if ((uint)cmsGetColorSpace(hLastProfile) is not cmsSigCmykData ||
                 (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass) break;
         }
@@ -612,10 +612,10 @@ public static unsafe partial class Lcms2
         preservationProfilesCount = lastProfilePos + 1;
 
         // Check for non-cmyk profiles
-        if ((uint)cmsGetColorSpace(hProfiles[0]) is not cmsSigCmykData ||
+        if ((uint)cmsGetColorSpace(Profiles[0]) is not cmsSigCmykData ||
             !((uint)cmsGetColorSpace(hLastProfile) is cmsSigCmykData ||
             (uint)cmsGetDeviceClass(hLastProfile) is cmsSigOutputClass))
-        { return DefaultICCintents(ContextID, nProfiles, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags); }
+        { return DefaultICCintents(ContextID, nProfiles, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags); }
 
         // Allocate an empty LUT for holding the result
         Result = cmsPipelineAlloc(ContextID, 4, 4);
@@ -624,12 +624,12 @@ public static unsafe partial class Lcms2
         memset(&bp, 0);
 
         // Create a LUT holding normal ICC transform
-        bp.cmyk2cmyk = DefaultICCintents(ContextID, preservationProfilesCount, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        bp.cmyk2cmyk = DefaultICCintents(ContextID, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
 
         if (bp.cmyk2cmyk is null) goto Error;
 
         // Now, compute the tone curve
-        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
 
         if (bp.KTone is null) goto Error;
 
@@ -651,7 +651,7 @@ public static unsafe partial class Lcms2
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
         {
-            var devlink = _cmsReadDevicelinkLUT(hProfiles[i], ICCIntents[i]);
+            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[i]);
             if (devlink is null) goto Error;
 
             if (!cmsPipelineCat(Result, devlink))
@@ -771,7 +771,7 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -781,7 +781,7 @@ public static unsafe partial class Lcms2
         var ICCIntents = stackalloc uint[256];
         Stage* CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
-        HPROFILE hLastProfile, hLab;
+        Profile hLastProfile, hLab;
 
         // Sanity check
         if (nProfiles is < 1 or > 255) return null;
@@ -792,11 +792,11 @@ public static unsafe partial class Lcms2
 
         // Trim all CMYK devicelinks at the end
         lastProfilePos = nProfiles - 1;
-        hLastProfile = hProfiles[lastProfilePos];
+        hLastProfile = Profiles[lastProfilePos];
 
         while (lastProfilePos > 1)
         {
-            hLastProfile = hProfiles[--lastProfilePos];
+            hLastProfile = Profiles[--lastProfilePos];
             if ((uint)cmsGetColorSpace(hLastProfile) is not cmsSigCmykData ||
                 (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass) break;
         }
@@ -804,10 +804,10 @@ public static unsafe partial class Lcms2
         preservationProfilesCount = lastProfilePos + 1;
 
         // Check for non-cmyk profiles
-        if ((uint)cmsGetColorSpace(hProfiles[0]) is not cmsSigCmykData ||
+        if ((uint)cmsGetColorSpace(Profiles[0]) is not cmsSigCmykData ||
             !((uint)cmsGetColorSpace(hLastProfile) is cmsSigCmykData ||
             (uint)cmsGetDeviceClass(hLastProfile) is cmsSigOutputClass))
-        { return DefaultICCintents(ContextID, nProfiles, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags); }
+        { return DefaultICCintents(ContextID, nProfiles, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags); }
 
         // Allocate an empty LUT for holding the result
         Result = cmsPipelineAlloc(ContextID, 4, 4);
@@ -825,11 +825,11 @@ public static unsafe partial class Lcms2
         if (bp.MaxTAC <= 0) goto Cleanup;
 
         // Create a LUT holding normal ICC transform
-        bp.cmyk2cmyk = DefaultICCintents(ContextID, preservationProfilesCount, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        bp.cmyk2cmyk = DefaultICCintents(ContextID, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
         if (bp.cmyk2cmyk is null) goto Cleanup;
 
         // Now the tone curve
-        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
         if (bp.KTone is null) goto Cleanup;
 
         // To measure the output, Last profile to Lab
@@ -873,7 +873,7 @@ public static unsafe partial class Lcms2
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
         {
-            var devlink = _cmsReadDevicelinkLUT(hProfiles[i], ICCIntents[i]);
+            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[i]);
             if (devlink is null) goto Cleanup;
 
             if (!cmsPipelineCat(Result, devlink))
@@ -898,7 +898,7 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         double* AdaptationStates,
         uint dwFlags)
@@ -923,7 +923,7 @@ public static unsafe partial class Lcms2
             if (TheIntents[i] is INTENT_PERCEPTUAL or INTENT_SATURATION)
             {
                 // Force BPC for V4 profiles in perceptual and saturation
-                if (cmsGetEncodedICCVersion(hProfiles[i]) >= 0x04000000)
+                if (cmsGetEncodedICCVersion(Profiles[i]) >= 0x04000000)
                     BPC[i] = true;
             }
         }
@@ -941,7 +941,7 @@ public static unsafe partial class Lcms2
         }
 
         // Call the handler
-        return Intent.Link(ContextID, nProfiles, TheIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+        return Intent.Link(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
     }
 
     public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[]? Descriptions)

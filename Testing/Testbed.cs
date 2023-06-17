@@ -24,8 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using unsafe HPROFILE = void*;
-
 using lcms2.state;
 using lcms2.types;
 

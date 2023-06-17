@@ -230,34 +230,37 @@ public static unsafe partial class Lcms2
         _cmsFree(ctx->ContextID, ctx);
     }
 
-    public static bool cmsMD5computeID(HPROFILE hProfile)
+    public static bool cmsMD5computeID(Profile Profile)
     {
-        Profile Keep;
+        Profile Icc;
         byte* Mem = null;
-        var Icc = (Profile*)hProfile;
+        var Keep = Profile;
 
-        _cmsAssert(hProfile);
+        _cmsAssert(Profile);
 
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
 
         // Save a copy of the profile header
-        memmove(&Keep, Icc);
+        Icc = (Profile)Keep.Clone();
+        //memmove(&Keep, Icc);
 
         // Set RI, attributes and ID
-        memset(&Icc->attributes, 0);
-        Icc->RenderingIntent = 0;
-        memset(&Icc->ProfileID, 0);
+        fixed(ulong* attributes = &Icc.attributes)
+            memset(attributes, 0);
+        Icc.RenderingIntent = 0;
+        fixed(ProfileID* ProfileID = &Icc.ProfileID)
+            memset(ProfileID, 0);
 
         // Compute needed storage
         uint BytesNeeded;
-        if (!cmsSaveProfileToMem(hProfile, null, &BytesNeeded)) goto Error;
+        if (!cmsSaveProfileToMem(Profile, null, &BytesNeeded)) goto Error;
 
         // Allocate memory
         Mem = _cmsMalloc<byte>(ContextID, BytesNeeded);
         if (Mem is null) goto Error;
 
         // Save to temporary storage
-        if (!cmsSaveProfileToMem(hProfile, Mem, &BytesNeeded)) goto Error;
+        if (!cmsSaveProfileToMem(Profile, Mem, &BytesNeeded)) goto Error;
 
         // Create MD5 object
         var MD5 = cmsMD5alloc(ContextID);
@@ -270,17 +273,18 @@ public static unsafe partial class Lcms2
         _cmsFree(ContextID, Mem);
 
         // Restore header
-        memmove(Icc, &Keep);
+        //memmove(Icc, &Keep);
 
         // And store the ID
-        cmsMD5finish(&Icc->ProfileID, MD5);
+        fixed(ProfileID* ProfileID = &Icc.ProfileID)
+            cmsMD5finish(ProfileID, MD5);
         return true;
 
     Error:
         // Free resources as something went wrong
         // "MD5" cannot be other than null here, so no need to free it
         if (Mem is not null) _cmsFree(ContextID, Mem);
-        memmove(Icc, &Keep);
+        //memmove(Icc, &Keep);
         return false;
     }
 }

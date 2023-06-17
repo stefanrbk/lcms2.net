@@ -318,15 +318,15 @@ public static unsafe partial class Lcms2
     private static string ctime(DateTime timer) =>
         timer.ToString("ddd MMM dd HH:mm:ss yyyy") + '\n';
 
-    private static void EmitHeader(IOHandler m, byte* Title, HPROFILE hProfile)
+    private static void EmitHeader(IOHandler m, byte* Title, Profile Profile)
     {
         var DescASCII = stackalloc byte[256];
         var CopyrightASCII =  stackalloc byte[256];
 
         var timer = DateTime.UtcNow;
 
-        var Description = (Mlu*)cmsReadTag(hProfile, cmsSigProfileDescriptionTag);
-        var Copyright = (Mlu*)cmsReadTag(hProfile, cmsSigCopyrightTag);
+        var Description = (BoxPtr<Mlu>?)cmsReadTag(Profile, cmsSigProfileDescriptionTag);
+        var Copyright = (BoxPtr<Mlu>?)cmsReadTag(Profile, cmsSigCopyrightTag);
 
         DescASCII[0] = DescASCII[255] = 0;
         CopyrightASCII[0] = CopyrightASCII[255] = 0;
@@ -758,11 +758,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static ToneCurve* ExtractGray2Y(Context? ContextID, HPROFILE hProfile, uint Intent)
+    private static ToneCurve* ExtractGray2Y(Context? ContextID, Profile Profile, uint Intent)
     {
         var Out = cmsBuildTabulatedToneCurve16(ContextID, 256, null);
         var hXYZ = cmsCreateXYZProfile();
-        var xform = cmsCreateTransformTHR(ContextID, hProfile, TYPE_GRAY_8, hXYZ, TYPE_XYZ_DBL, Intent, cmsFLAGS_NOOPTIMIZE);
+        var xform = cmsCreateTransformTHR(ContextID, Profile, TYPE_GRAY_8, hXYZ, TYPE_XYZ_DBL, Intent, cmsFLAGS_NOOPTIMIZE);
 
         if (Out is not null && xform is not null)
         {
@@ -782,23 +782,23 @@ public static unsafe partial class Lcms2
         return Out;
     }
 
-    private static bool WriteInputLUT(IOHandler m, HPROFILE hProfile, uint Intent, uint dwFlags)
+    private static bool WriteInputLUT(IOHandler m, Profile Profile, uint Intent, uint dwFlags)
     {
         CIEXYZ BlackPointAdaptedToD50;
-        var Profiles = stackalloc HPROFILE[2];
+        var Profiles = new Profile[2];
 
         // Does create a device-link based transform.
         // The DeviceLink is next dumped as working CSA.
 
-        var InputFormat = cmsFormatterForColorspaceOfProfile(hProfile, 2, false);
+        var InputFormat = cmsFormatterForColorspaceOfProfile(Profile, 2, false);
         var nChannels = T_CHANNELS(InputFormat);
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, hProfile, Intent, 0);
+        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, Intent, 0);
 
         // Adjust output to Lab4
         var hLab = cmsCreateLab4ProfileTHR(m.ContextID, null);
 
-        Profiles[0] = hProfile;
+        Profiles[0] = Profile;
         Profiles[1] = hLab;
 
         var xform = cmsCreateMultiprofileTransform(Profiles, 2, InputFormat, TYPE_Lab_DBL, Intent, 0);
@@ -816,7 +816,7 @@ public static unsafe partial class Lcms2
         {
             case 1:
                 {
-                    var Gray2Y = ExtractGray2Y(m.ContextID, hProfile, Intent);
+                    var Gray2Y = ExtractGray2Y(m.ContextID, Profile, Intent);
                     EmitCIEBasedA(m, Gray2Y, &BlackPointAdaptedToD50);
                     cmsFreeToneCurve(Gray2Y);
                 }
@@ -825,7 +825,7 @@ public static unsafe partial class Lcms2
             case 4:
                 {
                     var OutFrm = TYPE_Lab_16;
-                    var v = (Transform*)xform;
+                    var v = xform;
 
                     var DeviceLink = cmsPipelineDup(v->Lut);
                     if (DeviceLink is null) return false;
@@ -851,14 +851,14 @@ public static unsafe partial class Lcms2
     private static double* GetPtrToMatrix(Stage* mpe) =>
         ((StageMatrixData)mpe->Data).Double;
 
-    private static bool WriteInputMatrixShaper(IOHandler m, HPROFILE hProfile, Stage* Matrix, Stage* Shaper)
+    private static bool WriteInputMatrixShaper(IOHandler m, Profile Profile, Stage* Matrix, Stage* Shaper)
     {
         bool rc;
         CIEXYZ BlackPointAdaptedToD50;
 
-        var ColorSpace = cmsGetColorSpace(hProfile);
+        var ColorSpace = cmsGetColorSpace(Profile);
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, hProfile, INTENT_RELATIVE_COLORIMETRIC, 0);
+        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, INTENT_RELATIVE_COLORIMETRIC, 0);
 
         if ((uint)ColorSpace is cmsSigGrayData)
         {
@@ -885,7 +885,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static bool WriteNamedColorCSA(IOHandler m, HPROFILE hNamedColor, uint Intent)
+    private static bool WriteNamedColorCSA(IOHandler m, Profile hNamedColor, uint Intent)
     {
         var ColorName = stackalloc byte[cmsMAX_PATH];
 
@@ -926,7 +926,7 @@ public static unsafe partial class Lcms2
 
     private static uint GenerateCSA(
         Context? ContextID,
-        HPROFILE hProfile,
+        Profile Profile,
         uint Intent,
         uint dwFlags,
         IOHandler mem)
@@ -935,15 +935,15 @@ public static unsafe partial class Lcms2
         Stage* Matrix, Shaper;
 
         // Is a named color profile?
-        if ((uint)cmsGetDeviceClass(hProfile) is cmsSigNamedColorClass)
+        if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
         {
-            if (!WriteNamedColorCSA(mem, hProfile, Intent)) goto Error;
+            if (!WriteNamedColorCSA(mem, Profile, Intent)) goto Error;
         }
         else
         {
             // Any profile class are allowed (including devicelink), but
             // output (PCS) colorspace must be XYZ or LAB
-            var ColorSpace = cmsGetPCS(hProfile);
+            var ColorSpace = cmsGetPCS(Profile);
 
             if ((uint)ColorSpace is not cmsSigXYZData and not cmsSigLabData)
             {
@@ -952,18 +952,18 @@ public static unsafe partial class Lcms2
             }
 
             // Read the lut with all necessary conversion stages
-            lut = _cmsReadInputLUT(hProfile, Intent);
+            lut = _cmsReadInputLUT(Profile, Intent);
             if (lut is null) goto Error;
 
             // TOne curves + matrix can be implemented without and LUT
             if (cmsPipelineCheckAndRetrieveStages(lut, &Shaper, &Matrix, cmsSigCurveSetElemType, cmsSigMatrixElemType))
             {
-                if (!WriteInputMatrixShaper(mem, hProfile, Matrix, Shaper)) goto Error;
+                if (!WriteInputMatrixShaper(mem, Profile, Matrix, Shaper)) goto Error;
             }
             else
             {
                 // We need a LUT for the rest
-                if (!WriteInputLUT(mem, hProfile, Intent, dwFlags)) goto Error;
+                if (!WriteInputLUT(mem, Profile, Intent, dwFlags)) goto Error;
             }
         }
 
@@ -981,7 +981,7 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    private static void EmitPQRStage(IOHandler m, HPROFILE hProfile, bool DoBPC, bool lIsAbsolute)
+    private static void EmitPQRStage(IOHandler m, Profile Profile, bool DoBPC, bool lIsAbsolute)
     {
         if (lIsAbsolute)
         {
@@ -992,7 +992,7 @@ public static unsafe partial class Lcms2
 
             CIEXYZ White;
 
-            _cmsReadMediaWhitePoint(&White, hProfile);
+            _cmsReadMediaWhitePoint(&White, Profile);
 
             _cmsIOPrintf(m, "/MatrixPQR [1 0 0 0 1 0 0 0 1 ]\n");
             _cmsIOPrintf(m, "/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
@@ -1069,9 +1069,9 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "]\n");
     }
 
-    private static bool WriteOutputLUT(IOHandler m, HPROFILE hProfile, uint Intent, uint dwFlags)
+    private static bool WriteOutputLUT(IOHandler m, Profile Profile, uint Intent, uint dwFlags)
     {
-        var Profiles = stackalloc HPROFILE[3];
+        var Profiles = new Profile[3];
         CIEXYZ BlackPointAdaptedToD50;
         var lDoBPC = (dwFlags & cmsFLAGS_BLACKPOINTCOMPENSATION) is not 0;
         var lFixWhite = (dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0;
@@ -1080,10 +1080,10 @@ public static unsafe partial class Lcms2
         var hLab = cmsCreateLab4ProfileTHR(m.ContextID, null);
         if (hLab is null) return false;
 
-        var OutputFormat = cmsFormatterForColorspaceOfProfile(hProfile, 2, false);
+        var OutputFormat = cmsFormatterForColorspaceOfProfile(Profile, 2, false);
         var nChannels = T_CHANNELS(OutputFormat);
 
-        var ColorSpace = cmsGetColorSpace(hProfile);
+        var ColorSpace = cmsGetColorSpace(Profile);
 
         // For absolute colorimetric, the LUT is encoded as relative in order to preserve precision.
 
@@ -1093,7 +1093,7 @@ public static unsafe partial class Lcms2
 
         // Use V4 Lab always
         Profiles[0] = hLab;
-        Profiles[1] = hProfile;
+        Profiles[1] = Profile;
 
         var xform = cmsCreateMultiprofileTransformTHR(m.ContextID, Profiles, 2, TYPE_Lab_DBL, OutputFormat,
                                                       RelativeEncodingIntent, 0);
@@ -1107,7 +1107,7 @@ public static unsafe partial class Lcms2
         }
 
         // Get a copy of the internal devicelink
-        var v = (Transform*)xform;
+        var v = xform;
         var DeviceLink = cmsPipelineDup(v->Lut);
         if (DeviceLink is null) return false;
 
@@ -1118,11 +1118,11 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "/ColorRenderingType 1\n");
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, hProfile, Intent, 0);
+        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, Intent, 0);
 
         // Emit headers, etc.
         EmitWhiteBlackD50(m, &BlackPointAdaptedToD50);
-        EmitPQRStage(m, hProfile, lDoBPC, Intent is INTENT_ABSOLUTE_COLORIMETRIC);
+        EmitPQRStage(m, Profile, lDoBPC, Intent is INTENT_ABSOLUTE_COLORIMETRIC);
         EmitXYZ2Lab(m);
 
         // FIXUP: map Lab (100, 0, 0) to perfect white, because the particular encoding for Lab
@@ -1178,7 +1178,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool WriteNamedColorCRD(IOHandler m, HPROFILE hNamedColor, uint Intent, uint dwFlags)
+    private static bool WriteNamedColorCRD(IOHandler m, Profile hNamedColor, uint Intent, uint dwFlags)
     {
         var ColorName = stackalloc byte[cmsMAX_PATH];
         var Colorant = stackalloc byte[512];
@@ -1224,21 +1224,21 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static uint GenerateCRD(Context? _, HPROFILE hProfile, uint Intent, uint dwFlags, IOHandler mem)
+    private static uint GenerateCRD(Context? _, Profile Profile, uint Intent, uint dwFlags, IOHandler mem)
     {
         if ((dwFlags & cmsFLAGS_NODEFAULTRESOURCEDEF) is 0)
-            EmitHeader(mem, "Color Rendering Dictionary (CRD)".ToBytePtr(), hProfile);
+            EmitHeader(mem, "Color Rendering Dictionary (CRD)".ToBytePtr(), Profile);
 
         // Is a named color profile?
-        if ((uint)cmsGetDeviceClass(hProfile) is cmsSigNamedColorClass)
+        if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
         {
-            if (!WriteNamedColorCRD(mem, hProfile, Intent, dwFlags))
+            if (!WriteNamedColorCRD(mem, Profile, Intent, dwFlags))
                 return 0;
         }
         else
         {
             // CRD are always implemented as LUT
-            if (!WriteOutputLUT(mem, hProfile, Intent, dwFlags))
+            if (!WriteOutputLUT(mem, Profile, Intent, dwFlags))
                 return 0;
         }
 
@@ -1252,15 +1252,15 @@ public static unsafe partial class Lcms2
         return mem.UsedSpace;
     }
 
-    public static uint cmsGetPostScriptColorResource(Context? ContextID, PostScriptResourceType Type, HPROFILE hProfile,
+    public static uint cmsGetPostScriptColorResource(Context? ContextID, PostScriptResourceType Type, Profile Profile,
                                                      uint Intent, uint dwFlags, IOHandler io) =>
         Type switch
         {
-            PostScriptResourceType.CSA => GenerateCSA(ContextID, hProfile, Intent, dwFlags, io),
-            _ => GenerateCRD(ContextID, hProfile, Intent, dwFlags, io)
+            PostScriptResourceType.CSA => GenerateCSA(ContextID, Profile, Intent, dwFlags, io),
+            _ => GenerateCRD(ContextID, Profile, Intent, dwFlags, io)
         };
 
-    public static uint cmsGetPostScriptCRD(Context? ContextID, HPROFILE hProfile, uint Intent, uint dwFlags,
+    public static uint cmsGetPostScriptCRD(Context? ContextID, Profile Profile, uint Intent, uint dwFlags,
                                            void* Buffer, uint dwBufferLen)
     {
         // Set up the serialization engine
@@ -1270,7 +1270,7 @@ public static unsafe partial class Lcms2
 
         if (mem is null) return 0;
 
-        var dwBytesUsed = cmsGetPostScriptColorResource(ContextID, PostScriptResourceType.CRD, hProfile, Intent, dwFlags, mem);
+        var dwBytesUsed = cmsGetPostScriptColorResource(ContextID, PostScriptResourceType.CRD, Profile, Intent, dwFlags, mem);
 
         // Get rid of memory stream
         cmsCloseIOhandler(mem);
@@ -1278,7 +1278,7 @@ public static unsafe partial class Lcms2
         return dwBytesUsed;
     }
 
-    public static uint cmsGetPostScriptCSA(Context? ContextID, HPROFILE hProfile, uint Intent, uint dwFlags,
+    public static uint cmsGetPostScriptCSA(Context? ContextID, Profile Profile, uint Intent, uint dwFlags,
                                            void* Buffer, uint dwBufferLen)
     {
         // Set up the serialization engine
@@ -1288,7 +1288,7 @@ public static unsafe partial class Lcms2
 
         if (mem is null) return 0;
 
-        var dwBytesUsed = cmsGetPostScriptColorResource(ContextID, PostScriptResourceType.CSA, hProfile, Intent, dwFlags, mem);
+        var dwBytesUsed = cmsGetPostScriptColorResource(ContextID, PostScriptResourceType.CSA, Profile, Intent, dwFlags, mem);
 
         // Get rid of memory stream
         cmsCloseIOhandler(mem);

@@ -26,7 +26,6 @@
 //
 global using static lcms2.Lcms2;
 
-global using unsafe HPROFILE = void*;
 global using unsafe HANDLE = void*;
 global using unsafe HTRANSFORM = void*;
 

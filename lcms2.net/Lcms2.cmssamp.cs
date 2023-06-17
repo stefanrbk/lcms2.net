@@ -40,26 +40,25 @@ public static unsafe partial class Lcms2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmax<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a > b) ? a : b;
 
-    private static Transform* CreateRoundtripXForm(HPROFILE hProfile, uint nIntent)
+    private static Transform* CreateRoundtripXForm(Profile Profile, uint nIntent)
     {
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
         var hLab = cmsCreateLab4ProfileTHR(ContextID, null);
         var BPC = stackalloc bool[4] { false, false, false, false };
         var States = stackalloc double[4] { 1, 1, 1, 1 };
-        var hProfiles = stackalloc HPROFILE[4];
+        var Profiles = new Profile[4] { hLab, Profile, Profile, hLab };
         var Intents = stackalloc uint[4];
 
-        hProfiles[0] = hLab; hProfiles[1] = hProfile; hProfiles[2] = hProfile; hProfiles[3] = hLab;
         Intents[0] = Intents[2] = Intents[3] = INTENT_RELATIVE_COLORIMETRIC; Intents[1] = nIntent;
 
-        var xform = cmsCreateExtendedTransform(ContextID, 4, hProfiles, BPC, Intents,
+        var xform = cmsCreateExtendedTransform(ContextID, 4, Profiles, BPC, Intents,
             States, null, 0, TYPE_Lab_DBL, TYPE_Lab_DBL, cmsFLAGS_NOCACHE | cmsFLAGS_NOOPTIMIZE);
 
         cmsCloseProfile(hLab);
         return xform;
     }
 
-    private static bool BlackPointAsDarkerColorant(HPROFILE hInput, uint Intent, CIEXYZ* BlackPoint, uint _)
+    private static bool BlackPointAsDarkerColorant(Profile hInput, uint Intent, CIEXYZ* BlackPoint, uint _)
     {
         ushort* Black;
         uint nChannels;
@@ -120,16 +119,16 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool BlackPointUsingPerceptualBlack(CIEXYZ* BlackPoint, HPROFILE hProfile)
+    private static bool BlackPointUsingPerceptualBlack(CIEXYZ* BlackPoint, Profile Profile)
     {
         CIELab LabIn, LabOut;
         CIEXYZ BlackXYZ;
 
         // Is the intent supported by the profile?
-        if (!cmsIsIntentSupported(hProfile, INTENT_PERCEPTUAL, LCMS_USED_AS_INPUT))
+        if (!cmsIsIntentSupported(Profile, INTENT_PERCEPTUAL, LCMS_USED_AS_INPUT))
             goto Fail;
 
-        var hRoundTrip = CreateRoundtripXForm(hProfile, INTENT_PERCEPTUAL);
+        var hRoundTrip = CreateRoundtripXForm(Profile, INTENT_PERCEPTUAL);
         if (hRoundTrip is null)
             goto Fail;
 
@@ -156,10 +155,10 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    public static bool cmsDetectBlackPoint(CIEXYZ* BlackPoint, HPROFILE hProfile, uint Intent, uint dwFlags)
+    public static bool cmsDetectBlackPoint(CIEXYZ* BlackPoint, Profile Profile, uint Intent, uint dwFlags)
     {
         // Make sure the device class is adequate
-        var devClass = cmsGetDeviceClass(hProfile);
+        var devClass = cmsGetDeviceClass(Profile);
         if ((uint)devClass is cmsSigLinkClass or cmsSigAbstractClass or cmsSigNamedColorClass)
             goto Fail;
 
@@ -169,12 +168,12 @@ public static unsafe partial class Lcms2
 
         // v4 + perceptual & saturation intents does have its own black point, and it is
         // well specified enough to use it. Black point tag is deprecated in V4.
-        if ((cmsGetEncodedICCVersion(hProfile) >= 0x04000000) &&
+        if ((cmsGetEncodedICCVersion(Profile) >= 0x04000000) &&
             (Intent is INTENT_PERCEPTUAL or INTENT_SATURATION))
         {
             // Matrix shaper share MRC + perceptual intents
-            if (cmsIsMatrixShaper(hProfile))
-                return BlackPointAsDarkerColorant(hProfile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
+            if (cmsIsMatrixShaper(Profile))
+                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
 
             // Get Perceptual black out of v4 profiles. That is fixed for perceptual & saturation intents
             if (BlackPoint is not null)
@@ -189,12 +188,12 @@ public static unsafe partial class Lcms2
 
         // If output profile, discount ink-limiting and that's all
         if (Intent is INTENT_RELATIVE_COLORIMETRIC &&
-            ((uint)cmsGetDeviceClass(hProfile) is cmsSigOutputClass) &&
-            ((uint)cmsGetColorSpace(hProfile) is cmsSigCmykData))
-        { return BlackPointUsingPerceptualBlack(BlackPoint, hProfile); }
+            ((uint)cmsGetDeviceClass(Profile) is cmsSigOutputClass) &&
+            ((uint)cmsGetColorSpace(Profile) is cmsSigCmykData))
+        { return BlackPointUsingPerceptualBlack(BlackPoint, Profile); }
 
         // Nope, compute BP using current intent.
-        return BlackPointAsDarkerColorant(hProfile, Intent, BlackPoint, dwFlags);
+        return BlackPointAsDarkerColorant(Profile, Intent, BlackPoint, dwFlags);
 
     Fail:
         if (BlackPoint is not null)
@@ -258,7 +257,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, HPROFILE hProfile, uint Intent, uint dwFlags)
+    public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, Profile Profile, uint Intent, uint dwFlags)
     {
         Transform* hRoundTrip = null;
         CIELab InitialLab, destLab, Lab;
@@ -270,7 +269,7 @@ public static unsafe partial class Lcms2
         var NearlyStraightMidrange = true;
 
         // Make sure the device class is adequate
-        var devClass = cmsGetDeviceClass(hProfile);
+        var devClass = cmsGetDeviceClass(Profile);
         if ((uint)devClass is cmsSigLinkClass or cmsSigAbstractClass or cmsSigNamedColorClass)
             goto Fail;
 
@@ -280,12 +279,12 @@ public static unsafe partial class Lcms2
 
         // v4 + perceptual & saturation itents do have their own black point, and it is
         // well specified enough to use it. Black point tag is deprecated in V4.
-        if ((cmsGetEncodedICCVersion(hProfile) >= 0x04000000) &&
+        if ((cmsGetEncodedICCVersion(Profile) >= 0x04000000) &&
             (Intent is INTENT_PERCEPTUAL or INTENT_SATURATION))
         {
             // Matrix shaper share MRC & perceptual intents
-            if (cmsIsMatrixShaper(hProfile))
-                return BlackPointAsDarkerColorant(hProfile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
+            if (cmsIsMatrixShaper(Profile))
+                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
 
             // Get Perceptual black out of v4 profiles. That is fixed for perceptual & saturation intents
             if (BlackPoint is not null)
@@ -298,12 +297,12 @@ public static unsafe partial class Lcms2
         }
 
         // Check if the profile is lut based and gray, rgb, or cmyk (7.2 in Adobe's document)
-        var ColorSpace = cmsGetColorSpace(hProfile);
-        if (!cmsIsCLUT(hProfile, Intent, LCMS_USED_AS_OUTPUT) ||
+        var ColorSpace = cmsGetColorSpace(Profile);
+        if (!cmsIsCLUT(Profile, Intent, LCMS_USED_AS_OUTPUT) ||
             ((uint)ColorSpace is not cmsSigGrayData or cmsSigRgbData or cmsSigCmykData))
         {
             // In this case, handle as input case
-            return cmsDetectBlackPoint(BlackPoint, hProfile, Intent, dwFlags);
+            return cmsDetectBlackPoint(BlackPoint, Profile, Intent, dwFlags);
         }
 
         // It is one of the valid cases! Use Adobe algorithm
@@ -314,7 +313,7 @@ public static unsafe partial class Lcms2
             CIEXYZ IniXYZ;
 
             // calculate initial Lab as source black point
-            if (!cmsDetectBlackPoint(&IniXYZ, hProfile, Intent, dwFlags))
+            if (!cmsDetectBlackPoint(&IniXYZ, Profile, Intent, dwFlags))
                 return false;
 
             // convert the XYZ to Lab
@@ -330,7 +329,7 @@ public static unsafe partial class Lcms2
         // ======
 
         // Create a roundtrip. Define a Transform BT for all x in L*a*b*
-        hRoundTrip = CreateRoundtripXForm(hProfile, Intent);
+        hRoundTrip = CreateRoundtripXForm(Profile, Intent);
         if (hRoundTrip is null) goto Fail;
 
         // Compute ramps

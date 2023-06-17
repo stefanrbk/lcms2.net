@@ -2595,9 +2595,9 @@ public static unsafe partial class Lcms2
     internal static bool _cmsFormatterIs8bit(uint Type) =>
         T_BYTES(Type) is 1;
 
-    public static uint cmsFormatterForColorspaceOfProfile(HPROFILE hProfile, uint nBytes, bool lIsFloat)
+    public static uint cmsFormatterForColorspaceOfProfile(Profile Profile, uint nBytes, bool lIsFloat)
     {
-        var ColorSpace = cmsGetColorSpace(hProfile);
+        var ColorSpace = cmsGetColorSpace(Profile);
         var ColorSpaceBits = (uint)_cmsLCMScolorSpace(ColorSpace);
         var nOutputChans = cmsChannelsOf(ColorSpace);
         var Float = lIsFloat ? 1u : 0;
@@ -2606,9 +2606,9 @@ public static unsafe partial class Lcms2
         return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);
     }
 
-    public static uint cmsFormatterForPCSOfProfile(HPROFILE hProfile, uint nBytes, bool lIsFloat)
+    public static uint cmsFormatterForPCSOfProfile(Profile Profile, uint nBytes, bool lIsFloat)
     {
-        var ColorSpace = cmsGetPCS(hProfile);
+        var ColorSpace = cmsGetPCS(Profile);
 
         var ColorSpaceBits = (uint)_cmsLCMScolorSpace(ColorSpace);
         var nOutputChans = cmsChannelsOf(ColorSpace);

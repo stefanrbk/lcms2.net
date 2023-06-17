@@ -368,7 +368,7 @@ public static unsafe partial class Lcms2
 
     #region XYZ
 
-    private static void* Type_XYZ_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<CIEXYZ>? Type_XYZ_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         CIEXYZ* xyz;
 
@@ -383,26 +383,31 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return xyz;
+        return new(xyz);
     }
 
-    private static bool Type_XYZ_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2) =>
-        _cmsWriteXYZNumber(io, (CIEXYZ*)Ptr);
+    private static bool Type_XYZ_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<CIEXYZ> xyz && _cmsWriteXYZNumber(io, xyz);
 
-    private static void* Type_XYZ_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<CIEXYZ>(self->ContextID, Ptr);
+    private static BoxPtr<CIEXYZ>? Type_XYZ_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<CIEXYZ> xyz
+            ? new(_cmsDupMem<CIEXYZ>(self->ContextID, xyz))
+            : null;
 
-    private static void Type_XYZ_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_XYZ_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<CIEXYZ> xyz)
+            _cmsFree(self->ContextID, xyz);
+    }
 
-    private static Signature DecideXYZtype(double _1, in void* _2) =>
+    private static Signature DecideXYZtype(double _1, object? _2) =>
         cmsSigXYZType;
 
     #endregion XYZ
 
     #region Chromaticity
 
-    private static void* Type_Chromaticity_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<CIExyYTRIPLE>? Type_Chromaticity_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         CIExyYTRIPLE* chrm;
         ushort nChans, Table;
@@ -440,7 +445,7 @@ public static unsafe partial class Lcms2
         chrm->Blue.Y = 1.0;
 
         *nItems = 1;
-        return chrm;
+        return new(chrm);
 
     Error:
         _cmsFree(self->ContextID, chrm);
@@ -455,31 +460,37 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool Type_Chromaticity_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_Chromaticity_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var chrm = (CIExyYTRIPLE*)Ptr;
+        var chrm = Ptr as BoxPtr<CIExyYTRIPLE>;
+        if (chrm is null) return false;
 
         if (!_cmsWriteUInt16Number(io, 3)) return false;    // nChannels
         if (!_cmsWriteUInt16Number(io, 0)) return false;    // Table
 
-        if (!SaveOneChromaticity(chrm->Red.x, chrm->Red.y, io)) return false;
-        if (!SaveOneChromaticity(chrm->Green.x, chrm->Green.y, io)) return false;
-        if (!SaveOneChromaticity(chrm->Blue.x, chrm->Blue.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Ptr->Red.x, chrm.Ptr->Red.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Ptr->Green.x, chrm.Ptr->Green.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Ptr->Blue.x, chrm.Ptr->Blue.y, io)) return false;
 
         return true;
     }
 
-    private static void* Type_Chromaticity_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<CIExyYTRIPLE>(self->ContextID, Ptr);
+    private static BoxPtr<CIExyYTRIPLE>? Type_Chromaticity_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<CIExyYTRIPLE> value
+            ? new(_cmsDupMem<CIExyYTRIPLE>(self->ContextID, value))
+            : null;
 
-    private static void Type_Chromaticity_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_Chromaticity_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<CIExyYTRIPLE> value)
+            _cmsFree(self->ContextID, value);
+    }
 
     #endregion Chromaticity
 
     #region ColorantOrder
 
-    private static void* Type_ColorantOrderType_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<byte>? Type_ColorantOrderType_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte* ColorantOrder;
         uint Count;
@@ -501,13 +512,14 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return ColorantOrder;
+        return new(ColorantOrder);
     }
 
-    private static bool Type_ColorantOrderType_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_ColorantOrderType_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var ColorantOrder = (byte*)Ptr;
+        if (Ptr is not BoxPtr<byte> ColorantOrder) return false;
         uint i, Count;
+
 
         // Get the length
         for (Count = i = 0; i < cmsMAXCHANNELS; i++)
@@ -521,17 +533,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_ColorantOrderType_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem(self->ContextID, Ptr, cmsMAXCHANNELS * sizeof(byte));
+    private static BoxPtr<byte>? Type_ColorantOrderType_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<byte> value
+            ? new(_cmsDupMem<byte>(self->ContextID, value, cmsMAXCHANNELS))
+            : null;
 
-    private static void Type_ColorantOrderType_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_ColorantOrderType_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<byte> value)
+            _cmsFree(self->ContextID, value);
+    }
 
     #endregion ColorantOrder
 
     #region S15Fixed16
 
-    private static void* Type_S15Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<double>? Type_S15Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         double* array_double;
 
@@ -550,12 +567,12 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = n;
-        return array_double;
+        return new(array_double);
     }
 
-    private static bool Type_S15Fixed16_Write(TagTypeHandler* _, IOHandler io, void* Ptr, uint nItems)
+    private static bool Type_S15Fixed16_Write(TagTypeHandler* _, IOHandler io, object? Ptr, uint nItems)
     {
-        var Value = (double*)Ptr;
+        if (Ptr is not BoxPtr<double> Value) return false;
 
         for (var i = 0; i < nItems; i++)
             if (!_cmsWrite15Fixed16Number(io, Value[i])) return false;
@@ -563,17 +580,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_S15Fixed16_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * sizeof(double));
+    private static BoxPtr<double>? Type_S15Fixed16_Dup(TagTypeHandler* self, object? Ptr, uint n) =>
+        Ptr is BoxPtr<double> Value
+            ? new(_cmsDupMem<double>(self->ContextID, Value, n))
+            : null;
 
-    private static void Type_S15Fixed16_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_S15Fixed16_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<double> value)
+            _cmsFree(self->ContextID, value);
+    }
 
     #endregion S15Fixed16
 
     #region U16Fixed16
 
-    private static void* Type_U16Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<double>? Type_U16Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         double* array_double;
         uint v;
@@ -596,12 +618,12 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = n;
-        return array_double;
+        return new(array_double);
     }
 
-    private static bool Type_U16Fixed16_Write(TagTypeHandler* _, IOHandler io, void* Ptr, uint nItems)
+    private static bool Type_U16Fixed16_Write(TagTypeHandler* _, IOHandler io, object? Ptr, uint nItems)
     {
-        var Value = (double*)Ptr;
+        if (Ptr is not BoxPtr<double> Value) return false;
 
         for (var i = 0; i < nItems; i++)
         {
@@ -612,17 +634,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_U16Fixed16_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * sizeof(double));
+    private static BoxPtr<double>? Type_U16Fixed16_Dup(TagTypeHandler* self, object? Ptr, uint n) =>
+        Ptr is BoxPtr<double> value
+            ? new(_cmsDupMem<double>(self->ContextID, value, n))
+            : null;
 
-    private static void Type_U16Fixed16_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_U16Fixed16_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<double> value)
+            _cmsFree(self->ContextID, value);
+    }
 
     #endregion U16Fixed16
 
     #region Signature
 
-    private static void* Type_Signature_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Signature>? Type_Signature_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
         var SigPtr = _cmsMalloc<Signature>(self->ContextID);
@@ -635,23 +662,28 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return SigPtr;
+        return new BoxPtr<Signature>(SigPtr);
     }
 
-    private static bool Type_Signature_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2) =>
-        _cmsWriteUInt32Number(io, *(Signature*)Ptr);
+    private static bool Type_Signature_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Signature> sig && _cmsWriteUInt32Number(io, *sig.Ptr);
 
-    private static void* Type_Signature_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * (uint)sizeof(Signature));
+    private static BoxPtr<Signature>? Type_Signature_Dup(TagTypeHandler* self, object? Ptr, uint n) =>
+        Ptr is BoxPtr<Signature> sig
+            ? new BoxPtr<Signature>(_cmsDupMem<Signature>(self->ContextID, sig, n))
+            : null;
 
-    private static void Type_Signature_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_Signature_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Signature> sig)
+            _cmsFree(self->ContextID, sig);
+    }
 
     #endregion Signature
 
     #region Text
 
-    private static void* Type_Text_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Mlu>? Type_Text_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         byte* Text = null;
@@ -676,7 +708,7 @@ public static unsafe partial class Lcms2
         if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text)) goto Error;
 
         _cmsFree(self->ContextID, Text);
-        return mlu;
+        return new(mlu);
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -685,9 +717,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Text_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_Text_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var mlu = (Mlu*)Ptr;
+        if (Ptr is not BoxPtr<Mlu> mlu) return false;
 
         // Get the size of the string. Note there is an extra "\0" at the end
         var size = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null, 0);
@@ -706,13 +738,18 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static void* Type_Text_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsMLUdup((Mlu*)Ptr);
+    private static BoxPtr<Mlu>? Type_Text_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Mlu> value
+            ? new(cmsMLUdup(value))
+            : null;
 
-    private static void Type_Text_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsMLUfree((Mlu*)Ptr);
+    private static void Type_Text_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Mlu> value)
+            cmsMLUfree(value);
+    }
 
-    private static Signature DecideTextType(double ICCVersion, in void* _) =>
+    private static Signature DecideTextType(double ICCVersion, object? _) =>
         ICCVersion >= 4.0
             ? cmsSigMultiLocalizedUnicodeType
             : cmsSigTextType;
@@ -721,7 +758,7 @@ public static unsafe partial class Lcms2
 
     #region Data
 
-    private static void* Type_Data_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<IccData>? Type_Data_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         IccData* BinData;
         uint LenOfData;
@@ -743,33 +780,38 @@ public static unsafe partial class Lcms2
 
         *nItems = 1;
 
-        return BinData;
+        return new(BinData);
 
     Error:
         _cmsFree(self->ContextID, BinData);
         return null;
     }
 
-    private static bool Type_Data_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_Data_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var BinData = (IccData*)Ptr;
+        if (Ptr is not BoxPtr<IccData> BinData) return false;
 
-        if (!_cmsWriteUInt32Number(io, BinData->flag)) return false;
+        if (!_cmsWriteUInt32Number(io, BinData.Ptr->flag)) return false;
 
-        return io.Write(io, BinData->len, BinData->data);
+        return io.Write(io, BinData.Ptr->len, BinData.Ptr->data);
     }
 
-    private static void* Type_Data_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem(self->ContextID, Ptr, (uint)sizeof(IccData) + ((IccData*)Ptr)->len - 1);
+    private static BoxPtr<IccData>? Type_Data_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<IccData> data
+            ? new((IccData*)_cmsDupMem(self->ContextID, data, (uint)sizeof(IccData) + data.Ptr->len - 1))
+            : null;
 
-    private static void Type_Data_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_Data_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<IccData> data)
+            _cmsFree(self->ContextID, data);
+    }
 
     #endregion Data
 
     #region Text Description
 
-    private static void* Type_Text_Description_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Mlu>? Type_Text_Description_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         byte* Text = null;
@@ -837,7 +879,7 @@ public static unsafe partial class Lcms2
 
     Done:
         *nItems = 1;
-        return mlu;
+        return new(mlu);
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -846,9 +888,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Text_Description_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_Text_Description_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var mlu = (Mlu*)Ptr;
+        if (Ptr is not BoxPtr<Mlu> mlu) return false;
         byte* Text = null;
         char* Wide = null;
         uint len, len_text, len_tag_requirement, len_aligned;
@@ -935,13 +977,18 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static void* Type_Text_Description_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsMLUdup((Mlu*)Ptr);
+    private static BoxPtr<Mlu>? Type_Text_Description_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Mlu> mlu
+            ? new(cmsMLUdup(mlu))
+            : null;
 
-    private static void Type_Text_Description_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsMLUfree((Mlu*)Ptr);
+    private static void Type_Text_Description_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Mlu> mlu)
+            cmsMLUfree(mlu);
+    }
 
-    private static Signature DecideTextDescType(double ICCVersion, in void* _) =>
+    private static Signature DecideTextDescType(double ICCVersion, object? _) =>
         ICCVersion >= 4.0
             ? cmsSigMultiLocalizedUnicodeType
             : cmsSigTextDescriptionType;
@@ -950,7 +997,7 @@ public static unsafe partial class Lcms2
 
     #region Curve
 
-    private static void* Type_Curve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<ToneCurve>? Type_Curve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint Count;
         ToneCurve* NewGamma;
@@ -967,7 +1014,7 @@ public static unsafe partial class Lcms2
                     NewGamma = cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma);
                     if (NewGamma is null) return null;
                     *nItems = 1;
-                    return NewGamma;
+                    return new(NewGamma);
                 }
             case 1:     // Specified as the exponent of gamma function
                 {
@@ -978,7 +1025,7 @@ public static unsafe partial class Lcms2
                     SingleGamma = _cms8Fixed8toDouble(SingleGammaFixed);
 
                     *nItems = 1;
-                    return cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma);
+                    return new(cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma));
                 }
             default:
 
@@ -995,50 +1042,57 @@ public static unsafe partial class Lcms2
                 }
 
                 *nItems = 1;
-                return NewGamma;
+                return new(NewGamma);
         }
     }
 
-    private static bool Type_Curve_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_Curve_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var Curve = (ToneCurve*)Ptr;
+        if (Ptr is not BoxPtr<ToneCurve> Curve) return false;
 
-        if (Curve->nSegments is 1 && Curve->Segments[0].Type is 1)
+        if (Curve.Ptr->nSegments is 1 && Curve.Ptr->Segments[0].Type is 1)
         {
             // Single gamma, preserve number
-            var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve->Segments[0].Params[0]);
+            var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve.Ptr->Segments[0].Params[0]);
 
             if (!_cmsWriteUInt32Number(io, 1)) return false;
             if (!_cmsWriteUInt16Number(io, SingleGammaFixed)) return false;
             return true;
         }
 
-        if (!_cmsWriteUInt32Number(io, Curve->nEntries)) return false;
-        return _cmsWriteUInt16Array(io, Curve->nEntries, Curve->Table16);
+        if (!_cmsWriteUInt32Number(io, Curve.Ptr->nEntries)) return false;
+        return _cmsWriteUInt16Array(io, Curve.Ptr->nEntries, Curve.Ptr->Table16);
     }
 
-    private static void* Type_Curve_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupToneCurve((ToneCurve*)Ptr);
+    private static BoxPtr<ToneCurve>? Type_Curve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<ToneCurve> curve
+            ? new(cmsDupToneCurve(curve))
+            : null;
 
-    private static void Type_Curve_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeToneCurve((ToneCurve*)Ptr);
+    private static void Type_Curve_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<ToneCurve> Curve)
+            cmsFreeToneCurve(Curve);
+    }
 
     #endregion Curve
 
     #region ParametricCurve
 
-    private static Signature DecideCurveType(double ICCVersion, in void* Data)
+    private static Signature DecideCurveType(double ICCVersion, object? Data)
     {
-        var Curve = (ToneCurve*)Data;
-
         if (ICCVersion < 4.0) return cmsSigCurveType;
-        if (Curve->nSegments is not 1) return cmsSigCurveType;
-        if (Curve->Segments[0].Type is < 0 or > 5) return cmsSigCurveType;
+
+        if (Data is BoxPtr<ToneCurve> Curve)
+        {
+            if (Curve.Ptr->nSegments is not 1) return cmsSigCurveType;
+            if (Curve.Ptr->Segments[0].Type is < 0 or > 5) return cmsSigCurveType;
+        }
 
         return cmsSigParametricCurveType;
     }
 
-    private static void* Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<ToneCurve>? Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var ParamsByType = stackalloc int[] { 1, 3, 4, 5, 7 };
         var Params = stackalloc double[10];
@@ -1064,17 +1118,17 @@ public static unsafe partial class Lcms2
         NewGamma = cmsBuildParametricToneCurve(self->ContextID, Type + 1, Params);
 
         *nItems = 1;
-        return NewGamma;
+        return new(NewGamma);
     }
 
-    private static bool Type_ParametricCurve_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_ParametricCurve_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _2)
     {
-        var Curve = (ToneCurve*)Ptr;
+        if (Ptr is not BoxPtr<ToneCurve> Curve) return false;
         var ParamsByType = stackalloc int[] { 0, 1, 3, 4, 5, 7 };
 
-        var typen = Curve->Segments[0].Type;
+        var typen = Curve.Ptr->Segments[0].Type;
 
-        if (Curve->nSegments is 1 && typen < 1)
+        if (Curve.Ptr->nSegments is 1 && typen < 1)
         {
             cmsSignalError(self->ContextID, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
@@ -1088,28 +1142,33 @@ public static unsafe partial class Lcms2
 
         var nParam = ParamsByType[typen];
 
-        if (!_cmsWriteUInt16Number(io, (ushort)(Curve->Segments[0].Type - 1))) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)(Curve.Ptr->Segments[0].Type - 1))) return false;
         if (!_cmsWriteUInt16Number(io, 0)) return false;    // Reserved
 
         for (var i = 0; i < nParam; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, Curve->Segments[0].Params[i])) return false;
+            if (!_cmsWrite15Fixed16Number(io, Curve.Ptr->Segments[0].Params[i])) return false;
         }
 
         return true;
     }
 
-    private static void* Type_ParametricCurve_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupToneCurve((ToneCurve*)Ptr);
+    private static BoxPtr<ToneCurve>? Type_ParametricCurve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<ToneCurve> curve
+            ? new(cmsDupToneCurve(curve))
+            : null;
 
-    private static void Type_ParametricCurve_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeToneCurve((ToneCurve*)Ptr);
+    private static void Type_ParametricCurve_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<ToneCurve> curve)
+            cmsFreeToneCurve(curve);
+    }
 
     #endregion ParametricCurve
 
     #region DateTime
 
-    private static void* Type_DateTime_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<DateTime>? Type_DateTime_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         DateTimeNumber timestamp;
         DateTime* NewDateTime;
@@ -1124,12 +1183,12 @@ public static unsafe partial class Lcms2
         _cmsDecodeDateTimeNumber(&timestamp, NewDateTime);
 
         *nItems = 1;
-        return NewDateTime;
+        return new(NewDateTime);
     }
 
-    private static bool Type_DateTime_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_DateTime_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var DateTime = (DateTime*)Ptr;
+        if (Ptr is not BoxPtr<DateTime> DateTime) return false;
         DateTimeNumber timestamp;
 
         _cmsEncodeDateTimeNumber(&timestamp, DateTime);
@@ -1137,17 +1196,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_DateTime_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<DateTime>(self->ContextID, Ptr);
+    private static BoxPtr<DateTime>? Type_DateTime_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<DateTime> dt
+            ? new(_cmsDupMem<DateTime>(self->ContextID, dt))
+            : null;
 
-    private static void Type_DateTime_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_DateTime_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<DateTime> dt)
+            _cmsFree(self->ContextID, dt);
+    }
 
     #endregion DateTime
 
     #region Measurement
 
-    private static void* Type_Measurement_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<IccMeasurementConditions>? Type_Measurement_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         IccMeasurementConditions mc;
 
@@ -1164,33 +1228,38 @@ public static unsafe partial class Lcms2
         if (result is null) return null;
 
         *nItems = 1;
-        return result;
+        return new(result);
     }
 
-    private static bool Type_Measurement_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_Measurement_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var mc = (IccMeasurementConditions*)Ptr;
+        if (Ptr is not BoxPtr<IccMeasurementConditions> mc) return false;
 
-        if (!_cmsWriteUInt32Number(io, mc->Observer)) return false;
-        if (!_cmsWriteXYZNumber(io, &mc->Backing)) return false;
-        if (!_cmsWriteUInt32Number(io, mc->Geometry)) return false;
-        if (!_cmsWrite15Fixed16Number(io, mc->Flare)) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)mc->IlluminantType)) return false;
+        if (!_cmsWriteUInt32Number(io, mc.Ptr->Observer)) return false;
+        if (!_cmsWriteXYZNumber(io, &mc.Ptr->Backing)) return false;
+        if (!_cmsWriteUInt32Number(io, mc.Ptr->Geometry)) return false;
+        if (!_cmsWrite15Fixed16Number(io, mc.Ptr->Flare)) return false;
+        if (!_cmsWriteUInt32Number(io, (uint)mc.Ptr->IlluminantType)) return false;
 
         return true;
     }
 
-    private static void* Type_Measurement_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<IccMeasurementConditions>(self->ContextID, Ptr);
+    private static BoxPtr<IccMeasurementConditions>? Type_Measurement_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<IccMeasurementConditions> mc
+            ? new(_cmsDupMem<IccMeasurementConditions>(self->ContextID, mc))
+            : null;
 
-    private static void Type_Measurement_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_Measurement_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<IccMeasurementConditions> mc)
+            _cmsFree(self->ContextID, mc);
+    }
 
     #endregion Measurement
 
     #region MLU
 
-    private static void* Type_MLU_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Mlu>? Type_MLU_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         uint Count, RecLen, NumOfWchar, SizeOfHeader, Len, Offset, BeginOfThisString, EndOfThisString, LargestPosition;
@@ -1260,7 +1329,7 @@ public static unsafe partial class Lcms2
         mlu->PoolUsed = SizeOfTag;
 
         *nItems = 1;
-        return mlu;
+        return new(mlu);
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -1268,9 +1337,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_MLU_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_MLU_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var mlu = (Mlu*)Ptr;
+        if (Ptr is not BoxPtr<Mlu> mlu) return false;
         uint HeaderSize, Len, Offset;
 
         if (Ptr is null)
@@ -1281,35 +1350,40 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        if (!_cmsWriteUInt32Number(io, mlu->UsedEntries)) return false;
+        if (!_cmsWriteUInt32Number(io, mlu.Ptr->UsedEntries)) return false;
         if (!_cmsWriteUInt32Number(io, 12)) return false;
 
-        HeaderSize = (12 * mlu->UsedEntries) + (uint)sizeof(TagBase);
+        HeaderSize = (12 * mlu.Ptr->UsedEntries) + (uint)sizeof(TagBase);
 
-        for (var i = 0; i < mlu->UsedEntries; i++)
+        for (var i = 0; i < mlu.Ptr->UsedEntries; i++)
         {
-            Len = mlu->Entries[i].Len;
-            Offset = mlu->Entries[i].StrW;
+            Len = mlu.Ptr->Entries[i].Len;
+            Offset = mlu.Ptr->Entries[i].StrW;
 
             Len = Len * sizeof(ushort) / sizeof(char);
             Offset = (Offset * sizeof(ushort) / sizeof(char)) + HeaderSize + 8;
 
-            if (!_cmsWriteUInt16Number(io, mlu->Entries[i].Language)) return false;
-            if (!_cmsWriteUInt16Number(io, mlu->Entries[i].Country)) return false;
+            if (!_cmsWriteUInt16Number(io, mlu.Ptr->Entries[i].Language)) return false;
+            if (!_cmsWriteUInt16Number(io, mlu.Ptr->Entries[i].Country)) return false;
             if (!_cmsWriteUInt32Number(io, Len)) return false;
             if (!_cmsWriteUInt32Number(io, Offset)) return false;
         }
 
-        if (!_cmsWriteWCharArray(io, mlu->PoolUsed / sizeof(char), (char*)mlu->MemPool)) return false;
+        if (!_cmsWriteWCharArray(io, mlu.Ptr->PoolUsed / sizeof(char), (char*)mlu.Ptr->MemPool)) return false;
 
         return true;
     }
 
-    private static void* Type_MLU_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsMLUdup((Mlu*)Ptr);
+    private static BoxPtr<Mlu>? Type_MLU_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Mlu> mlu
+            ? new(cmsMLUdup(mlu))
+            : null;
 
-    private static void Type_MLU_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsMLUfree((Mlu*)Ptr);
+    private static void Type_MLU_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Mlu> mlu)
+            cmsMLUfree(mlu);
+    }
 
     #endregion MLU
 
@@ -1332,18 +1406,22 @@ public static unsafe partial class Lcms2
     12..15             4          Encoded e00 parameter   s15Fixed16Number
     */
 
-    private static Signature DecideLUTtypeA2B(double ICCVersion, in void* Data) =>
+    private static Signature DecideLUTtypeA2B(double ICCVersion, object? Data) =>
         (ICCVersion < 4.0)
-            ? ((Pipeline*)Data)->SaveAs8Bits
-                ? cmsSigLut8Type
-                : cmsSigLut16Type
+            ? Data is BoxPtr<Pipeline> p
+                ? p.Ptr->SaveAs8Bits
+                    ? cmsSigLut8Type
+                    : cmsSigLut16Type
+                : cmsSigLutAtoBType
             : cmsSigLutAtoBType;
 
-    private static Signature DecideLUTtypeB2A(double ICCVersion, in void* Data) =>
+    private static Signature DecideLUTtypeB2A(double ICCVersion, object? Data) =>
         (ICCVersion < 4.0)
-            ? ((Pipeline*)Data)->SaveAs8Bits
-                ? cmsSigLut8Type
-                : cmsSigLut16Type
+            ? Data is BoxPtr<Pipeline> p
+                ? p.Ptr->SaveAs8Bits
+                    ? cmsSigLut8Type
+                    : cmsSigLut16Type
+                : cmsSigLutBtoAType
             : cmsSigLutBtoAType;
 
     private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline* lut, uint nChannels)
@@ -1447,7 +1525,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static void* Type_LUT8_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Pipeline>? Type_LUT8_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte InputChannels, OutputChannels, CLUTpoints;
         byte* Temp = null;
@@ -1528,7 +1606,7 @@ public static unsafe partial class Lcms2
         if (!Read8bitTables(self->ContextID, io, NewLUT, OutputChannels)) goto Error;
 
         *nItems = 1;
-        return NewLUT;
+        return new(NewLUT);
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -1536,16 +1614,16 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var NewLut = (Pipeline*)Ptr;
+        if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
         var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
 
         // Disassemble the LUT into components.
-        var mpe = NewLut->Elements;
+        var mpe = NewLut.Ptr->Elements;
         if (mpe->Type == cmsSigMatrixElemType)
         {
             if (mpe->InputChannels is not 3 || mpe->OutputChannels is not 3) return false;
@@ -1583,8 +1661,8 @@ public static unsafe partial class Lcms2
                 ? clut.Params->nSamples[0]
                 : 0u;
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut->InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut->OutputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->InputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->OutputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
 
@@ -1593,9 +1671,9 @@ public static unsafe partial class Lcms2
             if (!_cmsWrite15Fixed16Number(io, mat[i])) return false;
 
         // The prelinearization table
-        if (!Write8bitTables(self->ContextID, io, NewLut->InputChannels, PreMPE)) return false;
+        if (!Write8bitTables(self->ContextID, io, NewLut.Ptr->InputChannels, PreMPE)) return false;
 
-        var nTabSize = uipow(NewLut->OutputChannels, clutPoints, NewLut->InputChannels);
+        var nTabSize = uipow(NewLut.Ptr->OutputChannels, clutPoints, NewLut.Ptr->InputChannels);
         if (nTabSize == unchecked((uint)-1)) return false;
         if (nTabSize > 0)
         {
@@ -1611,16 +1689,21 @@ public static unsafe partial class Lcms2
         }
 
         // The postlinearization table
-        if (!Write8bitTables(self->ContextID, io, NewLut->OutputChannels, PostMPE)) return false;
+        if (!Write8bitTables(self->ContextID, io, NewLut.Ptr->OutputChannels, PostMPE)) return false;
 
         return true;
     }
 
-    private static void* Type_LUT8_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsPipelineDup((Pipeline*)Ptr);
+    private static BoxPtr<Pipeline>? Type_LUT8_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Pipeline> p
+            ? new(cmsPipelineDup(p))
+            : null;
 
-    private static void Type_LUT8_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsPipelineFree((Pipeline*)Ptr);
+    private static void Type_LUT8_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Pipeline> p)
+            cmsPipelineFree(p);
+    }
 
     #endregion LUT8
 
@@ -1677,7 +1760,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_LUT16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Pipeline>? Type_LUT16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputEntries, OutputEntries;
         byte InputChannels, OutputChannels, CLUTpoints;
@@ -1748,7 +1831,7 @@ public static unsafe partial class Lcms2
         if (!Read16bitTables(self->ContextID, io, NewLUT, OutputChannels, OutputEntries)) goto Error;
 
         *nItems = 1;
-        return NewLUT;
+        return new(NewLUT);
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -1756,16 +1839,16 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var NewLut = (Pipeline*)Ptr;
+        if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
         var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
 
         // Disassemble the LUT into components.
-        var mpe = NewLut->Elements;
+        var mpe = NewLut.Ptr->Elements;
         if (mpe is not null && mpe->Type == cmsSigMatrixElemType)
         {
             if (mpe->InputChannels is not 3 || mpe->OutputChannels is not 3) return false;
@@ -1806,8 +1889,8 @@ public static unsafe partial class Lcms2
                 ? clut.Params->nSamples[0]
                 : 0u;
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut->InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut->OutputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->InputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->OutputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
 
@@ -1832,7 +1915,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var nTabSize = uipow(NewLut->OutputChannels, clutPoints, NewLut->InputChannels);
+        var nTabSize = uipow(NewLut.Ptr->OutputChannels, clutPoints, NewLut.Ptr->InputChannels);
         if (nTabSize == unchecked((uint)-1)) return false;
         if (nTabSize > 0)
         {
@@ -1857,11 +1940,16 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_LUT16_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsPipelineDup((Pipeline*)Ptr);
+    private static BoxPtr<Pipeline>? Type_LUT16_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Pipeline> p
+            ? new(cmsPipelineDup(p))
+            : null;
 
-    private static void Type_LUT16_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsPipelineFree((Pipeline*)Ptr);
+    private static void Type_LUT16_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Pipeline> p)
+            cmsPipelineFree(p);
+    }
 
     #endregion LUT16
 
@@ -1969,11 +2057,11 @@ public static unsafe partial class Lcms2
         var BaseType = _cmsReadTypeBase(io);
         if (BaseType == cmsSigCurveType)
         {
-            return (ToneCurve*)Type_Curve_Read(self, io, &nItems, 0);
+            return Type_Curve_Read(self, io, &nItems, 0);
         }
         else if (BaseType == cmsSigParametricCurveType)
         {
-            return (ToneCurve*)Type_ParametricCurve_Read(self, io, &nItems, 0);
+            return Type_ParametricCurve_Read(self, io, &nItems, 0);
         }
         else
         {
@@ -2012,7 +2100,7 @@ public static unsafe partial class Lcms2
         return Lin;
     }
 
-    private static void* Type_LUTA2B_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Pipeline>? Type_LUTA2B_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2077,7 +2165,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return NewLUT;
+        return new(NewLUT);
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -2126,11 +2214,11 @@ public static unsafe partial class Lcms2
 
             if (CurrentType == cmsSigCurveType)
             {
-                if (!Type_Curve_Write(self, io, Curves[i], 1)) return false;
+                if (!Type_Curve_Write(self, io, new BoxPtr<ToneCurve>(Curves[i]), 1)) return false;
             }
             else if (CurrentType == cmsSigParametricCurveType)
             {
-                if (!Type_ParametricCurve_Write(self, io, Curves[i], 1)) return false;
+                if (!Type_ParametricCurve_Write(self, io, new BoxPtr<ToneCurve>(Curves[i]), 1)) return false;
             }
             else
             {
@@ -2187,16 +2275,16 @@ public static unsafe partial class Lcms2
         return _cmsWriteAlignment(io);
     }
 
-    private static bool Type_LUTA2B_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_LUTA2B_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Lut = (Pipeline*)Ptr;
+        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
         Stage* A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
         var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
-        if (Lut->Elements is not null)
+        if (Lut.Ptr->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, cmsSigCurveSetElemType))
                 if (!cmsPipelineCheckAndRetrieveStages(Lut, &M, &Matrix, &B, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
                     if (!cmsPipelineCheckAndRetrieveStages(Lut, &A, &CLUT, &B, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
@@ -2235,7 +2323,7 @@ public static unsafe partial class Lcms2
         if (CLUT is not null)
         {
             offsetC = io.Tell(io) - BassOffset;
-            if (!WriteCLUT(self, io, (byte)(Lut->SaveAs8Bits ? 1 : 2), CLUT)) return false;
+            if (!WriteCLUT(self, io, (byte)(Lut.Ptr->SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
@@ -2269,17 +2357,22 @@ public static unsafe partial class Lcms2
         return io.Seek(io, CurrentPos);
     }
 
-    private static void* Type_LUTA2B_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsPipelineDup((Pipeline*)Ptr);
+    private static BoxPtr<Pipeline>? Type_LUTA2B_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Pipeline> p
+            ? new(cmsPipelineDup(p))
+            : null;
 
-    private static void Type_LUTA2B_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsPipelineFree((Pipeline*)Ptr);
+    private static void Type_LUTA2B_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Pipeline> p)
+            cmsPipelineFree(p);
+    }
 
     #endregion LUTA2B
 
     #region LUTB2A
 
-    private static void* Type_LUTB2A_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Pipeline>? Type_LUTB2A_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2344,7 +2437,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return NewLUT;
+        return new(NewLUT);
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -2352,16 +2445,16 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUTB2A_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_LUTB2A_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Lut = (Pipeline*)Ptr;
+        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
         Stage* A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
         var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
-        if (Lut->Elements is not null)
+        if (Lut.Ptr->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, cmsSigCurveSetElemType))
                 if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, &Matrix, &M, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
                     if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, &CLUT, &A, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
@@ -2400,7 +2493,7 @@ public static unsafe partial class Lcms2
         if (CLUT is not null)
         {
             offsetC = io.Tell(io) - BassOffset;
-            if (!WriteCLUT(self, io, (byte)(Lut->SaveAs8Bits ? 1 : 2), CLUT)) return false;
+            if (!WriteCLUT(self, io, (byte)(Lut.Ptr->SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
@@ -2434,17 +2527,22 @@ public static unsafe partial class Lcms2
         return io.Seek(io, CurrentPos);
     }
 
-    private static void* Type_LUTB2A_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsPipelineDup((Pipeline*)Ptr);
+    private static BoxPtr<Pipeline>? Type_LUTB2A_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Pipeline> p
+            ? new(cmsPipelineDup(p))
+            : null;
 
-    private static void Type_LUTB2A_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsPipelineFree((Pipeline*)Ptr);
+    private static void Type_LUTB2A_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Pipeline> p)
+            cmsPipelineFree(p);
+    }
 
     #endregion LUTB2A
 
     #region ColorantTable
 
-    private static void* Type_ColorantTable_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<NamedColorList>? Type_ColorantTable_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var Name = stackalloc byte[34];
         var PCS = stackalloc ushort[3];
@@ -2476,16 +2574,16 @@ public static unsafe partial class Lcms2
 
         *nItems = 1;
 
-        return List;
+        return new(List);
 
     Error:
         cmsFreeNamedColorList(List);
         return null;
     }
 
-    private static bool Type_ColorantTable_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_ColorantTable_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var NamedColorList = (NamedColorList*)Ptr;
+        if (Ptr is not BoxPtr<NamedColorList> NamedColorList) return false;
         var root = stackalloc byte[cmsMAX_PATH];
         var PCS = stackalloc ushort[3];
 
@@ -2507,17 +2605,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_ColorantTable_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupNamedColorList((NamedColorList*)Ptr);
+    private static BoxPtr<NamedColorList>? Type_ColorantTable_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<NamedColorList> ncl
+            ? new(cmsDupNamedColorList(ncl))
+            : null;
 
-    private static void Type_ColorantTable_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeNamedColorList((NamedColorList*)Ptr);
+    private static void Type_ColorantTable_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<NamedColorList> ncl)
+            cmsFreeNamedColorList(ncl);
+    }
 
     #endregion ColorantTable
 
     #region NamedColor
 
-    private static void* Type_NamedColor_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<NamedColorList>? Type_NamedColor_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint vendorFlag;                      // Bottom 16 bits for ICC use
         uint count;                           // Count of named colors
@@ -2566,16 +2669,16 @@ public static unsafe partial class Lcms2
 
         *nItems = 1;
 
-        return v;
+        return new(v);
 
     Error:
         cmsFreeNamedColorList(v);
         return null;
     }
 
-    private static bool Type_NamedColor_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_NamedColor_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var NamedColorList = (NamedColorList*)Ptr;
+        if (Ptr is not BoxPtr<NamedColorList> NamedColorList) return false;
         var prefix = stackalloc byte[33];
         var suffix = stackalloc byte[33];
         var Root = stackalloc byte[cmsMAX_PATH];
@@ -2586,10 +2689,10 @@ public static unsafe partial class Lcms2
 
         if (!_cmsWriteUInt32Number(io, 0)) return false;
         if (!_cmsWriteUInt32Number(io, nColors)) return false;
-        if (!_cmsWriteUInt32Number(io, NamedColorList->ColorantCount)) return false;
+        if (!_cmsWriteUInt32Number(io, NamedColorList.Ptr->ColorantCount)) return false;
 
-        memcpy(prefix, NamedColorList->Prefix, sizeof(byte) * 33);
-        memcpy(suffix, NamedColorList->Suffix, sizeof(byte) * 33);
+        memcpy(prefix, NamedColorList.Ptr->Prefix, sizeof(byte) * 33);
+        memcpy(suffix, NamedColorList.Ptr->Suffix, sizeof(byte) * 33);
 
         suffix[32] = prefix[32] = 0;
 
@@ -2606,17 +2709,22 @@ public static unsafe partial class Lcms2
             Root[32] = 0;
             if (!io.Write(io, 32, Root)) return false;
             if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
-            if (!_cmsWriteUInt16Array(io, NamedColorList->ColorantCount, Colorant)) return false;
+            if (!_cmsWriteUInt16Array(io, NamedColorList.Ptr->ColorantCount, Colorant)) return false;
         }
 
         return true;
     }
 
-    private static void* Type_NamedColor_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupNamedColorList((NamedColorList*)Ptr);
+    private static BoxPtr<NamedColorList>? Type_NamedColor_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<NamedColorList> list
+            ? new(cmsDupNamedColorList(list))
+            : null;
 
-    private static void Type_NamedColor_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeNamedColorList((NamedColorList*)Ptr);
+    private static void Type_NamedColor_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<NamedColorList> list)
+            cmsFreeNamedColorList(list);
+    }
 
     #endregion NamedColor
 
@@ -2632,12 +2740,12 @@ public static unsafe partial class Lcms2
         {
             case cmsSigTextType:
                 if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = (Mlu*)Type_Text_Read(self, io, &nItems, SizeOfTag);
+                *mlu = Type_Text_Read(self, io, &nItems, SizeOfTag);
                 return *mlu is not null;
 
             case cmsSigTextDescriptionType:
                 if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = (Mlu*)Type_Text_Description_Read(self, io, &nItems, SizeOfTag);
+                *mlu = Type_Text_Description_Read(self, io, &nItems, SizeOfTag);
                 return *mlu is not null;
 
             /*
@@ -2646,7 +2754,7 @@ public static unsafe partial class Lcms2
 
             case cmsSigMultiLocalizedUnicodeType:
                 if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = (Mlu*)Type_MLU_Read(self, io, &nItems, SizeOfTag);
+                *mlu = Type_MLU_Read(self, io, &nItems, SizeOfTag);
                 return *mlu is not null;
 
             default:
@@ -2654,7 +2762,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void* Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Sequence>? Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Sequence* OutSeq = null;
         uint Count;
@@ -2698,7 +2806,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 1;
 
-        return OutSeq;
+        return new(OutSeq);
 
     Error:
         cmsFreeProfileSequenceDescription(OutSeq);
@@ -2710,24 +2818,24 @@ public static unsafe partial class Lcms2
         if (self->ICCVersion < 0x04000000)
         {
             if (!_cmsWriteTypeBase(io, cmsSigTextDescriptionType)) return false;
-            return Type_Text_Description_Write(self, io, Text, 1);
+            return Type_Text_Description_Write(self, io, new BoxPtr<Mlu>(Text), 1);
         }
         else
         {
             if (!_cmsWriteTypeBase(io, cmsSigMultiLocalizedUnicodeType)) return false;
-            return Type_MLU_Write(self, io, Text, 1);
+            return Type_MLU_Write(self, io, new BoxPtr<Mlu>(Text), 1);
         }
     }
 
-    private static bool Type_ProfileSequenceDesc_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_ProfileSequenceDesc_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Seq = (Sequence*)Ptr;
+        if (Ptr is not BoxPtr<Sequence> Seq) return false;
 
-        if (!_cmsWriteUInt32Number(io, Seq->n)) return false;
+        if (!_cmsWriteUInt32Number(io, Seq.Ptr->n)) return false;
 
-        for (var i = 0u; i < Seq->n; i++)
+        for (var i = 0u; i < Seq.Ptr->n; i++)
         {
-            var sec = &Seq->seq[i];
+            var sec = &Seq.Ptr->seq[i];
 
             if (!_cmsWriteUInt32Number(io, sec->deviceMfg)) return false;
             if (!_cmsWriteUInt32Number(io, sec->deviceModel)) return false;
@@ -2741,11 +2849,16 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_ProfileSequenceDesc_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupProfileSequenceDescription((Sequence*)Ptr);
+    private static BoxPtr<Sequence>? Type_ProfileSequenceDesc_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Sequence> Seq
+            ? new(cmsDupProfileSequenceDescription(Seq))
+            : null;
 
-    private static void Type_ProfileSequenceDesc_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeProfileSequenceDescription((Sequence*)Ptr);
+    private static void Type_ProfileSequenceDesc_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Sequence> Seq)
+            cmsFreeProfileSequenceDescription(Seq);
+    }
 
     #endregion ProfileSequenceDesc
 
@@ -2762,7 +2875,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Sequence>? Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Sequence* OutSeq = null;
         uint Count;
@@ -2789,7 +2902,7 @@ public static unsafe partial class Lcms2
 
         // Success
         *nItems = 1;
-        return OutSeq;
+        return new(OutSeq);
     }
 
     private static bool WriteSeqID(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint _)
@@ -2804,33 +2917,38 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool Type_ProfileSequenceId_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_ProfileSequenceId_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Seq = (Sequence*)Ptr;
+        if (Ptr is not BoxPtr<Sequence> Seq) return false;
 
         // Keep the base offset
         var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // This is the table count
-        if (!_cmsWriteUInt32Number(io, Seq->n)) return false;
+        if (!_cmsWriteUInt32Number(io, Seq.Ptr->n)) return false;
 
         // This is the position table and content
-        if (!WritePositionTable(self, io, 0, Seq->n, BaseOffset, Seq, &WriteSeqID)) return false;
+        if (!WritePositionTable(self, io, 0, Seq.Ptr->n, BaseOffset, Seq, &WriteSeqID)) return false;
 
         return true;
     }
 
-    private static void* Type_ProfileSequenceId_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDupProfileSequenceDescription((Sequence*)Ptr);
+    private static BoxPtr<Sequence>? Type_ProfileSequenceId_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Sequence> Seq
+            ? new(cmsDupProfileSequenceDescription(Seq))
+            : null;
 
-    private static void Type_ProfileSequenceId_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeProfileSequenceDescription((Sequence*)Ptr);
+    private static void Type_ProfileSequenceId_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Sequence> Seq)
+            cmsFreeProfileSequenceDescription(Seq);
+    }
 
     #endregion ProfileSequenceId
 
     #region UcrBg
 
-    private static void* Type_UcrBg_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<UcrBg>? Type_UcrBg_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         uint CountUcr, CountBg;
         int SignedSizeOfTag = (int)SizeOfTag;
@@ -2885,7 +3003,7 @@ public static unsafe partial class Lcms2
         _cmsFree(self->ContextID, ASCIIString);
 
         *nItems = 1;
-        return n;
+        return new(n);
 
     Error:
         if (n->Ucr is not null) cmsFreeToneCurve(n->Ucr);
@@ -2895,24 +3013,24 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_UcrBg_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_UcrBg_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Value = (UcrBg*)Ptr;
+        if (Ptr is not BoxPtr<UcrBg> Value) return false;
         uint TextSize;
         byte* Text;
 
         // First curve is Under color removal
-        if (!_cmsWriteUInt32Number(io, Value->Ucr->nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value->Ucr->nEntries, Value->Ucr->Table16)) return false;
+        if (!_cmsWriteUInt32Number(io, Value.Ptr->Ucr->nEntries)) return false;
+        if (!_cmsWriteUInt16Array(io, Value.Ptr->Ucr->nEntries, Value.Ptr->Ucr->Table16)) return false;
 
         // Then black generation
-        if (!_cmsWriteUInt32Number(io, Value->Bg->nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value->Bg->nEntries, Value->Bg->Table16)) return false;
+        if (!_cmsWriteUInt32Number(io, Value.Ptr->Bg->nEntries)) return false;
+        if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg->nEntries, Value.Ptr->Bg->Table16)) return false;
 
         // Now comes the text. The length is specified by the tag size
-        TextSize = cmsMLUgetASCII(Value->Desc, cmsNoLanguage, cmsNoCountry, null, 0);
+        TextSize = cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, null, 0);
         Text = _cmsMalloc<byte>(self->ContextID, TextSize);
-        if (cmsMLUgetASCII(Value->Desc, cmsNoLanguage, cmsNoCountry, Text, TextSize) != TextSize) return false;
+        if (cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, Text, TextSize) != TextSize) return false;
 
         if (!io.Write(io, TextSize, Text)) return false;
         _cmsFree(self->ContextID, Text);
@@ -2920,34 +3038,34 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_UcrBg_Dup(TagTypeHandler* self, in void* Ptr, uint _)
+    private static BoxPtr<UcrBg>? Type_UcrBg_Dup(TagTypeHandler* self, object? Ptr, uint _)
     {
-        var Src = (UcrBg*)Ptr;
+        if (Ptr is not BoxPtr<UcrBg> Src) return null;
         var NewUcrBg = _cmsMallocZero<UcrBg>(self->ContextID);
 
         if (NewUcrBg is null) return null;
 
-        NewUcrBg->Bg = cmsDupToneCurve(Src->Bg);
+        NewUcrBg->Bg = cmsDupToneCurve(Src.Ptr->Bg);
         if (NewUcrBg->Bg is null) goto Error;
-        NewUcrBg->Ucr = cmsDupToneCurve(Src->Ucr);
+        NewUcrBg->Ucr = cmsDupToneCurve(Src.Ptr->Ucr);
         if (NewUcrBg->Ucr is null) goto Error;
-        NewUcrBg->Desc = cmsMLUdup(Src->Desc);
+        NewUcrBg->Desc = cmsMLUdup(Src.Ptr->Desc);
         if (NewUcrBg->Desc is null) goto Error;
 
-        return NewUcrBg;
+        return new(NewUcrBg);
 
     Error:
-        Type_UcrBg_Free(self, NewUcrBg);
+        Type_UcrBg_Free(self, new BoxPtr<UcrBg>(NewUcrBg));
         return null;
     }
 
-    private static void Type_UcrBg_Free(TagTypeHandler* self, void* Ptr)
+    private static void Type_UcrBg_Free(TagTypeHandler* self, object? Ptr)
     {
-        var Src = (UcrBg*)Ptr;
+        if (Ptr is not BoxPtr<UcrBg> Src) return;
 
-        if (Src->Bg is not null) cmsFreeToneCurve(Src->Bg);
-        if (Src->Ucr is not null) cmsFreeToneCurve(Src->Ucr);
-        if (Src->Desc is not null) cmsMLUfree(Src->Desc);
+        if (Src.Ptr->Bg is not null) cmsFreeToneCurve(Src.Ptr->Bg);
+        if (Src.Ptr->Ucr is not null) cmsFreeToneCurve(Src.Ptr->Ucr);
+        if (Src.Ptr->Desc is not null) cmsMLUfree(Src.Ptr->Desc);
 
         _cmsFree(self->ContextID, Src);
     }
@@ -3008,7 +3126,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void* Type_CrdInfo_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr<Mlu>? Type_CrdInfo_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
         var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
@@ -3027,14 +3145,14 @@ public static unsafe partial class Lcms2
         if (!ReadCountAndSting(self, io, mlu, &SizeOfTag, n3)) goto Error;
 
         *nItems = 1;
-        return mlu;
+        return new(mlu);
 
     Error:
         cmsMLUfree(mlu);
         return null;
     }
 
-    private static bool Type_CrdInfo_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_CrdInfo_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
         var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
         var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
@@ -3042,7 +3160,7 @@ public static unsafe partial class Lcms2
         var n2 = stackalloc byte[] { (byte)'#', (byte)'2', 0 };
         var n3 = stackalloc byte[] { (byte)'#', (byte)'3', 0 };
 
-        var mlu = (Mlu*)Ptr;
+        if (Ptr is not BoxPtr<Mlu> mlu) return false;
 
         if (!WriteCountAndSting(self, io, mlu, nm)) return false;
         if (!WriteCountAndSting(self, io, mlu, n0)) return false;
@@ -3053,17 +3171,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_CrdInfo_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsMLUdup((Mlu*)Ptr);
+    private static BoxPtr<Mlu>? Type_CrdInfo_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Mlu> mlu
+            ? new(cmsMLUdup(mlu))
+            : null;
 
-    private static void Type_CrdInfo_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsMLUfree((Mlu*)Ptr);
+    private static void Type_CrdInfo_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Mlu> mlu)
+            cmsMLUfree(mlu);
+    }
 
     #endregion CrdInfo
 
     #region Screening
 
-    private static void* Type_Screening_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Screening>? Type_Screening_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
@@ -3084,7 +3207,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return sc;
+        return new(sc);
 
     Error:
         _cmsFree(self->ContextID, sc);
@@ -3092,37 +3215,42 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Screening_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_Screening_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var sc = (Screening*)Ptr;
+        if (Ptr is not BoxPtr<Screening> sc) return false;
 
-        if (!_cmsWriteUInt32Number(io, sc->Flag)) return false;
-        if (!_cmsWriteUInt32Number(io, sc->nChannels)) return false;
+        if (!_cmsWriteUInt32Number(io, sc.Ptr->Flag)) return false;
+        if (!_cmsWriteUInt32Number(io, sc.Ptr->nChannels)) return false;
 
-        if (sc->nChannels > cmsMAXCHANNELS - 1)
-            sc->nChannels = cmsMAXCHANNELS - 1;
+        if (sc.Ptr->nChannels > cmsMAXCHANNELS - 1)
+            sc.Ptr->nChannels = cmsMAXCHANNELS - 1;
 
-        for (var i = 0; i < sc->nChannels; i++)
+        for (var i = 0; i < sc.Ptr->nChannels; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc->Channels)[i].Frequency)) return false;
-            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc->Channels)[i].ScreenAngle)) return false;
-            if (!_cmsWriteUInt32Number(io, ((ScreeningChannel*)sc->Channels)[i].SpotShape)) return false;
+            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].Frequency)) return false;
+            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].ScreenAngle)) return false;
+            if (!_cmsWriteUInt32Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].SpotShape)) return false;
         }
 
         return true;
     }
 
-    private static void* Type_Screening_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<Screening>(self->ContextID, Ptr);
+    private static BoxPtr<Screening>? Type_Screening_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<Screening> s
+            ? new(_cmsDupMem<Screening>(self->ContextID, s))
+            : null;
 
-    private static void Type_Screening_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_Screening_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Screening> s)
+            _cmsFree(self->ContextID, s);
+    }
 
     #endregion Screening
 
     #region ViewingConditions
 
-    private static void* Type_ViewingConditions_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<IccViewingConditions>? Type_ViewingConditions_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
@@ -3134,7 +3262,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, (uint*)(void*)&vc->IlluminantType)) goto Error;
 
         *nItems = 1;
-        return vc;
+        return new(vc);
 
     Error:
         _cmsFree(self->ContextID, vc);
@@ -3142,22 +3270,27 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_ViewingConditions_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_ViewingConditions_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var sc = (IccViewingConditions*)Ptr;
+        if (Ptr is not BoxPtr<IccViewingConditions> sc) return false;
 
-        if (!_cmsWriteXYZNumber(io, &sc->IlluminantXYZ)) return false;
-        if (!_cmsWriteXYZNumber(io, &sc->SurroundXYZ)) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)sc->IlluminantType)) return false;
+        if (!_cmsWriteXYZNumber(io, &sc.Ptr->IlluminantXYZ)) return false;
+        if (!_cmsWriteXYZNumber(io, &sc.Ptr->SurroundXYZ)) return false;
+        if (!_cmsWriteUInt32Number(io, (uint)sc.Ptr->IlluminantType)) return false;
 
         return true;
     }
 
-    private static void* Type_ViewingConditions_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem<IccViewingConditions>(self->ContextID, Ptr);
+    private static BoxPtr<IccViewingConditions>? Type_ViewingConditions_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
+        Ptr is BoxPtr<IccViewingConditions> sc
+            ? new(_cmsDupMem<IccViewingConditions>(self->ContextID, sc))
+            : null;
 
-    private static void Type_ViewingConditions_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_ViewingConditions_Free(TagTypeHandler* self, object? Ptr)
+    {
+        if (Ptr is BoxPtr<IccViewingConditions> sc)
+            _cmsFree(self->ContextID, sc);
+    }
 
     #endregion ViewingConditions
 
@@ -3195,14 +3328,15 @@ public static unsafe partial class Lcms2
         if (TypeHandler->ReadPtr is not null)
         {
             // This is a real element which should be read and processed
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, (Stage*)TypeHandler->ReadPtr(self, io, &nItems, SizeOfTag)))
+            var stage = (BoxPtr<Stage>?)TypeHandler->ReadPtr(self, io, &nItems, SizeOfTag);
+            if (stage is null || !cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, stage))
                 return false;
         }
 
         return true;
     }
 
-    private static void* Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Pipeline>? Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
         uint ElementCount;
@@ -3233,7 +3367,7 @@ public static unsafe partial class Lcms2
 
         // Success
         *nItems = 1;
-        return NewLUT;
+        return new(NewLUT);
 
     // Error
     Error:
@@ -3242,10 +3376,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_MPE_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_MPE_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var Lut = (Pipeline*)Ptr;
-        var Elem = Lut->Elements;
+        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
+        var Elem = Lut.Ptr->Elements;
         uint* ElementOffsets = null, ElementSizes = null;
         var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
         var str = stackalloc byte[5];
@@ -3296,7 +3430,7 @@ public static unsafe partial class Lcms2
             if (!_cmsWriteUInt32Number(io, ElementSig)) goto Error;
             if (!_cmsWriteUInt32Number(io, 0)) goto Error;
             var Before = io.Tell(io);
-            if (!TypeHandler->WritePtr(self, io, Elem, 1)) goto Error;
+            if (!TypeHandler->WritePtr(self, io, new BoxPtr<Stage>(Elem), 1)) goto Error;
             if (!_cmsWriteAlignment(io)) goto Error;
 
             ElementSizes[i] = io.Tell(io) - Before;
@@ -3327,11 +3461,16 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void* Type_MPE_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsPipelineDup((Pipeline*)Ptr);
+    private static BoxPtr<Pipeline>? Type_MPE_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Pipeline> p
+            ? new(cmsPipelineDup(p))
+            : null;
 
-    private static void Type_MPE_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsPipelineFree((Pipeline*)Ptr);
+    private static void Type_MPE_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Pipeline> p)
+            cmsPipelineFree(p);
+    }
 
     #endregion MPE
 
@@ -3345,7 +3484,7 @@ public static unsafe partial class Lcms2
         public double Gamma, Min, Max;
     }
 
-    private static void* Type_vcgt_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtr2<ToneCurve>? Type_vcgt_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         ToneCurve** Curves;
         uint TagType;
@@ -3462,7 +3601,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return Curves;
+        return new(Curves);
 
     // Regret, free all resources
     Error:
@@ -3471,9 +3610,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_vcgt_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_vcgt_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var Curves = (ToneCurve**)Ptr;
+        if (Ptr is not BoxPtr2<ToneCurve> Curves) return false;
 
         if (cmsGetToneCurveParametricType(Curves[0]) is 5 &&
             cmsGetToneCurveParametricType(Curves[1]) is 5 &&
@@ -3518,9 +3657,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_vcgt_Dup(TagTypeHandler* self, in void* Ptr, uint _)
+    private static BoxPtr2<ToneCurve>? Type_vcgt_Dup(TagTypeHandler* self, object? Ptr, uint _)
     {
-        var OldCurves = (ToneCurve**)Ptr;
+        if (Ptr is not BoxPtr2<ToneCurve> OldCurves) return null;
 
         var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, (uint)sizeof(ToneCurve*));
         if (NewCurves is null) return null;
@@ -3529,11 +3668,14 @@ public static unsafe partial class Lcms2
         NewCurves[1] = cmsDupToneCurve(OldCurves[1]);
         NewCurves[2] = cmsDupToneCurve(OldCurves[2]);
 
-        return NewCurves;
+        return new(NewCurves);
     }
 
-    private static void Type_vcgt_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsFreeToneCurveTriple((ToneCurve**)Ptr);
+    private static void Type_vcgt_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtr2<ToneCurve> curves)
+            cmsFreeToneCurveTriple(curves);
+    }
 
     #endregion vcgt
 
@@ -3585,7 +3727,7 @@ public static unsafe partial class Lcms2
     private static bool AllocArray(Context? ContextID, DICarray* a, uint Count, uint Length)
     {
         // Empty values
-        memset(a, 0, (uint)sizeof(DICarray));
+        memset(a, 0, _sizeof<DICarray>());
 
         // Depending on record size, create column arrays
         if (!AllocElem(ContextID, &a->Name, Count)) goto Error;
@@ -3736,7 +3878,7 @@ public static unsafe partial class Lcms2
 
         if (!io.Seek(io, e->Offsets[i])) return false;
 
-        *mlu = (Mlu*)Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
+        *mlu = Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
         return *mlu is not null;
     }
 
@@ -3754,13 +3896,13 @@ public static unsafe partial class Lcms2
         var Before = io.Tell(io);
         e->Offsets[i] = Before - BaseOffset;
 
-        if (!Type_MLU_Write(self, io, mlu, 1)) return false;
+        if (!Type_MLU_Write(self, io, new BoxPtr<Mlu>(mlu), 1)) return false;
 
         e->Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
-    private static void* Type_Dictionary_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static BoxPtrVoid? Type_Dictionary_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         void* hDict = null;
         char* NameWCS = null, ValueWCS = null;
@@ -3836,7 +3978,7 @@ public static unsafe partial class Lcms2
 
         FreeArray(&a);
         *nItems = 1;
-        return hDict;
+        return new(hDict);
 
     Error:
         FreeArray(&a);
@@ -3844,9 +3986,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Dictionary_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_Dictionary_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var hDict = Ptr;
+        if (Ptr is not BoxPtrVoid hDict) return false;
         Dictionary.Entry* p;
         DICarray a;
 
@@ -3911,11 +4053,16 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void* Type_Dictionary_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsDictDup(Ptr);
+    private static BoxPtrVoid? Type_Dictionary_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtrVoid dict
+            ? new(cmsDictDup(dict))
+            : null;
 
-    private static void Type_Dictionary_Free(TagTypeHandler* _, void* Ptr) =>
-        cmsDictFree(Ptr);
+    private static void Type_Dictionary_Free(TagTypeHandler* _, object? Ptr)
+    {
+        if (Ptr is BoxPtrVoid dict)
+            cmsDictFree(dict);
+    }
 
     #endregion Dictionary
 
@@ -3925,11 +4072,16 @@ public static unsafe partial class Lcms2
 
     #region Generic
 
-    private static void* GenericMPEdup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
-        cmsStageDup((Stage*)Ptr);
+    private static BoxPtr<Stage>? GenericMPEdup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is BoxPtr<Stage> stage
+            ? new(cmsStageDup(stage))
+            : null;
 
-    private static void GenericMPEfree(TagTypeHandler* _1, void* Ptr) =>
-        cmsStageFree((Stage*)Ptr);
+    private static void GenericMPEfree(TagTypeHandler* _1, object? Ptr)
+    {
+        if (Ptr is BoxPtr<Stage> stage)
+            cmsStageFree(stage);
+    }
 
     #endregion Generic
 
@@ -4053,7 +4205,7 @@ public static unsafe partial class Lcms2
         return GammaTables[n] is not null;
     }
 
-    private static void* Type_MPEcurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Stage>? Type_MPEcurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
 
@@ -4079,7 +4231,7 @@ public static unsafe partial class Lcms2
 
         _cmsFree(self->ContextID, GammaTables);
         *nItems = mpe is not null ? 1u : 0;
-        return mpe;
+        return new(mpe);
     }
 
     private static bool WriteSegmentedCurve(IOHandler io, ToneCurve* g)
@@ -4137,25 +4289,21 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteMPECurve(TagTypeHandler* _1, IOHandler io, object? Cargo, uint n, uint _2)
-    {
-        var Curves = (StageToneCurvesData)Cargo;
+    private static bool WriteMPECurve(TagTypeHandler* _1, IOHandler io, object? Cargo, uint n, uint _2) =>
+        Cargo is StageToneCurvesData Curves && WriteSegmentedCurve(io, Curves.TheCurves[n]);
 
-        return WriteSegmentedCurve(io, Curves.TheCurves[n]);
-    }
-
-    private static bool Type_MPEcurve_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
+    private static bool Type_MPEcurve_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var mpe = (Stage*)Ptr;
-        var Curves = (StageToneCurvesData)mpe->Data;
+        if (Ptr is not BoxPtr<Stage> mpe ||
+            mpe.Ptr->Data is not StageToneCurvesData Curves) return false;
 
         var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Write the header. Since those are curves, input and output channels are the same
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->InputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->InputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->InputChannels)) return false;
 
-        if (!WritePositionTable(self, io, 0, mpe->InputChannels, BaseOffset, Curves, &WriteMPECurve)) return false;
+        if (!WritePositionTable(self, io, 0, mpe.Ptr->InputChannels, BaseOffset, Curves, &WriteMPECurve)) return false;
 
         return true;
     }
@@ -4164,7 +4312,7 @@ public static unsafe partial class Lcms2
 
     #region MPEmatrix
 
-    private static void* Type_MPEmatrix_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Stage>? Type_MPEmatrix_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
 
@@ -4218,23 +4366,23 @@ public static unsafe partial class Lcms2
         _cmsFree(self->ContextID, Matrix);
         _cmsFree(self->ContextID, Offsets);
         *nItems = mpe is not null ? 1u : 0;
-        return mpe;
+        return new(mpe);
     }
 
-    private static bool Type_MPEmatrix_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_MPEmatrix_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var mpe = (Stage*)Ptr;
-        var Matrix = (StageMatrixData)mpe->Data;
+        if (Ptr is not BoxPtr<Stage> mpe ||
+            mpe.Ptr->Data is not StageMatrixData Matrix) return false;
 
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->OutputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->InputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->OutputChannels)) return false;
 
-        var nElems = mpe->InputChannels * mpe->OutputChannels;
+        var nElems = mpe.Ptr->InputChannels * mpe.Ptr->OutputChannels;
 
         for (var i = 0; i < nElems; i++)
             if (!_cmsWriteFloat32Number(io, (float)Matrix.Double[i])) return false;
 
-        for (var i = 0; i < mpe->OutputChannels; i++)
+        for (var i = 0; i < mpe.Ptr->OutputChannels; i++)
         {
             if (!_cmsWriteFloat32Number(io, Matrix.Offset is null ? 0 : (float)Matrix.Offset[i])) return false;
         }
@@ -4246,7 +4394,7 @@ public static unsafe partial class Lcms2
 
     #region MPEclut
 
-    private static void* Type_MPEclut_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static BoxPtr<Stage>? Type_MPEclut_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
         var Dimensions8 = stackalloc byte[16];
@@ -4285,31 +4433,31 @@ public static unsafe partial class Lcms2
             if (!_cmsReadFloat32Number(io, &clut.Tab.TFloat[i])) goto Error;
 
         *nItems = 1;
-        return mpe;
+        return new(mpe);
 
     Error:
         if (mpe is not null) cmsStageFree(mpe);
         return null;
     }
 
-    private static bool Type_MPEclut_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
+    private static bool Type_MPEclut_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        var mpe = (Stage*)Ptr;
-        var clut = (StageCLutData)mpe->Data;
+        if (Ptr is not BoxPtr<Stage> mpe ||
+            mpe.Ptr->Data is not StageCLutData clut) return false;
         var Dimensions8 = stackalloc byte[16];
 
         // Check for maximum number of channels supported by lcms
-        if (mpe->InputChannels > MAX_INPUT_DIMENSIONS) return false;
+        if (mpe.Ptr->InputChannels > MAX_INPUT_DIMENSIONS) return false;
 
         // Only floats are supported in MPE
         if (clut.HasFloatValues is false) return false;
 
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe->OutputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->InputChannels)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)mpe.Ptr->OutputChannels)) return false;
 
         memset(Dimensions8, 0, sizeof(byte) * 16);
 
-        for (var i = 0; i < mpe->InputChannels; i++)
+        for (var i = 0; i < mpe.Ptr->InputChannels; i++)
             Dimensions8[i] = (byte)clut.Params->nSamples[i];
 
         if (!io.Write(io, 16, Dimensions8)) return false;

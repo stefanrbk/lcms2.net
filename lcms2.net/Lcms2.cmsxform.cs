@@ -791,28 +791,28 @@ public static unsafe partial class Lcms2
         return p;
     }
 
-    private static bool GetXFormColorSpaces(uint nProfiles, HPROFILE* hProfiles, Signature* Input, Signature* Output)
+    private static bool GetXFormColorSpaces(uint nProfiles, Profile[] Profiles, Signature* Input, Signature* Output)
     {
         if (nProfiles is 0) return false;
-        if (hProfiles[0] is null) return false;
+        if (Profiles[0] is null) return false;
 
-        var PostColorSpace = *Input = cmsGetColorSpace(hProfiles[0]);
+        var PostColorSpace = *Input = cmsGetColorSpace(Profiles[0]);
 
         for (var i = 0; i < nProfiles; i++)
         {
-            var hProfile = hProfiles[i];
+            var Profile = Profiles[i];
 
             var lIsInput = (uint)PostColorSpace is not cmsSigXYZData and not cmsSigLabData;
 
-            if (hProfile is null) return false;
+            if (Profile is null) return false;
 
-            var cls = (uint)cmsGetDeviceClass(hProfile);
+            var cls = (uint)cmsGetDeviceClass(Profile);
 
             var (ColorSpaceIn, ColorSpaceOut) = (lIsInput, cls) switch
             {
-                (_, cmsSigNamedColorClass) => ((Signature)cmsSig1colorData, (nProfiles > 1) ? cmsGetPCS(hProfile) : cmsGetColorSpace(hProfile)),
-                (true, _) or (_, cmsSigLinkClass) => (cmsGetColorSpace(hProfile), cmsGetPCS(hProfile)),
-                _ => (cmsGetPCS(hProfile), cmsGetColorSpace(hProfile)),
+                (_, cmsSigNamedColorClass) => ((Signature)cmsSig1colorData, (nProfiles > 1) ? cmsGetPCS(Profile) : cmsGetColorSpace(Profile)),
+                (true, _) or (_, cmsSigLinkClass) => (cmsGetColorSpace(Profile), cmsGetPCS(Profile)),
+                _ => (cmsGetPCS(Profile), cmsGetColorSpace(Profile)),
             };
 
             if (i is 0)
@@ -871,11 +871,11 @@ public static unsafe partial class Lcms2
     public static Transform* cmsCreateExtendedTransform(
         Context? ContextID,
         uint nProfiles,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         uint* Intents,
         double* AdaptationStates,
-        HPROFILE hGamutProfile,
+        Profile? hGamutProfile,
         uint nGamutPCSposition,
         uint InputFormat,
         uint OutputFormat,
@@ -897,7 +897,7 @@ public static unsafe partial class Lcms2
             dwFlags |= cmsFLAGS_NOCACHE;
 
         // Mark entry/exit spaces
-        if (!GetXFormColorSpaces(nProfiles, hProfiles, &EntryColorSpace, &ExitColorSpace))
+        if (!GetXFormColorSpaces(nProfiles, Profiles, &EntryColorSpace, &ExitColorSpace))
         {
             cmsSignalError(ContextID, cmsERROR_NULL, "NULL input profiles on transform");
             return null;
@@ -918,14 +918,14 @@ public static unsafe partial class Lcms2
         // Check whether the transform is 16 bits and involves linear RGB in first profile. If so, disable optimizations
         if ((uint)EntryColorSpace is cmsSigRgbData && T_BYTES(InputFormat) is 2 && (dwFlags & cmsFLAGS_NOOPTIMIZE) is 0)
         {
-            var gamma = cmsDetectRGBProfileGamma(hProfiles[0], 0.1);
+            var gamma = cmsDetectRGBProfileGamma(Profiles[0], 0.1);
 
             if (gamma is > 0 and < 1.6)
                 dwFlags |= cmsFLAGS_NOOPTIMIZE;
         }
 
         // Create a pipeline with all transformations
-        var Lut = _cmsLinkProfiles(ContextID, nProfiles, Intents, hProfiles, BPC, AdaptationStates, dwFlags);
+        var Lut = _cmsLinkProfiles(ContextID, nProfiles, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (Lut is null)
         {
             cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Couldn't link the profiles");
@@ -952,39 +952,39 @@ public static unsafe partial class Lcms2
         xform->RenderingIntent = Intents[nProfiles - 1];
 
         // Take white points
-        SetWhitePoint(&xform->EntryWhitePoint, (CIEXYZ*)cmsReadTag(hProfiles[0], cmsSigMediaWhitePointTag));
-        SetWhitePoint(&xform->ExitWhitePoint, (CIEXYZ*)cmsReadTag(hProfiles[nProfiles - 1], cmsSigMediaWhitePointTag));
+        SetWhitePoint(&xform->EntryWhitePoint, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[0], cmsSigMediaWhitePointTag));
+        SetWhitePoint(&xform->ExitWhitePoint, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[nProfiles - 1], cmsSigMediaWhitePointTag));
 
         // Create a gamut check LUT if requested
         if (hGamutProfile is not null && ((dwFlags & cmsFLAGS_GAMUTCHECK) is not 0))
-            xform->GamutCheck = _cmsCreateGamutCheckPipeline(ContextID, hProfiles, BPC, Intents, AdaptationStates, nGamutPCSposition, hGamutProfile);
+            xform->GamutCheck = _cmsCreateGamutCheckPipeline(ContextID, Profiles, BPC, Intents, AdaptationStates, nGamutPCSposition, hGamutProfile);
 
         // Try to read input and output colorant table
-        if (cmsIsTag(hProfiles[0], cmsSigColorantTableTag))
+        if (cmsIsTag(Profiles[0], cmsSigColorantTableTag))
         {
             // Input table can only come in this way.
-            xform->InputColorant = cmsDupNamedColorList((NamedColorList*)cmsReadTag(hProfiles[0], cmsSigColorantTableTag));
+            xform->InputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[0], cmsSigColorantTableTag));
         }
 
         // Output is a little bit more complex.
-        if ((uint)cmsGetDeviceClass(hProfiles[nProfiles - 1]) is cmsSigLinkClass)
+        if ((uint)cmsGetDeviceClass(Profiles[nProfiles - 1]) is cmsSigLinkClass)
         {
             // This tag may exist only on devicelink profiles.
-            if (cmsIsTag(hProfiles[nProfiles - 1], cmsSigColorantTableOutTag))
+            if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag))
             {
                 // It may be null if error
-                xform->OutputColorant = cmsDupNamedColorList((NamedColorList*)cmsReadTag(hProfiles[nProfiles - 1], cmsSigColorantTableOutTag));
+                xform->OutputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag));
             }
         }
         else
         {
-            if (cmsIsTag(hProfiles[nProfiles - 1], cmsSigColorantTableTag))
-                xform->OutputColorant = cmsDupNamedColorList((NamedColorList*)cmsReadTag(hProfiles[nProfiles - 1], cmsSigColorantTableTag));
+            if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableTag))
+                xform->OutputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableTag));
         }
 
         // Store the sequence of profiles
         xform->Sequence = ((dwFlags & cmsFLAGS_KEEP_SEQUENCE) is not 0)
-            ? _cmsCompileProfileSequence(ContextID, nProfiles, hProfiles)
+            ? _cmsCompileProfileSequence(ContextID, nProfiles, Profiles)
             : null;
 
         // If this is a cached transform, init first value, which is zero (16 bits only)
@@ -1011,7 +1011,7 @@ public static unsafe partial class Lcms2
 
     public static Transform* cmsCreateMultiprofileTransformTHR(
         Context? ContextID,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         uint InputFormat,
         uint OutputFormat,
         uint nProfiles,
@@ -1035,36 +1035,36 @@ public static unsafe partial class Lcms2
             AdaptationStates[i] = cmsSetAdaptationStateTHR(ContextID, -1);
         }
 
-        return cmsCreateExtendedTransform(ContextID, nProfiles, hProfiles, BPC, Intents, AdaptationStates, null, 0, InputFormat, OutputFormat, dwFlags);
+        return cmsCreateExtendedTransform(ContextID, nProfiles, Profiles, BPC, Intents, AdaptationStates, null, 0, InputFormat, OutputFormat, dwFlags);
     }
 
     public static Transform* cmsCreateMultiprofileTransform(
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         uint InputFormat,
         uint OutputFormat,
         uint nProfiles,
         uint Intent,
         uint dwFlags) =>
-        cmsCreateMultiprofileTransformTHR(null, hProfiles, InputFormat, OutputFormat, nProfiles, Intent, dwFlags);
+        cmsCreateMultiprofileTransformTHR(null, Profiles, InputFormat, OutputFormat, nProfiles, Intent, dwFlags);
 
     public static Transform* cmsCreateTransformTHR(
         Context? ContextID,
-        HPROFILE Input,
+        Profile Input,
         uint InputFormat,
-        HPROFILE Output,
+        Profile Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags)
     {
-        var hArray = stackalloc HPROFILE[2] { Input, Output };
+        var hArray = new Profile[2] { Input, Output };
 
         return cmsCreateMultiprofileTransformTHR(ContextID, hArray, InputFormat, OutputFormat, Output is null ? 1u : 2u, Intent, dwFlags);
     }
 
     public static Transform* cmsCreateTransform(
-        HPROFILE Input,
+        Profile Input,
         uint InputFormat,
-        HPROFILE Output,
+        Profile Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags) =>
@@ -1072,17 +1072,17 @@ public static unsafe partial class Lcms2
 
     public static Transform* cmsCreateProofingTransformTHR(
         Context? ContextID,
-        HPROFILE InputProfile,
+        Profile InputProfile,
         uint InputFormat,
-        HPROFILE OutputProfile,
+        Profile OutputProfile,
         uint OutputFormat,
-        HPROFILE ProofingProfile,
+        Profile ProofingProfile,
         uint nIntent,
         uint ProofingIntent,
         uint dwFlags)
     {
         var DoBPC = (dwFlags & cmsFLAGS_BLACKPOINTCOMPENSATION) is not 0;
-        var hArray = stackalloc HPROFILE[4] { InputProfile, ProofingProfile, ProofingProfile, OutputProfile };
+        var hArray = new Profile[4] { InputProfile, ProofingProfile, ProofingProfile, OutputProfile };
         var Intents = stackalloc uint[4] { nIntent, nIntent, INTENT_RELATIVE_COLORIMETRIC, ProofingIntent };
         var BPC = stackalloc bool[4] { DoBPC, DoBPC, false, false };
         var Adaptation = stackalloc double[4];
@@ -1096,11 +1096,11 @@ public static unsafe partial class Lcms2
     }
 
     public static Transform* cmsCreateProofingTransform(
-        HPROFILE InputProfile,
+        Profile InputProfile,
         uint InputFormat,
-        HPROFILE OutputProfile,
+        Profile OutputProfile,
         uint OutputFormat,
-        HPROFILE ProofingProfile,
+        Profile ProofingProfile,
         uint nIntent,
         uint ProofingIntent,
         uint dwFlags) =>

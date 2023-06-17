@@ -38,12 +38,12 @@ public static unsafe partial class Lcms2
         uint InputFormat,
         uint OutputFormat,
         in uint* Intents,
-        in HPROFILE* hProfiles,
+        in Profile[] Profiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
     {
-        var ProfileList = stackalloc HPROFILE[256];
+        var ProfileList = new Profile[256];
         var BPCList = stackalloc bool[256];
         var AdaptationList = stackalloc double[256];
         var IntentList = stackalloc uint[256];
@@ -59,7 +59,7 @@ public static unsafe partial class Lcms2
         // Create a copy of parameters
         for (var i = 0; i < nProfiles; i++)
         {
-            ProfileList[i] = hProfiles[i];
+            ProfileList[i] = Profiles[i];
             BPCList[i] = BPC[i];
             AdaptationList[i] = AdaptationStates[i];
             IntentList[i] = Intents[i];
@@ -84,7 +84,7 @@ public static unsafe partial class Lcms2
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
-        in HPROFILE* hProfiles,
+        in Profile[] Profiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
@@ -94,7 +94,7 @@ public static unsafe partial class Lcms2
 
         ToneCurve* @out = null;
 
-        var xform = _cmsChain2Lab(ContextID, nProfiles, TYPE_CMYK_FLT, TYPE_Lab_DBL, Intents, hProfiles, BPC, AdaptationStates, dwFlags);
+        var xform = _cmsChain2Lab(ContextID, nProfiles, TYPE_CMYK_FLT, TYPE_Lab_DBL, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (xform is null) return null;
 
         var SampledPoints = _cmsCalloc<float>(ContextID, nPoints);
@@ -125,25 +125,25 @@ public static unsafe partial class Lcms2
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
-        in HPROFILE* hProfiles,
+        in Profile[] Profiles,
         in bool* BPC,
         in double* AdaptationStates,
         uint dwFlags)
     {
         // Make sure CMYK -> CMYK
-        if ((uint)cmsGetColorSpace(hProfiles[0]) is not cmsSigCmykData ||
-            (uint)cmsGetColorSpace(hProfiles[nProfiles - 1]) is not cmsSigCmykData) return null;
+        if ((uint)cmsGetColorSpace(Profiles[0]) is not cmsSigCmykData ||
+            (uint)cmsGetColorSpace(Profiles[nProfiles - 1]) is not cmsSigCmykData) return null;
 
         // Make sure last is an output profile
-        if ((uint)cmsGetDeviceClass(hProfiles[nProfiles - 1]) is not cmsSigOutputClass) return null;
+        if ((uint)cmsGetDeviceClass(Profiles[nProfiles - 1]) is not cmsSigOutputClass) return null;
 
         // Create individual curves. BPC works also as each K to L* is
         // computed as a BPC to zero black point in case of L*
-        var @in = ComputeKToLstar(ContextID, nPoints, nProfiles - 1, Intents, hProfiles, BPC, AdaptationStates, dwFlags);
+        var @in = ComputeKToLstar(ContextID, nPoints, nProfiles - 1, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (@in is null) return null;
 
         var @out = ComputeKToLstar(
-            ContextID, nPoints, 1, Intents + (nProfiles - 1), &hProfiles[nProfiles - 1], BPC + (nProfiles - 1), AdaptationStates + (nProfiles - 1), dwFlags);
+            ContextID, nPoints, 1, Intents + (nProfiles - 1), Profiles[((int)nProfiles - 1)..], BPC + (nProfiles - 1), AdaptationStates + (nProfiles - 1), dwFlags);
 
         if (@out is null)
         {
@@ -248,14 +248,14 @@ public static unsafe partial class Lcms2
 
     internal static Pipeline* _cmsCreateGamutCheckPipeline(
         Context? ContextID,
-        HPROFILE* hProfiles,
+        Profile[] Profiles,
         bool* BPC,
         uint* Intents,
         double* AdaptationStates,
         uint nGamutPCSposition,
-        HPROFILE hGamut)
+        Profile hGamut)
     {
-        var ProfileList = stackalloc HPROFILE[256];
+        var ProfileList = new Profile[256];
         var BPCList = stackalloc bool[256];
         var AdaptationList = stackalloc double[256];
         var IntentList = stackalloc uint[256];
@@ -282,7 +282,7 @@ public static unsafe partial class Lcms2
         // Create a copy of parameters
         for (var i = 0; i < nGamutPCSposition; i++)
         {
-            ProfileList[i] = hProfiles[i];
+            ProfileList[i] = Profiles[i];
             BPCList[i] = BPC[i];
             AdaptationList[i] = AdaptationStates[i];
             IntentList[i] = Intents[i];
@@ -383,18 +383,18 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static double cmsDetectTAC(HPROFILE hProfile)
+    public static double cmsDetectTAC(Profile Profile)
     {
         TACestimator bp;
         var GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
 
         // TAC only works on output profiles
-        if ((uint)cmsGetDeviceClass(hProfile) is not cmsSigOutputClass)
+        if ((uint)cmsGetDeviceClass(Profile) is not cmsSigOutputClass)
             return 0;
 
         // Create a fake formatter for result
-        var dwFormatter = cmsFormatterForColorspaceOfProfile(hProfile, 4, true);
+        var dwFormatter = cmsFormatterForColorspaceOfProfile(Profile, 4, true);
 
         bp.nOutputChans = T_CHANNELS(dwFormatter);
         bp.MaxTAC = 0;  // Initial TAC is 0
@@ -406,7 +406,7 @@ public static unsafe partial class Lcms2
         if (hLab is null) return 0;
         // Setup a roundtrip on perceptual intent in output profile for TAC estimation
         bp.hRoundTrip = cmsCreateTransformTHR(
-            ContextID, hLab, TYPE_Lab_16, hProfile, dwFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
+            ContextID, hLab, TYPE_Lab_16, Profile, dwFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
 
         cmsCloseProfile(hLab);
         if (bp.hRoundTrip is null) return 0;
@@ -499,23 +499,23 @@ public static unsafe partial class Lcms2
         public T B;
     }
 
-    public static double cmsDetectRGBProfileGamma(HPROFILE hProfile, double threshold)
+    public static double cmsDetectRGBProfileGamma(Profile Profile, double threshold)
 
     {
         var rgb = stackalloc Rgb<ushort>[256];
         var XYZ = stackalloc CIEXYZ[256];
         var Y_normalized = stackalloc float[256];
 
-        if ((uint)cmsGetColorSpace(hProfile) is not cmsSigRgbData)
+        if ((uint)cmsGetColorSpace(Profile) is not cmsSigRgbData)
             return -1;
 
-        var cl = cmsGetDeviceClass(hProfile);
+        var cl = cmsGetDeviceClass(Profile);
         if ((uint)cl is not cmsSigInputClass and not cmsSigDisplayClass and not cmsSigOutputClass and not cmsSigColorSpaceClass)
             return -1;
 
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
         var hXYZ = cmsCreateXYZProfileTHR(ContextID);
-        var xform = cmsCreateTransformTHR(ContextID, hProfile, TYPE_RGB_16, hXYZ, TYPE_XYZ_DBL, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE);
+        var xform = cmsCreateTransformTHR(ContextID, Profile, TYPE_RGB_16, hXYZ, TYPE_XYZ_DBL, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE);
 
         if (xform is null)  // If not RGB or forward direction is not supported, regret with the previous error
         {

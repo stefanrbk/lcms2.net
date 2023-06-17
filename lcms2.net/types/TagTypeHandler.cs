@@ -34,10 +34,10 @@ public unsafe struct TagTypeHandler
     public Signature Signature;
     public Context? ContextID;
 
-    public delegate void* ReadFn(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag);
-    public delegate bool WriteFn(TagTypeHandler* self, IOHandler io, void* Ptr, uint nItems);
-    public delegate void* DupFn(TagTypeHandler* self, in void* Ptr, uint nItems);
-    public delegate void FreeFn(TagTypeHandler* self, void* Ptr);
+    public delegate object? ReadFn(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag);
+    public delegate bool WriteFn(TagTypeHandler* self, IOHandler io, object? Ptr, uint nItems);
+    public delegate object? DupFn(TagTypeHandler* self, object? Ptr, uint nItems);
+    public delegate void FreeFn(TagTypeHandler* self, object? Ptr);
 
     public ReadFn ReadPtr;
     public WriteFn WritePtr;

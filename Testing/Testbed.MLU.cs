@@ -109,7 +109,7 @@ internal static unsafe partial class Testbed
         }
 
         // Duplicate it
-        var mlu2 = cmsMLUdup(mlu);
+        var mlu2 = new BoxPtr<Mlu>(cmsMLUdup(mlu));
 
         // Get rid of original
         cmsMLUfree(mlu);
@@ -142,7 +142,7 @@ internal static unsafe partial class Testbed
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "mlucheck.icc", "r");
 
-        var mlu3 = (Mlu*)cmsReadTag(h, cmsSigProfileDescriptionTag);
+        var mlu3 = cmsReadTag(h, cmsSigProfileDescriptionTag) as BoxPtr<Mlu>;
         if (mlu3 is null) { Fail("Profile didn't get the MLU\n"); rc = false; goto Error; }
 
         // Check all is still in place

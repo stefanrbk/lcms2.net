@@ -30,7 +30,7 @@ namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
 {
-    private static HPROFILE Create_AboveRGB()
+    private static Profile? Create_AboveRGB()
     {
         var Curve = stackalloc ToneCurve*[3];
         CIExyYTRIPLE Primaries = new()
@@ -59,47 +59,47 @@ internal static unsafe partial class Testbed
         Curve[0] = Curve[1] = Curve[2] = cmsBuildGamma(DbgThread(), 2.19921875);
 
         cmsWhitePointFromTemp(&D65, 6504);
-        var hProfile = cmsCreateRGBProfileTHR(DbgThread(), &D65, &Primaries, Curve);
+        var Profile = cmsCreateRGBProfileTHR(DbgThread(), &D65, &Primaries, Curve);
         cmsFreeToneCurve(Curve[0]);
 
-        return hProfile;
+        return Profile;
     }
 
-    private static HPROFILE Create_Gray22()
+    private static Profile? Create_Gray22()
     {
         var Curve = cmsBuildGamma(DbgThread(), 2.2);
         if (Curve is null) return null;
 
-        var hProfile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
         cmsFreeToneCurve(Curve);
 
-        return hProfile;
+        return Profile;
     }
 
-    private static HPROFILE Create_Gray30()
+    private static Profile? Create_Gray30()
     {
         var Curve = cmsBuildGamma(DbgThread(), 3.0);
         if (Curve is null) return null;
 
-        var hProfile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
         cmsFreeToneCurve(Curve);
 
-        return hProfile;
+        return Profile;
     }
 
-    private static HPROFILE Create_GrayLab()
+    private static Profile? Create_GrayLab()
     {
         var Curve = cmsBuildGamma(DbgThread(), 1.0);
         if (Curve is null) return null;
 
-        var hProfile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
         cmsFreeToneCurve(Curve);
 
-        cmsSetPCS(hProfile, cmsSigLabData);
-        return hProfile;
+        cmsSetPCS(Profile, cmsSigLabData);
+        return Profile;
     }
 
-    private static HPROFILE Create_CMYK_DeviceLink()
+    private static Profile? Create_CMYK_DeviceLink()
     {
         var Tab = stackalloc ToneCurve*[4];
         var Curve = cmsBuildGamma(DbgThread(), 3.0);
@@ -107,10 +107,10 @@ internal static unsafe partial class Testbed
 
         Tab[0] = Tab[1] = Tab[2] = Tab[3] = Curve;
 
-        var hProfile = cmsCreateLinearizationDeviceLinkTHR(DbgThread(), cmsSigCmykData, Tab);
+        var Profile = cmsCreateLinearizationDeviceLinkTHR(DbgThread(), cmsSigCmykData, Tab);
         cmsFreeToneCurve(Curve);
 
-        return hProfile;
+        return Profile;
     }
 
     private struct FakeCMYKParams
@@ -188,7 +188,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static HPROFILE CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
+    private static Profile? CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
     {
         FakeCMYKParams p;
 
@@ -216,7 +216,7 @@ internal static unsafe partial class Testbed
         cmsSetColorSpace(hICC, cmsSigCmykData);
         cmsSetPCS(hICC, cmsSigLabData);
 
-        var BToA0 = cmsPipelineAlloc(ContextID, 3, 4);
+        var BToA0 = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, 3, 4));
         if (BToA0 is null) return null;
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, 3, 4, null);
         if (CLUT is null) return null;
@@ -229,7 +229,7 @@ internal static unsafe partial class Testbed
         if (!cmsWriteTag(hICC, cmsSigBToA0Tag, BToA0)) return null;
         cmsPipelineFree(BToA0);
 
-        var AToB0 = cmsPipelineAlloc(ContextID, 4, 3);
+        var AToB0 = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, 4, 3));
         if (AToB0 is null) return null;
         CLUT = cmsStageAllocCLut16bit(ContextID, 17, 4, 3, null);
         if (CLUT is null) return null;
@@ -254,7 +254,7 @@ internal static unsafe partial class Testbed
         return hICC;
     }
 
-    private static bool OneVirtual(HPROFILE h, string SubTestTxt, string FileName)
+    private static bool OneVirtual(Profile h, string SubTestTxt, string FileName)
     {
         SubTest(SubTestTxt);
         if (h is null) return false;

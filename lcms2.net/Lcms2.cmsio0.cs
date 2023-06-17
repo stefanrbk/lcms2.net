@@ -404,70 +404,71 @@ public static unsafe partial class Lcms2
     public static bool cmsCloseIOhandler(IOHandler io) =>
         io.Close(io);
 
-    public static IOHandler? cmsGetProfileIOhandler(HPROFILE Icc) =>
+    public static IOHandler? cmsGetProfileIOhandler(Profile Icc) =>
         Icc is not null
-            ? ((Profile*)Icc)->IOHandler
+            ? Icc.IOHandler
             : null;
 
-    public static HPROFILE cmsCreateProfilePlaceholder(Context? ContextID)
+    public static Profile? cmsCreateProfilePlaceholder(Context? ContextID)
     {
-        var Icc = _cmsMallocZero<Profile>(ContextID);
+        var Icc = new Profile();
         if (Icc is null) return null;
 
-        Icc->ContextID = ContextID;
+        Icc.ContextID = ContextID;
 
         // Set it to empty
-        Icc->TagCount = 0;
+        Icc.TagCount = 0;
 
         // Set default version
-        Icc->Version = 0x02100000;
+        Icc.Version = 0x02100000;
 
         // Set creation date/time
-        if (!_cmsGetTime(&Icc->Created))
-            goto Error;
+        fixed(DateTime* dt = &Icc.Created)
+        if (!_cmsGetTime(dt))
+            return null;
 
         // Create a mutex if the user provided proper plugin. NULL otherwise
-        Icc->UserMutex = _cmsCreateMutex(ContextID);
+        Icc.UserMutex = _cmsCreateMutex(ContextID);
 
         // Return the handle
         return Icc;
-    Error:
-        _cmsFree(ContextID, Icc);
-        return null;
+    //Error:
+    //    _cmsFree(ContextID, Icc);
+    //    return null;
     }
 
-    public static Context? cmsGetProfileContextID(HPROFILE Icc) =>
+    public static Context? cmsGetProfileContextID(Profile Icc) =>
         Icc is not null
-            ? ((Profile*)Icc)->ContextID
+            ? Icc.ContextID
             : null;
 
-    public static int cmsGetProfileTagCount(HPROFILE Icc) =>
+    public static int cmsGetProfileTagCount(Profile Icc) =>
         Icc is not null
-            ? (int)((Profile*)Icc)->TagCount
+            ? (int)Icc.TagCount
             : -1;
 
-    public static Signature cmsGetTagSignature(HPROFILE hProfile, uint n)
+    public static Signature cmsGetTagSignature(Profile Profile, uint n)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
-        if (n > Icc->TagCount || n >= MAX_TABLE_TAG)
+        if (n > Icc.TagCount || n >= MAX_TABLE_TAG)
             return default;
 
-        return *(Signature*)&Icc->TagNames[n];
+        return Icc.TagNames[n];
     }
 
-    private static int SearchOneTag(Profile* Profile, Signature sig)
+    private static int SearchOneTag(Profile Profile, Signature sig)
     {
-        for (var i = 0; i < (int)Profile->TagCount; i++)
+        for (var i = 0; i < (int)Profile.TagCount; i++)
         {
-            if (sig == *(Signature*)&Profile->TagNames[i])
+            if (sig == Profile.TagNames[i])
                 return i;
         }
 
         return -1;
     }
 
-    internal static int _cmsSearchTag(Profile* Icc, Signature sig, bool lFollowLinks)
+    internal static int _cmsSearchTag(Profile Icc, Signature sig, bool lFollowLinks)
     {
         int n;
         Signature LinkedSig = default;
@@ -482,7 +483,7 @@ public static unsafe partial class Lcms2
                 return n;           // Found, don't follow links
 
             // Is this a linked tag?
-            LinkedSig = *(Signature*)&Icc->TagLinked[n];
+            LinkedSig = Icc.TagLinked[n];
 
             // Yes, follow links
             if (LinkedSig != default)
@@ -492,35 +493,35 @@ public static unsafe partial class Lcms2
         return n;
     }
 
-    internal static void _cmsDeleteTagByPos(Profile* Icc, int i)
+    internal static void _cmsDeleteTagByPos(Profile Icc, int i)
     {
         _cmsAssert(Icc);
         _cmsAssert(i >= 0);
 
-        if (((void**)Icc->TagPtrs)[i] is not null)
+        if (Icc.TagPtrs[i] is not null)
         {
             // Free previous version
-            if (Icc->TagSaveAsRaw[i])
+            if (Icc.TagSaveAsRaw[i])
             {
-                _cmsFree(Icc->ContextID, ((void**)Icc->TagPtrs)[i]);
+                //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
             }
             else
             {
-                var TypeHandler = ((TagTypeHandler**)Icc->TagTypeHandlers)[i];
+                var TypeHandler = Icc.TagTypeHandlers[i];
 
                 if (TypeHandler is not null)
                 {
                     var LocalTypeHandler = *TypeHandler;
-                    LocalTypeHandler.ContextID = Icc->ContextID;    // As an aditional parameter
-                    LocalTypeHandler.ICCVersion = Icc->Version;
-                    LocalTypeHandler.FreePtr(&LocalTypeHandler, ((void**)Icc->TagPtrs)[i]);
-                    ((void**)Icc->TagPtrs)[i] = null;
+                    LocalTypeHandler.ContextID = Icc.ContextID;    // As an aditional parameter
+                    LocalTypeHandler.ICCVersion = Icc.Version;
+                    LocalTypeHandler.FreePtr(&LocalTypeHandler, Icc.TagPtrs[i]);
+                    Icc.TagPtrs[i] = null;
                 }
             }
         }
     }
 
-    internal static bool _cmsNewTag(Profile* Icc, Signature sig, int* NewPos)
+    internal static bool _cmsNewTag(Profile Icc, Signature sig, int* NewPos)
     {
         // Search for the tag
         var i = _cmsSearchTag(Icc, sig, false);
@@ -533,27 +534,27 @@ public static unsafe partial class Lcms2
         else
         {
             // No, make a new one
-            if (Icc->TagCount >= MAX_TABLE_TAG)
+            if (Icc.TagCount >= MAX_TABLE_TAG)
             {
-                cmsSignalError(Icc->ContextID, ErrorCode.Range, $"Too many tags ({MAX_TABLE_TAG})");
+                cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags ({MAX_TABLE_TAG})");
                 return false;
             }
 
-            *NewPos = (int)Icc->TagCount;
-            Icc->TagCount++;
+            *NewPos = (int)Icc.TagCount;
+            Icc.TagCount++;
         }
 
         return true;
     }
 
-    public static bool cmsIsTag(HPROFILE Icc, Signature sig) =>
-        _cmsSearchTag((Profile*)Icc, sig, false) >= 0;
+    public static bool cmsIsTag(Profile Icc, Signature sig) =>
+        _cmsSearchTag(Icc, sig, false) >= 0;
 
     private static uint _validatedVersion(uint DWord)
     {
         var pByte = (byte*)&DWord;
 
-        if (*pByte > 0x09) *pByte = (byte)0x09;
+        if (*pByte > 0x09) *pByte = 0x09;
         var temp1 = (byte)(*(pByte + 1) & 0xF0);
         var temp2 = (byte)(*(pByte + 1) & 0x0F);
         if (temp1 > 0x90) temp1 = 0x90;
@@ -565,40 +566,41 @@ public static unsafe partial class Lcms2
         return DWord;
     }
 
-    internal static bool _cmsReadHeader(Profile* Icc)
+    internal static bool _cmsReadHeader(Profile Icc)
     {
         Profile.Header Header;
         TagEntry Tag;
         uint TagCount;
 
-        var io = Icc->IOHandler;
+        var io = Icc.IOHandler;
 
         if (io is null) return false;
 
         // Read the header
-        if (io.Read(io, &Header, (uint)sizeof(Profile.Header), 1) is not 1)
+        if (io.Read(io, &Header, _sizeof<Profile.Header>(), 1) is not 1)
             return false;
 
         // Validate file as an ICC profile
         if (_cmsAdjustEndianess32(Header.magic) != cmsMagicNumber)
         {
-            cmsSignalError(Icc->ContextID, ErrorCode.BadSignature, "not an Icc profile, invalid signature");
+            cmsSignalError(Icc.ContextID, ErrorCode.BadSignature, "not an Icc profile, invalid signature");
             return false;
         }
 
         // Adjust endianness of the used parameters
-        Icc->DeviceClass = new(_cmsAdjustEndianess32(Header.deviceClass));
-        Icc->ColorSpace = new(_cmsAdjustEndianess32(Header.colorSpace));
-        Icc->PCS = new(_cmsAdjustEndianess32(Header.pcs));
+        Icc.DeviceClass = new(_cmsAdjustEndianess32(Header.deviceClass));
+        Icc.ColorSpace = new(_cmsAdjustEndianess32(Header.colorSpace));
+        Icc.PCS = new(_cmsAdjustEndianess32(Header.pcs));
 
-        Icc->RenderingIntent = _cmsAdjustEndianess32(Header.renderingIntent);
-        Icc->flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags)); ;
-        Icc->manufacturer = _cmsAdjustEndianess32(Header.manufacturer);
-        Icc->model = _cmsAdjustEndianess32(Header.model);
-        Icc->creator = _cmsAdjustEndianess32(Header.creator);
+        Icc.RenderingIntent = _cmsAdjustEndianess32(Header.renderingIntent);
+        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags)); ;
+        Icc.manufacturer = _cmsAdjustEndianess32(Header.manufacturer);
+        Icc.model = _cmsAdjustEndianess32(Header.model);
+        Icc.creator = _cmsAdjustEndianess32(Header.creator);
 
-        _cmsAdjustEndianess64(&Icc->attributes, &Header.attributes);
-        Icc->Version = _cmsAdjustEndianess32(_validatedVersion(Header.version));
+        fixed(ulong* attributes = &Icc.attributes)
+            _cmsAdjustEndianess64(attributes, &Header.attributes);
+        Icc.Version = _cmsAdjustEndianess32(_validatedVersion(Header.version));
 
         // Get size as reported in header
         var HeaderSize = _cmsAdjustEndianess32(Header.size);
@@ -608,21 +610,23 @@ public static unsafe partial class Lcms2
             HeaderSize = io.reportedSize;
 
         // Get creation date/time
-        _cmsDecodeDateTimeNumber(&Header.date, &Icc->Created);
+        fixed(DateTime* Created = &Icc.Created)
+            _cmsDecodeDateTimeNumber(&Header.date, Created);
 
         // The profile ID are 32 raw bytes
-        memmove(Icc->ProfileID.id32, Header.profileID.id32, 16);
+        fixed(ProfileID* ProfileID = &Icc.ProfileID)
+            memmove(ProfileID->id32, Header.profileID.id32, 16);
 
         // Read tag directory
         if (!_cmsReadUInt32Number(io, &TagCount)) return false;
         if (TagCount > MAX_TABLE_TAG)
         {
-            cmsSignalError(Icc->ContextID, ErrorCode.Range, $"Too many tags({TagCount})");
+            cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags({TagCount})");
             return false;
         }
 
         // Read tag directory
-        Icc->TagCount = 0;
+        Icc.TagCount = 0;
         for (var i = 0; i < TagCount; i++)
         {
             if (!_cmsReadUInt32Number(io, (uint*)&Tag.sig)) return false;
@@ -636,53 +640,55 @@ public static unsafe partial class Lcms2
                 continue;
             }
 
-            Icc->TagNames[Icc->TagCount] = Tag.sig;
-            Icc->TagOffsets[Icc->TagCount] = Tag.offset;
-            Icc->TagSizes[Icc->TagCount] = Tag.size;
+            Icc.TagNames[Icc.TagCount] = Tag.sig;
+            Icc.TagOffsets[Icc.TagCount] = Tag.offset;
+            Icc.TagSizes[Icc.TagCount] = Tag.size;
 
             // Search for links
-            for (var j = 0; j < Icc->TagCount; j++)
+            for (var j = 0; j < Icc.TagCount; j++)
             {
-                if ((Icc->TagOffsets[j] == Tag.offset) &&
-                    (Icc->TagSizes[j] == Tag.size))
+                if ((Icc.TagOffsets[j] == Tag.offset) &&
+                    (Icc.TagSizes[j] == Tag.size))
                 {
-                    Icc->TagLinked[Icc->TagCount] = Icc->TagNames[j];
+                    Icc.TagLinked[Icc.TagCount] = Icc.TagNames[j];
                 }
             }
 
-            Icc->TagCount++;
+            Icc.TagCount++;
         }
 
         return true;
     }
 
-    internal static bool _cmsWriteHeader(Profile* Icc, uint UsedSpace)
+    internal static bool _cmsWriteHeader(Profile Icc, uint UsedSpace)
     {
         Profile.Header Header;
         TagEntry Tag;
 
         Header.size = _cmsAdjustEndianess32(UsedSpace);
         Header.cmmId = new(_cmsAdjustEndianess32(lcmsSignature));
-        Header.version = _cmsAdjustEndianess32(Icc->Version);
+        Header.version = _cmsAdjustEndianess32(Icc.Version);
 
-        Header.deviceClass = new(_cmsAdjustEndianess32(Icc->DeviceClass));
-        Header.colorSpace = new(_cmsAdjustEndianess32(Icc->ColorSpace));
-        Header.pcs = new(_cmsAdjustEndianess32(Icc->PCS));
+        Header.deviceClass = new(_cmsAdjustEndianess32(Icc.DeviceClass));
+        Header.colorSpace = new(_cmsAdjustEndianess32(Icc.ColorSpace));
+        Header.pcs = new(_cmsAdjustEndianess32(Icc.PCS));
 
         // NOTE: in v4 Timestamp must be in UTC rather than in local time
-        _cmsEncodeDateTimeNumber(&Header.date, &Icc->Created);
+        fixed(DateTime* Created = &Icc.Created)
+            _cmsEncodeDateTimeNumber(&Header.date, Created);
 
         Header.magic = new(_cmsAdjustEndianess32(cmsMagicNumber));
         Header.manufacturer = new(_cmsAdjustEndianess32(Environment.OSVersion.Platform is PlatformID.Win32NT ? cmsSigMicrosoft : cmsSigMacintosh));
 
-        Header.flags = _cmsAdjustEndianess32(Icc->flags);
-        Header.manufacturer = new(_cmsAdjustEndianess32(Icc->manufacturer));
-        Header.model = _cmsAdjustEndianess32(Icc->model);
+        Header.flags = _cmsAdjustEndianess32(Icc.flags);
+        Header.manufacturer = new(_cmsAdjustEndianess32(Icc.manufacturer));
+        Header.model = _cmsAdjustEndianess32(Icc.model);
 
-        _cmsAdjustEndianess64(&Header.attributes, &Icc->attributes);
+        fixed(ulong* attributes = &Icc.attributes)
+            _cmsAdjustEndianess64(&Header.attributes, attributes);
 
         // Rendering intent in the header (for embedded profiles)
-        Header.renderingIntent = _cmsAdjustEndianess32(Icc->RenderingIntent);
+        Header.renderingIntent = _cmsAdjustEndianess32(Icc.RenderingIntent);
 
         // Illuminant is always D50
         Header.illuminant.X = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(cmsD50_XYZ()->X));
@@ -695,106 +701,114 @@ public static unsafe partial class Lcms2
         memset(&Header.reserved, 0, 28);
 
         // Set profile ID. Endianness is always big endian
-        memmove(&Header.profileID, &Icc->ProfileID, 16);
+        fixed(ProfileID* ProfileID = &Icc.ProfileID)
+            memmove(&Header.profileID, ProfileID, 16);
 
         // Dump the header
-        if (Icc->IOHandler is null || !Icc->IOHandler!.Write(Icc->IOHandler!, (uint)sizeof(Profile.Header), &Header)) return false;
+        if (Icc.IOHandler is null || !Icc.IOHandler.Write(Icc.IOHandler, _sizeof<Profile.Header>(), &Header)) return false;
 
         // Saves Tag directory
 
         // Get true count
         var Count = 0u;
-        for (var i = 0; i < Icc->TagCount; i++)
+        for (var i = 0; i < Icc.TagCount; i++)
         {
-            if (Icc->TagNames[i] != default)
+            if (Icc.TagNames[i] != default)
                 Count++;
         }
 
         // Store number of tags
-        if (!_cmsWriteUInt32Number(Icc->IOHandler!, Count)) return false;
+        if (!_cmsWriteUInt32Number(Icc.IOHandler, Count)) return false;
 
-        for (var i = 0; i < Icc->TagCount; i++)
+        for (var i = 0; i < Icc.TagCount; i++)
         {
-            if (Icc->TagNames[i] == default) continue;      // It is just a placeholder
+            if (Icc.TagNames[i] == default) continue;      // It is just a placeholder
 
-            Tag.sig = new(_cmsAdjustEndianess32(Icc->TagNames[i]));
-            Tag.offset = _cmsAdjustEndianess32(Icc->TagOffsets[i]);
-            Tag.size = _cmsAdjustEndianess32(Icc->TagSizes[i]);
+            Tag.sig = new(_cmsAdjustEndianess32(Icc.TagNames[i]));
+            Tag.offset = _cmsAdjustEndianess32(Icc.TagOffsets[i]);
+            Tag.size = _cmsAdjustEndianess32(Icc.TagSizes[i]);
 
-            if (!Icc->IOHandler!.Write(Icc->IOHandler!, (uint)sizeof(TagEntry), &Tag)) return false;
+            if (!Icc.IOHandler.Write(Icc.IOHandler, _sizeof<TagEntry>(), &Tag)) return false;
         }
 
         return true;
     }
 
-    public static uint cmsGetHeaderRenderingIntent(HPROFILE Icc) =>
-        ((Profile*)Icc)->RenderingIntent;
+    public static uint cmsGetHeaderRenderingIntent(Profile Icc) =>
+        Icc.RenderingIntent;
 
-    public static void cmsSetHeaderRenderingIntent(HPROFILE Icc, uint RenderingIntent) =>
-        ((Profile*)Icc)->RenderingIntent = RenderingIntent;
+    public static void cmsSetHeaderRenderingIntent(Profile Icc, uint RenderingIntent) =>
+        Icc.RenderingIntent = RenderingIntent;
 
-    public static uint cmsGetHeaderFlags(HPROFILE Icc) =>
-        ((Profile*)Icc)->flags;
+    public static uint cmsGetHeaderFlags(Profile Icc) =>
+        Icc.flags;
 
-    public static void cmsSetHeaderFlags(HPROFILE Icc, uint Flags) =>
-        ((Profile*)Icc)->flags = Flags;
+    public static void cmsSetHeaderFlags(Profile Icc, uint Flags) =>
+        Icc.flags = Flags;
 
-    public static uint cmsGetHeaderManufacturer(HPROFILE Icc) =>
-        ((Profile*)Icc)->manufacturer;
+    public static uint cmsGetHeaderManufacturer(Profile Icc) =>
+        Icc.manufacturer;
 
-    public static void cmsSetHeaderManufacturer(HPROFILE Icc, uint manufacturer) =>
-        ((Profile*)Icc)->manufacturer = manufacturer;
+    public static void cmsSetHeaderManufacturer(Profile Icc, uint manufacturer) =>
+        Icc.manufacturer = manufacturer;
 
-    public static uint cmsGetHeaderCreator(HPROFILE Icc) =>
-        ((Profile*)Icc)->creator;
+    public static uint cmsGetHeaderCreator(Profile Icc) =>
+        Icc.creator;
 
-    public static uint cmsGetHeaderModel(HPROFILE Icc) =>
-        ((Profile*)Icc)->model;
+    public static uint cmsGetHeaderModel(Profile Icc) =>
+        Icc.model;
 
-    public static void cmsSetHeaderModel(HPROFILE Icc, uint model) =>
-        ((Profile*)Icc)->model = model;
+    public static void cmsSetHeaderModel(Profile Icc, uint model) =>
+        Icc.model = model;
 
-    public static void cmsGetHeaderAttributes(HPROFILE Icc, ulong* Flags) =>
-        *Flags = ((Profile*)Icc)->attributes;
+    public static void cmsGetHeaderAttributes(Profile Icc, ulong* Flags) =>
+        *Flags = Icc.attributes;
 
-    public static void cmsSetHeaderAttributes(HPROFILE Icc, ulong Flags) =>
-        ((Profile*)Icc)->attributes = Flags;
+    public static void cmsSetHeaderAttributes(Profile Icc, ulong Flags) =>
+        Icc.attributes = Flags;
 
-    public static void cmsGetHeaderProfileID(HPROFILE Icc, byte* ProfileID) =>
-        memmove(ProfileID, ((Profile*)Icc)->ProfileID.id8, 16);
-
-    public static void cmsSetHeaderProfileID(HPROFILE Icc, byte* ProfileID) =>
-        memmove(((Profile*)Icc)->ProfileID.id8, ProfileID, 16);
-
-    public static bool cmsGetHeaderCreationDateTime(HPROFILE Icc, DateTime* Dest)
+    public static void cmsGetHeaderProfileID(Profile Icc, byte* ProfileID)
     {
-        memmove(Dest, &((Profile*)Icc)->Created, (uint)sizeof(DateTime));
+        fixed (ProfileID* profileID = &Icc.ProfileID)
+                memmove(ProfileID, profileID->id8, 16);
+    }
+
+    public static void cmsSetHeaderProfileID(Profile Icc, byte* ProfileID)
+    {
+        fixed(ProfileID* profileID = &Icc.ProfileID)
+            memmove(profileID->id8, ProfileID, 16);
+    }
+
+    public static bool cmsGetHeaderCreationDateTime(Profile Icc, DateTime* Dest)
+    {
+        fixed(DateTime* Created = &Icc.Created)
+            memmove(Dest, Created, _sizeof<DateTime>());
         return true;
     }
 
-    public static Signature cmsGetPCS(HPROFILE Icc) =>
-        ((Profile*)Icc)->PCS;
+    public static Signature cmsGetPCS(Profile Icc) =>
+        Icc.PCS;
 
-    public static void cmsSetPCS(HPROFILE Icc, Signature pcs) =>
-        ((Profile*)Icc)->PCS = pcs;
+    public static void cmsSetPCS(Profile Icc, Signature pcs) =>
+        Icc.PCS = pcs;
 
-    public static Signature cmsGetColorSpace(HPROFILE Icc) =>
-        ((Profile*)Icc)->ColorSpace;
+    public static Signature cmsGetColorSpace(Profile Icc) =>
+        Icc.ColorSpace;
 
-    public static void cmsSetColorSpace(HPROFILE Icc, Signature sig) =>
-        ((Profile*)Icc)->ColorSpace = sig;
+    public static void cmsSetColorSpace(Profile Icc, Signature sig) =>
+        Icc.ColorSpace = sig;
 
-    public static Signature cmsGetDeviceClass(HPROFILE Icc) =>
-        ((Profile*)Icc)->DeviceClass;
+    public static Signature cmsGetDeviceClass(Profile Icc) =>
+        Icc.DeviceClass;
 
-    public static void cmsSetDeviceClass(HPROFILE Icc, Signature sig) =>
-        ((Profile*)Icc)->DeviceClass = sig;
+    public static void cmsSetDeviceClass(Profile Icc, Signature sig) =>
+        Icc.DeviceClass = sig;
 
-    public static uint cmsGetEncodedICCVersion(HPROFILE Icc) =>
-        ((Profile*)Icc)->Version;
+    public static uint cmsGetEncodedICCVersion(Profile Icc) =>
+        Icc.Version;
 
-    public static void cmsSetEncodedICCVersion(HPROFILE Icc, uint Version) =>
-        ((Profile*)Icc)->Version = Version;
+    public static void cmsSetEncodedICCVersion(Profile Icc, uint Version) =>
+        Icc.Version = Version;
 
     private static uint BaseToBase(uint @in, int BaseIn, int BaseOut)
     {
@@ -816,22 +830,22 @@ public static unsafe partial class Lcms2
         return @out;
     }
 
-    public static void cmsSetProfileVersion(HPROFILE Icc, double Version) =>
+    public static void cmsSetProfileVersion(Profile Icc, double Version) =>
         // 4.2 -> 0x04200000
-        ((Profile*)Icc)->Version = BaseToBase((uint)Math.Floor((Version * 100.0) + 0.5), 10, 16) << 16;
+        Icc.Version = BaseToBase((uint)Math.Floor((Version * 100.0) + 0.5), 10, 16) << 16;
 
-    public static double cmsGetProfileVersion(HPROFILE Icc) =>
+    public static double cmsGetProfileVersion(Profile Icc) =>
         // 0x04200000 -> 4.2
-        BaseToBase(((Profile*)Icc)->Version >> 16, 16, 10) / 100.0;
+        BaseToBase(Icc.Version >> 16, 16, 10) / 100.0;
 
-    public static Profile* cmsOpenProfileFromIOHandlerTHR(Context? ContextID, IOHandler io)
+    public static Profile? cmsOpenProfileFromIOHandlerTHR(Context? ContextID, IOHandler io)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
 
-        var NewIcc = (Profile*)hEmpty;
+        var NewIcc = hEmpty;
 
-        NewIcc->IOHandler = io;
+        NewIcc.IOHandler = io;
         if (!_cmsReadHeader(NewIcc)) goto Error;
         return NewIcc;
     Error:
@@ -839,17 +853,17 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromIOHandler2THR(Context? ContextID, IOHandler io, bool write)
+    public static Profile? cmsOpenProfileFromIOHandler2THR(Context? ContextID, IOHandler io, bool write)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
 
-        var NewIcc = (Profile*)hEmpty;
+        var NewIcc = hEmpty;
 
-        NewIcc->IOHandler = io;
+        NewIcc.IOHandler = io;
         if (write)
         {
-            NewIcc->IsWrite = true;
+            NewIcc.IsWrite = true;
             return NewIcc;
         }
 
@@ -860,19 +874,19 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromFileTHR(Context? ContextID, string FileName, string Access)
+    public static Profile? cmsOpenProfileFromFileTHR(Context? ContextID, string FileName, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
 
-        var NewIcc = (Profile*)hEmpty;
+        var NewIcc = hEmpty;
 
-        NewIcc->IOHandler = cmsOpenIOhandlerFromFile(ContextID, FileName, Access);
-        if (NewIcc->IOHandler is null) goto Error;
+        NewIcc.IOHandler = cmsOpenIOhandlerFromFile(ContextID, FileName, Access);
+        if (NewIcc.IOHandler is null) goto Error;
 
         if (Access.ToLower().Contains('w'))
         {
-            NewIcc->IsWrite = true;
+            NewIcc.IsWrite = true;
             return NewIcc;
         }
 
@@ -884,22 +898,22 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromFile(string FileName, string Access) =>
+    public static Profile? cmsOpenProfileFromFile(string FileName, string Access) =>
         cmsOpenProfileFromFileTHR(null, FileName, Access);
 
-    public static Profile* cmsOpenProfileFromStreamTHR(Context? ContextID, Stream ICCProfile, string Access)
+    public static Profile? cmsOpenProfileFromStreamTHR(Context? ContextID, Stream ICCProfile, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
 
-        var NewIcc = (Profile*)hEmpty;
+        var NewIcc = hEmpty;
 
-        NewIcc->IOHandler = cmsOpenIOhandlerFromStream(ContextID, ICCProfile);
-        if (NewIcc->IOHandler is null) goto Error;
+        NewIcc.IOHandler = cmsOpenIOhandlerFromStream(ContextID, ICCProfile);
+        if (NewIcc.IOHandler is null) goto Error;
 
         if (Access.ToLower().Contains('w'))
         {
-            NewIcc->IsWrite = true;
+            NewIcc.IsWrite = true;
             return NewIcc;
         }
 
@@ -911,18 +925,18 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromStream(Stream ICCProfile, string Access) =>
+    public static Profile? cmsOpenProfileFromStream(Stream ICCProfile, string Access) =>
         cmsOpenProfileFromStreamTHR(null, ICCProfile, Access);
 
-    public static Profile* cmsOpenProfileFromMemTHR(Context? ContextID, void* MemPtr, uint Size)
+    public static Profile? cmsOpenProfileFromMemTHR(Context? ContextID, void* MemPtr, uint Size)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
 
-        var NewIcc = (Profile*)hEmpty;
+        var NewIcc = hEmpty;
 
-        NewIcc->IOHandler = cmsOpenIOhandlerFromMem(ContextID, MemPtr, Size, "r");
-        if (NewIcc->IOHandler is null) goto Error;
+        NewIcc.IOHandler = cmsOpenIOhandlerFromMem(ContextID, MemPtr, Size, "r");
+        if (NewIcc.IOHandler is null) goto Error;
 
         if (!_cmsReadHeader(NewIcc)) goto Error;
         return NewIcc;
@@ -932,26 +946,26 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromMem(void* MemPtr, uint Size) =>
+    public static Profile? cmsOpenProfileFromMem(void* MemPtr, uint Size) =>
         cmsOpenProfileFromMemTHR(null, MemPtr, Size);
 
-    private static bool SaveTags(Profile* Icc, Profile* FileOrig)
+    private static bool SaveTags(Profile Icc, Profile? FileOrig)
     {
-        var io = Icc->IOHandler;
+        var io = Icc.IOHandler;
         if (io is null) return false;
 
         var Version = cmsGetProfileVersion(Icc);
 
-        for (var i = 0; i < Icc->TagCount; i++)
+        for (var i = 0; i < Icc.TagCount; i++)
         {
-            if (Icc->TagNames[i] is 0) continue;
+            if ((uint)Icc.TagNames[i] is 0) continue;
 
             // Linked tags are not written
-            if (Icc->TagLinked[i] is not 0) continue;
+            if ((uint)Icc.TagLinked[i] is not 0) continue;
 
-            var Begin = Icc->TagOffsets[i] = io.UsedSpace;
+            var Begin = Icc.TagOffsets[i] = io.UsedSpace;
 
-            var Data = (byte*)(void*)Icc->TagPtrs[i];
+            var Data = Icc.TagPtrs[i] as BoxPtr<byte>;
 
             if (Data is not null)
             {
@@ -959,22 +973,22 @@ public static unsafe partial class Lcms2
                 // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
                 // In this case a blind copy of the block data is performed
                 if (FileOrig is not null &&
-                    Icc->TagOffsets[i] is not 0 &&
-                    FileOrig->IOHandler is not null)
+                    Icc.TagOffsets[i] is not 0 &&
+                    FileOrig.IOHandler is not null)
                 {
-                    var TagSize = FileOrig->TagSizes[i];
-                    var TagOffset = FileOrig->TagOffsets[i];
+                    var TagSize = FileOrig.TagSizes[i];
+                    var TagOffset = FileOrig.TagOffsets[i];
 
-                    if (!FileOrig->IOHandler!.Seek(FileOrig->IOHandler!, TagOffset)) return false;
+                    if (!FileOrig.IOHandler.Seek(FileOrig.IOHandler, TagOffset)) return false;
 
-                    Mem = _cmsMalloc(Icc->ContextID, TagSize);
+                    Mem = _cmsMalloc(Icc.ContextID, TagSize);
                     if (Mem is null) return false;
 
-                    if (FileOrig->IOHandler!.Read(FileOrig->IOHandler!, Mem, TagSize, 1) is not 1) goto Error;
+                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1) goto Error;
                     if (!io.Write(io, TagSize, Mem)) goto Error;
-                    _cmsFree(Icc->ContextID, Mem);
+                    _cmsFree(Icc.ContextID, Mem);
 
-                    Icc->TagSizes[i] = io.UsedSpace - Begin;
+                    Icc.TagSizes[i] = io.UsedSpace - Begin;
 
                     // Align to 32 bit boundary.
                     if (!_cmsWriteAlignment(io))
@@ -983,30 +997,30 @@ public static unsafe partial class Lcms2
 
                 continue;
             Error:
-                _cmsFree(Icc->ContextID, Mem);
+                _cmsFree(Icc.ContextID, Mem);
                 return false;
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
-            if (Icc->TagSaveAsRaw[i])
+            if (Icc.TagSaveAsRaw[i])
             {
-                if (!io.Write(io, Icc->TagSizes[i], Data)) return false;
+                if (!io.Write(io, Icc.TagSizes[i], Data)) return false;
             }
             else
             {
                 // Search for support on this tag
-                var TagDescriptor = _cmsGetTagDescriptor(Icc->ContextID, Icc->TagNames[i]);
+                var TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, Icc.TagNames[i]);
                 if (TagDescriptor is null) continue;        // Unsupported, ignore it
 
                 var Type = (TagDescriptor->DecideType is not null)
                     ? TagDescriptor->DecideType(Version, Data)
                     : (Signature)TagDescriptor->SupportedTypes[0];
 
-                var TypeHandler = _cmsGetTagTypeHandler(Icc->ContextID, Type);
+                var TypeHandler = _cmsGetTagTypeHandler(Icc.ContextID, Type);
 
                 if (TypeHandler is null)
                 {
-                    cmsSignalError(Icc->ContextID, cmsERROR_INTERNAL, $"(Internal) no handler for tag {Icc->TagNames[i]:x}");
+                    cmsSignalError(Icc.ContextID, cmsERROR_INTERNAL, $"(Internal) no handler for tag {Icc.TagNames[i]:x}");
                     continue;
                 }
 
@@ -1015,19 +1029,19 @@ public static unsafe partial class Lcms2
                     return false;
 
                 var LocalTypeHandler = *TypeHandler;
-                LocalTypeHandler.ContextID = Icc->ContextID;
-                LocalTypeHandler.ICCVersion = Icc->Version;
+                LocalTypeHandler.ContextID = Icc.ContextID;
+                LocalTypeHandler.ICCVersion = Icc.Version;
                 if (!LocalTypeHandler.WritePtr(&LocalTypeHandler, io, Data, TagDescriptor->ElemCount))
                 {
                     var str = stackalloc sbyte[5];
 
                     _cmsTagSignature2String((byte*)str, TypeBase);
-                    cmsSignalError(Icc->ContextID, cmsERROR_WRITE, $"Couldn't write type '{new string(str)}'");
+                    cmsSignalError(Icc.ContextID, cmsERROR_WRITE, $"Couldn't write type '{new string(str)}'");
                     return false;
                 }
             }
 
-            Icc->TagSizes[i] = io.UsedSpace - Begin;
+            Icc.TagSizes[i] = io.UsedSpace - Begin;
 
             // Align to 32 bit boundary
             if (!_cmsWriteAlignment(io))
@@ -1037,18 +1051,18 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool SetLinks(Profile* Icc)
+    private static bool SetLinks(Profile Icc)
     {
-        for (var i = 0; i < Icc->TagCount; i++)
+        for (var i = 0; i < Icc.TagCount; i++)
         {
-            var lnk = Icc->TagLinked[i];
-            if (lnk is not 0)
+            var lnk = Icc.TagLinked[i];
+            if ((uint)lnk is not 0)
             {
                 var j = _cmsSearchTag(Icc, lnk, false);
                 if (j >= 0)
                 {
-                    Icc->TagOffsets[i] = Icc->TagOffsets[j];
-                    Icc->TagSizes[i] = Icc->TagSizes[j];
+                    Icc.TagOffsets[i] = Icc.TagOffsets[j];
+                    Icc.TagSizes[i] = Icc.TagSizes[j];
                 }
             }
         }
@@ -1056,28 +1070,29 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static uint cmsSaveProfileToIOhandler(HPROFILE hProfile, IOHandler io)
+    public static uint cmsSaveProfileToIOhandler(Profile Profile, IOHandler io)
     {
         Profile Keep;
 
-        _cmsAssert(hProfile);
+        _cmsAssert(Profile);
 
-        var Icc = (Profile*)hProfile;
+        Keep = Profile;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
-        memmove(&Keep, Icc, sizeof(Profile));
+        if (!_cmsLockMutex(Keep.ContextID, Keep.UserMutex)) return 0;
+        var Icc = (Profile)Keep.Clone();
+        //memmove(&Keep, Icc, _sizeof<Profile>());
 
         var ContextID = cmsGetProfileContextID(Icc);
-        var PrevIO = Icc->IOHandler = cmsOpenIOhandlerFromNULL(ContextID);
+        var PrevIO = Icc.IOHandler = cmsOpenIOhandlerFromNULL(ContextID);
         if (PrevIO is null)
         {
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return 0;
         }
 
         // Pass #1 does computer offsets
         if (!_cmsWriteHeader(Icc, 0)) goto Error;
-        if (!SaveTags(Icc, &Keep)) goto Error;
+        if (!SaveTags(Icc, Keep)) goto Error;
 
         var UsedSpace = PrevIO.UsedSpace;
 
@@ -1085,36 +1100,37 @@ public static unsafe partial class Lcms2
 
         if (io is not null)
         {
-            Icc->IOHandler = io;
+            Icc.IOHandler = io;
             if (!SetLinks(Icc)) goto Error;
             if (!_cmsWriteHeader(Icc, UsedSpace)) goto Error;
-            if (!SaveTags(Icc, &Keep)) goto Error;
+            if (!SaveTags(Icc, Keep)) goto Error;
         }
 
-        memmove(Icc, &Keep, _sizeof<Profile>());
+
+        //memmove(Icc, &Keep, _sizeof<Profile>());
         if (!cmsCloseIOhandler(PrevIO))
             UsedSpace = 0; // As an error marker
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Keep.ContextID, Keep.UserMutex);
 
         return UsedSpace;
 
     Error:
         cmsCloseIOhandler(PrevIO);
-        memmove(Icc, &Keep, _sizeof<Profile>());
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        //memmove(Icc, &Keep, _sizeof<Profile>());
+        _cmsUnlockMutex(Keep.ContextID, Keep.UserMutex);
 
         return 0;
     }
 
-    public static bool cmsSaveProfileToFile(HPROFILE hProfile, string FileName)
+    public static bool cmsSaveProfileToFile(Profile Profile, string FileName)
     {
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
         var io = cmsOpenIOhandlerFromFile(ContextID, FileName, "w");
 
         if (io is null) return false;
 
-        var rc = cmsSaveProfileToIOhandler(hProfile, io) is not 0;
+        var rc = cmsSaveProfileToIOhandler(Profile, io) is not 0;
         rc &= cmsCloseIOhandler(io);
 
         if (!rc)
@@ -1128,29 +1144,29 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static bool cmsSaveProfileToStream(HPROFILE hProfile, Stream Stream)
+    public static bool cmsSaveProfileToStream(Profile Profile, Stream Stream)
     {
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
         var io = cmsOpenIOhandlerFromStream(ContextID, Stream);
 
         if (io is null) return false;
 
-        var rc = cmsSaveProfileToIOhandler(hProfile, io) is not 0;
+        var rc = cmsSaveProfileToIOhandler(Profile, io) is not 0;
         rc &= cmsCloseIOhandler(io);
 
         return rc;
     }
 
-    public static bool cmsSaveProfileToMem(HPROFILE hProfile, void* MemPtr, uint* BytesNeeded)
+    public static bool cmsSaveProfileToMem(Profile Profile, void* MemPtr, uint* BytesNeeded)
     {
-        var ContextID = cmsGetProfileContextID(hProfile);
+        var ContextID = cmsGetProfileContextID(Profile);
 
         _cmsAssert(BytesNeeded);
 
         // Should we just calculate the needed space?
         if (MemPtr is null)
         {
-            *BytesNeeded = cmsSaveProfileToIOhandler(hProfile, null);
+            *BytesNeeded = cmsSaveProfileToIOhandler(Profile, null);
             return *BytesNeeded is not 0;
         }
 
@@ -1158,58 +1174,58 @@ public static unsafe partial class Lcms2
         var io = cmsOpenIOhandlerFromMem(ContextID, MemPtr, *BytesNeeded, "w");
         if (io is null) return false;
 
-        var rc = cmsSaveProfileToIOhandler(hProfile, io) is not 0;
+        var rc = cmsSaveProfileToIOhandler(Profile, io) is not 0;
         rc &= cmsCloseIOhandler(io);
 
         return rc;
     }
 
-    private static void freeOneTag(Profile* Icc, uint i)
+    private static void freeOneTag(Profile Icc, uint i)
     {
-        if (((void**)Icc->TagPtrs)[i] is not null)
+        if (Icc.TagPtrs[i] is not null)
         {
-            var TypeHandler = ((TagTypeHandler**)Icc->TagTypeHandlers)[i];
+            var TypeHandler = Icc.TagTypeHandlers[i];
 
             if (TypeHandler is not null)
             {
                 var LocalTypeHandler = *TypeHandler;
 
-                LocalTypeHandler.ContextID = Icc->ContextID;
-                LocalTypeHandler.ICCVersion = Icc->Version;
-                LocalTypeHandler.FreePtr(&LocalTypeHandler, ((void**)Icc->TagPtrs)[i]);
+                LocalTypeHandler.ContextID = Icc.ContextID;
+                LocalTypeHandler.ICCVersion = Icc.Version;
+                LocalTypeHandler.FreePtr(&LocalTypeHandler, Icc.TagPtrs[i]);
             }
             else
             {
-                _cmsFree(Icc->ContextID, ((void**)Icc->TagPtrs)[i]);
+                //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
             }
         }
     }
 
-    public static bool cmsCloseProfile(HPROFILE hProfile)
+    public static bool cmsCloseProfile(Profile Profile)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
         var rc = true;
 
         if (Icc is null) return false;
 
         // Was open in write mode?
-        if (Icc->IsWrite)
+        if (Icc.IsWrite)
         {
-            Icc->IsWrite = false;   // Assure no further writing
-            if (Icc->IOHandler is null || Icc->IOHandler!.physicalFile is null)
+            Icc.IsWrite = false;   // Assure no further writing
+            if (Icc.IOHandler is null || Icc.IOHandler.physicalFile is null)
                 return false;
-            rc &= cmsSaveProfileToFile(Icc, Icc->IOHandler!.physicalFile!);
+            rc &= cmsSaveProfileToFile(Icc, Icc.IOHandler.physicalFile!);
         }
 
-        for (var i = 0u; i < Icc->TagCount; i++)
+        for (var i = 0u; i < Icc.TagCount; i++)
             freeOneTag(Icc, i);
 
-        if (Icc->IOHandler is not null)
-            rc &= cmsCloseIOhandler(Icc->IOHandler!);
+        if (Icc.IOHandler is not null)
+            rc &= cmsCloseIOhandler(Icc.IOHandler);
 
-        _cmsDestroyMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsDestroyMutex(Icc.ContextID, Icc.UserMutex);
 
-        _cmsFree(Icc->ContextID, Icc);  // Free placeholder memory
+        //_cmsFree(Icc.ContextID, Icc);  // Free placeholder memory
 
         return rc;
     }
@@ -1226,64 +1242,64 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    public static void* cmsReadTag(HPROFILE hProfile, Signature sig)
+    public static object? cmsReadTag(Profile Profile, Signature sig)
     {
         TagDescriptor* TagDescriptor;
         Signature BaseType;
         uint ElemCount;
         var str = stackalloc sbyte[5];
 
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return null;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return null;
 
         var n = _cmsSearchTag(Icc, sig, true);
         if (n < 0)
         {
             // Not found, return null
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return null;
         }
 
         // If the element is already in memory, return the pointer
-        if (((void**)Icc->TagPtrs)[n] is not null)
+        if (Icc.TagPtrs[n] is not null)
         {
-            if (((TagTypeHandler**)Icc->TagTypeHandlers)[n] is null) goto Error;
+            if (Icc.TagTypeHandlers[n] is null) goto Error;
 
             // Sanity check
-            BaseType = ((TagTypeHandler**)Icc->TagTypeHandlers)[n]->Signature;
+            BaseType = Icc.TagTypeHandlers[n]->Signature;
             if ((uint)BaseType is 0) goto Error;
 
-            TagDescriptor = _cmsGetTagDescriptor(Icc->ContextID, sig);
+            TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
             if (TagDescriptor is null) goto Error;
 
             if (!IsTypeSupported(TagDescriptor, BaseType)) goto Error;
 
-            if (Icc->TagSaveAsRaw[n]) goto Error;   // We don't support read raw tags as cooked
+            if (Icc.TagSaveAsRaw[n]) goto Error;   // We don't support read raw tags as cooked
 
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
-            return ((void**)Icc->TagPtrs)[n];
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
+            return Icc.TagPtrs[n];
         }
 
         // We need to read it. Get the offset and size to the file
-        var Offset = Icc->TagOffsets[n];
-        var TagSize = Icc->TagSizes[n];
+        var Offset = Icc.TagOffsets[n];
+        var TagSize = Icc.TagSizes[n];
 
         if (TagSize < 8) goto Error;
 
-        var io = Icc->IOHandler;
+        var io = Icc.IOHandler;
         // Seek to its location
         if (io is null || !io.Seek(io, Offset))
             goto Error;
 
         // Search for support on this tag
-        TagDescriptor = _cmsGetTagDescriptor(Icc->ContextID, sig);
+        TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
             _cmsTagSignature2String((byte*)str, sig);
 
             // An unknown element was found.
-            cmsSignalError(Icc->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{new string(str)}' found.");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{new string(str)}' found.");
             goto Error;     // Unsupported
         }
 
@@ -1296,20 +1312,20 @@ public static unsafe partial class Lcms2
         TagSize -= 8;   // Already read by the type base logic
 
         // Get type handler
-        var TypeHandler = _cmsGetTagTypeHandler(Icc->ContextID, BaseType);
+        var TypeHandler = _cmsGetTagTypeHandler(Icc.ContextID, BaseType);
         if (TypeHandler is null) goto Error;
         var LocalTypeHandler = *TypeHandler;
 
-        LocalTypeHandler.ContextID = Icc->ContextID;
-        LocalTypeHandler.ICCVersion = Icc->Version;
-        ((void**)Icc->TagPtrs)[n] = LocalTypeHandler.ReadPtr(&LocalTypeHandler, io, &ElemCount, TagSize);
+        LocalTypeHandler.ContextID = Icc.ContextID;
+        LocalTypeHandler.ICCVersion = Icc.Version;
+        Icc.TagPtrs[n] = LocalTypeHandler.ReadPtr(&LocalTypeHandler, io, &ElemCount, TagSize);
 
         // The tag type is supported, but something wrong happened and we cannot read the tag.
         // let the user know about this (although it is just a warning)
-        if (((void**)Icc->TagPtrs)[n] is null)
+        if (Icc.TagPtrs[n] is null)
         {
             _cmsTagSignature2String((byte*)str, sig);
-            cmsSignalError(Icc->ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{new string(str)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{new string(str)}'");
             goto Error;
         }
 
@@ -1318,46 +1334,46 @@ public static unsafe partial class Lcms2
         if (ElemCount < TagDescriptor->ElemCount)
         {
             _cmsTagSignature2String((byte*)str, sig);
-            cmsSignalError(Icc->ContextID, cmsERROR_CORRUPTION_DETECTED,
+            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED,
                 $"'{new string(str)}' Inconsistent number of items: expected {TagDescriptor->ElemCount}, got {ElemCount}");
             goto Error;
         }
 
         // Return the data
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
-        return ((void**)Icc->TagPtrs)[n];
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
+        return Icc.TagPtrs[n];
 
     Error:
         freeOneTag(Icc, (uint)n);
-        ((void**)Icc->TagPtrs)[n] = null;
+        Icc.TagPtrs[n] = null;
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return null;
     }
 
-    internal static Signature _cmsGetTagTrueType(HPROFILE hProfile, Signature sig)
+    internal static Signature _cmsGetTagTrueType(Profile Profile, Signature sig)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
         // Search for given tag in Icc profile directory
         var n = _cmsSearchTag(Icc, sig, true);
         if (n < 0) return 0;                        // Not found, return null
 
         // Get the handler. The true type is there
-        var TypeHandler = ((TagTypeHandler**)Icc->TagTypeHandlers)[n];
+        var TypeHandler = Icc.TagTypeHandlers[n];
         return TypeHandler->Signature;
     }
 
-    public static bool cmsWriteTag(HPROFILE hProfile, Signature sig, in void* data)
+    public static bool cmsWriteTag(Profile Profile, Signature sig, object? data)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
         var TypeString = stackalloc sbyte[5];
         var SigString = stackalloc sbyte[5];
         Signature Type;
         int i;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return false;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return false;
 
         // To delete tags
         if (data is null)
@@ -1368,8 +1384,8 @@ public static unsafe partial class Lcms2
             {
                 // Use zero as a mark of deleted
                 _cmsDeleteTagByPos(Icc, i);
-                Icc->TagNames[i] = 0;
-                _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+                Icc.TagNames[i] = 0;
+                _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
                 return true;
             }
             // Didn't find the tag
@@ -1379,17 +1395,17 @@ public static unsafe partial class Lcms2
         if (!_cmsNewTag(Icc, sig, &i)) goto Error;
 
         // This is not raw
-        Icc->TagSaveAsRaw[i] = false;
+        Icc.TagSaveAsRaw[i] = false;
 
         // This is not a link
-        Icc->TagLinked[i] = 0;
+        Icc.TagLinked[i] = 0;
 
         // Get information about the TAG
-        var TagDescriptor = _cmsGetTagDescriptor(Icc->ContextID, sig);
+        var TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
             _cmsTagSignature2String((byte*)SigString, sig);
-            cmsSignalError(Icc->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{new string(SigString)}'");
             goto Error;
         }
 
@@ -1416,64 +1432,64 @@ public static unsafe partial class Lcms2
             _cmsTagSignature2String((byte*)TypeString, Type);
             _cmsTagSignature2String((byte*)SigString, sig);
 
-            cmsSignalError(Icc->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
             goto Error;
         }
 
         // Do we have a handler for this type?
-        var TypeHandler = _cmsGetTagTypeHandler(Icc->ContextID, Type);
+        var TypeHandler = _cmsGetTagTypeHandler(Icc.ContextID, Type);
         if (TypeHandler is null)
         {
             _cmsTagSignature2String((byte*)TypeString, Type);
             _cmsTagSignature2String((byte*)SigString, sig);
 
-            cmsSignalError(Icc->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
             goto Error;     // Should never happen
         }
 
         // Fill fields on icc structure
-        Icc->TagTypeHandlers[i] = (long)TypeHandler;
-        Icc->TagNames[i] = sig;
-        Icc->TagSizes[i] = 0;
-        Icc->TagOffsets[i] = 0;
+        Icc.TagTypeHandlers[i] = TypeHandler;
+        Icc.TagNames[i] = sig;
+        Icc.TagSizes[i] = 0;
+        Icc.TagOffsets[i] = 0;
 
         var LocalTagTypeHandler = *TypeHandler;
-        LocalTagTypeHandler.ContextID = Icc->ContextID;
-        LocalTagTypeHandler.ICCVersion = Icc->Version;
-        Icc->TagPtrs[i] = (long)LocalTagTypeHandler.DupPtr(&LocalTagTypeHandler, data, TagDescriptor->ElemCount);
+        LocalTagTypeHandler.ContextID = Icc.ContextID;
+        LocalTagTypeHandler.ICCVersion = Icc.Version;
+        Icc.TagPtrs[i] = LocalTagTypeHandler.DupPtr(&LocalTagTypeHandler, data, TagDescriptor->ElemCount);
 
-        if (((void**)Icc->TagPtrs)[i] is null)
+        if (Icc.TagPtrs[i] is null)
         {
             _cmsTagSignature2String((byte*)TypeString, Type);
             _cmsTagSignature2String((byte*)SigString, sig);
 
-            cmsSignalError(Icc->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{new string(TypeString)}' for tag '{new string(SigString)}'");
             goto Error;
         }
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return true;
     Error:
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return false;
     }
 
-    public static uint cmsReadRawTag(HPROFILE hProfile, Signature sig, void* data, uint BufferSize)
+    public static uint cmsReadRawTag(Profile Profile, Signature sig, void* data, uint BufferSize)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return 0;
 
         // Search for given tag in ICC profile directory
         var i = _cmsSearchTag(Icc, sig, true);
         if (i < 0) goto Error;  // Not found
 
         // It is already read?
-        if (((void**)Icc->TagPtrs)[i] is null)
+        if (Icc.TagPtrs[i] is null)
         {
             // Not yet, get original position
-            var Offset = Icc->TagOffsets[i];
-            var TagSize = Icc->TagSizes[i];
+            var Offset = Icc.TagOffsets[i];
+            var TagSize = Icc.TagSizes[i];
 
             // read the data directly, don't keep copy
             if (data is not null)
@@ -1481,43 +1497,43 @@ public static unsafe partial class Lcms2
                 if (BufferSize < TagSize)
                     TagSize = BufferSize;
 
-                if (Icc->IOHandler is null || !Icc->IOHandler!.Seek(Icc->IOHandler!, Offset)) goto Error;
-                if (Icc->IOHandler!.Read(Icc->IOHandler!, data, 1, Offset) is 0) goto Error;
+                if (Icc.IOHandler is null || !Icc.IOHandler.Seek(Icc.IOHandler, Offset)) goto Error;
+                if (Icc.IOHandler.Read(Icc.IOHandler, data, 1, Offset) is 0) goto Error;
 
-                _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+                _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
                 return TagSize;
             }
 
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
-            return Icc->TagSizes[i];
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
+            return Icc.TagSizes[i];
         }
 
         // The data has been already read, or written. But wait! maybe the user chose to save as
         // raw data. In this case, return the raw data directly
-        if (Icc->TagSaveAsRaw[i])
+        if (Icc.TagSaveAsRaw[i])
         {
             if (data is not null)
             {
-                var TagSize = Icc->TagSizes[i];
+                var TagSize = Icc.TagSizes[i];
                 if (BufferSize < TagSize)
                     TagSize = BufferSize;
 
-                memmove(data, ((void**)Icc->TagPtrs)[i], TagSize);
+                memmove(data, (BoxPtrVoid)Icc.TagPtrs[i], TagSize);
 
-                _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+                _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
                 return TagSize;
             }
 
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
-            return Icc->TagSizes[i];
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
+            return Icc.TagSizes[i];
         }
 
         // Already read, or previously set by cmsWriteTag(). We need to serialize that
         // data to raw in order to maintain consistency.
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         var Object = cmsReadTag(Icc, sig);
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return 0;
 
         if (Object is null) goto Error;
 
@@ -1529,8 +1545,8 @@ public static unsafe partial class Lcms2
         if (MemIO is null) goto Error;
 
         // Obtain type handling for the tag
-        var TypeHandler = ((TagTypeHandler**)Icc->TagTypeHandlers)[i];
-        var TagDescriptor = _cmsGetTagDescriptor(Icc->ContextID, sig);
+        var TypeHandler = Icc.TagTypeHandlers[i];
+        var TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
             cmsCloseIOhandler(MemIO);
@@ -1541,8 +1557,8 @@ public static unsafe partial class Lcms2
 
         // Serialize
         var LocalTypeHandler = *TypeHandler;
-        LocalTypeHandler.ContextID = Icc->ContextID;
-        LocalTypeHandler.ICCVersion = Icc->Version;
+        LocalTypeHandler.ContextID = Icc.ContextID;
+        LocalTypeHandler.ICCVersion = Icc.Version;
 
         if (!_cmsWriteTypeBase(MemIO, TypeHandler->Signature))
         {
@@ -1560,83 +1576,83 @@ public static unsafe partial class Lcms2
         var rc = MemIO.Tell(MemIO);
         cmsCloseIOhandler(MemIO);       // Ignore return code this time
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return rc;
 
     Error:
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return 0;
     }
 
-    public static bool cmsWriteRawTag(HPROFILE hProfile, Signature sig, in void* data, uint Size)
+    public static bool cmsWriteRawTag(Profile Profile, Signature sig, in void* data, uint Size)
     {
         int i;
 
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return false;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return false;
 
         if (!_cmsNewTag(Icc, sig, &i))
         {
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return false;
         }
 
         // Mark the tag as being written as RAW
-        Icc->TagSaveAsRaw[i] = true;
-        Icc->TagNames[i] = sig;
-        Icc->TagLinked[i] = 0;
+        Icc.TagSaveAsRaw[i] = true;
+        Icc.TagNames[i] = sig;
+        Icc.TagLinked[i] = 0;
 
         // Keep a copy of the block
-        ((void**)Icc->TagPtrs)[i] = _cmsDupMem(Icc->ContextID, data, Size);
-        Icc->TagSizes[i] = Size;
+        Icc.TagPtrs[i] = new BoxPtrVoid(_cmsDupMem(Icc.ContextID, data, Size));
+        Icc.TagSizes[i] = Size;
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
 
-        if (((void**)Icc->TagPtrs)[i] is null)
+        if (Icc.TagPtrs[i] is null)
         {
-            Icc->TagNames[i] = 0;
+            Icc.TagNames[i] = 0;
             return false;
         }
 
         return true;
     }
 
-    public static bool cmsLinkTag(HPROFILE hProfile, Signature sig, Signature dest)
+    public static bool cmsLinkTag(Profile Profile, Signature sig, Signature dest)
     {
         int i;
 
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
-        if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return false;
+        if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return false;
 
         if (!_cmsNewTag(Icc, sig, &i))
         {
-            _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+            _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return false;
         }
 
         // Keep necessary information
-        Icc->TagSaveAsRaw[i] = false;
-        Icc->TagNames[i] = sig;
-        Icc->TagLinked[i] = dest;
+        Icc.TagSaveAsRaw[i] = false;
+        Icc.TagNames[i] = sig;
+        Icc.TagLinked[i] = dest;
 
-        ((void**)Icc->TagPtrs)[i] = null;
-        Icc->TagSizes[i] = 0;
-        Icc->TagOffsets[i] = 0;
+        Icc.TagPtrs[i] = null;
+        Icc.TagSizes[i] = 0;
+        Icc.TagOffsets[i] = 0;
 
-        _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
+        _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         return true;
     }
 
-    public static Signature cmsTagLinkedTo(HPROFILE hProfile, Signature sig)
+    public static Signature cmsTagLinkedTo(Profile Profile, Signature sig)
     {
-        var Icc = (Profile*)hProfile;
+        var Icc = Profile;
 
         // Search for given tag in ICC profile directory
         var i = _cmsSearchTag(Icc, sig, false);
         if (i < 0) return 0;        // Not found, return 0
 
-        return Icc->TagLinked[i];
+        return Icc.TagLinked[i];
     }
 }
