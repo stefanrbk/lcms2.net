@@ -1440,7 +1440,7 @@ public static unsafe partial class Lcms2
         LocalTagTypeHandler.ICCVersion = Icc->Version;
         Icc->TagPtrs[i] = (long)LocalTagTypeHandler.DupPtr(&LocalTagTypeHandler, data, TagDescriptor->ElemCount);
 
-        if (((void*)Icc->TagPtrs[i]) is null)
+        if (((void**)Icc->TagPtrs)[i] is null)
         {
             _cmsTagSignature2String((byte*)TypeString, Type);
             _cmsTagSignature2String((byte*)SigString, sig);
