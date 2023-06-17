@@ -33,87 +33,83 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static uint NULLRead(IOHandler* iohandler, void* _, uint size, uint count)
+    private static uint NULLRead(IOHandler iohandler, void* _, uint size, uint count)
     {
-        var ResData = (FILENULL*)iohandler->stream;
+        var ResData = (FILENULL*)iohandler.stream;
 
         var len = size * count;
         ResData->Pointer += len;
         return count;
     }
 
-    private static bool NULLSeek(IOHandler* iohandler, uint offset)
+    private static bool NULLSeek(IOHandler iohandler, uint offset)
     {
-        var ResData = (FILENULL*)iohandler->stream;
+        var ResData = (FILENULL*)iohandler.stream;
 
         ResData->Pointer = offset;
         return true;
     }
 
-    private static uint NULLTell(IOHandler* iohandler)
+    private static uint NULLTell(IOHandler iohandler)
     {
-        var ResData = (FILENULL*)iohandler->stream;
+        var ResData = (FILENULL*)iohandler.stream;
         return ResData->Pointer;
     }
 
-    private static bool NULLWrite(IOHandler* iohandler, uint size, in void* _)
+    private static bool NULLWrite(IOHandler iohandler, uint size, in void* _)
     {
-        var ResData = (FILENULL*)iohandler->stream;
+        var ResData = (FILENULL*)iohandler.stream;
 
         ResData->Pointer += size;
-        if (ResData->Pointer > iohandler->UsedSpace)
-            iohandler->UsedSpace = ResData->Pointer;
+        if (ResData->Pointer > iohandler.UsedSpace)
+            iohandler.UsedSpace = ResData->Pointer;
 
         return true;
     }
 
-    private static bool NULLClose(IOHandler* iohandler)
+    private static bool NULLClose(IOHandler iohandler)
     {
-        var ResData = (FILENULL*)iohandler->stream;
+        var ResData = (FILENULL*)iohandler.stream;
 
-        _cmsFree(iohandler->ContextID, ResData);
-        _cmsFree(iohandler->ContextID, iohandler);
+        _cmsFree(iohandler.ContextID, ResData);
+        //_cmsFree(iohandler.ContextID, iohandler);
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromNULL(Context ContextID)
+    public static IOHandler? cmsOpenIOhandlerFromNULL(Context? ContextID)
     {
-        var iohandler = _cmsMallocZero<IOHandler>(ContextID);
+        var iohandler = new IOHandler();
         if (iohandler is null) return null;
 
         var fm = _cmsMallocZero<FILENULL>(ContextID);
-        if (fm is null) goto Error;
+        if (fm is null) return null;
 
         fm->Pointer = 0;
 
-        iohandler->ContextID = ContextID;
-        iohandler->stream = fm;
-        iohandler->UsedSpace = 0;
-        iohandler->reportedSize = 0;
-        iohandler->physicalFile = String.Empty;
+        iohandler.ContextID = ContextID;
+        iohandler.stream = fm;
+        iohandler.UsedSpace = 0;
+        iohandler.reportedSize = 0;
+        iohandler.physicalFile = String.Empty;
 
-        iohandler->Read = NULLRead;
-        iohandler->Seek = NULLSeek;
-        iohandler->Close = NULLClose;
-        iohandler->Tell = NULLTell;
-        iohandler->Write = NULLWrite;
+        iohandler.Read = NULLRead;
+        iohandler.Seek = NULLSeek;
+        iohandler.Close = NULLClose;
+        iohandler.Tell = NULLTell;
+        iohandler.Write = NULLWrite;
 
         return iohandler;
-
-    Error:
-        if (iohandler is not null) _cmsFree(ContextID, iohandler);
-        return null;
     }
 
-    private static uint MemoryRead(IOHandler* iohandler, void* Buffer, uint size, uint count)
+    private static uint MemoryRead(IOHandler iohandler, void* Buffer, uint size, uint count)
     {
-        var ResData = (FILEMEM*)iohandler->stream;
+        var ResData = (FILEMEM*)iohandler.stream;
         var len = size * count;
 
         if (ResData->Pointer + len > ResData->Size)
         {
             len = ResData->Size - ResData->Pointer;
-            cmsSignalError(iohandler->ContextID, ErrorCode.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler.ContextID, ErrorCode.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -125,13 +121,13 @@ public static unsafe partial class Lcms2
         return count;
     }
 
-    private static bool MemorySeek(IOHandler* iohandler, uint offset)
+    private static bool MemorySeek(IOHandler iohandler, uint offset)
     {
-        var ResData = (FILEMEM*)iohandler->stream;
+        var ResData = (FILEMEM*)iohandler.stream;
 
         if (offset > ResData->Size)
         {
-            cmsSignalError(iohandler->ContextID, ErrorCode.Seek, "Too few data; probably corrupted profile");
+            cmsSignalError(iohandler.ContextID, ErrorCode.Seek, "Too few data; probably corrupted profile");
             return false;
         }
 
@@ -139,17 +135,17 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static uint MemoryTell(IOHandler* iohandler)
+    private static uint MemoryTell(IOHandler iohandler)
     {
-        var ResData = (FILEMEM*)iohandler->stream;
+        var ResData = (FILEMEM*)iohandler.stream;
 
         if (ResData is null) return 0;
         return ResData->Pointer;
     }
 
-    private static bool MemoryWrite(IOHandler* iohandler, uint size, in void* Ptr)
+    private static bool MemoryWrite(IOHandler iohandler, uint size, in void* Ptr)
     {
-        var ResData = (FILEMEM*)iohandler->stream;
+        var ResData = (FILEMEM*)iohandler.stream;
 
         if (ResData is null) return false;
 
@@ -162,32 +158,32 @@ public static unsafe partial class Lcms2
         memmove(ResData->Block + ResData->Pointer, Ptr, size);
         ResData->Pointer += size;
 
-        if (ResData->Pointer > iohandler->UsedSpace)
-            iohandler->UsedSpace = ResData->Pointer;
+        if (ResData->Pointer > iohandler.UsedSpace)
+            iohandler.UsedSpace = ResData->Pointer;
 
         return true;
     }
 
-    private static bool MemoryClose(IOHandler* iohandler)
+    private static bool MemoryClose(IOHandler iohandler)
     {
-        var ResData = (FILEMEM*)iohandler->stream;
+        var ResData = (FILEMEM*)iohandler.stream;
 
         if (ResData->FreeBlockOnClose)
-            if (ResData->Block is not null) _cmsFree(iohandler->ContextID, ResData->Block);
+            if (ResData->Block is not null) _cmsFree(iohandler.ContextID, ResData->Block);
 
-        _cmsFree(iohandler->ContextID, ResData);
-        _cmsFree(iohandler->ContextID, iohandler);
+        _cmsFree(iohandler.ContextID, ResData);
+        //_cmsFree(iohandler.ContextID, iohandler);
 
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromMem(Context ContextID, void* Buffer, uint size, string AccessMode)
+    public static IOHandler? cmsOpenIOhandlerFromMem(Context? ContextID, void* Buffer, uint size, string AccessMode)
     {
         FILEMEM* fm = null;
 
         _cmsAssert(AccessMode);
 
-        var iohandler = _cmsMallocZero<IOHandler>(ContextID);
+        var iohandler = new IOHandler();
         if (iohandler is null) return null;
 
         switch (AccessMode)
@@ -213,7 +209,7 @@ public static unsafe partial class Lcms2
                 fm->FreeBlockOnClose = true;
                 fm->Size = size;
                 fm->Pointer = 0;
-                iohandler->reportedSize = size;
+                iohandler.reportedSize = size;
 
                 break;
 
@@ -225,7 +221,7 @@ public static unsafe partial class Lcms2
                 fm->FreeBlockOnClose = false;
                 fm->Size = size;
                 fm->Pointer = 0;
-                iohandler->reportedSize = 0;
+                iohandler.reportedSize = 0;
 
                 break;
 
@@ -234,76 +230,76 @@ public static unsafe partial class Lcms2
                 return null;
         }
 
-        iohandler->ContextID = ContextID;
-        iohandler->stream = fm;
-        iohandler->UsedSpace = 0;
+        iohandler.ContextID = ContextID;
+        iohandler.stream = fm;
+        iohandler.UsedSpace = 0;
 
-        iohandler->Read = MemoryRead;
-        iohandler->Seek = MemorySeek;
-        iohandler->Close = MemoryClose;
-        iohandler->Tell = MemoryTell;
-        iohandler->Write = MemoryWrite;
+        iohandler.Read = MemoryRead;
+        iohandler.Seek = MemorySeek;
+        iohandler.Close = MemoryClose;
+        iohandler.Tell = MemoryTell;
+        iohandler.Write = MemoryWrite;
 
         return iohandler;
 
     Error:
         if (fm is not null) _cmsFree(ContextID, fm);
-        if (iohandler is not null) _cmsFree(ContextID, iohandler);
+        //if (iohandler is not null) _cmsFree(ContextID, iohandler);
         return null;
     }
 
-    private static uint FileRead(IOHandler* iohandler, void* Buffer, uint size, uint count)
+    private static uint FileRead(IOHandler iohandler, void* Buffer, uint size, uint count)
     {
-        var nReaded = (uint)fread(Buffer, size, count, (FILE*)iohandler->stream);
+        var nReaded = (uint)fread(Buffer, size, count, (FILE*)iohandler.stream);
 
         if (nReaded != count)
         {
-            cmsSignalError(iohandler->ContextID, ErrorCode.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler.ContextID, ErrorCode.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
         return nReaded;
     }
 
-    private static bool FileSeek(IOHandler* iohandler, uint offset)
+    private static bool FileSeek(IOHandler iohandler, uint offset)
     {
-        if (fseek((FILE*)iohandler->stream, offset, SEEK_SET) is not 0)
+        if (fseek((FILE*)iohandler.stream, offset, SEEK_SET) is not 0)
         {
-            cmsSignalError(iohandler->ContextID, ErrorCode.File, "Seek error; probably corrupted file");
+            cmsSignalError(iohandler.ContextID, ErrorCode.File, "Seek error; probably corrupted file");
             return false;
         }
 
         return true;
     }
 
-    private static uint FileTell(IOHandler* iohandler)
+    private static uint FileTell(IOHandler iohandler)
     {
-        var t = ftell((FILE*)iohandler->stream);
+        var t = ftell((FILE*)iohandler.stream);
         if (t is -1)
         {
-            cmsSignalError(iohandler->ContextID, ErrorCode.File, "Tell error; probably corrupted file");
+            cmsSignalError(iohandler.ContextID, ErrorCode.File, "Tell error; probably corrupted file");
             return 0;
         }
 
         return (uint)t;
     }
 
-    private static bool FileWrite(IOHandler* iohandler, uint size, in void* Buffer)
+    private static bool FileWrite(IOHandler iohandler, uint size, in void* Buffer)
     {
         if (size is 0) return true;     // We allow to write 0 bytes, but nothing is written
 
-        iohandler->UsedSpace += size;
-        return fwrite(Buffer, size, 1, (FILE*)iohandler->stream) is 1;
+        iohandler.UsedSpace += size;
+        return fwrite(Buffer, size, 1, (FILE*)iohandler.stream) is 1;
     }
 
-    private static bool FileClose(IOHandler* iohandler)
+    private static bool FileClose(IOHandler iohandler)
     {
-        if (fclose((FILE*)iohandler->stream) is not 0) return false;
-        _cmsFree(iohandler->ContextID, iohandler);
+        if (fclose((FILE*)iohandler.stream) is not 0) return false;
+        //_cmsFree(iohandler.ContextID, iohandler);
         return true;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromFile(Context ContextID, string FileName, string AccessMode)
+    public static IOHandler? cmsOpenIOhandlerFromFile(Context? ContextID, string FileName, string AccessMode)
     {
         FILE* fm = null;
         int fileLen;
@@ -311,7 +307,7 @@ public static unsafe partial class Lcms2
         _cmsAssert(FileName);
         _cmsAssert(AccessMode);
 
-        var iohandler = _cmsMallocZero<IOHandler>(ContextID);
+        var iohandler = new IOHandler();
         if (iohandler is null) return null;
 
         switch (AccessMode[0])
@@ -320,7 +316,7 @@ public static unsafe partial class Lcms2
                 fm = fopen(FileName, "rb");
                 if (fm is null)
                 {
-                    _cmsFree(ContextID, iohandler);
+                    //_cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"File '{FileName}' not found");
                     return null;
                 }
@@ -328,51 +324,51 @@ public static unsafe partial class Lcms2
                 if (fileLen < 0)
                 {
                     fclose(fm);
-                    _cmsFree(ContextID, iohandler);
+                    //_cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"Cannot get size of file '{FileName}'");
                     return null;
                 }
 
-                iohandler->reportedSize = (uint)fileLen;
+                iohandler.reportedSize = (uint)fileLen;
                 break;
 
             case 'w':
                 fm = fopen(FileName, "wb");
                 if (fm is null)
                 {
-                    _cmsFree(ContextID, iohandler);
+                    //_cmsFree(ContextID, iohandler);
                     cmsSignalError(ContextID, ErrorCode.File, $"Couldn't create '{FileName}'");
                     return null;
                 }
 
-                iohandler->reportedSize = 0;
+                iohandler.reportedSize = 0;
                 break;
 
             default:
-                _cmsFree(ContextID, iohandler);
+                //_cmsFree(ContextID, iohandler);
                 cmsSignalError(ContextID, ErrorCode.File, $"Unknown access mode '{AccessMode}'");
                 return null;
         }
 
-        iohandler->ContextID = ContextID;
-        iohandler->stream = fm;
-        iohandler->UsedSpace = 0;
+        iohandler.ContextID = ContextID;
+        iohandler.stream = fm;
+        iohandler.UsedSpace = 0;
 
         // Keep track of the original file
-        iohandler->physicalFile = FileName;
+        iohandler.physicalFile = FileName;
 
-        iohandler->Read = FileRead;
-        iohandler->Seek = FileSeek;
-        iohandler->Close = FileClose;
-        iohandler->Tell = FileTell;
-        iohandler->Write = FileWrite;
+        iohandler.Read = FileRead;
+        iohandler.Seek = FileSeek;
+        iohandler.Close = FileClose;
+        iohandler.Tell = FileTell;
+        iohandler.Write = FileWrite;
 
         return iohandler;
     }
 
-    public static IOHandler* cmsOpenIOhandlerFromStream(Context ContextID, Stream Stream)
+    public static IOHandler? cmsOpenIOhandlerFromStream(Context? ContextID, Stream Stream)
     {
-        IOHandler* iohandler = null;
+        IOHandler? iohandler = null;
 
         var file = alloc<FILE>();
         file->Stream = Stream;
@@ -384,36 +380,36 @@ public static unsafe partial class Lcms2
             goto Error;
         }
 
-        iohandler = _cmsMallocZero<IOHandler>(ContextID);
+        iohandler = new IOHandler();
         if (iohandler is null) goto Error;
 
-        iohandler->ContextID = ContextID;
-        iohandler->stream = file;
-        iohandler->UsedSpace = 0;
-        iohandler->reportedSize = (uint)fileSize;
-        iohandler->physicalFile = String.Empty;
+        iohandler.ContextID = ContextID;
+        iohandler.stream = file;
+        iohandler.UsedSpace = 0;
+        iohandler.reportedSize = (uint)fileSize;
+        iohandler.physicalFile = String.Empty;
 
-        iohandler->Read = FileRead;
-        iohandler->Seek = FileSeek;
-        iohandler->Close = FileClose;
-        iohandler->Tell = FileTell;
-        iohandler->Write = FileWrite;
+        iohandler.Read = FileRead;
+        iohandler.Seek = FileSeek;
+        iohandler.Close = FileClose;
+        iohandler.Tell = FileTell;
+        iohandler.Write = FileWrite;
 
     Error:
         if (file is not null) free(file);
-        if (iohandler is not null) _cmsFree(ContextID, iohandler);
+        //if (iohandler is not null) _cmsFree(ContextID, iohandler);
         return null;
     }
 
-    public static bool cmsCloseIOhandler(IOHandler* io) =>
-        io->Close(io);
+    public static bool cmsCloseIOhandler(IOHandler io) =>
+        io.Close(io);
 
-    public static IOHandler* cmsGetProfileIOhandler(HPROFILE Icc) =>
+    public static IOHandler? cmsGetProfileIOhandler(HPROFILE Icc) =>
         Icc is not null
             ? ((Profile*)Icc)->IOHandler
             : null;
 
-    public static HPROFILE cmsCreateProfilePlaceholder(Context ContextID)
+    public static HPROFILE cmsCreateProfilePlaceholder(Context? ContextID)
     {
         var Icc = _cmsMallocZero<Profile>(ContextID);
         if (Icc is null) return null;
@@ -577,8 +573,10 @@ public static unsafe partial class Lcms2
 
         var io = Icc->IOHandler;
 
+        if (io is null) return false;
+
         // Read the header
-        if (io->Read(io, &Header, (uint)sizeof(Profile.Header), 1) is not 1)
+        if (io.Read(io, &Header, (uint)sizeof(Profile.Header), 1) is not 1)
             return false;
 
         // Validate file as an ICC profile
@@ -606,8 +604,8 @@ public static unsafe partial class Lcms2
         var HeaderSize = _cmsAdjustEndianess32(Header.size);
 
         // Make sure HeaderSize is lower than profile size
-        if (HeaderSize >= Icc->IOHandler->reportedSize)
-            HeaderSize = Icc->IOHandler->reportedSize;
+        if (HeaderSize >= io.reportedSize)
+            HeaderSize = io.reportedSize;
 
         // Get creation date/time
         _cmsDecodeDateTimeNumber(&Header.date, &Icc->Created);
@@ -700,7 +698,7 @@ public static unsafe partial class Lcms2
         memmove(&Header.profileID, &Icc->ProfileID, 16);
 
         // Dump the header
-        if (!Icc->IOHandler->Write(Icc->IOHandler, (uint)sizeof(Profile.Header), &Header)) return false;
+        if (Icc->IOHandler is null || !Icc->IOHandler!.Write(Icc->IOHandler!, (uint)sizeof(Profile.Header), &Header)) return false;
 
         // Saves Tag directory
 
@@ -713,7 +711,7 @@ public static unsafe partial class Lcms2
         }
 
         // Store number of tags
-        if (!_cmsWriteUInt32Number(Icc->IOHandler, Count)) return false;
+        if (!_cmsWriteUInt32Number(Icc->IOHandler!, Count)) return false;
 
         for (var i = 0; i < Icc->TagCount; i++)
         {
@@ -723,7 +721,7 @@ public static unsafe partial class Lcms2
             Tag.offset = _cmsAdjustEndianess32(Icc->TagOffsets[i]);
             Tag.size = _cmsAdjustEndianess32(Icc->TagSizes[i]);
 
-            if (!Icc->IOHandler->Write(Icc->IOHandler, (uint)sizeof(TagEntry), &Tag)) return false;
+            if (!Icc->IOHandler!.Write(Icc->IOHandler!, (uint)sizeof(TagEntry), &Tag)) return false;
         }
 
         return true;
@@ -826,7 +824,7 @@ public static unsafe partial class Lcms2
         // 0x04200000 -> 4.2
         BaseToBase(((Profile*)Icc)->Version >> 16, 16, 10) / 100.0;
 
-    public static Profile* cmsOpenProfileFromIOHandlerTHR(Context ContextID, IOHandler* io)
+    public static Profile* cmsOpenProfileFromIOHandlerTHR(Context? ContextID, IOHandler io)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
@@ -841,7 +839,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromIOHandler2THR(Context ContextID, IOHandler* io, bool write)
+    public static Profile* cmsOpenProfileFromIOHandler2THR(Context? ContextID, IOHandler io, bool write)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
@@ -862,7 +860,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile* cmsOpenProfileFromFileTHR(Context ContextID, string FileName, string Access)
+    public static Profile* cmsOpenProfileFromFileTHR(Context? ContextID, string FileName, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
@@ -889,7 +887,7 @@ public static unsafe partial class Lcms2
     public static Profile* cmsOpenProfileFromFile(string FileName, string Access) =>
         cmsOpenProfileFromFileTHR(null, FileName, Access);
 
-    public static Profile* cmsOpenProfileFromStreamTHR(Context ContextID, Stream ICCProfile, string Access)
+    public static Profile* cmsOpenProfileFromStreamTHR(Context? ContextID, Stream ICCProfile, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
@@ -916,7 +914,7 @@ public static unsafe partial class Lcms2
     public static Profile* cmsOpenProfileFromStream(Stream ICCProfile, string Access) =>
         cmsOpenProfileFromStreamTHR(null, ICCProfile, Access);
 
-    public static Profile* cmsOpenProfileFromMemTHR(Context ContextID, void* MemPtr, uint Size)
+    public static Profile* cmsOpenProfileFromMemTHR(Context? ContextID, void* MemPtr, uint Size)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
         if (hEmpty is null) return null;
@@ -940,6 +938,8 @@ public static unsafe partial class Lcms2
     private static bool SaveTags(Profile* Icc, Profile* FileOrig)
     {
         var io = Icc->IOHandler;
+        if (io is null) return false;
+
         var Version = cmsGetProfileVersion(Icc);
 
         for (var i = 0; i < Icc->TagCount; i++)
@@ -949,7 +949,7 @@ public static unsafe partial class Lcms2
             // Linked tags are not written
             if (Icc->TagLinked[i] is not 0) continue;
 
-            var Begin = Icc->TagOffsets[i] = io->UsedSpace;
+            var Begin = Icc->TagOffsets[i] = io.UsedSpace;
 
             var Data = (byte*)(void*)Icc->TagPtrs[i];
 
@@ -965,16 +965,16 @@ public static unsafe partial class Lcms2
                     var TagSize = FileOrig->TagSizes[i];
                     var TagOffset = FileOrig->TagOffsets[i];
 
-                    if (!FileOrig->IOHandler->Seek(FileOrig->IOHandler, TagOffset)) return false;
+                    if (!FileOrig->IOHandler!.Seek(FileOrig->IOHandler!, TagOffset)) return false;
 
                     Mem = _cmsMalloc(Icc->ContextID, TagSize);
                     if (Mem is null) return false;
 
-                    if (FileOrig->IOHandler->Read(FileOrig->IOHandler, Mem, TagSize, 1) is not 1) goto Error;
-                    if (!io->Write(io, TagSize, Mem)) goto Error;
+                    if (FileOrig->IOHandler!.Read(FileOrig->IOHandler!, Mem, TagSize, 1) is not 1) goto Error;
+                    if (!io.Write(io, TagSize, Mem)) goto Error;
                     _cmsFree(Icc->ContextID, Mem);
 
-                    Icc->TagSizes[i] = io->UsedSpace - Begin;
+                    Icc->TagSizes[i] = io.UsedSpace - Begin;
 
                     // Align to 32 bit boundary.
                     if (!_cmsWriteAlignment(io))
@@ -990,7 +990,7 @@ public static unsafe partial class Lcms2
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
             if (Icc->TagSaveAsRaw[i])
             {
-                if (!io->Write(io, Icc->TagSizes[i], Data)) return false;
+                if (!io.Write(io, Icc->TagSizes[i], Data)) return false;
             }
             else
             {
@@ -1027,7 +1027,7 @@ public static unsafe partial class Lcms2
                 }
             }
 
-            Icc->TagSizes[i] = io->UsedSpace - Begin;
+            Icc->TagSizes[i] = io.UsedSpace - Begin;
 
             // Align to 32 bit boundary
             if (!_cmsWriteAlignment(io))
@@ -1056,7 +1056,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static uint cmsSaveProfileToIOhandler(HPROFILE hProfile, IOHandler* io)
+    public static uint cmsSaveProfileToIOhandler(HPROFILE hProfile, IOHandler io)
     {
         Profile Keep;
 
@@ -1079,7 +1079,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteHeader(Icc, 0)) goto Error;
         if (!SaveTags(Icc, &Keep)) goto Error;
 
-        var UsedSpace = PrevIO->UsedSpace;
+        var UsedSpace = PrevIO.UsedSpace;
 
         // Pass #2 does save to iohandler
 
@@ -1091,7 +1091,7 @@ public static unsafe partial class Lcms2
             if (!SaveTags(Icc, &Keep)) goto Error;
         }
 
-        memmove(Icc, &Keep, sizeof(Profile));
+        memmove(Icc, &Keep, _sizeof<Profile>());
         if (!cmsCloseIOhandler(PrevIO))
             UsedSpace = 0; // As an error marker
 
@@ -1101,7 +1101,7 @@ public static unsafe partial class Lcms2
 
     Error:
         cmsCloseIOhandler(PrevIO);
-        memmove(Icc, &Keep, sizeof(Profile));
+        memmove(Icc, &Keep, _sizeof<Profile>());
         _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
 
         return 0;
@@ -1196,14 +1196,16 @@ public static unsafe partial class Lcms2
         if (Icc->IsWrite)
         {
             Icc->IsWrite = false;   // Assure no further writing
-            rc &= cmsSaveProfileToFile(Icc, Icc->IOHandler->physicalFile);
+            if (Icc->IOHandler is null || Icc->IOHandler!.physicalFile is null)
+                return false;
+            rc &= cmsSaveProfileToFile(Icc, Icc->IOHandler!.physicalFile!);
         }
 
         for (var i = 0u; i < Icc->TagCount; i++)
             freeOneTag(Icc, i);
 
         if (Icc->IOHandler is not null)
-            rc &= cmsCloseIOhandler(Icc->IOHandler);
+            rc &= cmsCloseIOhandler(Icc->IOHandler!);
 
         _cmsDestroyMutex(Icc->ContextID, Icc->UserMutex);
 
@@ -1271,7 +1273,7 @@ public static unsafe partial class Lcms2
 
         var io = Icc->IOHandler;
         // Seek to its location
-        if (!io->Seek(io, Offset))
+        if (io is null || !io.Seek(io, Offset))
             goto Error;
 
         // Search for support on this tag
@@ -1479,8 +1481,8 @@ public static unsafe partial class Lcms2
                 if (BufferSize < TagSize)
                     TagSize = BufferSize;
 
-                if (!Icc->IOHandler->Seek(Icc->IOHandler, Offset)) goto Error;
-                if (Icc->IOHandler->Read(Icc->IOHandler, data, 1, Offset) is 0) goto Error;
+                if (Icc->IOHandler is null || !Icc->IOHandler!.Seek(Icc->IOHandler!, Offset)) goto Error;
+                if (Icc->IOHandler!.Read(Icc->IOHandler!, data, 1, Offset) is 0) goto Error;
 
                 _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
                 return TagSize;
@@ -1555,7 +1557,7 @@ public static unsafe partial class Lcms2
         }
 
         // Get Size and close
-        var rc = MemIO->Tell(MemIO);
+        var rc = MemIO.Tell(MemIO);
         cmsCloseIOhandler(MemIO);       // Ignore return code this time
 
         _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);

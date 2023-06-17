@@ -29,19 +29,19 @@ using lcms2.state;
 
 namespace lcms2.io;
 
-public unsafe struct IOHandler
+public unsafe class IOHandler
 {
     internal void* stream;
-    internal Context ContextID;
+    internal Context? ContextID;
     internal uint UsedSpace;
     internal uint reportedSize;
-    internal string physicalFile;
+    internal string? physicalFile;
 
-    internal delegate uint ReadFn(IOHandler* iohandler, void* buffer, uint size, uint count);
-    internal delegate bool SeekFn(IOHandler* iohandler, uint offset);
-    internal delegate bool CloseFn(IOHandler* iohandler);
-    internal delegate uint TellFn(IOHandler* iohandler);
-    internal delegate bool WriteFn(IOHandler* iohandler, uint size, in void* buffer);
+    internal delegate uint ReadFn(IOHandler iohandler, void* buffer, uint size, uint count);
+    internal delegate bool SeekFn(IOHandler iohandler, uint offset);
+    internal delegate bool CloseFn(IOHandler iohandler);
+    internal delegate uint TellFn(IOHandler iohandler);
+    internal delegate bool WriteFn(IOHandler iohandler, uint size, in void* buffer);
 
     internal ReadFn Read;
     internal SeekFn Seek;

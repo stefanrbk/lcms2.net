@@ -402,7 +402,7 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* DefaultICCintents(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
         HPROFILE* hProfiles,
@@ -527,7 +527,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsDefaultICCintents(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
         HPROFILE* hProfiles,
@@ -576,7 +576,7 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* BlackPreservingKOnlyIntents(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
         HPROFILE* hProfiles,
@@ -768,7 +768,7 @@ public static unsafe partial class Lcms2
     }
 
     private static Pipeline* BlackPreservingKPlaneIntents(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
         HPROFILE* hProfiles,
@@ -895,7 +895,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsLinkProfiles(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
         HPROFILE* hProfiles,

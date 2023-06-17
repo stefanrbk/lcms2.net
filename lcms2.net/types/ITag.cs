@@ -30,7 +30,7 @@ namespace lcms2.types;
 
 public unsafe interface ITag : ICloneable, IDisposable
 {
-    bool WriteRaw(IOHandler* io);
+    bool WriteRaw(IOHandler io);
 
-    static abstract ITag ReadRaw(IOHandler* io);
+    static abstract ITag ReadRaw(IOHandler io);
 }

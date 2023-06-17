@@ -96,7 +96,7 @@ public static unsafe partial class Lcms2
 
     #region IO
 
-    internal static bool _cmsWriteWCharArray(IOHandler* io, uint n, in char* Array)
+    internal static bool _cmsWriteWCharArray(IOHandler io, uint n, in char* Array)
     {
         _cmsAssert(io);
         _cmsAssert(!(Array is null && n > 0));
@@ -124,7 +124,7 @@ public static unsafe partial class Lcms2
         (high << 10) + low - 0x35FDC00;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool convert_utf16_to_utf32(IOHandler* io, int n, char* output)
+    private static bool convert_utf16_to_utf32(IOHandler io, int n, char* output)
     {
         ushort uc;
 
@@ -158,7 +158,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadWCharArray(IOHandler* io, uint n, char* Array)
+    internal static bool _cmsReadWCharArray(IOHandler io, uint n, char* Array)
     {
         ushort tmp;
         const bool is32 = sizeof(char) > sizeof(ushort);
@@ -185,25 +185,25 @@ public static unsafe partial class Lcms2
 
     private static bool ReadPositionTable(
         TagTypeHandler* self,
-        IOHandler* io,
+        IOHandler io,
         uint Count,
         uint BaseOffset,
         void* Cargo,
-        delegate*<TagTypeHandler*, IOHandler*, void*, uint, uint, bool> ElementFn)
+        delegate*<TagTypeHandler*, IOHandler, void*, uint, uint, bool> ElementFn)
     {
         uint* ElementOffsets = null, ElementSizes = null;
 
-        var currentPosition = io->Tell(io);
+        var currentPosition = io.Tell(io);
 
         // Verify there is enough space left to read at least two uint items for Count items
-        if (((io->reportedSize - currentPosition) / (2 * sizeof(uint))) < Count)
+        if (((io.reportedSize - currentPosition) / (2 * sizeof(uint))) < Count)
             return false;
 
         // Let's take the offsets to each element
-        ElementOffsets = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementOffsets is null) goto Error;
 
-        ElementSizes = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementSizes is null) goto Error;
 
         for (var i = 0; i < Count; i++)
@@ -217,43 +217,43 @@ public static unsafe partial class Lcms2
         // Seek to each element and read it
         for (var i = 0; i < Count; i++)
         {
-            if (!io->Seek(io, ElementOffsets[i])) goto Error;
+            if (!io.Seek(io, ElementOffsets[i])) goto Error;
 
             // This is the reader callback
             if (!ElementFn(self, io, Cargo, (uint)i, ElementSizes[i])) goto Error;
         }
 
         //Success
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return false;
     }
 
     private static bool WritePositionTable(
         TagTypeHandler* self,
-        IOHandler* io,
+        IOHandler io,
         uint SizeOfTag,
         uint Count,
         uint BaseOffset,
         void* Cargo,
-        delegate*<TagTypeHandler*, IOHandler*, void*, uint, uint, bool> ElementFn)
+        delegate*<TagTypeHandler*, IOHandler, void*, uint, uint, bool> ElementFn)
     {
         uint* ElementOffsets = null, ElementSizes = null;
 
         // Create table
-        ElementOffsets = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementOffsets is null) goto Error;
 
-        ElementSizes = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementSizes is null) goto Error;
 
         // Keep starting position of curve offsets
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Write a fake directory to be filled later on
         for (var i = 0; i < Count; i++)
@@ -265,19 +265,19 @@ public static unsafe partial class Lcms2
         // Write each element. Keep track of the size as well.
         for (var i = 0; i < Count; i++)
         {
-            var Before = io->Tell(io);
+            var Before = io.Tell(io);
             ElementOffsets[i] = Before - BaseOffset;
 
             // Callback to write...
             if (!ElementFn(self, io, Cargo, (uint)i, SizeOfTag)) goto Error;
 
             // Now the size
-            ElementSizes[i] = io->Tell(io) - Before;
+            ElementSizes[i] = io.Tell(io) - Before;
         }
 
         // Write the directory
-        var CurrentPos = io->Tell(io);
-        if (!io->Seek(io, DirectoryPos)) goto Error;
+        var CurrentPos = io.Tell(io);
+        if (!io.Seek(io, DirectoryPos)) goto Error;
 
         for (var i = 0; i < Count; i++)
         {
@@ -285,39 +285,39 @@ public static unsafe partial class Lcms2
             if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
         }
 
-        if (!io->Seek(io, CurrentPos)) goto Error;
+        if (!io.Seek(io, CurrentPos)) goto Error;
 
         //Success
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return false;
     }
 
     private static bool WritePositionTable(
         TagTypeHandler* self,
-        IOHandler* io,
+        IOHandler io,
         uint SizeOfTag,
         uint Count,
         uint BaseOffset,
         object? Cargo,
-        delegate*<TagTypeHandler*, IOHandler*, object?, uint, uint, bool> ElementFn)
+        delegate*<TagTypeHandler*, IOHandler, object?, uint, uint, bool> ElementFn)
     {
         uint* ElementOffsets = null, ElementSizes = null;
 
         // Create table
-        ElementOffsets = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementOffsets is null) goto Error;
 
-        ElementSizes = _cmsCalloc<uint>(io->ContextID, Count);
+        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
         if (ElementSizes is null) goto Error;
 
         // Keep starting position of curve offsets
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Write a fake directory to be filled later on
         for (var i = 0; i < Count; i++)
@@ -329,19 +329,19 @@ public static unsafe partial class Lcms2
         // Write each element. Keep track of the size as well.
         for (var i = 0; i < Count; i++)
         {
-            var Before = io->Tell(io);
+            var Before = io.Tell(io);
             ElementOffsets[i] = Before - BaseOffset;
 
             // Callback to write...
             if (!ElementFn(self, io, Cargo, (uint)i, SizeOfTag)) goto Error;
 
             // Now the size
-            ElementSizes[i] = io->Tell(io) - Before;
+            ElementSizes[i] = io.Tell(io) - Before;
         }
 
         // Write the directory
-        var CurrentPos = io->Tell(io);
-        if (!io->Seek(io, DirectoryPos)) goto Error;
+        var CurrentPos = io.Tell(io);
+        if (!io.Seek(io, DirectoryPos)) goto Error;
 
         for (var i = 0; i < Count; i++)
         {
@@ -349,16 +349,16 @@ public static unsafe partial class Lcms2
             if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
         }
 
-        if (!io->Seek(io, CurrentPos)) goto Error;
+        if (!io.Seek(io, CurrentPos)) goto Error;
 
         //Success
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) _cmsFree(io->ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io->ContextID, ElementSizes);
+        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
+        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
         return false;
     }
 
@@ -368,7 +368,7 @@ public static unsafe partial class Lcms2
 
     #region XYZ
 
-    private static void* Type_XYZ_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_XYZ_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         CIEXYZ* xyz;
 
@@ -386,7 +386,7 @@ public static unsafe partial class Lcms2
         return xyz;
     }
 
-    private static bool Type_XYZ_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2) =>
+    private static bool Type_XYZ_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2) =>
         _cmsWriteXYZNumber(io, (CIEXYZ*)Ptr);
 
     private static void* Type_XYZ_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
@@ -402,7 +402,7 @@ public static unsafe partial class Lcms2
 
     #region Chromaticity
 
-    private static void* Type_Chromaticity_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_Chromaticity_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         CIExyYTRIPLE* chrm;
         ushort nChans, Table;
@@ -447,7 +447,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool SaveOneChromaticity(double x, double y, IOHandler* io)
+    private static bool SaveOneChromaticity(double x, double y, IOHandler io)
     {
         if (!_cmsWriteUInt32Number(io, (uint)_cmsDoubleTo15Fixed16(x))) return false;
         if (!_cmsWriteUInt32Number(io, (uint)_cmsDoubleTo15Fixed16(y))) return false;
@@ -455,7 +455,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool Type_Chromaticity_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_Chromaticity_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var chrm = (CIExyYTRIPLE*)Ptr;
 
@@ -479,7 +479,7 @@ public static unsafe partial class Lcms2
 
     #region ColorantOrder
 
-    private static void* Type_ColorantOrderType_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_ColorantOrderType_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte* ColorantOrder;
         uint Count;
@@ -494,7 +494,7 @@ public static unsafe partial class Lcms2
         // We use FF as end marker
         memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * sizeof(byte));
 
-        if (io->Read(io, ColorantOrder, sizeof(byte), Count) != Count)
+        if (io.Read(io, ColorantOrder, sizeof(byte), Count) != Count)
         {
             _cmsFree(self->ContextID, ColorantOrder);
             return null;
@@ -504,7 +504,7 @@ public static unsafe partial class Lcms2
         return ColorantOrder;
     }
 
-    private static bool Type_ColorantOrderType_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_ColorantOrderType_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var ColorantOrder = (byte*)Ptr;
         uint i, Count;
@@ -516,7 +516,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, Count)) return false;
 
         var sz = Count * sizeof(byte);
-        if (!io->Write(io, sz, ColorantOrder)) return false;
+        if (!io.Write(io, sz, ColorantOrder)) return false;
 
         return true;
     }
@@ -531,7 +531,7 @@ public static unsafe partial class Lcms2
 
     #region S15Fixed16
 
-    private static void* Type_S15Fixed16_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_S15Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         double* array_double;
 
@@ -553,7 +553,7 @@ public static unsafe partial class Lcms2
         return array_double;
     }
 
-    private static bool Type_S15Fixed16_Write(TagTypeHandler* _, IOHandler* io, void* Ptr, uint nItems)
+    private static bool Type_S15Fixed16_Write(TagTypeHandler* _, IOHandler io, void* Ptr, uint nItems)
     {
         var Value = (double*)Ptr;
 
@@ -573,7 +573,7 @@ public static unsafe partial class Lcms2
 
     #region U16Fixed16
 
-    private static void* Type_U16Fixed16_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_U16Fixed16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         double* array_double;
         uint v;
@@ -599,7 +599,7 @@ public static unsafe partial class Lcms2
         return array_double;
     }
 
-    private static bool Type_U16Fixed16_Write(TagTypeHandler* _, IOHandler* io, void* Ptr, uint nItems)
+    private static bool Type_U16Fixed16_Write(TagTypeHandler* _, IOHandler io, void* Ptr, uint nItems)
     {
         var Value = (double*)Ptr;
 
@@ -622,7 +622,7 @@ public static unsafe partial class Lcms2
 
     #region Signature
 
-    private static void* Type_Signature_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_Signature_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
         var SigPtr = _cmsMalloc<Signature>(self->ContextID);
@@ -638,7 +638,7 @@ public static unsafe partial class Lcms2
         return SigPtr;
     }
 
-    private static bool Type_Signature_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2) =>
+    private static bool Type_Signature_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2) =>
         _cmsWriteUInt32Number(io, *(Signature*)Ptr);
 
     private static void* Type_Signature_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
@@ -651,7 +651,7 @@ public static unsafe partial class Lcms2
 
     #region Text
 
-    private static void* Type_Text_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_Text_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         byte* Text = null;
@@ -666,7 +666,7 @@ public static unsafe partial class Lcms2
         Text = _cmsMalloc<byte>(self->ContextID, SizeOfTag + 1);
         if (Text is null) goto Error;
 
-        if (io->Read(io, Text, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error;
+        if (io.Read(io, Text, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error;
 
         // Make sure text is properly ended
         Text[SizeOfTag] = 0;
@@ -685,7 +685,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Text_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_Text_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var mlu = (Mlu*)Ptr;
 
@@ -700,7 +700,7 @@ public static unsafe partial class Lcms2
         cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text, size);
 
         // Write it, including separators
-        var rc = io->Write(io, size, Text);
+        var rc = io.Write(io, size, Text);
 
         _cmsFree(self->ContextID, Text);
         return rc;
@@ -721,7 +721,7 @@ public static unsafe partial class Lcms2
 
     #region Data
 
-    private static void* Type_Data_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_Data_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         IccData* BinData;
         uint LenOfData;
@@ -739,7 +739,7 @@ public static unsafe partial class Lcms2
         BinData->len = LenOfData;
         if (!_cmsReadUInt32Number(io, &BinData->flag)) goto Error;
 
-        if (io->Read(io, BinData->data, sizeof(byte), LenOfData) != LenOfData) goto Error;
+        if (io.Read(io, BinData->data, sizeof(byte), LenOfData) != LenOfData) goto Error;
 
         *nItems = 1;
 
@@ -750,13 +750,13 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Data_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_Data_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var BinData = (IccData*)Ptr;
 
         if (!_cmsWriteUInt32Number(io, BinData->flag)) return false;
 
-        return io->Write(io, BinData->len, BinData->data);
+        return io.Write(io, BinData->len, BinData->data);
     }
 
     private static void* Type_Data_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
@@ -769,7 +769,7 @@ public static unsafe partial class Lcms2
 
     #region Text Description
 
-    private static void* Type_Text_Description_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_Text_Description_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         byte* Text = null;
@@ -798,7 +798,7 @@ public static unsafe partial class Lcms2
         if (Text is null) goto Error;
 
         // Read it
-        if (io->Read(io, Text, sizeof(byte), AsciiCount) != AsciiCount) goto Error;
+        if (io.Read(io, Text, sizeof(byte), AsciiCount) != AsciiCount) goto Error;
         SizeOfTag -= AsciiCount;
 
         // Make sure there is a terminator
@@ -818,7 +818,7 @@ public static unsafe partial class Lcms2
         if (SizeOfTag < UnicodeCount * sizeof(ushort)) goto Done;
 
         for (var i = 0; i < UnicodeCount; i++)
-            if (io->Read(io, &Dummy, sizeof(ushort), 1) is 0) goto Done;
+            if (io.Read(io, &Dummy, sizeof(ushort), 1) is 0) goto Done;
         SizeOfTag -= UnicodeCount * sizeof(ushort);
 
         // Skip ScriptCode code if present. Some buggy profiles does have less
@@ -832,7 +832,7 @@ public static unsafe partial class Lcms2
 
             // Skip rest of tag
             for (var i = 0; i < 67; i++)
-                if (io->Read(io, &Dummy, sizeof(byte), 1) is 0) goto Error;
+                if (io.Read(io, &Dummy, sizeof(byte), 1) is 0) goto Error;
         }
 
     Done:
@@ -846,7 +846,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Text_Description_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_Text_Description_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var mlu = (Mlu*)Ptr;
         byte* Text = null;
@@ -909,7 +909,7 @@ public static unsafe partial class Lcms2
         len_aligned = _cmsALIGNLONG(len_tag_requirement);
 
         if (!_cmsWriteUInt32Number(io, len_text)) goto Error;
-        if (!io->Write(io, len_text, Text)) goto Error;
+        if (!io.Write(io, len_text, Text)) goto Error;
 
         if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // ucLangCode
 
@@ -920,11 +920,11 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, 0)) goto Error;
         if (!_cmsWriteUInt8Number(io, 0)) goto Error;
 
-        if (!io->Write(io, 67, Filler)) goto Error;
+        if (!io.Write(io, 67, Filler)) goto Error;
 
         // possibly add pad at the end of tag
         if (len_aligned - len_tag_requirement > 0)
-            if (!io->Write(io, len_aligned - len_tag_requirement, Filler)) goto Error;
+            if (!io.Write(io, len_aligned - len_tag_requirement, Filler)) goto Error;
 
         rc = true;
 
@@ -950,7 +950,7 @@ public static unsafe partial class Lcms2
 
     #region Curve
 
-    private static void* Type_Curve_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_Curve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint Count;
         ToneCurve* NewGamma;
@@ -999,7 +999,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool Type_Curve_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_Curve_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var Curve = (ToneCurve*)Ptr;
 
@@ -1038,7 +1038,7 @@ public static unsafe partial class Lcms2
         return cmsSigParametricCurveType;
     }
 
-    private static void* Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var ParamsByType = stackalloc int[] { 1, 3, 4, 5, 7 };
         var Params = stackalloc double[10];
@@ -1067,7 +1067,7 @@ public static unsafe partial class Lcms2
         return NewGamma;
     }
 
-    private static bool Type_ParametricCurve_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_ParametricCurve_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _2)
     {
         var Curve = (ToneCurve*)Ptr;
         var ParamsByType = stackalloc int[] { 0, 1, 3, 4, 5, 7 };
@@ -1109,14 +1109,14 @@ public static unsafe partial class Lcms2
 
     #region DateTime
 
-    private static void* Type_DateTime_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_DateTime_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         DateTimeNumber timestamp;
         DateTime* NewDateTime;
 
         *nItems = 0;
 
-        if (io->Read(io, &timestamp, (uint)sizeof(DateTimeNumber), 1) is not 1) return null;
+        if (io.Read(io, &timestamp, (uint)sizeof(DateTimeNumber), 1) is not 1) return null;
 
         NewDateTime = _cmsMalloc<DateTime>(self->ContextID);
         if (NewDateTime is null) return null;
@@ -1127,13 +1127,13 @@ public static unsafe partial class Lcms2
         return NewDateTime;
     }
 
-    private static bool Type_DateTime_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_DateTime_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var DateTime = (DateTime*)Ptr;
         DateTimeNumber timestamp;
 
         _cmsEncodeDateTimeNumber(&timestamp, DateTime);
-        if (!io->Write(io, (uint)sizeof(DateTimeNumber), &timestamp)) return false;
+        if (!io.Write(io, (uint)sizeof(DateTimeNumber), &timestamp)) return false;
         return true;
     }
 
@@ -1147,7 +1147,7 @@ public static unsafe partial class Lcms2
 
     #region Measurement
 
-    private static void* Type_Measurement_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_Measurement_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         IccMeasurementConditions mc;
 
@@ -1167,7 +1167,7 @@ public static unsafe partial class Lcms2
         return result;
     }
 
-    private static bool Type_Measurement_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_Measurement_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var mc = (IccMeasurementConditions*)Ptr;
 
@@ -1190,7 +1190,7 @@ public static unsafe partial class Lcms2
 
     #region MLU
 
-    private static void* Type_MLU_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_MLU_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Mlu* mlu = null;
         uint Count, RecLen, NumOfWchar, SizeOfHeader, Len, Offset, BeginOfThisString, EndOfThisString, LargestPosition;
@@ -1268,7 +1268,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_MLU_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_MLU_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var mlu = (Mlu*)Ptr;
         uint HeaderSize, Len, Offset;
@@ -1346,7 +1346,7 @@ public static unsafe partial class Lcms2
                 : cmsSigLut16Type
             : cmsSigLutBtoAType;
 
-    private static bool Read8bitTables(Context ContextID, IOHandler* io, Pipeline* lut, uint nChannels)
+    private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline* lut, uint nChannels)
     {
         byte* Temp = null;
         var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
@@ -1366,7 +1366,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChannels; i++)
         {
-            if (io->Read(io, Temp, 256, 1) is not 1) goto Error;
+            if (io.Read(io, Temp, 256, 1) is not 1) goto Error;
 
             for (var j = 0; j < 256; j++)
                 Tables[i]->Table16[j] = FROM_8_TO_16(Temp[j]);
@@ -1391,7 +1391,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool Write8bitTables(Context ContextID, IOHandler* io, uint n, StageToneCurvesData Tables)
+    private static bool Write8bitTables(Context? ContextID, IOHandler io, uint n, StageToneCurvesData Tables)
     {
         if (Tables is not null)
         {
@@ -1447,7 +1447,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static void* Type_LUT8_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_LUT8_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte InputChannels, OutputChannels, CLUTpoints;
         byte* Temp = null;
@@ -1504,7 +1504,7 @@ public static unsafe partial class Lcms2
                 goto Error;
             }
 
-            if (io->Read(io, Temp, nTabSize, 1) is not 1)
+            if (io.Read(io, Temp, nTabSize, 1) is not 1)
             {
                 _cmsFree(self->ContextID, T);
                 _cmsFree(self->ContextID, Temp);
@@ -1536,7 +1536,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var NewLut = (Pipeline*)Ptr;
         var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
@@ -1626,7 +1626,7 @@ public static unsafe partial class Lcms2
 
     #region LUT16
 
-    private static bool Read16bitTables(Context ContextID, IOHandler* io, Pipeline* lut, uint nChannels, uint nEntries)
+    private static bool Read16bitTables(Context? ContextID, IOHandler io, Pipeline* lut, uint nChannels, uint nEntries)
     {
         var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
 
@@ -1662,7 +1662,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool Write16bitTables(Context ContextID, IOHandler* io, StageToneCurvesData Tables)
+    private static bool Write16bitTables(Context? ContextID, IOHandler io, StageToneCurvesData Tables)
     {
         _cmsAssert(Tables);
 
@@ -1677,7 +1677,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_LUT16_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_LUT16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputEntries, OutputEntries;
         byte InputChannels, OutputChannels, CLUTpoints;
@@ -1756,7 +1756,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var NewLut = (Pipeline*)Ptr;
         var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
@@ -1887,13 +1887,13 @@ public static unsafe partial class Lcms2
 
     */
 
-    private static Stage* ReadMatrix(TagTypeHandler* self, IOHandler* io, uint Offset)
+    private static Stage* ReadMatrix(TagTypeHandler* self, IOHandler io, uint Offset)
     {
         var dMat = stackalloc double[(3 * 3) + 3];
         var dOff = &dMat[3 * 3];
 
         // Go to address
-        if (!io->Seek(io, Offset)) return null;
+        if (!io.Seek(io, Offset)) return null;
 
         // Read the Matrix and Offsets
         for (var i = 0; i < (3 * 3) + 3; i++)
@@ -1902,14 +1902,14 @@ public static unsafe partial class Lcms2
         return cmsStageAllocMatrix(self->ContextID, 3, 3, dMat, dOff);
     }
 
-    private static Stage* ReadCLUT(TagTypeHandler* self, IOHandler* io, uint Offset, uint InputChannels, uint OutputChannels)
+    private static Stage* ReadCLUT(TagTypeHandler* self, IOHandler io, uint Offset, uint InputChannels, uint OutputChannels)
     {
         var gridPoints8 = stackalloc byte[cmsMAXCHANNELS];  // Number of grid points in each dimension
         var GridPoints = stackalloc uint[cmsMAXCHANNELS];
         byte Precision;
 
-        if (!io->Seek(io, Offset)) return null;
-        if (io->Read(io, gridPoints8, cmsMAXCHANNELS, 1) is not 1) return null;
+        if (!io.Seek(io, Offset)) return null;
+        if (io.Read(io, gridPoints8, cmsMAXCHANNELS, 1) is not 1) return null;
 
         for (var i = 0; i < cmsMAXCHANNELS; i++)
         {
@@ -1936,7 +1936,7 @@ public static unsafe partial class Lcms2
 
                 for (var i = 0; i < Data.nEntries; i++)
                 {
-                    if (io->Read(io, &v, sizeof(byte), 1) is not 1)
+                    if (io.Read(io, &v, sizeof(byte), 1) is not 1)
                     {
                         cmsStageFree(CLUT);
                         return null;
@@ -1962,7 +1962,7 @@ public static unsafe partial class Lcms2
         return CLUT;
     }
 
-    private static ToneCurve* ReadEmbeddedCurve(TagTypeHandler* self, IOHandler* io)
+    private static ToneCurve* ReadEmbeddedCurve(TagTypeHandler* self, IOHandler io)
     {
         uint nItems;
 
@@ -1984,14 +1984,14 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static Stage* ReadSetOfCurves(TagTypeHandler* self, IOHandler* io, uint Offset, uint nCurves)
+    private static Stage* ReadSetOfCurves(TagTypeHandler* self, IOHandler io, uint Offset, uint nCurves)
     {
         var Curves = stackalloc ToneCurve*[cmsMAXCHANNELS];
         Stage* Lin = null;
 
         if (nCurves > cmsMAXCHANNELS) return null;
 
-        if (!io->Seek(io, Offset)) return null;
+        if (!io.Seek(io, Offset)) return null;
 
         for (var i = 0; i < nCurves; i++)
             Curves[i] = null;
@@ -2012,7 +2012,7 @@ public static unsafe partial class Lcms2
         return Lin;
     }
 
-    private static void* Type_LUTA2B_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_LUTA2B_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2025,7 +2025,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (!_cmsReadUInt8Number(io, &inputChan)) goto Error;
         if (!_cmsReadUInt8Number(io, &outputChan)) goto Error;
@@ -2085,7 +2085,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool WriteMatrix(TagTypeHandler* _, IOHandler* io, Stage* mpe)
+    private static bool WriteMatrix(TagTypeHandler* _, IOHandler io, Stage* mpe)
     {
         var zeros = stackalloc double[(int)mpe->OutputChannels];
         var m = (StageMatrixData)mpe->Data;
@@ -2105,7 +2105,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteSetOfCurves(TagTypeHandler* self, IOHandler* io, Signature Type, Stage* mpe)
+    private static bool WriteSetOfCurves(TagTypeHandler* self, IOHandler io, Signature Type, Stage* mpe)
     {
         var n = cmsStageOutputChannels(mpe);
         var Curves = _cmsStageGetPtrToCurveSet(mpe);
@@ -2145,7 +2145,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteCLUT(TagTypeHandler* self, IOHandler* io, byte Precision, Stage* mpe)
+    private static bool WriteCLUT(TagTypeHandler* self, IOHandler io, byte Precision, Stage* mpe)
     {
         var gridPoints = stackalloc byte[cmsMAXCHANNELS]; // Number of grid points in each dimension.
         var CLUT = (StageCLutData)mpe->Data;
@@ -2160,7 +2160,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < CLUT.Params->nInputs; i++)
             gridPoints[i] = (byte)CLUT.Params->nSamples[i];
 
-        if (!io->Write(io, cmsMAXCHANNELS * sizeof(byte), gridPoints)) return false;
+        if (!io.Write(io, cmsMAXCHANNELS * sizeof(byte), gridPoints)) return false;
 
         if (!_cmsWriteUInt8Number(io, Precision)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false;
@@ -2187,14 +2187,14 @@ public static unsafe partial class Lcms2
         return _cmsWriteAlignment(io);
     }
 
-    private static bool Type_LUTA2B_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_LUTA2B_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Lut = (Pipeline*)Ptr;
         Stage* A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (Lut->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, cmsSigCurveSetElemType))
@@ -2217,7 +2217,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, 0)) return false;
 
         // Keep directory location to be filled later
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Write the directory
         if (!_cmsWriteUInt32Number(io, 0)) return false;
@@ -2228,37 +2228,37 @@ public static unsafe partial class Lcms2
 
         if (A is not null)
         {
-            offsetA = io->Tell(io) - BassOffset;
+            offsetA = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, A)) return false;
         }
 
         if (CLUT is not null)
         {
-            offsetC = io->Tell(io) - BassOffset;
+            offsetC = io.Tell(io) - BassOffset;
             if (!WriteCLUT(self, io, (byte)(Lut->SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
         {
-            offsetM = io->Tell(io) - BassOffset;
+            offsetM = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, M)) return false;
         }
 
         if (Matrix is not null)
         {
-            offsetMat = io->Tell(io) - BassOffset;
+            offsetMat = io.Tell(io) - BassOffset;
             if (!WriteMatrix(self, io, Matrix)) return false;
         }
 
         if (B is not null)
         {
-            offsetB = io->Tell(io) - BassOffset;
+            offsetB = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, B)) return false;
         }
 
-        var CurrentPos = io->Tell(io);
+        var CurrentPos = io.Tell(io);
 
-        if (!io->Seek(io, DirectoryPos)) return false;
+        if (!io.Seek(io, DirectoryPos)) return false;
 
         if (!_cmsWriteUInt32Number(io, offsetB)) return false;
         if (!_cmsWriteUInt32Number(io, offsetMat)) return false;
@@ -2266,7 +2266,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, offsetC)) return false;
         if (!_cmsWriteUInt32Number(io, offsetA)) return false;
 
-        return io->Seek(io, CurrentPos);
+        return io.Seek(io, CurrentPos);
     }
 
     private static void* Type_LUTA2B_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
@@ -2279,7 +2279,7 @@ public static unsafe partial class Lcms2
 
     #region LUTB2A
 
-    private static void* Type_LUTB2A_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_LUTB2A_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2292,7 +2292,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (!_cmsReadUInt8Number(io, &inputChan)) goto Error;
         if (!_cmsReadUInt8Number(io, &outputChan)) goto Error;
@@ -2352,14 +2352,14 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_LUTB2A_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_LUTB2A_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Lut = (Pipeline*)Ptr;
         Stage* A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (Lut->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, &B, cmsSigCurveSetElemType))
@@ -2382,7 +2382,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, 0)) return false;
 
         // Keep directory location to be filled later
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Write the directory
         if (!_cmsWriteUInt32Number(io, 0)) return false;
@@ -2393,37 +2393,37 @@ public static unsafe partial class Lcms2
 
         if (A is not null)
         {
-            offsetA = io->Tell(io) - BassOffset;
+            offsetA = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, A)) return false;
         }
 
         if (CLUT is not null)
         {
-            offsetC = io->Tell(io) - BassOffset;
+            offsetC = io.Tell(io) - BassOffset;
             if (!WriteCLUT(self, io, (byte)(Lut->SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
         {
-            offsetM = io->Tell(io) - BassOffset;
+            offsetM = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, M)) return false;
         }
 
         if (Matrix is not null)
         {
-            offsetMat = io->Tell(io) - BassOffset;
+            offsetMat = io.Tell(io) - BassOffset;
             if (!WriteMatrix(self, io, Matrix)) return false;
         }
 
         if (B is not null)
         {
-            offsetB = io->Tell(io) - BassOffset;
+            offsetB = io.Tell(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, B)) return false;
         }
 
-        var CurrentPos = io->Tell(io);
+        var CurrentPos = io.Tell(io);
 
-        if (!io->Seek(io, DirectoryPos)) return false;
+        if (!io.Seek(io, DirectoryPos)) return false;
 
         if (!_cmsWriteUInt32Number(io, offsetB)) return false;
         if (!_cmsWriteUInt32Number(io, offsetMat)) return false;
@@ -2431,7 +2431,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, offsetC)) return false;
         if (!_cmsWriteUInt32Number(io, offsetA)) return false;
 
-        return io->Seek(io, CurrentPos);
+        return io.Seek(io, CurrentPos);
     }
 
     private static void* Type_LUTB2A_Dup(TagTypeHandler* _1, in void* Ptr, uint _2) =>
@@ -2444,7 +2444,7 @@ public static unsafe partial class Lcms2
 
     #region ColorantTable
 
-    private static void* Type_ColorantTable_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_ColorantTable_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var Name = stackalloc byte[34];
         var PCS = stackalloc ushort[3];
@@ -2466,7 +2466,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < Count; i++)
         {
-            if (io->Read(io, Name, 32, 1) is not 1) goto Error;
+            if (io.Read(io, Name, 32, 1) is not 1) goto Error;
             Name[32] = 0;
 
             if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
@@ -2483,7 +2483,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_ColorantTable_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_ColorantTable_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var NamedColorList = (NamedColorList*)Ptr;
         var root = stackalloc byte[cmsMAX_PATH];
@@ -2500,7 +2500,7 @@ public static unsafe partial class Lcms2
             if (!cmsNamedColorInfo(NamedColorList, i, root, null, null, PCS, null)) return false;
             root[32] = 0;
 
-            if (!io->Write(io, 32, root)) return false;
+            if (!io.Write(io, 32, root)) return false;
             if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
         }
 
@@ -2517,7 +2517,7 @@ public static unsafe partial class Lcms2
 
     #region NamedColor
 
-    private static void* Type_NamedColor_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_NamedColor_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint vendorFlag;                      // Bottom 16 bits for ICC use
         uint count;                           // Count of named colors
@@ -2534,8 +2534,8 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &count)) return null;
         if (!_cmsReadUInt32Number(io, &nDeviceCoords)) return null;
 
-        if (io->Read(io, prefix, 32, 1) is not 1) return null;
-        if (io->Read(io, suffix, 32, 1) is not 1) return null;
+        if (io.Read(io, prefix, 32, 1) is not 1) return null;
+        if (io.Read(io, suffix, 32, 1) is not 1) return null;
 
         prefix[31] = suffix[31] = 0;
 
@@ -2555,7 +2555,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < count; i++)
         {
             memset(Colorant, 0, sizeof(ushort) * cmsMAXCHANNELS);
-            if (io->Read(io, Root, 32, 1) is not 1) goto Error;
+            if (io.Read(io, Root, 32, 1) is not 1) goto Error;
             Root[32] = 0;
 
             if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
@@ -2573,7 +2573,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_NamedColor_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_NamedColor_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var NamedColorList = (NamedColorList*)Ptr;
         var prefix = stackalloc byte[33];
@@ -2593,8 +2593,8 @@ public static unsafe partial class Lcms2
 
         suffix[32] = prefix[32] = 0;
 
-        if (!io->Write(io, 32, prefix)) return false;
-        if (!io->Write(io, 32, suffix)) return false;
+        if (!io.Write(io, 32, prefix)) return false;
+        if (!io.Write(io, 32, suffix)) return false;
 
         for (var i = 0u; i < nColors; i++)
         {
@@ -2604,7 +2604,7 @@ public static unsafe partial class Lcms2
 
             if (!cmsNamedColorInfo(NamedColorList, i, Root, null, null, PCS, Colorant)) return false;
             Root[32] = 0;
-            if (!io->Write(io, 32, Root)) return false;
+            if (!io.Write(io, 32, Root)) return false;
             if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
             if (!_cmsWriteUInt16Array(io, NamedColorList->ColorantCount, Colorant)) return false;
         }
@@ -2622,7 +2622,7 @@ public static unsafe partial class Lcms2
 
     #region ProfileSequenceDesc
 
-    private static bool ReadEmbeddedText(TagTypeHandler* self, IOHandler* io, Mlu** mlu, uint SizeOfTag)
+    private static bool ReadEmbeddedText(TagTypeHandler* self, IOHandler io, Mlu** mlu, uint SizeOfTag)
     {
         uint nItems;
 
@@ -2654,7 +2654,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void* Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Sequence* OutSeq = null;
         uint Count;
@@ -2705,7 +2705,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool SaveDescription(TagTypeHandler* self, IOHandler* io, Mlu* Text)
+    private static bool SaveDescription(TagTypeHandler* self, IOHandler io, Mlu* Text)
     {
         if (self->ICCVersion < 0x04000000)
         {
@@ -2719,7 +2719,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool Type_ProfileSequenceDesc_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_ProfileSequenceDesc_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Seq = (Sequence*)Ptr;
 
@@ -2751,18 +2751,18 @@ public static unsafe partial class Lcms2
 
     #region ProfileSequenceId
 
-    private static bool ReadSeqID(TagTypeHandler* self, IOHandler* io, void* Cargo, uint n, uint SizeOfTag)
+    private static bool ReadSeqID(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint SizeOfTag)
     {
         var OutSeq = (Sequence*)Cargo;
         var seq = &OutSeq->seq[n];
 
-        if (io->Read(io, seq->ProfileID.id8, 16, 1) is not 1) return false;
+        if (io.Read(io, seq->ProfileID.id8, 16, 1) is not 1) return false;
         if (!ReadEmbeddedText(self, io, &seq->Description, SizeOfTag)) return false;
 
         return true;
     }
 
-    private static void* Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         Sequence* OutSeq = null;
         uint Count;
@@ -2770,7 +2770,7 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Get table count
         if (!_cmsReadUInt32Number(io, &Count)) return null;
@@ -2792,11 +2792,11 @@ public static unsafe partial class Lcms2
         return OutSeq;
     }
 
-    private static bool WriteSeqID(TagTypeHandler* self, IOHandler* io, void* Cargo, uint n, uint _)
+    private static bool WriteSeqID(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint _)
     {
         var Seq = (Sequence*)Cargo;
 
-        if (!io->Write(io, 16, Seq->seq[n].ProfileID.id8)) return false;
+        if (!io.Write(io, 16, Seq->seq[n].ProfileID.id8)) return false;
 
         // Store MLU here
         if (!SaveDescription(self, io, Seq->seq[n].Description)) return false;
@@ -2804,12 +2804,12 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool Type_ProfileSequenceId_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_ProfileSequenceId_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Seq = (Sequence*)Ptr;
 
         // Keep the base offset
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // This is the table count
         if (!_cmsWriteUInt32Number(io, Seq->n)) return false;
@@ -2830,7 +2830,7 @@ public static unsafe partial class Lcms2
 
     #region UcrBg
 
-    private static void* Type_UcrBg_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_UcrBg_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         uint CountUcr, CountBg;
         int SignedSizeOfTag = (int)SizeOfTag;
@@ -2874,7 +2874,7 @@ public static unsafe partial class Lcms2
         if (n->Desc is null) goto Error;
 
         ASCIIString = _cmsMalloc<byte>(self->ContextID, (uint)SignedSizeOfTag + 1);
-        if (io->Read(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
+        if (io.Read(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
         {
             _cmsFree(self->ContextID, ASCIIString);
             goto Error;
@@ -2895,7 +2895,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_UcrBg_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_UcrBg_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Value = (UcrBg*)Ptr;
         uint TextSize;
@@ -2914,7 +2914,7 @@ public static unsafe partial class Lcms2
         Text = _cmsMalloc<byte>(self->ContextID, TextSize);
         if (cmsMLUgetASCII(Value->Desc, cmsNoLanguage, cmsNoCountry, Text, TextSize) != TextSize) return false;
 
-        if (!io->Write(io, TextSize, Text)) return false;
+        if (!io.Write(io, TextSize, Text)) return false;
         _cmsFree(self->ContextID, Text);
 
         return true;
@@ -2956,7 +2956,7 @@ public static unsafe partial class Lcms2
 
     #region CrdInfo
 
-    private static bool ReadCountAndSting(TagTypeHandler* self, IOHandler* io, Mlu* mlu, uint* SizeOfTag, in byte* Section)
+    private static bool ReadCountAndSting(TagTypeHandler* self, IOHandler io, Mlu* mlu, uint* SizeOfTag, in byte* Section)
     {
         uint Count;
         var ps = stackalloc byte[] { (byte)'P', (byte)'S', 0 };
@@ -2971,7 +2971,7 @@ public static unsafe partial class Lcms2
         var Text = _cmsMalloc<byte>(self->ContextID, Count + 1);
         if (Text is null) return false;
 
-        if (io->Read(io, Text, sizeof(byte), Count) != Count)
+        if (io.Read(io, Text, sizeof(byte), Count) != Count)
         {
             _cmsFree(self->ContextID, Text);
             return false;
@@ -2986,7 +2986,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteCountAndSting(TagTypeHandler* self, IOHandler* io, Mlu* mlu, in byte* Section)
+    private static bool WriteCountAndSting(TagTypeHandler* self, IOHandler io, Mlu* mlu, in byte* Section)
     {
         var ps = stackalloc byte[] { (byte)'P', (byte)'S', 0 };
 
@@ -2998,7 +2998,7 @@ public static unsafe partial class Lcms2
 
         if (cmsMLUgetASCII(mlu, ps, Section, Text, TextSize) is 0) goto Error;
 
-        if (!io->Write(io, TextSize, Text)) goto Error;
+        if (!io.Write(io, TextSize, Text)) goto Error;
         _cmsFree(self->ContextID, Text);
 
         return true;
@@ -3008,7 +3008,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void* Type_CrdInfo_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_CrdInfo_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
         var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
@@ -3034,7 +3034,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_CrdInfo_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_CrdInfo_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
         var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
@@ -3063,7 +3063,7 @@ public static unsafe partial class Lcms2
 
     #region Screening
 
-    private static void* Type_Screening_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_Screening_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
@@ -3092,7 +3092,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Screening_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_Screening_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var sc = (Screening*)Ptr;
 
@@ -3122,7 +3122,7 @@ public static unsafe partial class Lcms2
 
     #region ViewingConditions
 
-    private static void* Type_ViewingConditions_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_ViewingConditions_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
@@ -3142,7 +3142,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_ViewingConditions_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_ViewingConditions_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var sc = (IccViewingConditions*)Ptr;
 
@@ -3163,7 +3163,7 @@ public static unsafe partial class Lcms2
 
     #region MPE
 
-    private static bool ReadMPEElem(TagTypeHandler* self, IOHandler* io, void* Cargo, uint _, uint SizeOfTag)
+    private static bool ReadMPEElem(TagTypeHandler* self, IOHandler io, void* Cargo, uint _, uint SizeOfTag)
     {
         Signature ElementSig;
         uint nItems;
@@ -3202,7 +3202,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void* Type_MPE_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
         uint ElementCount;
@@ -3211,7 +3211,7 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Read channels and element count
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
@@ -3242,7 +3242,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_MPE_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_MPE_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var Lut = (Pipeline*)Ptr;
         var Elem = Lut->Elements;
@@ -3250,7 +3250,7 @@ public static unsafe partial class Lcms2
         var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
         var str = stackalloc byte[5];
 
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         var inputChan = cmsPipelineInputChannels(Lut);
         var outputChan = cmsPipelineOutputChannels(Lut);
@@ -3267,7 +3267,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, (ushort)outputChan)) goto Error;
         if (!_cmsWriteUInt16Number(io, (ushort)ElemCount)) goto Error;
 
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Write a fake directory to be filled later on
         for (var i = 0; i < ElemCount; i++)
@@ -3279,7 +3279,7 @@ public static unsafe partial class Lcms2
         // Write each single tag. Keep track of the size as well.
         for (var i = 0; i < ElemCount; i++)
         {
-            ElementOffsets[i] = io->Tell(io) - BaseOffset;
+            ElementOffsets[i] = io.Tell(io) - BaseOffset;
 
             var ElementSig = Elem->Type;
 
@@ -3295,19 +3295,19 @@ public static unsafe partial class Lcms2
 
             if (!_cmsWriteUInt32Number(io, ElementSig)) goto Error;
             if (!_cmsWriteUInt32Number(io, 0)) goto Error;
-            var Before = io->Tell(io);
+            var Before = io.Tell(io);
             if (!TypeHandler->WritePtr(self, io, Elem, 1)) goto Error;
             if (!_cmsWriteAlignment(io)) goto Error;
 
-            ElementSizes[i] = io->Tell(io) - Before;
+            ElementSizes[i] = io.Tell(io) - Before;
 
             Elem = Elem->Next;
         }
 
         // Write the directory
-        var CurrentPos = io->Tell(io);
+        var CurrentPos = io.Tell(io);
 
-        if (!io->Seek(io, DirectoryPos)) goto Error;
+        if (!io.Seek(io, DirectoryPos)) goto Error;
 
         for (var i = 0; i < ElemCount; i++)
         {
@@ -3315,7 +3315,7 @@ public static unsafe partial class Lcms2
             if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
         }
 
-        if (!io->Seek(io, CurrentPos)) goto Error;
+        if (!io.Seek(io, CurrentPos)) goto Error;
 
         if (ElementOffsets is not null) _cmsFree(self->ContextID, ElementOffsets);
         if (ElementSizes is not null) _cmsFree(self->ContextID, ElementSizes);
@@ -3345,7 +3345,7 @@ public static unsafe partial class Lcms2
         public double Gamma, Min, Max;
     }
 
-    private static void* Type_vcgt_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_vcgt_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         ToneCurve** Curves;
         uint TagType;
@@ -3471,7 +3471,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_vcgt_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_vcgt_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var Curves = (ToneCurve**)Ptr;
 
@@ -3541,7 +3541,7 @@ public static unsafe partial class Lcms2
 
     private struct DICelem
     {
-        public Context ContextID;
+        public Context? ContextID;
         public uint* Offsets;
         public uint* Sizes;
     }
@@ -3551,7 +3551,7 @@ public static unsafe partial class Lcms2
         public DICelem Name, Value, DisplayName, DisplayValue;
     }
 
-    private static bool AllocElem(Context ContextID, DICelem* e, uint Count)
+    private static bool AllocElem(Context? ContextID, DICelem* e, uint Count)
     {
         e->Offsets = _cmsCalloc<uint>(ContextID, Count);
         if (e->Offsets is null) return false;
@@ -3582,7 +3582,7 @@ public static unsafe partial class Lcms2
         if (a->DisplayValue.Offsets is not null || a->DisplayValue.Sizes is not null) FreeElem(&a->DisplayValue);
     }
 
-    private static bool AllocArray(Context ContextID, DICarray* a, uint Count, uint Length)
+    private static bool AllocArray(Context? ContextID, DICarray* a, uint Count, uint Length)
     {
         // Empty values
         memset(a, 0, (uint)sizeof(DICarray));
@@ -3604,7 +3604,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool ReadOneElem(IOHandler* io, DICelem* e, uint i, uint BaseOffset)
+    private static bool ReadOneElem(IOHandler io, DICelem* e, uint i, uint BaseOffset)
     {
         if (!_cmsReadUInt32Number(io, &e->Offsets[i])) return false;
         if (!_cmsReadUInt32Number(io, &e->Sizes[i])) return false;
@@ -3616,7 +3616,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool ReadOffsetArray(IOHandler* io, DICarray* a, uint Count, uint Length, uint BaseOffset, int* SignedSizeOfTagPtr)
+    private static bool ReadOffsetArray(IOHandler io, DICarray* a, uint Count, uint Length, uint BaseOffset, int* SignedSizeOfTagPtr)
     {
         var SignedSizeOfTag = *SignedSizeOfTagPtr;
 
@@ -3650,7 +3650,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteOneElem(IOHandler* io, DICelem* e, uint i)
+    private static bool WriteOneElem(IOHandler io, DICelem* e, uint i)
     {
         if (!_cmsWriteUInt32Number(io, e->Offsets[i])) return false;
         if (!_cmsWriteUInt32Number(io, e->Sizes[i])) return false;
@@ -3658,7 +3658,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteOffsetArray(IOHandler* io, DICarray* a, uint Count, uint Length)
+    private static bool WriteOffsetArray(IOHandler io, DICarray* a, uint Count, uint Length)
     {
         for (var i = 0u; i < Count; i++)
         {
@@ -3675,7 +3675,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool ReadOneWChar(IOHandler* io, DICelem* e, uint i, char** wcstr)
+    private static bool ReadOneWChar(IOHandler io, DICelem* e, uint i, char** wcstr)
     {
         // Special case for undefined strings (see ICC Votable
         // Proposal Submission, Dictionary Type and Metadata TAG Definition)
@@ -3685,7 +3685,7 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        if (!io->Seek(io, e->Offsets[i])) return false;
+        if (!io.Seek(io, e->Offsets[i])) return false;
 
         var nChars = e->Sizes[i] / sizeof(ushort);
 
@@ -3703,9 +3703,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteOneWChar(IOHandler* io, DICelem* e, uint i, in char* wcstr, uint BaseOffset)
+    private static bool WriteOneWChar(IOHandler io, DICelem* e, uint i, in char* wcstr, uint BaseOffset)
     {
-        var Before = io->Tell(io);
+        var Before = io.Tell(io);
 
         e->Offsets[i] = Before - BaseOffset;
 
@@ -3719,11 +3719,11 @@ public static unsafe partial class Lcms2
         var n = mywcslen(wcstr);
         if (!_cmsWriteWCharArray(io, n, wcstr)) return false;
 
-        e->Sizes[i] = io->Tell(io) - Before;
+        e->Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
-    private static bool ReadOneMLUC(TagTypeHandler* self, IOHandler* io, DICelem* e, uint i, Mlu** mlu)
+    private static bool ReadOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, Mlu** mlu)
     {
         var nItems = 0u;
 
@@ -3734,13 +3734,13 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        if (!io->Seek(io, e->Offsets[i])) return false;
+        if (!io.Seek(io, e->Offsets[i])) return false;
 
         *mlu = (Mlu*)Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
         return *mlu is not null;
     }
 
-    private static bool WriteOneMLUC(TagTypeHandler* self, IOHandler* io, DICelem* e, uint i, in Mlu* mlu, uint BaseOffset)
+    private static bool WriteOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, in Mlu* mlu, uint BaseOffset)
     {
         // Special case for undefined strings (see ICC Votable
         // Proposal Submission, Dictionary Type and Metadata TAG Definition)
@@ -3751,16 +3751,16 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        var Before = io->Tell(io);
+        var Before = io.Tell(io);
         e->Offsets[i] = Before - BaseOffset;
 
         if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
-        e->Sizes[i] = io->Tell(io) - Before;
+        e->Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
-    private static void* Type_Dictionary_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag)
+    private static void* Type_Dictionary_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
         void* hDict = null;
         char* NameWCS = null, ValueWCS = null;
@@ -3773,7 +3773,7 @@ public static unsafe partial class Lcms2
         memset(&a, 0, (uint)sizeof(DICarray));
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Get name-value record count
         SignedSizeOfTag -= sizeof(uint);
@@ -3844,7 +3844,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_Dictionary_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_Dictionary_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var hDict = Ptr;
         Dictionary.Entry* p;
@@ -3852,7 +3852,7 @@ public static unsafe partial class Lcms2
 
         if (hDict is null) return false;
 
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Let's inspect the dictionary
         var Count = 0u; var AnyName = false; var AnyValue = false;
@@ -3871,7 +3871,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, Length)) return false;
 
         // Keep starting posiotion of offsets table
-        var DirectoryPos = io->Tell(io);
+        var DirectoryPos = io.Tell(io);
 
         // Allocate offsets array
         if (!AllocArray(self->ContextID, &a, Count, Length)) goto Error;
@@ -3896,12 +3896,12 @@ public static unsafe partial class Lcms2
         }
 
         // Write the directory
-        var CurrentPos = io->Tell(io);
-        if (!io->Seek(io, DirectoryPos)) goto Error;
+        var CurrentPos = io.Tell(io);
+        if (!io.Seek(io, DirectoryPos)) goto Error;
 
         if (!WriteOffsetArray(io, &a, Count, Length)) goto Error;
 
-        if (!io->Seek(io, CurrentPos)) goto Error;
+        if (!io.Seek(io, CurrentPos)) goto Error;
 
         FreeArray(&a);
         return true;
@@ -3935,7 +3935,7 @@ public static unsafe partial class Lcms2
 
     #region MPEcurve
 
-    private static ToneCurve* ReadSegmentedCurve(TagTypeHandler* self, IOHandler* io)
+    private static ToneCurve* ReadSegmentedCurve(TagTypeHandler* self, IOHandler io)
     {
         var str = stackalloc byte[5];
         var ParamsByType = stackalloc uint[] { 4, 5, 5 };
@@ -4045,7 +4045,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool ReadMPECurve(TagTypeHandler* self, IOHandler* io, void* Cargo, uint n, uint _)
+    private static bool ReadMPECurve(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint _)
     {
         var GammaTables = (ToneCurve**)Cargo;
 
@@ -4053,14 +4053,14 @@ public static unsafe partial class Lcms2
         return GammaTables[n] is not null;
     }
 
-    private static void* Type_MPEcurve_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_MPEcurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
 
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
         if (!_cmsReadUInt16Number(io, &OutputChans)) return null;
@@ -4082,7 +4082,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    private static bool WriteSegmentedCurve(IOHandler* io, ToneCurve* g)
+    private static bool WriteSegmentedCurve(IOHandler io, ToneCurve* g)
     {
         var ParamsByType = stackalloc uint[] { 4, 5, 5 };
 
@@ -4137,19 +4137,19 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteMPECurve(TagTypeHandler* _1, IOHandler* io, object? Cargo, uint n, uint _2)
+    private static bool WriteMPECurve(TagTypeHandler* _1, IOHandler io, object? Cargo, uint n, uint _2)
     {
         var Curves = (StageToneCurvesData)Cargo;
 
         return WriteSegmentedCurve(io, Curves.TheCurves[n]);
     }
 
-    private static bool Type_MPEcurve_Write(TagTypeHandler* self, IOHandler* io, void* Ptr, uint _)
+    private static bool Type_MPEcurve_Write(TagTypeHandler* self, IOHandler io, void* Ptr, uint _)
     {
         var mpe = (Stage*)Ptr;
         var Curves = (StageToneCurvesData)mpe->Data;
 
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         // Write the header. Since those are curves, input and output channels are the same
         if (!_cmsWriteUInt16Number(io, (ushort)mpe->InputChannels)) return false;
@@ -4164,7 +4164,7 @@ public static unsafe partial class Lcms2
 
     #region MPEmatrix
 
-    private static void* Type_MPEmatrix_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_MPEmatrix_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
 
@@ -4221,7 +4221,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    private static bool Type_MPEmatrix_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_MPEmatrix_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var mpe = (Stage*)Ptr;
         var Matrix = (StageMatrixData)mpe->Data;
@@ -4246,7 +4246,7 @@ public static unsafe partial class Lcms2
 
     #region MPEclut
 
-    private static void* Type_MPEclut_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static void* Type_MPEclut_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
         var Dimensions8 = stackalloc byte[16];
@@ -4256,7 +4256,7 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io->Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
 
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
         if (!_cmsReadUInt16Number(io, &OutputChans)) return null;
@@ -4264,7 +4264,7 @@ public static unsafe partial class Lcms2
         if (InputChans is 0) goto Error;
         if (OutputChans is 0) goto Error;
 
-        if (io->Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
+        if (io.Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
 
         // Copy MAX_INPUT_DIMENSIONS at most. Expact to uint
         var nMaxGrids = Math.Min(InputChans, MAX_INPUT_DIMENSIONS);
@@ -4292,7 +4292,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool Type_MPEclut_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2)
+    private static bool Type_MPEclut_Write(TagTypeHandler* _1, IOHandler io, void* Ptr, uint _2)
     {
         var mpe = (Stage*)Ptr;
         var clut = (StageCLutData)mpe->Data;
@@ -4312,7 +4312,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < mpe->InputChannels; i++)
             Dimensions8[i] = (byte)clut.Params->nSamples[i];
 
-        if (!io->Write(io, 16, Dimensions8)) return false;
+        if (!io.Write(io, 16, Dimensions8)) return false;
 
         for (var i = 0; i < clut.nEntries; i++)
             if (!_cmsWriteFloat32Number(io, clut.Tab.TFloat[i])) return false;
@@ -4395,7 +4395,7 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, (Context c, in Context s) => DupTagTypeList(c, s, Chunks.MPEPlugin), Chunks.MPEPlugin, @default);
     }
 
-    internal static bool _cmsRegisterTagTypePlugin(Context id, PluginBase? Data) =>
+    internal static bool _cmsRegisterTagTypePlugin(Context? id, PluginBase? Data) =>
         RegisterTypesPlugin(id, Data, Chunks.TagTypePlugin);
 
     internal static bool _cmsRegisterMultiProcessElementPlugin(Context? id, PluginBase? Data) =>

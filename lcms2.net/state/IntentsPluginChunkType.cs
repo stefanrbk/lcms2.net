@@ -31,7 +31,7 @@ internal unsafe class IntentsPluginChunkType : IDup
 {
     public IntentsList? Intents;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context? ctx)
     {
         IntentsPluginChunkType head = this;
         IntentsList? Anterior = null, entry;

@@ -811,7 +811,7 @@ public static unsafe partial class Lcms2
         return cmsMLUdup(mlu);
     }
 
-    internal static Sequence* _cmsCompileProfileSequence(Context ContextID, uint nProfiles, HPROFILE* hProfiles)
+    internal static Sequence* _cmsCompileProfileSequence(Context? ContextID, uint nProfiles, HPROFILE* hProfiles)
     {
         var seq = cmsAllocProfileSequenceDescription(ContextID, nProfiles);
 

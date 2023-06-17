@@ -37,5 +37,5 @@ public unsafe struct CIECAM02
     public uint surround;
     public double n, Nbb, Ncb, z, FL, D;
 
-    public Context ContextID;
+    public Context? ContextID;
 }

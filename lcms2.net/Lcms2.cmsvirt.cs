@@ -96,7 +96,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static HPROFILE cmsCreateRGBProfileTHR(Context ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction)
+    public static HPROFILE cmsCreateRGBProfileTHR(Context? ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction)
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
@@ -213,7 +213,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction) =>
         cmsCreateRGBProfileTHR(null, WhitePoint, Primaries, TransferFunction);
 
-    public static HPROFILE cmsCreateGrayProfileTHR(Context ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
+    public static HPROFILE cmsCreateGrayProfileTHR(Context? ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
     {
         CIEXYZ tmp;
 
@@ -260,7 +260,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve* TransferFunction) =>
         cmsCreateGrayProfileTHR(null, WhitePoint, TransferFunction);
 
-    public static HPROFILE cmsCreateLinearizationDeviceLinkTHR(Context ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)
+    public static HPROFILE cmsCreateLinearizationDeviceLinkTHR(Context? ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)
     {
         var hICC = cmsCreateProfilePlaceholder(ContextID);
         if (hICC is null) return null;
@@ -344,7 +344,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static HPROFILE cmsCreateInkLimitingDeviceLinkTHR(Context ContextID, Signature ColorSpace, double Limit)
+    public static HPROFILE cmsCreateInkLimitingDeviceLinkTHR(Context? ContextID, Signature ColorSpace, double Limit)
     {
         if ((uint)ColorSpace is not cmsSigCmykData)
         {
@@ -414,7 +414,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateInkLimitingDeviceLink(Signature ColorSpace, double Limit) =>
         cmsCreateInkLimitingDeviceLinkTHR(null, ColorSpace, Limit);
 
-    public static HPROFILE cmsCreateLab2ProfileTHR(Context ContextID, in CIExyY* WhitePoint)
+    public static HPROFILE cmsCreateLab2ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
     {
         Pipeline* LUT = null;
 
@@ -454,7 +454,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateLab2Profile(in CIExyY* WhitePoint) =>
         cmsCreateLab2ProfileTHR(null, WhitePoint);
 
-    public static HPROFILE cmsCreateLab4ProfileTHR(Context ContextID, in CIExyY* WhitePoint)
+    public static HPROFILE cmsCreateLab4ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
     {
         Pipeline* LUT = null;
 
@@ -494,7 +494,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateLab4Profile(in CIExyY* WhitePoint) =>
         cmsCreateLab4ProfileTHR(null, WhitePoint);
 
-    public static HPROFILE cmsCreateXYZProfileTHR(Context ContextID)
+    public static HPROFILE cmsCreateXYZProfileTHR(Context? ContextID)
     {
         Pipeline* LUT = null;
 
@@ -534,7 +534,7 @@ public static unsafe partial class Lcms2
     public static HPROFILE cmsCreateXYZProfile() =>
         cmsCreateXYZProfileTHR(null);
 
-    private static ToneCurve* Build_sRGBGamma(Context ContextID)
+    private static ToneCurve* Build_sRGBGamma(Context? ContextID)
     {
         var Parameters = stackalloc double[5]
         {
@@ -548,7 +548,7 @@ public static unsafe partial class Lcms2
         return cmsBuildParametricToneCurve(ContextID, 4, Parameters);
     }
 
-    public static HPROFILE cmsCreate_sRGBProfileTHR(Context ContextID)
+    public static HPROFILE cmsCreate_sRGBProfileTHR(Context? ContextID)
     {
         var D65 = new CIExyY() { x = 0.3127, y = 0.3290, Y = 1.0 };
         var Rec709Primaries = new CIExyYTRIPLE()
@@ -619,7 +619,7 @@ public static unsafe partial class Lcms2
     }
 
     public static HPROFILE cmsCreateBCHSWabstractProfileTHR(
-        Context ContextID,
+        Context? ContextID,
         uint nLUTPoints,
         double Bright,
         double Contrast,
@@ -707,7 +707,7 @@ public static unsafe partial class Lcms2
         uint TempDest) =>
         cmsCreateBCHSWabstractProfileTHR(null, nLUTPoints, Bright, Contrast, Hue, Saturation, TempSrc, TempDest);
 
-    public static HPROFILE cmsCreateNULLProfileTHR(Context ContextID)
+    public static HPROFILE cmsCreateNULLProfileTHR(Context? ContextID)
     {
         var EmptyTab = stackalloc ToneCurve*[3];
         var Zero = stackalloc ushort[2] { 0, 0 };

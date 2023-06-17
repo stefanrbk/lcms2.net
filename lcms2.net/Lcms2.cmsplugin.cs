@@ -40,7 +40,7 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     private static readonly object contextPoolHeadMutex = new();
-    private static Context contextPoolHead;
+    private static Context? contextPoolHead;
 
     private static readonly Context globalContext;
 
@@ -86,33 +86,33 @@ public static unsafe partial class Lcms2
         pOut[0] = pIn[7];
     }
 
-    internal static bool _cmsReadUInt8Number(IOHandler* io, byte* n)
+    internal static bool _cmsReadUInt8Number(IOHandler io, byte* n)
     {
         byte tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(byte), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(byte), 1) != 1)
             return false;
 
         if (n is not null) *n = tmp;
         return true;
     }
 
-    internal static bool _cmsReadUInt16Number(IOHandler* io, ushort* n)
+    internal static bool _cmsReadUInt16Number(IOHandler io, ushort* n)
     {
         ushort tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(ushort), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(ushort), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess16(tmp);
         return true;
     }
 
-    internal static bool _cmsReadUInt16Array(IOHandler* io, uint n, ushort* array)
+    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, ushort* array)
     {
         _cmsAssert(io);
 
@@ -132,26 +132,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadUInt32Number(IOHandler* io, uint* n)
+    internal static bool _cmsReadUInt32Number(IOHandler io, uint* n)
     {
         uint tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess32(tmp);
         return true;
     }
 
-    internal static bool _cmsReadFloat32Number(IOHandler* io, float* n)
+    internal static bool _cmsReadFloat32Number(IOHandler io, float* n)
     {
         uint tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null)
@@ -170,26 +170,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadUInt64Number(IOHandler* io, ulong* n)
+    internal static bool _cmsReadUInt64Number(IOHandler io, ulong* n)
     {
         ulong tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(ulong), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(ulong), 1) != 1)
             return false;
 
         if (n is not null) _cmsAdjustEndianess64(n, &tmp);
         return true;
     }
 
-    internal static bool _cmsRead15Fixed16Number(IOHandler* io, double* n)
+    internal static bool _cmsRead15Fixed16Number(IOHandler io, double* n)
     {
         uint tmp;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
         if (n is not null)
@@ -198,13 +198,13 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsReadXYZNumber(IOHandler* io, CIEXYZ* XYZ)
+    internal static bool _cmsReadXYZNumber(IOHandler io, CIEXYZ* XYZ)
     {
         EncodedXYZNumber xyz;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
+        if (io.Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
             return false;
 
         if (XYZ is not null)
@@ -217,23 +217,23 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsWriteUInt8Number(IOHandler* io, byte n)
+    internal static bool _cmsWriteUInt8Number(IOHandler io, byte n)
     {
         _cmsAssert(io);
 
-        return io->Write(io, sizeof(byte), &n);
+        return io.Write(io, sizeof(byte), &n);
     }
 
-    internal static bool _cmsWriteUInt16Number(IOHandler* io, ushort n)
+    internal static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
     {
         _cmsAssert(io);
 
         var tmp = _cmsAdjustEndianess16(n);
 
-        return io->Write(io, sizeof(ushort), &tmp);
+        return io.Write(io, sizeof(ushort), &tmp);
     }
 
-    internal static bool _cmsWriteUInt16Array(IOHandler* io, uint n, in ushort* array)
+    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, in ushort* array)
     {
         _cmsAssert(io);
         _cmsAssert(array);
@@ -246,26 +246,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsWriteUInt32Number(IOHandler* io, uint n)
+    internal static bool _cmsWriteUInt32Number(IOHandler io, uint n)
     {
         _cmsAssert(io);
 
         var tmp = _cmsAdjustEndianess32(n);
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io.Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteFloat32Number(IOHandler* io, float n)
+    internal static bool _cmsWriteFloat32Number(IOHandler io, float n)
     {
         _cmsAssert(io);
 
         var tmp = *(uint*)(void*)&n;
         tmp = _cmsAdjustEndianess32(tmp);
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io.Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteUInt64Number(IOHandler* io, ulong n)
+    internal static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
     {
         ulong tmp;
 
@@ -273,19 +273,19 @@ public static unsafe partial class Lcms2
 
         _cmsAdjustEndianess64(&tmp, &n);
 
-        return io->Write(io, sizeof(ulong), &tmp);
+        return io.Write(io, sizeof(ulong), &tmp);
     }
 
-    internal static bool _cmsWrite15Fixed16Number(IOHandler* io, double n)
+    internal static bool _cmsWrite15Fixed16Number(IOHandler io, double n)
     {
         _cmsAssert(io);
 
         var tmp = _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n));
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io.Write(io, sizeof(uint), &tmp);
     }
 
-    internal static bool _cmsWriteXYZNumber(IOHandler* io, CIEXYZ* XYZ)
+    internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ* XYZ)
     {
         EncodedXYZNumber xyz;
 
@@ -296,7 +296,7 @@ public static unsafe partial class Lcms2
         xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Y));
         xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Z));
 
-        return io->Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
+        return io.Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
     }
 
     internal static double _cms8Fixed8toDouble(ushort fixed8)
@@ -358,63 +358,63 @@ public static unsafe partial class Lcms2
         dest->Year = _cmsAdjustEndianess16((ushort)source->Year);
     }
 
-    internal static Signature _cmsReadTypeBase(IOHandler* io)
+    internal static Signature _cmsReadTypeBase(IOHandler io)
     {
         TagBase Base;
 
         _cmsAssert(io);
 
-        if (io->Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
+        if (io.Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
             return default;
 
         return new(_cmsAdjustEndianess32(Base.Signature));
     }
 
-    internal static bool _cmsWriteTypeBase(IOHandler* io, Signature sig)
+    internal static bool _cmsWriteTypeBase(IOHandler io, Signature sig)
     {
         TagBase Base;
 
         _cmsAssert(io);
 
         Base.Signature = new(_cmsAdjustEndianess32(sig));
-        return io->Write(io, (uint)sizeof(TagBase), &Base);
+        return io.Write(io, (uint)sizeof(TagBase), &Base);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint _cmsALIGNLONG(uint x) =>
         (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
 
-    internal static bool _cmsReadAlignment(IOHandler* io)
+    internal static bool _cmsReadAlignment(IOHandler io)
     {
         var Buffer = stackalloc byte[4];
 
         _cmsAssert(io);
 
-        var At = io->Tell(io);
+        var At = io.Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io->Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
+        return io.Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
     }
 
-    internal static bool _cmsWriteAlignment(IOHandler* io)
+    internal static bool _cmsWriteAlignment(IOHandler io)
     {
         var Buffer = stackalloc byte[4];
 
         _cmsAssert(io);
 
-        var At = io->Tell(io);
+        var At = io.Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io->Write(io, BytesToNextAlignedPos, Buffer);
+        return io.Write(io, BytesToNextAlignedPos, Buffer);
     }
 
-    internal static bool _cmsIOPrintf(IOHandler* io, string frm, params object[] args)
+    internal static bool _cmsIOPrintf(IOHandler io, string frm, params object[] args)
     {
         _cmsAssert(io);
         _cmsAssert(frm);
@@ -426,7 +426,7 @@ public static unsafe partial class Lcms2
 
         fixed (byte* ptr = buffer)
         {
-            return io->Write(io, (uint)str.Length, ptr);
+            return io.Write(io, (uint)str.Length, ptr);
         }
     }
 
@@ -533,7 +533,7 @@ public static unsafe partial class Lcms2
 
     internal static Context _cmsGetContext(Context? ContextID)
     {
-        Context id = ContextID;
+        Context? id = ContextID;
 
         // On null, use global settings
         if (id is null)
@@ -574,7 +574,7 @@ public static unsafe partial class Lcms2
     ///     <see cref="cmsPluginTHR"/> may register many different plug-ins
     ///     simultaneously, then there is no way to identify which plug-in to unregister.
     /// </remarks>
-    public static void cmsUnregisterPluginsTHR(Context context)
+    public static void cmsUnregisterPluginsTHR(Context? context)
     {
         _cmsRegisterMemHandlerPlugin(context, null);
         _cmsRegisterInterpPlugin(context, null);

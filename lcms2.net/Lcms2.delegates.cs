@@ -32,8 +32,8 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    public delegate void FreeUserDataFn(Context ContextID, void* Data);
-    public delegate void* DupUserDataFn(Context ContextID, in void* Data);
+    public delegate void FreeUserDataFn(Context? ContextID, void* Data);
+    public delegate void* DupUserDataFn(Context? ContextID, in void* Data);
     public delegate void* MallocFnPtrType(Context? ContextID, uint size);
     public delegate void FreeFnPtrType(Context? ContextID, void* Ptr);
     public delegate void* ReallocFnPtrType(Context? ContextID, void* Ptr, uint NewSize);
@@ -47,7 +47,7 @@ public static unsafe partial class Lcms2
     public delegate byte* Formatter16(Transform* CMMcargo, ushort* Values, byte* Buffer, uint Stride);
     public delegate byte* FormatterFloat(Transform* CMMcargo, float* Values, byte* Buffer, uint Stride);
     public delegate Formatter FormatterFactory(uint Type, FormatterDirection Dir, uint dwFlags);
-    public delegate Pipeline* IntentFn(Context ContextID, uint nProfiles, uint* Intents, HPROFILE* hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags);
+    public delegate Pipeline* IntentFn(Context? ContextID, uint nProfiles, uint* Intents, HPROFILE* hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags);
     public delegate void StageEvalFn(in float* In, float* Out, in Stage* mpe);
     public delegate object? StageDupElemFn(Stage* mpe);
     public delegate void StageFreeElemFn(Stage* mpe);

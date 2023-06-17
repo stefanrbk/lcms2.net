@@ -66,5 +66,5 @@ internal unsafe struct IT8
 
     public fixed byte DoubleFormatter[MAXID];
 
-    public Context ContextID;
+    public Context? ContextID;
 }

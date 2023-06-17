@@ -40,7 +40,7 @@ public static unsafe partial class Lcms2
 
     private struct Prelin8Data
     {
-        public Context ContextID;
+        public Context? ContextID;
 
         public InterpParams* p;
         public fixed ushort rx[256];
@@ -53,7 +53,7 @@ public static unsafe partial class Lcms2
 
     private struct Prelin16Data
     {
-        public Context ContextID;
+        public Context? ContextID;
 
         // Number of channels
         public uint nInputs;
@@ -84,7 +84,7 @@ public static unsafe partial class Lcms2
 
     private struct MatShaper8Data
     {
-        public Context ContextID;
+        public Context? ContextID;
 
         // from 0..255 to 1.14 (0.0...1.0)
         public fixed int Shaper1R[256];
@@ -106,7 +106,7 @@ public static unsafe partial class Lcms2
 
     private struct Curves16Data
     {
-        public Context ContextID;
+        public Context? ContextID;
 
         // Number of curves
         public uint nCurves;
@@ -308,7 +308,7 @@ public static unsafe partial class Lcms2
             p16->EvalCurveIn16[i](&StageDEF[i], &Output[i], p16->ParamsCurveOut16[i]);
     }
 
-    private static void PrelinOpt16free(Context ContextID, void* ptr)
+    private static void PrelinOpt16free(Context? ContextID, void* ptr)
     {
         var p16 = (Prelin16Data*)ptr;
 
@@ -318,7 +318,7 @@ public static unsafe partial class Lcms2
         _cmsFree(ContextID, p16);
     }
 
-    private static void* Prelin16dup(Context ContextID, in void* ptr)
+    private static void* Prelin16dup(Context? ContextID, in void* ptr)
     {
         var p16 = (Prelin16Data*)ptr;
         var Duped = _cmsDupMem<Prelin16Data>(ContextID, p16);
@@ -332,7 +332,7 @@ public static unsafe partial class Lcms2
     }
 
     private static Prelin16Data* PrelinOpt16alloc(
-        Context ContextID,
+        Context? ContextID,
         in InterpParams* ColorMap,
         uint nInputs,
         ToneCurve** In,
@@ -783,7 +783,7 @@ public static unsafe partial class Lcms2
             g->Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
     }
 
-    private static Prelin8Data* PrelinOpt8alloc(Context ContextID, in InterpParams* p, ToneCurve** G)
+    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, in InterpParams* p, ToneCurve** G)
     {
         var Input = stackalloc ushort[3];
 
@@ -831,10 +831,10 @@ public static unsafe partial class Lcms2
         return p8;
     }
 
-    private static void Prelin8free(Context ContextID, void* ptr) =>
+    private static void Prelin8free(Context? ContextID, void* ptr) =>
         _cmsFree(ContextID, ptr);
 
-    private static void* Prelin8dup(Context ContextID, in void* ptr) =>
+    private static void* Prelin8dup(Context? ContextID, in void* ptr) =>
         _cmsDupMem(ContextID, ptr, (uint)sizeof(Prelin8Data));
 
     private static void PrelinEval8(in ushort* Input, ushort* Output, in void* D)
@@ -1117,7 +1117,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void CurvesFree(Context ContextID, void* ptr)
+    private static void CurvesFree(Context? ContextID, void* ptr)
     {
         var Data = (Curves16Data*)ptr;
 
@@ -1128,7 +1128,7 @@ public static unsafe partial class Lcms2
         _cmsFree(ContextID, ptr);
     }
 
-    private static void* CurvesDup(Context ContextID, in void* ptr)
+    private static void* CurvesDup(Context? ContextID, in void* ptr)
     {
         var Data = _cmsDupMem<Curves16Data>(ContextID, ptr);
 
@@ -1142,7 +1142,7 @@ public static unsafe partial class Lcms2
         return Data;
     }
 
-    private static Curves16Data* CurvesAlloc(Context ContextID, uint nCurves, uint nElements, ToneCurve** G)
+    private static Curves16Data* CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve** G)
     {
         int i;
         var c16 = _cmsMallocZero<Curves16Data>(ContextID, _sizeof<Curves16Data>());
@@ -1329,13 +1329,13 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void FreeMatShaper(Context ContextID, void* Data)
+    private static void FreeMatShaper(Context? ContextID, void* Data)
     {
         if (Data is not null)
             _cmsFree(ContextID, Data);
     }
 
-    private static void* DupMatShaper(Context ContextID, in void* Data) =>
+    private static void* DupMatShaper(Context? ContextID, in void* Data) =>
         _cmsDupMem<MatShaper8Data>(ContextID, Data);
 
     private static void MatShaperEval16(in ushort* In, ushort* Out, in void* D)

@@ -874,7 +874,7 @@ public static unsafe partial class Lcms2
         return (int)nTable;
     }
 
-    public static HANDLE cmsIT8Alloc(Context ContextID)
+    public static HANDLE cmsIT8Alloc(Context? ContextID)
     {
         var it8 = _cmsMallocZero<IT8>(ContextID);
         if (it8 is null) return null;
@@ -1798,7 +1798,7 @@ public static unsafe partial class Lcms2
         return IsMyBlock(Ptr, Size) is not 0;
     }
 
-    public static HANDLE cmsIT8LoadFromMem(Context ContextID, void* Ptr, uint len)
+    public static HANDLE cmsIT8LoadFromMem(Context? ContextID, void* Ptr, uint len)
     {
         _cmsAssert(Ptr);
         _cmsAssert(len is not 0);
@@ -1838,7 +1838,7 @@ public static unsafe partial class Lcms2
         return hIT8;
     }
 
-    public static HANDLE cmsIT8LoadFromFile(Context ContextID, string cFileName)
+    public static HANDLE cmsIT8LoadFromFile(Context? ContextID, string cFileName)
     {
         _cmsAssert(cFileName);
 

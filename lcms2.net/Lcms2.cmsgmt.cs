@@ -33,7 +33,7 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     internal static Transform* _cmsChain2Lab(
-        Context ContextID,
+        Context? ContextID,
         uint nProfiles,
         uint InputFormat,
         uint OutputFormat,
@@ -80,7 +80,7 @@ public static unsafe partial class Lcms2
     }
 
     private static ToneCurve* ComputeKToLstar(
-        Context ContextID,
+        Context? ContextID,
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
@@ -121,7 +121,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static ToneCurve* _cmsBuildKToneCurve(
-        Context ContextID,
+        Context? ContextID,
         uint nPoints,
         uint nProfiles,
         in uint* Intents,
@@ -247,7 +247,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Pipeline* _cmsCreateGamutCheckPipeline(
-        Context ContextID,
+        Context? ContextID,
         HPROFILE* hProfiles,
         bool* BPC,
         uint* Intents,

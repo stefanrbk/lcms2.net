@@ -54,7 +54,7 @@ public static unsafe partial class Lcms2
     private record struct GDBPoint(GDBPointType Type, Spherical p);
     private struct GDB
     {
-        public Context ContextID;
+        public Context? ContextID;
         public GDBPoint* Gamut;
         public GDBPoint* GamutPtr(int theta, int alpha) =>
             &Gamut[theta * SECTORS + alpha];
@@ -224,7 +224,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static HANDLE cmsGBDAlloc(Context ContextID)
+    public static HANDLE cmsGBDAlloc(Context? ContextID)
     {
         var gbd = _cmsMallocZero<GDB>(ContextID);
         if (gbd is null) return null;

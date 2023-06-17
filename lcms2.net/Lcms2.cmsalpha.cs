@@ -165,7 +165,7 @@ public static unsafe partial class Lcms2
         { fromDBLto8, fromDBLto16, fromDBLto16SE, fromDBLtoHLF, fromDBLtoFLT, copy64 },
     };
 
-    internal static FormatterAlphaFn? _cmsGetFormatterAlpha(Context id, uint @in, uint @out)
+    internal static FormatterAlphaFn? _cmsGetFormatterAlpha(Context? id, uint @in, uint @out)
     {
         var in_n = FormatterPos(@in);
         var out_n = FormatterPos(@out);

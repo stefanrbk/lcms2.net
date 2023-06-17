@@ -40,5 +40,5 @@ public unsafe struct NamedColorList
 
     public NamedColor* List;
 
-    public Context ContextID;
+    public Context? ContextID;
 }

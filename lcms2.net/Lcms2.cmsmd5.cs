@@ -37,7 +37,7 @@ public static unsafe partial class Lcms2
         public fixed uint buf[4];
         public fixed uint bits[2];
         public fixed byte @in[64];
-        public Context ContextID;
+        public Context? ContextID;
     }
     private static void cmsMD5_Transform(uint* buf, uint* @in)
     {
@@ -133,7 +133,7 @@ public static unsafe partial class Lcms2
         buf[3] += d;
     }
 
-    public static HANDLE cmsMD5alloc(Context ContextID)
+    public static HANDLE cmsMD5alloc(Context? ContextID)
     {
         var ctx = _cmsMallocZero<MD5>(ContextID);
         if (ctx is null) return null;

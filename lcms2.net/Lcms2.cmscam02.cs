@@ -305,7 +305,7 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    public static HANDLE cmsCIECAM02INIT(Context ContextID, in ViewingConditions* pVC)
+    public static HANDLE cmsCIECAM02INIT(Context? ContextID, in ViewingConditions* pVC)
     {
         CIECAM02* lpMod;
 

@@ -850,10 +850,10 @@ public static unsafe partial class Lcms2
         Out[2] = (float)(XYZ.Z / XYZadj);
     }
 
-    internal static Stage* _cmsStageAllocLab2XYZ(Context ContextID) =>
+    internal static Stage* _cmsStageAllocLab2XYZ(Context? ContextID) =>
         _cmsStageAllocPlaceholder(ContextID, cmsSigLab2XYZElemType, 3, 3, EvaluateLab2XYZ, null, null, null);
 
-    internal static Stage* _cmsStageAllocLabV2ToV4curves(Context ContextID)
+    internal static Stage* _cmsStageAllocLabV2ToV4curves(Context? ContextID)
     {
         var LabTable = stackalloc ToneCurve*[3];
 
@@ -887,7 +887,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageAllocLabV2ToV4(Context ContextID)
+    internal static Stage* _cmsStageAllocLabV2ToV4(Context? ContextID)
     {
         var V2ToV4 = stackalloc double[] {
             65535.0 / 65280.0, 0, 0,
@@ -902,7 +902,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageAllocLabV4ToV2(Context ContextID)
+    internal static Stage* _cmsStageAllocLabV4ToV2(Context? ContextID)
     {
         var V4ToV2 = stackalloc double[] {
             65280.0 / 65535.0, 0, 0,
@@ -917,7 +917,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageNormalizeFromLabFloat(Context ContextID)
+    internal static Stage* _cmsStageNormalizeFromLabFloat(Context? ContextID)
     {
         var a1 = stackalloc double[] {
             1.0 / 100.0, 0, 0,
@@ -937,7 +937,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageNormalizeFromXyzFloat(Context ContextID)
+    internal static Stage* _cmsStageNormalizeFromXyzFloat(Context? ContextID)
     {
         const double n = 32768.0 / 65535.0;
         var a1 = stackalloc double[9]
@@ -954,7 +954,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageNormalizeToLabFloat(Context ContextID)
+    internal static Stage* _cmsStageNormalizeToLabFloat(Context? ContextID)
     {
         var a1 = stackalloc double[9] {
             100.0, 0, 0,
@@ -973,7 +973,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    internal static Stage* _cmsStageNormalizeToXYZFloat(Context ContextID)
+    internal static Stage* _cmsStageNormalizeToXYZFloat(Context? ContextID)
     {
         const double n = 65535.0 / 32768;
         var a1 = stackalloc double[9]
@@ -998,7 +998,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static Stage* _cmsStageClipNegatives(Context ContextID, uint nChannels) =>
+    internal static Stage* _cmsStageClipNegatives(Context? ContextID, uint nChannels) =>
         _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, Clipper, null, null, null);
 
     private static void EvaluateXYZ2Lab(in float* In, float* Out, in Stage* _)
@@ -1020,10 +1020,10 @@ public static unsafe partial class Lcms2
         Out[2] = (float)((Lab.b + 128) / 255);
     }
 
-    internal static Stage* _cmsStageAllocXYZ2Lab(Context ContextID) =>
+    internal static Stage* _cmsStageAllocXYZ2Lab(Context? ContextID) =>
         _cmsStageAllocPlaceholder(ContextID, cmsSigXYZ2LabElemType, 3, 3, EvaluateXYZ2Lab, null, null, null);
 
-    internal static Stage* _cmsStageAllocLabPrelin(Context ContextID)
+    internal static Stage* _cmsStageAllocLabPrelin(Context? ContextID)
     {
         var LabTable = stackalloc ToneCurve*[3];
         var Params = stackalloc double[1] { 2.4 };
@@ -1055,7 +1055,7 @@ public static unsafe partial class Lcms2
     public static object? cmsStageData(in Stage* mpe) =>
         mpe->Data;
 
-    public static Context cmsGetStageContextID(in Stage* mpe) =>
+    public static Context? cmsGetStageContextID(in Stage* mpe) =>
         mpe->ContextID;
 
     public static Stage* cmsStageNext(in Stage* mpe) =>
@@ -1164,7 +1164,7 @@ public static unsafe partial class Lcms2
         memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut->InputChannels * sizeof(float));
     }
 
-    public static Pipeline* cmsPipelineAlloc(Context ContextID, uint InputChannels, uint OutputChannels)
+    public static Pipeline* cmsPipelineAlloc(Context? ContextID, uint InputChannels, uint OutputChannels)
     {
         // A value of zero in channels is allowed as a placeholder
         if (InputChannels >= cmsMAXCHANNELS ||
@@ -1192,7 +1192,7 @@ public static unsafe partial class Lcms2
         return NewLUT;
     }
 
-    public static Context cmsGetPipelineContextID(in Pipeline* lut)
+    public static Context? cmsGetPipelineContextID(in Pipeline* lut)
     {
         _cmsAssert(lut);
         return lut->ContextID;

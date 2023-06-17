@@ -32,10 +32,10 @@ namespace lcms2.types;
 public unsafe struct TagTypeHandler
 {
     public Signature Signature;
-    public Context ContextID;
+    public Context? ContextID;
 
-    public delegate void* ReadFn(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag);
-    public delegate bool WriteFn(TagTypeHandler* self, IOHandler* io, void* Ptr, uint nItems);
+    public delegate void* ReadFn(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag);
+    public delegate bool WriteFn(TagTypeHandler* self, IOHandler io, void* Ptr, uint nItems);
     public delegate void* DupFn(TagTypeHandler* self, in void* Ptr, uint nItems);
     public delegate void FreeFn(TagTypeHandler* self, void* Ptr);
 
@@ -52,7 +52,7 @@ public unsafe struct TagTypeHandler
         WriteFn writePtr,
         DupFn dupPtr,
         FreeFn freePtr,
-        Context contextID,
+        Context? contextID,
         uint iCCVersion)
     {
         Signature = signature;

@@ -41,6 +41,6 @@ public unsafe struct Pipeline
     internal FreeUserDataFn? FreeDataFn;
     internal DupUserDataFn? DupDataFn;
 
-    internal Context ContextID;
+    internal Context? ContextID;
     internal bool SaveAs8Bits;
 }
