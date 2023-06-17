@@ -706,7 +706,7 @@ public static unsafe partial class Lcms2
         var Count = 0u;
         for (var i = 0; i < Icc->TagCount; i++)
         {
-            if (Icc->TagNames != default)
+            if (Icc->TagNames[i] != default)
                 Count++;
         }
 
