@@ -27,17 +27,17 @@
 
 namespace lcms2.state;
 
-internal unsafe struct SubAllocator
+internal class SubAllocator
 {
     public Context? ContextID;
-    public Chunk* h;
+    public Chunk? h;
 
-    internal struct Chunk
+    internal unsafe class Chunk
     {
         public byte* Block;
         public uint BlockSize;
         public uint Used;
 
-        public Chunk* next;
+        public Chunk? next;
     }
 }
