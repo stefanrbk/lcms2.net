@@ -140,7 +140,7 @@ public static unsafe partial class Lcms2
             _cmsAdaptationMatrix(&CHAD, null, &WhitePointXYZ, cmsD50_XYZ());
 
             // This is a V4 tag, but many CMM does read and understand it no matter which version
-            if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, new BoxPtr<MAT3>(&CHAD)))
+            if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, new BoxPtr<double>((double*)&CHAD)))
                 goto Error;
 
             if (Primaries is not null)

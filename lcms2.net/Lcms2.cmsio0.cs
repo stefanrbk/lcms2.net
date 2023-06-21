@@ -965,9 +965,8 @@ public static unsafe partial class Lcms2
 
             var Begin = Icc.TagOffsets[i] = io.UsedSpace;
 
-            var Data = Icc.TagPtrs[i] as BoxPtr<byte>;
 
-            if (Data is not null)
+            if (Icc.TagPtrs[i] is not BoxPtr<byte> Data)
             {
                 void* Mem;
                 // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
