@@ -25,11 +25,15 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Buffers;
+
 namespace lcms2.state;
 
 public unsafe class Context
 {
     internal Context? Next;
+    internal ArrayPool<byte> ByteBuffers = ArrayPool<byte>.Create();
+    internal ArrayPool<double> DoubleBuffers = ArrayPool<double>.Create();
     internal SubAllocator MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;
