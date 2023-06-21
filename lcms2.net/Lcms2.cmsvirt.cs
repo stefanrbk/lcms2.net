@@ -711,7 +711,7 @@ public static unsafe partial class Lcms2
     {
         var EmptyTab = stackalloc ToneCurve*[3];
         var Zero = stackalloc ushort[2] { 0, 0 };
-        var PickLstarMatrix = stackalloc double[] { 1, 0, 0 };
+        ReadOnlySpan<double> PickLstarMatrix = stackalloc double[] { 1, 0, 0 };
         BoxPtr<Pipeline>? LUT = null;
 
         var Profile = cmsCreateProfilePlaceholder(ContextID);

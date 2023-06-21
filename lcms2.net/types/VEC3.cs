@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
@@ -40,4 +41,27 @@ public unsafe struct VEC3(double x, double y, double z)
 
     [FieldOffset(16)]
     public double Z = z;
+
+    public VEC3(ReadOnlySpan<double> d)
+        : this(d[0], d[1], d[2])
+    { }
+
+    internal readonly double[] AsArray(ArrayPool<double>? pool = null)
+    {
+        var result = (pool is not null)
+            ? pool.Rent(3)
+            : new double[3];
+
+        result[0] = X;
+        result[1] = Y;
+        result[2] = Z;
+
+        return result;
+    }
+
+    public static VEC3 operator *(VEC3 lhs, double rhs) =>
+        new(lhs.X * rhs, lhs.Y * rhs, lhs.Z * rhs);
+
+    public static VEC3 operator *(double lhs, VEC3 rhs) =>
+        new(rhs.X * lhs, rhs.Y * lhs, rhs.Z * lhs);
 }

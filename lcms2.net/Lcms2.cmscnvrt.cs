@@ -316,8 +316,9 @@ public static unsafe partial class Lcms2
 
     private static bool AddConversion(Pipeline* Result, Signature InPCS, Signature OutPCS, MAT3* m, VEC3* off)
     {
-        var m_as_dbl = (double*)m;
-        var off_as_dbl = (double*)off;
+        var pool = _cmsGetContext(Result->ContextID).DoubleBuffers;
+        var m_as_dbl = m->AsArray(pool);
+        var off_as_dbl = off->AsArray(pool);
 
         // Handle PCS mismatches. A specialized stage is added to the LUT in such case
         switch ((uint)InPCS)
@@ -329,19 +330,19 @@ public static unsafe partial class Lcms2
                     case cmsSigXYZData:     // XYZ -> XYZ
                         if (!IsEmptyLayer(m, off) &&
                             !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
-                        { return false; }
+                        { goto Error; }
                         break;
 
                     case cmsSigLabData:     // XYZ -> Lab
                         if (!IsEmptyLayer(m, off) &&
                             !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
-                        { return false; }
+                        { goto Error; }
                         if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result->ContextID)))
-                            return false;
+                            goto Error;
                         break;
 
                     default:
-                        return false;   // Colorspace mismatch
+                        goto Error;   // Colorspace mismatch
                 }
                 break;
 
@@ -351,10 +352,10 @@ public static unsafe partial class Lcms2
                 {
                     case cmsSigXYZData:     // Lab -> XYZ
                         if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result->ContextID)))
-                            return false;
+                            goto Error;
                         if (!IsEmptyLayer(m, off) &&
                             !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
-                        { return false; }
+                        { goto Error; }
                         break;
 
                     case cmsSigLabData:     // Lab -> Lab
@@ -363,23 +364,31 @@ public static unsafe partial class Lcms2
                             if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result->ContextID)) ||
                                 !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)) ||
                                 !cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result->ContextID)))
-                            { return false; }
+                            { goto Error; }
                         }
 
                         break;
 
                     default:
-                        return false;   // Colorspace mismatch
+                        goto Error;   // Colorspace mismatch
                 }
                 break;
 
             // On colorspaces other than PCS, check for same space
             default:
-                if (InPCS != OutPCS) return false;
+                if (InPCS != OutPCS) goto Error;
                 break;
         }
 
+        pool.Return(m_as_dbl);
+        pool.Return(off_as_dbl);
+
         return true;
+    Error:
+        pool.Return(m_as_dbl);
+        pool.Return(off_as_dbl);
+
+        return false;
     }
 
     private static bool ColorSpaceIsCompatible(Signature a, Signature b)

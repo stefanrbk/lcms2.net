@@ -45,7 +45,7 @@ internal static unsafe partial class Testbed
 
     private static void AddIdentityMatrix(Pipeline* lut)
     {
-        var Identity = stackalloc double[]
+        ReadOnlySpan<double> Identity = stackalloc double[]
         {
             1,
             0,

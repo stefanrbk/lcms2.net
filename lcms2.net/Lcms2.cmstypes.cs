@@ -429,18 +429,18 @@ public static unsafe partial class Lcms2
 
         if (!_cmsReadUInt16Number(io, &Table)) goto Error;
 
-        if (!_cmsRead15Fixed16Number(io, &chrm->Red.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, &chrm->Red.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Red.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Red.y)) goto Error;
 
         chrm->Red.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, &chrm->Green.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, &chrm->Green.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Green.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Green.y)) goto Error;
 
         chrm->Green.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, &chrm->Blue.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, &chrm->Blue.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Blue.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm->Blue.y)) goto Error;
 
         chrm->Blue.Y = 1.0;
 
@@ -559,7 +559,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < n; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, &array_double[i]))
+            if (!_cmsRead15Fixed16Number(io, out array_double[i]))
             {
                 _cmsFree(self->ContextID, array_double);
                 return null;
@@ -1113,7 +1113,7 @@ public static unsafe partial class Lcms2
         var n = ParamsByType[Type];
 
         for (var i = 0; i < n; i++)
-            if (!_cmsRead15Fixed16Number(io, &Params[i])) return null;
+            if (!_cmsRead15Fixed16Number(io, out Params[i])) return null;
 
         NewGamma = cmsBuildParametricToneCurve(self->ContextID, Type + 1, Params);
 
@@ -1221,7 +1221,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &mc.Observer)) return null;
         if (!_cmsReadXYZNumber(io, &mc.Backing)) return null;
         if (!_cmsReadUInt32Number(io, &mc.Geometry)) return null;
-        if (!_cmsRead15Fixed16Number(io, &mc.Flare)) return null;
+        if (!_cmsRead15Fixed16Number(io, out mc.Flare)) return null;
         if (!_cmsReadUInt32Number(io, (uint*)&mc.IlluminantType)) return null;
 
         var result = _cmsDupMem<IccMeasurementConditions>(self->ContextID, &mc);
@@ -1530,7 +1530,7 @@ public static unsafe partial class Lcms2
         byte InputChannels, OutputChannels, CLUTpoints;
         byte* Temp = null;
         Pipeline* NewLUT = null;
-        var Matrix = stackalloc double[3 * 3];
+        Span<double> Matrix = stackalloc double[3 * 3];
 
         *nItems = 0;
 
@@ -1553,11 +1553,11 @@ public static unsafe partial class Lcms2
 
         // Read the Matrix
         for (var i = 0; i < 9; i++)
-            if (!_cmsRead15Fixed16Number(io, &Matrix[i])) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out Matrix[i])) goto Error;
 
         // Only operates if not identity...
         if ((InputChannels is 3) &&
-            !_cmsMAT3isIdentity(*(MAT3*)Matrix) &&
+            !_cmsMAT3isIdentity(new(Matrix)) &&
             !cmsPipelineInsertStage(NewLUT, StageLoc.AtBegin, cmsStageAllocMatrix(self->ContextID, 3, 3, Matrix, null)))
         {
             goto Error;
@@ -1617,7 +1617,7 @@ public static unsafe partial class Lcms2
     private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
         if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
-        var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+        ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
@@ -1765,7 +1765,7 @@ public static unsafe partial class Lcms2
         ushort InputEntries, OutputEntries;
         byte InputChannels, OutputChannels, CLUTpoints;
         Pipeline* NewLUT = null;
-        var Matrix = stackalloc double[3 * 3];
+        Span<double> Matrix = stackalloc double[3 * 3];
 
         *nItems = 0;
 
@@ -1786,11 +1786,11 @@ public static unsafe partial class Lcms2
 
         // Read the Matrix
         for (var i = 0; i < 9; i++)
-            if (!_cmsRead15Fixed16Number(io, &Matrix[i])) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out Matrix[i])) goto Error;
 
         // Only operates on 3 channels
         if ((InputChannels is 3) &&
-            !_cmsMAT3isIdentity(*(MAT3*)Matrix) &&
+            !_cmsMAT3isIdentity(new(Matrix)) &&
             !cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocMatrix(self->ContextID, 3, 3, Matrix, null)))
         {
             goto Error;
@@ -1842,7 +1842,7 @@ public static unsafe partial class Lcms2
     private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
         if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
-        var ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+        ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
@@ -1977,15 +1977,17 @@ public static unsafe partial class Lcms2
 
     private static Stage? ReadMatrix(TagTypeHandler* self, IOHandler io, uint Offset)
     {
-        var dMat = stackalloc double[(3 * 3) + 3];
-        var dOff = &dMat[3 * 3];
+        Span<double> dMat = stackalloc double[3 * 3];
+        Span<double> dOff = stackalloc double[3];
 
         // Go to address
         if (!io.Seek(io, Offset)) return null;
 
         // Read the Matrix and Offsets
-        for (var i = 0; i < (3 * 3) + 3; i++)
-            if (!_cmsRead15Fixed16Number(io, &dMat[i])) return null;
+        for (var i = 0; i < 3 * 3; i++)
+            if (!_cmsRead15Fixed16Number(io, out dMat[i])) return null;
+        for (var i = 0; i < 3; i++)
+            if (!_cmsRead15Fixed16Number(io, out dOff[i])) return null;
 
         return cmsStageAllocMatrix(self->ContextID, 3, 3, dMat, dOff);
     }
@@ -2175,10 +2177,11 @@ public static unsafe partial class Lcms2
 
     private static bool WriteMatrix(TagTypeHandler* _, IOHandler io, Stage mpe)
     {
-        var zeros = stackalloc double[(int)mpe.OutputChannels];
+        Span<double> zeros = stackalloc double[(int)mpe.OutputChannels];
         var m = (StageMatrixData)mpe.Data;
 
-        memset(zeros, 0, (int)mpe.OutputChannels * sizeof(double));
+        //memset(zeros, 0, (int)mpe.OutputChannels * sizeof(double));
+        zeros.Clear();
 
         var n = mpe.InputChannels * mpe.OutputChannels;
 
@@ -3201,8 +3204,8 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < sc->nChannels; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, &((ScreeningChannel*)sc->Channels)[i].Frequency)) goto Error;
-            if (!_cmsRead15Fixed16Number(io, &((ScreeningChannel*)sc->Channels)[i].ScreenAngle)) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out ((ScreeningChannel*)sc->Channels)[i].Frequency)) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out ((ScreeningChannel*)sc->Channels)[i].ScreenAngle)) goto Error;
             if (!_cmsReadUInt32Number(io, &((ScreeningChannel*)sc->Channels)[i].SpotShape)) goto Error;
         }
 
@@ -3567,9 +3570,9 @@ public static unsafe partial class Lcms2
                     // Populate tone curves
                     for (var n = 0; n < 3; n++)
                     {
-                        if (!_cmsRead15Fixed16Number(io, &Colorant[n].Gamma)) goto Error;
-                        if (!_cmsRead15Fixed16Number(io, &Colorant[n].Min)) goto Error;
-                        if (!_cmsRead15Fixed16Number(io, &Colorant[n].Max)) goto Error;
+                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Gamma)) goto Error;
+                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Min)) goto Error;
+                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Max)) goto Error;
 
                         // Parametric curve type 5 is:
                         // Y = (aX + b)^Gamma + e | X >= d
@@ -4326,15 +4329,17 @@ public static unsafe partial class Lcms2
 
         var nElems = (uint)InputChans * OutputChans;
 
-        var Matrix = _cmsCalloc<double>(self->ContextID, nElems);
-        if (Matrix is null) return null;
+        //var Matrix = _cmsCalloc<double>(self->ContextID, nElems);
+        //if (Matrix is null) return null;
 
-        var Offsets = _cmsCalloc<double>(self->ContextID, OutputChans);
-        if (Offsets is null)
-        {
-            _cmsFree(self->ContextID, Matrix);
-            return null;
-        }
+        //var Offsets = _cmsCalloc<double>(self->ContextID, OutputChans);
+        //if (Offsets is null)
+        //{
+        //    _cmsFree(self->ContextID, Matrix);
+        //    return null;
+        //}
+        Span<double> Matrix = stackalloc double[(int)nElems];
+        Span<double> Offsets = stackalloc double[OutputChans];
 
         for (var i = 0; i < nElems; i++)
         {
@@ -4342,8 +4347,8 @@ public static unsafe partial class Lcms2
 
             if (!_cmsReadFloat32Number(io, &v))
             {
-                _cmsFree(self->ContextID, Matrix);
-                _cmsFree(self->ContextID, Offsets);
+                //_cmsFree(self->ContextID, Matrix);
+                //_cmsFree(self->ContextID, Offsets);
                 return null;
             }
             Matrix[i] = v;
@@ -4355,16 +4360,16 @@ public static unsafe partial class Lcms2
 
             if (!_cmsReadFloat32Number(io, &v))
             {
-                _cmsFree(self->ContextID, Matrix);
-                _cmsFree(self->ContextID, Offsets);
+                //_cmsFree(self->ContextID, Matrix);
+                //_cmsFree(self->ContextID, Offsets);
                 return null;
             }
             Offsets[i] = v;
         }
 
         var mpe = cmsStageAllocMatrix(self->ContextID, OutputChans, InputChans, Matrix, Offsets);
-        _cmsFree(self->ContextID, Matrix);
-        _cmsFree(self->ContextID, Offsets);
+        //_cmsFree(self->ContextID, Matrix);
+        //_cmsFree(self->ContextID, Offsets);
         *nItems = mpe is not null ? 1u : 0;
         return mpe;
     }

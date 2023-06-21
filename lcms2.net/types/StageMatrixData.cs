@@ -25,10 +25,79 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Buffers;
+
 namespace lcms2.types;
 
-public unsafe class StageMatrixData
+public unsafe class StageMatrixData : IDisposable
 {
-    public double* Double;
-    public double* Offset;
+    public double[] Double
+    {
+        get =>
+            d;
+        private set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            d = value;
+        }
+    }
+    private double[] d;
+    public double[]? Offset;
+    private bool disposedValue;
+    private readonly ArrayPool<double>? pool;
+
+    public StageMatrixData(ReadOnlySpan<double> d, ReadOnlySpan<double> o = default, ArrayPool<double>? p = null)
+    {
+        Double = p is null
+            ? new double[d.Length]
+            : p.Rent(d.Length);
+
+        Offset = o.Length < 0
+            ? p is null
+                ? new double[o.Length]
+                : p.Rent(o.Length)
+            : null;
+
+        disposedValue = false;
+        pool = p;
+
+        if (Double is null)
+            throw new InvalidOperationException();
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                if (pool is not null)
+                {
+                    pool.Return(Double);
+                    d = null!;
+                    if (Offset is not null)
+                        pool.Return(Offset);
+                    Offset = null!;
+                }
+            }
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            disposedValue = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~StageMatrixData()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

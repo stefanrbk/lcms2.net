@@ -37,10 +37,10 @@ public static unsafe partial class Lcms2
     internal static readonly Signature* PCS2Device16;
     internal static readonly Signature* PCS2DeviceFloat;
 
-    internal static readonly double* GrayInputMatrix;
-    internal static readonly double* OneToThreeInputMatrix;
-    internal static readonly double* PickYMatrix;
-    internal static readonly double* PickLstarMatrix;
+    internal static readonly double[] GrayInputMatrix;
+    internal static readonly double[] OneToThreeInputMatrix;
+    internal static readonly double[] PickYMatrix;
+    internal static readonly double[] PickLstarMatrix;
 
     internal const double InpAdj = 1 / MAX_ENCODEABLE_XYZ;
     internal const double OutpAdj = MAX_ENCODEABLE_XYZ;
@@ -182,7 +182,7 @@ public static unsafe partial class Lcms2
         var Shapes = stackalloc ToneCurve*[3];
         var ContextID = cmsGetProfileContextID(Profile); ;
         MAT3 Mat;
-        VEC3* Matv = &Mat.X;
+        //VEC3* Matv = &Mat.X;
 
         if (!ReadIccMatrixRGB2XYZ(&Mat, Profile)) return null;
 
@@ -190,9 +190,12 @@ public static unsafe partial class Lcms2
         // we need to adjust the output by a factor of (0x10000/0xffff) to put data in
         // a 1.16 range, and then a >> 1 to obtain 1.15. The total factor is (65536.0)/(65535.0*2)
 
-        for (var i = 0; i < 3; i++)
-            for (var j = 0; j < 3; j++)
-                (&Matv[i].X)[j] *= InpAdj;
+        //for (var i = 0; i < 3; i++)
+        //    for (var j = 0; j < 3; j++)
+        //        (&Matv[i].X)[j] *= InpAdj;
+        Mat.X *= InpAdj;
+        Mat.Y *= InpAdj;
+        Mat.Z *= InpAdj;
 
         Shapes[0] = cmsReadTag(Profile, cmsSigRedTRCTag) as BoxPtr<ToneCurve>;
         Shapes[1] = cmsReadTag(Profile, cmsSigGreenTRCTag) as BoxPtr<ToneCurve>;
@@ -204,11 +207,15 @@ public static unsafe partial class Lcms2
         var Lut = cmsPipelineAlloc(ContextID, 3, 3);
         if (Lut is null) return null;
 
+        var pool = _cmsGetContext(Lut->ContextID).DoubleBuffers;
+        var MatArray = Mat.AsArray(pool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
-            !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, (double*)&Mat, null)))
+            !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
         {
+            pool.Return(MatArray);
             goto Error;
         }
+        pool.Return(MatArray);
 
         // Note that it is certainly possible a single profile would have a LUT based
         // tag for output working in lab and a matrix-shaper for the fallback cases.
@@ -400,7 +407,7 @@ public static unsafe partial class Lcms2
         var Shapes = new BoxPtr<ToneCurve>?[3];
         var InvShapes = new BoxPtr<ToneCurve>?[3];
         MAT3 Mat, Inv;
-        VEC3* Invv = &Inv.X;
+        //VEC3* Invv = &Inv.X;
 
         var ContextID = cmsGetProfileContextID(Profile);
 
@@ -414,9 +421,12 @@ public static unsafe partial class Lcms2
         // we need to adjust the input by a << 1 to obtain a 1.16 fixed and then by a factor of
         // (0xffff/0x10000) to put data in 0..0xffff range. Total factor is (2.0*65535.0)/65536.0;
 
-        for (var i = 0; i < 3; i++)
-            for (var j = 0; j < 3; j++)
-                (&Invv[i].X)[j] *= OutpAdj;
+        //for (var i = 0; i < 3; i++)
+        //    for (var j = 0; j < 3; j++)
+        //        (&Invv[i].X)[j] *= OutpAdj;
+        Inv.X *= OutpAdj;
+        Inv.Y *= OutpAdj;
+        Inv.Z *= OutpAdj;
 
         Shapes[0] = cmsReadTag(Profile, cmsSigRedTRCTag) as BoxPtr<ToneCurve>;
         Shapes[1] = cmsReadTag(Profile, cmsSigGreenTRCTag) as BoxPtr<ToneCurve>;
@@ -452,9 +462,15 @@ public static unsafe partial class Lcms2
                 goto Error2;
         }
 
-        if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, (double*)&Inv, null)) ||
+        var pool = _cmsGetContext(Lut->ContextID).DoubleBuffers;
+        var InvArray = Inv.AsArray(pool);
+        if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, InvArray, null)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, InvShapesTriple)))
+        {
+            pool.Return(InvArray);
             goto Error2;
+        }
+        pool.Return(InvArray);
 
         cmsFreeToneCurveTriple(InvShapesTriple);
         return Lut;

@@ -921,10 +921,10 @@ public static unsafe partial class Lcms2
             free(Device2PCSFloat);
             free(PCS2Device16);
             free(PCS2DeviceFloat);
-            free(GrayInputMatrix);
-            free(OneToThreeInputMatrix);
-            free(PickYMatrix);
-            free(PickLstarMatrix);
+            //free(GrayInputMatrix);
+            //free(OneToThreeInputMatrix);
+            //free(PickYMatrix);
+            //free(PickLstarMatrix);
 
             // Optimization defaults
             free(DefaultOptimization);
@@ -1235,25 +1235,20 @@ public static unsafe partial class Lcms2
                 cmsSigBToD2Tag,     // Saturation
                 cmsSigBToD3Tag,     // Absolute colorimetric
             };
-            var temp5 = stackalloc double[3]
+            GrayInputMatrix = new double[3]
             {
                 InpAdj * cmsD50X,
                 InpAdj * cmsD50Y,
                 InpAdj * cmsD50Z,
             };
-            var temp6 = stackalloc double[3] { 1, 1, 1, };
-            var temp7 = stackalloc double[3] { 0, OutpAdj * cmsD50Y, 0, };
-            var temp8 = stackalloc double[3] { 1, 0, 0, };
+            OneToThreeInputMatrix = new double[3] { 1, 1, 1, };
+            PickYMatrix = new double[3] { 0, OutpAdj * cmsD50Y, 0, };
+            PickLstarMatrix = new double[3] { 1, 0, 0, };
 
             Device2PCS16 = (Signature*)dup(temp1, 4 * sizeof(Signature));
             Device2PCSFloat = (Signature*)dup(temp2, 4 * sizeof(Signature));
             PCS2Device16 = (Signature*)dup(temp3, 4 * sizeof(Signature));
             PCS2DeviceFloat = (Signature*)dup(temp4, 4 * sizeof(Signature));
-
-            GrayInputMatrix = (double*)dup(temp5, 4 * sizeof(double));
-            OneToThreeInputMatrix = (double*)dup(temp6, 4 * sizeof(double));
-            PickYMatrix = (double*)dup(temp7, 4 * sizeof(double));
-            PickLstarMatrix = (double*)dup(temp8, 4 * sizeof(double));
         }
 
         #endregion io1 "const"s

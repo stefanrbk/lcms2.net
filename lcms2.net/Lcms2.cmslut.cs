@@ -291,16 +291,22 @@ public static unsafe partial class Lcms2
     {
         if (mpe.Data is not StageMatrixData Data)
             return null;
+        var pool = _cmsGetContext(mpe.ContextID).DoubleBuffers;
 
-        var NewElem = new StageMatrixData();
+        var sz = (int)(mpe.InputChannels * mpe.OutputChannels);
+
+        var NewElem = Data.Offset is not null
+            ? new StageMatrixData(Data.Double.AsSpan()[..sz], Data.Offset.AsSpan()[..(int)mpe.OutputChannels], pool)
+            : new StageMatrixData(Data.Double.AsSpan()[..sz], default, pool);
+
         //if (NewElem is null) return null;
 
-        var sz = mpe.InputChannels * mpe.OutputChannels;
+        //NewElem.Double = _cmsDupMem<double>(mpe.ContextID, Data.Double, sz);
 
-        NewElem.Double = _cmsDupMem<double>(mpe.ContextID, Data.Double, sz);
-
-        if (Data.Offset is not null)
-            NewElem.Offset = _cmsDupMem<double>(mpe.ContextID, Data.Offset, mpe.OutputChannels);
+        //if (Data.Offset is not null)
+        //{
+        //    //NewElem.Offset = _cmsDupMem<double>(mpe.ContextID, Data.Offset, mpe.OutputChannels);
+        //}
 
         return NewElem;
     }
@@ -310,15 +316,12 @@ public static unsafe partial class Lcms2
         if (mpe.Data is not StageMatrixData Data)
             return;
 
-        if (Data.Double is not null)
-            _cmsFree(mpe.ContextID, Data.Double);
-        if (Data.Offset is not null)
-            _cmsFree(mpe.ContextID, Data.Offset);
+        Data.Dispose();
     }
 
-    public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, in double* Matrix, in double* Offset)
+    public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, ReadOnlySpan<double> Matrix, ReadOnlySpan<double> Offset)
     {
-        var n = Rows * Cols;
+        var n = (int)(Rows * Cols);
 
         // Check for overflow
         if (n is 0) return null;
@@ -329,30 +332,35 @@ public static unsafe partial class Lcms2
         var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigMatrixElemType, Cols, Rows, EvaluateMatrix, MatrixElemDup, MatrixElemTypeFree, null);
         if (NewMPE is null) return null;
 
-        var NewElem = new StageMatrixData();
-        if (NewElem is null) goto Error;
+        //var NewElem = new StageMatrixData();
+        //if (NewElem is null) goto Error;
+        var pool = _cmsGetContext(ContextID).DoubleBuffers;
+        var NewElem = Offset.Length >= Rows
+            ? new StageMatrixData(Matrix, Offset, pool)
+            : new StageMatrixData(Matrix, default, pool);
+
         NewMPE.Data = NewElem;
 
-        NewElem.Double = _cmsCalloc<double>(ContextID, n);
-        if (NewElem.Double is null) goto Error;
+        //NewElem.Double = _cmsCalloc<double>(ContextID, n);
+        //if (NewElem.Double is null) goto Error;
 
-        for (var i = 0; i < n; i++)
-            NewElem.Double[i] = Matrix[i];
+        //for (var i = 0; i < n; i++)
+        //    NewElem.Double[i] = Matrix[i];
 
-        if (Offset is not null)
-        {
-            NewElem.Offset = _cmsCalloc<double>(ContextID, Rows);
-            if (NewElem.Offset is null) goto Error;
+        //if (Offset.Length >= Rows)
+        //{
+        //    //NewElem.Offset = _cmsCalloc<double>(ContextID, Rows);
+        //    //if (NewElem.Offset is null) goto Error;
 
-            for (var i = 0; i < Rows; i++)
-                NewElem.Offset[i] = Offset[i];
-        }
+        //    //for (var i = 0; i < Rows; i++)
+        //    //    NewElem.Offset[i] = Offset[i];
+        //}
 
         return NewMPE;
 
-    Error:
-        cmsStageFree(NewMPE);
-        return null;
+    //Error:
+    //    cmsStageFree(NewMPE);
+    //    return null;
     }
 
     private static void EvaluateCLUTfloat(in float* In, float* Out, Stage mpe)
@@ -881,7 +889,7 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabV2ToV4(Context? ContextID)
     {
-        var V2ToV4 = stackalloc double[] {
+        ReadOnlySpan<double> V2ToV4 = stackalloc double[] {
             65535.0 / 65280.0, 0, 0,
             0, 65535.0 / 65280.0, 0,
             0, 0, 65535.0 / 65280.0
@@ -896,7 +904,7 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabV4ToV2(Context? ContextID)
     {
-        var V4ToV2 = stackalloc double[] {
+        ReadOnlySpan<double> V4ToV2 = stackalloc double[] {
             65280.0 / 65535.0, 0, 0,
             0, 65280.0 / 65535.0, 0,
             0, 0, 65280.0 / 65535.0
@@ -911,12 +919,12 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageNormalizeFromLabFloat(Context? ContextID)
     {
-        var a1 = stackalloc double[] {
+        ReadOnlySpan<double> a1 = stackalloc double[] {
             1.0 / 100.0, 0, 0,
             0, 1.0 / 255.0, 0,
             0, 0, 1.0 / 255.0
         };
-        var o1 = stackalloc double[] {
+        ReadOnlySpan<double> o1 = stackalloc double[] {
             0,
             128.0 / 255.0,
             128.0 / 255.0
@@ -932,7 +940,7 @@ public static unsafe partial class Lcms2
     internal static Stage? _cmsStageNormalizeFromXyzFloat(Context? ContextID)
     {
         const double n = 32768.0 / 65535.0;
-        var a1 = stackalloc double[9]
+        ReadOnlySpan<double> a1 = stackalloc double[9]
         {
             n, 0, 0,
             0, n, 0,
@@ -948,12 +956,12 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageNormalizeToLabFloat(Context? ContextID)
     {
-        var a1 = stackalloc double[9] {
+        ReadOnlySpan<double> a1 = stackalloc double[9] {
             100.0, 0, 0,
             0, 255.0, 0,
             0, 0, 255.0
         };
-        var o1 = stackalloc double[3] {
+        ReadOnlySpan<double> o1 = stackalloc double[3] {
             0,
             -128.0,
             -128.0
@@ -968,7 +976,7 @@ public static unsafe partial class Lcms2
     internal static Stage? _cmsStageNormalizeToXYZFloat(Context? ContextID)
     {
         const double n = 65535.0 / 32768;
-        var a1 = stackalloc double[9]
+        ReadOnlySpan<double> a1 = stackalloc double[9]
         {
             n, 0, 0,
             0, n, 0,

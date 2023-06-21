@@ -219,7 +219,7 @@ public static unsafe partial class Lcms2
                 }
 
                 // Multiply both matrices to get the result
-                _cmsMAT3per(out MAT3 res, *(MAT3*)m2.Double, *(MAT3*)m1.Double);
+                _cmsMAT3per(out MAT3 res, new MAT3(m2.Double), new MAT3(m1.Double));
 
                 // Get the next in chain after the matrices
                 var chain = pt2.Next;
@@ -232,7 +232,10 @@ public static unsafe partial class Lcms2
                 if (!isFloatMatrixIdentity(&res))
                 {
                     // We can not get rid of full matrix
-                    var Multmat = cmsStageAllocMatrix(Lut->ContextID, 3, 3, (double*)&res, null);
+                    var ctx = _cmsGetContext(Lut->ContextID);
+                    var resArray = res.AsArray(ctx.DoubleBuffers);
+                    var Multmat = cmsStageAllocMatrix(Lut->ContextID, 3, 3, resArray, null);
+                    ctx.DoubleBuffers.Return(resArray);
                     if (Multmat is null) return false;
 
                     // Recover the chain
@@ -1458,7 +1461,7 @@ public static unsafe partial class Lcms2
 
     private static bool OptimizeMatrixShaper(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
-        double* Offset;
+        double[]? Offset;
         MAT3 res;
 
         // Only works on RGB to RGB
@@ -1483,14 +1486,14 @@ public static unsafe partial class Lcms2
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
             // Get both matrices
-            var Data1 = (StageMatrixData)cmsStageData(Matrix1);
-            var Data2 = (StageMatrixData)cmsStageData(Matrix2);
+            var Data1 = (StageMatrixData)cmsStageData(Matrix1!)!;
+            var Data2 = (StageMatrixData)cmsStageData(Matrix2!)!;
 
             // Input offset should be zero
             if (Data1.Offset is not null) return false;
 
             // Multiply both matrices to get the result
-            _cmsMAT3per(out res, *(MAT3*)Data2.Double, *(MAT3*)Data1.Double);
+            _cmsMAT3per(out res, new(Data2.Double), new(Data1.Double));
 
             // Only 2nd matrix has offset, or it is zero
             Offset = Data2.Offset;
@@ -1505,10 +1508,11 @@ public static unsafe partial class Lcms2
         else if (cmsPipelineCheckAndRetrieveStages(Src, out Curve1, out Matrix1, out Curve2,
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
-            var Data = (StageMatrixData)cmsStageData(Matrix1);
+            var Data = (StageMatrixData)cmsStageData(Matrix1!)!;
 
             // Copy the matrix to our result
-            memcpy(&res, (MAT3*)Data.Double);
+            //memcpy(&res, (MAT3*)Data.Double);
+            res = new(Data.Double);
 
             // Preserve the offset (may be null as a zero offset)
             Offset = Data.Offset;
@@ -1534,8 +1538,14 @@ public static unsafe partial class Lcms2
 
         if (!IdentityMat)
         {
-            if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest->ContextID, 3, 3, (double*)&res, Offset)))
+            var pool = _cmsGetContext(Src->ContextID).DoubleBuffers;
+            var resArray = res.AsArray(pool);
+            if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest->ContextID, 3, 3, resArray, Offset)))
+            {
+                pool.Return(resArray);
                 goto Error;
+            }
+            pool.Return(resArray);
         }
 
         // If identity on matrix, we can further optimize the curves, so call the join curves routine
@@ -1553,7 +1563,8 @@ public static unsafe partial class Lcms2
             *dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routinds
-            SetMatShaper(Dest, mpeC1.TheCurves, &res, (VEC3*)Offset, mpeC2.TheCurves, OutputFormat);
+            var resOffset = new VEC3(Offset);
+            SetMatShaper(Dest, mpeC1.TheCurves, &res, &resOffset, mpeC2.TheCurves, OutputFormat);
         }
 
         cmsPipelineFree(Src);

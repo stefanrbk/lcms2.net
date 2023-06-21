@@ -634,7 +634,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool EmitCIEBasedABC(IOHandler m, double* Matrix, ToneCurve** CurveSet, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ToneCurve** CurveSet, CIEXYZ* BlackPoint)
     {
         var lcms2gammaproc = "lcms2gammaproc".ToBytePtr();
         var lcms2gammaproc0 = "lcms2gammaproc0".ToBytePtr();
@@ -659,7 +659,7 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, "/MatrixABC [ ");
 
-        for (var i = 0u; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
 
             _cmsIOPrintf(m, "{0:f6} {1:f6} {2:f6} ", Matrix[i + 3 * 0],
@@ -848,7 +848,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static double* GetPtrToMatrix(Stage mpe) =>
+    private static double[]? GetPtrToMatrix(Stage mpe) =>
         (mpe.Data is StageMatrixData Data)
             ? Data.Double
             : null;
@@ -869,14 +869,12 @@ public static unsafe partial class Lcms2
         }
         else if ((uint)ColorSpace is cmsSigRgbData)
         {
-            MAT3 Mat;
-
-            memmove(&Mat, GetPtrToMatrix(Matrix), _sizeof<MAT3>());
+            var Mat = GetPtrToMatrix(Matrix)!;
 
             for (var i = 0; i < 9; i++)
-                ((double*)&Mat)[i] *= MAX_ENCODEABLE_XYZ;
+                Mat[i] *= MAX_ENCODEABLE_XYZ;
 
-            rc = EmitCIEBasedABC(m, (double*)&Mat, _cmsStageGetPtrToCurveSet(Shaper), &BlackPointAdaptedToD50);
+            rc = EmitCIEBasedABC(m, Mat, _cmsStageGetPtrToCurveSet(Shaper), &BlackPointAdaptedToD50);
         }
         else
         {

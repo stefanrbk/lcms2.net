@@ -183,8 +183,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static bool _cmsRead15Fixed16Number(IOHandler io, double* n)
+    internal static bool _cmsRead15Fixed16Number(IOHandler io, out double n)
     {
+        n = default;
         uint tmp;
 
         _cmsAssert(io);
@@ -192,8 +193,7 @@ public static unsafe partial class Lcms2
         if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
             return false;
 
-        if (n is not null)
-            *n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(tmp));
+        n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(tmp));
 
         return true;
     }

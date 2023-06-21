@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace lcms2.types;
@@ -47,4 +48,30 @@ public unsafe struct MAT3(VEC3 x, VEC3 y, VEC3 z)
             new(yy, yy, yz),
             new(zx, zx, zy))
     { }
+
+    public MAT3(ReadOnlySpan<double> d)
+        : this(
+            new(d[0], d[1], d[2]),
+            new(d[3], d[4], d[5]),
+            new(d[6], d[7], d[8]))
+    { }
+
+    public readonly double[] AsArray(ArrayPool<double>? pool = null)
+    {
+        var result = (pool is null)
+            ? new double[9]
+            : pool.Rent(9);
+
+        result[0] = X.X;
+        result[1] = X.Y;
+        result[2] = X.Z;
+        result[3] = Y.X;
+        result[4] = Y.Y;
+        result[5] = Y.Z;
+        result[6] = Z.X;
+        result[7] = Z.Y;
+        result[8] = Z.Z;
+
+        return result;
+    }
 }
