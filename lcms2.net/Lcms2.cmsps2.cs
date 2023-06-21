@@ -573,7 +573,7 @@ public static unsafe partial class Lcms2
 
     private static void WriteCLUT(
         IOHandler m,
-        Stage* mpe,
+        Stage mpe,
         byte* PreMaj,
         byte* PostMaj,
         byte* PreMin,
@@ -585,7 +585,7 @@ public static unsafe partial class Lcms2
 
         sc.FirstComponent = -1;
         sc.SecondComponent = -1;
-        sc.Pipeline = (StageCLutData)mpe->Data;
+        sc.Pipeline = (StageCLutData)mpe.Data;
         sc.m = m;
         sc.PreMaj = PreMaj;
         sc.PostMaj = PostMaj;
@@ -738,7 +738,7 @@ public static unsafe partial class Lcms2
                 EmitSafeGuardEnd(m, buffer, 3);
             }
 
-            mpe = mpe->Next;
+            mpe = mpe.Next;
         }
 
         if ((uint)cmsStageType(mpe) is cmsSigCLutElemType)
@@ -848,10 +848,12 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static double* GetPtrToMatrix(Stage* mpe) =>
-        ((StageMatrixData)mpe->Data).Double;
+    private static double* GetPtrToMatrix(Stage mpe) =>
+        (mpe.Data is StageMatrixData Data)
+            ? Data.Double
+            : null;
 
-    private static bool WriteInputMatrixShaper(IOHandler m, Profile Profile, Stage* Matrix, Stage* Shaper)
+    private static bool WriteInputMatrixShaper(IOHandler m, Profile Profile, Stage Matrix, Stage Shaper)
     {
         bool rc;
         CIEXYZ BlackPointAdaptedToD50;
@@ -932,7 +934,6 @@ public static unsafe partial class Lcms2
         IOHandler mem)
     {
         Pipeline* lut = null;
-        Stage* Matrix, Shaper;
 
         // Is a named color profile?
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
@@ -956,7 +957,7 @@ public static unsafe partial class Lcms2
             if (lut is null) goto Error;
 
             // TOne curves + matrix can be implemented without and LUT
-            if (cmsPipelineCheckAndRetrieveStages(lut, &Shaper, &Matrix, cmsSigCurveSetElemType, cmsSigMatrixElemType))
+            if (cmsPipelineCheckAndRetrieveStages(lut, out var Shaper, out var Matrix, cmsSigCurveSetElemType, cmsSigMatrixElemType))
             {
                 if (!WriteInputMatrixShaper(mem, Profile, Matrix, Shaper)) goto Error;
             }

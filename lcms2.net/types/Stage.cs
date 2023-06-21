@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct Stage
+public class Stage
 {
     public Context? ContextID;
     public Signature Type;
@@ -43,5 +43,5 @@ public unsafe struct Stage
 
     public object? Data;
 
-    public Stage* Next;
+    public Stage? Next;
 }

@@ -31,7 +31,7 @@ namespace lcms2.types;
 
 public unsafe struct Pipeline
 {
-    internal Stage* Elements;
+    internal Stage? Elements;
     internal uint InputChannels, OutputChannels;
 
     internal void* Data;

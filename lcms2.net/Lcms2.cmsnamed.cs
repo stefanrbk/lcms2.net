@@ -591,21 +591,21 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static void FreeNamedColorList(Stage* mpe)
+    private static void FreeNamedColorList(Stage mpe)
     {
-        var list = (BoxPtr<NamedColorList>)mpe->Data;
-        cmsFreeNamedColorList(list);
+        if (mpe.Data is BoxPtr<NamedColorList> list)
+            cmsFreeNamedColorList(list);
     }
 
-    private static object? DupNamedColorList(Stage* mpe)
-    {
-        var list = (BoxPtr<NamedColorList>)mpe->Data;
-        return new BoxPtr<NamedColorList>(cmsDupNamedColorList(list));
-    }
+    private static object? DupNamedColorList(Stage mpe) =>
+        (mpe.Data is BoxPtr<NamedColorList> list)
+            ? new BoxPtr<NamedColorList>(cmsDupNamedColorList(list))
+            : null;
 
-    private static void EvalNamedColorPCS(in float* In, float* Out, in Stage* mpe)
+    private static void EvalNamedColorPCS(in float* In, float* Out, Stage mpe)
     {
-        var NamedColorList = (BoxPtr<NamedColorList>)mpe->Data;
+        if (mpe.Data is not BoxPtr<NamedColorList> NamedColorList)
+            return;
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
         if (index >= NamedColorList.Ptr->nColors)
@@ -622,9 +622,10 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void EvalNamedColor(in float* In, float* Out, in Stage* mpe)
+    private static void EvalNamedColor(in float* In, float* Out, Stage mpe)
     {
-        var NamedColorList = (BoxPtr<NamedColorList>)mpe->Data;
+        if (mpe.Data is not BoxPtr<NamedColorList> NamedColorList)
+            return;
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
         if (index >= NamedColorList.Ptr->nColors)
@@ -640,7 +641,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static Stage* _cmsStageAllocNamedColor(NamedColorList* NamedColorList, bool UsePCS) =>
+    internal static Stage? _cmsStageAllocNamedColor(NamedColorList* NamedColorList, bool UsePCS) =>
         _cmsStageAllocPlaceholder(
             NamedColorList->ContextID,
             cmsSigNamedColorElemType,
@@ -655,8 +656,9 @@ public static unsafe partial class Lcms2
     {
         var mpe = xform->Lut->Elements;
 
-        if (mpe->Type != cmsSigNamedColorElemType) return null;
-        return mpe->Data as BoxPtr<NamedColorList>;
+        return (mpe is not null && mpe.Type == cmsSigNamedColorElemType)
+            ? mpe.Data as BoxPtr<NamedColorList>
+            : null;
     }
 
     public static Sequence* cmsAllocProfileSequenceDescription(Context? ContextID, uint n)

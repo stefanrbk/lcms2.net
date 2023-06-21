@@ -854,10 +854,10 @@ public static unsafe partial class Lcms2
 
     private static bool CheckOne(in AllowedLUT* Tab, in Pipeline* Lut)
     {
-        Stage* mpe;
+        Stage? mpe;
         int n;
 
-        for (n = 0, mpe = Lut->Elements; mpe is not null; mpe = mpe->Next, n++)
+        for (n = 0, mpe = Lut->Elements; mpe is not null; mpe = mpe.Next, n++)
         {
             if (n > Tab->nTypes) return false;
             if (cmsStageType(mpe) != Tab->MpeTypes[n]) return false;
@@ -964,12 +964,12 @@ public static unsafe partial class Lcms2
 
             // Put identity curves if needed
             var FirstStage = cmsPipelineGetPtrToFirstStage(LUT);
-            if (FirstStage is not null && (uint)FirstStage->Type is cmsSigCurveSetElemType)
+            if (FirstStage is not null && (uint)FirstStage.Type is cmsSigCurveSetElemType)
                 if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, ChansIn)))
                     goto Error;
 
             var LastStage = cmsPipelineGetPtrToLastStage(LUT);
-            if (LastStage is not null && (uint)LastStage->Type is cmsSigCurveSetElemType)
+            if (LastStage is not null && (uint)LastStage.Type is cmsSigCurveSetElemType)
                 if (!cmsPipelineInsertStage(LUT, StageLoc.AtEnd, _cmsStageAllocIdentityCurves(ContextID, ChansOut)))
                     goto Error;
 

@@ -118,29 +118,29 @@ public static unsafe partial class Lcms2
         public ushort** Curves;
     }
 
-    private static void _RemoveElement(Stage** head)
+    private static void _RemoveElement(ref Stage? head)
     {
-        var mpe = *head;
-        var next = mpe->Next;
-        *head = next;
+        var mpe = head;
+        var next = mpe?.Next;
+        head = next;
         cmsStageFree(mpe);
     }
 
     private static bool _Remove1Op(Pipeline* Lut, Signature UnaryOp)
     {
-        var pt = &Lut->Elements;
+        ref var pt = ref Lut->Elements;
         var AnyOpt = false;
 
-        while (*pt is not null)
+        while (pt is not null)
         {
-            if ((*pt)->Implements == UnaryOp)
+            if (pt.Implements == UnaryOp)
             {
-                _RemoveElement(pt);
+                _RemoveElement(ref pt);
                 AnyOpt = true;
             }
             else
             {
-                pt = &(*pt)->Next;
+                pt = ref pt.Next;
             }
         }
 
@@ -151,23 +151,23 @@ public static unsafe partial class Lcms2
     {
         var AnyOpt = false;
 
-        var pt1 = &Lut->Elements;
-        if (*pt1 is null) return AnyOpt;
+        ref var pt1 = ref Lut->Elements;
+        if (pt1 is null) return AnyOpt;
 
-        while (*pt1 is not null)
+        while (pt1 is not null)
         {
-            var pt2 = &(*pt1)->Next;
-            if (*pt2 is null) return AnyOpt;
+            ref var pt2 = ref pt1.Next;
+            if (pt2 is null) return AnyOpt;
 
-            if ((*pt1)->Implements == Op1 && (*pt2)->Implements == Op2)
+            if (pt1.Implements == Op1 && pt2.Implements == Op2)
             {
-                _RemoveElement(pt1);
-                _RemoveElement(pt2);
+                _RemoveElement(ref pt1);
+                _RemoveElement(ref pt2);
                 AnyOpt = true;
             }
             else
             {
-                pt1 = &(*pt1)->Next;
+                pt1 = ref pt1.Next;
             }
         }
 
@@ -196,38 +196,37 @@ public static unsafe partial class Lcms2
     {
         var AnyOpt = false;
 
-        var pt1 = &Lut->Elements;
-        if (*pt1 is null) return AnyOpt;
+        ref var pt1 = ref Lut->Elements;
+        if (pt1 is null) return AnyOpt;
 
-        while (*pt1 is not null)
+        while (pt1 is not null)
         {
-            var pt2 = &(*pt1)->Next;
-            if (*pt2 is null) return AnyOpt;
+            ref var pt2 = ref pt1.Next;
+            if (pt2 is null) return AnyOpt;
 
-            if ((uint)(*pt1)->Implements is cmsSigMatrixElemType && (uint)(*pt2)->Implements is cmsSigMatrixElemType)
+            if ((uint)pt1.Implements is cmsSigMatrixElemType && (uint)pt2.Implements is cmsSigMatrixElemType)
             {
                 // Get both matrices
-                var m1 = (StageMatrixData)cmsStageData(*pt1);
-                var m2 = (StageMatrixData)cmsStageData(*pt2);
-                MAT3 res;
+                var m1 = (StageMatrixData)cmsStageData(pt1)!;
+                var m2 = (StageMatrixData)cmsStageData(pt2)!;
 
                 // Input offset and output offset should be zero to use this optimization
                 if (m1.Offset is not null || m2.Offset is not null ||
-                    cmsStageInputChannels(*pt1) is not 3 || cmsStageOutputChannels(*pt1) is not 3 ||
-                    cmsStageInputChannels(*pt2) is not 3 || cmsStageOutputChannels(*pt2) is not 3)
+                    cmsStageInputChannels(pt1) is not 3 || cmsStageOutputChannels(pt1) is not 3 ||
+                    cmsStageInputChannels(pt2) is not 3 || cmsStageOutputChannels(pt2) is not 3)
                 {
                     return false;
                 }
 
                 // Multiply both matrices to get the result
-                _cmsMAT3per(out res, *(MAT3*)m2.Double, *(MAT3*)m1.Double);
+                _cmsMAT3per(out MAT3 res, *(MAT3*)m2.Double, *(MAT3*)m1.Double);
 
                 // Get the next in chain after the matrices
-                var chain = (*pt2)->Next;
+                var chain = pt2.Next;
 
                 // Remove both matrices
-                _RemoveElement(pt2);
-                _RemoveElement(pt1);
+                _RemoveElement(ref pt2);
+                _RemoveElement(ref pt1);
 
                 // Now what if the result is a plain identity?
                 if (!isFloatMatrixIdentity(&res))
@@ -237,15 +236,15 @@ public static unsafe partial class Lcms2
                     if (Multmat is null) return false;
 
                     // Recover the chain
-                    Multmat->Next = chain;
-                    *pt1 = Multmat;
+                    Multmat.Next = chain;
+                    pt1 = ref Multmat;
                 }
 
                 AnyOpt = true;
             }
             else
             {
-                pt1 = &(*pt1)->Next;
+                pt1 = ref pt1.Next;
             }
         }
 
@@ -420,7 +419,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool AllCurvesAreLinear(Stage* mpe)
+    private static bool AllCurvesAreLinear(Stage mpe)
     {
         var Curves = _cmsStageGetPtrToCurveSet(mpe);
         if (Curves is null) return false;
@@ -434,20 +433,21 @@ public static unsafe partial class Lcms2
     }
 
     private static bool PatchLUT(
-        Stage* CLUT,
+        Stage? CLUT,
         ushort* At,
         ushort* Value,
         uint nChannelsOut,
         uint nChannelsIn)
     {
-        var Grid = (StageCLutData)CLUT->Data;
+        if (CLUT is null || CLUT.Data is not StageCLutData Grid)
+            return false;
         var p16 = Grid.Params;
         double px, py, pz, pw;
         int x0, y0, z0, w0, index;
 
-        if ((uint)CLUT->Type is not cmsSigCLutElemType)
+        if ((uint)CLUT.Type is not cmsSigCLutElemType)
         {
-            cmsSignalError(CLUT->ContextID, cmsERROR_INTERNAL, "(internal) Attempt to PatchLUT on non-lut stage");
+            cmsSignalError(CLUT.ContextID, cmsERROR_INTERNAL, "(internal) Attempt to PatchLUT on non-lut stage");
             return false;
         }
 
@@ -519,7 +519,7 @@ public static unsafe partial class Lcms2
                 break;
 
             default:
-                cmsSignalError(CLUT->ContextID, cmsERROR_INTERNAL, $"(internal) {nChannelsIn} Channels are not supported on PatchLUT");
+                cmsSignalError(CLUT.ContextID, cmsERROR_INTERNAL, $"(internal) {nChannelsIn} Channels are not supported on PatchLUT");
                 return false;
         }
 
@@ -547,7 +547,7 @@ public static unsafe partial class Lcms2
         var ObtainedOut = stackalloc ushort[cmsMAXCHANNELS];
         ushort* WhitePointIn, WhitePointOut;
         uint nOuts, nIns;
-        Stage* PreLin = null, CLUT = null, PostLin = null;
+        Stage? PreLin = null, CLUT = null, PostLin = null;
 
         if (!_cmsEndPointsBySpace(EntryColorSpace, &WhitePointIn, null, &nIns))
             return false;
@@ -565,10 +565,10 @@ public static unsafe partial class Lcms2
             return true;    // Whites already match
 
         // Check if the LUT comes as Prelin, CLUT or Postlin. We allow all combinations
-        if (!cmsPipelineCheckAndRetrieveStages(Lut, &PreLin, &CLUT, &PostLin, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
-            if (!cmsPipelineCheckAndRetrieveStages(Lut, &PreLin, &CLUT, cmsSigCurveSetElemType, cmsSigCLutElemType))
-                if (!cmsPipelineCheckAndRetrieveStages(Lut, &CLUT, &PostLin, cmsSigCLutElemType, cmsSigCurveSetElemType))
-                    if (!cmsPipelineCheckAndRetrieveStages(Lut, &CLUT, cmsSigCLutElemType))
+        if (!cmsPipelineCheckAndRetrieveStages(Lut, out PreLin, out CLUT, out PostLin, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
+            if (!cmsPipelineCheckAndRetrieveStages(Lut, out PreLin, out CLUT, cmsSigCurveSetElemType, cmsSigCLutElemType))
+                if (!cmsPipelineCheckAndRetrieveStages(Lut, out CLUT, out PostLin, cmsSigCLutElemType, cmsSigCurveSetElemType))
+                    if (!cmsPipelineCheckAndRetrieveStages(Lut, out CLUT, cmsSigCLutElemType))
                         return false;
 
         // We need to interpolate white points of both, pre and post curves
@@ -625,8 +625,8 @@ public static unsafe partial class Lcms2
         uint* dwFlags)
     {
         Pipeline* Src = null, Dest = null;
-        Stage* KeepPreLin = null, KeepPostLin = null;
-        Stage* NewPreLin = null, NewPostLin = null;
+        Stage? KeepPreLin = null, KeepPostLin = null;
+        Stage? NewPreLin = null, NewPostLin = null;
 
         // This is a lossy optimization! does not apply in floating-point cases
         if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
@@ -657,7 +657,7 @@ public static unsafe partial class Lcms2
             var PreLin = cmsPipelineGetPtrToFirstStage(Src);
 
             // Check if suitable
-            if (PreLin is not null && (uint)PreLin->Type is cmsSigCurveSetElemType)
+            if (PreLin is not null && (uint)PreLin.Type is cmsSigCurveSetElemType)
             {
                 // Maybe this is a linear tram, so we can avoid the whole stuff
                 if (!AllCurvesAreLinear(PreLin))
@@ -669,7 +669,7 @@ public static unsafe partial class Lcms2
 
                     // Remove prelinearization. Since we have duplicated the curve
                     // in destination LUT, the sampling should be applied after this stage.
-                    cmsPipelineUnlinkStage(Src, StageLoc.AtBegin, &KeepPreLin);
+                    cmsPipelineUnlinkStage(Src, StageLoc.AtBegin, out KeepPreLin);
                 }
             }
         }
@@ -701,7 +701,7 @@ public static unsafe partial class Lcms2
                         goto Error;
 
                     // In destination LUT, the sampling should be applied after this stage.
-                    cmsPipelineUnlinkStage(Src, StageLoc.AtEnd, &KeepPostLin);
+                    cmsPipelineUnlinkStage(Src, StageLoc.AtEnd, out KeepPostLin);
                 }
             }
         }
@@ -717,10 +717,10 @@ public static unsafe partial class Lcms2
         if (KeepPostLin is not null) cmsStageFree(KeepPostLin);
         cmsPipelineFree(Src);
 
-        var DataCLUT = (StageCLutData)CLUT->Data;
+        var DataCLUT = (StageCLutData)CLUT.Data!;
 
-        var DataSetIn = NewPreLin is null ? null : ((StageToneCurvesData)NewPreLin->Data).TheCurves;
-        var DataSetOut = NewPostLin is null ? null : ((StageToneCurvesData)NewPostLin->Data).TheCurves;
+        var DataSetIn = NewPreLin is null ? null : ((StageToneCurvesData)NewPreLin.Data!).TheCurves;
+        var DataSetOut = NewPostLin is null ? null : ((StageToneCurvesData)NewPostLin.Data!).TheCurves;
 
         if (DataSetIn is null && DataSetOut is null)
         {
@@ -1073,7 +1073,7 @@ public static unsafe partial class Lcms2
         cmsPipelineFree(LutPlusCurves);
 
         var OptimizedPrelinCurves = _cmsStageGetPtrToCurveSet(OptimizedPrelinMpe);
-        var OptimizedPrelinCLUT = (StageCLutData)OptimizedCLUTmpe->Data;
+        var OptimizedPrelinCLUT = (StageCLutData)OptimizedCLUTmpe.Data;
 
         // Set the evaluator if 8-bit
         if (_cmsFormatterIs8bit(*InputFormat))
@@ -1215,7 +1215,7 @@ public static unsafe partial class Lcms2
         var InFloat = stackalloc float[cmsMAXCHANNELS];
         var OutFloat = stackalloc float[cmsMAXCHANNELS];
 
-        Stage* ObtainedCurves = null;
+        Stage? ObtainedCurves = null;
         ToneCurve** GammaTables = null;
         Pipeline* Dest = null;
         var Src = *Lut;
@@ -1458,8 +1458,6 @@ public static unsafe partial class Lcms2
 
     private static bool OptimizeMatrixShaper(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
-        Stage* Curve1, Curve2;
-        Stage* Matrix1, Matrix2;
         double* Offset;
         MAT3 res;
 
@@ -1481,7 +1479,7 @@ public static unsafe partial class Lcms2
         // Additionally, in the first case, the input matrix offset should be zero.
 
         var IdentityMat = false;
-        if (cmsPipelineCheckAndRetrieveStages(Src, &Curve1, &Matrix1, &Matrix2, &Curve2,
+        if (cmsPipelineCheckAndRetrieveStages(Src, out var Curve1, out var Matrix1, out var Matrix2, out var Curve2,
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
             // Get both matrices
@@ -1504,7 +1502,7 @@ public static unsafe partial class Lcms2
                 IdentityMat = true;
             }
         }
-        else if (cmsPipelineCheckAndRetrieveStages(Src, &Curve1, &Matrix1, &Curve2,
+        else if (cmsPipelineCheckAndRetrieveStages(Src, out Curve1, out Matrix1, out Curve2,
             cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
         {
             var Data = (StageMatrixData)cmsStageData(Matrix1);

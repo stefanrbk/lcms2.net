@@ -30,6 +30,8 @@ var now = DateTime.Now;
 
 ConsoleWriteLine($"LittleCMS.net {LCMS_VERSION / 1000.0:#.##} test bed {now:MMM d yyyy HH:mm:ss}");
 
+Thread.Sleep(2000);
+
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
 
 var exhaustive = cliResult.Value.DoExhaustive;

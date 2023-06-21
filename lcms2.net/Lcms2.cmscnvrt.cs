@@ -587,7 +587,7 @@ public static unsafe partial class Lcms2
         GrayOnlyParams bp;
         Pipeline* Result;
         var ICCIntents = stackalloc uint[256];
-        Stage* CLUT;
+        Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
         Profile hLastProfile;
 
@@ -779,7 +779,7 @@ public static unsafe partial class Lcms2
         PreserveKPlaneParams bp;
         Pipeline* Result = null;
         var ICCIntents = stackalloc uint[256];
-        Stage* CLUT;
+        Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
         Profile hLastProfile, hLab;
 
