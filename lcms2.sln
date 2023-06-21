@@ -16,8 +16,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testbed", "Testing\Testbed.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "UnitTests\UnitTests.csproj", "{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoreSpans", "MoreSpans\MoreSpans.csproj", "{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug (No Fast Floor)|Any CPU = Debug (No Fast Floor)|Any CPU
@@ -58,14 +56,6 @@ Global
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Release (No Fast Floor)|Any CPU.Build.0 = Release|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Release (No Fast Floor)|Any CPU.Build.0 = Release|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{676B43C9-F7E5-4593-A797-57EA1B2BC2FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
