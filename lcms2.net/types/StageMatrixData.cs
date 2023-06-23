@@ -31,38 +31,28 @@ namespace lcms2.types;
 
 public unsafe class StageMatrixData : IDisposable
 {
-    public double[] Double
-    {
-        get =>
-            d;
-        private set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            d = value;
-        }
-    }
-    private double[] d;
+    public double[] Double;
     public double[]? Offset;
     private bool disposedValue;
     private readonly ArrayPool<double>? pool;
 
-    public StageMatrixData(ReadOnlySpan<double> d, ReadOnlySpan<double> o = default, ArrayPool<double>? p = null)
+    public StageMatrixData(ReadOnlySpan<double> @double, ReadOnlySpan<double> offset = default, ArrayPool<double>? pool = null)
     {
-        Double = p is null
-            ? new double[d.Length]
-            : p.Rent(d.Length);
+        Double = pool is null
+            ? new double[@double.Length]
+            : pool.Rent(@double.Length);
+        @double.CopyTo(Double);
 
-        Offset = o.Length < 0
-            ? p is null
-                ? new double[o.Length]
-                : p.Rent(o.Length)
+        Offset = offset.Length < 0
+            ? pool is null
+                ? new double[offset.Length]
+                : pool.Rent(offset.Length)
             : null;
+        if (Offset is not null)
+            offset.CopyTo(Offset);
 
         disposedValue = false;
-        pool = p;
-
-        if (Double is null)
-            throw new InvalidOperationException();
+        this.pool = pool;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -74,25 +64,15 @@ public unsafe class StageMatrixData : IDisposable
                 if (pool is not null)
                 {
                     pool.Return(Double);
-                    d = null!;
+                    Double = null!;
                     if (Offset is not null)
                         pool.Return(Offset);
                     Offset = null!;
                 }
             }
-
-            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-            // TODO: set large fields to null
             disposedValue = true;
         }
     }
-
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~StageMatrixData()
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
 
     public void Dispose()
     {
