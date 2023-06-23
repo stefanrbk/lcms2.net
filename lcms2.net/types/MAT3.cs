@@ -45,8 +45,8 @@ public unsafe struct MAT3(VEC3 x, VEC3 y, VEC3 z)
     public MAT3(double xx, double xy, double xz, double yx, double yy, double yz, double zx, double zy, double zz)
         : this(
             new(xx, xy, xz),
-            new(yy, yy, yz),
-            new(zx, zx, zy))
+            new(yx, yy, yz),
+            new(zx, zy, zz))
     { }
 
     public MAT3(ReadOnlySpan<double> d)
