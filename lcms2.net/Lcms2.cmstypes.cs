@@ -919,8 +919,8 @@ public static unsafe partial class Lcms2
         // Null strings
         if (len <= 0)
         {
-            Text = _cmsDupMem<byte>(self->ContextID, Filler, 68);
-            Wide = _cmsDupMem<char>(self->ContextID, Filler, 68);
+            Text = _cmsDupMem<byte>(self->ContextID, Filler, _sizeof<byte>());
+            Wide = _cmsDupMem<char>(self->ContextID, Filler, _sizeof<char>());
         }
         else
         {
