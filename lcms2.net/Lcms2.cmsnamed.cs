@@ -149,13 +149,13 @@ public static unsafe partial class Lcms2
 
         // Set the entry
         //memmove(Ptr + Offset, Block, size);
-        Block[..(int)sizeInBytes].CopyTo(Ptr[(int)OffsetInChars..][..(int)sizeInBytes]);
+        Block[..(int)(sizeInBytes/_sizeof<char>())].CopyTo(Ptr[(int)OffsetInChars..][..(int)(sizeInBytes/_sizeof<char>())]);
         mlu.PoolUsedInBytes += sizeInBytes;
 
         mlu.Entries.Add(new(
             LanguageCode,
             CountryCode,
-            OffsetInChars,
+            OffsetInChars * _sizeof<char>(),
             sizeInBytes));
         //mlu->Entries[mlu->UsedEntries].StrW = Offset;
         //mlu->Entries[mlu->UsedEntries].Len = size;
@@ -363,7 +363,7 @@ public static unsafe partial class Lcms2
         //if (len is not null) *len = v->Len;
 
         //return (char*)((byte*)mlu->MemPool + v->StrWCharOffset);
-        return mlu.MemPool.AsSpan()[(int)v.StrWCharOffset..][..(int)(v.LenInBytes / _sizeof<char>())];
+        return mlu.MemPool.AsSpan()[(int)(v.StrWByteOffset / _sizeof<char>())..][..(int)(v.LenInBytes / _sizeof<char>())];
     }
 
     public static uint cmsMLUgetASCII(
@@ -383,8 +383,7 @@ public static unsafe partial class Lcms2
         var Wide = _cmsMLUgetWide(mlu, Lang, Cntry, out _, out _);
         if (Wide == default) return 0;              // Don't check for null as items in a MLU CAN be zero length!
 
-        var StrLen = (uint)Wide.Length;
-        var ASCIIlen = StrLen / _sizeof<char>();
+        var ASCIIlen = (uint)Encoding.ASCII.GetByteCount(Wide);
 
         // Maybe we want only to know the len?
         //if (Buffer is null) return ASCIIlen + 1; // Note the zero at the end

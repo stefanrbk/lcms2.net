@@ -30,7 +30,7 @@ var now = DateTime.Now;
 
 ConsoleWriteLine($"LittleCMS.net {LCMS_VERSION / 1000.0:#.##} test bed {now:MMM d yyyy HH:mm:ss}");
 
-Thread.Sleep(2000);
+//Thread.Sleep(2000);
 
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
 
@@ -70,9 +70,9 @@ Check("D50 roundtrip", CheckD50Roundtrip);
 // Create utility profiles
 if (doCheckTests || doSpeedTests)
 {
-    ConsoleWriteLine();
-    ConsoleWriteLine("Profiles");
-    Check("Creation of test profiles", CreateTestProfiles);
+ConsoleWriteLine();
+ConsoleWriteLine("Profiles");
+Check("Creation of test profiles", CreateTestProfiles);
 }
 
 if (doCheckTests)

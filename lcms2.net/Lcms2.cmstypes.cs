@@ -734,7 +734,7 @@ public static unsafe partial class Lcms2
 
         cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
         var tmpText = stackalloc byte[(int)size];
-        Text.AsSpan().CopyTo(new(tmpText, (int)size));
+        Text.AsSpan()[..(int)size].CopyTo(new(tmpText, (int)size));
 
         // Write it, including separators
         var rc = io.Write(io, size, tmpText);
@@ -900,11 +900,10 @@ public static unsafe partial class Lcms2
         char[]? Wide = null;
         uint len, len_text, len_tag_requirement, len_aligned;
         var rc = false;
-        Span<byte> Filler = stackalloc byte[68];
-        Span<char> FillerChar = stackalloc char[68];
+        var Filler = stackalloc byte[68];
 
         // Used below for writing zeros
-        Filler.Clear();
+        memset(Filler, 0, 68);
 
         // Get the len of string
         len = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null);
@@ -925,8 +924,10 @@ public static unsafe partial class Lcms2
         // Null strings
         if (len <= 0)
         {
-            Text = _cmsDupMem<byte>(self->ContextID, Filler, _sizeof<byte>());
-            Wide = _cmsDupMem<char>(self->ContextID, Filler, _sizeof<char>());
+            //Text = _cmsDupMem<byte>(self->ContextID, Filler, _sizeof<byte>());
+            //Wide = _cmsDupMem<char>(self->ContextID, Filler, _sizeof<char>());
+            Text = Array.Empty<byte>();
+            Wide = Array.Empty<char>();
         }
         else
         {
@@ -958,14 +959,22 @@ public static unsafe partial class Lcms2
         len_aligned = _cmsALIGNLONG(len_tag_requirement);
 
         if (!_cmsWriteUInt32Number(io, len_text)) goto Error;
-        var tmpText = stackalloc byte[(int)len_text];
-        Text.AsSpan()
-        if (!io.Write(io, len_text, Text)) goto Error;
+        if (len_text > 0)
+        {
+            var tmpText = stackalloc byte[(int)len_text];
+            Text.AsSpan()[..(int)len_text].CopyTo(new(tmpText, (int)len_text));
+            if (!io.Write(io, len_text, tmpText)) goto Error;
+        }
 
         if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // ucLangCode
 
         if (!_cmsWriteUInt32Number(io, len_text)) goto Error;
-        if (!_cmsWriteWCharArray(io, len_text, Wide)) goto Error;
+        if (len_text > 0)
+        {
+            var tmpWide = stackalloc char[(int)len_text];
+            Wide.AsSpan()[..(int)len_text].CopyTo(new(tmpWide, (int)len_text));
+            if (!_cmsWriteWCharArray(io, len_text, tmpWide)) goto Error;
+        }
 
         // ScriptCode Code & Count (unused)
         if (!_cmsWriteUInt16Number(io, 0)) goto Error;
@@ -986,16 +995,13 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static BoxPtr<Mlu>? Type_Text_Description_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Mlu> mlu
-            ? new(cmsMLUdup(mlu))
+    private static Mlu? Type_Text_Description_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is Mlu mlu
+            ? cmsMLUdup(mlu)
             : null;
 
-    private static void Type_Text_Description_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Mlu> mlu)
-            cmsMLUfree(mlu);
-    }
+    private static void Type_Text_Description_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsMLUfree(Ptr as Mlu);
 
     private static Signature DecideTextDescType(double ICCVersion, object? _) =>
         ICCVersion >= 4.0
@@ -1268,11 +1274,11 @@ public static unsafe partial class Lcms2
 
     #region MLU
 
-    private static BoxPtr<Mlu>? Type_MLU_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Mlu? Type_MLU_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        Mlu* mlu = null;
+        Mlu? mlu = null;
         uint Count, RecLen, NumOfWchar, SizeOfHeader, Len, Offset, BeginOfThisString, EndOfThisString, LargestPosition;
-        char* Block;
+        char[]? Block;
 
         *nItems = 0;
         if (!_cmsReadUInt32Number(io, &Count)) return null;
@@ -1287,15 +1293,16 @@ public static unsafe partial class Lcms2
         mlu = cmsMLUalloc(self->ContextID, Count);
         if (mlu is null) return null;
 
-        mlu->UsedEntries = Count;
+        //mlu->UsedEntries = Count;
 
         SizeOfHeader = (12 * Count) + (uint)sizeof(TagBase);
         LargestPosition = 0;
 
         for (var i = 0; i < Count; i++)
         {
-            if (!_cmsReadUInt16Number(io, &mlu->Entries[i].Language)) goto Error;
-            if (!_cmsReadUInt16Number(io, &mlu->Entries[i].Country)) goto Error;
+            ushort Language, Country;
+            if (!_cmsReadUInt16Number(io, &Language)) goto Error;
+            if (!_cmsReadUInt16Number(io, &Country)) goto Error;
 
             // Now deal with Len and offset
             if (!_cmsReadUInt32Number(io, &Len)) goto Error;
@@ -1309,8 +1316,10 @@ public static unsafe partial class Lcms2
             BeginOfThisString = Offset - SizeOfHeader - 8;
 
             // Adjust to char elements
-            mlu->Entries[i].Len = Len * sizeof(char) / sizeof(ushort);
-            mlu->Entries[i].StrW = BeginOfThisString * sizeof(char) / sizeof(ushort);
+            Len *= sizeof(char) / sizeof(ushort);
+            BeginOfThisString *= sizeof(char) / sizeof(ushort);
+
+            mlu.Entries.Add(new(Language, Country, BeginOfThisString, Len));
 
             // To guess maximum size, add offset + len
             EndOfThisString = BeginOfThisString + Len;
@@ -1327,18 +1336,21 @@ public static unsafe partial class Lcms2
         }
         else
         {
-            Block = _cmsMalloc<char>(self->ContextID, SizeOfTag);
+            //Block = _cmsMalloc<char>(self->ContextID, SizeOfTag);
+            NumOfWchar = SizeOfTag / _sizeof<char>();
+            Block = _cmsCallocArray<char>(self->ContextID, NumOfWchar);
             if (Block is null) goto Error;
-            NumOfWchar = SizeOfTag / sizeof(char);
-            if (!_cmsReadWCharArray(io, NumOfWchar, Block)) goto Error;
+            var tmpBlock = stackalloc char[(int)NumOfWchar];
+            if (!_cmsReadWCharArray(io, NumOfWchar, tmpBlock)) goto Error;
+            new Span<char>(tmpBlock, (int)NumOfWchar).CopyTo(Block.AsSpan()[..(int)NumOfWchar]);
         }
 
-        mlu->MemPool = Block;
-        mlu->PoolSize = SizeOfTag;
-        mlu->PoolUsed = SizeOfTag;
+        mlu.MemPool = Block;
+        mlu.PoolSizeInBytes = SizeOfTag;
+        mlu.PoolUsedInBytes = SizeOfTag;
 
         *nItems = 1;
-        return new(mlu);
+        return mlu;
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -1348,7 +1360,6 @@ public static unsafe partial class Lcms2
 
     private static bool Type_MLU_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<Mlu> mlu) return false;
         uint HeaderSize, Len, Offset;
 
         if (Ptr is null)
@@ -1359,40 +1370,42 @@ public static unsafe partial class Lcms2
             return true;
         }
 
-        if (!_cmsWriteUInt32Number(io, mlu.Ptr->UsedEntries)) return false;
+        if (Ptr is not Mlu mlu) return false;
+
+        if (!_cmsWriteUInt32Number(io, mlu.UsedEntries)) return false;
         if (!_cmsWriteUInt32Number(io, 12)) return false;
 
-        HeaderSize = (12 * mlu.Ptr->UsedEntries) + (uint)sizeof(TagBase);
+        HeaderSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
 
-        for (var i = 0; i < mlu.Ptr->UsedEntries; i++)
+        for (var i = 0; i < mlu.UsedEntries; i++)
         {
-            Len = mlu.Ptr->Entries[i].Len;
-            Offset = mlu.Ptr->Entries[i].StrW;
+            Len = mlu.Entries[i].LenInBytes;
+            Offset = mlu.Entries[i].StrWByteOffset;
 
             Len = Len * sizeof(ushort) / sizeof(char);
             Offset = (Offset * sizeof(ushort) / sizeof(char)) + HeaderSize + 8;
 
-            if (!_cmsWriteUInt16Number(io, mlu.Ptr->Entries[i].Language)) return false;
-            if (!_cmsWriteUInt16Number(io, mlu.Ptr->Entries[i].Country)) return false;
+            if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Language)) return false;
+            if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Country)) return false;
             if (!_cmsWriteUInt32Number(io, Len)) return false;
             if (!_cmsWriteUInt32Number(io, Offset)) return false;
         }
 
-        if (!_cmsWriteWCharArray(io, mlu.Ptr->PoolUsed / sizeof(char), (char*)mlu.Ptr->MemPool)) return false;
+        var sizeInChars = (int)(mlu.PoolUsedInBytes / _sizeof<char>());
+        var tmp = stackalloc char[sizeInChars];
+        mlu.MemPool.AsSpan()[..sizeInChars].CopyTo(new(tmp, sizeInChars));
+        if (!_cmsWriteWCharArray(io, (uint)sizeInChars, tmp)) return false;
 
         return true;
     }
 
-    private static BoxPtr<Mlu>? Type_MLU_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Mlu> mlu
-            ? new(cmsMLUdup(mlu))
+    private static Mlu? Type_MLU_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is Mlu mlu
+            ? cmsMLUdup(mlu)
             : null;
 
-    private static void Type_MLU_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Mlu> mlu)
-            cmsMLUfree(mlu);
-    }
+    private static void Type_MLU_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsMLUfree(Ptr as Mlu);
 
     #endregion MLU
 
@@ -2742,7 +2755,7 @@ public static unsafe partial class Lcms2
 
     #region ProfileSequenceDesc
 
-    private static bool ReadEmbeddedText(TagTypeHandler* self, IOHandler io, Mlu** mlu, uint SizeOfTag)
+    private static bool ReadEmbeddedText(TagTypeHandler* self, IOHandler io, out Mlu? mlu, uint SizeOfTag)
     {
         uint nItems;
 
@@ -2751,25 +2764,26 @@ public static unsafe partial class Lcms2
         switch (BaseType)
         {
             case cmsSigTextType:
-                if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = Type_Text_Read(self, io, &nItems, SizeOfTag);
-                return *mlu is not null;
+                //if (*mlu is not null) cmsMLUfree(*mlu);
+                mlu = Type_Text_Read(self, io, &nItems, SizeOfTag);
+                return mlu is not null;
 
             case cmsSigTextDescriptionType:
-                if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = Type_Text_Description_Read(self, io, &nItems, SizeOfTag);
-                return *mlu is not null;
+                //if (*mlu is not null) cmsMLUfree(*mlu);
+                mlu = Type_Text_Description_Read(self, io, &nItems, SizeOfTag);
+                return mlu is not null;
 
             /*
             TBD: Size is needed for MLU, and we have no idea on which is the available size
             */
 
             case cmsSigMultiLocalizedUnicodeType:
-                if (*mlu is not null) cmsMLUfree(*mlu);
-                *mlu = Type_MLU_Read(self, io, &nItems, SizeOfTag);
-                return *mlu is not null;
+                //if (*mlu is not null) cmsMLUfree(*mlu);
+                mlu = Type_MLU_Read(self, io, &nItems, SizeOfTag);
+                return mlu is not null;
 
             default:
+                mlu = null;
                 return false;
         }
     }
@@ -2812,8 +2826,8 @@ public static unsafe partial class Lcms2
             if (SizeOfTag < sizeof(uint)) goto Error;
             SizeOfTag -= sizeof(uint);
 
-            if (!ReadEmbeddedText(self, io, &sec->Manufacturer, SizeOfTag)) goto Error;
-            if (!ReadEmbeddedText(self, io, &sec->Model, SizeOfTag)) goto Error;
+            if (!ReadEmbeddedText(self, io, out sec->Manufacturer, SizeOfTag)) goto Error;
+            if (!ReadEmbeddedText(self, io, out sec->Model, SizeOfTag)) goto Error;
         }
 
         *nItems = 1;
@@ -2825,17 +2839,17 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool SaveDescription(TagTypeHandler* self, IOHandler io, Mlu* Text)
+    private static bool SaveDescription(TagTypeHandler* self, IOHandler io, Mlu Text)
     {
         if (self->ICCVersion < 0x04000000)
         {
             if (!_cmsWriteTypeBase(io, cmsSigTextDescriptionType)) return false;
-            return Type_Text_Description_Write(self, io, new BoxPtr<Mlu>(Text), 1);
+            return Type_Text_Description_Write(self, io, Text, 1);
         }
         else
         {
             if (!_cmsWriteTypeBase(io, cmsSigMultiLocalizedUnicodeType)) return false;
-            return Type_MLU_Write(self, io, new BoxPtr<Mlu>(Text), 1);
+            return Type_MLU_Write(self, io, Text, 1);
         }
     }
 
@@ -2882,7 +2896,7 @@ public static unsafe partial class Lcms2
         var seq = &OutSeq->seq[n];
 
         if (io.Read(io, seq->ProfileID.id8, 16, 1) is not 1) return false;
-        if (!ReadEmbeddedText(self, io, &seq->Description, SizeOfTag)) return false;
+        if (!ReadEmbeddedText(self, io, out seq->Description, SizeOfTag)) return false;
 
         return true;
     }
@@ -2964,7 +2978,6 @@ public static unsafe partial class Lcms2
     {
         uint CountUcr, CountBg;
         int SignedSizeOfTag = (int)SizeOfTag;
-        byte* ASCIIString;
 
         *nItems = 0;
         var n = _cmsMallocZero<UcrBg>(self->ContextID);
@@ -3000,17 +3013,21 @@ public static unsafe partial class Lcms2
         if (SignedSizeOfTag is < 0 or > 32000) goto Error;
 
         // Now comes the text. The length is specified by the tag size
-        n->Desc = cmsMLUalloc(self->ContextID, 1);
-        if (n->Desc is null) goto Error;
+        var desc = cmsMLUalloc(self->ContextID, 1);
+        if (desc is null) goto Error;
+        n->Desc = desc;
 
-        ASCIIString = _cmsMalloc<byte>(self->ContextID, (uint)SignedSizeOfTag + 1);
-        if (io.Read(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
+        //ASCIIString = _cmsMalloc<byte>(self->ContextID, (uint)SignedSizeOfTag + 1);
+        var ASCIIString = _cmsCallocArray<byte>(self->ContextID, (uint)SignedSizeOfTag);
+        var tmpASCIIString = stackalloc byte[SignedSizeOfTag];
+        if (io.Read(io, tmpASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
         {
             _cmsFree(self->ContextID, ASCIIString);
             goto Error;
         }
+        new Span<byte>(tmpASCIIString, SignedSizeOfTag).CopyTo(ASCIIString[..SignedSizeOfTag]);
 
-        ASCIIString[SignedSizeOfTag] = 0;
+        //ASCIIString[SignedSizeOfTag] = 0;
         cmsMLUsetASCII(n->Desc, cmsNoLanguage, cmsNoCountry, ASCIIString);
         _cmsFree(self->ContextID, ASCIIString);
 
@@ -3028,8 +3045,6 @@ public static unsafe partial class Lcms2
     private static bool Type_UcrBg_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
         if (Ptr is not BoxPtr<UcrBg> Value) return false;
-        uint TextSize;
-        byte* Text;
 
         // First curve is Under color removal
         if (!_cmsWriteUInt32Number(io, Value.Ptr->Ucr->nEntries)) return false;
@@ -3040,11 +3055,14 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg->nEntries, Value.Ptr->Bg->Table16)) return false;
 
         // Now comes the text. The length is specified by the tag size
-        TextSize = cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, null, 0);
-        Text = _cmsMalloc<byte>(self->ContextID, TextSize);
-        if (cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, Text, TextSize) != TextSize) return false;
+        var TextSize = cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, null);
+        //Text = _cmsMalloc<byte>(self->ContextID, TextSize);
+        var Text = _cmsCallocArray<byte>(self->ContextID, TextSize);
+        if (cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, Text.AsSpan()[..(int)TextSize]) != TextSize) return false;
 
-        if (!io.Write(io, TextSize, Text)) return false;
+        var tmp = stackalloc char[(int)TextSize];
+        Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
+        if (!io.Write(io, TextSize, tmp)) return false;
         _cmsFree(self->ContextID, Text);
 
         return true;
@@ -3061,8 +3079,9 @@ public static unsafe partial class Lcms2
         if (NewUcrBg->Bg is null) goto Error;
         NewUcrBg->Ucr = cmsDupToneCurve(Src.Ptr->Ucr);
         if (NewUcrBg->Ucr is null) goto Error;
-        NewUcrBg->Desc = cmsMLUdup(Src.Ptr->Desc);
-        if (NewUcrBg->Desc is null) goto Error;
+        var desc = cmsMLUdup(Src.Ptr->Desc);
+        if (desc is null) goto Error;
+        NewUcrBg->Desc = desc;
 
         return new(NewUcrBg);
 
@@ -3086,10 +3105,10 @@ public static unsafe partial class Lcms2
 
     #region CrdInfo
 
-    private static bool ReadCountAndSting(TagTypeHandler* self, IOHandler io, Mlu* mlu, uint* SizeOfTag, in byte* Section)
+    private static bool ReadCountAndSting(TagTypeHandler* self, IOHandler io, Mlu mlu, uint* SizeOfTag, ReadOnlySpan<byte> Section)
     {
         uint Count;
-        var ps = stackalloc byte[] { (byte)'P', (byte)'S', 0 };
+        var ps = "PS"u8;
 
         if (*SizeOfTag < sizeof(uint)) return false;
 
@@ -3098,16 +3117,19 @@ public static unsafe partial class Lcms2
         if (Count > UInt32.MaxValue - sizeof(uint)) return false;
         if (*SizeOfTag < Count + sizeof(uint)) return false;
 
-        var Text = _cmsMalloc<byte>(self->ContextID, Count + 1);
+        //var Text = _cmsMalloc<byte>(self->ContextID, Count + 1);
+        var Text = _cmsCallocArray<byte>(self->ContextID, Count);
         if (Text is null) return false;
 
-        if (io.Read(io, Text, sizeof(byte), Count) != Count)
+        var tmp = stackalloc byte[(int)Count];
+        if (io.Read(io, tmp, sizeof(byte), Count) != Count)
         {
             _cmsFree(self->ContextID, Text);
             return false;
         }
+        new Span<byte>(tmp, (int)Count).CopyTo(Text.AsSpan()[..(int)Count]);
 
-        Text[Count] = 0;
+        //Text[Count] = 0;
 
         cmsMLUsetASCII(mlu, ps, Section, Text);
         _cmsFree(self->ContextID, Text);
@@ -3116,19 +3138,22 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteCountAndSting(TagTypeHandler* self, IOHandler io, Mlu* mlu, in byte* Section)
+    private static bool WriteCountAndSting(TagTypeHandler* self, IOHandler io, Mlu mlu, ReadOnlySpan<byte> Section)
     {
-        var ps = stackalloc byte[] { (byte)'P', (byte)'S', 0 };
+        var ps = "PS"u8;
 
-        var TextSize = cmsMLUgetASCII(mlu, ps, Section, null, 0);
-        var Text = _cmsMalloc<byte>(self->ContextID, TextSize);
+        var TextSize = cmsMLUgetASCII(mlu, ps, Section, null);
+        //var Text = _cmsMalloc<byte>(self->ContextID, TextSize);
+        var Text = _cmsCallocArray<byte>(self->ContextID, TextSize);
         if (Text is null) return false;
 
         if (!_cmsWriteUInt32Number(io, TextSize)) goto Error;
 
-        if (cmsMLUgetASCII(mlu, ps, Section, Text, TextSize) is 0) goto Error;
+        if (cmsMLUgetASCII(mlu, ps, Section, Text.AsSpan()[..(int)TextSize]) is 0) goto Error;
 
-        if (!io.Write(io, TextSize, Text)) goto Error;
+        var tmp = stackalloc byte[(int)TextSize];
+        Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
+        if (!io.Write(io, TextSize, tmp)) goto Error;
         _cmsFree(self->ContextID, Text);
 
         return true;
@@ -3138,13 +3163,13 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static BoxPtr<Mlu>? Type_CrdInfo_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Mlu? Type_CrdInfo_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
-        var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
-        var n1 = stackalloc byte[] { (byte)'#', (byte)'1', 0 };
-        var n2 = stackalloc byte[] { (byte)'#', (byte)'2', 0 };
-        var n3 = stackalloc byte[] { (byte)'#', (byte)'3', 0 };
+        var nm = "nm"u8;
+        var n0 = "#0"u8;
+        var n1 = "#1"u8;
+        var n2 = "#2"u8;
+        var n3 = "#3"u8;
 
         *nItems = 0;
         var mlu = cmsMLUalloc(self->ContextID, 5);
@@ -3157,7 +3182,7 @@ public static unsafe partial class Lcms2
         if (!ReadCountAndSting(self, io, mlu, &SizeOfTag, n3)) goto Error;
 
         *nItems = 1;
-        return new(mlu);
+        return mlu;
 
     Error:
         cmsMLUfree(mlu);
@@ -3166,13 +3191,13 @@ public static unsafe partial class Lcms2
 
     private static bool Type_CrdInfo_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        var nm = stackalloc byte[] { (byte)'n', (byte)'m', 0 };
-        var n0 = stackalloc byte[] { (byte)'#', (byte)'0', 0 };
-        var n1 = stackalloc byte[] { (byte)'#', (byte)'1', 0 };
-        var n2 = stackalloc byte[] { (byte)'#', (byte)'2', 0 };
-        var n3 = stackalloc byte[] { (byte)'#', (byte)'3', 0 };
+        var nm = "nm"u8;
+        var n0 = "#0"u8;
+        var n1 = "#1"u8;
+        var n2 = "#2"u8;
+        var n3 = "#3"u8;
 
-        if (Ptr is not BoxPtr<Mlu> mlu) return false;
+        if (Ptr is not Mlu mlu) return false;
 
         if (!WriteCountAndSting(self, io, mlu, nm)) return false;
         if (!WriteCountAndSting(self, io, mlu, n0)) return false;
@@ -3183,16 +3208,13 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<Mlu>? Type_CrdInfo_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Mlu> mlu
-            ? new(cmsMLUdup(mlu))
+    private static Mlu? Type_CrdInfo_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is Mlu mlu
+            ? cmsMLUdup(mlu)
             : null;
 
-    private static void Type_CrdInfo_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Mlu> mlu)
-            cmsMLUfree(mlu);
-    }
+    private static void Type_CrdInfo_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsMLUfree(Ptr as Mlu);
 
     #endregion CrdInfo
 
@@ -3877,24 +3899,28 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool ReadOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, Mlu** mlu)
+    private static bool ReadOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, out Mlu? mlu)
     {
         var nItems = 0u;
 
         // A way to get nul MLUCs
         if (e->Offsets[i] is 0 || e->Sizes[i] is 0)
         {
-            *mlu = null;
+            mlu = null;
             return true;
         }
 
-        if (!io.Seek(io, e->Offsets[i])) return false;
+        if (!io.Seek(io, e->Offsets[i]))
+        {
+            mlu = null;
+            return false;
+        }
 
-        *mlu = Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
-        return *mlu is not null;
+        mlu = Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
+        return mlu is not null;
     }
 
-    private static bool WriteOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, in Mlu* mlu, uint BaseOffset)
+    private static bool WriteOneMLUC(TagTypeHandler* self, IOHandler io, DICelem* e, uint i, Mlu? mlu, uint BaseOffset)
     {
         // Special case for undefined strings (see ICC Votable
         // Proposal Submission, Dictionary Type and Metadata TAG Definition)
@@ -3908,7 +3934,7 @@ public static unsafe partial class Lcms2
         var Before = io.Tell(io);
         e->Offsets[i] = Before - BaseOffset;
 
-        if (!Type_MLU_Write(self, io, new BoxPtr<Mlu>(mlu), 1)) return false;
+        if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
         e->Sizes[i] = io.Tell(io) - Before;
         return true;
@@ -3918,7 +3944,7 @@ public static unsafe partial class Lcms2
     {
         void* hDict = null;
         char* NameWCS = null, ValueWCS = null;
-        Mlu* DisplayNameMLU = null, DisplayValueMLU = null;
+        Mlu? DisplayNameMLU = null, DisplayValueMLU = null;
         DICarray a;
         uint Count, Length;
         var SignedSizeOfTag = (int)SizeOfTag;
@@ -3965,10 +3991,10 @@ public static unsafe partial class Lcms2
             if (!ReadOneWChar(io, &a.Value, i, &ValueWCS)) goto Error;
 
             if (Length > 16)
-                if (!ReadOneMLUC(self, io, &a.DisplayName, i, &DisplayNameMLU)) goto Error;
+                if (!ReadOneMLUC(self, io, &a.DisplayName, i, out DisplayNameMLU)) goto Error;
 
             if (Length > 24)
-                if (!ReadOneMLUC(self, io, &a.DisplayValue, i, &DisplayValueMLU)) goto Error;
+                if (!ReadOneMLUC(self, io, &a.DisplayValue, i, out DisplayValueMLU)) goto Error;
 
             if (NameWCS is null || ValueWCS is null)
             {

@@ -207,7 +207,7 @@ public static unsafe partial class Lcms2
         var Lut = cmsPipelineAlloc(ContextID, 3, 3);
         if (Lut is null) return null;
 
-        var pool = _cmsGetContext(Lut->ContextID).DoubleBuffers;
+        var pool = _cmsGetContext(Lut->ContextID).GetBufferPool<double>();
         var MatArray = Mat.AsArray(pool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
@@ -462,7 +462,7 @@ public static unsafe partial class Lcms2
                 goto Error2;
         }
 
-        var pool = _cmsGetContext(Lut->ContextID).DoubleBuffers;
+        var pool = _cmsGetContext(Lut->ContextID).GetBufferPool<double>();
         var InvArray = Inv.AsArray(pool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, InvArray, null)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, InvShapesTriple)))
@@ -827,13 +827,10 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static Mlu* GetMLUFromProfile(Profile h, Signature sig)
-    {
-        var mlu = cmsReadTag(h, sig) as BoxPtr<Mlu>;
-        if (mlu is null) return null;
-
-        return cmsMLUdup(mlu);
-    }
+    private static Mlu? GetMLUFromProfile(Profile h, Signature sig) => 
+        (cmsReadTag(h, sig) is Mlu mlu)
+            ? cmsMLUdup(mlu)
+            : null;
 
     internal static Sequence* _cmsCompileProfileSequence(Context? ContextID, uint nProfiles, Profile[] Profiles)
     {
@@ -865,7 +862,7 @@ public static unsafe partial class Lcms2
         return seq;
     }
 
-    private static Mlu* GetInfo(Profile Profile, InfoType Info)
+    private static Mlu? GetInfo(Profile Profile, InfoType Info)
     {
         Signature sig = Info switch
         {
@@ -876,23 +873,23 @@ public static unsafe partial class Lcms2
             _ => 0
         };
         return ((uint)sig is not 0)
-            ? cmsReadTag(Profile, sig) as BoxPtr<Mlu>
+            ? cmsReadTag(Profile, sig) as Mlu
             : null;
     }
 
-    public static uint cmsGetProfileInfo(Profile Profile, InfoType Info, in byte* LanguageCode, in byte* CountryCode, char* Buffer, uint BufferSize)
+    public static uint cmsGetProfileInfo(Profile Profile, InfoType Info, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, Span<char> Buffer)
     {
         var mlu = GetInfo(Profile, Info);
         if (mlu is null) return 0;
 
-        return cmsMLUgetWide(mlu, LanguageCode, CountryCode, Buffer, BufferSize);
+        return cmsMLUgetWide(mlu, LanguageCode, CountryCode, Buffer);
     }
 
-    public static uint cmsGetProfileInfoASCII(Profile Profile, InfoType Info, in byte* LanguageCode, in byte* CountryCode, byte* Buffer, uint BufferSize)
+    public static uint cmsGetProfileInfoASCII(Profile Profile, InfoType Info, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, Span<byte> Buffer)
     {
         var mlu = GetInfo(Profile, Info);
         if (mlu is null) return 0;
 
-        return cmsMLUgetASCII(mlu, LanguageCode, CountryCode, Buffer, BufferSize);
+        return cmsMLUgetASCII(mlu, LanguageCode, CountryCode, Buffer);
     }
 }

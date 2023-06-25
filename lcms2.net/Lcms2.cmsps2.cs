@@ -29,11 +29,13 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using System.Text;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static readonly byte* PSBuffer;
+    private static readonly byte[] PSBuffer = new byte[2048];
     private const byte MAXPSCOLS = 60;
     /*
         Implementation
@@ -302,14 +304,18 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static byte* RemoveCR(byte* txt)
+    private static Span<byte> RemoveCR(ReadOnlySpan<byte> txt)
     {
-        strncpy(PSBuffer, txt, 2047);
-        PSBuffer[2047] = 0;
-        for (var pt = PSBuffer; *pt is not 0; pt++)
+        //strncpy(PSBuffer, txt, 2047);
+        //PSBuffer[2047] = 0;
+        if (txt.Length > 2048)
+            txt[..2048].CopyTo(PSBuffer);
+        else
+            txt.CopyTo(PSBuffer.AsSpan()[..txt.Length]);
+        for (var pt = 0; pt < txt.Length && pt < 2048; pt++)
         {
-            if (*pt is (byte)'\n' or (byte)'\r')
-                *pt = (byte)' ';
+            if (PSBuffer[pt] is (byte)'\n' or (byte)'\r')
+                PSBuffer[pt] = (byte)' ';
         }
 
         return PSBuffer;
@@ -320,25 +326,25 @@ public static unsafe partial class Lcms2
 
     private static void EmitHeader(IOHandler m, byte* Title, Profile Profile)
     {
-        var DescASCII = stackalloc byte[256];
-        var CopyrightASCII =  stackalloc byte[256];
+        Span<byte> DescASCII = stackalloc byte[256];
+        Span<byte> CopyrightASCII =  stackalloc byte[256];
 
         var timer = DateTime.UtcNow;
 
-        var Description = (BoxPtr<Mlu>?)cmsReadTag(Profile, cmsSigProfileDescriptionTag);
-        var Copyright = (BoxPtr<Mlu>?)cmsReadTag(Profile, cmsSigCopyrightTag);
+        var Description = (Mlu?)cmsReadTag(Profile, cmsSigProfileDescriptionTag);
+        var Copyright = (Mlu?)cmsReadTag(Profile, cmsSigCopyrightTag);
 
         DescASCII[0] = DescASCII[255] = 0;
         CopyrightASCII[0] = CopyrightASCII[255] = 0;
 
-        if (Description is not null) cmsMLUgetASCII(Description, cmsNoLanguage, cmsNoCountry, DescASCII, 255);
-        if (Copyright is not null) cmsMLUgetASCII(Copyright, cmsNoLanguage, cmsNoCountry, CopyrightASCII, 255);
+        if (Description is not null) cmsMLUgetASCII(Description, cmsNoLanguage, cmsNoCountry, DescASCII);
+        if (Copyright is not null) cmsMLUgetASCII(Copyright, cmsNoLanguage, cmsNoCountry, CopyrightASCII);
 
         _cmsIOPrintf(m, "%!PS-Adobe-3.0\n");
         _cmsIOPrintf(m, "%\n");
         _cmsIOPrintf(m, "% {0}\n", new string((sbyte*)Title));
-        _cmsIOPrintf(m, "% Source: {0}\n", new string((sbyte*)RemoveCR(DescASCII)));
-        _cmsIOPrintf(m, "%         {0}\n", new string((sbyte*)RemoveCR(CopyrightASCII)));
+        _cmsIOPrintf(m, "% Source: {0}\n", Encoding.ASCII.GetString(RemoveCR(DescASCII)));
+        _cmsIOPrintf(m, "%         {0}\n", Encoding.ASCII.GetString(RemoveCR(CopyrightASCII)));
         _cmsIOPrintf(m, "% Created: {0}", ctime(timer));    // ctime appends a \n!!!
         _cmsIOPrintf(m, "%\n");
         _cmsIOPrintf(m, "%%BeginResource\n");

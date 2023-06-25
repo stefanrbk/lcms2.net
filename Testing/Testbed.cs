@@ -27,6 +27,7 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -78,6 +79,7 @@ internal static unsafe partial class Testbed
         Environment.Exit(1);
     }
 
+    [DebuggerStepThrough]
     public static Context DbgThread()
     {
         return new() { UserData = thread++ % 0xff0 };

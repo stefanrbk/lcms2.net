@@ -182,6 +182,8 @@ public static unsafe partial class Lcms2
         }
         else
         {
+            ptr = new();
+
             ptr.MallocPtr = Plugin.MallocPtr;
             ptr.FreePtr = Plugin.FreePtr;
             ptr.ReallocPtr = Plugin.ReallocPtr;

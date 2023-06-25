@@ -233,9 +233,10 @@ public static unsafe partial class Lcms2
                 {
                     // We can not get rid of full matrix
                     var ctx = _cmsGetContext(Lut->ContextID);
-                    var resArray = res.AsArray(ctx.DoubleBuffers);
+                    var pool = ctx.GetBufferPool<double>();
+                    var resArray = res.AsArray(pool);
                     var Multmat = cmsStageAllocMatrix(Lut->ContextID, 3, 3, resArray, null);
-                    ctx.DoubleBuffers.Return(resArray);
+                    pool.Return(resArray);
                     if (Multmat is null) return false;
 
                     // Recover the chain
@@ -1538,7 +1539,7 @@ public static unsafe partial class Lcms2
 
         if (!IdentityMat)
         {
-            var pool = _cmsGetContext(Src->ContextID).DoubleBuffers;
+            var pool = _cmsGetContext(Src->ContextID).GetBufferPool<double>();
             var resArray = res.AsArray(pool);
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest->ContextID, 3, 3, resArray, Offset)))
             {

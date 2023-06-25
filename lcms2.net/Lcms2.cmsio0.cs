@@ -965,8 +965,8 @@ public static unsafe partial class Lcms2
 
             var Begin = Icc.TagOffsets[i] = io.UsedSpace;
 
-
-            if (Icc.TagPtrs[i] is not BoxPtr<byte> Data)
+            var Data = Icc.TagPtrs[i];
+            if (Data is null)
             {
                 void* Mem;
                 // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
@@ -1001,9 +1001,9 @@ public static unsafe partial class Lcms2
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
-            if (Icc.TagSaveAsRaw[i])
+            if (Icc.TagSaveAsRaw[i] && Data is BoxPtr<byte> buffer)
             {
-                if (!io.Write(io, Icc.TagSizes[i], Data)) return false;
+                if (!io.Write(io, Icc.TagSizes[i], buffer)) return false;
             }
             else
             {

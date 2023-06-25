@@ -815,15 +815,15 @@ public static unsafe partial class Lcms2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static byte FROM_16_TO_8(uint rgb) => (byte)((((rgb * 65281u) + 8388608u) >> 24) & 0xFFu);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert(bool condition) =>
         Debug.Assert(condition);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert(void* ptr) =>
         Debug.Assert(ptr is not null);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert(object? obj) =>
         Debug.Assert(obj is not null);
 
@@ -913,8 +913,8 @@ public static unsafe partial class Lcms2
             free(GrayWhite);
 
             // MLU defaults
-            free(cmsNoLanguage);
-            free(cmsNoCountry);
+            //free(cmsNoLanguage);
+            //free(cmsNoCountry);
 
             // io1 "const"s
             free(Device2PCS16);
@@ -936,7 +936,7 @@ public static unsafe partial class Lcms2
             free(AllowedLUTTypes);
 
             // PS global buffer
-            free(PSBuffer);
+            //free(PSBuffer);
         }
     }
 
@@ -1199,8 +1199,8 @@ public static unsafe partial class Lcms2
 
         #region Mlu defaults
 
-        cmsNoLanguage = calloc<byte>(3);
-        cmsNoCountry = calloc<byte>(3);
+        //cmsNoLanguage = calloc<byte>(3);
+        //cmsNoCountry = calloc<byte>(3);
 
         #endregion Mlu defaults
 
@@ -1360,7 +1360,7 @@ public static unsafe partial class Lcms2
 
         #region PS
 
-        PSBuffer = calloc<byte>(2048);
+        //PSBuffer = calloc<byte>(2048);
 
         #endregion PS
     }
@@ -1376,6 +1376,7 @@ public static unsafe partial class Lcms2
         Console.ResetColor();
     }
 
+    [DebuggerStepThrough]
     internal static uint _sizeof<T>() where T : struct
     {
         if (typeof(T) == typeof(Screening))
@@ -1562,6 +1563,25 @@ public static unsafe partial class Lcms2
         } while (*strSrc++ is not 0);
 
         return dest;
+    }
+
+    internal static int strcmp(ReadOnlySpan<byte> sLeft, ReadOnlySpan<byte> sRight)
+    {
+        var end = cmsmin(sLeft.Length, sRight.Length);
+
+        for (var i = 0; i < end; i++)
+        {
+            var val = sRight[i] - sLeft[i];
+
+            if (val is not 0)
+                return val;
+        }
+
+        if (sLeft.Length > sRight.Length)
+            return -sLeft[end];
+        if (sRight.Length > sLeft.Length)
+            return sRight[end];
+        return 0;
     }
 
     internal static int strcmp(byte* sLeft, byte* sRight)

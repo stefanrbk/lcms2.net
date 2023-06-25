@@ -40,8 +40,8 @@ public static unsafe partial class Lcms2
         Mlu? DescriptionMLU, CopyrightMLU;
         var rc = false;
         var ContextID = cmsGetProfileContextID(Profile);
-        var en = stackalloc byte[] { (byte)'e', (byte)'n', 0 };
-        var us = stackalloc byte[] { (byte)'U', (byte)'S', 0 };
+        var en = "en"u8;
+        var us = "US"u8;
         var copyright = "No copyright, use freely";
 
         DescriptionMLU = cmsMLUalloc(ContextID, 1);

@@ -291,7 +291,7 @@ public static unsafe partial class Lcms2
     {
         if (mpe.Data is not StageMatrixData Data)
             return null;
-        var pool = _cmsGetContext(mpe.ContextID).DoubleBuffers;
+        var pool = _cmsGetContext(mpe.ContextID).GetBufferPool<double>();
 
         var sz = (int)(mpe.InputChannels * mpe.OutputChannels);
 
@@ -334,7 +334,7 @@ public static unsafe partial class Lcms2
 
         //var NewElem = new StageMatrixData();
         //if (NewElem is null) goto Error;
-        var pool = _cmsGetContext(ContextID).DoubleBuffers;
+        var pool = _cmsGetContext(ContextID).GetBufferPool<double>();
         var NewElem = Offset.Length >= Rows
             ? new StageMatrixData(Matrix, Offset, pool)
             : new StageMatrixData(Matrix, default, pool);

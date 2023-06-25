@@ -531,6 +531,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static Context _cmsGetContext(Context? ContextID)
     {
         Context? id = ContextID;
@@ -589,13 +590,13 @@ public static unsafe partial class Lcms2
         _cmsRegisterMutexPlugin(context, null);
     }
 
-    internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase PluginBundle)
+    internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase? PluginBundle)
     {
         for (var Plugin = PluginBundle;
             Plugin is not null;
             Plugin = Plugin.Next)
         {
-            if ((uint)Plugin.Magic is cmsMagicNumber &&
+            if ((uint)Plugin.Magic is cmsPluginMagicNumber &&
                 Plugin.ExpectedVersion <= LCMS_VERSION &&
                 (uint)Plugin.Type is cmsPluginMemHandlerSig)
             {
