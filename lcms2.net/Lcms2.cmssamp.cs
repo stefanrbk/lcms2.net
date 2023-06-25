@@ -163,7 +163,7 @@ public static unsafe partial class Lcms2
             goto Fail;
 
         // Make sure intent is adequate
-        if (Intent is not INTENT_PERCEPTUAL or INTENT_RELATIVE_COLORIMETRIC or INTENT_SATURATION)
+        if (Intent is not INTENT_PERCEPTUAL and not INTENT_RELATIVE_COLORIMETRIC and not INTENT_SATURATION)
             goto Fail;
 
         // v4 + perceptual & saturation intents does have its own black point, and it is
@@ -274,7 +274,7 @@ public static unsafe partial class Lcms2
             goto Fail;
 
         // Make sure intent is adequate
-        if (Intent is not INTENT_PERCEPTUAL or INTENT_RELATIVE_COLORIMETRIC or INTENT_SATURATION)
+        if (Intent is not INTENT_PERCEPTUAL and not INTENT_RELATIVE_COLORIMETRIC and not INTENT_SATURATION)
             goto Fail;
 
         // v4 + perceptual & saturation itents do have their own black point, and it is
@@ -299,7 +299,7 @@ public static unsafe partial class Lcms2
         // Check if the profile is lut based and gray, rgb, or cmyk (7.2 in Adobe's document)
         var ColorSpace = cmsGetColorSpace(Profile);
         if (!cmsIsCLUT(Profile, Intent, LCMS_USED_AS_OUTPUT) ||
-            ((uint)ColorSpace is not cmsSigGrayData or cmsSigRgbData or cmsSigCmykData))
+            ((uint)ColorSpace is not cmsSigGrayData and not cmsSigRgbData and not cmsSigCmykData))
         {
             // In this case, handle as input case
             return cmsDetectBlackPoint(BlackPoint, Profile, Intent, dwFlags);

@@ -38,8 +38,8 @@ public unsafe struct Dictionary
     public struct Entry
     {
         public Entry* Next;
-        public Mlu* DisplayName;
-        public Mlu* DisplayValue;
+        public Mlu? DisplayName;
+        public Mlu? DisplayValue;
         public char* Name;
         public char* Value;
     }

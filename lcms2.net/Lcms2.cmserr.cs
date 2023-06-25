@@ -252,6 +252,15 @@ public static unsafe partial class Lcms2
     internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
         (T**)_cmsMallocZero<nint>(ContextID);
 
+    internal static T[] _cmsCallocArray<T>(Context? ContextID, uint num) where T : struct
+    {
+        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        var array = pool.Rent((int)num);
+        Array.Clear(array);
+
+        return array;
+    }
+
     internal static void* _cmsCalloc(Context? ContextID, uint num, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
@@ -273,8 +282,31 @@ public static unsafe partial class Lcms2
         return ptr.ReallocPtr(ContextID, Ptr, size);
     }
 
+    internal static T[] _cmsRealloc<T>(Context? ContextID, T[] array, uint size) where T : struct
+    {
+        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        size /= _sizeof<T>();
+
+        var newBuffer = pool.Rent((int)size);
+
+        array.AsSpan().CopyTo(newBuffer.AsSpan()[..array.Length]);
+
+        pool.Return(array);
+
+        return newBuffer;
+    }
+
     internal static T* _cmsRealloc<T>(Context? ContextID, void* Ptr, uint size) where T : struct =>
         (T*)_cmsRealloc(ContextID, Ptr, size);
+
+    internal static void _cmsFree<T>(Context? ContextID, T[]? array) where T : struct
+    {
+        if (array is not null)
+        {
+            var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+            pool.Return(array);
+        }
+    }
 
     internal static void _cmsFree(Context? ContextID, void* Ptr)
     {
@@ -289,6 +321,16 @@ public static unsafe partial class Lcms2
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.DupPtr(ContextID, Org, size);
+    }
+
+    internal static T[] _cmsDupMem<T>(Context? ContextID, ReadOnlySpan<T> Org, uint num) where T : struct
+    {
+        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        var array = pool.Rent((int)num);
+
+        Org[..(int)num].CopyTo(array.AsSpan()[..(int)num]);
+
+        return array;
     }
 
     internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org, uint num) where T : struct =>

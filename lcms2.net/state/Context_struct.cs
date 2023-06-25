@@ -32,8 +32,7 @@ namespace lcms2.state;
 public unsafe class Context
 {
     internal Context? Next;
-    internal ArrayPool<byte> ByteBuffers = ArrayPool<byte>.Create();
-    internal ArrayPool<double> DoubleBuffers = ArrayPool<double>.Create();
+    private readonly List<object> BufferPools = new();
     internal SubAllocator MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;
@@ -51,4 +50,18 @@ public unsafe class Context
     internal OptimizationPluginChunkType OptimizationPlugin;
     internal TransformPluginChunkType TransformPlugin;
     internal MutexPluginChunkType MutexPlugin;
+
+    internal ArrayPool<T> GetBufferPool<T>()
+    {
+        foreach (var pool in BufferPools)
+        {
+            if (pool is ArrayPool<T> foundPool)
+                return foundPool;
+        }
+
+        var newPool = ArrayPool<T>.Create();
+        BufferPools.Add(newPool);
+
+        return newPool;
+    }
 }

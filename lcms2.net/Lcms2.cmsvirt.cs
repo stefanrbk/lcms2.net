@@ -28,20 +28,21 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static bool SetTextTags(Profile Profile, in char* Description)
+    private static bool SetTextTags(Profile Profile, string Description)
     {
-        Mlu* DescriptionMLU, CopyrightMLU;
+        Mlu? DescriptionMLU, CopyrightMLU;
         var rc = false;
         var ContextID = cmsGetProfileContextID(Profile);
         var en = stackalloc byte[] { (byte)'e', (byte)'n', 0 };
         var us = stackalloc byte[] { (byte)'U', (byte)'S', 0 };
-        var copyright = "No copyright, use freely\0";
+        var copyright = "No copyright, use freely";
 
         DescriptionMLU = cmsMLUalloc(ContextID, 1);
         CopyrightMLU = cmsMLUalloc(ContextID, 1);
@@ -49,10 +50,10 @@ public static unsafe partial class Lcms2
         if (DescriptionMLU is null || CopyrightMLU is null) goto Error;
 
         if (!cmsMLUsetWide(DescriptionMLU, en, us, Description)) goto Error;
-        if (!cmsMLUsetWide(CopyrightMLU, en, us, (char*)&copyright)) goto Error;
+        if (!cmsMLUsetWide(CopyrightMLU, en, us, copyright)) goto Error;
 
-        if (!cmsWriteTag(Profile, cmsSigProfileDescriptionTag, new BoxPtr<Mlu>(DescriptionMLU))) goto Error;
-        if (!cmsWriteTag(Profile, cmsSigCopyrightTag, new BoxPtr<Mlu>(CopyrightMLU))) goto Error;
+        if (!cmsWriteTag(Profile, cmsSigProfileDescriptionTag, DescriptionMLU)) goto Error;
+        if (!cmsWriteTag(Profile, cmsSigCopyrightTag, CopyrightMLU)) goto Error;
 
         rc = true;
 
@@ -64,7 +65,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static bool SetSeqDescTag(Profile Profile, in byte* Model)
+    private static bool SetSeqDescTag(Profile Profile, ReadOnlySpan<byte> Model)
     {
         var rc = false;
         var ContextID = cmsGetProfileContextID(Profile);
@@ -80,8 +81,7 @@ public static unsafe partial class Lcms2
 
         Seq->seq[0].technology = 0;
 
-        fixed (byte* ptr = name)
-            cmsMLUsetASCII(Seq->seq[0].Manufacturer, cmsNoLanguage, cmsNoCountry, ptr);
+        cmsMLUsetASCII(Seq->seq[0].Manufacturer, cmsNoLanguage, cmsNoCountry, name);
         cmsMLUsetASCII(Seq->seq[0].Model, cmsNoLanguage, cmsNoCountry, Model);
 
         if (!_cmsWriteProfileSequence(Profile, Seq))
@@ -128,7 +128,7 @@ public static unsafe partial class Lcms2
         // 10 cmsSigChromaticityTag
 
         var text = "RGB built-in";
-        if (!SetTextTags(hICC, (char*)&text))
+        if (!SetTextTags(hICC, text))
             goto Error;
 
         if (WhitePoint is not null)
@@ -239,7 +239,7 @@ public static unsafe partial class Lcms2
         // Fill-in the tags
 
         var text = "gray built-in";
-        if (!SetTextTags(hICC, (char*)&text)) goto Error;
+        if (!SetTextTags(hICC, text)) goto Error;
 
         if (WhitePoint is not null)
         {
@@ -287,9 +287,9 @@ public static unsafe partial class Lcms2
         // Create tags
         var text = "Linearization built-in"u8;
         var text8 = "Linearization built-in";
-        if (!SetTextTags(hICC, (char*)&text8)) goto Error;
+        if (!SetTextTags(hICC, text8)) goto Error;
         if (!cmsWriteTag(hICC, cmsSigAToB0Tag, Pipeline)) goto Error;
-        if (!SetSeqDescTag(hICC, (byte*)&text)) goto Error;
+        if (!SetSeqDescTag(hICC, text)) goto Error;
 
         // Pipeline is already on virtual profile
         cmsPipelineFree(Pipeline);
@@ -391,9 +391,9 @@ public static unsafe partial class Lcms2
         // Create tags
         var text = "ink-limiting built-in"u8;
         var text8 = "ink-limiting built-in";
-        if (!SetTextTags(hICC, (char*)&text8)) goto Error;
+        if (!SetTextTags(hICC, text8)) goto Error;
         if (!cmsWriteTag(hICC, cmsSigAToB0Tag, LUT)) goto Error;
-        if (!SetSeqDescTag(hICC, (byte*)&text)) goto Error;
+        if (!SetSeqDescTag(hICC, text)) goto Error;
 
         // Pipeline is already on virtual profile
         cmsPipelineFree(LUT);
@@ -428,7 +428,7 @@ public static unsafe partial class Lcms2
         cmsSetPCS(Profile, cmsSigLabData);
 
         var text = "Lab identity build-in";
-        if (!SetTextTags(Profile, (char*)&text)) goto Error;
+        if (!SetTextTags(Profile, text)) goto Error;
 
         // An identity LUT is all we need
         LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
@@ -468,7 +468,7 @@ public static unsafe partial class Lcms2
         cmsSetPCS(Profile, cmsSigLabData);
 
         var text = "Lab identity build-in";
-        if (!SetTextTags(Profile, (char*)&text)) goto Error;
+        if (!SetTextTags(Profile, text)) goto Error;
 
         // An empty LUT is all we need
         LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
@@ -508,7 +508,7 @@ public static unsafe partial class Lcms2
         cmsSetPCS(Profile, cmsSigXYZData);
 
         var text = "XYZ identity build-in";
-        if (!SetTextTags(Profile, (char*)&text)) goto Error;
+        if (!SetTextTags(Profile, text)) goto Error;
 
         // An identity LUT is all we need
         LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
@@ -568,7 +568,7 @@ public static unsafe partial class Lcms2
         if (hsRGB is null) return null;
 
         var text = "sRGB build-in";
-        if (!SetTextTags(hsRGB, (char*)&text))
+        if (!SetTextTags(hsRGB, text))
         {
             cmsCloseProfile(hsRGB);
             return null;
@@ -679,7 +679,7 @@ public static unsafe partial class Lcms2
 
         // Create tags
         var text = "BCHS build-in";
-        if (!SetTextTags(hICC, (char*)&text)) goto Error;
+        if (!SetTextTags(hICC, text)) goto Error;
 
         if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()))) goto Error;
         if (!cmsWriteTag(hICC, cmsSigAToB0Tag, Pipeline)) goto Error;
@@ -720,7 +720,7 @@ public static unsafe partial class Lcms2
         cmsSetProfileVersion(Profile, 4.3);
 
         var text = "NULL profile build-in";
-        if (!SetTextTags(Profile, (char*)&text)) goto Error;
+        if (!SetTextTags(Profile, text)) goto Error;
 
         cmsSetDeviceClass(Profile, cmsSigOutputClass);
         cmsSetColorSpace(Profile, cmsSigGrayData);
@@ -797,7 +797,7 @@ public static unsafe partial class Lcms2
 
         // Tag profile with information
         var text = "Named color devicelink";
-        if (!SetTextTags(hICC, (char*)&text)) goto Error;
+        if (!SetTextTags(hICC, text)) goto Error;
 
         Original = cmsGetNamedColorList(xform);
         if (Original is null) goto Error;
@@ -985,7 +985,7 @@ public static unsafe partial class Lcms2
 
         // Tag profile with information
         var devicelink = "devicelink";
-        if (!SetTextTags(Profile, (char*)&devicelink))
+        if (!SetTextTags(Profile, devicelink))
             goto Error;
 
         // Store result

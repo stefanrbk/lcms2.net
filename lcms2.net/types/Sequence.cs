@@ -42,7 +42,7 @@ public unsafe struct ProfileSequenceDescription
     public ulong attributes;
     public Signature technology;
     public ProfileID ProfileID;
-    public Mlu* Manufacturer;
-    public Mlu* Model;
-    public Mlu* Description;
+    public Mlu? Manufacturer;
+    public Mlu? Model;
+    public Mlu? Description;
 }

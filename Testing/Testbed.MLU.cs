@@ -55,10 +55,10 @@ internal static unsafe partial class Testbed
         var fr = stackalloc byte[3] { (byte)'F', (byte)'R', 0 };
         var ca = stackalloc byte[3] { (byte)'C', (byte)'A', 0 };
 
-        cmsMLUsetWide(mlu, enLang, us, (char*)&enHello);
-        cmsMLUsetWide(mlu, esLang, es, (char*)&esHello);
-        cmsMLUsetWide(mlu, frLang, fr, (char*)&frHello);
-        cmsMLUsetWide(mlu, caLang, ca, (char*)&caHello);
+        cmsMLUsetWide(mlu, enLang, us, enHello);
+        cmsMLUsetWide(mlu, esLang, es, esHello);
+        cmsMLUsetWide(mlu, frLang, fr, frHello);
+        cmsMLUsetWide(mlu, caLang, ca, caHello);
 
         // Check the returned string for each language
 
@@ -109,7 +109,7 @@ internal static unsafe partial class Testbed
         }
 
         // Duplicate it
-        var mlu2 = new BoxPtr<Mlu>(cmsMLUdup(mlu));
+        var mlu2 = cmsMLUdup(mlu);
 
         // Get rid of original
         cmsMLUfree(mlu);

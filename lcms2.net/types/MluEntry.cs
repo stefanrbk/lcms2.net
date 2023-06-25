@@ -26,14 +26,13 @@
 //
 namespace lcms2.types;
 
-public struct MluEntry
+public class MluEntry(ushort Language, ushort Country, uint StringOffsetInChars, uint StringLength) : ICloneable
 {
-    #region Fields
+    public ushort Country = Country;
+    public ushort Language = Language;
+    public uint StrWCharOffset = StringOffsetInChars;
+    public uint LenInBytes = StringLength;
 
-    public ushort Country;
-    public ushort Language;
-    public uint Len;
-    public uint StrW;
-
-    #endregion Fields
+    public object Clone() =>
+        new MluEntry(Language, Country, StrWCharOffset, LenInBytes);
 }

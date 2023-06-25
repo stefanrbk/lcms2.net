@@ -1223,8 +1223,7 @@ public static unsafe partial class Lcms2
             cmsStageFree(mpe);
         }
 
-        if (lut->FreeDataFn is not null)
-            lut->FreeDataFn!(lut->ContextID, lut->Data);
+        lut->FreeDataFn?.Invoke(lut->ContextID, lut->Data);
 
         _cmsFree(lut->ContextID, lut);
     }
@@ -1331,6 +1330,12 @@ public static unsafe partial class Lcms2
         }
 
         return BlessLUT(lut);
+    }
+
+    public static void cmsPipelineUnlinkStage(Pipeline* lut, StageLoc loc)
+    {
+        cmsPipelineUnlinkStage(lut, loc, out var mpe);
+        cmsStageFree(mpe);
     }
 
     public static void cmsPipelineUnlinkStage(Pipeline* lut, StageLoc loc, out Stage? mpe)

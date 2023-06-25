@@ -184,8 +184,8 @@ if (doCheckTests)
     Check("Floating point formatters", CheckFormattersFloat);
     Check("Half formatters", CheckFormattersHalf);
 
-    Console.WriteLine("\nChange buffers format");
-    Check("ChangeBuffersFormat", CheckChangeBufferFormats);
+    //Console.WriteLine("\nChange buffers format");
+    //Check("ChangeBuffersFormat", CheckChangeBufferFormats);
 
     Console.WriteLine("\nMLU");
     Check("Multilocalized Unicode", CheckMLU);

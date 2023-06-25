@@ -668,8 +668,8 @@ public static unsafe partial class Lcms2
 
     internal const uint SAMPLER_INSPECT = 0x01000000;
 
-    internal static readonly byte* cmsNoLanguage;
-    internal static readonly byte* cmsNoCountry;
+    internal static readonly byte[] cmsNoLanguage = "\0\0"u8.ToArray();
+    internal static readonly byte[] cmsNoCountry = "\0\0"u8.ToArray();
 
     internal const ushort cmsPRINTER_DEFAULT_SCREENS = 0x0001;
     internal const ushort cmsFREQUENCE_UNITS_LINES_CM = 0x0000;

@@ -316,7 +316,7 @@ public static unsafe partial class Lcms2
 
     private static bool AddConversion(Pipeline* Result, Signature InPCS, Signature OutPCS, MAT3* m, VEC3* off)
     {
-        var pool = _cmsGetContext(Result->ContextID).DoubleBuffers;
+        var pool = _cmsGetContext(Result->ContextID).GetBufferPool<double>();
         var m_as_dbl = m->AsArray(pool);
         var off_as_dbl = off->AsArray(pool);
 

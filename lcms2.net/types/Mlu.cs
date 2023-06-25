@@ -28,15 +28,26 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct Mlu
+public class Mlu(Context? ContextID, uint nEntries)
 {
-    public Context? ContextID;
+    public Context? ContextID = ContextID;
 
-    public uint AllocatedEntries;
-    public uint UsedEntries;
-    public MluEntry* Entries;
+    //public uint AllocatedEntries;
+    //public uint UsedEntries;
+    public List<MluEntry> Entries = new((int)nEntries);
 
-    public uint PoolSize;
-    public uint PoolUsed;
-    public void* MemPool;
+    public uint PoolSizeInBytes;
+    public uint PoolUsedInBytes;
+    public char[]? MemPool;
+
+    public uint UsedEntries =>
+        (uint)Entries.Count;
+
+    public uint AllocatedEntries
+    {
+        get =>
+            (uint)Entries.Capacity;
+        internal set =>
+            Entries.Capacity = (int)value;
+    }
 }

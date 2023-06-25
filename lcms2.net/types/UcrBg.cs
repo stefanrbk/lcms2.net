@@ -31,5 +31,5 @@ public unsafe struct UcrBg
 {
     public ToneCurve* Ucr;
     public ToneCurve* Bg;
-    public Mlu* Desc;
+    public Mlu Desc;
 }

@@ -683,10 +683,10 @@ public static unsafe partial class Lcms2
 
     #region Text
 
-    private static BoxPtr<Mlu>? Type_Text_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Mlu? Type_Text_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        Mlu* mlu = null;
-        byte* Text = null;
+        Mlu? mlu = null;
+        byte[]? Text = null;
 
         *nItems = 0;
         mlu = cmsMLUalloc(self->ContextID, 1);
@@ -695,20 +695,23 @@ public static unsafe partial class Lcms2
         // We need to store the "\0" at the end, so +1
         if (SizeOfTag is UInt32.MaxValue) goto Error;
 
-        Text = _cmsMalloc<byte>(self->ContextID, SizeOfTag + 1);
+        //Text = _cmsMalloc<byte>(self->ContextID, SizeOfTag + 1);
+        Text = _cmsCallocArray<byte>(self->ContextID, SizeOfTag);       // No trailing zero required!
         if (Text is null) goto Error;
 
-        if (io.Read(io, Text, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error;
+        var tmpText = stackalloc byte[(int)SizeOfTag];
+        if (io.Read(io, tmpText, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error;
+        new ReadOnlySpan<byte>(tmpText, (int)SizeOfTag).CopyTo(Text);
 
         // Make sure text is properly ended
-        Text[SizeOfTag] = 0;
+        //Text[SizeOfTag] = 0;              // Nope!!
         *nItems = 1;
 
         // Keep the result
         if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text)) goto Error;
 
         _cmsFree(self->ContextID, Text);
-        return new(mlu);
+        return mlu;
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -719,35 +722,34 @@ public static unsafe partial class Lcms2
 
     private static bool Type_Text_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Mlu> mlu) return false;
+        if (Ptr is not Mlu mlu) return false;
 
-        // Get the size of the string. Note there is an extra "\0" at the end
-        var size = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null, 0);
+        // Get the size of the string. Note there is an extra "\0" at the end       // No extra "\0"
+        var size = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null);
         if (size is 0) return false;    // Cannot be zero!
 
         // Create memory
-        var Text = _cmsMalloc<byte>(self->ContextID, size);
+        var Text = _cmsCallocArray<byte>(self->ContextID, size);
         if (Text is null) return false;
 
-        cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text, size);
+        cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
+        var tmpText = stackalloc byte[(int)size];
+        Text.AsSpan().CopyTo(new(tmpText, (int)size));
 
         // Write it, including separators
-        var rc = io.Write(io, size, Text);
+        var rc = io.Write(io, size, tmpText);
 
         _cmsFree(self->ContextID, Text);
         return rc;
     }
 
-    private static BoxPtr<Mlu>? Type_Text_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Mlu> value
-            ? new(cmsMLUdup(value))
+    private static Mlu? Type_Text_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        Ptr is Mlu value
+            ? cmsMLUdup(value)
             : null;
 
-    private static void Type_Text_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Mlu> value)
-            cmsMLUfree(value);
-    }
+    private static void Type_Text_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsMLUfree(Ptr as Mlu);
 
     private static Signature DecideTextType(double ICCVersion, object? _) =>
         ICCVersion >= 4.0
@@ -811,10 +813,10 @@ public static unsafe partial class Lcms2
 
     #region Text Description
 
-    private static BoxPtr<Mlu>? Type_Text_Description_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Mlu? Type_Text_Description_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        Mlu* mlu = null;
-        byte* Text = null;
+        Mlu? mlu = null;
+        byte[]? Text = null;
         uint AsciiCount, UnicodeCode, UnicodeCount;
         ushort ScriptCodeCode, Dummy;
         byte ScriptCodeCount;
@@ -836,15 +838,18 @@ public static unsafe partial class Lcms2
         if (mlu is null) return null;
 
         // As much memory as size of tag
-        Text = _cmsMalloc<byte>(self->ContextID, AsciiCount + 1);
+        //Text = _cmsMalloc<byte>(self->ContextID, AsciiCount + 1);
+        Text = _cmsCallocArray<byte>(self->ContextID, AsciiCount);
         if (Text is null) goto Error;
 
         // Read it
-        if (io.Read(io, Text, sizeof(byte), AsciiCount) != AsciiCount) goto Error;
+        var tmpText = stackalloc byte[(int)AsciiCount];
+        if (io.Read(io, tmpText, sizeof(byte), AsciiCount) != AsciiCount) goto Error;
+        new Span<byte>(tmpText, (int)AsciiCount).CopyTo(Text);
         SizeOfTag -= AsciiCount;
 
         // Make sure there is a terminator
-        Text[AsciiCount] = 0;
+        //Text[AsciiCount] = 0;
 
         // Set the MLU entry. From here we can be tolerant to wrong types
         if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text)) goto Error;
@@ -879,7 +884,7 @@ public static unsafe partial class Lcms2
 
     Done:
         *nItems = 1;
-        return new(mlu);
+        return mlu;
 
     Error:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -890,18 +895,19 @@ public static unsafe partial class Lcms2
 
     private static bool Type_Text_Description_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Mlu> mlu) return false;
-        byte* Text = null;
-        char* Wide = null;
+        if (Ptr is not Mlu mlu) return false;
+        byte[]? Text = null;
+        char[]? Wide = null;
         uint len, len_text, len_tag_requirement, len_aligned;
         var rc = false;
-        var Filler = stackalloc byte[68];
+        Span<byte> Filler = stackalloc byte[68];
+        Span<char> FillerChar = stackalloc char[68];
 
         // Used below for writing zeros
-        memset(Filler, 0, 68);
+        Filler.Clear();
 
         // Get the len of string
-        len = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null, 0);
+        len = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null);
 
         // Specification ICC.1:2001-04 (v2.4.0): It has been found that textDescriptionType can contain misaligned data
         //(see clause 4.1 for the definition of 'aligned'). Because the Unicode language
@@ -925,18 +931,19 @@ public static unsafe partial class Lcms2
         else
         {
             // Create independent buffers
-            Text = _cmsCalloc<byte>(self->ContextID, len);
+            Text = _cmsCallocArray<byte>(self->ContextID, len);
             if (Text is null) goto Error;
-            Wide = _cmsCalloc<char>(self->ContextID, len);
+            Wide = _cmsCallocArray<char>(self->ContextID, len);
             if (Wide is null) goto Error;
 
             // Get both representations.
-            cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text, len * sizeof(byte));
-            cmsMLUgetWide(mlu, cmsNoLanguage, cmsNoCountry, Wide, len * sizeof(char));
+            cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
+            cmsMLUgetWide(mlu, cmsNoLanguage, cmsNoCountry, Wide);
         }
 
         // Tell the real text len including the null terminator and padding
-        len_text = (uint)strlen(Text) + 1;
+        //len_text = (uint)strlen(Text) + 1;
+        len_text = (uint)Text.Length;
         // Compute a total tag size requirement
         len_tag_requirement =
             8                   // Alignment
@@ -951,6 +958,8 @@ public static unsafe partial class Lcms2
         len_aligned = _cmsALIGNLONG(len_tag_requirement);
 
         if (!_cmsWriteUInt32Number(io, len_text)) goto Error;
+        var tmpText = stackalloc byte[(int)len_text];
+        Text.AsSpan()
         if (!io.Write(io, len_text, Text)) goto Error;
 
         if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // ucLangCode
