@@ -31,10 +31,16 @@ namespace lcms2.types;
 
 public unsafe class StageMatrixData : IDisposable
 {
-    public double[] Double;
-    public double[]? Offset;
+    private double[] @double;
+    private double[]? offset;
     private bool disposedValue;
     private readonly ArrayPool<double>? pool;
+
+    public double[] Double { get { ObjectDisposedException.ThrowIf(disposedValue, this); return @double; } set => @double = value; }
+    public double[]? Offset { get {
+            ObjectDisposedException.ThrowIf(disposedValue, this);
+            return offset;
+        } set => offset = value; }
 
     public StageMatrixData(ReadOnlySpan<double> @double, ReadOnlySpan<double> offset = default, ArrayPool<double>? pool = null)
     {

@@ -120,9 +120,10 @@ public static unsafe partial class Lcms2
 
     private static void _RemoveElement(ref Stage? head)
     {
+        if (head is null) return;
+
         var mpe = head;
-        var next = mpe?.Next;
-        head = next;
+        head = mpe.Next;
         cmsStageFree(mpe);
     }
 

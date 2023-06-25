@@ -726,7 +726,7 @@ public static unsafe partial class Lcms2
             }
 
             // Not suitable for the transform plug-in, let's check the pipeline plug-in
-            _cmsOptimizePipeline(ContextID, &p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
+            //_cmsOptimizePipeline(ContextID, &p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
         }
 
         // Check whether this is a true floating point transform

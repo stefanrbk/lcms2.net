@@ -521,7 +521,7 @@ public static unsafe partial class Lcms2
 
                 if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, clip))
                 {
-                    cmsStageFree(clip);
+                    //cmsStageFree(clip);
                     goto Error;
                 }
             }
@@ -677,7 +677,7 @@ public static unsafe partial class Lcms2
         return Result;
 
     Error2:
-        cmsStageFree(CLUT);
+        //cmsStageFree(CLUT);
     Error:
         if (bp.cmyk2cmyk is not null) cmsPipelineFree(bp.cmyk2cmyk);
         if (bp.KTone is not null) cmsFreeToneCurve(bp.KTone);
