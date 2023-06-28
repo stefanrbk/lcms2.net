@@ -161,8 +161,8 @@ public static unsafe partial class Lcms2
 
             if ((*pt1)->Implements == Op1 && (*pt2)->Implements == Op2)
             {
-                _RemoveElement(pt1);
                 _RemoveElement(pt2);
+                _RemoveElement(pt1);
                 AnyOpt = true;
             }
             else
