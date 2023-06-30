@@ -325,8 +325,8 @@ public static unsafe partial class Lcms2
 
         if (Duped is null) return null;
 
-        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * (uint)sizeof(nint));
-        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * (uint)sizeof(nint));
+        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<nint>());
+        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<nint>());
 
         return Duped;
     }
@@ -362,7 +362,7 @@ public static unsafe partial class Lcms2
         p16->CLUTparams = ColorMap;
         p16->EvalCLUT = ColorMap->Interpolation.Lerp16;
 
-        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, (uint)sizeof(nint));
+        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>());
         if (p16->EvalCurveOut16 is null)
         {
             _cmsFree(ContextID, p16);
@@ -835,7 +835,7 @@ public static unsafe partial class Lcms2
         _cmsFree(ContextID, ptr);
 
     private static void* Prelin8dup(Context ContextID, in void* ptr) =>
-        _cmsDupMem(ContextID, ptr, (uint)sizeof(Prelin8Data));
+        _cmsDupMem(ContextID, ptr, _sizeof<Prelin8Data>());
 
     private static void PrelinEval8(in ushort* Input, ushort* Output, in void* D)
     {
@@ -968,8 +968,8 @@ public static unsafe partial class Lcms2
         var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, *dwFlags);
 
         // Empty gamma containers
-        memset(Trans, 0, sizeof(nint) * cmsMAXCHANNELS);
-        memset(TransReverse, 0, sizeof(nint) * cmsMAXCHANNELS);
+        memset(Trans, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        memset(TransReverse, 0, _sizeof<nint>() * cmsMAXCHANNELS);
 
         // If the last stage of the original lut are curves, and those curves are
         // degenerated, it is likely the transform is squeezing and clipping
@@ -1145,7 +1145,7 @@ public static unsafe partial class Lcms2
     private static Curves16Data* CurvesAlloc(Context ContextID, uint nCurves, uint nElements, ToneCurve** G)
     {
         int i;
-        var c16 = _cmsMallocZero<Curves16Data>(ContextID, _sizeof<Curves16Data>());
+        var c16 = _cmsMallocZero<Curves16Data>(ContextID);
         if (c16 is null) return null;
 
         c16->nCurves = nCurves;

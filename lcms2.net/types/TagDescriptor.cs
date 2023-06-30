@@ -46,7 +46,7 @@ public unsafe struct TagDescriptor
         {
             fixed (uint* dst = SupportedTypes)
             {
-                Buffer.MemoryCopy(src, dst, MAX_TYPES_IN_LCMS_PLUGIN * sizeof(uint), nSupportedTypes * sizeof(Signature));
+                Buffer.MemoryCopy(src, dst, MAX_TYPES_IN_LCMS_PLUGIN * _sizeof<uint>(), nSupportedTypes * _sizeof<Signature>());
             }
         }
         DecideType = decideType;

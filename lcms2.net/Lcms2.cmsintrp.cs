@@ -833,7 +833,7 @@ public static unsafe partial class Lcms2
         var k1 = k0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[3]);
 
         var p1 = *p;
-        memcpy(&p1.Domain[0], &p->Domain[1], 3 * (uint)sizeof(uint));
+        memcpy(&p1.Domain[0], &p->Domain[1], 3 * _sizeof<uint>());
 
         var t = lutTable + k0;
         p1.Table = t;
@@ -871,7 +871,7 @@ public static unsafe partial class Lcms2
         var K1 = (int)p16->opta[NM] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
         var p1 = *p16;
-        Buffer.MemoryCopy(&p16->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
+        Buffer.MemoryCopy(&p16->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
 
         var t = lutTable + K0;
         p1.Table = t;
@@ -909,7 +909,7 @@ public static unsafe partial class Lcms2
         var K1 = K0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[NM]);
 
         var p1 = *p;
-        Buffer.MemoryCopy(&p->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
+        Buffer.MemoryCopy(&p->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
 
         var t = lutTable + K0;
         p1.Table = t;
@@ -1008,7 +1008,7 @@ public static unsafe partial class Lcms2
         var isFloat = (dwFlags & LerpFlag.Float) != 0;
         var isTriliniar = (dwFlags & LerpFlag.Trilinear) != 0;
 
-        memset(&interpolation, 0, sizeof(InterpFunction));
+        memset(&interpolation, 0);
 
         // Safety check
         if (nInputChannels >= 4 && nOutputChannels >= MAX_STAGE_CHANNELS)

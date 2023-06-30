@@ -785,7 +785,7 @@ public static unsafe partial class Lcms2
         {
             for (var i = 0; i < ProfileSeq->n; i++)
             {
-                memmove(&NewSeq->seq[i].ProfileID, &ProfileID->seq[i].ProfileID, sizeof(ProfileID));
+                memmove(&NewSeq->seq[i].ProfileID, &ProfileID->seq[i].ProfileID);
                 NewSeq->seq[i].Description = cmsMLUdup(ProfileID->seq[i].Description);
             }
         }

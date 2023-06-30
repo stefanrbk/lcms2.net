@@ -578,7 +578,7 @@ public static unsafe partial class Lcms2
         var io = Icc->IOHandler;
 
         // Read the header
-        if (io->Read(io, &Header, (uint)sizeof(Profile.Header), 1) is not 1)
+        if (io->Read(io, &Header, _sizeof<Profile.Header>(), 1) is not 1)
             return false;
 
         // Validate file as an ICC profile
@@ -700,7 +700,7 @@ public static unsafe partial class Lcms2
         memmove(&Header.profileID, &Icc->ProfileID, 16);
 
         // Dump the header
-        if (!Icc->IOHandler->Write(Icc->IOHandler, (uint)sizeof(Profile.Header), &Header)) return false;
+        if (!Icc->IOHandler->Write(Icc->IOHandler, _sizeof<Profile.Header>(), &Header)) return false;
 
         // Saves Tag directory
 
@@ -723,7 +723,7 @@ public static unsafe partial class Lcms2
             Tag.offset = _cmsAdjustEndianess32(Icc->TagOffsets[i]);
             Tag.size = _cmsAdjustEndianess32(Icc->TagSizes[i]);
 
-            if (!Icc->IOHandler->Write(Icc->IOHandler, (uint)sizeof(TagEntry), &Tag)) return false;
+            if (!Icc->IOHandler->Write(Icc->IOHandler, _sizeof<TagEntry>(), &Tag)) return false;
         }
 
         return true;
@@ -770,7 +770,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsGetHeaderCreationDateTime(HPROFILE Icc, DateTime* Dest)
     {
-        memmove(Dest, &((Profile*)Icc)->Created, (uint)sizeof(DateTime));
+        memmove(Dest, &((Profile*)Icc)->Created, _sizeof<DateTime>());
         return true;
     }
 
@@ -1065,7 +1065,7 @@ public static unsafe partial class Lcms2
         var Icc = (Profile*)hProfile;
 
         if (!_cmsLockMutex(Icc->ContextID, Icc->UserMutex)) return 0;
-        memmove(&Keep, Icc, sizeof(Profile));
+        memmove(&Keep, Icc);
 
         var ContextID = cmsGetProfileContextID(Icc);
         var PrevIO = Icc->IOHandler = cmsOpenIOhandlerFromNULL(ContextID);
@@ -1091,7 +1091,7 @@ public static unsafe partial class Lcms2
             if (!SaveTags(Icc, &Keep)) goto Error;
         }
 
-        memmove(Icc, &Keep, sizeof(Profile));
+        memmove(Icc, &Keep);
         if (!cmsCloseIOhandler(PrevIO))
             UsedSpace = 0; // As an error marker
 
@@ -1101,7 +1101,7 @@ public static unsafe partial class Lcms2
 
     Error:
         cmsCloseIOhandler(PrevIO);
-        memmove(Icc, &Keep, sizeof(Profile));
+        memmove(Icc, &Keep);
         _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
 
         return 0;

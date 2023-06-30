@@ -62,7 +62,7 @@ public static unsafe partial class Lcms2
 
     private static void EvaluateIdentity(in float* @in, float* @out, in Stage* mpe)
     {
-        memcpy(@out, @in, mpe->InputChannels * sizeof(float));
+        memcpy(@out, @in, mpe->InputChannels * _sizeof<float>());
     }
 
     public static Stage* cmsStageAllocIdentity(Context ContextID, uint nChannels) =>
@@ -1152,7 +1152,7 @@ public static unsafe partial class Lcms2
         var Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
         var Phase = 0;
 
-        memmove(&Storage[Phase * MAX_STAGE_CHANNELS], In, lut->InputChannels * sizeof(float));
+        memmove(&Storage[Phase * MAX_STAGE_CHANNELS], In, lut->InputChannels * _sizeof<float>());
 
         for (var mpe = lut->Elements;
             mpe is not null;
@@ -1163,7 +1163,7 @@ public static unsafe partial class Lcms2
             Phase = NextPhase;
         }
 
-        memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut->InputChannels * sizeof(float));
+        memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut->InputChannels * _sizeof<float>());
     }
 
     public static Pipeline* cmsPipelineAlloc(Context ContextID, uint InputChannels, uint OutputChannels)

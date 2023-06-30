@@ -92,7 +92,7 @@ public static unsafe partial class Lcms2
         if (AllocatedEntries / 2 != mlu->AllocatedEntries) return false;
 
         // Reallocate the memory
-        var NewPtr = _cmsRealloc<MluEntry>(mlu->ContextID, mlu->Entries, AllocatedEntries * (uint)sizeof(MluEntry));
+        var NewPtr = _cmsRealloc<MluEntry>(mlu->ContextID, mlu->Entries, AllocatedEntries * _sizeof<MluEntry>());
         if (NewPtr is null) return false;
 
         mlu->Entries = NewPtr;
@@ -191,7 +191,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < len; i++)
             WStr[i] = (char)ASCIIString[i];
 
-        var rc = AddMLUBlock(mlu, len * sizeof(char), WStr, Lang, Cntry);
+        var rc = AddMLUBlock(mlu, len * _sizeof<char>(), WStr, Lang, Cntry);
 
         _cmsFree(mlu->ContextID, WStr);
         return rc;
@@ -215,9 +215,9 @@ public static unsafe partial class Lcms2
         if (mlu is null) return false;
         if (WideString is null) return false;
 
-        var len = mywcslen(WideString) * sizeof(char);
+        var len = mywcslen(WideString) * _sizeof<char>();
         if (len is 0)
-            len = sizeof(char);
+            len = _sizeof<char>();
 
         return AddMLUBlock(mlu, len, WideString, Lang, Cntry);
     }
@@ -236,7 +236,7 @@ public static unsafe partial class Lcms2
 
         // Sanitize...
         if (NewMlu->Entries is null || mlu->Entries is null) goto Error;
-        memmove(NewMlu->Entries, mlu->Entries, mlu->UsedEntries * (uint)sizeof(MluEntry));
+        memmove(NewMlu->Entries, mlu->Entries, mlu->UsedEntries * _sizeof<MluEntry>());
         NewMlu->UsedEntries = mlu->UsedEntries;
 
         // Thye MLU may be empty
@@ -341,7 +341,7 @@ public static unsafe partial class Lcms2
         var Wide = _cmsMLUgetWide(mlu, &StrLen, Lang, Cntry, null, null);
         if (Wide is null) return 0;
 
-        var ASCIIlen = StrLen / sizeof(char);
+        var ASCIIlen = StrLen / _sizeof<char>();
 
         // Maybe we want only to know the len?
         if (Buffer is null) return ASCIIlen + 1; // Note the zero at the end
@@ -385,7 +385,7 @@ public static unsafe partial class Lcms2
         var Wide = _cmsMLUgetWide(mlu, &StrLen, Lang, Cntry, null, null);
         if (Wide is null) return 0;
 
-        var WideLen = StrLen / sizeof(char);
+        var WideLen = StrLen / _sizeof<char>();
 
         // Maybe we want only to know the len?
         if (Buffer is null) return WideLen; // Note the zero at the end
@@ -395,11 +395,11 @@ public static unsafe partial class Lcms2
 
         // Some clipping may be required
         if (BufferSize < WideLen)
-            WideLen = BufferSize - sizeof(char);
+            WideLen = BufferSize - _sizeof<char>();
 
         // Process each character
         memmove(Buffer, Wide, StrLen);
-        Buffer[StrLen / sizeof(char)] = (char)0;
+        Buffer[StrLen / _sizeof<char>()] = (char)0;
         return WideLen;
     }
 
@@ -449,7 +449,7 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * (uint)sizeof(NamedColor));
+        var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * _sizeof<NamedColor>());
         if (NewPtr is null) return false;
 
         v->List = NewPtr;
@@ -512,7 +512,7 @@ public static unsafe partial class Lcms2
         memmove(NewNC->Prefix, v->Prefix, 33);
         memmove(NewNC->Suffix, v->Suffix, 33);
         NewNC->ColorantCount = v->ColorantCount;
-        memmove(NewNC->List, v->List, v->nColors * (uint)sizeof(NamedColor));
+        memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
         NewNC->nColors = v->nColors;
         return NewNC;
     }
@@ -572,9 +572,9 @@ public static unsafe partial class Lcms2
         if (Prefix is not null) strcpy(Prefix, NamedColorList->Prefix);
         if (Suffix is not null) strcpy(Suffix, NamedColorList->Suffix);
         if (PCS is not null)
-            memmove(PCS, NamedColorList->List[nColor].PCS, 3 * sizeof(ushort));
+            memmove(PCS, NamedColorList->List[nColor].PCS, 3 * _sizeof<ushort>());
         if (Colorant is not null)
-            memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * sizeof(ushort));
+            memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * _sizeof<ushort>());
 
         return true;
     }

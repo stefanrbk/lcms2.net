@@ -117,8 +117,8 @@ public static unsafe partial class Lcms2
         }
 
         // Copy the data
-        memcpy(fl->FunctionTypes, Plugin->FunctionTypes, fl->nFunctions * sizeof(uint));
-        memcpy(fl->ParameterCount, Plugin->ParameterCount, fl->nFunctions * sizeof(uint));
+        memcpy(fl->FunctionTypes, Plugin->FunctionTypes, fl->nFunctions * _sizeof<uint>());
+        memcpy(fl->ParameterCount, Plugin->ParameterCount, fl->nFunctions * _sizeof<uint>());
 
         // Keep linked list
         fl->Next = ctx->ParametricCurves;
@@ -245,7 +245,7 @@ public static unsafe partial class Lcms2
                 if (Segments[i].Type == 0)
                     p->SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
 
-                memcpy(&p->Segments[i], &Segments[i], (uint)sizeof(CurveSegment));
+                memcpy(&p->Segments[i], &Segments[i]);
 
                 p->Segments[i].SampledPoints = Segments[i].Type == 0 && Segments[i].SampledPoints is not null
                     ? _cmsDupMem<float>(ContextID, Segments[i].SampledPoints, Segments[i].nGridPoints)
@@ -758,7 +758,7 @@ public static unsafe partial class Lcms2
         Seg0.x1 = PLUS_INF;
         Seg0.Type = Type;
 
-        var size = c->ParameterCount[Pos] * sizeof(double);
+        var size = c->ParameterCount[Pos] * _sizeof<double>();
         memcpy(Seg0.Params, Params, size);
 
         return cmsBuildSegmentedToneCurve(ContextID, 1, &Seg0);
@@ -972,9 +972,9 @@ public static unsafe partial class Lcms2
         float* c, d, e;
         bool st;
 
-        c = (float*)_cmsCalloc(ContextID, maxNodesInCurve, sizeof(float));
-        d = (float*)_cmsCalloc(ContextID, maxNodesInCurve, sizeof(float));
-        e = (float*)_cmsCalloc(ContextID, maxNodesInCurve, sizeof(float));
+        c = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        d = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        e = _cmsCalloc<float>(ContextID, maxNodesInCurve);
 
         if (c is not null && d is not null && e is not null)
         {
@@ -1059,9 +1059,9 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        memset(w, 0, (nItems + 1) * sizeof(float));
-        memset(y, 0, (nItems + 1) * sizeof(float));
-        memset(z, 0, (nItems + 1) * sizeof(float));
+        memset(w, 0, (nItems + 1) * _sizeof<float>());
+        memset(y, 0, (nItems + 1) * _sizeof<float>());
+        memset(z, 0, (nItems + 1) * _sizeof<float>());
 
         for (i = 0; i < nItems; i++)
         {

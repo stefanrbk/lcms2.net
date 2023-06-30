@@ -162,7 +162,7 @@ public static unsafe partial class Lcms2
         if (src is not null)
         {
             // Duplicate
-            ctx->chunks[Chunks.MemPlugin] = _cmsSubAllocDup(ctx->MemPool, src->chunks[Chunks.MemPlugin], (uint)sizeof(MemPluginChunkType));
+            ctx->chunks[Chunks.MemPlugin] = _cmsSubAllocDup<MemPluginChunkType>(ctx->MemPool, src->chunks[Chunks.MemPlugin]);
         }
         else
         {
@@ -245,8 +245,8 @@ public static unsafe partial class Lcms2
         return ptr->MallocZeroPtr(ContextID, size);
     }
 
-    internal static T* _cmsMallocZero<T>(Context ContextID, uint size) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, size);
+    internal static T* _cmsMallocZero<T>(Context ContextID, uint count) where T : struct =>
+        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>());
 
     internal static T* _cmsMallocZero<T>(Context ContextID) where T : struct =>
         (T*)_cmsMallocZero(ContextID, _sizeof<T>());

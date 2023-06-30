@@ -92,7 +92,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(byte), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<byte>(), 1) != 1)
             return false;
 
         if (n is not null) *n = tmp;
@@ -105,7 +105,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(ushort), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<ushort>(), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess16(tmp);
@@ -138,7 +138,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<uint>(), 1) != 1)
             return false;
 
         if (n is not null) *n = _cmsAdjustEndianess32(tmp);
@@ -151,7 +151,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<uint>(), 1) != 1)
             return false;
 
         if (n is not null)
@@ -176,7 +176,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(ulong), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<ulong>(), 1) != 1)
             return false;
 
         if (n is not null) _cmsAdjustEndianess64(n, &tmp);
@@ -189,7 +189,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &tmp, sizeof(uint), 1) != 1)
+        if (io->Read(io, &tmp, _sizeof<uint>(), 1) != 1)
             return false;
 
         if (n is not null)
@@ -204,7 +204,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
+        if (io->Read(io, &xyz, _sizeof<EncodedXYZNumber>(), 1) != 1)
             return false;
 
         if (XYZ is not null)
@@ -221,7 +221,7 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(io);
 
-        return io->Write(io, sizeof(byte), &n);
+        return io->Write(io, _sizeof<byte>(), &n);
     }
 
     internal static bool _cmsWriteUInt16Number(IOHandler* io, ushort n)
@@ -230,7 +230,7 @@ public static unsafe partial class Lcms2
 
         var tmp = _cmsAdjustEndianess16(n);
 
-        return io->Write(io, sizeof(ushort), &tmp);
+        return io->Write(io, _sizeof<ushort>(), &tmp);
     }
 
     internal static bool _cmsWriteUInt16Array(IOHandler* io, uint n, in ushort* array)
@@ -252,7 +252,7 @@ public static unsafe partial class Lcms2
 
         var tmp = _cmsAdjustEndianess32(n);
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io->Write(io, _sizeof<uint>(), &tmp);
     }
 
     internal static bool _cmsWriteFloat32Number(IOHandler* io, float n)
@@ -262,7 +262,7 @@ public static unsafe partial class Lcms2
         var tmp = *(uint*)(void*)&n;
         tmp = _cmsAdjustEndianess32(tmp);
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io->Write(io, _sizeof<uint>(), &tmp);
     }
 
     internal static bool _cmsWriteUInt64Number(IOHandler* io, ulong n)
@@ -273,7 +273,7 @@ public static unsafe partial class Lcms2
 
         _cmsAdjustEndianess64(&tmp, &n);
 
-        return io->Write(io, sizeof(ulong), &tmp);
+        return io->Write(io, _sizeof<ulong>(), &tmp);
     }
 
     internal static bool _cmsWrite15Fixed16Number(IOHandler* io, double n)
@@ -282,7 +282,7 @@ public static unsafe partial class Lcms2
 
         var tmp = _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n));
 
-        return io->Write(io, sizeof(uint), &tmp);
+        return io->Write(io, _sizeof<uint>(), &tmp);
     }
 
     internal static bool _cmsWriteXYZNumber(IOHandler* io, CIEXYZ* XYZ)
@@ -296,7 +296,7 @@ public static unsafe partial class Lcms2
         xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Y));
         xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Z));
 
-        return io->Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
+        return io->Write(io, _sizeof<EncodedXYZNumber>(), &xyz);
     }
 
     internal static double _cms8Fixed8toDouble(ushort fixed8)
@@ -364,7 +364,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(io);
 
-        if (io->Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
+        if (io->Read(io, &Base, _sizeof<TagBase>(), 1) != 1)
             return default;
 
         return new(_cmsAdjustEndianess32(Base.Signature));
@@ -377,12 +377,12 @@ public static unsafe partial class Lcms2
         _cmsAssert(io);
 
         Base.Signature = new(_cmsAdjustEndianess32(sig));
-        return io->Write(io, (uint)sizeof(TagBase), &Base);
+        return io->Write(io, _sizeof<TagBase>(), &Base);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint _cmsALIGNLONG(uint x) =>
-        (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
+        (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
 
     internal static bool _cmsReadAlignment(IOHandler* io)
     {
@@ -431,7 +431,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static T* _cmsPluginMalloc<T>(Context ContextID) where T : struct =>
-        (T*)_cmsPluginMalloc(ContextID, (uint)sizeof(T));
+        (T*)_cmsPluginMalloc(ContextID, _sizeof<T>());
 
     internal static void* _cmsPluginMalloc(Context ContextID, uint size)
     {
@@ -710,7 +710,7 @@ public static unsafe partial class Lcms2
         ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
-        ctx->MemPool = _cmsCreateSubAlloc(*&ctx, 22 * (uint)sizeof(void*)); // default size about 22 pointers
+        ctx->MemPool = _cmsCreateSubAlloc(*&ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
         if (ctx->MemPool is null)
         {
             cmsDeleteContext(*&ctx);
@@ -765,7 +765,7 @@ public static unsafe partial class Lcms2
         ctx->chunks[Chunks.UserPtr] = userData;
         ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
 
-        ctx->MemPool = _cmsCreateSubAlloc(ctx, 22 * (uint)sizeof(void*));
+        ctx->MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
         if (ctx->MemPool is null)
         {
             cmsDeleteContext(ctx);

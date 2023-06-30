@@ -792,9 +792,9 @@ public static unsafe partial class Lcms2
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNLONG<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
-        (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
+        (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
 
-    internal static ushort CMS_PTR_ALIGNMENT = (ushort)sizeof(void*);
+    internal static ushort CMS_PTR_ALIGNMENT = _sizeof<nint>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNMEM<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
@@ -1002,9 +1002,9 @@ public static unsafe partial class Lcms2
         fixed (ParametricCurvesCollection* curves = &defaultCurves)
         {
             fixed (int* defaultFunctionTypes = defaultCurvesFunctionTypes)
-                memcpy(curves->FunctionTypes, defaultFunctionTypes, 10 * sizeof(int));
+                memcpy(curves->FunctionTypes, defaultFunctionTypes, 10 * _sizeof<int>());
             fixed (uint* defaultParameterCount = defaultCurvesParameterCounts)
-                memcpy(curves->ParameterCount, defaultParameterCount, 10 * sizeof(uint));
+                memcpy(curves->ParameterCount, defaultParameterCount, 10 * _sizeof<uint>());
         }
         fixed (CurvesPluginChunkType* plugin = &CurvesPluginChunk)
             globalCurvePluginChunk = dup<CurvesPluginChunkType>(plugin);
@@ -1149,7 +1149,7 @@ public static unsafe partial class Lcms2
             globalMutexPluginChunk = dup(plugin);
 
         // Global Context
-        globalContext = (Context)alloc((nuint)sizeof(Context_struct));
+        globalContext = (Context)alloc(_sizeof<Context_struct>());
         *globalContext = new()
         {
             Next = null,
@@ -1255,15 +1255,15 @@ public static unsafe partial class Lcms2
             var temp7 = stackalloc double[3] { 0, OutpAdj * cmsD50Y, 0, };
             var temp8 = stackalloc double[3] { 1, 0, 0, };
 
-            Device2PCS16 = (Signature*)dup(temp1, 4 * sizeof(Signature));
-            Device2PCSFloat = (Signature*)dup(temp2, 4 * sizeof(Signature));
-            PCS2Device16 = (Signature*)dup(temp3, 4 * sizeof(Signature));
-            PCS2DeviceFloat = (Signature*)dup(temp4, 4 * sizeof(Signature));
+            Device2PCS16 = (Signature*)dup(temp1, 4 * _sizeof<Signature>());
+            Device2PCSFloat = (Signature*)dup(temp2, 4 * _sizeof<Signature>());
+            PCS2Device16 = (Signature*)dup(temp3, 4 * _sizeof<Signature>());
+            PCS2DeviceFloat = (Signature*)dup(temp4, 4 * _sizeof<Signature>());
 
-            GrayInputMatrix = (double*)dup(temp5, 4 * sizeof(double));
-            OneToThreeInputMatrix = (double*)dup(temp6, 4 * sizeof(double));
-            PickYMatrix = (double*)dup(temp7, 4 * sizeof(double));
-            PickLstarMatrix = (double*)dup(temp8, 4 * sizeof(double));
+            GrayInputMatrix = (double*)dup(temp5, 4 * _sizeof<double>());
+            OneToThreeInputMatrix = (double*)dup(temp6, 4 * _sizeof<double>());
+            PickYMatrix = (double*)dup(temp7, 4 * _sizeof<double>());
+            PickLstarMatrix = (double*)dup(temp8, 4 * _sizeof<double>());
         }
 
         #endregion io1 "const"s
@@ -1389,15 +1389,15 @@ public static unsafe partial class Lcms2
         Console.ResetColor();
     }
 
-    internal static uint _sizeof<T>() where T : struct
+    internal static byte _sizeof<T>() where T : struct
     {
         if (typeof(T) == typeof(Screening))
-            return (uint)sizeof(Screening) - 1 + ((uint)sizeof(ScreeningChannel) * cmsMAXCHANNELS);
+            return (byte)(sizeof(Screening) - 1 + (sizeof(ScreeningChannel) * cmsMAXCHANNELS));
 
         if (typeof(T) == typeof(Context_struct))
-            return (uint)sizeof(Context_struct) - 1;
+            return (byte)(sizeof(Context_struct) - 1);
 
-        return (uint)sizeof(T);
+        return (byte)sizeof(T);
     }
 
     internal static void* alloc(nuint size)

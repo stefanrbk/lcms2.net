@@ -311,7 +311,7 @@ public static unsafe partial class Lcms2
     {
         var tmp = swap1[nChan - 1];
 
-        memmove(swap1 + 1, swap1, (nChan - 1) * (uint)sizeof(T));
+        memmove(swap1 + 1, swap1, (nChan - 1) * _sizeof<T>());
         swap1[0] = tmp;
     }
 
@@ -320,7 +320,7 @@ public static unsafe partial class Lcms2
     {
         var tmp = wIn[0];
 
-        memmove(&wIn[0], &wIn[1], (nChan - 1) * (uint)sizeof(T));
+        memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<T>());
         wIn[nChan - 1] = tmp;
     }
 
@@ -373,7 +373,7 @@ public static unsafe partial class Lcms2
         {
             var tmp = wIn[0];
 
-            memmove(&wIn[0], &wIn[1], (nChan - 1) * sizeof(ushort));
+            memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<ushort>());
             wIn[nChan - 1] = tmp;
         }
 
@@ -600,7 +600,7 @@ public static unsafe partial class Lcms2
         var ExtraFirst = DoSwap ^ SwapFirst;
 
         if (ExtraFirst)
-            accum += Extra * sizeof(ushort);
+            accum += Extra * _sizeof<ushort>();
 
         for (var i = 0; i < nChan; i++)
         {
@@ -612,17 +612,17 @@ public static unsafe partial class Lcms2
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
-            accum += sizeof(ushort);
+            accum += _sizeof<ushort>();
         }
 
         if (!ExtraFirst)
-            accum += Extra * sizeof(ushort);
+            accum += Extra * _sizeof<ushort>();
 
         if (Extra is 0 && SwapFirst)
         {
             var tmp = wIn[0];
 
-            memmove(&wIn[0], &wIn[1], (nChan - 1) * sizeof(ushort));
+            memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<ushort>());
             wIn[nChan - 1] = tmp;
         }
 
@@ -642,7 +642,7 @@ public static unsafe partial class Lcms2
         var alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(alpha));
 
         if (ExtraFirst)
-            accum += sizeof(ushort);
+            accum += _sizeof<ushort>();
 
         for (var i = 0; i < nChan; i++)
         {
@@ -657,11 +657,11 @@ public static unsafe partial class Lcms2
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
-            accum += sizeof(ushort);
+            accum += _sizeof<ushort>();
         }
 
         if (!ExtraFirst)
-            accum += sizeof(ushort);
+            accum += _sizeof<ushort>();
 
         return accum;
     }
@@ -691,7 +691,7 @@ public static unsafe partial class Lcms2
             accum += Stride;
         }
 
-        return Init + sizeof(ushort);
+        return Init + _sizeof<ushort>();
     }
 
     private static byte* UnrollPlanarWordsPremul(Transform* info, ushort* wIn, byte* accum, uint Stride)
@@ -726,7 +726,7 @@ public static unsafe partial class Lcms2
             accum += Stride;
         }
 
-        return Init + sizeof(ushort);
+        return Init + _sizeof<ushort>();
     }
 
     private static byte* Unroll4Words(Transform* _1, ushort* wIn, byte* accum, uint _2)
@@ -863,12 +863,12 @@ public static unsafe partial class Lcms2
             Lab.b = *(double*)pos_b;
 
             cmsFloat2LabEncoded(wIn, &Lab);
-            return accum + sizeof(double);
+            return accum + _sizeof<double>();
         }
         else
         {
             cmsFloat2LabEncoded(wIn, (CIELab*)accum);
-            accum += sizeof(CIELab) + (T_EXTRA(info->InputFormat) * sizeof(double));
+            accum += _sizeof<CIELab>() + (T_EXTRA(info->InputFormat) * _sizeof<double>());
             return accum;
         }
     }
@@ -888,7 +888,7 @@ public static unsafe partial class Lcms2
             Lab.b = *(float*)pos_b;
 
             cmsFloat2LabEncoded(wIn, &Lab);
-            return accum + sizeof(float);
+            return accum + _sizeof<float>();
         }
         else
         {
@@ -897,7 +897,7 @@ public static unsafe partial class Lcms2
             Lab.b = ((float*)accum)[2];
 
             cmsFloat2LabEncoded(wIn, &Lab);
-            accum += (3 + T_EXTRA(info->InputFormat)) * sizeof(float);
+            accum += (3 + T_EXTRA(info->InputFormat)) * _sizeof<float>();
             return accum;
         }
     }
@@ -917,12 +917,12 @@ public static unsafe partial class Lcms2
             XYZ.Z = *(double*)pos_Z;
 
             cmsFloat2XYZEncoded(wIn, &XYZ);
-            return accum + sizeof(double);
+            return accum + _sizeof<double>();
         }
         else
         {
             cmsFloat2XYZEncoded(wIn, (CIEXYZ*)accum);
-            accum += sizeof(CIEXYZ) + (T_EXTRA(info->InputFormat) * sizeof(double));
+            accum += _sizeof<CIEXYZ>() + (T_EXTRA(info->InputFormat) * _sizeof<double>());
             return accum;
         }
     }
@@ -942,7 +942,7 @@ public static unsafe partial class Lcms2
             XYZ.Z = *(float*)pos_Z;
 
             cmsFloat2XYZEncoded(wIn, &XYZ);
-            return accum + sizeof(float);
+            return accum + _sizeof<float>();
         }
         else
         {
@@ -952,7 +952,7 @@ public static unsafe partial class Lcms2
             XYZ.Y = pt[1];
             XYZ.Z = pt[2];
             cmsFloat2XYZEncoded(wIn, &XYZ);
-            accum += (3 + T_EXTRA(info->InputFormat)) * sizeof(float);
+            accum += (3 + T_EXTRA(info->InputFormat)) * _sizeof<float>();
             return accum;
         }
     }
@@ -983,7 +983,7 @@ public static unsafe partial class Lcms2
 
         // For double, the T_BYTES field is zero
         if (fmt_bytes is 0)
-            return sizeof(double);
+            return _sizeof<double>();
 
         // Otherwise, it is already correct for all formats
         return fmt_bytes;
@@ -1018,7 +1018,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(double));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
     }
 
     private static byte* UnrollFloatTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
@@ -1050,7 +1050,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(float));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
     }
 
     private static byte* UnrollDouble1Chan(Transform* _1, ushort* wIn, byte* accum, uint _2)
@@ -1059,7 +1059,7 @@ public static unsafe partial class Lcms2
 
         wIn[0] = wIn[1] = wIn[2] = _cmsQuickSaturateWord(Inks[0] * 65535.0);
 
-        return accum + sizeof(double);
+        return accum + _sizeof<double>();
     }
 
     private static byte* Unroll8ToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -1087,7 +1087,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(byte));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<byte>());
     }
 
     private static byte* Unroll16ToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -1115,7 +1115,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
     private static byte* UnrollFloatsToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -1150,7 +1150,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(float));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
     }
 
     private static byte* UnrollDoublesToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -1185,7 +1185,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(double));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
     }
 
     private static byte* UnrollLabDoubleToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -1200,7 +1200,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
             wIn[2] = (float)((Pt[Stride * 2] + 128) / 255.0);
 
-            return accum + sizeof(double);
+            return accum + _sizeof<double>();
         }
         else
         {
@@ -1208,7 +1208,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[1] + 128) / 255.0);
             wIn[2] = (float)((Pt[2] + 128) / 255.0);
 
-            return accum + (sizeof(double) * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<double>() * (3 + T_EXTRA(info->InputFormat)));
         }
     }
 
@@ -1224,7 +1224,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
             wIn[2] = (float)((Pt[Stride * 2] + 128) / 255.0);
 
-            return accum + sizeof(float);
+            return accum + _sizeof<float>();
         }
         else
         {
@@ -1232,7 +1232,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[1] + 128) / 255.0);
             wIn[2] = (float)((Pt[2] + 128) / 255.0);
 
-            return accum + (sizeof(float) * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<float>() * (3 + T_EXTRA(info->InputFormat)));
         }
     }
 
@@ -1248,7 +1248,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[Stride * 2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + sizeof(double);
+            return accum + _sizeof<double>();
         }
         else
         {
@@ -1256,7 +1256,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (sizeof(double) * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<double>() * (3 + T_EXTRA(info->InputFormat)));
         }
     }
 
@@ -1272,7 +1272,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[Stride * 2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + sizeof(float);
+            return accum + _sizeof<float>();
         }
         else
         {
@@ -1280,7 +1280,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (sizeof(float) * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<float>() * (3 + T_EXTRA(info->InputFormat)));
         }
     }
 
@@ -1394,7 +1394,7 @@ public static unsafe partial class Lcms2
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(*(ushort*)output);
 
-            output += Extra * sizeof(ushort);
+            output += Extra * _sizeof<ushort>();
         }
         else
         {
@@ -1419,11 +1419,11 @@ public static unsafe partial class Lcms2
 
             *(ushort*)output = v;
 
-            output += sizeof(ushort);
+            output += _sizeof<ushort>();
         }
 
         if (!ExtraFirst)
-            output += Extra * sizeof(ushort);
+            output += Extra * _sizeof<ushort>();
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
@@ -1511,7 +1511,7 @@ public static unsafe partial class Lcms2
             output += Stride;
         }
 
-        return Init + sizeof(ushort);
+        return Init + _sizeof<ushort>();
     }
 
     private static byte* Pack6Bytes(Transform* _1, ushort* wOut, byte* output, uint _2)
@@ -1999,12 +1999,12 @@ public static unsafe partial class Lcms2
             Out[Stride] = Lab.a;
             Out[Stride * 2] = Lab.b;
 
-            return output + sizeof(double);
+            return output + _sizeof<double>();
         }
         else
         {
             cmsLabEncoded2Float((CIELab*)output, wOut);
-            return output + (sizeof(CIELab) + (T_EXTRA(info->OutputFormat) * sizeof(double)));
+            return output + (_sizeof<CIELab>() + (T_EXTRA(info->OutputFormat) * _sizeof<double>()));
         }
     }
 
@@ -2021,7 +2021,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = (float)Lab.a;
             Out[Stride * 2] = (float)Lab.b;
 
-            return output + sizeof(float);
+            return output + _sizeof<float>();
         }
         else
         {
@@ -2029,7 +2029,7 @@ public static unsafe partial class Lcms2
             Out[1] = (float)Lab.a;
             Out[2] = (float)Lab.b;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(float));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
         }
     }
 
@@ -2045,12 +2045,12 @@ public static unsafe partial class Lcms2
             Out[Stride] = XYZ.Y;
             Out[Stride * 2] = XYZ.Z;
 
-            return output + sizeof(double);
+            return output + _sizeof<double>();
         }
         else
         {
             cmsXYZEncoded2Float((CIEXYZ*)output, wOut);
-            return output + (sizeof(CIEXYZ) + (T_EXTRA(info->OutputFormat) * sizeof(double)));
+            return output + (_sizeof<CIEXYZ>() + (T_EXTRA(info->OutputFormat) * _sizeof<double>()));
         }
     }
 
@@ -2067,7 +2067,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = (float)XYZ.Y;
             Out[Stride * 2] = (float)XYZ.Z;
 
-            return output + sizeof(float);
+            return output + _sizeof<float>();
         }
         else
         {
@@ -2075,7 +2075,7 @@ public static unsafe partial class Lcms2
             Out[1] = (float)XYZ.Y;
             Out[2] = (float)XYZ.Z;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(float));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
         }
     }
 
@@ -2106,7 +2106,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(double) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     private static byte* PackFloatFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
@@ -2137,7 +2137,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(float) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     private static byte* PackFloatsFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
@@ -2168,7 +2168,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(float) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     private static byte* PackDoublesFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
@@ -2199,7 +2199,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(double) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     private static byte* PackLabFloatFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
@@ -2214,7 +2214,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = (float)((wOut[1] * 255.0) - 128.0);
             Out[Stride * 2] = (float)((wOut[2] * 255.0) - 128.0);
 
-            return output + sizeof(float);
+            return output + _sizeof<float>();
         }
         else
         {
@@ -2222,7 +2222,7 @@ public static unsafe partial class Lcms2
             Out[1] = (float)((wOut[1] * 255.0) - 128.0);
             Out[2] = (float)((wOut[2] * 255.0) - 128.0);
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(float));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
         }
     }
 
@@ -2238,7 +2238,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = (wOut[1] * 255.0) - 128.0;
             Out[Stride * 2] = (wOut[2] * 255.0) - 128.0;
 
-            return output + sizeof(double);
+            return output + _sizeof<double>();
         }
         else
         {
@@ -2246,7 +2246,7 @@ public static unsafe partial class Lcms2
             Out[1] = (wOut[1] * 255.0) - 128.0;
             Out[2] = (wOut[2] * 255.0) - 128.0;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(double));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<double>());
         }
     }
 
@@ -2262,7 +2262,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
             Out[Stride * 2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
 
-            return output + sizeof(float);
+            return output + _sizeof<float>();
         }
         else
         {
@@ -2270,7 +2270,7 @@ public static unsafe partial class Lcms2
             Out[1] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
             Out[2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(float));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
         }
     }
 
@@ -2286,7 +2286,7 @@ public static unsafe partial class Lcms2
             Out[Stride] = wOut[1] * MAX_ENCODEABLE_XYZ;
             Out[Stride * 2] = wOut[2] * MAX_ENCODEABLE_XYZ;
 
-            return output + sizeof(double);
+            return output + _sizeof<double>();
         }
         else
         {
@@ -2294,7 +2294,7 @@ public static unsafe partial class Lcms2
             Out[1] = wOut[1] * MAX_ENCODEABLE_XYZ;
             Out[2] = wOut[2] * MAX_ENCODEABLE_XYZ;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * sizeof(double));
+            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<double>());
         }
     }
 
@@ -2323,7 +2323,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
     private static byte* UnrollHalfToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
@@ -2350,7 +2350,7 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort));
+        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
     private static byte* PackHalfFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
@@ -2381,7 +2381,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(ushort) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<ushort>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     private static byte* PackHalfFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
@@ -2412,7 +2412,7 @@ public static unsafe partial class Lcms2
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (sizeof(ushort) * (Planar ? 1 : (nChan + Extra)));
+        return output + (_sizeof<ushort>() * (Planar ? 1 : (nChan + Extra)));
     }
 
     internal static Formatter _cmsGetStockInputFormatter(uint dwInput, PackFlags dwFlags)
