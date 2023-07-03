@@ -25,6 +25,8 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Diagnostics;
+
 namespace lcms2.types;
 
 public readonly unsafe partial struct Signature : ICloneable
@@ -39,7 +41,8 @@ public readonly unsafe partial struct Signature : ICloneable
     #endregion Fields
 
     #region Public Constructors
-
+    
+    [DebuggerStepThrough]
     public Signature(uint value) =>
         _value = value;
 

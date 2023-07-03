@@ -28,6 +28,7 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
@@ -223,61 +224,61 @@ public static unsafe partial class Lcms2
         _cmsInstallAllocFunctions(Plugin, ptr);
         return true;
     }
-
+    [DebuggerStepThrough]
     internal static void* _cmsMalloc(Context ContextID, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return ptr->MallocPtr(ContextID, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context ContextID, uint size) where T : struct =>
         (T*)_cmsMalloc(ContextID, size);
-
+    [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context ContextID) where T : struct =>
         (T*)_cmsMalloc(ContextID, _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsMalloc2<T>(Context ContextID) where T : struct =>
         (T**)_cmsMalloc<nint>(ContextID);
-
+    [DebuggerStepThrough]
     internal static void* _cmsMallocZero(Context ContextID, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return ptr->MallocZeroPtr(ContextID, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsMallocZero<T>(Context ContextID, uint count) where T : struct =>
         (T*)_cmsMallocZero(ContextID, count * _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T* _cmsMallocZero<T>(Context ContextID) where T : struct =>
         (T*)_cmsMallocZero(ContextID, _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsMallocZero2<T>(Context ContextID) where T : struct =>
         (T**)_cmsMallocZero<nint>(ContextID);
-
+    [DebuggerStepThrough]
     internal static void* _cmsCalloc(Context ContextID, uint num, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return ptr->CallocPtr(ContextID, num, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context ContextID, uint num, uint size) where T : struct =>
         (T*)_cmsCalloc(ContextID, num, size);
-
+    [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context ContextID, uint num) where T : struct =>
         (T*)_cmsCalloc(ContextID, num, _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsCalloc2<T>(Context ContextID, uint num) =>
         (T**)_cmsCalloc<nint>(ContextID, num);
-
+    [DebuggerStepThrough]
     internal static void* _cmsRealloc(Context ContextID, void* Ptr, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return ptr->ReallocPtr(ContextID, Ptr, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsRealloc<T>(Context ContextID, void* Ptr, uint size) where T : struct =>
         (T*)_cmsRealloc(ContextID, Ptr, size);
-
+    [DebuggerStepThrough]
     internal static void _cmsFree(Context ContextID, void* Ptr)
     {
         if (Ptr is not null)
@@ -286,22 +287,22 @@ public static unsafe partial class Lcms2
             ptr->FreePtr(ContextID, Ptr);
         }
     }
-
+    [DebuggerStepThrough]
     internal static void* _cmsDupMem(Context ContextID, in void* Org, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return ptr->DupPtr(ContextID, Org, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsDupMem<T>(Context ContextID, in void* Org, uint num) where T : struct =>
         (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T* _cmsDupMem<T>(Context ContextID, in void* Org) where T : struct =>
         (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org, uint num) where T : struct =>
         (T**)_cmsDupMem<nint>(ContextID, Org, num * _sizeof<nint>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : struct =>
         (T**)_cmsDupMem<nint>(ContextID, Org);
 

@@ -953,7 +953,7 @@ public static unsafe partial class Lcms2
 
             var Data = (byte*)(void*)Icc->TagPtrs[i];
 
-            if (Data is not null)
+            if (Data is null)
             {
                 void* Mem;
                 // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
@@ -1297,6 +1297,9 @@ public static unsafe partial class Lcms2
         var TypeHandler = _cmsGetTagTypeHandler(Icc->ContextID, BaseType);
         if (TypeHandler is null) goto Error;
         var LocalTypeHandler = *TypeHandler;
+
+        // Read the tag
+        Icc->TagTypeHandlers[n] = (long)TypeHandler;
 
         LocalTypeHandler.ContextID = Icc->ContextID;
         LocalTypeHandler.ICCVersion = Icc->Version;

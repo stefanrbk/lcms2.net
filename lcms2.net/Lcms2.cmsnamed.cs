@@ -28,6 +28,8 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
@@ -153,6 +155,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static ushort strTo16(in byte* str)
     {
         // for non-existent strings
@@ -160,12 +163,14 @@ public static unsafe partial class Lcms2
         return (ushort)((str[0] << 8) | str[1]);
     }
 
+    [DebuggerStepThrough]
     private static ushort strTo16(ReadOnlySpan<byte> str)
     {
         fixed (byte* strPtr = str)
             return strTo16(str);
     }
 
+    [DebuggerStepThrough]
     private static void strFrom16(byte* str, ushort n)
     {
         str[0] = (byte)(n >> 8);
@@ -197,6 +202,16 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
+    private static uint mywcslen(in byte* s)
+    {
+        var p = s;
+
+        while (*p is not 0)
+            p++;
+
+        return (uint)(p - s);
+    }
+
     private static uint mywcslen(in char* s)
     {
         var p = s;
@@ -205,6 +220,15 @@ public static unsafe partial class Lcms2
             p++;
 
         return (uint)(p - s);
+    }
+
+    public static bool cmsMLUsetWide(Mlu* mlu, in byte* LanguageCode, in byte* CountryCode, string WideString)
+    {
+        var buffer = stackalloc char[WideString.Length + 1];
+        for (var i = 0; i < WideString.Length; i++)
+            buffer[i] = WideString[i];
+
+        return cmsMLUsetWide(mlu, LanguageCode, CountryCode, buffer);
     }
 
     public static bool cmsMLUsetWide(Mlu* mlu, in byte* LanguageCode, in byte* CountryCode, in char* WideString)

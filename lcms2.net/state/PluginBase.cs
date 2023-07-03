@@ -26,12 +26,15 @@
 //
 using lcms2.types;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit, Size = 24)]
 public unsafe struct PluginBase
 {
-    public uint ExpectedVersion;
-    public Signature Magic;
-    public PluginBase* Next;
-    public Signature Type;
+    [FieldOffset(0)] public uint ExpectedVersion;
+    [FieldOffset(4)] public Signature Magic;
+    [FieldOffset(8)] public PluginBase* Next;
+    [FieldOffset(16)] public Signature Type;
 }

@@ -44,6 +44,7 @@ public static unsafe partial class Lcms2
 
     private static readonly Context globalContext;
 
+    [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
     {
         var pByte = (byte*)&Word;
@@ -55,6 +56,7 @@ public static unsafe partial class Lcms2
         return Word;
     }
 
+    [DebuggerStepThrough]
     internal static uint _cmsAdjustEndianess32(uint DWord)
     {
         var pByte = (byte*)&DWord;
@@ -69,6 +71,7 @@ public static unsafe partial class Lcms2
         return DWord;
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsAdjustEndianess64(ulong* Result, ulong* QWord)
     {
         var pIn = (byte*)QWord;
@@ -459,7 +462,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsPluginTHR(Context id, void* Plug_in)
     {
-        for (var Plugin = &((PluginMemHandler*)Plug_in)->@base;
+        for (var Plugin = (PluginBase*)Plug_in;
              Plugin is not null;
              Plugin = Plugin->Next)
         {
@@ -531,6 +534,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static Context _cmsGetContext(Context ContextID)
     {
         Context id = ContextID;
@@ -553,6 +557,7 @@ public static unsafe partial class Lcms2
         return globalContext;
     }
 
+    [DebuggerStepThrough]
     internal static void* _cmsContextGetClientChunk(Context ContextID, Chunks mc)
     {
         if (mc is < 0 or >= Chunks.Max)

@@ -30,6 +30,7 @@ global using unsafe HPROFILE = void*;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -83,6 +84,7 @@ internal static unsafe partial class Testbed
         Environment.Exit(1);
     }
 
+    [DebuggerStepThrough]
     public static Context DbgThread()
     {
         return (Context)(void*)((byte*)null + (thread++ % 0xff0));
@@ -125,7 +127,7 @@ internal static unsafe partial class Testbed
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
+            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated:x16}\nFreed by Context at\t{(ulong)ContextID:x16}");
         try
         {
             free(blk);

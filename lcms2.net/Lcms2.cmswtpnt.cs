@@ -27,6 +27,8 @@
 
 using lcms2.types;
 
+using System.Diagnostics;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
@@ -34,9 +36,11 @@ public static unsafe partial class Lcms2
     private static readonly CIEXYZ* D50XYZ;
     private static readonly CIExyY* D50xyY;
 
+    [DebuggerStepThrough]
     public static CIEXYZ* cmsD50_XYZ() =>
         D50XYZ;
 
+    [DebuggerStepThrough]
     public static CIExyY* cmsD50_xyY() =>
         D50xyY;
 

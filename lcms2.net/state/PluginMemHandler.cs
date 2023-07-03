@@ -25,17 +25,27 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct PluginMemHandler
 {
+    [FieldOffset(0)]
     public PluginBase @base;
 
+    [FieldOffset(24)]
     public MallocFnPtrType MallocPtr;
+    [FieldOffset(32)]
     public FreeFnPtrType FreePtr;
+    [FieldOffset(40)]
     public ReallocFnPtrType ReallocPtr;
 
+    [FieldOffset(48)]
     public MallocZerocFnPtrType MallocZeroPtr;
+    [FieldOffset(56)]
     public CallocFnPtrType CallocPtr;
+    [FieldOffset(64)]
     public DupFnPtrType DupPtr;
 }
