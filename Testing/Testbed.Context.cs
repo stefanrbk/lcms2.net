@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.state;
+using lcms2.types;
 
 namespace lcms2.testbed;
 
@@ -39,7 +40,73 @@ internal static unsafe partial class Testbed
         return cpy;
     }
 
-    public static bool CheckAllocContext()
+    private readonly static PluginInterpolation InterpPluginSample = new()
+    {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginInterpolationSig, Next = null },
+        InterpolatorsFactory = my_Interpolators_Factory,
+    };
+
+    // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
+    private static void Fake1Dfloat(in float* Value,
+                                    float* Output,
+                                    in InterpParams* p)
+    {
+        float val2;
+        int cell;
+        float* LutTable = (float*) p ->Table;
+
+           // Clip upper values
+           if (Value[0] >= 1.0) {
+               Output[0] = LutTable[p->Domain[0]]; 
+               return; 
+           }
+
+        val2 = p -> Domain[0] * Value[0];
+        cell = (int) Math.Floor(val2);
+        Output[0] =  LutTable[cell] ;
+    }
+
+    // This fake interpolation just uses scrambled negated indexes for output
+    private static void Fake3D16(in ushort* Input,
+                                 ushort* Output,
+                                 in InterpParams* _)
+    {
+        Output[0] = (ushort)(0xFFFF - Input[2]);
+        Output[1] = (ushort)(0xFFFF - Input[1]);
+        Output[2] = (ushort)(0xFFFF - Input[0]);
+    }
+
+    // The factory chooses interpolation routines on depending on certain conditions.
+    private static InterpFunction my_Interpolators_Factory(uint nInputChannels,
+                                                           uint nOutputChannels,
+                                                           uint dwFlags)
+    {
+        InterpFunction Interpolation;
+        var IsFloat = (dwFlags & (uint)LerpFlag.Float) is not 0;
+
+        // Initialize the return to zero as a non-supported mark
+        memset(&Interpolation, 0);
+
+        // For 1D to 1D and floating point
+        if (nInputChannels == 1 && nOutputChannels == 1 && IsFloat)
+        {
+
+            Interpolation.LerpFloat = Fake1Dfloat;
+        }
+        else
+        if (nInputChannels == 3 && nOutputChannels == 3 && !IsFloat)
+        {
+
+            // For 3D to 3D and 16 bits
+            Interpolation.Lerp16 = Fake3D16;
+        }
+
+        // Here is the interpolation 
+        return Interpolation;
+    }
+
+
+public static bool CheckAllocContext()
     {
         fixed (void* handler = &DebugMemHandler)
         {
@@ -175,5 +242,73 @@ internal static unsafe partial class Testbed
             return Fail("Adaptation state has changed");
 
         return rc;
+    }
+
+    // This is the check code for 1D interpolation plug-in
+    public static bool CheckInterp1DPlugin()
+    {
+        ToneCurve* Sampled1D = null;
+        Context ctx = null;
+        Context cpy = null;
+        var tab = stackalloc float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
+
+        // 1st level context
+        ctx = WatchDogContext(null);
+        if (ctx == null)
+        {
+            Fail("Cannot create context");
+            goto Error;
+        }
+
+        fixed (PluginInterpolation* sample = &InterpPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        if (cpy == null)
+        {
+            Fail("Cannot create context (2)");
+            goto Error;
+        }
+
+        Sampled1D = cmsBuildTabulatedToneCurveFloat(cpy, 11, tab);
+        if (Sampled1D == null)
+        {
+            Fail("Cannot create tone curve (1)");
+            goto Error;
+        }
+
+        // Do some interpolations with the plugin
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(Sampled1D, 0.10f), 0.10, 0.01)) goto Error;
+        if (!IsGoodVal("0.13", cmsEvalToneCurveFloat(Sampled1D, 0.13f), 0.10, 0.01)) goto Error;
+        if (!IsGoodVal("0.55", cmsEvalToneCurveFloat(Sampled1D, 0.55f), 0.50, 0.01)) goto Error;
+        if (!IsGoodVal("0.9999", cmsEvalToneCurveFloat(Sampled1D, 0.9999f), 0.90, 0.01)) goto Error;
+
+        cmsFreeToneCurve(Sampled1D);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+
+        // Now in global context
+        Sampled1D = cmsBuildTabulatedToneCurveFloat(null, 11, tab);
+        if (Sampled1D == null)
+        {
+            Fail("Cannot create tone curve (2)");
+            goto Error;
+        }
+
+        // Now without the plug-in
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(Sampled1D, 0.10f), 0.10, 0.001)) goto Error;
+        if (!IsGoodVal("0.13", cmsEvalToneCurveFloat(Sampled1D, 0.13f), 0.13, 0.001)) goto Error;
+        if (!IsGoodVal("0.55", cmsEvalToneCurveFloat(Sampled1D, 0.55f), 0.55, 0.001)) goto Error;
+        if (!IsGoodVal("0.9999", cmsEvalToneCurveFloat(Sampled1D, 0.9999f), 0.9999, 0.001)) goto Error;
+
+        cmsFreeToneCurve(Sampled1D);
+        return true;
+
+    Error:
+        if (ctx != null) cmsDeleteContext(ctx);
+        if (cpy != null) cmsDeleteContext(ctx);
+        if (Sampled1D != null) cmsFreeToneCurve(Sampled1D);
+        return false;
+
     }
 }

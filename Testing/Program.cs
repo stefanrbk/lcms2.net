@@ -201,6 +201,16 @@ if (doPluginTests)
     Check("Simple context functionality", CheckSimpleContext);
     Check("Alarm codes context", CheckAlarmColorsContext);
     Check("Adaptation state context", CheckAdaptationStateContext);
+    Check("1D interpolation plugin", CheckInterp1DPlugin);
+    //Check("3D interpolation plugin", CheckInterp3DPlugin); 
+    //Check("Parametric curve plugin", CheckParametricCurvePlugin);        
+    //Check("Formatters plugin",       CheckFormattersPlugin);        
+    //Check("Tag type plugin",         CheckTagTypePlugin);
+    //Check("MPE type plugin",         CheckMPEPlugin);       
+    //Check("Optimization plugin",     CheckOptimizationPlugin); 
+    //Check("Rendering intent plugin", CheckIntentPlugin);
+    //Check("Full transform plugin",   CheckTransformPlugin);
+    //Check("Mutex plugin",            CheckMutexPlugin);
 }
 
 DebugMemPrintTotals();
