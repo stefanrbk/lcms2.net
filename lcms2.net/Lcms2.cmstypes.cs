@@ -1316,8 +1316,8 @@ public static unsafe partial class Lcms2
             BeginOfThisString = Offset - SizeOfHeader - 8;
 
             // Adjust to char elements
-            Len *= _sizeof<char>() / _sizeof<ushort>();
-            BeginOfThisString *= _sizeof<char>() / _sizeof<ushort>();
+            Len *= (uint)(_sizeof<char>() / _sizeof<ushort>());
+            BeginOfThisString *= (uint)(_sizeof<char>() / _sizeof<ushort>());
 
             mlu.Entries.Add(new(Language, Country, BeginOfThisString, Len));
 
@@ -2273,7 +2273,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < CLUT.Params->nInputs; i++)
             gridPoints[i] = (byte)CLUT.Params->nSamples[i];
 
-        if (!io.Write(io, cmsMAXCHANNELS * _sizeof<byte>(), gridPoints)) return false;
+        if (!io.Write(io, (uint)(cmsMAXCHANNELS * _sizeof<byte>()), gridPoints)) return false;
 
         if (!_cmsWriteUInt8Number(io, Precision)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false;

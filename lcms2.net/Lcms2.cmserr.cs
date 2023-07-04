@@ -259,7 +259,7 @@ public static unsafe partial class Lcms2
         (T**)_cmsMallocZero<nint>(ContextID);
 
     [DebuggerStepThrough]
-    internal static T[] _cmsCallocArray<T>(Context ContextID, uint num, uint size) where T : struct
+    internal static T[] _cmsCallocArray<T>(Context ContextID, uint num) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
         var array = pool.Rent((int)num);

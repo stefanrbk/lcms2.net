@@ -710,7 +710,7 @@ public static unsafe partial class Lcms2
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22 * _sizeof<nint>()); // default size about 22 pointers
+        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
         if (ctx.MemPool is null)
         {
             cmsDeleteContext(ctx);
@@ -764,7 +764,7 @@ public static unsafe partial class Lcms2
         ctx.UserData = userData;
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22 * _sizeof<nint>());
+        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
         if (ctx.MemPool is null)
         {
             cmsDeleteContext(ctx);
