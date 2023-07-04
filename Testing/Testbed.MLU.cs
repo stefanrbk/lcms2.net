@@ -42,10 +42,10 @@ internal static unsafe partial class Testbed
         var mlu = cmsMLUalloc(DbgThread(), 0);
 
         // Add some localizations
-        var enHello = "Hello, world";
-        var esHello = "Hola, mundo";
-        var frHello = "Bonjour, le monde";
-        var caHello = "Hola, món";
+        const string enHello = "Hello, world";
+        const string esHello = "Hola, mundo";
+        const string frHello = "Bonjour, le monde";
+        const string caHello = "Hola, món";
 
         var enLang = "en"u8;
         var esLang = "es"u8;
@@ -139,7 +139,7 @@ internal static unsafe partial class Testbed
         cmsSetProfileVersion(h, 4.3);
 
         cmsWriteTag(h, cmsSigProfileDescriptionTag, mlu2);
-        cmsCloseProfile(h);
+        cmsCloseProfile(h); h = null;
         cmsMLUfree(mlu2);
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "mlucheck.icc", "r");

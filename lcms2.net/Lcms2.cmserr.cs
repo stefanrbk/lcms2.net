@@ -28,6 +28,7 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
@@ -224,37 +225,41 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static void* _cmsMalloc(Context? ContextID, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.MallocPtr(ContextID, size);
     }
-
+    [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context? ContextID, uint size) where T : struct =>
         (T*)_cmsMalloc(ContextID, size);
-
+    [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context? ContextID) where T : struct =>
         (T*)_cmsMalloc(ContextID, _sizeof<T>());
-
+    [DebuggerStepThrough]
     internal static T** _cmsMalloc2<T>(Context? ContextID) where T : struct =>
         (T**)_cmsMalloc<nint>(ContextID);
-
+    [DebuggerStepThrough]
     internal static void* _cmsMallocZero(Context? ContextID, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.MallocZeroPtr(ContextID, size);
     }
+    [DebuggerStepThrough]
+    internal static T* _cmsMallocZero<T>(Context? ContextID, uint count) where T : struct =>
+        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>());
 
-    internal static T* _cmsMallocZero<T>(Context? ContextID, uint size) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, size);
-
+    [DebuggerStepThrough]
     internal static T* _cmsMallocZero<T>(Context? ContextID) where T : struct =>
         (T*)_cmsMallocZero(ContextID, _sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
         (T**)_cmsMallocZero<nint>(ContextID);
 
-    internal static T[] _cmsCallocArray<T>(Context? ContextID, uint num) where T : struct
+    [DebuggerStepThrough]
+    internal static T[] _cmsCallocArray<T>(Context ContextID, uint num, uint size) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
         var array = pool.Rent((int)num);
@@ -263,21 +268,26 @@ public static unsafe partial class Lcms2
         return array;
     }
 
+    [DebuggerStepThrough]
     internal static void* _cmsCalloc(Context? ContextID, uint num, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.CallocPtr(ContextID, num, size);
     }
 
+    [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context? ContextID, uint num, uint size) where T : struct =>
         (T*)_cmsCalloc(ContextID, num, size);
 
+    [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context? ContextID, uint num) where T : struct =>
         (T*)_cmsCalloc(ContextID, num, _sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static T** _cmsCalloc2<T>(Context? ContextID, uint num) =>
         (T**)_cmsCalloc<nint>(ContextID, num);
 
+    [DebuggerStepThrough]
     internal static void* _cmsRealloc(Context? ContextID, void* Ptr, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
@@ -298,9 +308,11 @@ public static unsafe partial class Lcms2
         return newBuffer;
     }
 
+    [DebuggerStepThrough]
     internal static T* _cmsRealloc<T>(Context? ContextID, void* Ptr, uint size) where T : struct =>
         (T*)_cmsRealloc(ContextID, Ptr, size);
 
+    [DebuggerStepThrough]
     internal static void _cmsFree<T>(Context? ContextID, T[]? array) where T : struct
     {
         if (array is not null)
@@ -319,12 +331,14 @@ public static unsafe partial class Lcms2
         }
     }
 
+    [DebuggerStepThrough]
     internal static void* _cmsDupMem(Context? ContextID, in void* Org, uint size)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.DupPtr(ContextID, Org, size);
     }
 
+    [DebuggerStepThrough]
     internal static T[] _cmsDupMem<T>(Context? ContextID, ReadOnlySpan<T> Org, uint num) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
@@ -335,16 +349,20 @@ public static unsafe partial class Lcms2
         return array;
     }
 
+    [DebuggerStepThrough]
     internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
         (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>());
 
-    internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org) where T : struct =>
+    [DebuggerStepThrough]
+    internal static T* _cmsDupMem<T>(Context ContextID, in void* Org) where T : struct =>
         (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
         (T**)_cmsDupMem(ContextID, Org, num * _sizeof<nint>());
 
-    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org) where T : struct =>
+    [DebuggerStepThrough]
+    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : struct =>
         (T**)_cmsDupMem<nint>(ContextID, Org);
 
     internal static SubAllocator.Chunk? _cmsCreateSubAllocChunk(Context? ContextID, uint Initial)

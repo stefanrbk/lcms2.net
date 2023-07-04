@@ -122,7 +122,7 @@ internal static unsafe partial class Testbed
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{blk->WhoAllocated!.GetHashCode()}\nFreed by Context at\t{ContextID!.GetHashCode()}");
+            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{blk->WhoAllocated!.GetHashCode():x8}\nFreed by Context at\t{ContextID!.GetHashCode():x8}");
         try
         {
             free(blk);

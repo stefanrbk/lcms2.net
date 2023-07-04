@@ -1315,6 +1315,8 @@ public static unsafe partial class Lcms2
         if (TypeHandler is null) goto Error;
         var LocalTypeHandler = *TypeHandler;
 
+        // Read the tag
+        Icc.TagTypeHandlers[n] = TypeHandler;
         LocalTypeHandler.ContextID = Icc.ContextID;
         LocalTypeHandler.ICCVersion = Icc.Version;
         Icc.TagPtrs[n] = LocalTypeHandler.ReadPtr(&LocalTypeHandler, io, &ElemCount, TagSize);

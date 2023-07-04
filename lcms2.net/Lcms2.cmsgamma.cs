@@ -980,9 +980,9 @@ public static unsafe partial class Lcms2
         float* c, d, e;
         bool st;
 
-        c = (float*)_cmsCalloc(ContextID, maxNodesInCurve, _sizeof<float>());
-        d = (float*)_cmsCalloc(ContextID, maxNodesInCurve, _sizeof<float>());
-        e = (float*)_cmsCalloc(ContextID, maxNodesInCurve, _sizeof<float>());
+        c = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        d = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        e = _cmsCalloc<float>(ContextID, maxNodesInCurve);
 
         if (c is not null && d is not null && e is not null)
         {

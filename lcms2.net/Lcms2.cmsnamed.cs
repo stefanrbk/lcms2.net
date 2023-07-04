@@ -28,6 +28,7 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Text;
 
 namespace lcms2;
@@ -166,6 +167,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static ushort strTo16(in byte* str)
     {
         // for non-existent strings
@@ -173,6 +175,7 @@ public static unsafe partial class Lcms2
         return (ushort)((str[0] << 8) | str[1]);
     }
 
+    [DebuggerStepThrough]
     private static ushort strTo16(ReadOnlySpan<byte> str)
     {
         var strPtr = stackalloc byte[2]
@@ -183,6 +186,7 @@ public static unsafe partial class Lcms2
         return strTo16(strPtr);
     }
 
+    [DebuggerStepThrough]
     private static void strFrom16(byte* str, ushort n)
     {
         str[0] = (byte)(n >> 8);
@@ -225,6 +229,16 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
+    private static uint mywcslen(in byte* s)
+    {
+        var p = s;
+
+        while (*p is not 0)
+            p++;
+
+        return (uint)(p - s);
+    }
+
     private static uint mywcslen(in char* s)
     {
         var p = s;
@@ -245,7 +259,7 @@ public static unsafe partial class Lcms2
 
         var len = (uint)WideString.Length * _sizeof<char>();
         if (len is 0)
-            len = sizeof(char);
+            len = _sizeof<char>();
 
         return AddMLUBlock(mlu, len, WideString, Lang, Cntry);
     }
@@ -497,7 +511,7 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * (uint)sizeof(NamedColor));
+        var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * _sizeof<NamedColor>());
         if (NewPtr is null) return false;
 
         v->List = NewPtr;
@@ -560,7 +574,7 @@ public static unsafe partial class Lcms2
         memmove(NewNC->Prefix, v->Prefix, 33);
         memmove(NewNC->Suffix, v->Suffix, 33);
         NewNC->ColorantCount = v->ColorantCount;
-        memmove(NewNC->List, v->List, v->nColors * (uint)sizeof(NamedColor));
+        memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
         NewNC->nColors = v->nColors;
         return NewNC;
     }
@@ -620,9 +634,9 @@ public static unsafe partial class Lcms2
         if (Prefix is not null) strcpy(Prefix, NamedColorList->Prefix);
         if (Suffix is not null) strcpy(Suffix, NamedColorList->Suffix);
         if (PCS is not null)
-            memmove(PCS, NamedColorList->List[nColor].PCS, 3 * sizeof(ushort));
+            memmove(PCS, NamedColorList->List[nColor].PCS, 3 * _sizeof<ushort>());
         if (Colorant is not null)
-            memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * sizeof(ushort));
+            memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * _sizeof<ushort>());
 
         return true;
     }

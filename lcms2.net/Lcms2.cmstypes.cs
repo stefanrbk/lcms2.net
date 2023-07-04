@@ -196,7 +196,7 @@ public static unsafe partial class Lcms2
         var currentPosition = io.Tell(io);
 
         // Verify there is enough space left to read at least two uint items for Count items
-        if (((io.reportedSize - currentPosition) / (2 * sizeof(uint))) < Count)
+        if (((io.reportedSize - currentPosition) / (2 * _sizeof<uint>())) < Count)
             return false;
 
         // Let's take the offsets to each element
@@ -503,9 +503,9 @@ public static unsafe partial class Lcms2
         if (ColorantOrder is null) return null;
 
         // We use FF as end marker
-        memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * sizeof(byte));
+        memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * _sizeof<byte>());
 
-        if (io.Read(io, ColorantOrder, sizeof(byte), Count) != Count)
+        if (io.Read(io, ColorantOrder, _sizeof<byte>(), Count) != Count)
         {
             _cmsFree(self->ContextID, ColorantOrder);
             return null;
@@ -527,7 +527,7 @@ public static unsafe partial class Lcms2
 
         if (!_cmsWriteUInt32Number(io, Count)) return false;
 
-        var sz = Count * sizeof(byte);
+        var sz = Count * _sizeof<byte>();
         if (!io.Write(io, sz, ColorantOrder)) return false;
 
         return true;
@@ -553,7 +553,7 @@ public static unsafe partial class Lcms2
         double* array_double;
 
         *nItems = 0;
-        var n = SizeOfTag / sizeof(uint);
+        var n = SizeOfTag / _sizeof<uint>();
         array_double = _cmsCalloc<double>(self->ContextID, n);
         if (array_double is null) return null;
 
@@ -601,7 +601,7 @@ public static unsafe partial class Lcms2
         uint v;
 
         *nItems = 0;
-        var n = SizeOfTag / sizeof(uint);
+        var n = SizeOfTag / _sizeof<uint>();
         array_double = _cmsCalloc<double>(self->ContextID, n);
         if (array_double is null) return null;
 
@@ -700,7 +700,7 @@ public static unsafe partial class Lcms2
         if (Text is null) goto Error;
 
         var tmpText = stackalloc byte[(int)SizeOfTag];
-        if (io.Read(io, tmpText, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error;
+        if (io.Read(io, tmpText, _sizeof<byte>(), SizeOfTag) != SizeOfTag) goto Error;
         new ReadOnlySpan<byte>(tmpText, (int)SizeOfTag).CopyTo(Text);
 
         // Make sure text is properly ended
@@ -767,18 +767,18 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        if (SizeOfTag < sizeof(uint)) return null;
+        if (SizeOfTag < _sizeof<uint>()) return null;
 
-        LenOfData = SizeOfTag - sizeof(uint);
+        LenOfData = SizeOfTag - _sizeof<uint>();
         if (LenOfData > Int32.MaxValue) return null;
 
-        BinData = _cmsMalloc<IccData>(self->ContextID, (uint)sizeof(IccData) + LenOfData - 1);
+        BinData = _cmsMalloc<IccData>(self->ContextID, _sizeof<IccData>() + LenOfData - 1);
         if (BinData is null) return null;
 
         BinData->len = LenOfData;
         if (!_cmsReadUInt32Number(io, &BinData->flag)) goto Error;
 
-        if (io.Read(io, BinData->data, sizeof(byte), LenOfData) != LenOfData) goto Error;
+        if (io.Read(io, BinData->data, _sizeof<byte>(), LenOfData) != LenOfData) goto Error;
 
         *nItems = 1;
 
@@ -800,7 +800,7 @@ public static unsafe partial class Lcms2
 
     private static BoxPtr<IccData>? Type_Data_Dup(TagTypeHandler* self, object? Ptr, uint _) =>
         Ptr is BoxPtr<IccData> data
-            ? new((IccData*)_cmsDupMem(self->ContextID, data, (uint)sizeof(IccData) + data.Ptr->len - 1))
+            ? new((IccData*)_cmsDupMem(self->ContextID, data, _sizeof<IccData>() + data.Ptr->len - 1))
             : null;
 
     private static void Type_Data_Free(TagTypeHandler* self, object? Ptr)
@@ -824,11 +824,11 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Ond dword should be there
-        if (SizeOfTag < sizeof(uint)) return null;
+        if (SizeOfTag < _sizeof<uint>()) return null;
 
         // Read len of ASCII
         if (!_cmsReadUInt32Number(io, &AsciiCount)) return null;
-        SizeOfTag -= sizeof(uint);
+        SizeOfTag -= _sizeof<uint>();
 
         // Check for size
         if (SizeOfTag < AsciiCount) return null;
@@ -844,7 +844,7 @@ public static unsafe partial class Lcms2
 
         // Read it
         var tmpText = stackalloc byte[(int)AsciiCount];
-        if (io.Read(io, tmpText, sizeof(byte), AsciiCount) != AsciiCount) goto Error;
+        if (io.Read(io, tmpText, _sizeof<byte>(), AsciiCount) != AsciiCount) goto Error;
         new Span<byte>(tmpText, (int)AsciiCount).CopyTo(Text);
         SizeOfTag -= AsciiCount;
 
@@ -857,29 +857,29 @@ public static unsafe partial class Lcms2
         Text = null;
 
         // Skip Unicode code
-        if (SizeOfTag < 2 * sizeof(uint)) goto Done;
+        if (SizeOfTag < 2 * _sizeof<uint>()) goto Done;
         if (!_cmsReadUInt32Number(io, &UnicodeCode)) goto Done;
         if (!_cmsReadUInt32Number(io, &UnicodeCount)) goto Done;
-        SizeOfTag -= 2 * sizeof(uint);
+        SizeOfTag -= 2u * _sizeof<uint>();
 
-        if (SizeOfTag < UnicodeCount * sizeof(ushort)) goto Done;
+        if (SizeOfTag < UnicodeCount * _sizeof<ushort>()) goto Done;
 
         for (var i = 0; i < UnicodeCount; i++)
-            if (io.Read(io, &Dummy, sizeof(ushort), 1) is 0) goto Done;
-        SizeOfTag -= UnicodeCount * sizeof(ushort);
+            if (io.Read(io, &Dummy, _sizeof<ushort>(), 1) is 0) goto Done;
+        SizeOfTag -= UnicodeCount * _sizeof<ushort>();
 
         // Skip ScriptCode code if present. Some buggy profiles does have less
         // data that stricttly required. We need to skip it as this type may come
         // embedded in other types.
 
-        if (SizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
+        if (SizeOfTag >= _sizeof<ushort>() + _sizeof<byte>() + 67)
         {
             if (!_cmsReadUInt16Number(io, &ScriptCodeCode)) goto Done;
             if (!_cmsReadUInt8Number(io, &ScriptCodeCount)) goto Done;
 
             // Skip rest of tag
             for (var i = 0; i < 67; i++)
-                if (io.Read(io, &Dummy, sizeof(byte), 1) is 0) goto Error;
+                if (io.Read(io, &Dummy, _sizeof<byte>(), 1) is 0) goto Error;
         }
 
     Done:
@@ -1124,7 +1124,7 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        memset(Params, 0, sizeof(double) * 10);
+        memset(Params, 0, _sizeof<double>() * 10);
         var n = ParamsByType[Type];
 
         for (var i = 0; i < n; i++)
@@ -1190,7 +1190,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        if (io.Read(io, &timestamp, (uint)sizeof(DateTimeNumber), 1) is not 1) return null;
+        if (io.Read(io, &timestamp, _sizeof<DateTimeNumber>(), 1) is not 1) return null;
 
         NewDateTime = _cmsMalloc<DateTime>(self->ContextID);
         if (NewDateTime is null) return null;
@@ -1207,7 +1207,7 @@ public static unsafe partial class Lcms2
         DateTimeNumber timestamp;
 
         _cmsEncodeDateTimeNumber(&timestamp, DateTime);
-        if (!io.Write(io, (uint)sizeof(DateTimeNumber), &timestamp)) return false;
+        if (!io.Write(io, _sizeof<DateTimeNumber>(), &timestamp)) return false;
         return true;
     }
 
@@ -1231,7 +1231,7 @@ public static unsafe partial class Lcms2
         IccMeasurementConditions mc;
 
         *nItems = 0;
-        memset(&mc, 0, (uint)sizeof(IccMeasurementConditions));
+        memset(&mc, 0, _sizeof<IccMeasurementConditions>());
 
         if (!_cmsReadUInt32Number(io, &mc.Observer)) return null;
         if (!_cmsReadXYZNumber(io, &mc.Backing)) return null;
@@ -1295,7 +1295,7 @@ public static unsafe partial class Lcms2
 
         //mlu->UsedEntries = Count;
 
-        SizeOfHeader = (12 * Count) + (uint)sizeof(TagBase);
+        SizeOfHeader = (12 * Count) + _sizeof<TagBase>();
         LargestPosition = 0;
 
         for (var i = 0; i < Count; i++)
@@ -1316,8 +1316,8 @@ public static unsafe partial class Lcms2
             BeginOfThisString = Offset - SizeOfHeader - 8;
 
             // Adjust to char elements
-            Len *= sizeof(char) / sizeof(ushort);
-            BeginOfThisString *= sizeof(char) / sizeof(ushort);
+            Len *= _sizeof<char>() / _sizeof<ushort>();
+            BeginOfThisString *= _sizeof<char>() / _sizeof<ushort>();
 
             mlu.Entries.Add(new(Language, Country, BeginOfThisString, Len));
 
@@ -1328,7 +1328,7 @@ public static unsafe partial class Lcms2
         }
 
         // Now read the remaining of tag and fill all strings. Subtract the directory
-        SizeOfTag = LargestPosition * sizeof(char) / sizeof(ushort);
+        SizeOfTag = LargestPosition * _sizeof<char>() / _sizeof<ushort>();
         if (SizeOfTag is 0)
         {
             Block = null;
@@ -1375,15 +1375,15 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, mlu.UsedEntries)) return false;
         if (!_cmsWriteUInt32Number(io, 12)) return false;
 
-        HeaderSize = (12 * mlu.UsedEntries) + (uint)sizeof(TagBase);
+        HeaderSize = (12 * mlu.UsedEntries) + _sizeof<TagBase>();
 
         for (var i = 0; i < mlu.UsedEntries; i++)
         {
             Len = mlu.Entries[i].LenInBytes;
             Offset = mlu.Entries[i].StrWByteOffset;
 
-            Len = Len * sizeof(ushort) / sizeof(char);
-            Offset = (Offset * sizeof(ushort) / sizeof(char)) + HeaderSize + 8;
+            Len = Len * _sizeof<ushort>() / _sizeof<char>();
+            Offset = (Offset * _sizeof<ushort>() / _sizeof<char>()) + HeaderSize + 8;
 
             if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Language)) return false;
             if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Country)) return false;
@@ -1453,7 +1453,7 @@ public static unsafe partial class Lcms2
 
         if (nChannels is > cmsMAXCHANNELS or <= 0) return false;
 
-        memset(Tables, 0, (uint)sizeof(ToneCurve*) * cmsMAXCHANNELS);
+        memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
 
         Temp = _cmsMalloc<byte>(ContextID, 256);
         if (Temp is null) return false;
@@ -1741,7 +1741,7 @@ public static unsafe partial class Lcms2
         if (nEntries < 2 || nChannels > cmsMAXCHANNELS) return false;
 
         // Init table to zero
-        memset(Tables, 0, (uint)sizeof(ToneCurve*) * cmsMAXCHANNELS);
+        memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < nChannels; i++)
         {
@@ -2048,7 +2048,7 @@ public static unsafe partial class Lcms2
 
                 for (var i = 0; i < Data.nEntries; i++)
                 {
-                    if (io.Read(io, &v, sizeof(byte), 1) is not 1)
+                    if (io.Read(io, &v, _sizeof<byte>(), 1) is not 1)
                     {
                         cmsStageFree(CLUT);
                         return null;
@@ -2137,7 +2137,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (!_cmsReadUInt8Number(io, &inputChan)) goto Error;
         if (!_cmsReadUInt8Number(io, &outputChan)) goto Error;
@@ -2269,11 +2269,11 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        memset(gridPoints, 0, sizeof(byte) * cmsMAXCHANNELS);
+        memset(gridPoints, 0, _sizeof<byte>() * cmsMAXCHANNELS);
         for (var i = 0; i < CLUT.Params->nInputs; i++)
             gridPoints[i] = (byte)CLUT.Params->nSamples[i];
 
-        if (!io.Write(io, cmsMAXCHANNELS * sizeof(byte), gridPoints)) return false;
+        if (!io.Write(io, cmsMAXCHANNELS * _sizeof<byte>(), gridPoints)) return false;
 
         if (!_cmsWriteUInt8Number(io, Precision)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false;
@@ -2307,7 +2307,7 @@ public static unsafe partial class Lcms2
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BassOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (Lut.Ptr->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, cmsSigCurveSetElemType))
@@ -2410,7 +2410,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 0;
 
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (!_cmsReadUInt8Number(io, &inputChan)) goto Error;
         if (!_cmsReadUInt8Number(io, &outputChan)) goto Error;
@@ -2477,7 +2477,7 @@ public static unsafe partial class Lcms2
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BassOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (Lut.Ptr->Elements is not null)
             if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, cmsSigCurveSetElemType))
@@ -2618,7 +2618,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0u; i < nColors; i++)
         {
-            memset(root, 0, cmsMAX_PATH * sizeof(byte));
+            memset(root, 0, cmsMAX_PATH * _sizeof<byte>());
 
             if (!cmsNamedColorInfo(NamedColorList, i, root, null, null, PCS, null)) return false;
             root[32] = 0;
@@ -2682,7 +2682,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < count; i++)
         {
-            memset(Colorant, 0, sizeof(ushort) * cmsMAXCHANNELS);
+            memset(Colorant, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
             if (io.Read(io, Root, 32, 1) is not 1) goto Error;
             Root[32] = 0;
 
@@ -2716,8 +2716,8 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, nColors)) return false;
         if (!_cmsWriteUInt32Number(io, NamedColorList.Ptr->ColorantCount)) return false;
 
-        memcpy(prefix, NamedColorList.Ptr->Prefix, sizeof(byte) * 33);
-        memcpy(suffix, NamedColorList.Ptr->Suffix, sizeof(byte) * 33);
+        memcpy(prefix, NamedColorList.Ptr->Prefix, _sizeof<byte>() * 33);
+        memcpy(suffix, NamedColorList.Ptr->Suffix, _sizeof<byte>() * 33);
 
         suffix[32] = prefix[32] = 0;
 
@@ -2726,9 +2726,9 @@ public static unsafe partial class Lcms2
 
         for (var i = 0u; i < nColors; i++)
         {
-            memset(Root, 0, cmsMAX_PATH * sizeof(byte));
-            memset(PCS, 0, 3 * sizeof(ushort));
-            memset(Colorant, 0, cmsMAXCHANNELS * sizeof(ushort));
+            memset(Root, 0, cmsMAX_PATH * _sizeof<byte>());
+            memset(PCS, 0, 3 * _sizeof<ushort>());
+            memset(Colorant, 0, cmsMAXCHANNELS * _sizeof<ushort>());
 
             if (!cmsNamedColorInfo(NamedColorList, i, Root, null, null, PCS, Colorant)) return false;
             Root[32] = 0;
@@ -2796,8 +2796,8 @@ public static unsafe partial class Lcms2
         *nItems = 0;
         if (!_cmsReadUInt32Number(io, &Count)) return null;
 
-        if (SizeOfTag < sizeof(uint)) return null;
-        SizeOfTag -= sizeof(uint);
+        if (SizeOfTag < _sizeof<uint>()) return null;
+        SizeOfTag -= _sizeof<uint>();
 
         OutSeq = cmsAllocProfileSequenceDescription(self->ContextID, Count);
         if (OutSeq is null) return null;
@@ -2811,20 +2811,20 @@ public static unsafe partial class Lcms2
             var sec = &OutSeq->seq[i];
 
             if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->deviceMfg)) goto Error;
-            if (SizeOfTag < sizeof(uint)) goto Error;
-            SizeOfTag -= sizeof(uint);
+            if (SizeOfTag < _sizeof<uint>()) goto Error;
+            SizeOfTag -= _sizeof<uint>();
 
             if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->deviceModel)) goto Error;
-            if (SizeOfTag < sizeof(uint)) goto Error;
-            SizeOfTag -= sizeof(uint);
+            if (SizeOfTag < _sizeof<uint>()) goto Error;
+            SizeOfTag -= _sizeof<uint>();
 
             if (!_cmsReadUInt64Number(io, &sec->attributes)) goto Error;
-            if (SizeOfTag < sizeof(ulong)) goto Error;
-            SizeOfTag -= sizeof(ulong);
+            if (SizeOfTag < _sizeof<ulong>()) goto Error;
+            SizeOfTag -= _sizeof<ulong>();
 
             if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->technology)) goto Error;
-            if (SizeOfTag < sizeof(uint)) goto Error;
-            SizeOfTag -= sizeof(uint);
+            if (SizeOfTag < _sizeof<uint>()) goto Error;
+            SizeOfTag -= _sizeof<uint>();
 
             if (!ReadEmbeddedText(self, io, out sec->Manufacturer, SizeOfTag)) goto Error;
             if (!ReadEmbeddedText(self, io, out sec->Model, SizeOfTag)) goto Error;
@@ -2909,11 +2909,11 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // Get table count
         if (!_cmsReadUInt32Number(io, &Count)) return null;
-        SizeOfTag -= sizeof(uint);
+        SizeOfTag -= _sizeof<uint>();
 
         // Allocate an empty structure
         OutSeq = cmsAllocProfileSequenceDescription(self->ContextID, Count);
@@ -2948,7 +2948,7 @@ public static unsafe partial class Lcms2
         if (Ptr is not BoxPtr<Sequence> Seq) return false;
 
         // Keep the base offset
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // This is the table count
         if (!_cmsWriteUInt32Number(io, Seq.Ptr->n)) return false;
@@ -2985,30 +2985,30 @@ public static unsafe partial class Lcms2
 
         // First curve is Under color removal
 
-        if (SignedSizeOfTag < sizeof(uint)) return null;
+        if (SignedSizeOfTag < _sizeof<uint>()) return null;
         if (!_cmsReadUInt32Number(io, &CountUcr)) return null;
-        SignedSizeOfTag -= sizeof(uint);
+        SignedSizeOfTag -= _sizeof<uint>();
 
         n->Ucr = cmsBuildTabulatedToneCurve16(self->ContextID, CountUcr, null);
         if (n->Ucr is null) goto Error;
 
-        if (SignedSizeOfTag < (int)(CountUcr * sizeof(ushort))) goto Error;
+        if (SignedSizeOfTag < (int)(CountUcr * _sizeof<ushort>())) goto Error;
         if (!_cmsReadUInt16Array(io, CountUcr, n->Ucr->Table16)) goto Error;
 
-        SignedSizeOfTag -= (int)(CountUcr * sizeof(ushort));
+        SignedSizeOfTag -= (int)(CountUcr * _sizeof<ushort>());
 
         // Secong curve is Black generation
 
-        if (SignedSizeOfTag < sizeof(uint)) goto Error;
+        if (SignedSizeOfTag < _sizeof<uint>()) goto Error;
         if (!_cmsReadUInt32Number(io, &CountBg)) goto Error;
-        SignedSizeOfTag -= sizeof(uint);
+        SignedSizeOfTag -= _sizeof<uint>();
 
         n->Bg = cmsBuildTabulatedToneCurve16(self->ContextID, CountBg, null);
         if (n->Bg is null) goto Error;
 
-        if (SignedSizeOfTag < (int)(CountBg * sizeof(ushort))) goto Error;
+        if (SignedSizeOfTag < (int)(CountBg * _sizeof<ushort>())) goto Error;
         if (!_cmsReadUInt16Array(io, CountBg, n->Bg->Table16)) goto Error;
-        SignedSizeOfTag -= (int)(CountBg * sizeof(ushort));
+        SignedSizeOfTag -= (int)(CountBg * _sizeof<ushort>());
 
         if (SignedSizeOfTag is < 0 or > 32000) goto Error;
 
@@ -3020,7 +3020,7 @@ public static unsafe partial class Lcms2
         //ASCIIString = _cmsMalloc<byte>(self->ContextID, (uint)SignedSizeOfTag + 1);
         var ASCIIString = _cmsCallocArray<byte>(self->ContextID, (uint)SignedSizeOfTag);
         var tmpASCIIString = stackalloc byte[SignedSizeOfTag];
-        if (io.Read(io, tmpASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
+        if (io.Read(io, tmpASCIIString, _sizeof<byte>(), (uint)SignedSizeOfTag) != SignedSizeOfTag)
         {
             _cmsFree(self->ContextID, ASCIIString);
             goto Error;
@@ -3110,19 +3110,19 @@ public static unsafe partial class Lcms2
         uint Count;
         var ps = "PS"u8;
 
-        if (*SizeOfTag < sizeof(uint)) return false;
+        if (*SizeOfTag < _sizeof<uint>()) return false;
 
         if (!_cmsReadUInt32Number(io, &Count)) return false;
 
-        if (Count > UInt32.MaxValue - sizeof(uint)) return false;
-        if (*SizeOfTag < Count + sizeof(uint)) return false;
+        if (Count > UInt32.MaxValue - _sizeof<uint>()) return false;
+        if (*SizeOfTag < Count + _sizeof<uint>()) return false;
 
         //var Text = _cmsMalloc<byte>(self->ContextID, Count + 1);
         var Text = _cmsCallocArray<byte>(self->ContextID, Count);
         if (Text is null) return false;
 
         var tmp = stackalloc byte[(int)Count];
-        if (io.Read(io, tmp, sizeof(byte), Count) != Count)
+        if (io.Read(io, tmp, _sizeof<byte>(), Count) != Count)
         {
             _cmsFree(self->ContextID, Text);
             return false;
@@ -3134,7 +3134,7 @@ public static unsafe partial class Lcms2
         cmsMLUsetASCII(mlu, ps, Section, Text);
         _cmsFree(self->ContextID, Text);
 
-        *SizeOfTag -= Count + sizeof(uint);
+        *SizeOfTag -= Count + _sizeof<uint>();
         return true;
     }
 
@@ -3379,7 +3379,7 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // Read channels and element count
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
@@ -3418,7 +3418,7 @@ public static unsafe partial class Lcms2
         var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
         var str = stackalloc byte[5];
 
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         var inputChan = cmsPipelineInputChannels(Lut);
         var outputChan = cmsPipelineOutputChannels(Lut);
@@ -3529,7 +3529,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &TagType)) return null;
 
         // Allocate space for the array
-        Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, (uint)sizeof(ToneCurve*));
+        Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
         if (Curves is null) return null;
 
         // There are two possible flavors
@@ -3596,7 +3596,7 @@ public static unsafe partial class Lcms2
                     var Colorant = stackalloc VCGTGAMMA[3];
                     var Params = stackalloc double[10];
 
-                    memset(Params, 0, 10 * sizeof(double));
+                    memset(Params, 0, 10 * _sizeof<double>());
 
                     // Populate tone curves
                     for (var n = 0; n < 3; n++)
@@ -3695,7 +3695,7 @@ public static unsafe partial class Lcms2
     {
         if (Ptr is not BoxPtr2<ToneCurve> OldCurves) return null;
 
-        var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, (uint)sizeof(ToneCurve*));
+        var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
         if (NewCurves is null) return null;
 
         NewCurves[0] = cmsDupToneCurve(OldCurves[0]);
@@ -3799,24 +3799,24 @@ public static unsafe partial class Lcms2
         // Read column arrays
         for (var i = 0u; i < Count; i++)
         {
-            if (SignedSizeOfTag < 4 * sizeof(uint)) return false;
-            SignedSizeOfTag -= 4 * sizeof(uint);
+            if (SignedSizeOfTag < 4 * _sizeof<uint>()) return false;
+            SignedSizeOfTag -= 4 * _sizeof<uint>();
 
             if (!ReadOneElem(io, &a->Name, i, BaseOffset)) return false;
             if (!ReadOneElem(io, &a->Value, i, BaseOffset)) return false;
 
             if (Length > 16)
             {
-                if (SignedSizeOfTag < 2 * sizeof(uint)) return false;
-                SignedSizeOfTag -= 2 * sizeof(uint);
+                if (SignedSizeOfTag < 2 * _sizeof<uint>()) return false;
+                SignedSizeOfTag -= 2 * _sizeof<uint>();
 
                 if (!ReadOneElem(io, &a->DisplayName, i, BaseOffset)) return false;
             }
 
             if (Length > 24)
             {
-                if (SignedSizeOfTag < 2 * sizeof(uint)) return false;
-                SignedSizeOfTag -= 2 * sizeof(uint);
+                if (SignedSizeOfTag < 2 * _sizeof<uint>()) return false;
+                SignedSizeOfTag -= 2 * _sizeof<uint>();
 
                 if (!ReadOneElem(io, &a->DisplayValue, i, BaseOffset)) return false;
             }
@@ -3863,9 +3863,9 @@ public static unsafe partial class Lcms2
 
         if (!io.Seek(io, e->Offsets[i])) return false;
 
-        var nChars = e->Sizes[i] / sizeof(ushort);
+        var nChars = e->Sizes[i] / _sizeof<ushort>();
 
-        *wcstr = _cmsMallocZero<char>(e->ContextID, (nChars + 1) * sizeof(char));
+        *wcstr = _cmsMallocZero<char>(e->ContextID, nChars + 1);
         if (*wcstr is null) return false;
 
         if (!_cmsReadWCharArray(io, nChars, *wcstr))
@@ -3950,18 +3950,18 @@ public static unsafe partial class Lcms2
         var SignedSizeOfTag = (int)SizeOfTag;
 
         *nItems = 0;
-        memset(&a, 0, (uint)sizeof(DICarray));
+        memset(&a, 0, _sizeof<DICarray>());
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // Get name-value record count
-        SignedSizeOfTag -= sizeof(uint);
+        SignedSizeOfTag -= _sizeof<uint>();
         if (SignedSizeOfTag < 0) goto Error;
         if (!_cmsReadUInt32Number(io, &Count)) goto Error;
 
         // Get rec length
-        SignedSizeOfTag -= sizeof(uint);
+        SignedSizeOfTag -= _sizeof<uint>();
         if (SignedSizeOfTag < 0) goto Error;
         if (!_cmsReadUInt32Number(io, &Length)) goto Error;
 
@@ -4032,7 +4032,7 @@ public static unsafe partial class Lcms2
 
         if (hDict is null) return false;
 
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // Let's inspect the dictionary
         var Count = 0u; var AnyName = false; var AnyValue = false;
@@ -4250,14 +4250,14 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
         if (!_cmsReadUInt16Number(io, &OutputChans)) return null;
 
         if (InputChans != OutputChans) return null;
 
-        var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, (uint)sizeof(ToneCurve*));
+        var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>());
         if (GammaTables is null) return null;
 
         var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, GammaTables, &ReadMPECurve)
@@ -4335,7 +4335,7 @@ public static unsafe partial class Lcms2
         if (Ptr is not Stage mpe ||
             mpe.Data is not StageToneCurvesData Curves) return false;
 
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // Write the header. Since those are curves, input and output channels are the same
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
@@ -4444,7 +4444,7 @@ public static unsafe partial class Lcms2
         *nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (uint)sizeof(TagBase);
+        var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         if (!_cmsReadUInt16Number(io, &InputChans)) return null;
         if (!_cmsReadUInt16Number(io, &OutputChans)) return null;
@@ -4452,7 +4452,7 @@ public static unsafe partial class Lcms2
         if (InputChans is 0) goto Error;
         if (OutputChans is 0) goto Error;
 
-        if (io.Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
+        if (io.Read(io, Dimensions8, _sizeof<byte>(), 16) is not 16) goto Error;
 
         // Copy MAX_INPUT_DIMENSIONS at most. Expact to uint
         var nMaxGrids = Math.Min(InputChans, MAX_INPUT_DIMENSIONS);
@@ -4495,7 +4495,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.OutputChannels)) return false;
 
-        memset(Dimensions8, 0, sizeof(byte) * 16);
+        memset(Dimensions8, 0, _sizeof<byte>() * 16);
 
         for (var i = 0; i < mpe.InputChannels; i++)
             Dimensions8[i] = (byte)clut.Params->nSamples[i];

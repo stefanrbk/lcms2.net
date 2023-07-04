@@ -793,9 +793,9 @@ public static unsafe partial class Lcms2
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNLONG<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
-        (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
+        (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
 
-    internal static ushort CMS_PTR_ALIGNMENT = (ushort)sizeof(void*);
+    internal static ushort CMS_PTR_ALIGNMENT = _sizeof<nint>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNMEM<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
@@ -809,10 +809,10 @@ public static unsafe partial class Lcms2
 
     internal const byte MAX_STAGE_CHANNELS = 128;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static ushort FROM_8_TO_16(uint rgb) => (ushort)((rgb << 8) | rgb);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static byte FROM_16_TO_8(uint rgb) => (byte)((((rgb * 65281u) + 8388608u) >> 24) & 0xFFu);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -829,19 +829,19 @@ public static unsafe partial class Lcms2
 
     internal const double MATRIX_DET_TOLERANCE = 1e-4;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int FIXED_TO_INT(int x) => x >> 16;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int FIXED_REST_TO_INT(int x) => x & 0xFFFF;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int ROUND_FIXED_TO_INT(int x) => (x + 0x8000) >> 16;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int _cmsToFixedDomain(int a) => a + ((a + 0x7fff) / 0xffff);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int _cmsFromFixedDomain(int a) => a - ((a + 0x7fff) >> 16);
 
     [StructLayout(LayoutKind.Explicit)]
@@ -854,7 +854,7 @@ public static unsafe partial class Lcms2
         public fixed int halves[2];
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int _cmsQuickFloor(double val)
     {
 #if CMS_DONT_USE_FAST_FLOOR
@@ -868,11 +868,11 @@ public static unsafe partial class Lcms2
 #endif
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static ushort _cmsQuickFloorWord(double d) =>
         (ushort)(_cmsQuickFloor(d - 32767) + 32767);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static ushort _cmsQuickSaturateWord(double d)
     {
         d += 0.5;
@@ -1245,10 +1245,10 @@ public static unsafe partial class Lcms2
             PickYMatrix = new double[3] { 0, OutpAdj * cmsD50Y, 0, };
             PickLstarMatrix = new double[3] { 1, 0, 0, };
 
-            Device2PCS16 = (Signature*)dup(temp1, 4 * sizeof(Signature));
-            Device2PCSFloat = (Signature*)dup(temp2, 4 * sizeof(Signature));
-            PCS2Device16 = (Signature*)dup(temp3, 4 * sizeof(Signature));
-            PCS2DeviceFloat = (Signature*)dup(temp4, 4 * sizeof(Signature));
+            Device2PCS16 = (Signature*)dup(temp1, 4 * _sizeof<double>());
+            Device2PCSFloat = (Signature*)dup(temp2, 4 * _sizeof<double>());
+            PCS2Device16 = (Signature*)dup(temp3, 4 * _sizeof<double>());
+            PCS2DeviceFloat = (Signature*)dup(temp4, 4 * _sizeof<double>());
         }
 
         #endregion io1 "const"s
@@ -1377,14 +1377,15 @@ public static unsafe partial class Lcms2
     }
 
     [DebuggerStepThrough]
-    internal static uint _sizeof<T>() where T : struct
+    internal static ushort _sizeof<T>() where T : struct
     {
         if (typeof(T) == typeof(Screening))
-            return (uint)sizeof(Screening) - 1 + ((uint)sizeof(ScreeningChannel) * cmsMAXCHANNELS);
+            return (ushort)(sizeof(Screening) - 1 + (sizeof(ScreeningChannel) * cmsMAXCHANNELS));
 
-        return (uint)sizeof(T);
+        return (ushort)sizeof(T);
     }
 
+    [DebuggerStepThrough]
     internal static void* alloc(nuint size)
     {
         var result = NativeMemory.Alloc(size);
@@ -1395,12 +1396,15 @@ public static unsafe partial class Lcms2
         return result;
     }
 
+    [DebuggerStepThrough]
     internal static void* alloc(nint size) =>
         alloc((nuint)size);
 
+    [DebuggerStepThrough]
     internal static T* alloc<T>() where T : struct =>
         (T*)alloc(_sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static void* allocZeroed(nuint size)
     {
         var result = NativeMemory.AllocZeroed(size);
@@ -1411,15 +1415,19 @@ public static unsafe partial class Lcms2
         return result;
     }
 
+    [DebuggerStepThrough]
     internal static void* allocZeroed(nint size) =>
         allocZeroed((nuint)size);
 
+    [DebuggerStepThrough]
     internal static T* allocZeroed<T>() where T : struct =>
         (T*)allocZeroed(_sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static void* dup(in void* org, nint size) =>
         dup(org, (nuint)size);
 
+    [DebuggerStepThrough]
     internal static void* dup(in void* org, nuint size)
     {
         var value = alloc(size);
@@ -1428,6 +1436,7 @@ public static unsafe partial class Lcms2
         return value;
     }
 
+    [DebuggerStepThrough]
     internal static T* dup<T>(in T* org) where T : struct
     {
         var value = alloc<T>();
@@ -1436,33 +1445,43 @@ public static unsafe partial class Lcms2
         return value;
     }
 
+    [DebuggerStepThrough]
     internal static void memset<T>(T* dst, int val) where T : struct =>
         memset(dst, val, _sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static void memset(void* dst, int val, nint size) =>
         NativeMemory.Fill(dst, (uint)size, (byte)val);
 
+    [DebuggerStepThrough]
     internal static void memset(void* dst, int val, nuint size) =>
         NativeMemory.Fill(dst, size, (byte)val);
 
+    [DebuggerStepThrough]
     internal static void memmove<T>(T* dst, in T* src) where T : struct =>
         memcpy(dst, src);
 
+    [DebuggerStepThrough]
     internal static void memmove(void* dst, in void* src, nuint size) =>
         memcpy(dst, src, size);
 
+    [DebuggerStepThrough]
     internal static void memmove(void* dst, in void* src, nint size) =>
         memcpy(dst, src, size);
 
+    [DebuggerStepThrough]
     internal static void memcpy<T>(T* dst, in T* src) where T : struct =>
         memcpy(dst, src, _sizeof<T>());
 
+    [DebuggerStepThrough]
     internal static void memcpy(void* dst, in void* src, nuint size) =>
         NativeMemory.Copy(src, dst, size);
 
+    [DebuggerStepThrough]
     internal static void memcpy(void* dst, in void* src, nint size) =>
         NativeMemory.Copy(src, dst, (nuint)size);
 
+    [DebuggerStepThrough]
     internal static int memcmp(in void* buf1, in void* buf2, nint count)
     {
         nint counter = 0;
@@ -1475,6 +1494,7 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
+    [DebuggerStepThrough]
     internal static void free(void* ptr)
     {
         var item = AllocList.Find(p => p.Item1 == ((nuint)ptr));
@@ -1485,6 +1505,7 @@ public static unsafe partial class Lcms2
         NativeMemory.Free(ptr);
     }
 
+    [DebuggerStepThrough]
     internal static void* calloc(uint num, nuint size)
     {
         var result = NativeMemory.AllocZeroed(num, size);
@@ -1493,9 +1514,11 @@ public static unsafe partial class Lcms2
         return result;
     }
 
+    [DebuggerStepThrough]
     internal static void* calloc(uint num, nint size) =>
         calloc(num, (nuint)size);
 
+    [DebuggerStepThrough]
     internal static T* calloc<T>(uint num) where T : struct =>
         (T*)calloc(num, _sizeof<T>());
 
@@ -1802,7 +1825,7 @@ public static unsafe partial class Lcms2
 
         return 0;
     }
-
+    
     internal static FILE* fopen(string filename, string mode)
     {
         Stream stream;

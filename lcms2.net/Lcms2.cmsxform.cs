@@ -219,8 +219,8 @@ public static unsafe partial class Lcms2
 
         var strideIn = 0u;
         var strideOut = 0u;
-        memset(fIn, 0, sizeof(float) * cmsMAXCHANNELS);
-        memset(fOut, 0, sizeof(float) * cmsMAXCHANNELS);
+        memset(fIn, 0, _sizeof<float>() * cmsMAXCHANNELS);
+        memset(fOut, 0, _sizeof<float>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < LineCount; i++)
         {
@@ -278,7 +278,7 @@ public static unsafe partial class Lcms2
 
         var strideIn = 0u;
         var strideOut = 0u;
-        memset(fIn, 0, sizeof(float) * cmsMAXCHANNELS);
+        memset(fIn, 0, _sizeof<float>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < LineCount; i++)
         {
@@ -310,7 +310,7 @@ public static unsafe partial class Lcms2
 
         var strideIn = 0u;
         var strideOut = 0u;
-        memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        memset(wIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < LineCount; i++)
         {
@@ -343,8 +343,8 @@ public static unsafe partial class Lcms2
 
         var strideIn = 0u;
         var strideOut = 0u;
-        memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
-        memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        memset(wIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
+        memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < LineCount; i++)
         {
@@ -396,8 +396,8 @@ public static unsafe partial class Lcms2
 
         var strideIn = 0u;
         var strideOut = 0u;
-        memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
-        memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        memset(wIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
+        memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         for (var i = 0; i < LineCount; i++)
         {
@@ -431,8 +431,8 @@ public static unsafe partial class Lcms2
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
         // Empty buffers for quick memcmp
-        memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
-        memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        memset(wIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
+        memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         // Get copy of zero cache
         memcpy(&Cache, &p->Cache);
@@ -449,16 +449,16 @@ public static unsafe partial class Lcms2
             {
                 accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
 
-                if (memcmp(wIn, Cache.CacheIn, sizeof(ushort) * cmsMAXCHANNELS) is 0)
+                if (memcmp(wIn, Cache.CacheIn, _sizeof<ushort>() * cmsMAXCHANNELS) is 0)
                 {
-                    memcpy(wOut, Cache.CacheOut, sizeof(ushort) * cmsMAXCHANNELS);
+                    memcpy(wOut, Cache.CacheOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
                 else
                 {
                     p->Lut->Eval16Fn(wIn, wOut, p->Lut->Data);
 
-                    memcpy(Cache.CacheIn, wIn, sizeof(ushort) * cmsMAXCHANNELS);
-                    memcpy(Cache.CacheOut, wOut, sizeof(ushort) * cmsMAXCHANNELS);
+                    memcpy(Cache.CacheIn, wIn, _sizeof<ushort>() * cmsMAXCHANNELS);
+                    memcpy(Cache.CacheOut, wOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
 
                 output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
@@ -484,8 +484,8 @@ public static unsafe partial class Lcms2
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
         // Empty buffers for quick memcmp
-        memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
-        memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        memset(wIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
+        memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         // Get copy of zero cache
         memcpy(&Cache, &p->Cache);
@@ -502,16 +502,16 @@ public static unsafe partial class Lcms2
             {
                 accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
 
-                if (memcmp(wIn, Cache.CacheIn, sizeof(ushort) * cmsMAXCHANNELS) is 0)
+                if (memcmp(wIn, Cache.CacheIn, _sizeof<ushort>() * cmsMAXCHANNELS) is 0)
                 {
-                    memcpy(wOut, Cache.CacheOut, sizeof(ushort) * cmsMAXCHANNELS);
+                    memcpy(wOut, Cache.CacheOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
                 else
                 {
                     TransformOnePixelWithGamutCheck(p, wIn, wOut);
 
-                    memcpy(Cache.CacheIn, wIn, sizeof(ushort) * cmsMAXCHANNELS);
-                    memcpy(Cache.CacheOut, wOut, sizeof(ushort) * cmsMAXCHANNELS);
+                    memcpy(Cache.CacheIn, wIn, _sizeof<ushort>() * cmsMAXCHANNELS);
+                    memcpy(Cache.CacheOut, wOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
 
                 output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
@@ -726,7 +726,7 @@ public static unsafe partial class Lcms2
             }
 
             // Not suitable for the transform plug-in, let's check the pipeline plug-in
-            _cmsOptimizePipeline(ContextID, &p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
+            //_cmsOptimizePipeline(ContextID, &p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
         }
 
         // Check whether this is a true floating point transform
@@ -990,7 +990,7 @@ public static unsafe partial class Lcms2
         // If this is a cached transform, init first value, which is zero (16 bits only)
         if ((dwFlags & cmsFLAGS_NOCACHE) is 0)
         {
-            memset(&xform->Cache.CacheIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
+            memset(&xform->Cache.CacheIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
             if (xform->GamutCheck is not null)
             {
