@@ -547,4 +547,127 @@ public static bool CheckAllocContext()
         if (cpy2 != null) cmsDeleteContext(cpy2);
         return false;
     }
+
+    // We define this special type as 0 bytes not float, and set the upper bit 
+
+    private readonly static uint TYPE_RGB_565 = (COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | (1 << 23));
+
+    private static byte* my_Unroll565(Transform* _1,
+                                      ushort* wIn,
+                                      byte* accum,
+                                      uint _2)
+    {
+        var pixel = *(ushort*)accum;  // Take whole pixel
+
+        double r = Math.Floor(((pixel & 31) * 65535.0) / 31.0 + 0.5);
+        double g = Math.Floor((((pixel >> 5) & 63) * 65535.0) / 63.0 + 0.5);
+        double b = Math.Floor((((pixel >> 11) & 31) * 65535.0) / 31.0 + 0.5);
+
+        wIn[2] = (ushort) r;
+        wIn[1] = (ushort) g;
+        wIn[0] = (ushort) b;
+    
+        return accum + 2;
+    }
+
+    private static byte* my_Pack565(Transform* _1,
+                                    ushort* wOut,
+                                    byte* output,
+                                    uint _2)
+    {
+
+        ushort pixel;
+        int r, g, b;
+
+        r = (int)Math.Floor((wOut[2] * 31) / 65535.0 + 0.5);
+        g = (int)Math.Floor((wOut[1] * 63) / 65535.0 + 0.5);
+        b = (int)Math.Floor((wOut[0] * 31) / 65535.0 + 0.5);
+
+
+        pixel = (ushort)((r & 31) | ((g & 63) << 5) | ((b & 31) << 11));
+
+
+        *(ushort*)output = pixel;
+        return output + 2;
+    }
+
+    private static Formatter my_FormatterFactory(uint Type,
+                                                 FormatterDirection Dir,
+                                                 uint dwFlags)
+    {
+        Formatter Result = default;
+
+        if ((Type == TYPE_RGB_565) &&
+            (dwFlags & (uint)PackFlags.Float) is 0 &&
+            (Dir == FormatterDirection.Input))
+        {
+            Result.Fmt16 = my_Unroll565;
+        }
+        return Result;
+    }
+
+    private static Formatter my_FormatterFactory2(uint Type,
+                                                  FormatterDirection Dir,
+                                                  uint dwFlags)
+    {
+        Formatter Result = default;
+
+        if ((Type == TYPE_RGB_565) &&
+            (dwFlags & (uint)PackFlags.Float) is 0 &&
+            (Dir == FormatterDirection.Output))
+        {
+            Result.Fmt16 = my_Pack565;
+        }
+        return Result;
+    }
+
+    private readonly static PluginFormatters FormattersPluginSample = new() 
+    {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
+        FormattersFactory = my_FormatterFactory
+    };
+
+
+
+    private readonly static PluginFormatters FormattersPluginSample2 = new() 
+    {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
+        FormattersFactory = my_FormatterFactory2
+    };
+
+
+    public static bool CheckFormattersPlugin()
+    {
+        Context ctx = WatchDogContext(null);
+        Context cpy;
+        Context cpy2;
+        Transform* xform;
+        var stream = stackalloc ushort[] { (ushort)0xffffU, (ushort)0x1234U, (ushort)0x0000U, (ushort)0x33ddU };
+        var result = stackalloc ushort[4];
+        int i;
+
+        fixed (PluginFormatters* sample = &FormattersPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+
+        fixed (PluginFormatters* sample = &FormattersPluginSample2)
+            cmsPluginTHR(cpy, sample);
+
+        cpy2 = DupContext(cpy, null);
+
+        xform = cmsCreateTransformTHR(cpy2, null, TYPE_RGB_565, null, TYPE_RGB_565, INTENT_PERCEPTUAL, cmsFLAGS_NULLTRANSFORM);
+
+        cmsDoTransform(xform, stream, result, 4);
+
+        cmsDeleteTransform(xform);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        for (i = 0; i < 4; i++)
+            if (stream[i] != result[i]) return false;
+
+        return true;
+    }
 }

@@ -204,7 +204,7 @@ if (doPluginTests)
     Check("1D interpolation plugin", CheckInterp1DPlugin);
     Check("3D interpolation plugin", CheckInterp3DPlugin);
     Check("Parametric curve plugin", CheckParametricCurvePlugin);
-    //Check("Formatters plugin",       CheckFormattersPlugin);        
+    Check("Formatters plugin", CheckFormattersPlugin);
     //Check("Tag type plugin",         CheckTagTypePlugin);
     //Check("MPE type plugin",         CheckMPEPlugin);       
     //Check("Optimization plugin",     CheckOptimizationPlugin); 
