@@ -25,15 +25,25 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct PluginParametricCurves
 {
+    [FieldOffset(0)]
     public PluginBase @base;
 
+    [FieldOffset(24)]
     public uint NumFunctions;
+
+    [FieldOffset(32)]
     public fixed uint FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
+
+    [FieldOffset(112)]
     public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
 
+    [FieldOffset(192)]
     public ParametricCurveEvaluator Evaluator;
 }

@@ -25,14 +25,25 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct PluginMutex
 {
+    [FieldOffset(0)]
     public PluginBase @base;
 
+    [FieldOffset(24)]
     public CreateMutexFnPtrType CreateMutexPtr;
+
+    [FieldOffset(32)]
     public DestroyMutexFnPtrType DestroyMutexPtr;
+
+    [FieldOffset(40)]
     public LockMutexFnPtrType LockMutexPtr;
+
+    [FieldOffset(48)]
     public UnlockMutexFnPtrType UnlockMutexPtr;
 }

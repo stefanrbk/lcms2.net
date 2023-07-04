@@ -26,12 +26,22 @@
 //
 using lcms2.types;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct PluginRenderingIntent
 {
+    [FieldOffset(0)]
     public PluginBase @base;
+
+    [FieldOffset(24)]
     public uint Intent;
+
+    [FieldOffset(32)]
     public IntentFn Link;
+
+    [FieldOffset(40)]
     public string Description;
 }

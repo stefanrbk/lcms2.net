@@ -26,11 +26,16 @@
 //
 using lcms2.types;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.state;
 
+[StructLayout(LayoutKind.Explicit)]
 public unsafe struct PluginFormatters
 {
+    [FieldOffset(0)]
     public PluginBase @base;
 
+    [FieldOffset(24)]
     public FormatterFactory FormattersFactory;
 }
