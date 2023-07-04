@@ -31,6 +31,11 @@ namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
 {
+    const ushort TYPE_SIN = 1000;
+    const ushort TYPE_COS = 1010;
+    const ushort TYPE_TAN = 1020;
+    const ushort TYPE_709 = 709;
+
     private static Context DupContext(Context src, void* Data)
     {
         var cpy = cmsDupContext(src, Data);
@@ -394,5 +399,152 @@ public static bool CheckAllocContext()
         cmsPipelineFree(p);
         return false;
 
+    }
+    private static double my_fns(int Type,
+                                 in double* Params,
+                                 double R) =>
+        Type switch
+        {
+            TYPE_SIN => Params[0] * Math.Sin(R * M_PI),
+            -TYPE_SIN => Math.Asin(R) / (M_PI * Params[0]),
+            TYPE_COS => Params[0] * Math.Cos(R * M_PI),
+            -TYPE_COS => Math.Acos(R) / (M_PI * Params[0]),
+            _ => -1.0
+        };
+
+    private static double my_fns2(int Type, in double* Params, double R) =>
+        Type switch
+        {
+            TYPE_TAN => Params[0] * Math.Tan(R * M_PI),
+            -TYPE_TAN => Math.Asin(R) / (M_PI * Params[0]),
+            _ => -1.0
+        };
+
+    private static double Rec709Math(int Type, in double* Params, double R) =>
+        Type switch
+        {
+            709 =>
+                (R <= (Params[3] * Params[4]))
+                    ? R / Params[3]
+                    : Math.Pow(((R - Params[2]) / Params[1]), Params[0]),
+            -709 =>
+                (R <= Params[4])
+                    ? R * Params[3]
+                    : Params[1] * Math.Pow(R, (1 / Params[0])) + Params[2],
+            _ => 0
+        };
+
+
+    // Add nonstandard TRC curves -> Rec709
+
+    private readonly static PluginParametricCurves Rec709Plugin = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null },
+        NumFunctions = 1,
+        //{TYPE_709},
+        //{5},
+        Evaluator = Rec709Math
+    };
+
+
+    private readonly static PluginParametricCurves CurvePluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null},
+        NumFunctions = 2,
+        //{ TYPE_SIN, TYPE_COS },
+        //{ 1, 1 },
+        Evaluator = my_fns
+    };
+
+    private readonly static PluginParametricCurves CurvePluginSample2 = new()
+    {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null },
+        NumFunctions = 1,
+        //{ TYPE_TAN },
+        //{ 1 },
+        Evaluator = my_fns2
+    };
+
+    // --------------------------------------------------------------------------------------------------
+    // In this test, the DupContext function will be checked as well                      
+    // --------------------------------------------------------------------------------------------------
+    public static bool CheckParametricCurvePlugin()
+    {
+        Context ctx = null;
+        Context cpy = null;
+        Context cpy2 = null;
+        ToneCurve* sinus;
+        ToneCurve* cosinus;
+        ToneCurve* tangent;
+        ToneCurve* reverse_sinus;
+        ToneCurve* reverse_cosinus;
+        var scale = 1.0;
+
+
+        ctx = WatchDogContext(null);
+
+        fixed (PluginParametricCurves* sample = &CurvePluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+
+        fixed (PluginParametricCurves* sample = &CurvePluginSample2)
+            cmsPluginTHR(cpy, sample);
+
+        cpy2 = DupContext(cpy, null);
+
+        fixed (PluginParametricCurves* sample = &Rec709Plugin)
+            cmsPluginTHR(cpy2, sample);
+
+
+        sinus = cmsBuildParametricToneCurve(cpy, TYPE_SIN, &scale);
+        cosinus = cmsBuildParametricToneCurve(cpy, TYPE_COS, &scale);
+        tangent = cmsBuildParametricToneCurve(cpy, TYPE_TAN, &scale);
+        reverse_sinus = cmsReverseToneCurve(sinus);
+        reverse_cosinus = cmsReverseToneCurve(cosinus);
+
+
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(sinus, 0.10f), Math.Sin(0.10 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.60", cmsEvalToneCurveFloat(sinus, 0.60f), Math.Sin(0.60 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.90", cmsEvalToneCurveFloat(sinus, 0.90f), Math.Sin(0.90 * M_PI), 0.001)) goto Error;
+
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(cosinus, 0.10f), Math.Cos(0.10 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.60", cmsEvalToneCurveFloat(cosinus, 0.60f), Math.Cos(0.60 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.90", cmsEvalToneCurveFloat(cosinus, 0.90f), Math.Cos(0.90 * M_PI), 0.001)) goto Error;
+
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(tangent, 0.10f), Math.Tan(0.10 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.60", cmsEvalToneCurveFloat(tangent, 0.60f), Math.Tan(0.60 * M_PI), 0.001)) goto Error;
+        if (!IsGoodVal("0.90", cmsEvalToneCurveFloat(tangent, 0.90f), Math.Tan(0.90 * M_PI), 0.001)) goto Error;
+
+
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(reverse_sinus, 0.10f), Math.Asin(0.10) / M_PI, 0.001)) goto Error;
+        if (!IsGoodVal("0.60", cmsEvalToneCurveFloat(reverse_sinus, 0.60f), Math.Asin(0.60) / M_PI, 0.001)) goto Error;
+        if (!IsGoodVal("0.90", cmsEvalToneCurveFloat(reverse_sinus, 0.90f), Math.Asin(0.90) / M_PI, 0.001)) goto Error;
+
+        if (!IsGoodVal("0.10", cmsEvalToneCurveFloat(reverse_cosinus, 0.10f), Math.Acos(0.10) / M_PI, 0.001)) goto Error;
+        if (!IsGoodVal("0.60", cmsEvalToneCurveFloat(reverse_cosinus, 0.60f), Math.Acos(0.60) / M_PI, 0.001)) goto Error;
+        if (!IsGoodVal("0.90", cmsEvalToneCurveFloat(reverse_cosinus, 0.90f), Math.Acos(0.90) / M_PI, 0.001)) goto Error;
+
+        cmsFreeToneCurve(sinus);
+        cmsFreeToneCurve(cosinus);
+        cmsFreeToneCurve(tangent);
+        cmsFreeToneCurve(reverse_sinus);
+        cmsFreeToneCurve(reverse_cosinus);
+
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        return true;
+
+    Error:
+
+        cmsFreeToneCurve(sinus);
+        cmsFreeToneCurve(reverse_sinus);
+        cmsFreeToneCurve(cosinus);
+        cmsFreeToneCurve(reverse_cosinus);
+
+        if (ctx != null) cmsDeleteContext(ctx);
+        if (cpy != null) cmsDeleteContext(cpy);
+        if (cpy2 != null) cmsDeleteContext(cpy2);
+        return false;
     }
 }

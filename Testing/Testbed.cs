@@ -73,6 +73,20 @@ internal static unsafe partial class Testbed
     public static bool HasConsole = !Console.IsInputRedirected;
     private static uint thread = 1;
 
+    static Testbed()
+    {
+        Rec709Plugin.FunctionTypes[0] = TYPE_709;
+        Rec709Plugin.ParameterCount[0] = 5;
+
+        CurvePluginSample.FunctionTypes[0] = TYPE_SIN;
+        CurvePluginSample.FunctionTypes[1] = TYPE_COS;
+        CurvePluginSample.ParameterCount[0] = 1;
+        CurvePluginSample.ParameterCount[1] = 1;
+
+        CurvePluginSample2.FunctionTypes[0] = TYPE_TAN;
+        CurvePluginSample2.ParameterCount[0] = 1;
+    }
+
     public static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> =>
         (a < b) ? a : b;
 
