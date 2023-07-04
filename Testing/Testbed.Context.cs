@@ -311,4 +311,88 @@ public static bool CheckAllocContext()
         return false;
 
     }
+
+    // Checks the 3D interpolation
+    public static bool CheckInterp3DPlugin()
+    {
+
+        Pipeline* p;
+        Stage* clut;
+        Context ctx;
+        var In = stackalloc ushort[3];
+        var Out = stackalloc ushort[3];
+        var identity = stackalloc ushort[] {
+            0,       0,       0,
+            0,       0,       0xffff,
+            0,       0xffff,  0,
+            0,       0xffff,  0xffff,
+            0xffff,  0,       0,
+            0xffff,  0,       0xffff,
+            0xffff,  0xffff,  0,
+            0xffff,  0xffff,  0xffff
+        };
+
+
+        ctx = WatchDogContext(null);
+        if (ctx == null)
+        {
+            Fail("Cannot create context");
+            return false;
+        }
+
+        fixed(PluginInterpolation* sample = &InterpPluginSample)
+        cmsPluginTHR(ctx, sample);
+
+
+        p = cmsPipelineAlloc(ctx, 3, 3);
+        clut = cmsStageAllocCLut16bit(ctx, 2, 3, 3, identity);
+        cmsPipelineInsertStage(p, StageLoc.AtBegin, clut);
+
+        // Do some interpolations with the plugin
+
+        In[0] = 0; In[1] = 0; In[2] = 0;
+        cmsPipelineEval16(In, Out, p);
+
+        if (!IsGoodWord("0", Out[0], 0xFFFF - 0)) goto Error;
+        if (!IsGoodWord("1", Out[1], 0xFFFF - 0)) goto Error;
+        if (!IsGoodWord("2", Out[2], 0xFFFF - 0)) goto Error;
+
+        In[0] = 0x1234; In[1] = 0x5678; In[2] = 0x9ABC;
+        cmsPipelineEval16(In, Out, p);
+
+        if (!IsGoodWord("0", 0xFFFF - 0x9ABC, Out[0])) goto Error;
+        if (!IsGoodWord("1", 0xFFFF - 0x5678, Out[1])) goto Error;
+        if (!IsGoodWord("2", 0xFFFF - 0x1234, Out[2])) goto Error;
+
+        cmsPipelineFree(p);
+        cmsDeleteContext(ctx);
+
+        // Now without the plug-in
+
+        p = cmsPipelineAlloc(null, 3, 3);
+        clut = cmsStageAllocCLut16bit(null, 2, 3, 3, identity);
+        cmsPipelineInsertStage(p, StageLoc.AtBegin, clut);
+
+        In[0] = 0; In[1] = 0; In[2] = 0;
+        cmsPipelineEval16(In, Out, p);
+
+        if (!IsGoodWord("0", 0, Out[0])) goto Error;
+        if (!IsGoodWord("1", 0, Out[1])) goto Error;
+        if (!IsGoodWord("2", 0, Out[2])) goto Error;
+
+        In[0] = 0x1234; In[1] = 0x5678; In[2] = 0x9ABC;
+        cmsPipelineEval16(In, Out, p);
+
+        if (!IsGoodWord("0", 0x1234, Out[0])) goto Error;
+        if (!IsGoodWord("1", 0x5678, Out[1])) goto Error;
+        if (!IsGoodWord("2", 0x9ABC, Out[2])) goto Error;
+
+        cmsPipelineFree(p);
+        return true;
+
+    Error:
+        cmsPipelineFree(p);
+        return false;
+
+    }
 }

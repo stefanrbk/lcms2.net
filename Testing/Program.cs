@@ -202,7 +202,7 @@ if (doPluginTests)
     Check("Alarm codes context", CheckAlarmColorsContext);
     Check("Adaptation state context", CheckAdaptationStateContext);
     Check("1D interpolation plugin", CheckInterp1DPlugin);
-    //Check("3D interpolation plugin", CheckInterp3DPlugin); 
+    Check("3D interpolation plugin", CheckInterp3DPlugin);
     //Check("Parametric curve plugin", CheckParametricCurvePlugin);        
     //Check("Formatters plugin",       CheckFormattersPlugin);        
     //Check("Tag type plugin",         CheckTagTypePlugin);
