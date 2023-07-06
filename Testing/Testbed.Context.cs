@@ -49,7 +49,7 @@ internal static unsafe partial class Testbed
 
     private readonly static PluginInterpolation InterpPluginSample = new()
     {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginInterpolationSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginInterpolationSig, Next = null,
         InterpolatorsFactory = my_Interpolators_Factory,
     };
 
@@ -251,8 +251,8 @@ public static bool CheckAllocContext()
     public static bool CheckInterp1DPlugin()
     {
         ToneCurve* Sampled1D = null;
-        Context ctx = null;
-        Context cpy = null;
+        Context? ctx = null;
+        Context? cpy = null;
         var tab = stackalloc float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
 
         // 1st level context
@@ -263,8 +263,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        fixed (PluginInterpolation* sample = &InterpPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, InterpPluginSample);
 
         cpy = DupContext(ctx, null);
         if (cpy == null)
@@ -320,7 +319,7 @@ public static bool CheckAllocContext()
     {
 
         Pipeline* p;
-        Stage* clut;
+        Stage clut;
         Context ctx;
         var In = stackalloc ushort[3];
         var Out = stackalloc ushort[3];
@@ -343,12 +342,11 @@ public static bool CheckAllocContext()
             return false;
         }
 
-        fixed(PluginInterpolation* sample = &InterpPluginSample)
-        cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, InterpPluginSample);
 
 
         p = cmsPipelineAlloc(ctx, 3, 3);
-        clut = cmsStageAllocCLut16bit(ctx, 2, 3, 3, identity);
+        clut = cmsStageAllocCLut16bit(ctx, 2, 3, 3, identity)!;
         cmsPipelineInsertStage(p, StageLoc.AtBegin, clut);
 
         // Do some interpolations with the plugin
@@ -373,7 +371,7 @@ public static bool CheckAllocContext()
         // Now without the plug-in
 
         p = cmsPipelineAlloc(null, 3, 3);
-        clut = cmsStageAllocCLut16bit(null, 2, 3, 3, identity);
+        clut = cmsStageAllocCLut16bit(null, 2, 3, 3, identity)!;
         cmsPipelineInsertStage(p, StageLoc.AtBegin, clut);
 
         In[0] = 0; In[1] = 0; In[2] = 0;
@@ -436,7 +434,7 @@ public static bool CheckAllocContext()
     // Add nonstandard TRC curves -> Rec709
 
     private readonly static PluginParametricCurves Rec709Plugin = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
         NumFunctions = 1,
         //{TYPE_709},
         //{5},
@@ -445,7 +443,7 @@ public static bool CheckAllocContext()
 
 
     private readonly static PluginParametricCurves CurvePluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null},
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
         NumFunctions = 2,
         //{ TYPE_SIN, TYPE_COS },
         //{ 1, 1 },
@@ -454,7 +452,7 @@ public static bool CheckAllocContext()
 
     private readonly static PluginParametricCurves CurvePluginSample2 = new()
     {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
         NumFunctions = 1,
         //{ TYPE_TAN },
         //{ 1 },
@@ -466,9 +464,9 @@ public static bool CheckAllocContext()
     // --------------------------------------------------------------------------------------------------
     public static bool CheckParametricCurvePlugin()
     {
-        Context ctx = null;
-        Context cpy = null;
-        Context cpy2 = null;
+        Context? ctx = null;
+        Context? cpy = null;
+        Context? cpy2 = null;
         ToneCurve* sinus;
         ToneCurve* cosinus;
         ToneCurve* tangent;
@@ -479,18 +477,15 @@ public static bool CheckAllocContext()
 
         ctx = WatchDogContext(null);
 
-        fixed (PluginParametricCurves* sample = &CurvePluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, CurvePluginSample);
 
         cpy = DupContext(ctx, null);
 
-        fixed (PluginParametricCurves* sample = &CurvePluginSample2)
-            cmsPluginTHR(cpy, sample);
+        cmsPluginTHR(cpy, CurvePluginSample2);
 
         cpy2 = DupContext(cpy, null);
 
-        fixed (PluginParametricCurves* sample = &Rec709Plugin)
-            cmsPluginTHR(cpy2, sample);
+        cmsPluginTHR(cpy2, Rec709Plugin);
 
 
         sinus = cmsBuildParametricToneCurve(cpy, TYPE_SIN, &scale);
@@ -621,7 +616,7 @@ public static bool CheckAllocContext()
 
     private readonly static PluginFormatters FormattersPluginSample = new() 
     {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
         FormattersFactory = my_FormatterFactory
     };
 
@@ -629,28 +624,26 @@ public static bool CheckAllocContext()
 
     private readonly static PluginFormatters FormattersPluginSample2 = new() 
     {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
         FormattersFactory = my_FormatterFactory2
     };
 
 
     public static bool CheckFormattersPlugin()
     {
-        Context ctx = WatchDogContext(null);
-        Context cpy;
-        Context cpy2;
+        Context? ctx = WatchDogContext(null);
+        Context? cpy;
+        Context? cpy2;
         Transform* xform;
         var stream = stackalloc ushort[] { (ushort)0xffffU, (ushort)0x1234U, (ushort)0x0000U, (ushort)0x33ddU };
         var result = stackalloc ushort[4];
         int i;
 
-        fixed (PluginFormatters* sample = &FormattersPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, FormattersPluginSample);
 
         cpy = DupContext(ctx, null);
 
-        fixed (PluginFormatters* sample = &FormattersPluginSample2)
-            cmsPluginTHR(cpy, sample);
+        cmsPluginTHR(cpy, FormattersPluginSample2);
 
         cpy2 = DupContext(cpy, null);
 
@@ -672,55 +665,51 @@ public static bool CheckAllocContext()
     const uint SigIntType = 0x74747448;   //   'tttH'
     const uint SigInt = 0x74747448;       //   'tttH'
 
-    private static void* Type_int_Read(TagTypeHandler* self,IOHandler* io,uint* nItems,uint _)
+    private static Box<uint>? Type_int_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
-        var Ptr = _cmsMalloc<uint>(self->ContextID);
-        if (Ptr == null) return null;
-        if (!_cmsReadUInt32Number(io, Ptr)) return null;
+        uint Ptr;
+        if (!_cmsReadUInt32Number(io, &Ptr)) return null;
         *nItems = 1;
-        return Ptr;
+        return new Box<uint>(Ptr);
     }
 
-    private static bool Type_int_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2) =>
-        _cmsWriteUInt32Number(io, *(uint*)Ptr);
+    private static bool Type_int_Write(TagTypeHandler* _1, IOHandler io, object Ptr, uint _2) =>
+        _cmsWriteUInt32Number(io, ((Box<uint>)Ptr).Value);
 
-    private static void* Type_int_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem<uint>(self->ContextID, Ptr, n);
+    private static object? Type_int_Dup(TagTypeHandler* self, object Ptr, uint n) =>
+        new Box<uint>(((Box<uint>)Ptr).Value);
 
-    private static void Type_int_Free(TagTypeHandler* self, void* Ptr) =>
-        _cmsFree(self->ContextID, Ptr);
+    private static void Type_int_Free(TagTypeHandler* self, object? Ptr)
+    { }
 
 
     private readonly static PluginTag HiddenTagPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagSig, Next = null,
         Signature = SigInt,
         Descriptor = new () { ElemCount = 1, nSupportedTypes = 1, /*{ SigIntType },*/ DecideType = null }
     };
 
     private readonly static PluginTagType TagTypePluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagTypeSig, Next = /*(PluginBase*) &HiddenTagPluginSample*/ null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagTypeSig, Next = HiddenTagPluginSample,
         Handler = new(SigIntType, Type_int_Read, Type_int_Write, Type_int_Dup, Type_int_Free, null, 0)
     };
 
 
     public static bool CheckTagTypePlugin()
     {
-        Context ctx = null;
-        Context cpy = null;
-        Context cpy2 = null;
-        HPROFILE h = null;
+        Context? ctx = null;
+        Context? cpy = null;
+        Context? cpy2 = null;
+        Profile? h = null;
         uint myTag = 1234;
         bool rc = false;
         byte* data = null;
-        uint* ptr = null;
+        Box<uint>? ptr = null;
         uint clen = 0;
 
 
         ctx = WatchDogContext(null);
-        fixed (PluginTagType* sample = &TagTypePluginSample)
-            cmsPluginTHR(ctx, sample);
-        fixed (PluginTag* sample = &HiddenTagPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, TagTypePluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
@@ -729,7 +718,6 @@ public static bool CheckAllocContext()
         cmsDeleteContext(cpy);
 
         h = cmsCreateProfilePlaceholder(cpy2);
-        //h = cmsCreateProfilePlaceholder(ctx);
         if (h == null)
         {
             Fail("Create placeholder failed");
@@ -737,7 +725,7 @@ public static bool CheckAllocContext()
         }
 
 
-        if (!cmsWriteTag(h, SigInt, &myTag))
+        if (!cmsWriteTag(h, SigInt, new Box<uint>(myTag)))
         {
             Fail("Plug-in failed");
             goto Error;
@@ -776,7 +764,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        ptr = (uint*)cmsReadTag(h, SigInt);
+        ptr = cmsReadTag(h, SigInt) as Box<uint>;
         if (ptr != null)
         {
 
@@ -788,7 +776,6 @@ public static bool CheckAllocContext()
         ResetFatalError();
 
         h = cmsOpenProfileFromMemTHR(cpy2, data, clen);
-        //h = cmsOpenProfileFromMemTHR(ctx, data, clen);
         if (h == null)
         {
             Fail("Open profile from mem failed");
@@ -798,19 +785,18 @@ public static bool CheckAllocContext()
         // Get rid of data
         free(data); data = null;
 
-        ptr = (uint*)cmsReadTag(h, SigInt);
+        ptr = cmsReadTag(h, SigInt) as Box<uint>;
         if (ptr == null)
         {
             Fail("Read tag/conext switching failed (2)");
             return false;
         }
 
-        rc = (*ptr == 1234);
+        rc = ptr.Value == 1234;
 
         cmsCloseProfile(h);
 
         cmsDeleteContext(cpy2);
-        //cmsDeleteContext(ctx);
 
         return rc;
 
@@ -827,21 +813,21 @@ public static bool CheckAllocContext()
 
     private const uint SigNegateType = 0x6E202020;
 
-    private static void EvaluateNegate(in float* In, float* Out, in Stage* _)
+    private static void EvaluateNegate(in float* In, float* Out, Stage _)
     {
         Out[0] = 1.0f - In[0];
         Out[1] = 1.0f - In[1];
         Out[2] = 1.0f - In[2];
     }
 
-    private static Stage* StageAllocNegate(Context ContextID)
+    private static Stage? StageAllocNegate(Context? ContextID)
     {
         return _cmsStageAllocPlaceholder(ContextID,
                      SigNegateType, 3, 3, EvaluateNegate,
                      null, null, null);
     }
 
-    private static void* Type_negate_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    private static Stage? Type_negate_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort Chans;
         if (!_cmsReadUInt16Number(io, &Chans)) return null;
@@ -851,34 +837,33 @@ public static bool CheckAllocContext()
         return StageAllocNegate(self -> ContextID);
     }
 
-    private static bool Type_negate_Write(TagTypeHandler* _1, IOHandler* io, void* _2, uint _3)
+    private static bool Type_negate_Write(TagTypeHandler* _1, IOHandler io, object? _2, uint _3)
     {
         return _cmsWriteUInt16Number(io, 3);
     }
 
     private readonly static PluginTagType MPEPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMultiProcessElementSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMultiProcessElementSig, Next = null,
         Handler = new(SigNegateType, Type_negate_Read, Type_negate_Write, null, null, null, 0)
     };
 
 
     public static bool CheckMPEPlugin()
     {
-        Context ctx = null;
-        Context cpy = null;
-        Context cpy2 = null;
-        HPROFILE h = null;
+        Context? ctx = null;
+        Context? cpy = null;
+        Context? cpy2 = null;
+        Profile? h = null;
         uint myTag = 1234;
         bool rc = false;
         byte* data = null;
         uint clen = 0;
         var In = stackalloc float[3];
         var Out = stackalloc float[3];
-        Pipeline* pipe;
+        BoxPtr<Pipeline>? pipe;
 
         ctx = WatchDogContext(null);
-        fixed (PluginTagType* sample = &MPEPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, MPEPluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
@@ -893,7 +878,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        pipe = cmsPipelineAlloc(cpy2, 3, 3);
+        pipe = new BoxPtr<Pipeline>(cmsPipelineAlloc(cpy2, 3, 3));
         cmsPipelineInsertStage(pipe, StageLoc.AtBegin, StageAllocNegate(cpy2));
 
 
@@ -910,7 +895,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        if (!cmsWriteTag(h, cmsSigDToB3Tag, pipe))
+        if (!cmsWriteTag(h, cmsSigDToB3Tag, new BoxPtr<Pipeline>(pipe)))
         {
             Fail("Plug-in failed");
             goto Error;
@@ -953,7 +938,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        pipe = (Pipeline*)cmsReadTag(h, cmsSigDToB3Tag);
+        pipe = cmsReadTag(h, cmsSigDToB3Tag) as BoxPtr<Pipeline>;
         if (pipe != null)
         {
 
@@ -976,7 +961,7 @@ public static bool CheckAllocContext()
         // Get rid of data
         free(data); data = null;
 
-        pipe = (Pipeline*)cmsReadTag(h, cmsSigDToB3Tag);
+        pipe = cmsReadTag(h, cmsSigDToB3Tag) as BoxPtr<Pipeline>;
         if (pipe == null)
         {
             Fail("Read tag/conext switching failed (2)");
@@ -1015,8 +1000,8 @@ public static bool CheckAllocContext()
 
     private static bool MyOptimize(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
-        Stage* mpe;
-        StageToneCurvesData* Data;
+        Stage? mpe;
+        StageToneCurvesData? Data;
 
         //  Only curves in this LUT? All are identities?
         for (mpe = cmsPipelineGetPtrToFirstStage(*Lut);
@@ -1027,9 +1012,9 @@ public static bool CheckAllocContext()
             if (cmsStageType(mpe) != cmsSigCurveSetElemType) return false;
 
             // Check for identity
-            Data = (StageToneCurvesData*)cmsStageData(mpe);
-            if (Data->nCurves != 1) return false;
-            if (cmsEstimateGamma(Data->TheCurves[0], 0.1) > 1.0) return false;
+            Data = cmsStageData(mpe) as StageToneCurvesData;
+            if (Data?.nCurves != 1) return false;
+            if (cmsEstimateGamma(Data.TheCurves[0], 0.1) > 1.0) return false;
 
         }
 
@@ -1040,25 +1025,24 @@ public static bool CheckAllocContext()
     }
 
     private readonly static PluginOptimization OptimizationPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginOptimizationSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginOptimizationSig, Next = null,
         OptimizePtr = MyOptimize
     };
 
 
     public static bool CheckOptimizationPlugin()
     {
-        Context ctx = WatchDogContext(null);
-        Context cpy;
-        Context cpy2;
+        Context? ctx = WatchDogContext(null);
+        Context? cpy;
+        Context? cpy2;
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         var Linear = stackalloc ToneCurve*[1];
-        HPROFILE h;
+        Profile? h;
         int i;
 
-        fixed (PluginOptimization* sample = &OptimizationPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, OptimizationPluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
@@ -1085,7 +1069,7 @@ public static bool CheckAllocContext()
 
     private const uint INTENT_DECEPTIVE = 300;
 
-    private static Pipeline* MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, HPROFILE* hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
+    private static Pipeline* MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, Profile[] hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
     {
         Pipeline* Result;
         var ICCIntents = stackalloc uint[256];
@@ -1094,7 +1078,7 @@ public static bool CheckAllocContext()
         for (i = 0; i < nProfiles; i++)
             ICCIntents[i] = (TheIntents[i] == INTENT_DECEPTIVE) ? INTENT_PERCEPTUAL : TheIntents[i];
 
-        if (cmsGetColorSpace(hProfiles[0]) != cmsSigGrayData || cmsGetColorSpace(hProfiles[nProfiles - 1]) != cmsSigGrayData)
+        if (cmsGetColorSpace(hProfiles[0]) != cmsSigGrayData || cmsGetColorSpace(hProfiles[(int)nProfiles - 1]) != cmsSigGrayData)
             return _cmsDefaultICCintents(ContextID, nProfiles, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
 
         Result = cmsPipelineAlloc(ContextID, 1, 1);
@@ -1106,7 +1090,7 @@ public static bool CheckAllocContext()
     }
 
     private readonly static PluginRenderingIntent IntentPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginRenderingIntentSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginRenderingIntentSig, Next = null,
         Intent = INTENT_DECEPTIVE,
         Link = MyNewIntent,
         Description = "bypass gray to gray rendering intent"
@@ -1114,19 +1098,18 @@ public static bool CheckAllocContext()
 
     public static bool CheckIntentPlugin()
     {
-        Context ctx = WatchDogContext(null);
-        Context cpy;
-        Context cpy2;
+        Context? ctx = WatchDogContext(null);
+        Context? cpy;
+        Context? cpy2;
         Transform* xform;
-        HPROFILE h1, h2;
+        Profile? h1, h2;
         ToneCurve* Linear1;
         ToneCurve* Linear2;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         int i;
 
-        fixed (PluginRenderingIntent* sample = &IntentPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, IntentPluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
@@ -1185,24 +1168,23 @@ public static bool CheckAllocContext()
 
     // The Plug-in entry point
     private readonly static PluginTransform FullTransformPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTransformSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTransformSig, Next = null,
         factories = new() { legacy_xform = TransformFactory }
     };
 
     public static bool CheckTransformPlugin()
     {
-        Context ctx = WatchDogContext(null);
-        Context cpy;
-        Context cpy2;
+        Context? ctx = WatchDogContext(null);
+        Context? cpy;
+        Context? cpy2;
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         ToneCurve* Linear;
-        HPROFILE h;
+        Profile? h;
         int i;
 
-        fixed (PluginTransform* sample = &FullTransformPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, FullTransformPluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
@@ -1233,42 +1215,46 @@ public static bool CheckAllocContext()
     }
 
 
-    private static void* MyMtxCreate(Context id)
+    private static Box<MyMtx> MyMtxCreate(Context id)
     {
-        var mtx = _cmsMalloc<MyMtx>(id);
-        mtx->nlocks = 0;
-        return mtx;
+        var mtx = new MyMtx()
+        {
+            nlocks = 0
+        };
+        return new(mtx);
     }
 
-    private static void MyMtxDestroy(Context id, void* mtx)
+    private static void MyMtxDestroy(Context id, object mtx)
     {
-        MyMtx* mtx_ = (MyMtx*)mtx;
+        var mtx_ = mtx as Box<MyMtx>;
 
-        if (mtx_->nlocks != 0)
+        if (mtx_?.Value.nlocks != 0)
             Die("Locks != 0 when setting free a mutex");
 
-        _cmsFree(id, mtx);
+        //_cmsFree(id, mtx);
 
     }
 
-    private static bool MyMtxLock(Context id, void* mtx)
+    private static bool MyMtxLock(Context id, object? mtx)
     {
-        MyMtx* mtx_ = (MyMtx*)mtx;
-        mtx_->nlocks++;
+        var mtx_ = mtx as Box<MyMtx>;
+        if (mtx_ is not null)
+            mtx_.Value.nlocks++;
 
         return true;
     }
 
-    private static void MyMtxUnlock(Context id, void* mtx)
+    private static void MyMtxUnlock(Context id, object? mtx)
     {
-        MyMtx* mtx_ = (MyMtx*)mtx;
-        mtx_->nlocks--;
+        var mtx_ = mtx as Box<MyMtx>;
+        if (mtx_ is not null)
+            mtx_.Value.nlocks--;
 
     }
 
 
     private readonly static PluginMutex MutexPluginSample = new() {
-        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMutexSig, Next = null },
+        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMutexSig, Next = null,
         CreateMutexPtr = MyMtxCreate,
         DestroyMutexPtr = MyMtxDestroy,
         LockMutexPtr = MyMtxLock,
@@ -1278,18 +1264,17 @@ public static bool CheckAllocContext()
 
     public static bool CheckMutexPlugin()
     {
-        Context ctx = WatchDogContext(null);
-        Context cpy;
-        Context cpy2;
+        Context? ctx = WatchDogContext(null);
+        Context? cpy;
+        Context? cpy2;
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         ToneCurve* Linear;
-        HPROFILE h;
+        Profile? h;
         int i;
 
-        fixed (PluginMutex* sample = &MutexPluginSample)
-            cmsPluginTHR(ctx, sample);
+        cmsPluginTHR(ctx, MutexPluginSample);
 
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
