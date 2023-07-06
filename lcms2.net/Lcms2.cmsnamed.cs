@@ -221,6 +221,13 @@ public static unsafe partial class Lcms2
 
         return (uint)(p - s);
     }
+    public static bool cmsMLUsetWide(Mlu* mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, string WideString)
+    {
+        var lang = stackalloc byte[3] { LanguageCode[0], LanguageCode[1], 0 };
+        var cnty = stackalloc byte[3] { CountryCode[0], CountryCode[1], 0 };
+
+        return cmsMLUsetWide(mlu, lang, cnty, WideString);
+    }
 
     public static bool cmsMLUsetWide(Mlu* mlu, in byte* LanguageCode, in byte* CountryCode, string WideString)
     {
@@ -481,6 +488,20 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    public static NamedColorList* cmsAllocNamedColorList(Context ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
+    {
+        var pre = stackalloc byte[Prefix.Length + 1];
+        var suf = stackalloc byte[Suffix.Length + 1];
+
+        for (var i = 0; i <  Prefix.Length; i++)
+            pre[i] = Prefix[i];
+
+        for (var i = 0; i < Suffix.Length; i++)
+            suf[i] = Suffix[i];
+
+        return cmsAllocNamedColorList(ContextID, n, ColorantCount, pre, suf);
+    }
+
     public static NamedColorList* cmsAllocNamedColorList(Context ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
     {
         var v = _cmsMallocZero<NamedColorList>(ContextID);
@@ -539,6 +560,19 @@ public static unsafe partial class Lcms2
         memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
         NewNC->nColors = v->nColors;
         return NewNC;
+    }
+    public static bool cmsAppendNamedColor(
+        NamedColorList* NamedColorList,
+        ReadOnlySpan<byte> Name,
+        ushort* PCS,
+        ushort* Colorant)
+    {
+        var buf = stackalloc byte[Name.Length + 1];
+
+        for (var i = 0; i < Name.Length; i++)
+            buf[i] = Name[i];
+
+        return cmsAppendNamedColor(NamedColorList, buf, PCS, Colorant);
     }
 
     public static bool cmsAppendNamedColor(
@@ -601,6 +635,14 @@ public static unsafe partial class Lcms2
             memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * _sizeof<ushort>());
 
         return true;
+    }
+    public static int cmsNamedColorIndex(in NamedColorList* NamedColorList, ReadOnlySpan<byte> Name)
+    {
+        var buf = stackalloc byte[Name.Length + 1];
+        for (var i = 0; i < Name.Length; i++)
+            buf[i] = Name[i];
+
+        return cmsNamedColorIndex(NamedColorList, buf);
     }
 
     public static int cmsNamedColorIndex(in NamedColorList* NamedColorList, in byte* Name)

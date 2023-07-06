@@ -189,8 +189,10 @@ if (doCheckTests)
     Console.WriteLine("\nChange buffers format");
     Check("ChangeBuffersFormat", CheckChangeBufferFormats);
 
-    Console.WriteLine("\nMLU");
+    Console.WriteLine("\nMLU and named color lists");
     Check("Multilocalized Unicode", CheckMLU);
+    Check("Named color lists", CheckNamedColorList);
+    Check("Create named color profile", CreateNamedColorProfile);
 }
 
 if (doPluginTests)

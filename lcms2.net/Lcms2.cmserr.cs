@@ -60,7 +60,7 @@ public static unsafe partial class Lcms2
                 return 0;
         }
 
-        return Char.ToUpper((char)*--ss1) - Char.ToUpper((char)*--ss2);
+        return Char.ToUpper((char)*ss1) - Char.ToUpper((char)*ss2);
     }
 
     public static long cmsfilelength(FILE* f)
