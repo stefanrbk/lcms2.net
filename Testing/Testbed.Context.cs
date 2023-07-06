@@ -1233,5 +1233,91 @@ public static bool CheckAllocContext()
         return true;
     }
 
+    private struct MyMtx {
+        public int nlocks;
+    }
+
+
+    private static void* MyMtxCreate(Context id)
+    {
+        var mtx = _cmsMalloc<MyMtx>(id);
+        mtx->nlocks = 0;
+        return mtx;
+    }
+
+    private static void MyMtxDestroy(Context id, void* mtx)
+    {
+        MyMtx* mtx_ = (MyMtx*)mtx;
+
+        if (mtx_->nlocks != 0)
+            Die("Locks != 0 when setting free a mutex");
+
+        _cmsFree(id, mtx);
+
+    }
+
+    private static bool MyMtxLock(Context id, void* mtx)
+    {
+        MyMtx* mtx_ = (MyMtx*)mtx;
+        mtx_->nlocks++;
+
+        return true;
+    }
+
+    private static void MyMtxUnlock(Context id, void* mtx)
+    {
+        MyMtx* mtx_ = (MyMtx*)mtx;
+        mtx_->nlocks--;
+
+    }
+
+
+    private readonly static PluginMutex MutexPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMutexSig, Next = null },
+        CreateMutexPtr = MyMtxCreate,
+        DestroyMutexPtr = MyMtxDestroy,
+        LockMutexPtr = MyMtxLock,
+        UnlockMutexPtr = MyMtxUnlock
+    };
+
+
+    public static bool CheckMutexPlugin()
+    {
+        Context ctx = WatchDogContext(null);
+        Context cpy;
+        Context cpy2;
+        Transform* xform;
+        var In = stackalloc byte[] { 10, 20, 30, 40 };
+        var Out = stackalloc byte[4];
+        ToneCurve* Linear;
+        HPROFILE h;
+        int i;
+
+        fixed (PluginMutex* sample = &MutexPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        Linear = cmsBuildGamma(cpy2, 1.0);
+        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear);
+        cmsFreeToneCurve(Linear);
+
+        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        cmsCloseProfile(h);
+
+        cmsDoTransform(xform, In, Out, 4);
+
+
+        cmsDeleteTransform(xform);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        for (i = 0; i < 4; i++)
+            if (Out[i] != In[i]) return false;
+
+        return true;
+    }
 
 }

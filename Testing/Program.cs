@@ -210,7 +210,7 @@ if (doPluginTests)
     Check("Optimization plugin", CheckOptimizationPlugin);
     Check("Rendering intent plugin", CheckIntentPlugin);
     Check("Full transform plugin", CheckTransformPlugin);
-    //Check("Mutex plugin",            CheckMutexPlugin);
+    Check("Mutex plugin", CheckMutexPlugin);
 }
 
 DebugMemPrintTotals();
