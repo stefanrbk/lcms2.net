@@ -2526,18 +2526,8 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context src)
     {
-        _cmsAssert(ctx);
-
-        if (src is not null)
-        {
-            // Duplicate
-            DupFormatterFactoryList(ctx, src);
-        }
-        else
-        {
-            fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
-                ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, @default);
-        }
+        fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
+            AllocPluginChunk(ctx, src, Chunks.FormattersPlugin, @default);
     }
 
     internal static bool _cmsRegisterFormattersPlugin(Context ContextID, PluginBase* Data)

@@ -4274,7 +4274,7 @@ public static unsafe partial class Lcms2
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TagTypeLinkedList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx->MemPool, entry);
 
             if (newEntry is null)
                 return;
@@ -4325,7 +4325,7 @@ public static unsafe partial class Lcms2
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TagLinkedList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TagLinkedList>(ctx->MemPool, entry);
 
             if (newEntry is null)
                 return;

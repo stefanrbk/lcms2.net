@@ -158,18 +158,7 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsAllocMemPluginChunk(Context ctx, in Context src)
     {
-        _cmsAssert(ctx);
-
-        if (src is not null)
-        {
-            // Duplicate
-            ctx->chunks[Chunks.MemPlugin] = _cmsSubAllocDup<MemPluginChunkType>(ctx->MemPool, src->chunks[Chunks.MemPlugin]);
-        }
-        else
-        {
-            // To reset it, we use the default allocators, which cannot be overridden
-            ctx->chunks[Chunks.MemPlugin] = &ctx->DefaultMemoryManager;
-        }
+        AllocPluginChunk(ctx, src, Chunks.MemPlugin, &ctx->DefaultMemoryManager);
     }
 
     internal static void _cmsInstallAllocFunctions(PluginMemHandler* Plugin, MemPluginChunkType* ptr)
@@ -455,20 +444,20 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Change error logger, context based
     /// </summary>
-    public static void cmsSetLogErrorHandlerTHR(Context context, LogErrorHandlerFunction Fn)
+    public static void cmsSetLogErrorHandlerTHR(Context context, LogErrorHandlerFunction? Fn)
     {
         var lhg = _cmsContextGetClientChunk<LogErrorChunkType>(context, Chunks.Logger);
 
         if (lhg is not null)
         {
-            lhg->LogErrorHandler = Fn is null ? DefaultLogErrorHandlerFunction : Fn;
+            lhg->LogErrorHandler = Fn ?? DefaultLogErrorHandlerFunction;
         }
     }
 
     /// <summary>
     ///     Change error logger, legacy
     /// </summary>
-    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction Fn) =>
+    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction? Fn) =>
         cmsSetLogErrorHandlerTHR(null, Fn);
 
     /// <summary>

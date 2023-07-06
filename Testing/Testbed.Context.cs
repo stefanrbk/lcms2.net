@@ -24,8 +24,11 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.io;
 using lcms2.state;
 using lcms2.types;
+
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace lcms2.testbed;
 
@@ -670,4 +673,161 @@ public static bool CheckAllocContext()
 
         return true;
     }
+
+    const uint SigIntType = 0x74747448;   //   'tttH'
+    const uint SigInt = 0x74747448;       //   'tttH'
+
+    private static void* Type_int_Read(TagTypeHandler* self,IOHandler* io,uint* nItems,uint _)
+    {
+        var Ptr = _cmsMalloc<uint>(self->ContextID);
+        if (Ptr == null) return null;
+        if (!_cmsReadUInt32Number(io, Ptr)) return null;
+        *nItems = 1;
+        return Ptr;
+    }
+
+    private static bool Type_int_Write(TagTypeHandler* _1, IOHandler* io, void* Ptr, uint _2) =>
+        _cmsWriteUInt32Number(io, *(uint*)Ptr);
+
+    private static void* Type_int_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
+        _cmsDupMem<uint>(self->ContextID, Ptr, n);
+
+    private static void Type_int_Free(TagTypeHandler* self, void* Ptr) =>
+        _cmsFree(self->ContextID, Ptr);
+
+
+    private readonly static PluginTag HiddenTagPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagSig, Next = null },
+        Signature = SigInt,
+        Descriptor = new () { ElemCount = 1, nSupportedTypes = 1, /*{ SigIntType },*/ DecideType = null }
+    };
+
+    private readonly static PluginTagType TagTypePluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagTypeSig, Next = /*(PluginBase*) &HiddenTagPluginSample*/ null },
+        Handler = new(SigIntType, Type_int_Read, Type_int_Write, Type_int_Dup, Type_int_Free, null, 0)
+    };
+
+
+    public static bool CheckTagTypePlugin()
+    {
+        Context ctx = null;
+        Context cpy = null;
+        Context cpy2 = null;
+        HPROFILE h = null;
+        uint myTag = 1234;
+        bool rc = false;
+        byte* data = null;
+        uint* ptr = null;
+        uint clen = 0;
+
+
+        ctx = WatchDogContext(null);
+        fixed (PluginTagType* sample = &TagTypePluginSample)
+            cmsPluginTHR(ctx, sample);
+        fixed (PluginTag* sample = &HiddenTagPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+
+        h = cmsCreateProfilePlaceholder(cpy2);
+        //h = cmsCreateProfilePlaceholder(ctx);
+        if (h == null)
+        {
+            Fail("Create placeholder failed");
+            goto Error;
+        }
+
+
+        if (!cmsWriteTag(h, SigInt, &myTag))
+        {
+            Fail("Plug-in failed");
+            goto Error;
+        }
+
+        rc = cmsSaveProfileToMem(h, null, &clen);
+        if (!rc)
+        {
+            Fail("Fetch mem size failed");
+            goto Error;
+        }
+
+
+        data = (byte*)alloc(clen);
+        if (data == null)
+        {
+            Fail("malloc failed ?!?");
+            goto Error;
+        }
+
+
+        rc = cmsSaveProfileToMem(h, data, &clen);
+        if (!rc)
+        {
+            Fail("Save to mem failed");
+            goto Error;
+        }
+
+        cmsCloseProfile(h);
+
+        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        h = cmsOpenProfileFromMem(data, clen);
+        if (h == null)
+        {
+            Fail("Open profile failed");
+            goto Error;
+        }
+
+        ptr = (uint*)cmsReadTag(h, SigInt);
+        if (ptr != null)
+        {
+
+            Fail("read tag/context switching failed");
+            goto Error;
+        }
+
+        cmsCloseProfile(h);
+        ResetFatalError();
+
+        h = cmsOpenProfileFromMemTHR(cpy2, data, clen);
+        //h = cmsOpenProfileFromMemTHR(ctx, data, clen);
+        if (h == null)
+        {
+            Fail("Open profile from mem failed");
+            goto Error;
+        }
+
+        // Get rid of data
+        free(data); data = null;
+
+        ptr = (uint*)cmsReadTag(h, SigInt);
+        if (ptr == null)
+        {
+            Fail("Read tag/conext switching failed (2)");
+            return false;
+        }
+
+        rc = (*ptr == 1234);
+
+        cmsCloseProfile(h);
+
+        cmsDeleteContext(cpy2);
+        //cmsDeleteContext(ctx);
+
+        return rc;
+
+    Error:
+
+        if (h != null) cmsCloseProfile(h);
+        if (ctx != null) cmsDeleteContext(ctx);
+        if (cpy != null) cmsDeleteContext(cpy);
+        if (cpy2 != null) cmsDeleteContext(cpy2);
+        if (data is not null) free(data);
+
+        return false;
+    }
+
 }

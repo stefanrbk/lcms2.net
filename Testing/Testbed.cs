@@ -85,6 +85,8 @@ internal static unsafe partial class Testbed
 
         CurvePluginSample2.FunctionTypes[0] = TYPE_TAN;
         CurvePluginSample2.ParameterCount[0] = 1;
+
+        HiddenTagPluginSample.Descriptor.SupportedTypes[0] = SigIntType;
     }
 
     public static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> =>

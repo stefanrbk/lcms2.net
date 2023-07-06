@@ -623,7 +623,7 @@ public static unsafe partial class Lcms2
             Plugin is not null;
             Plugin = Plugin->Next)
         {
-            if ((uint)Plugin->Magic is cmsMagicNumber &&
+            if ((uint)Plugin->Magic is cmsPluginMagicNumber &&
                 Plugin->ExpectedVersion <= LCMS_VERSION &&
                 (uint)Plugin->Type is cmsPluginMemHandlerSig)
             {
