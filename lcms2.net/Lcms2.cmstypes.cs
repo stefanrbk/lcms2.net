@@ -3373,7 +3373,7 @@ public static unsafe partial class Lcms2
     private static BoxPtr<Pipeline>? Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
-        uint ElementCount;
+        ushort ElementCount;
         Pipeline* NewLUT = null;
 
         *nItems = 0;
@@ -3392,7 +3392,7 @@ public static unsafe partial class Lcms2
         NewLUT = cmsPipelineAlloc(self->ContextID, InputChans, OutputChans);
         if (NewLUT is null) return null;
 
-        if (!_cmsReadUInt32Number(io, &ElementCount)) goto Error;
+        if (!_cmsReadUInt16Number(io, &ElementCount)) goto Error;
         if (!ReadPositionTable(self, io, ElementCount, BaseOffset, NewLUT, &ReadMPEElem)) goto Error;
 
         // Check channel count

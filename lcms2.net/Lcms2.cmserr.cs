@@ -528,14 +528,14 @@ public static unsafe partial class Lcms2
 
         if (lhg is not null)
         {
-            lhg.LogErrorHandler = Fn is null ? DefaultLogErrorHandlerFunction : Fn;
+            lhg.LogErrorHandler = Fn ?? DefaultLogErrorHandlerFunction;
         }
     }
 
     /// <summary>
     ///     Change error logger, legacy
     /// </summary>
-    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction Fn) =>
+    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction? Fn) =>
         cmsSetLogErrorHandlerTHR(null, Fn);
 
     /// <summary>

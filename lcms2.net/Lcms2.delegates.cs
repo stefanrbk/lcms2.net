@@ -56,8 +56,8 @@ public static unsafe partial class Lcms2
     public delegate void PipelineEvalFloatFn(in float* In, float* Out, in void* Data);
     public delegate void TransformFn(Transform* CMMcargo, in void* InputBuffer, void* OutputBuffer, uint Size, uint Stride);
     public delegate void Transform2Fn(Transform* CMMcargo, in void* InputBuffer, void* OutputBuffer, uint PixelsPerLine, uint LineCount, in Stride* Stride);
-    public delegate bool TransformFactory(TransformFn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
-    public delegate bool Transform2Factory(Transform2Fn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
+    public delegate bool TransformFactory(out TransformFn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
+    public delegate bool Transform2Factory(out Transform2Fn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, Pipeline** Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
     public delegate object? CreateMutexFnPtrType(Context? ContextID);
     public delegate void DestroyMutexFnPtrType(Context? ContextID, object? mtx);
     public delegate bool LockMutexFnPtrType(Context? ContextID, object? mtx);
