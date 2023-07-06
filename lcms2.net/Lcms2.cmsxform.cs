@@ -660,7 +660,7 @@ public static unsafe partial class Lcms2
                     Plugin is not null;
                     Plugin = Plugin->Next)
                 {
-                    if (Plugin->Factory(p->xform, &p->UserData, p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
+                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
                     {
                         // Last plugin in the declaration order takes control. We just keep
                         // the original parameters as a logging.

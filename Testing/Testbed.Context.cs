@@ -1160,4 +1160,78 @@ public static bool CheckAllocContext()
         return true;
     }
 
+    // This is a sample intent that only works for gray8 as output, and always returns '42'
+    private static void TrancendentalTransform(Transform* _1, in void* _2, void* OutputBuffer, uint Size, uint _3)
+    {
+        uint i;
+
+        for (i=0; i<Size; i++)
+        {
+            ((byte*) OutputBuffer)[i] = 0x42;
+        }
+
+    }
+
+
+    private static bool TransformFactory(out TransformFn xformPtr, void** _1, FreeUserDataFn? _2, Pipeline** Lut, uint* _3, uint* OutputFormat, uint* _4)
+
+    {
+        if (*OutputFormat == TYPE_GRAY_8)
+        {
+            // *Lut holds the pipeline to be applied
+            xformPtr = TrancendentalTransform;
+            return true;
+        }
+
+        xformPtr = null!;
+        return false;
+    }
+
+
+    // The Plug-in entry point
+    private readonly static PluginTransform FullTransformPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTransformSig, Next = null },
+        factories = new() { legacy_xform = TransformFactory }
+    };
+
+    public static bool CheckTransformPlugin()
+    {
+        Context ctx = WatchDogContext(null);
+        Context cpy;
+        Context cpy2;
+        Transform* xform;
+        var In = stackalloc byte[] { 10, 20, 30, 40 };
+        var Out = stackalloc byte[4];
+        ToneCurve* Linear;
+        HPROFILE h;
+        int i;
+
+        fixed (PluginTransform* sample = &FullTransformPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        Linear = cmsBuildGamma(cpy2, 1.0);
+        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear);
+        cmsFreeToneCurve(Linear);
+
+        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        cmsCloseProfile(h);
+
+        cmsDoTransform(xform, In, Out, 4);
+
+
+        cmsDeleteTransform(xform);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        for (i = 0; i < 4; i++)
+            if (Out[i] != 0x42) return false;
+
+        return true;
+    }
+
+
 }
