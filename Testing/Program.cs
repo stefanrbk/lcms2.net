@@ -207,7 +207,7 @@ if (doPluginTests)
     Check("Formatters plugin", CheckFormattersPlugin);
     Check("Tag type plugin", CheckTagTypePlugin);
     Check("MPE type plugin", CheckMPEPlugin);
-    //Check("Optimization plugin",     CheckOptimizationPlugin); 
+    Check("Optimization plugin", CheckOptimizationPlugin);
     //Check("Rendering intent plugin", CheckIntentPlugin);
     //Check("Full transform plugin",   CheckTransformPlugin);
     //Check("Mutex plugin",            CheckMutexPlugin);

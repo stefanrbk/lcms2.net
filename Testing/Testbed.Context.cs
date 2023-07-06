@@ -1013,4 +1013,79 @@ public static bool CheckAllocContext()
         return false;
     }
 
+    private static void FastEvaluateCurves(in ushort* In, ushort* Out, in void* _)
+    {
+        Out[0] = In[0];
+    }
+
+    private static bool MyOptimize(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    {
+        Stage* mpe;
+        StageToneCurvesData* Data;
+
+        //  Only curves in this LUT? All are identities?
+        for (mpe = cmsPipelineGetPtrToFirstStage(*Lut);
+             mpe != null;
+             mpe = cmsStageNext(mpe))
+        {
+
+            if (cmsStageType(mpe) != cmsSigCurveSetElemType) return false;
+
+            // Check for identity
+            Data = (StageToneCurvesData*)cmsStageData(mpe);
+            if (Data->nCurves != 1) return false;
+            if (cmsEstimateGamma(Data->TheCurves[0], 0.1) > 1.0) return false;
+
+        }
+
+        *dwFlags |= cmsFLAGS_NOCACHE;
+        _cmsPipelineSetOptimizationParameters(*Lut, FastEvaluateCurves, null, null, null);
+
+        return true;
+    }
+
+    private readonly static PluginOptimization OptimizationPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginOptimizationSig, Next = null },
+        OptimizePtr = MyOptimize
+    };
+
+
+    public static bool CheckOptimizationPlugin()
+    {
+        Context ctx = WatchDogContext(null);
+        Context cpy;
+        Context cpy2;
+        Transform* xform;
+        var In = stackalloc byte[] { 10, 20, 30, 40 };
+        var Out = stackalloc byte[4];
+        var Linear = stackalloc ToneCurve*[1];
+        HPROFILE h;
+        int i;
+
+        fixed (PluginOptimization* sample = &OptimizationPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        Linear[0] = cmsBuildGamma(cpy2, 1.0);
+        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, Linear);
+        cmsFreeToneCurve(Linear[0]);
+
+        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        cmsCloseProfile(h);
+
+        cmsDoTransform(xform, In, Out, 4);
+
+        cmsDeleteTransform(xform);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        for (i = 0; i < 4; i++)
+            if (In[i] != Out[i]) return false;
+
+        return true;
+    }
+
 }
