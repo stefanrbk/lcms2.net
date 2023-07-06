@@ -52,7 +52,7 @@ public static unsafe partial class Lcms2
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<IntentsList>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<IntentsList>(ctx->MemPool, entry);
 
             if (newEntry is null)
                 return;

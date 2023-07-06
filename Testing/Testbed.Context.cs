@@ -830,4 +830,187 @@ public static bool CheckAllocContext()
         return false;
     }
 
+    private const uint SigNegateType = 0x6E202020;
+
+    private static void EvaluateNegate(in float* In, float* Out, in Stage* _)
+    {
+        Out[0] = 1.0f - In[0];
+        Out[1] = 1.0f - In[1];
+        Out[2] = 1.0f - In[2];
+    }
+
+    private static Stage* StageAllocNegate(Context ContextID)
+    {
+        return _cmsStageAllocPlaceholder(ContextID,
+                     SigNegateType, 3, 3, EvaluateNegate,
+                     null, null, null);
+    }
+
+    private static void* Type_negate_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
+    {
+        ushort Chans;
+        if (!_cmsReadUInt16Number(io, &Chans)) return null;
+        if (Chans != 3) return null;
+
+        * nItems = 1;
+        return StageAllocNegate(self -> ContextID);
+    }
+
+    private static bool Type_negate_Write(TagTypeHandler* _1, IOHandler* io, void* _2, uint _3)
+    {
+        return _cmsWriteUInt16Number(io, 3);
+    }
+
+    private readonly static PluginTagType MPEPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMultiProcessElementSig, Next = null },
+        Handler = new(SigNegateType, Type_negate_Read, Type_negate_Write, null, null, null, 0)
+    };
+
+
+    public static bool CheckMPEPlugin()
+    {
+        Context ctx = null;
+        Context cpy = null;
+        Context cpy2 = null;
+        HPROFILE h = null;
+        uint myTag = 1234;
+        bool rc = false;
+        byte* data = null;
+        uint clen = 0;
+        var In = stackalloc float[3];
+        var Out = stackalloc float[3];
+        Pipeline* pipe;
+
+        ctx = WatchDogContext(null);
+        fixed (PluginTagType* sample = &MPEPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+
+        h = cmsCreateProfilePlaceholder(cpy2);
+        if (h == null)
+        {
+            Fail("Create placeholder failed");
+            goto Error;
+        }
+
+        pipe = cmsPipelineAlloc(cpy2, 3, 3);
+        cmsPipelineInsertStage(pipe, StageLoc.AtBegin, StageAllocNegate(cpy2));
+
+
+        In[0] = 0.3f; In[1] = 0.2f; In[2] = 0.9f;
+        cmsPipelineEvalFloat(In, Out, pipe);
+
+        rc = IsGoodVal("0", Out[0], 1.0 - In[0], 0.001) &&
+             IsGoodVal("1", Out[1], 1.0 - In[1], 0.001) &&
+             IsGoodVal("2", Out[2], 1.0 - In[2], 0.001);
+
+        if (!rc)
+        {
+            Fail("Pipeline failed");
+            goto Error;
+        }
+
+        if (!cmsWriteTag(h, cmsSigDToB3Tag, pipe))
+        {
+            Fail("Plug-in failed");
+            goto Error;
+        }
+
+        // This cleans the stage as well
+        cmsPipelineFree(pipe);
+
+        rc = cmsSaveProfileToMem(h, null, &clen);
+        if (!rc)
+        {
+            Fail("Fetch mem size failed");
+            goto Error;
+        }
+
+
+        data = (byte*)alloc(clen);
+        if (data == null)
+        {
+            Fail("malloc failed ?!?");
+            goto Error;
+        }
+
+
+        rc = cmsSaveProfileToMem(h, data, &clen);
+        if (!rc)
+        {
+            Fail("Save to mem failed");
+            goto Error;
+        }
+
+        cmsCloseProfile(h);
+
+
+        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        h = cmsOpenProfileFromMem(data, clen);
+        if (h == null)
+        {
+            Fail("Open profile failed");
+            goto Error;
+        }
+
+        pipe = (Pipeline*)cmsReadTag(h, cmsSigDToB3Tag);
+        if (pipe != null)
+        {
+
+            // Unsupported stage, should fail
+            Fail("read tag/context switching failed");
+            goto Error;
+        }
+
+        cmsCloseProfile(h);
+
+        ResetFatalError();
+
+        h = cmsOpenProfileFromMemTHR(cpy2, data, clen);
+        if (h == null)
+        {
+            Fail("Open profile from mem failed");
+            goto Error;
+        }
+
+        // Get rid of data
+        free(data); data = null;
+
+        pipe = (Pipeline*)cmsReadTag(h, cmsSigDToB3Tag);
+        if (pipe == null)
+        {
+            Fail("Read tag/conext switching failed (2)");
+            return false;
+        }
+
+        // Evaluate for negation
+        In[0] = 0.3f; In[1] = 0.2f; In[2] = 0.9f;
+        cmsPipelineEvalFloat(In, Out, pipe);
+
+        rc = IsGoodVal("0", Out[0], 1.0 - In[0], 0.001) &&
+             IsGoodVal("1", Out[1], 1.0 - In[1], 0.001) &&
+             IsGoodVal("2", Out[2], 1.0 - In[2], 0.001);
+
+        cmsCloseProfile(h);
+
+        cmsDeleteContext(cpy2);
+
+        return rc;
+
+    Error:
+
+        if (h != null) cmsCloseProfile(h);
+        if (ctx != null) cmsDeleteContext(ctx);
+        if (cpy != null) cmsDeleteContext(cpy);
+        if (cpy2 != null) cmsDeleteContext(cpy2);
+        if (data != null) free(data);
+
+        return false;
+    }
+
 }

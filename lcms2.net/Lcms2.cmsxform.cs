@@ -514,7 +514,7 @@ public static unsafe partial class Lcms2
              entry is not null;
              entry = entry->Next)
         {
-            var newEntry = _cmsSubAlloc<TransformCollection>(ctx->MemPool);
+            var newEntry = _cmsSubAllocDup<TransformCollection>(ctx->MemPool, entry);
 
             if (newEntry is null)
                 return;

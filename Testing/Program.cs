@@ -206,7 +206,7 @@ if (doPluginTests)
     Check("Parametric curve plugin", CheckParametricCurvePlugin);
     Check("Formatters plugin", CheckFormattersPlugin);
     Check("Tag type plugin", CheckTagTypePlugin);
-    //Check("MPE type plugin",         CheckMPEPlugin);       
+    Check("MPE type plugin", CheckMPEPlugin);
     //Check("Optimization plugin",     CheckOptimizationPlugin); 
     //Check("Rendering intent plugin", CheckIntentPlugin);
     //Check("Full transform plugin",   CheckTransformPlugin);
