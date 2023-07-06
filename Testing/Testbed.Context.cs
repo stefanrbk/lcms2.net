@@ -1088,4 +1088,76 @@ public static bool CheckAllocContext()
         return true;
     }
 
+    private const uint INTENT_DECEPTIVE = 300;
+
+    private static Pipeline* MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, HPROFILE* hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
+    {
+        Pipeline* Result;
+        var ICCIntents = stackalloc uint[256];
+        uint i;
+
+        for (i = 0; i < nProfiles; i++)
+            ICCIntents[i] = (TheIntents[i] == INTENT_DECEPTIVE) ? INTENT_PERCEPTUAL : TheIntents[i];
+
+        if (cmsGetColorSpace(hProfiles[0]) != cmsSigGrayData || cmsGetColorSpace(hProfiles[nProfiles - 1]) != cmsSigGrayData)
+            return _cmsDefaultICCintents(ContextID, nProfiles, ICCIntents, hProfiles, BPC, AdaptationStates, dwFlags);
+
+        Result = cmsPipelineAlloc(ContextID, 1, 1);
+        if (Result == null) return null;
+
+        cmsPipelineInsertStage(Result, StageLoc.AtBegin, cmsStageAllocIdentity(ContextID, 1));
+
+        return Result;
+    }
+
+    private readonly static PluginRenderingIntent IntentPluginSample = new() {
+        @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginRenderingIntentSig, Next = null },
+        Intent = INTENT_DECEPTIVE,
+        Link = MyNewIntent,
+        Description = "bypass gray to gray rendering intent"
+};
+
+    public static bool CheckIntentPlugin()
+    {
+        Context ctx = WatchDogContext(null);
+        Context cpy;
+        Context cpy2;
+        Transform* xform;
+        HPROFILE h1, h2;
+        ToneCurve* Linear1;
+        ToneCurve* Linear2;
+        var In = stackalloc byte[] { 10, 20, 30, 40 };
+        var Out = stackalloc byte[4];
+        int i;
+
+        fixed (PluginRenderingIntent* sample = &IntentPluginSample)
+            cmsPluginTHR(ctx, sample);
+
+        cpy = DupContext(ctx, null);
+        cpy2 = DupContext(cpy, null);
+
+        Linear1 = cmsBuildGamma(cpy2, 3.0);
+        Linear2 = cmsBuildGamma(cpy2, 0.1);
+        h1 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear1);
+        h2 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear2);
+
+        cmsFreeToneCurve(Linear1);
+        cmsFreeToneCurve(Linear2);
+
+        xform = cmsCreateTransformTHR(cpy2, h1, TYPE_GRAY_8, h2, TYPE_GRAY_8, INTENT_DECEPTIVE, 0);
+        cmsCloseProfile(h1); cmsCloseProfile(h2);
+
+        cmsDoTransform(xform, In, Out, 4);
+
+        cmsDeleteTransform(xform);
+        cmsDeleteContext(ctx);
+        cmsDeleteContext(cpy);
+        cmsDeleteContext(cpy2);
+
+        for (i = 0; i < 4; i++)
+            if (Out[i] != In[i]) return false;
+
+        return true;
+    }
+
 }
