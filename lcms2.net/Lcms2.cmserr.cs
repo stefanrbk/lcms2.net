@@ -68,7 +68,7 @@ public static unsafe partial class Lcms2
                 return 0;
         }
 
-        return Char.ToUpper((char)*--ss1) - Char.ToUpper((char)*--ss2);
+        return Char.ToUpper((char)*ss1) - Char.ToUpper((char)*ss2);
     }
 
     public static long cmsfilelength(FILE* f)
@@ -358,9 +358,8 @@ public static unsafe partial class Lcms2
         (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
 
     [DebuggerStepThrough]
-    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
-        (T**)_cmsDupMem(ContextID, Org, num * _sizeof<nint>());
-
+    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org, uint num) where T : struct =>
+        (T**)_cmsDupMem<nint>(ContextID, Org, num);
     [DebuggerStepThrough]
     internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : struct =>
         (T**)_cmsDupMem<nint>(ContextID, Org);

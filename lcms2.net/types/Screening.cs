@@ -37,5 +37,5 @@ public unsafe struct Screening
     /// <summary>
     /// Must cast to <see cref="ScreeningChannel"/>*
     /// </summary>
-    public fixed byte Channels[1];
+    public fixed ulong Channels[cmsMAXCHANNELS * 4];
 }

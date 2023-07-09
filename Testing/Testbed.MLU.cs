@@ -175,4 +175,170 @@ internal static unsafe partial class Testbed
 
         return rc;
     }
+
+    // A lightweight test of named color structures.
+    public static bool CheckNamedColorList()
+    {
+        NamedColorList* nc = null, nc2;
+        int i, j;
+        bool rc = true;
+        var Name = stackalloc byte[cmsMAX_PATH];
+        var PCS = stackalloc ushort[3];
+        var Colorant = stackalloc ushort[cmsMAXCHANNELS];
+        var CheckName = stackalloc byte[cmsMAX_PATH];
+        var CheckPCS = stackalloc ushort[3];
+        var CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
+        HPROFILE h;
+
+        nc = cmsAllocNamedColorList(DbgThread(), 0, 4, "prefix"u8, "suffix"u8);
+        if (nc == null) return false;
+
+        for (i = 0; i < 4096; i++)
+        {
+
+
+            PCS[0] = PCS[1] = PCS[2] = (ushort)i;
+            Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(4096 - i);
+
+            sprintf(Name, "#{0}", i);
+            if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { rc = false; break; }
+        }
+
+        for (i = 0; i < 4096; i++)
+        {
+
+            CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
+            CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
+
+            sprintf(CheckName, "#{0}", i);
+            if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
+
+
+            for (j = 0; j < 3; j++)
+            {
+                if (CheckPCS[j] != PCS[j]) { rc = Fail("Invalid PCS"); goto Error; }
+            }
+
+            for (j = 0; j < 4; j++)
+            {
+                if (CheckColorant[j] != Colorant[j]) { rc = Fail("Invalid Colorant"); goto Error; };
+            }
+
+            if (strcmp(Name, CheckName) != 0) { rc = Fail("Invalid Name"); goto Error; };
+        }
+
+        h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "w");
+        if (h == null) return false;
+        if (!cmsWriteTag(h, cmsSigNamedColor2Tag, nc)) return false;
+        cmsCloseProfile(h);
+        cmsFreeNamedColorList(nc);
+        nc = null;
+
+        h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "r");
+        nc2 = (NamedColorList*)cmsReadTag(h, cmsSigNamedColor2Tag);
+
+        if (cmsNamedColorCount(nc2) != 4096) { rc = Fail("Invalid count"); goto Error; }
+
+        i = cmsNamedColorIndex(nc2, "#123"u8);
+        if (i != 123) { rc = Fail("Invalid index"); goto Error; }
+
+
+        for (i = 0; i < 4096; i++)
+        {
+
+            CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
+            CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
+
+            sprintf(CheckName, "#{0}", i);
+            if (!cmsNamedColorInfo(nc2, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
+
+
+            for (j = 0; j < 3; j++)
+            {
+                if (CheckPCS[j] != PCS[j]) { rc = Fail("Invalid PCS"); goto Error; }
+            }
+
+            for (j = 0; j < 4; j++)
+            {
+                if (CheckColorant[j] != Colorant[j]) { rc = Fail("Invalid Colorant"); goto Error; };
+            }
+
+            if (strcmp(Name, CheckName) != 0) { rc = Fail("Invalid Name"); goto Error; };
+        }
+
+        cmsCloseProfile(h);
+        File.Delete("namedcol.icc");
+
+    Error:
+        if (nc != null) cmsFreeNamedColorList(nc);
+        return rc;
+    }
+
+
+
+    // For educational purposes ONLY. No error checking is performed!
+    public static bool CreateNamedColorProfile()
+    {
+        // Color list database
+        NamedColorList* colors = cmsAllocNamedColorList(null, 10, 4, "PANTONE"u8, "TCX"u8);
+
+        // Containers for names
+        Mlu* DescriptionMLU, CopyrightMLU;
+
+        // Create n empty profile
+        HPROFILE hProfile = cmsOpenProfileFromFile("named.icc", "w");
+
+        // Values
+        CIELab Lab;
+        var PCS = stackalloc ushort[3];
+        var Colorant = stackalloc ushort[4];
+
+        // Set profile class
+        cmsSetProfileVersion(hProfile, 4.3);
+        cmsSetDeviceClass(hProfile, cmsSigNamedColorClass);
+        cmsSetColorSpace(hProfile, cmsSigCmykData);
+        cmsSetPCS(hProfile, cmsSigLabData);
+        cmsSetHeaderRenderingIntent(hProfile, INTENT_PERCEPTUAL);
+
+        // Add description and copyright only in english/US
+        DescriptionMLU = cmsMLUalloc(null, 1);
+        CopyrightMLU = cmsMLUalloc(null, 1);
+
+        cmsMLUsetWide(DescriptionMLU, "en"u8, "US"u8, "Profile description");
+        cmsMLUsetWide(CopyrightMLU, "en"u8, "US"u8, "Profile copyright");
+
+        cmsWriteTag(hProfile, cmsSigProfileDescriptionTag, DescriptionMLU);
+        cmsWriteTag(hProfile, cmsSigCopyrightTag, CopyrightMLU);
+
+        // Set the media white point
+        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, cmsD50_XYZ());
+
+
+        // Populate one value, Colorant = CMYK values in 16 bits, PCS[] = Encoded Lab values (in V2 format!!)
+        Lab.L = 50; Lab.a = 10; Lab.b = -10;
+        cmsFloat2LabEncodedV2(PCS, &Lab);
+        Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
+        cmsAppendNamedColor(colors, "Hazelnut 14-1315"u8, PCS, Colorant);
+
+        // Another one. Consider to write a routine for that
+        Lab.L = 40; Lab.a = -5; Lab.b = 8;
+        cmsFloat2LabEncodedV2(PCS, &Lab);
+        Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
+        cmsAppendNamedColor(colors, "Kale 18-0107"u8, PCS, Colorant);
+
+        // Write the colors database
+        cmsWriteTag(hProfile, cmsSigNamedColor2Tag, colors);
+
+        // That will create the file
+        cmsCloseProfile(hProfile);
+
+        // Free resources
+        cmsFreeNamedColorList(colors);
+        cmsMLUfree(DescriptionMLU);
+        cmsMLUfree(CopyrightMLU);
+
+        File.Delete("named.icc");
+
+        return true;
+    }
 }

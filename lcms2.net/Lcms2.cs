@@ -816,16 +816,25 @@ public static unsafe partial class Lcms2
     internal static byte FROM_16_TO_8(uint rgb) => (byte)((((rgb * 65281u) + 8388608u) >> 24) & 0xFFu);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    internal static void _cmsAssert(bool condition) =>
-        Debug.Assert(condition);
+    internal static void _cmsAssert(params bool[] args)
+    {
+        foreach (var arg in args)
+            Debug.Assert(arg);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    internal static void _cmsAssert(void* ptr) =>
-        Debug.Assert(ptr is not null);
+    internal static void _cmsAssert(params void*[] args)
+    {
+        foreach (var arg in args)
+            Debug.Assert(arg is not null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    internal static void _cmsAssert(object? obj) =>
-        Debug.Assert(obj is not null);
+    internal static void _cmsAssert(params object?[] args)
+    {
+        foreach (var arg in args)
+            Debug.Assert(arg is not null);
+    }
 
     internal const double MATRIX_DET_TOLERANCE = 1e-4;
 
@@ -1379,9 +1388,6 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static ushort _sizeof<T>() where T : struct
     {
-        if (typeof(T) == typeof(Screening))
-            return (ushort)(sizeof(Screening) - 1 + (sizeof(ScreeningChannel) * cmsMAXCHANNELS));
-
         return (ushort)sizeof(T);
     }
 
@@ -1470,6 +1476,16 @@ public static unsafe partial class Lcms2
         memcpy(dst, src, size);
 
     [DebuggerStepThrough]
+    internal static void memcpy(byte* dst, ReadOnlySpan<byte> src)
+    {
+        var buf = stackalloc byte[src.Length];
+        for (var i = 0; i < src.Length; i++)
+            buf[i] = src[i];
+
+        memcpy(dst, buf, src.Length);
+    }
+
+    [DebuggerStepThrough]
     internal static void memcpy<T>(T* dst, in T* src) where T : struct =>
         memcpy(dst, src, _sizeof<T>());
 
@@ -1480,6 +1496,26 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void memcpy(void* dst, in void* src, nint size) =>
         NativeMemory.Copy(src, dst, (nuint)size);
+
+    [DebuggerStepThrough]
+    internal static int memcmp(in char* buf1, ReadOnlySpan<char> buf2)
+    {
+        var buf = stackalloc char[buf2.Length];
+        for (var i = 0; i < buf2.Length; i++)
+            buf[i] = buf2[i];
+
+        return memcmp(buf1, buf, buf2.Length * _sizeof<char>());
+    }
+
+    [DebuggerStepThrough]
+    internal static int memcmp(in byte* buf1, ReadOnlySpan<byte> buf2)
+    {
+        var buf = stackalloc byte[buf2.Length];
+        for (var i = 0; i < buf2.Length; i++)
+            buf[i] = buf2[i];
+
+        return memcmp(buf1, buf, buf2.Length);
+    }
 
     [DebuggerStepThrough]
     internal static int memcmp(in void* buf1, in void* buf2, nint count)

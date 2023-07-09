@@ -384,7 +384,25 @@ public static unsafe partial class Lcms2
         Mlu mlu,
         ReadOnlySpan<byte> LanguageCode,
         ReadOnlySpan<byte> CountryCode,
-        Span<byte> Buffer)
+        Span<byte> Buffer,
+        uint BufferSize)
+    {
+        var bufLang = stackalloc byte[LanguageCode.Length + 1];
+        for (var i = 0; i < LanguageCode.Length; i++)
+            bufLang[i] = LanguageCode[i];
+        var bufCnty = stackalloc byte[CountryCode.Length + 1];
+        for (var i = 0; i < CountryCode.Length; i++)
+            bufCnty[i] = CountryCode[i];
+
+        return cmsMLUgetASCII(mlu, bufLang, bufCnty, Buffer, BufferSize);
+    }
+
+    public static uint cmsMLUgetASCII(
+        Mlu mlu,
+        in byte* LanguageCode,
+        in byte* CountryCode,
+        Span<byte> Buffer,
+        uint BufferSize)
     {
         var Lang = strTo16(LanguageCode);
         var Cntry = strTo16(CountryCode);
@@ -519,7 +537,21 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static NamedColorList* cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
+    public static NamedColorList* cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
+    {
+        var pre = stackalloc byte[Prefix.Length + 1];
+        var suf = stackalloc byte[Suffix.Length + 1];
+
+        for (var i = 0; i <  Prefix.Length; i++)
+            pre[i] = Prefix[i];
+
+        for (var i = 0; i < Suffix.Length; i++)
+            suf[i] = Suffix[i];
+
+        return cmsAllocNamedColorList(ContextID, n, ColorantCount, pre, suf);
+    }
+
+    private static NamedColorList* cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
     {
         var v = _cmsMallocZero<NamedColorList>(ContextID);
 
@@ -578,8 +610,21 @@ public static unsafe partial class Lcms2
         NewNC->nColors = v->nColors;
         return NewNC;
     }
-
     public static bool cmsAppendNamedColor(
+        NamedColorList* NamedColorList,
+        ReadOnlySpan<byte> Name,
+        ushort* PCS,
+        ushort* Colorant)
+    {
+        var buf = stackalloc byte[Name.Length + 1];
+
+        for (var i = 0; i < Name.Length; i++)
+            buf[i] = Name[i];
+
+        return cmsAppendNamedColor(NamedColorList, buf, PCS, Colorant);
+    }
+
+    private static bool cmsAppendNamedColor(
         NamedColorList* NamedColorList,
         in byte* Name,
         ushort* PCS,
@@ -640,8 +685,16 @@ public static unsafe partial class Lcms2
 
         return true;
     }
+    public static int cmsNamedColorIndex(in NamedColorList* NamedColorList, ReadOnlySpan<byte> Name)
+    {
+        var buf = stackalloc byte[Name.Length + 1];
+        for (var i = 0; i < Name.Length; i++)
+            buf[i] = Name[i];
 
-    public static int cmsNamedColorIndex(in NamedColorList* NamedColorList, in byte* Name)
+        return cmsNamedColorIndex(NamedColorList, buf);
+    }
+
+    private static int cmsNamedColorIndex(in NamedColorList* NamedColorList, in byte* Name)
     {
         if (NamedColorList is null) return -1;
         var n = cmsNamedColorCount(NamedColorList);
@@ -843,6 +896,19 @@ public static unsafe partial class Lcms2
     {
         if (ptr is null) return null;
         return _cmsDupMem<char>(ContextID, ptr, mywcslen(ptr) + 1);
+    }
+
+    public static bool cmsDictAddEntry(void* hDict, ReadOnlySpan<char> Name, ReadOnlySpan<char> Value, Mlu DisplayName, Mlu DisplayValue)
+    {
+        var nameBuf = stackalloc char[Name.Length + 1];
+        var valueBuf = stackalloc char[Value.Length + 1];
+
+        for (var i = 0; i <  Name.Length; i++)
+            nameBuf[i] = Name[i];
+        for (var i = 0; i < Value.Length; i++)
+            valueBuf[i] = Value[i];
+
+        return cmsDictAddEntry(hDict, nameBuf, valueBuf, DisplayName, DisplayValue);
     }
 
     public static bool cmsDictAddEntry(void* hDict, in char* Name, in char* Value, Mlu DisplayName, Mlu DisplayValue)

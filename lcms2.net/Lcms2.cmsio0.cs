@@ -377,7 +377,8 @@ public static unsafe partial class Lcms2
         if (fileSize < 0)
         {
             cmsSignalError(ContextID, ErrorCode.File, "Cannot get size of stream");
-            goto Error;
+            return null;
+            //goto Error;
         }
 
         iohandler = new IOHandler();
@@ -395,6 +396,7 @@ public static unsafe partial class Lcms2
         iohandler.Tell = FileTell;
         iohandler.Write = FileWrite;
 
+        return iohandler;
     Error:
         if (file is not null) free(file);
         //if (iohandler is not null) _cmsFree(ContextID, iohandler);
@@ -442,7 +444,7 @@ public static unsafe partial class Lcms2
             ? Icc.ContextID
             : null;
 
-    public static int cmsGetProfileTagCount(Profile Icc) =>
+    public static int cmsGetTagCount(Profile Icc) =>
         Icc is not null
             ? (int)Icc.TagCount
             : -1;
