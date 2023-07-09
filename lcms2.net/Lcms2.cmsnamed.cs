@@ -178,6 +178,27 @@ public static unsafe partial class Lcms2
         str[2] = 0;
     }
 
+    public static bool cmsMLUsetASCII(Mlu* mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
+    {
+        var bufLang = stackalloc byte[LanguageCode.Length + 1];
+        for (var i = 0; i < LanguageCode.Length; i++)
+            bufLang[i] = LanguageCode[i];
+        var bufCnty = stackalloc byte[CountryCode.Length + 1];
+        for (var i = 0; i < CountryCode.Length; i++)
+            bufCnty[i] = CountryCode[i];
+
+        return cmsMLUsetASCII(mlu, bufLang, bufCnty, ASCIIString);
+    }
+
+    public static bool cmsMLUsetASCII(Mlu* mlu, in byte* LanguageCode, in byte* CountryCode, ReadOnlySpan<byte> ASCIIString)
+    {
+        var buf = stackalloc byte[ASCIIString.Length + 1];
+        for (var i = 0; i < ASCIIString.Length; i++)
+            buf[i] = ASCIIString[i];
+
+        return cmsMLUsetASCII(mlu, LanguageCode, CountryCode, buf);
+    }
+
     public static bool cmsMLUsetASCII(Mlu* mlu, in byte* LanguageCode, in byte* CountryCode, in byte* ASCIIString)
     {
         var len = (uint)strlen(ASCIIString);
@@ -352,6 +373,23 @@ public static unsafe partial class Lcms2
         if (len is not null) *len = v->Len;
 
         return (char*)((byte*)mlu->MemPool + v->StrW);
+    }
+
+    public static uint cmsMLUgetASCII(
+        in Mlu* mlu,
+        ReadOnlySpan<byte> LanguageCode,
+        ReadOnlySpan<byte> CountryCode,
+        byte* Buffer,
+        uint BufferSize)
+    {
+        var bufLang = stackalloc byte[LanguageCode.Length + 1];
+        for (var i = 0; i < LanguageCode.Length; i++)
+            bufLang[i] = LanguageCode[i];
+        var bufCnty = stackalloc byte[CountryCode.Length + 1];
+        for (var i = 0; i < CountryCode.Length; i++)
+            bufCnty[i] = CountryCode[i];
+
+        return cmsMLUgetASCII(mlu, bufLang, bufCnty, Buffer, BufferSize);
     }
 
     public static uint cmsMLUgetASCII(
@@ -845,6 +883,19 @@ public static unsafe partial class Lcms2
     {
         if (ptr is null) return null;
         return _cmsDupMem<char>(ContextID, ptr, mywcslen(ptr) + 1);
+    }
+
+    public static bool cmsDictAddEntry(void* hDict, ReadOnlySpan<char> Name, ReadOnlySpan<char> Value, in Mlu* DisplayName, in Mlu* DisplayValue)
+    {
+        var nameBuf = stackalloc char[Name.Length + 1];
+        var valueBuf = stackalloc char[Value.Length + 1];
+
+        for (var i = 0; i <  Name.Length; i++)
+            nameBuf[i] = Name[i];
+        for (var i = 0; i < Value.Length; i++)
+            valueBuf[i] = Value[i];
+
+        return cmsDictAddEntry(hDict, nameBuf, valueBuf, DisplayName, DisplayValue);
     }
 
     public static bool cmsDictAddEntry(void* hDict, in char* Name, in char* Value, in Mlu* DisplayName, in Mlu* DisplayValue)

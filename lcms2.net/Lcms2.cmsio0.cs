@@ -445,7 +445,7 @@ public static unsafe partial class Lcms2
             ? ((Profile*)Icc)->ContextID
             : null;
 
-    public static int cmsGetProfileTagCount(HPROFILE Icc) =>
+    public static int cmsGetTagCount(HPROFILE Icc) =>
         Icc is not null
             ? (int)((Profile*)Icc)->TagCount
             : -1;
@@ -1483,7 +1483,7 @@ public static unsafe partial class Lcms2
                     TagSize = BufferSize;
 
                 if (!Icc->IOHandler->Seek(Icc->IOHandler, Offset)) goto Error;
-                if (Icc->IOHandler->Read(Icc->IOHandler, data, 1, Offset) is 0) goto Error;
+                if (Icc->IOHandler->Read(Icc->IOHandler, data, 1, TagSize) is 0) goto Error;
 
                 _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);
                 return TagSize;

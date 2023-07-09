@@ -27,15 +27,11 @@
 
 namespace lcms2.types;
 
-/// <summary>
-/// Must allocate (sizeof(<see cref="Screening"/>) - 1) + (sizeof(<see cref="ScreeningChannel"/>) * cmsMAXCHANNELS)
-/// </summary>
-public unsafe struct Screening
+public struct ViewingConditions
 {
-    public uint Flag;
-    public uint nChannels;
-    /// <summary>
-    /// Must cast to <see cref="ScreeningChannel"/>*
-    /// </summary>
-    public fixed ulong Channels[cmsMAXCHANNELS * 4];
+    public CIEXYZ whitePoint;
+    public double Yb;
+    public double La;
+    public uint surround;
+    public double D_value;
 }

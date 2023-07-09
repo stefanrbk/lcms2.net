@@ -322,7 +322,7 @@ internal static unsafe partial class Testbed
         // ----
 
         h = cmsCreateNULLProfileTHR(DbgThread());
-        if (!OneVirtual(h, "NULL profile", "nulllcms2.icc")) return false;
+        if (!OneVirtual(h, "null profile", "nulllcms2.icc")) return false;
 
         // ----
 
@@ -361,4 +361,1177 @@ internal static unsafe partial class Testbed
         File.Delete("lcms2link2.icc");
         File.Delete("brightness.icc");
     }
+
+
+    // This is a very big test that checks every single tag
+    public static bool CheckProfileCreation()
+    {
+        HPROFILE h;
+        int Pass;
+
+        h = cmsCreateProfilePlaceholder(DbgThread());
+        if (h == null) return false;
+
+        cmsSetProfileVersion(h, 4.3);
+        if (cmsGetTagCount(h) != 0) { Fail("Empty profile with nonzero number of tags"); goto Error; }
+        if (cmsIsTag(h, cmsSigAToB0Tag)) { Fail("Found a tag in an empty profile"); goto Error; }
+
+        cmsSetColorSpace(h, cmsSigRgbData);
+        if (cmsGetColorSpace(h) != cmsSigRgbData) { Fail("Unable to set colorspace"); goto Error; }
+
+        cmsSetPCS(h, cmsSigLabData);
+        if (cmsGetPCS(h) != cmsSigLabData) { Fail("Unable to set colorspace"); goto Error; }
+
+        cmsSetDeviceClass(h, cmsSigDisplayClass);
+        if (cmsGetDeviceClass(h) != cmsSigDisplayClass) { Fail("Unable to set deviceclass"); goto Error; }
+
+        cmsSetHeaderRenderingIntent(h, INTENT_SATURATION);
+        if (cmsGetHeaderRenderingIntent(h) != INTENT_SATURATION) { Fail("Unable to set rendering intent"); goto Error; }
+
+        for (Pass = 1; Pass <= 2 /*1*/; Pass++)
+        {
+
+            //SubTest("Tags holding XYZ");
+
+            //if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag)) goto Error;
+            //if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag)) goto Error;
+            //if (!CheckXYZ(Pass, h, cmsSigRedColorantTag)) goto Error;
+            //if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag)) goto Error;
+            //if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag)) goto Error;
+            //if (!CheckXYZ(Pass, h, cmsSigLuminanceTag)) goto Error;
+
+            //SubTest("Tags holding curves");
+
+            //if (!CheckGamma(Pass, h, cmsSigBlueTRCTag)) goto Error;
+            //if (!CheckGamma(Pass, h, cmsSigGrayTRCTag)) goto Error;
+            //if (!CheckGamma(Pass, h, cmsSigGreenTRCTag)) goto Error;
+            //if (!CheckGamma(Pass, h, cmsSigRedTRCTag)) goto Error;
+
+            //SubTest("Tags holding text");
+
+            //if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag)) goto Error;
+            //if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag)) goto Error;
+
+            //if (!CheckText(Pass, h, cmsSigCopyrightTag)) goto Error;
+            //if (!CheckText(Pass, h, cmsSigProfileDescriptionTag)) goto Error;
+            //if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag)) goto Error;
+            //if (!CheckText(Pass, h, cmsSigDeviceModelDescTag)) goto Error;
+            //if (!CheckText(Pass, h, cmsSigViewingCondDescTag)) goto Error;
+
+
+
+            //SubTest("Tags holding cmsICCData");
+
+            //if (!CheckData(Pass, h, cmsSigPs2CRD0Tag)) goto Error;
+            //if (!CheckData(Pass, h, cmsSigPs2CRD1Tag)) goto Error;
+            //if (!CheckData(Pass, h, cmsSigPs2CRD2Tag)) goto Error;
+            //if (!CheckData(Pass, h, cmsSigPs2CRD3Tag)) goto Error;
+            //if (!CheckData(Pass, h, cmsSigPs2CSATag)) goto Error;
+            //if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag)) goto Error;
+
+            //SubTest("Tags holding signatures");
+
+            //if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag)) goto Error;
+            //if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag)) goto Error;
+            //if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag)) goto Error;
+            //if (!CheckSignature(Pass, h, cmsSigTechnologyTag)) goto Error;
+
+            //SubTest("Tags holding date_time");
+
+            //if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag)) goto Error;
+            //if (!CheckDateTime(Pass, h, cmsSigDateTimeTag)) goto Error;
+
+            //SubTest("Tags holding named color lists");
+
+            //if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false)) goto Error;
+            //if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false)) goto Error;
+            //if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true)) goto Error;
+
+            //SubTest("Tags holding LUTs");
+
+            //if (!CheckLUT(Pass, h, cmsSigAToB0Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigAToB1Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigAToB2Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigBToA0Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigBToA1Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigBToA2Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigPreview0Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigPreview1Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigPreview2Tag)) goto Error;
+            //if (!CheckLUT(Pass, h, cmsSigGamutTag)) goto Error;
+
+            //SubTest("Tags holding CHAD");
+            //if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag)) goto Error;
+
+            //SubTest("Tags holding Chromaticity");
+            //if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag)) goto Error;
+
+            //SubTest("Tags holding colorant order");
+            //if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag)) goto Error;
+
+            //SubTest("Tags holding measurement");
+            //if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag)) goto Error;
+
+            //SubTest("Tags holding CRD info");
+            //if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag)) goto Error;
+
+            //SubTest("Tags holding UCR/BG");
+            //if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag)) goto Error;
+
+            //SubTest("Tags holding MPE");
+            //if (!CheckMPE(Pass, h, cmsSigDToB0Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigDToB1Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigDToB2Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigDToB3Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigBToD0Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigBToD1Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigBToD2Tag)) goto Error;
+            //if (!CheckMPE(Pass, h, cmsSigBToD3Tag)) goto Error;
+
+            //SubTest("Tags using screening");
+            //if (!CheckScreening(Pass, h, cmsSigScreeningTag)) goto Error;
+
+            //SubTest("Tags holding profile sequence description");
+            //if (!CheckProfileSequenceTag(Pass, h)) goto Error;
+            //if (!CheckProfileSequenceIDTag(Pass, h)) goto Error;
+
+            //SubTest("Tags holding ICC viewing conditions");
+            //if (!CheckICCViewingConditions(Pass, h)) goto Error;
+
+            SubTest("VCGT tags");
+            if (!CheckVCGT(Pass, h)) goto Error;
+
+            //SubTest("RAW tags");
+            //if (!CheckRAWtags(Pass, h)) goto Error;
+
+            //SubTest("Dictionary meta tags");
+            //// if (!CheckDictionary16(Pass, h)) goto Error;
+            //if (!CheckDictionary24(Pass, h)) goto Error;
+
+            if (Pass == 1)
+            {
+                cmsSaveProfileToFile(h, "alltags.icc");
+                cmsCloseProfile(h);
+                h = cmsOpenProfileFromFileTHR(DbgThread(), "alltags.icc", "r");
+            }
+
+        }
+
+        /*
+        Not implemented (by design):
+
+        cmsSigDataTag                           = 0x64617461,  // 'data'  -- Unused
+        cmsSigDeviceSettingsTag                 = 0x64657673,  // 'devs'  -- Unused
+        cmsSigNamedColorTag                     = 0x6E636f6C,  // 'ncol'  -- Don't use this one, deprecated by ICC
+        cmsSigOutputResponseTag                 = 0x72657370,  // 'resp'  -- Possible patent on this
+        */
+
+        cmsCloseProfile(h);
+        File.Delete("alltags.icc");
+        return true;
+
+    Error:
+        cmsCloseProfile(h);
+        File.Delete("alltags.icc");
+        return false;
+    }
+
+    private static bool CheckXYZ(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        CIEXYZ XYZ;
+        CIEXYZ* Pt;
+
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                XYZ.X = 1.0; XYZ.Y = 1.1; XYZ.Z = 1.2;
+                return cmsWriteTag(hProfile, tag, &XYZ);
+
+            case 2:
+                Pt = (CIEXYZ*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                return IsGoodFixed15_16("X", 1.0, Pt->X) &&
+                       IsGoodFixed15_16("Y", 1.1, Pt->Y) &&
+                       IsGoodFixed15_16("Z", 1.2, Pt->Z);
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckGamma(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        ToneCurve* g, Pt;
+        bool rc;
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                g = cmsBuildGamma(DbgThread(), 1.0);
+                rc = cmsWriteTag(hProfile, tag, g);
+                cmsFreeToneCurve(g);
+                return rc;
+
+            case 2:
+                Pt = (ToneCurve*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                return cmsIsToneCurveLinear(Pt);
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool CheckTextSingle(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Mlu* m, Pt;
+        bool rc;
+        var Buffer = stackalloc byte[256];
+
+
+        switch (Pass)
+        {
+
+            case 1:
+                m = cmsMLUalloc(DbgThread(), 0);
+                cmsMLUsetASCII(m, cmsNoLanguage, cmsNoCountry, "Test test"u8);
+                rc = cmsWriteTag(hProfile, tag, m);
+                cmsMLUfree(m);
+                return rc;
+
+            case 2:
+                Pt = (Mlu*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                if (strcmp(Buffer, "Test test"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckText(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Mlu* m, Pt;
+        bool rc;
+        var Buffer = stackalloc byte[256];
+
+
+        switch (Pass)
+        {
+
+            case 1:
+                m = cmsMLUalloc(DbgThread(), 0);
+                cmsMLUsetASCII(m, cmsNoLanguage, cmsNoCountry, "Test test"u8);
+                cmsMLUsetASCII(m, "en"u8, "US"u8, "1 1 1 1"u8);
+                cmsMLUsetASCII(m, "es"u8, "ES"u8, "2 2 2 2"u8);
+                cmsMLUsetASCII(m, "ct"u8, "ES"u8, "3 3 3 3"u8);
+                cmsMLUsetASCII(m, "en"u8, "GB"u8, "444444444"u8);
+                rc = cmsWriteTag(hProfile, tag, m);
+                cmsMLUfree(m);
+                return rc;
+
+            case 2:
+                Pt = (Mlu*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                if (strcmp(Buffer, "Test test"u8) != 0) return false;
+                cmsMLUgetASCII(Pt, "en"u8, "US"u8, Buffer, 256);
+                if (strcmp(Buffer, "1 1 1 1"u8) != 0) return false;
+                cmsMLUgetASCII(Pt, "es"u8, "ES"u8, Buffer, 256);
+                if (strcmp(Buffer, "2 2 2 2"u8) != 0) return false;
+                cmsMLUgetASCII(Pt, "ct"u8, "ES"u8, Buffer, 256);
+                if (strcmp(Buffer, "3 3 3 3"u8) != 0) return false;
+                cmsMLUgetASCII(Pt, "en"u8, "GB"u8, Buffer, 256);
+                if (strcmp(Buffer, "444444444"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool CheckData(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        IccData* Pt;
+        var d = new IccData() { len = 1, flag = 0 };
+        d.data[0] = (byte)'?';
+        bool rc;
+
+
+        switch (Pass)
+        {
+
+            case 1:
+                rc = cmsWriteTag(hProfile, tag, &d);
+                return rc;
+
+            case 2:
+                Pt = (IccData*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                return (Pt->data[0] == '?') && (Pt->flag == 0) && (Pt->len == 1);
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckSignature(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Signature* Pt;
+        Signature Holder;
+
+        switch (Pass)
+        {
+
+            case 1:
+                Holder = (Signature)cmsSigPerceptualReferenceMediumGamut;
+                return cmsWriteTag(hProfile, tag, &Holder);
+
+            case 2:
+                Pt = (Signature*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                return *Pt == cmsSigPerceptualReferenceMediumGamut;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckDateTime(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        DateTime* Pt;
+        DateTime Holder;
+
+        switch (Pass) {
+
+            case 1:
+
+                Holder = new(2009, 5, 4, 1, 2, 3);
+                return cmsWriteTag(hProfile, tag, &Holder);
+
+            case 2:
+                Pt = (DateTime*) cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                return Pt->Hour == 1 &&
+                       Pt ->Minute == 2 &&
+                       Pt ->Second == 3 &&
+                       Pt ->Day == 4 &&
+                       Pt ->Month == 5 &&
+                       Pt ->Year == 2009;
+
+            default:
+                return false;
+        }
+
+    }
+
+
+    private static bool CheckNamedColor(int Pass, HPROFILE hProfile, Signature tag, int max_check, bool colorant_check)
+    {
+        NamedColorList* nc;
+        int i, j;
+        bool rc;
+        var Name = stackalloc byte[255];
+        var PCS = stackalloc ushort[3];
+        var Colorant = stackalloc ushort[cmsMAXCHANNELS];
+        var CheckName = stackalloc byte[255];
+        var CheckPCS = stackalloc ushort[3];
+        var CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                nc = cmsAllocNamedColorList(DbgThread(), 0, 4, "prefix"u8, "suffix"u8);
+                if (nc == null) return false;
+
+                for (i = 0; i < max_check; i++)
+                {
+
+                    PCS[0] = PCS[1] = PCS[2] = (ushort)i;
+                    Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(max_check - i);
+
+                    sprintf(Name, "#{0}", i);
+                    if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
+                }
+
+                rc = cmsWriteTag(hProfile, tag, nc);
+                cmsFreeNamedColorList(nc);
+                return rc;
+
+            case 2:
+
+                nc = (NamedColorList*)cmsReadTag(hProfile, tag);
+                if (nc == null) return false;
+
+                for (i = 0; i < max_check; i++)
+                {
+
+                    CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
+                    CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(max_check - i);
+
+                    sprintf(CheckName, "#{0}", i);
+                    if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { Fail("Invalid string"); return false; }
+
+
+                    for (j = 0; j < 3; j++)
+                    {
+                        if (CheckPCS[j] != PCS[j]) { Fail("Invalid PCS"); return false; }
+                    }
+
+                    // This is only used on named color list
+                    if (colorant_check)
+                    {
+
+                        for (j = 0; j < 4; j++)
+                        {
+                            if (CheckColorant[j] != Colorant[j]) { Fail("Invalid Colorant"); return false; };
+                        }
+                    }
+
+                    if (strcmp(Name, CheckName) != 0) { Fail("Invalid Name"); return false; };
+                }
+                return true;
+
+
+            default: return false;
+        }
+    }
+
+
+    private static bool CheckLUT(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Pipeline* Lut, Pt;
+        bool rc;
+
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                Lut = cmsPipelineAlloc(DbgThread(), 3, 3);
+                if (Lut == null) return false;
+
+                // Create an identity LUT
+                cmsPipelineInsertStage(Lut, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(DbgThread(), 3));
+                cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocIdentityCLut(DbgThread(), 3));
+                cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocIdentityCurves(DbgThread(), 3));
+
+                rc = cmsWriteTag(hProfile, tag, Lut);
+                cmsPipelineFree(Lut);
+                return rc;
+
+            case 2:
+                Pt = (Pipeline*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                // Transform values, check for identity
+                return Check16LUT(Pt);
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool CheckCHAD(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        double* Pt;
+        var CHAD = stackalloc double[] { 0, .1, .2, .3, .4, .5, .6, .7, .8 };
+        int i;
+
+        switch (Pass)
+        {
+
+            case 1:
+                return cmsWriteTag(hProfile, tag, CHAD);
+
+
+            case 2:
+                Pt = (double*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                for (i = 0; i < 9; i++)
+                {
+                    if (!IsGoodFixed15_16("CHAD", Pt[i], CHAD[i])) return false;
+                }
+
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool CheckChromaticity(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        CIExyYTRIPLE* Pt;
+        var c = new CIExyYTRIPLE()
+        {
+            Red = new() { x = 0, y=.1, Y=1 },
+            Green = new() { x=.3, y=.4, Y=1 },
+            Blue = new(){ x=.6, y=.7, Y=1 }
+        };
+
+        switch (Pass)
+        {
+
+            case 1:
+                return cmsWriteTag(hProfile, tag, &c);
+
+
+            case 2:
+                Pt = (CIExyYTRIPLE*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                if (!IsGoodFixed15_16("xyY", Pt->Red.x, c.Red.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt->Red.y, c.Red.y)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt->Green.x, c.Green.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt->Green.y, c.Green.y)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt->Blue.x, c.Blue.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt->Blue.y, c.Blue.y)) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckColorantOrder(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        byte* Pt;
+        var c = stackalloc byte[cmsMAXCHANNELS];
+        int i;
+
+        switch (Pass)
+        {
+
+            case 1:
+                for (i = 0; i < cmsMAXCHANNELS; i++) c[i] = (byte)(cmsMAXCHANNELS - i - 1);
+                return cmsWriteTag(hProfile, tag, c);
+
+
+            case 2:
+                Pt = (byte*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                for (i = 0; i < cmsMAXCHANNELS; i++)
+                {
+                    if (Pt[i] != (cmsMAXCHANNELS - i - 1)) return false;
+                }
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool CheckMeasurement(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        IccMeasurementConditions* Pt;
+        IccMeasurementConditions m;
+
+        switch (Pass)
+        {
+
+            case 1:
+                m.Backing.X = 0.1;
+                m.Backing.Y = 0.2;
+                m.Backing.Z = 0.3;
+                m.Flare = 1.0;
+                m.Geometry = 1;
+                m.IlluminantType = IlluminantType.D50;
+                m.Observer = 1;
+                return cmsWriteTag(hProfile, tag, &m);
+
+
+            case 2:
+                Pt = (IccMeasurementConditions*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                if (!IsGoodFixed15_16("Backing", Pt->Backing.X, 0.1)) return false;
+                if (!IsGoodFixed15_16("Backing", Pt->Backing.Y, 0.2)) return false;
+                if (!IsGoodFixed15_16("Backing", Pt->Backing.Z, 0.3)) return false;
+                if (!IsGoodFixed15_16("Flare", Pt->Flare, 1.0)) return false;
+
+                if (Pt->Geometry != 1) return false;
+                if (Pt->IlluminantType != IlluminantType.D50) return false;
+                if (Pt->Observer != 1) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckUcrBg(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        UcrBg* Pt;
+        UcrBg m;
+        bool rc;
+        var Buffer = stackalloc byte[256];
+
+        switch (Pass)
+        {
+
+            case 1:
+                m.Ucr = cmsBuildGamma(DbgThread(), 2.4);
+                m.Bg = cmsBuildGamma(DbgThread(), -2.2);
+                m.Desc = cmsMLUalloc(DbgThread(), 1);
+                cmsMLUsetASCII(m.Desc, cmsNoLanguage, cmsNoCountry, "test UCR/BG"u8);
+                rc = cmsWriteTag(hProfile, tag, &m);
+                cmsMLUfree(m.Desc);
+                cmsFreeToneCurve(m.Bg);
+                cmsFreeToneCurve(m.Ucr);
+                return rc;
+
+
+            case 2:
+                Pt = (UcrBg*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                cmsMLUgetASCII(Pt->Desc, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                if (strcmp(Buffer, "test UCR/BG"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckCRDinfo(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Mlu* mlu;
+        var Buffer = stackalloc byte[256];
+        bool rc;
+
+        switch (Pass)
+        {
+
+            case 1:
+                mlu = cmsMLUalloc(DbgThread(), 5);
+
+                cmsMLUsetWide(mlu, "PS"u8, "nm"u8, "test postscript");
+                cmsMLUsetWide(mlu, "PS"u8, "#0"u8, "perceptual");
+                cmsMLUsetWide(mlu, "PS"u8, "#1"u8, "relative_colorimetric");
+                cmsMLUsetWide(mlu, "PS"u8, "#2"u8, "saturation");
+                cmsMLUsetWide(mlu, "PS"u8, "#3"u8, "absolute_colorimetric");
+                rc = cmsWriteTag(hProfile, tag, mlu);
+                cmsMLUfree(mlu);
+                return rc;
+
+
+            case 2:
+                mlu = (Mlu*)cmsReadTag(hProfile, tag);
+                if (mlu == null) return false;
+
+
+
+                cmsMLUgetASCII(mlu, "PS"u8, "nm"u8, Buffer, 256);
+                if (strcmp(Buffer, "test postscript"u8) != 0) return false;
+
+
+                cmsMLUgetASCII(mlu, "PS"u8, "#0"u8, Buffer, 256);
+                if (strcmp(Buffer, "perceptual"u8) != 0) return false;
+
+
+                cmsMLUgetASCII(mlu, "PS"u8, "#1"u8, Buffer, 256);
+                if (strcmp(Buffer, "relative_colorimetric"u8) != 0) return false;
+
+
+                cmsMLUgetASCII(mlu, "PS"u8, "#2"u8, Buffer, 256);
+                if (strcmp(Buffer, "saturation"u8) != 0) return false;
+
+
+                cmsMLUgetASCII(mlu, "PS"u8, "#3"u8, Buffer, 256);
+                if (strcmp(Buffer, "absolute_colorimetric"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static ToneCurve* CreateSegmentedCurve()
+    {
+        var Seg = stackalloc CurveSegment[3];
+        var Sampled = stackalloc float[2] { 0, 1 };
+
+        Seg[0].Type = 6;
+        Seg[0].Params[0] = 1;
+        Seg[0].Params[1] = 0;
+        Seg[0].Params[2] = 0;
+        Seg[0].Params[3] = 0;
+        Seg[0].x0 = -1E22F;
+        Seg[0].x1 = 0;
+
+        Seg[1].Type = 0;
+        Seg[1].nGridPoints = 2;
+        Seg[1].SampledPoints = Sampled;
+        Seg[1].x0 = 0;
+        Seg[1].x1 = 1;
+
+        Seg[2].Type = 6;
+        Seg[2].Params[0] = 1;
+        Seg[2].Params[1] = 0;
+        Seg[2].Params[2] = 0;
+        Seg[2].Params[3] = 0;
+        Seg[2].x0 = 1;
+        Seg[2].x1 = 1E22F;
+
+        return cmsBuildSegmentedToneCurve(DbgThread(), 3, Seg);
+    }
+
+    internal const StageLoc cmsAT_BEGIN = StageLoc.AtBegin;
+    internal const StageLoc cmsAT_END = StageLoc.AtEnd;
+
+    private static bool CheckMPE(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Pipeline* Lut, Pt;
+        var G = stackalloc ToneCurve*[3];
+        bool rc;
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                Lut = cmsPipelineAlloc(DbgThread(), 3, 3);
+
+                cmsPipelineInsertStage(Lut, cmsAT_BEGIN, _cmsStageAllocLabV2ToV4(DbgThread()));
+                cmsPipelineInsertStage(Lut, cmsAT_END, _cmsStageAllocLabV4ToV2(DbgThread()));
+                AddIdentityCLUTfloat(Lut);
+
+                G[0] = G[1] = G[2] = CreateSegmentedCurve();
+                cmsPipelineInsertStage(Lut, cmsAT_END, cmsStageAllocToneCurves(DbgThread(), 3, G));
+                cmsFreeToneCurve(G[0]);
+
+                rc = cmsWriteTag(hProfile, tag, Lut);
+                cmsPipelineFree(Lut);
+                return rc;
+
+            case 2:
+                Pt = (Pipeline*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+                return CheckFloatLUT(Pt);
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckScreening(int Pass, HPROFILE hProfile, Signature tag)
+    {
+        Screening* Pt;
+        Screening sc;
+        bool rc;
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                sc.Flag = 0;
+                sc.nChannels = 1;
+                ((ScreeningChannel*)sc.Channels)[0].Frequency = 2.0;
+                ((ScreeningChannel*)sc.Channels)[0].ScreenAngle = 3.0;
+                ((ScreeningChannel*)sc.Channels)[0].SpotShape = cmsSPOT_ELLIPSE;
+
+                rc = cmsWriteTag(hProfile, tag, &sc);
+                return rc;
+
+
+            case 2:
+                Pt = (Screening*)cmsReadTag(hProfile, tag);
+                if (Pt == null) return false;
+
+                if (Pt->nChannels != 1) return false;
+                if (Pt->Flag != 0) return false;
+                if (!IsGoodFixed15_16("Freq", ((ScreeningChannel*)Pt->Channels)[0].Frequency, 2.0)) return false;
+                if (!IsGoodFixed15_16("Angle", ((ScreeningChannel*)Pt->Channels)[0].ScreenAngle, 3.0)) return false;
+                if (((ScreeningChannel*)Pt->Channels)[0].SpotShape != cmsSPOT_ELLIPSE) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckOneStr(Mlu* mlu, int n)
+    {
+        var Buffer = stackalloc byte[256];
+        var Buffer2 = stackalloc byte[256];
+
+
+        cmsMLUgetASCII(mlu, "en"u8, "US"u8, Buffer, 255);
+        sprintf(Buffer2, "Hello, world {0}", n);
+        if (strcmp(Buffer, Buffer2) != 0) return false;
+
+
+        cmsMLUgetASCII(mlu, "es"u8, "ES"u8, Buffer, 255);
+        sprintf(Buffer2, "Hola, mundo {0}", n);
+        if (strcmp(Buffer, Buffer2) != 0) return false;
+
+        return true;
+    }
+
+
+    private static void SetOneStr(Mlu** mlu, string s1, string s2)
+    {
+        *mlu = cmsMLUalloc(DbgThread(), 0);
+        cmsMLUsetWide(*mlu, "en"u8, "US"u8, s1);
+        cmsMLUsetWide(*mlu, "es"u8, "ES"u8, s2);
+    }
+
+
+    private static bool CheckProfileSequenceTag(int Pass, HPROFILE hProfile)
+    {
+        Sequence* s;
+        int i;
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
+                if (s == null)
+                    return false;
+
+                SetOneStr(&s->seq[0].Manufacturer, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(&s->seq[0].Model, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(&s->seq[1].Manufacturer, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(&s->seq[1].Model, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(&s->seq[2].Manufacturer, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(&s->seq[2].Model, "Hello, world 2", "Hola, mundo 2");
+
+                s->seq[0].attributes = cmsTransparency | cmsMatte;
+                s->seq[1].attributes = cmsReflective | cmsMatte;
+                s->seq[2].attributes = cmsTransparency | cmsGlossy;
+
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, s))
+                    return false;
+                cmsFreeProfileSequenceDescription(s);
+                return true;
+
+            case 2:
+
+                s = (Sequence*)cmsReadTag(hProfile, cmsSigProfileSequenceDescTag);
+                if (s == null)
+                    return false;
+
+                if (s->n != 3)
+                    return false;
+
+                if (s->seq[0].attributes != (cmsTransparency | cmsMatte))
+                    return false;
+                if (s->seq[1].attributes != (cmsReflective | cmsMatte))
+                    return false;
+                if (s->seq[2].attributes != (cmsTransparency | cmsGlossy))
+                    return false;
+
+                // Check MLU
+                for (i = 0; i < 3; i++)
+                {
+
+                    if (!CheckOneStr(s->seq[i].Manufacturer, i))
+                        return false;
+                    if (!CheckOneStr(s->seq[i].Model, i))
+                        return false;
+                }
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckProfileSequenceIDTag(int Pass, HPROFILE hProfile)
+    {
+        Sequence* s;
+        int i;
+
+        switch (Pass)
+        {
+
+            case 1:
+
+                s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
+                if (s == null) return false;
+
+                memcpy(s->seq[0].ProfileID.id8, "0123456789ABCDEF"u8);
+                memcpy(s->seq[1].ProfileID.id8, "1111111111111111"u8);
+                memcpy(s->seq[2].ProfileID.id8, "2222222222222222"u8);
+
+
+                SetOneStr(&s->seq[0].Description, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(&s->seq[1].Description, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(&s->seq[2].Description, "Hello, world 2", "Hola, mundo 2");
+
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceIdTag, s)) return false;
+                cmsFreeProfileSequenceDescription(s);
+                return true;
+
+            case 2:
+
+                s = (Sequence*)cmsReadTag(hProfile, cmsSigProfileSequenceIdTag);
+                if (s == null) return false;
+
+                if (s->n != 3) return false;
+
+                if (memcmp(s->seq[0].ProfileID.id8, "0123456789ABCDEF"u8) != 0) return false;
+                if (memcmp(s->seq[1].ProfileID.id8, "1111111111111111"u8) != 0) return false;
+                if (memcmp(s->seq[2].ProfileID.id8, "2222222222222222"u8) != 0) return false;
+
+                for (i = 0; i < 3; i++)
+                {
+
+                    if (!CheckOneStr(s->seq[i].Description, i)) return false;
+                }
+
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+
+    private static bool CheckICCViewingConditions(int Pass, HPROFILE hProfile)
+    {
+        IccViewingConditions* v;
+        IccViewingConditions s;
+
+        switch (Pass)
+        {
+
+            case 1:
+                s.IlluminantType = IlluminantType.D50;
+                s.IlluminantXYZ.X = 0.1;
+                s.IlluminantXYZ.Y = 0.2;
+                s.IlluminantXYZ.Z = 0.3;
+                s.SurroundXYZ.X = 0.4;
+                s.SurroundXYZ.Y = 0.5;
+                s.SurroundXYZ.Z = 0.6;
+
+                if (!cmsWriteTag(hProfile, cmsSigViewingConditionsTag, &s)) return false;
+                return true;
+
+            case 2:
+                v = (IccViewingConditions*)cmsReadTag(hProfile, cmsSigViewingConditionsTag);
+                if (v == null) return false;
+
+                if (v->IlluminantType != IlluminantType.D50) return false;
+                if (!IsGoodVal("IlluminantXYZ.X", v->IlluminantXYZ.X, 0.1, 0.001)) return false;
+                if (!IsGoodVal("IlluminantXYZ.Y", v->IlluminantXYZ.Y, 0.2, 0.001)) return false;
+                if (!IsGoodVal("IlluminantXYZ.Z", v->IlluminantXYZ.Z, 0.3, 0.001)) return false;
+
+                if (!IsGoodVal("SurroundXYZ.X", v->SurroundXYZ.X, 0.4, 0.001)) return false;
+                if (!IsGoodVal("SurroundXYZ.Y", v->SurroundXYZ.Y, 0.5, 0.001)) return false;
+                if (!IsGoodVal("SurroundXYZ.Z", v->SurroundXYZ.Z, 0.6, 0.001)) return false;
+
+                return true;
+
+            default:
+                return false;
+        }
+
+    }
+
+
+    private static bool CheckVCGT(int Pass, HPROFILE hProfile)
+    {
+        var Curves = stackalloc ToneCurve*[3];
+        ToneCurve** PtrCurve;
+
+        switch (Pass)
+        {
+
+            case 1:
+                Curves[0] = cmsBuildGamma(DbgThread(), 1.1);
+                Curves[1] = cmsBuildGamma(DbgThread(), 2.2);
+                Curves[2] = cmsBuildGamma(DbgThread(), 3.4);
+
+                if (!cmsWriteTag(hProfile, cmsSigVcgtTag, Curves)) return false;
+
+                cmsFreeToneCurveTriple(Curves);
+                return true;
+
+
+            case 2:
+
+                //PtrCurve = (ToneCurve**)cmsReadTag(hProfile, cmsSigVcgtTag);
+                //if (PtrCurve == null) return false;
+                //if (!IsGoodVal("VCGT R", cmsEstimateGamma(PtrCurve[0], 0.01), 1.1, 0.001)) return false;
+                //if (!IsGoodVal("VCGT G", cmsEstimateGamma(PtrCurve[1], 0.01), 2.2, 0.001)) return false;
+                //if (!IsGoodVal("VCGT B", cmsEstimateGamma(PtrCurve[2], 0.01), 3.4, 0.001)) return false;
+                return true;
+
+            default:
+                break;
+        }
+
+        return false;
+    }
+
+
+    // Only one of the two following may be used, as they share the same tag
+    //static
+    //cmsInt32Number CheckDictionary16(cmsInt32Number Pass, cmsHPROFILE hProfile)
+    //{
+    //    cmsHANDLE hDict;
+    //    const cmsDICTentry* e;
+    //    switch (Pass)
+    //    {
+
+    //        case 1:
+    //            hDict = cmsDictAlloc(DbgThread());
+    //            cmsDictAddEntry(hDict, L"Name0", null, null, null);
+    //            cmsDictAddEntry(hDict, L"Name1", L"", null, null);
+    //            cmsDictAddEntry(hDict, L"Name", L"String", null, null);
+    //            cmsDictAddEntry(hDict, L"Name2", L"12", null, null);
+    //            if (!cmsWriteTag(hProfile, cmsSigMetaTag, hDict)) return false;
+    //            cmsDictFree(hDict);
+    //            return true;
+
+
+    //        case 2:
+
+    //            hDict = cmsReadTag(hProfile, cmsSigMetaTag);
+    //            if (hDict == null) return false;
+    //            e = cmsDictGetEntryList(hDict);
+    //            if (memcmp(e->Name, L"Name2", sizeof(wchar_t) * 5) != 0) return false;
+    //            if (memcmp(e->Value, L"12", sizeof(wchar_t) * 2) != 0) return false;
+    //            e = cmsDictNextEntry(e);
+    //            if (memcmp(e->Name, L"Name", sizeof(wchar_t) * 4) != 0) return false;
+    //            if (memcmp(e->Value, L"String", sizeof(wchar_t) * 5) != 0) return false;
+    //            e = cmsDictNextEntry(e);
+    //            if (memcmp(e->Name, L"Name1", sizeof(wchar_t) * 5) != 0) return false;
+    //            if (e->Value == null) return false;
+    //            if (*e->Value != 0) return false;
+    //            e = cmsDictNextEntry(e);
+    //            if (memcmp(e->Name, L"Name0", sizeof(wchar_t) * 5) != 0) return false;
+    //            if (e->Value != null) return false;
+    //            return true;
+
+
+    //        default:;
+    //    }
+
+    //    return false;
+    //}
+
+
+
+    private static bool CheckDictionary24(int Pass, HPROFILE hProfile)
+    {
+        void* hDict;
+        Dictionary.Entry* e;
+        Mlu* DisplayName;
+        var Buffer = stackalloc byte[256];
+        bool rc = true;
+
+        switch (Pass)
+        {
+
+            case 1:
+                hDict = cmsDictAlloc(DbgThread());
+
+                DisplayName = cmsMLUalloc(DbgThread(), 0);
+
+                cmsMLUsetWide(DisplayName, "en"u8, "US"u8, "Hello, world");
+                cmsMLUsetWide(DisplayName, "es"u8, "ES"u8, "Hola, mundo");
+                cmsMLUsetWide(DisplayName, "fr"u8, "FR"u8, "Bonjour, le monde");
+                cmsMLUsetWide(DisplayName, "ca"u8, "CA"u8, "Hola, mon");
+
+                cmsDictAddEntry(hDict, "Name", "String", DisplayName, null);
+                cmsMLUfree(DisplayName);
+
+                cmsDictAddEntry(hDict, "Name2", "12", null, null);
+                if (!cmsWriteTag(hProfile, cmsSigMetaTag, hDict)) return false;
+                cmsDictFree(hDict);
+
+                return true;
+
+
+            case 2:
+
+                hDict = cmsReadTag(hProfile, cmsSigMetaTag);
+                if (hDict == null) return false;
+
+                e = cmsDictGetEntryList(hDict);
+                if (memcmp(e->Name, "Name2") != 0) return false;
+                if (memcmp(e->Value, "12") != 0) return false;
+                e = cmsDictNextEntry(e);
+                if (memcmp(e->Name, "Name") != 0) return false;
+                if (memcmp(e->Value, "String") != 0) return false;
+
+                cmsMLUgetASCII(e->DisplayName, "en"u8, "US"u8, Buffer, 256);
+                if (strcmp(Buffer, "Hello, world"u8) != 0) rc = false;
+
+
+                cmsMLUgetASCII(e->DisplayName, "es"u8, "ES"u8, Buffer, 256);
+                if (strcmp(Buffer, "Hola, mundo"u8) != 0) rc = false;
+
+
+                cmsMLUgetASCII(e->DisplayName, "fr"u8, "FR"u8, Buffer, 256);
+                if (strcmp(Buffer, "Bonjour, le monde"u8) != 0) rc = false;
+
+
+                cmsMLUgetASCII(e->DisplayName, "ca"u8, "CA"u8, Buffer, 256);
+                if (strcmp(Buffer, "Hola, mon"u8) != 0) rc = false;
+
+                if (!rc)
+                    Fail($"Unexpected string '{new string((sbyte*)Buffer)}'");
+                return true;
+
+            default:
+                break;
+        }
+
+        return false;
+    }
+
+    private static bool CheckRAWtags(int Pass, HPROFILE hProfile)
+    {
+        var Buffer = stackalloc byte[7];
+        memcpy(Buffer, "data123"u8);
+
+        switch (Pass)
+        {
+
+            case 1:
+                return cmsWriteRawTag(hProfile, (Signature)0x31323334, Buffer, 7);
+
+            case 2:
+                if (cmsReadRawTag(hProfile, (Signature)0x31323334, Buffer, 7) is 0) return false;
+
+                if (memcmp(Buffer, "data123"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
 }

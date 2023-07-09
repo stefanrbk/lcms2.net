@@ -3139,7 +3139,7 @@ public static unsafe partial class Lcms2
     private static void* Type_MPE_Read(TagTypeHandler* self, IOHandler* io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
-        ushort ElementCount;
+        uint ElementCount;
         Pipeline* NewLUT = null;
 
         *nItems = 0;
@@ -3158,7 +3158,7 @@ public static unsafe partial class Lcms2
         NewLUT = cmsPipelineAlloc(self->ContextID, InputChans, OutputChans);
         if (NewLUT is null) return null;
 
-        if (!_cmsReadUInt16Number(io, &ElementCount)) goto Error;
+        if (!_cmsReadUInt32Number(io, &ElementCount)) goto Error;
         if (!ReadPositionTable(self, io, ElementCount, BaseOffset, NewLUT, &ReadMPEElem)) goto Error;
 
         // Check channel count
@@ -3199,7 +3199,7 @@ public static unsafe partial class Lcms2
         // Write the head
         if (!_cmsWriteUInt16Number(io, (ushort)inputChan)) goto Error;
         if (!_cmsWriteUInt16Number(io, (ushort)outputChan)) goto Error;
-        if (!_cmsWriteUInt16Number(io, (ushort)ElemCount)) goto Error;
+        if (!_cmsWriteUInt32Number(io, (ushort)ElemCount)) goto Error;
 
         var DirectoryPos = io->Tell(io);
 
@@ -3433,9 +3433,9 @@ public static unsafe partial class Lcms2
         {
             // Always store as a table of 256 words
             if (!_cmsWriteUInt32Number(io, cmsVideoCardGammaTableType)) return false;
-            if (!_cmsWriteUInt32Number(io, 3)) return false;
-            if (!_cmsWriteUInt32Number(io, 256)) return false;
-            if (!_cmsWriteUInt32Number(io, 2)) return false;
+            if (!_cmsWriteUInt16Number(io, 3)) return false;
+            if (!_cmsWriteUInt16Number(io, 256)) return false;
+            if (!_cmsWriteUInt16Number(io, 2)) return false;
 
             for (var i = 0; i < 3; i++)
             {
@@ -3456,7 +3456,7 @@ public static unsafe partial class Lcms2
     {
         var OldCurves = (ToneCurve**)Ptr;
 
-        var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
+        var NewCurves = _cmsCalloc2<ToneCurve>(self->ContextID, 3);
         if (NewCurves is null) return null;
 
         NewCurves[0] = cmsDupToneCurve(OldCurves[0]);
@@ -3720,7 +3720,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &Length)) goto Error;
 
         // Check for valid lengths
-        if (Length is not 16 or 24 or 32)
+        if (Length is not 16 and not 24 and not 32)
         {
             cmsSignalError(self->ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown record length in dictionry '{Length}'");
             return null;
@@ -3885,7 +3885,7 @@ public static unsafe partial class Lcms2
 
         if (!_cmsReadUInt32Number(io, null)) return null;
         if (!_cmsReadUInt16Number(io, &nSegments)) return null;
-        if (!_cmsReadUInt32Number(io, null)) return null;
+        if (!_cmsReadUInt16Number(io, null)) return null;
 
         if (nSegments < 1) return null;
         var Segments = _cmsCalloc<CurveSegment>(self->ContextID, nSegments);
@@ -3942,7 +3942,7 @@ public static unsafe partial class Lcms2
                         if (Segments[i].SampledPoints is null) goto Error;
 
                         Segments[i].SampledPoints[0] = 0;
-                        for (var j = 0; j < Count; j++)
+                        for (var j = 1; j < Count; j++)
                             if (!_cmsReadFloat32Number(io, &Segments[i].SampledPoints[j])) goto Error;
                     }
                     break;
@@ -4025,8 +4025,8 @@ public static unsafe partial class Lcms2
 
         if (!_cmsWriteUInt32Number(io, cmsSigSegmentedCurve)) return false;
         if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, (ushort)nSegments)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)nSegments)) return false;
+        if (!_cmsWriteUInt16Number(io, 0)) return false;
 
         // Write the break points
         for (var i = 0; i < nSegments - 1; i++)
