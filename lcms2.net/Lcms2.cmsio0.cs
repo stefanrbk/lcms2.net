@@ -381,11 +381,12 @@ public static unsafe partial class Lcms2
         if (fileSize < 0)
         {
             cmsSignalError(ContextID, ErrorCode.File, "Cannot get size of stream");
-            goto Error;
+            return null;
+            //goto Error;
         }
 
         iohandler = _cmsMallocZero<IOHandler>(ContextID);
-        if (iohandler is null) goto Error;
+        if (iohandler is null) return null /*goto Error*/;
 
         iohandler->ContextID = ContextID;
         iohandler->stream = file;
@@ -399,10 +400,12 @@ public static unsafe partial class Lcms2
         iohandler->Tell = FileTell;
         iohandler->Write = FileWrite;
 
-    Error:
-        if (file is not null) free(file);
-        if (iohandler is not null) _cmsFree(ContextID, iohandler);
-        return null;
+        return iohandler;
+
+    //Error:
+    //    if (file is not null) free(file);
+    //    if (iohandler is not null) _cmsFree(ContextID, iohandler);
+    //    return null;
     }
 
     public static bool cmsCloseIOhandler(IOHandler* io) =>
@@ -970,8 +973,8 @@ public static unsafe partial class Lcms2
                     Mem = _cmsMalloc(Icc->ContextID, TagSize);
                     if (Mem is null) return false;
 
-                    if (FileOrig->IOHandler->Read(FileOrig->IOHandler, Mem, TagSize, 1) is not 1) goto Error;
-                    if (!io->Write(io, TagSize, Mem)) goto Error;
+                    if (FileOrig->IOHandler->Read(FileOrig->IOHandler, Mem, TagSize, 1) is not 1) return false /*goto Error*/;
+                    if (!io->Write(io, TagSize, Mem)) return false /*goto Error*/;
                     _cmsFree(Icc->ContextID, Mem);
 
                     Icc->TagSizes[i] = io->UsedSpace - Begin;
@@ -982,9 +985,9 @@ public static unsafe partial class Lcms2
                 }
 
                 continue;
-            Error:
-                _cmsFree(Icc->ContextID, Mem);
-                return false;
+            //Error:
+            //    _cmsFree(Icc->ContextID, Mem);
+            //    return false;
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)

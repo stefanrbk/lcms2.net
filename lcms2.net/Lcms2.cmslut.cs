@@ -180,25 +180,35 @@ public static unsafe partial class Lcms2
         var Data = (StageToneCurvesData*)mpe->Data;
         if (Data is null) return;
 
-        FreeCurveSetElems(mpe->ContextID, Data);
-    }
-
-    private static void FreeCurveSetElems(Context ContextID, StageToneCurvesData* Data)
-    {
+        //FreeCurveSetElems(mpe->ContextID, Data);
         if (Data->TheCurves is not null)
         {
             for (var i = 0; i < Data->nCurves; i++)
             {
                 if (Data->TheCurves[i] is not null)
-                {
                     cmsFreeToneCurve(Data->TheCurves[i]);
-                }
             }
         }
-
-        _cmsFree(ContextID, Data->TheCurves);
-        _cmsFree(ContextID, Data);
+        _cmsFree(mpe->ContextID, Data->TheCurves);
+        _cmsFree(mpe->ContextID, Data);
     }
+
+    //private static void FreeCurveSetElems(Context ContextID, StageToneCurvesData* Data)
+    //{
+    //    if (Data->TheCurves is not null)
+    //    {
+    //        for (var i = 0; i < Data->nCurves; i++)
+    //        {
+    //            if (Data->TheCurves[i] is not null)
+    //            {
+    //                cmsFreeToneCurve(Data->TheCurves[i]);
+    //            }
+    //        }
+    //    }
+
+    //    _cmsFree(ContextID, Data->TheCurves);
+    //    _cmsFree(ContextID, Data);
+    //}
 
     private static void* CurveSetDup(Stage* mpe)
     {
@@ -221,7 +231,17 @@ public static unsafe partial class Lcms2
         return NewElem;
 
     Error:
-        FreeCurveSetElems(mpe->ContextID, NewElem);
+        //FreeCurveSetElems(mpe->ContextID, NewElem);
+        if (NewElem->TheCurves is not null)
+        {
+            for (var i = 0; i < NewElem->nCurves; i++)
+            {
+                if (NewElem->TheCurves[i] is not null)
+                    cmsFreeToneCurve(NewElem->TheCurves[i]);
+            }
+        }
+        _cmsFree(mpe->ContextID, NewElem->TheCurves);
+        _cmsFree(mpe->ContextID, NewElem);
         return null;
     }
 

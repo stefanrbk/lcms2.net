@@ -879,10 +879,10 @@ public static unsafe partial class Lcms2
         if (it8 is null) return null;
 
         it8->Tab = _cmsCalloc<TABLE>(ContextID, MAXTABLES);
-        if (it8->Tab is null) goto Error;
+        if (it8->Tab is null) return null /*goto Error*/;
 
         it8->FileStack = _cmsCalloc2<FILECTX>(ContextID, MAXINCLUDE);
-        if (it8->FileStack is null) goto Error;
+        if (it8->FileStack is null) return null /*goto Error*/;
 
         AllocTable(it8);
 
@@ -925,11 +925,11 @@ public static unsafe partial class Lcms2
 
         return it8;
 
-    Error:
-        if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
-        if (it8 is not null) _cmsFree(ContextID, it8);
+    //Error:
+    //    if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
+    //    if (it8 is not null) _cmsFree(ContextID, it8);
 
-        return null;
+    //    return null;
     }
 
     public static byte* cmsIT8GetSheetType(HANDLE hIT8) =>

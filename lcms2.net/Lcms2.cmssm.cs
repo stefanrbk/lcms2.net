@@ -54,9 +54,9 @@ public static unsafe partial class Lcms2
     private struct GDB
     {
         public Context ContextID;
-        public GDBPoint* Gamut;
-        public GDBPoint* GamutPtr(int theta, int alpha) =>
-            &Gamut[theta * SECTORS + alpha];
+        public fixed long Gamut[4 * SECTORS * SECTORS];
+        public static GDBPoint* GamutPtr(GDB* self, int theta, int alpha) =>
+            &((GDBPoint*)self->Gamut)[theta * SECTORS + alpha];
     }
     private record struct Line(VEC3 a, VEC3 u);
     private record struct Plane(VEC3 b, VEC3 v, VEC3 w);
@@ -229,12 +229,6 @@ public static unsafe partial class Lcms2
         if (gbd is null) return null;
 
         gbd->ContextID = ContextID;
-        gbd->Gamut = _cmsCalloc<GDBPoint>(gbd->ContextID, SECTORS * SECTORS);
-        if (gbd->Gamut is null)
-        {
-            _cmsFree(ContextID, gbd);
-            return null;
-        }
 
         return gbd;
     }
@@ -243,11 +237,7 @@ public static unsafe partial class Lcms2
     {
         var gbd = (GDB*)hGBD;
         if (hGBD is not null)
-        {
-            if (gbd->Gamut is null)
-                _cmsFree(gbd->ContextID, gbd->Gamut);
             _cmsFree(gbd->ContextID, hGBD);
-        }
     }
 
     private static GDBPoint* GetPoint(GDB* gbd, in CIELab* Lab, Spherical* sp)
@@ -282,7 +272,7 @@ public static unsafe partial class Lcms2
         }
 
         // Get pointer to the sector
-        return gbd->GamutPtr(theta, alpha);
+        return GDB.GamutPtr(gbd, theta, alpha);
     }
 
     public static bool cmsGDBAddPoint(HANDLE hGBD, in CIELab* Lab)
@@ -346,7 +336,7 @@ public static unsafe partial class Lcms2
             if (a < 0) a = SECTORS + a;
             if (t < 0) t = SECTORS + t;
 
-            var pt = gbd->GamutPtr(t, a);
+            var pt = GDB.GamutPtr(gbd, t, a);
 
             if (pt->Type is not GP_EMPTY)
                 Close[nSectors++] = pt;
@@ -365,7 +355,7 @@ public static unsafe partial class Lcms2
         Spherical closel = new();
 
         // Is that point already specified?
-        if (gbd->GamutPtr(theta, alpha)->Type is not GP_EMPTY) return true;
+        if (GDB.GamutPtr(gbd, theta, alpha)->Type is not GP_EMPTY) return true;
 
         // Fill close points
         var nCloseSectors = FindNearSectors(gbd, alpha, theta, Close);
@@ -427,7 +417,7 @@ public static unsafe partial class Lcms2
             Type = GP_MODELED
         };
 
-        *gbd->GamutPtr(theta, alpha) = result;
+        *GDB.GamutPtr(gbd, theta, alpha) = result;
 
         return true;
     }
@@ -538,7 +528,7 @@ public static unsafe partial class Lcms2
             {
                 VEC3 v;
 
-                var pt = gbd->GamutPtr(i, j);
+                var pt = GDB.GamutPtr(gbd, i, j);
                 var ptp = pt->p;
                 ToCartesian(&v, &ptp);
 
@@ -563,7 +553,7 @@ public static unsafe partial class Lcms2
             {
                 VEC3 v;
 
-                var pt = gbd->GamutPtr(i, j);
+                var pt = GDB.GamutPtr(gbd, i, j);
                 var ptp = pt->p;
                 ToCartesian(&v, &ptp);
 

@@ -3466,8 +3466,11 @@ public static unsafe partial class Lcms2
         return NewCurves;
     }
 
-    private static void Type_vcgt_Free(TagTypeHandler* _, void* Ptr) =>
+    private static void Type_vcgt_Free(TagTypeHandler* self, void* Ptr)
+    {
         cmsFreeToneCurveTriple((ToneCurve**)Ptr);
+        _cmsFree(self->ContextID, Ptr);
+    }
 
     #endregion vcgt
 

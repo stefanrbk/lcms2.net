@@ -1152,13 +1152,24 @@ public static unsafe partial class Lcms2
         c16->nElements = nElements;
 
         c16->Curves = _cmsCalloc2<ushort>(ContextID, nCurves);
-        if (c16 is null) goto Error1;
+        if (c16 is null) /*goto Error1;*/
+        {
+            _cmsFree(ContextID, c16);
+            return null;
+        }
 
         for (i = 0; i < nCurves; i++)
         {
             c16->Curves[i] = _cmsCalloc<ushort>(ContextID, nElements);
 
-            if (c16->Curves[i] is null) goto Error2;
+            if (c16->Curves[i] is null) /*goto Error2;*/
+            {
+                for (var j = 0; j < i; j++)
+                    _cmsFree(ContextID, c16->Curves[j]);
+                _cmsFree(ContextID, c16->Curves);
+                _cmsFree(ContextID, c16);
+                return null;
+            }
 
             if (nElements is 256)
             {
@@ -1174,13 +1185,13 @@ public static unsafe partial class Lcms2
 
         return c16;
 
-    Error2:
-        for (var j = 0; j < i; j++)
-            _cmsFree(ContextID, c16->Curves[j]);
-        _cmsFree(ContextID, c16->Curves);
-    Error1:
-        _cmsFree(ContextID, c16);
-        return null;
+    //Error2:
+    //    for (var j = 0; j < i; j++)
+    //        _cmsFree(ContextID, c16->Curves[j]);
+    //    _cmsFree(ContextID, c16->Curves);
+    //Error1:
+    //    _cmsFree(ContextID, c16);
+    //    return null;
     }
 
     private static void FastEvaluateCurves8(in ushort* In, ushort* Out, in void* D)
@@ -1266,8 +1277,12 @@ public static unsafe partial class Lcms2
             cmsFreeToneCurve(GammaTables[i]);
             GammaTables[i] = null;
         }
-        _cmsFree(Src->ContextID, GammaTables);
-        GammaTables = null;
+
+        if (GammaTables is not null)
+        {
+            _cmsFree(Src->ContextID, GammaTables);
+            GammaTables = null;
+        }
 
         // Maybe the curves are linear at the end
         if (!AllCurvesAreLinear(ObtainedCurves))

@@ -391,122 +391,122 @@ internal static unsafe partial class Testbed
         for (Pass = 1; Pass <= 2 /*1*/; Pass++)
         {
 
-            //SubTest("Tags holding XYZ");
+            SubTest("Tags holding XYZ");
 
-            //if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag)) goto Error;
-            //if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag)) goto Error;
-            //if (!CheckXYZ(Pass, h, cmsSigRedColorantTag)) goto Error;
-            //if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag)) goto Error;
-            //if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag)) goto Error;
-            //if (!CheckXYZ(Pass, h, cmsSigLuminanceTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigRedColorantTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag)) goto Error;
+            if (!CheckXYZ(Pass, h, cmsSigLuminanceTag)) goto Error;
 
-            //SubTest("Tags holding curves");
+            SubTest("Tags holding curves");
 
-            //if (!CheckGamma(Pass, h, cmsSigBlueTRCTag)) goto Error;
-            //if (!CheckGamma(Pass, h, cmsSigGrayTRCTag)) goto Error;
-            //if (!CheckGamma(Pass, h, cmsSigGreenTRCTag)) goto Error;
-            //if (!CheckGamma(Pass, h, cmsSigRedTRCTag)) goto Error;
+            if (!CheckGamma(Pass, h, cmsSigBlueTRCTag)) goto Error;
+            if (!CheckGamma(Pass, h, cmsSigGrayTRCTag)) goto Error;
+            if (!CheckGamma(Pass, h, cmsSigGreenTRCTag)) goto Error;
+            if (!CheckGamma(Pass, h, cmsSigRedTRCTag)) goto Error;
 
-            //SubTest("Tags holding text");
+            SubTest("Tags holding text");
 
-            //if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag)) goto Error;
-            //if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag)) goto Error;
+            if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag)) goto Error;
+            if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag)) goto Error;
 
-            //if (!CheckText(Pass, h, cmsSigCopyrightTag)) goto Error;
-            //if (!CheckText(Pass, h, cmsSigProfileDescriptionTag)) goto Error;
-            //if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag)) goto Error;
-            //if (!CheckText(Pass, h, cmsSigDeviceModelDescTag)) goto Error;
-            //if (!CheckText(Pass, h, cmsSigViewingCondDescTag)) goto Error;
+            if (!CheckText(Pass, h, cmsSigCopyrightTag)) goto Error;
+            if (!CheckText(Pass, h, cmsSigProfileDescriptionTag)) goto Error;
+            if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag)) goto Error;
+            if (!CheckText(Pass, h, cmsSigDeviceModelDescTag)) goto Error;
+            if (!CheckText(Pass, h, cmsSigViewingCondDescTag)) goto Error;
 
 
 
-            //SubTest("Tags holding cmsICCData");
+            SubTest("Tags holding cmsICCData");
 
-            //if (!CheckData(Pass, h, cmsSigPs2CRD0Tag)) goto Error;
-            //if (!CheckData(Pass, h, cmsSigPs2CRD1Tag)) goto Error;
-            //if (!CheckData(Pass, h, cmsSigPs2CRD2Tag)) goto Error;
-            //if (!CheckData(Pass, h, cmsSigPs2CRD3Tag)) goto Error;
-            //if (!CheckData(Pass, h, cmsSigPs2CSATag)) goto Error;
-            //if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2CRD0Tag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2CRD1Tag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2CRD2Tag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2CRD3Tag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2CSATag)) goto Error;
+            if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag)) goto Error;
 
-            //SubTest("Tags holding signatures");
+            SubTest("Tags holding signatures");
 
-            //if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag)) goto Error;
-            //if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag)) goto Error;
-            //if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag)) goto Error;
-            //if (!CheckSignature(Pass, h, cmsSigTechnologyTag)) goto Error;
+            if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag)) goto Error;
+            if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag)) goto Error;
+            if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag)) goto Error;
+            if (!CheckSignature(Pass, h, cmsSigTechnologyTag)) goto Error;
 
-            //SubTest("Tags holding date_time");
+            SubTest("Tags holding date_time");
 
-            //if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag)) goto Error;
-            //if (!CheckDateTime(Pass, h, cmsSigDateTimeTag)) goto Error;
+            if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag)) goto Error;
+            if (!CheckDateTime(Pass, h, cmsSigDateTimeTag)) goto Error;
 
-            //SubTest("Tags holding named color lists");
+            SubTest("Tags holding named color lists");
 
-            //if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false)) goto Error;
-            //if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false)) goto Error;
-            //if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true)) goto Error;
+            if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false)) goto Error;
+            if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false)) goto Error;
+            if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true)) goto Error;
 
-            //SubTest("Tags holding LUTs");
+            SubTest("Tags holding LUTs");
 
-            //if (!CheckLUT(Pass, h, cmsSigAToB0Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigAToB1Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigAToB2Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigBToA0Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigBToA1Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigBToA2Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigPreview0Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigPreview1Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigPreview2Tag)) goto Error;
-            //if (!CheckLUT(Pass, h, cmsSigGamutTag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigAToB0Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigAToB1Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigAToB2Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigBToA0Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigBToA1Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigBToA2Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigPreview0Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigPreview1Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigPreview2Tag)) goto Error;
+            if (!CheckLUT(Pass, h, cmsSigGamutTag)) goto Error;
 
-            //SubTest("Tags holding CHAD");
-            //if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag)) goto Error;
+            SubTest("Tags holding CHAD");
+            if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag)) goto Error;
 
-            //SubTest("Tags holding Chromaticity");
-            //if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag)) goto Error;
+            SubTest("Tags holding Chromaticity");
+            if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag)) goto Error;
 
-            //SubTest("Tags holding colorant order");
-            //if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag)) goto Error;
+            SubTest("Tags holding colorant order");
+            if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag)) goto Error;
 
-            //SubTest("Tags holding measurement");
-            //if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag)) goto Error;
+            SubTest("Tags holding measurement");
+            if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag)) goto Error;
 
-            //SubTest("Tags holding CRD info");
-            //if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag)) goto Error;
+            SubTest("Tags holding CRD info");
+            if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag)) goto Error;
 
-            //SubTest("Tags holding UCR/BG");
-            //if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag)) goto Error;
+            SubTest("Tags holding UCR/BG");
+            if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag)) goto Error;
 
-            //SubTest("Tags holding MPE");
-            //if (!CheckMPE(Pass, h, cmsSigDToB0Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigDToB1Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigDToB2Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigDToB3Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigBToD0Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigBToD1Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigBToD2Tag)) goto Error;
-            //if (!CheckMPE(Pass, h, cmsSigBToD3Tag)) goto Error;
+            SubTest("Tags holding MPE");
+            if (!CheckMPE(Pass, h, cmsSigDToB0Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigDToB1Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigDToB2Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigDToB3Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigBToD0Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigBToD1Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigBToD2Tag)) goto Error;
+            if (!CheckMPE(Pass, h, cmsSigBToD3Tag)) goto Error;
 
-            //SubTest("Tags using screening");
-            //if (!CheckScreening(Pass, h, cmsSigScreeningTag)) goto Error;
+            SubTest("Tags using screening");
+            if (!CheckScreening(Pass, h, cmsSigScreeningTag)) goto Error;
 
-            //SubTest("Tags holding profile sequence description");
-            //if (!CheckProfileSequenceTag(Pass, h)) goto Error;
-            //if (!CheckProfileSequenceIDTag(Pass, h)) goto Error;
+            SubTest("Tags holding profile sequence description");
+            if (!CheckProfileSequenceTag(Pass, h)) goto Error;
+            if (!CheckProfileSequenceIDTag(Pass, h)) goto Error;
 
-            //SubTest("Tags holding ICC viewing conditions");
-            //if (!CheckICCViewingConditions(Pass, h)) goto Error;
+            SubTest("Tags holding ICC viewing conditions");
+            if (!CheckICCViewingConditions(Pass, h)) goto Error;
 
             SubTest("VCGT tags");
             if (!CheckVCGT(Pass, h)) goto Error;
 
-            //SubTest("RAW tags");
-            //if (!CheckRAWtags(Pass, h)) goto Error;
+            SubTest("RAW tags");
+            if (!CheckRAWtags(Pass, h)) goto Error;
 
-            //SubTest("Dictionary meta tags");
-            //// if (!CheckDictionary16(Pass, h)) goto Error;
-            //if (!CheckDictionary24(Pass, h)) goto Error;
+            SubTest("Dictionary meta tags");
+            // if (!CheckDictionary16(Pass, h)) goto Error;
+            if (!CheckDictionary24(Pass, h)) goto Error;
 
             if (Pass == 1)
             {
