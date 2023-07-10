@@ -180,32 +180,34 @@ public static unsafe partial class Lcms2
 
     private const double ERR_THRESHOLD = 5;
 
-    private static bool GamutSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool GamutSampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        var t = (GamutChain*)Cargo;
         CIELab LabIn1, LabOut1;
         CIELab LabIn2, LabOut2;
         var Proof = stackalloc ushort[cmsMAXCHANNELS];
         var Proof2 = stackalloc ushort[cmsMAXCHANNELS];
 
+        if (Cargo is not BoxPtr<GamutChain> t)
+            return false;
+
         // Assume in-gamut by default.
         var ErrorRatio = 1.0;
 
         // Convert input to Lab
-        cmsDoTransform(t->hInput, In, &LabIn1, 1);
+        cmsDoTransform(t.Ptr->hInput, In, &LabIn1, 1);
 
         // converts from PCS to colorant. This always
         // does return in-gamut values
-        cmsDoTransform(t->hForward, &LabIn1, Proof, 1);
+        cmsDoTransform(t.Ptr->hForward, &LabIn1, Proof, 1);
 
         // Now, do the inverse, from colorant to PCS.
-        cmsDoTransform(t->hReverse, Proof, &LabOut1, 1);
+        cmsDoTransform(t.Ptr->hReverse, Proof, &LabOut1, 1);
 
-        memmove<CIELab>(&LabIn2, &LabOut1);
+        memmove(&LabIn2, &LabOut1);
 
         // Try again, but this time taking Check as input
-        cmsDoTransform(t->hForward, &LabOut1, Proof2, 1);
-        cmsDoTransform(t->hReverse, Proof2, &LabOut2, 1);
+        cmsDoTransform(t.Ptr->hForward, &LabOut1, Proof2, 1);
+        cmsDoTransform(t.Ptr->hReverse, Proof2, &LabOut2, 1);
 
         // Take difference of direct value
         var dE1 = cmsDeltaE(&LabIn1, &LabOut1);
@@ -214,23 +216,23 @@ public static unsafe partial class Lcms2
         var dE2 = cmsDeltaE(&LabIn2, &LabOut2);
 
         // if dE1 is small and dE2 is small, value is likely to be in gamut
-        if (dE1 < t->Threshold && dE2 < t->Threshold)
+        if (dE1 < t.Ptr->Threshold && dE2 < t.Ptr->Threshold)
         {
             Out[0] = 0;
         }
         else
         {
             // if dE1 is small and dE2 is big, undefined. Assume in gamut
-            if (dE1 < t->Threshold && dE2 > t->Threshold)
+            if (dE1 < t.Ptr->Threshold && dE2 > t.Ptr->Threshold)
             {
                 Out[0] = 0;
             }
             else
             {
                 // dE1 is big and dE2 is small, clearly out of gamut
-                if (dE1 > t->Threshold && dE2 < t->Threshold)
+                if (dE1 > t.Ptr->Threshold && dE2 < t.Ptr->Threshold)
                 {
-                    Out[0] = (ushort)_cmsQuickFloor((dE1 - t->Threshold) + 0.5);
+                    Out[0] = (ushort)_cmsQuickFloor((dE1 - t.Ptr->Threshold) + 0.5);
                 }
                 else
                 {
@@ -238,7 +240,7 @@ public static unsafe partial class Lcms2
                     // so take error ratio
                     ErrorRatio = (dE2 is 0) ? dE1 : dE1 / dE2;
 
-                    Out[0] = (ushort)((ErrorRatio > t->Threshold) ? (ushort)_cmsQuickFloor((ErrorRatio - t->Threshold) + 0.5) : 0);
+                    Out[0] = (ushort)((ErrorRatio > t.Ptr->Threshold) ? (ushort)_cmsQuickFloor((ErrorRatio - t.Ptr->Threshold) + 0.5) : 0);
                 }
             }
         }
@@ -246,7 +248,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static Pipeline* _cmsCreateGamutCheckPipeline(
+    internal static Pipeline? _cmsCreateGamutCheckPipeline(
         Context? ContextID,
         Profile[] Profiles,
         bool* BPC,
@@ -260,7 +262,7 @@ public static unsafe partial class Lcms2
         var AdaptationList = stackalloc double[256];
         var IntentList = stackalloc uint[256];
         GamutChain Chain;
-        Pipeline* Gamut;
+        Pipeline? Gamut;
 
         memset(&Chain, 0);
 
@@ -330,7 +332,7 @@ public static unsafe partial class Lcms2
                 }
                 else
                 {
-                    cmsStageSampleCLut16bit(CLUT, GamutSampler, &Chain, 0);
+                    cmsStageSampleCLut16bit(CLUT, GamutSampler, new BoxPtr<GamutChain>(&Chain), 0);
                 }
             }
         }

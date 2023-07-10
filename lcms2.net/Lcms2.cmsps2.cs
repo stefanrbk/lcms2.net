@@ -509,11 +509,12 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool OutputValueSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool OutputValueSampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        var sc = (PsSamplerCargo*)Cargo;
+        if (Cargo is not BoxPtr<PsSamplerCargo> sc)
+            return false;
 
-        if (sc->FixWhite)
+        if (sc.Ptr->FixWhite)
         {
             if (In[0] == 0xffff)    // Only in L* = 100, ab = [-8..8]
             {
@@ -524,7 +525,7 @@ public static unsafe partial class Lcms2
                     ushort* White;
                     uint nOutputs;
 
-                    if (!_cmsEndPointsBySpace(sc->ColorSpace, &White, &Black, &nOutputs))
+                    if (!_cmsEndPointsBySpace(sc.Ptr->ColorSpace, &White, &Black, &nOutputs))
                         return false;
 
                     for (var i = 0u; i < nOutputs; i++)
@@ -535,43 +536,43 @@ public static unsafe partial class Lcms2
 
         // Handle the parenthesis on rows
 
-        if (In[0] != sc->FirstComponent)
+        if (In[0] != sc.Ptr->FirstComponent)
         {
-            if (sc->FirstComponent != -1)
+            if (sc.Ptr->FirstComponent != -1)
             {
-                _cmsIOPrintf(sc->m, new string((sbyte*)sc->PostMin));
-                sc->SecondComponent = -1;
-                _cmsIOPrintf(sc->m, new string((sbyte*)sc->PostMaj));
+                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMin));
+                sc.Ptr->SecondComponent = -1;
+                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMaj));
             }
 
             // Begin block
             _cmsPSActualColumn = 0;
 
-            _cmsIOPrintf(sc->m, new string((sbyte*)sc->PreMaj));
-            sc->FirstComponent = In[0];
+            _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PreMaj));
+            sc.Ptr->FirstComponent = In[0];
         }
 
-        if (In[1] != sc->SecondComponent)
+        if (In[1] != sc.Ptr->SecondComponent)
         {
-            if (sc->SecondComponent != -1)
+            if (sc.Ptr->SecondComponent != -1)
             {
-                _cmsIOPrintf(sc->m, new string((sbyte*)sc->PostMin));
+                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMin));
             }
 
-            _cmsIOPrintf(sc->m, new string((sbyte*)sc->PreMin));
-            sc->SecondComponent = In[1];
+            _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PreMin));
+            sc.Ptr->SecondComponent = In[1];
         }
 
         // Dump table.
 
-        for (var i = 0u; i < sc->Pipeline.Params->nOutputs; i++)
+        for (var i = 0u; i < sc.Ptr->Pipeline.Params->nOutputs; i++)
         {
             var wWordOut = Out[i];
 
             // We always deal with Lab4;
 
             var wByteOut = Word2Byte(wWordOut);
-            WriteByte(sc->m, wByteOut);
+            WriteByte(sc.Ptr->m, wByteOut);
         }
 
         return true;
@@ -589,9 +590,12 @@ public static unsafe partial class Lcms2
     {
         PsSamplerCargo sc;
 
+        if (mpe.Data is not StageCLutData clut)
+            return;
+
         sc.FirstComponent = -1;
         sc.SecondComponent = -1;
-        sc.Pipeline = (StageCLutData)mpe.Data;
+        sc.Pipeline = clut;
         sc.m = m;
         sc.PreMaj = PreMaj;
         sc.PostMaj = PostMaj;
@@ -608,7 +612,7 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, " [\n");
 
-        cmsStageSampleCLut16bit(mpe, OutputValueSampler, &sc, SamplerFlag.Inspect);
+        cmsStageSampleCLut16bit(mpe, OutputValueSampler, new BoxPtr<PsSamplerCargo>(&sc), SamplerFlag.Inspect);
 
         _cmsIOPrintf(m, new string((sbyte*)PostMin));
         _cmsIOPrintf(m, new string((sbyte*)PostMaj));
@@ -687,14 +691,14 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool EmitCIEBasedDEF(IOHandler m, Pipeline* Pipeline, uint Intent, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedDEF(IOHandler m, Pipeline Pipeline, uint Intent, CIEXYZ* BlackPoint)
     {
         byte* PreMaj;
         byte* PostMaj;
         byte* PreMin, PostMin;
         var buffer = stackalloc byte[2048];
 
-        var mpe = Pipeline->Elements;
+        var mpe = Pipeline.Elements;
 
         switch(cmsStageInputChannels(mpe))
         {
@@ -837,7 +841,7 @@ public static unsafe partial class Lcms2
                     if (DeviceLink is null) return false;
 
                     dwFlags |= cmsFLAGS_FORCE_CLUT;
-                    _cmsOptimizePipeline(m.ContextID, &DeviceLink, Intent, &InputFormat, &OutFrm, &dwFlags);
+                    _cmsOptimizePipeline(m.ContextID, ref DeviceLink, Intent, &InputFormat, &OutFrm, &dwFlags);
 
                     var rc = EmitCIEBasedDEF(m, DeviceLink, Intent, &BlackPointAdaptedToD50);
                     cmsPipelineFree(DeviceLink);
@@ -937,7 +941,7 @@ public static unsafe partial class Lcms2
         uint dwFlags,
         IOHandler mem)
     {
-        Pipeline* lut = null;
+        Pipeline? lut = null;
 
         // Is a named color profile?
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
@@ -961,7 +965,9 @@ public static unsafe partial class Lcms2
             if (lut is null) goto Error;
 
             // TOne curves + matrix can be implemented without and LUT
-            if (cmsPipelineCheckAndRetrieveStages(lut, out var Shaper, out var Matrix, cmsSigCurveSetElemType, cmsSigMatrixElemType))
+            if (cmsPipelineCheckAndRetrieveStages(
+                lut, cmsSigCurveSetElemType, out var Shaper,
+                     cmsSigMatrixElemType, out var Matrix))
             {
                 if (!WriteInputMatrixShaper(mem, Profile, Matrix, Shaper)) goto Error;
             }
@@ -1118,7 +1124,7 @@ public static unsafe partial class Lcms2
 
         // We need a CLUT
         dwFlags |= cmsFLAGS_FORCE_CLUT;
-        _cmsOptimizePipeline(m.ContextID, &DeviceLink, RelativeEncodingIntent, &InFrm, &OutputFormat, &dwFlags);
+        _cmsOptimizePipeline(m.ContextID, ref DeviceLink, RelativeEncodingIntent, &InFrm, &OutputFormat, &dwFlags);
 
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "/ColorRenderingType 1\n");

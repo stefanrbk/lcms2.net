@@ -767,7 +767,7 @@ public static unsafe partial class Lcms2
 
     public static BoxPtr<NamedColorList>? cmsGetNamedColorList(Transform* xform)
     {
-        var mpe = xform->Lut->Elements;
+        var mpe = xform->Lut.Elements;
 
         return (mpe is not null && mpe.Type == cmsSigNamedColorElemType)
             ? mpe.Data as BoxPtr<NamedColorList>

@@ -354,7 +354,7 @@ public static unsafe partial class Lcms2
             for (var j = 0; j < PixelsPerLine; j++)
             {
                 accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
-                p->Lut->Eval16Fn(wIn, wOut, p->Lut->Data);
+                p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
                 output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
@@ -367,17 +367,17 @@ public static unsafe partial class Lcms2
     {
         ushort wOutOfGamut;
 
-        p->GamutCheck->Eval16Fn(wIn, &wOutOfGamut, p->GamutCheck->Data);
+        p->GamutCheck.Eval16Fn(wIn, &wOutOfGamut, p->GamutCheck.Data);
         if (wOutOfGamut >= 1)
         {
             var ContextAlarmCodes = _cmsGetContext(p->ContextID).AlarmCodes;
 
-            for (var i = 0; i < p->Lut->OutputChannels; i++)
+            for (var i = 0; i < p->Lut.OutputChannels; i++)
                 wOut[i] = ContextAlarmCodes.AlarmCodes[i];
         }
         else
         {
-            p->Lut->Eval16Fn(wIn, wOut, p->Lut->Data);
+            p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
         }
     }
 
@@ -455,7 +455,7 @@ public static unsafe partial class Lcms2
                 }
                 else
                 {
-                    p->Lut->Eval16Fn(wIn, wOut, p->Lut->Data);
+                    p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
 
                     memcpy(Cache.CacheIn, wIn, _sizeof<ushort>() * cmsMAXCHANNELS);
                     memcpy(Cache.CacheOut, wOut, _sizeof<ushort>() * cmsMAXCHANNELS);
@@ -598,7 +598,6 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase? Data)
     {
-        var Plugin = (PluginTransform?)Data;
         var ctx = _cmsGetContext(id).TransformPlugin;
 
         if (Data is null)
@@ -607,6 +606,9 @@ public static unsafe partial class Lcms2
             ctx.TransformCollection = null;
             return true;
         }
+
+        if (Data is not PluginTransform Plugin)
+            return false;
 
         // Factory callback is required
         if (Plugin!.factories.xform is null) return false;
@@ -669,7 +671,7 @@ public static unsafe partial class Lcms2
 
     private static Transform* AllocEmptyTransform(
         Context? ContextID,
-        Pipeline* lut,
+        Pipeline? lut,
         uint Intent,
         uint* InputFormat,
         uint* OutputFormat,
@@ -692,7 +694,7 @@ public static unsafe partial class Lcms2
                     Plugin is not null;
                     Plugin = Plugin->Next)
                 {
-                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
+                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData, ref p->Lut, InputFormat, OutputFormat, dwFlags))
                     {
                         // Last plugin in the declaration order takes control. We just keep
                         // the original parameters as a logging.
@@ -726,7 +728,7 @@ public static unsafe partial class Lcms2
             }
 
             // Not suitable for the transform plug-in, let's check the pipeline plug-in
-            //_cmsOptimizePipeline(ContextID, &p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
+            _cmsOptimizePipeline(ContextID, ref p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
         }
 
         // Check whether this is a true floating point transform
@@ -998,7 +1000,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                xform->Lut->Eval16Fn(xform->Cache.CacheIn, xform->Cache.CacheOut, xform->Lut->Data);
+                xform->Lut.Eval16Fn(xform->Cache.CacheIn, xform->Cache.CacheOut, xform->Lut.Data);
             }
         }
 

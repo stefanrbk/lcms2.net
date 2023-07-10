@@ -322,7 +322,28 @@ public static unsafe partial class Lcms2
         }
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsFree(Context? ContextID, void* Ptr)
+    {
+        if (Ptr is not null)
+        {
+            var ptr = _cmsGetContext(ContextID).MemPlugin;
+            ptr.FreePtr(ContextID, Ptr);
+        }
+    }
+
+    [DebuggerStepThrough]
+    internal static void _cmsFree<T>(Context? ContextID, BoxPtr<T>? Ptr) where T : struct
+    {
+        if (Ptr is not null)
+        {
+            var ptr = _cmsGetContext(ContextID).MemPlugin;
+            ptr.FreePtr(ContextID, Ptr);
+        }
+    }
+
+    [DebuggerStepThrough]
+    internal static void _cmsFree<T>(Context? ContextID, BoxPtr2<T>? Ptr) where T : struct
     {
         if (Ptr is not null)
         {
@@ -334,6 +355,9 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void* _cmsDupMem(Context? ContextID, in void* Org, uint size)
     {
+        if (Org is null)
+            return null;
+
         var ptr = _cmsGetContext(ContextID).MemPlugin;
         return ptr.DupPtr(ContextID, Org, size);
     }

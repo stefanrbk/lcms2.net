@@ -1009,7 +1009,7 @@ internal static unsafe partial class Testbed
     private static ushort Fn8D3(uint m, ushort a1, ushort a2, ushort a3, ushort a4 = 0, ushort a5 = 0, ushort a6 = 0, ushort a7 = 0, ushort a8 = 0) =>
         (ushort)(((3 * a1) + (2 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 5));
 
-    private static bool Sampler3D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler3D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(3, In[0], In[1], In[2]);
         Out[1] = Fn8D2(3, In[0], In[1], In[2]);
@@ -1018,7 +1018,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler4D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler4D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(4, In[0], In[1], In[2], In[3]);
         Out[1] = Fn8D2(4, In[0], In[1], In[2], In[3]);
@@ -1027,7 +1027,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler5D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler5D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(5, In[0], In[1], In[2], In[3], In[4]);
         Out[1] = Fn8D2(5, In[0], In[1], In[2], In[3], In[4]);
@@ -1039,7 +1039,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler6D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler6D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(6, In[0], In[1], In[2], In[3], In[4], In[5]);
         Out[1] = Fn8D2(6, In[0], In[1], In[2], In[3], In[4], In[5]);
@@ -1048,7 +1048,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler7D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler7D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(7, In[0], In[1], In[2], In[3], In[4], In[5], In[6]);
         Out[1] = Fn8D2(7, In[0], In[1], In[2], In[3], In[4], In[5], In[6]);
@@ -1057,7 +1057,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler8D(in ushort* In, ushort* Out, void* _)
+    private static bool Sampler8D(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = Fn8D1(8, In[0], In[1], In[2], In[3], In[4], In[5], In[6], In[7]);
         Out[1] = Fn8D2(8, In[0], In[1], In[2], In[3], In[4], In[5], In[6], In[7]);
@@ -1066,7 +1066,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne3D(Pipeline* lut, ushort a1, ushort a2, ushort a3)
+    private static bool CheckOne3D(Pipeline lut, ushort a1, ushort a2, ushort a3)
     {
         var In = stackalloc ushort[3];
         var Out1 = stackalloc ushort[3];
@@ -1089,7 +1089,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne4D(Pipeline* lut, ushort a1, ushort a2, ushort a3, ushort a4)
+    private static bool CheckOne4D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4)
     {
         var In = stackalloc ushort[4];
         var Out1 = stackalloc ushort[3];
@@ -1112,7 +1112,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne5D(Pipeline* lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5)
+    private static bool CheckOne5D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5)
     {
         var In = stackalloc ushort[5];
         var Out1 = stackalloc ushort[3];
@@ -1135,7 +1135,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne6D(Pipeline* lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6)
+    private static bool CheckOne6D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6)
     {
         var In = stackalloc ushort[6];
         var Out1 = stackalloc ushort[3];
@@ -1158,7 +1158,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne7D(Pipeline* lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7)
+    private static bool CheckOne7D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7)
     {
         var In = stackalloc ushort[7];
         var Out1 = stackalloc ushort[3];
@@ -1181,7 +1181,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOne8D(Pipeline* lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8)
+    private static bool CheckOne8D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8)
     {
         var In = stackalloc ushort[8];
         var Out1 = stackalloc ushort[3];

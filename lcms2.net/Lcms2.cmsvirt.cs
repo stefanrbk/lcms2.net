@@ -281,7 +281,7 @@ public static unsafe partial class Lcms2
         var nChannels = cmsChannelsOf(ColorSpace);
 
         // Creates a Pipeline with prelinearization step only
-        var Pipeline = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, nChannels, nChannels));
+        var Pipeline = cmsPipelineAlloc(ContextID, nChannels, nChannels);
         if (Pipeline is null) goto Error;
 
         // Copy tables to Pipeline
@@ -306,10 +306,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile cmsCreateLinearizationDeviceLink(Signature ColorSpace, ToneCurve** TransferFunctions) =>
+    public static Profile? cmsCreateLinearizationDeviceLink(Signature ColorSpace, ToneCurve** TransferFunctions) =>
         cmsCreateLinearizationDeviceLinkTHR(null, ColorSpace, TransferFunctions);
 
-    private static bool InkLimitingSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool InkLimitingSampler(in ushort* In, ushort* Out, object? Cargo)
     {
         // Ink-limiting algorithm
         //
@@ -328,9 +328,10 @@ public static unsafe partial class Lcms2
         //     Y = Ratio * Y
         //     K: Does not change
 
-        var InkLimit = *(double*)Cargo;
+        if (Cargo is not Box<double> InkLimit)
+            return false;
 
-        InkLimit *= 655.35;
+        InkLimit.Value *= 655.35;
 
         var SumCMY = (double)In[0] + In[1] + In[2];
         var SumCMYK = SumCMY + In[3];
@@ -373,7 +374,7 @@ public static unsafe partial class Lcms2
         cmsSetHeaderRenderingIntent(hICC, INTENT_PERCEPTUAL);
 
         // Creates a Pipeline with 3D grid only
-        var LUT = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, 4, 4));
+        var LUT = cmsPipelineAlloc(ContextID, 4, 4);
         if (LUT is null) goto Error;
 
         var nChannels = cmsChannelsOf(ColorSpace);
@@ -381,7 +382,7 @@ public static unsafe partial class Lcms2
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, nChannels, nChannels, null);
         if (CLUT is null) goto Error;
 
-        if (!cmsStageSampleCLut16bit(CLUT, InkLimitingSampler, &Limit, 0)) goto Error;
+        if (!cmsStageSampleCLut16bit(CLUT, InkLimitingSampler, new Box<double>(Limit), 0)) goto Error;
 
         if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, nChannels)) ||
             !cmsPipelineInsertStage(LUT, StageLoc.AtEnd, CLUT) ||
@@ -416,7 +417,7 @@ public static unsafe partial class Lcms2
 
     public static Profile? cmsCreateLab2ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
     {
-        BoxPtr<Pipeline>? LUT = null;
+        Pipeline? LUT = null;
 
         var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? cmsD50_xyY() : WhitePoint, null, null);
         if (Profile is null) return null;
@@ -430,7 +431,7 @@ public static unsafe partial class Lcms2
         if (!SetTextTags(Profile, "Lab identity build-in")) goto Error;
 
         // An identity LUT is all we need
-        LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
+        LUT = cmsPipelineAlloc(ContextID, 3, 3);
         if (LUT is null) goto Error;
 
         if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCLut(ContextID, 3)))
@@ -455,7 +456,7 @@ public static unsafe partial class Lcms2
 
     public static Profile? cmsCreateLab4ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
     {
-        BoxPtr<Pipeline>? LUT = null;
+        Pipeline? LUT = null;
 
         var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? cmsD50_xyY() : WhitePoint, null, null);
         if (Profile is null) return null;
@@ -469,7 +470,7 @@ public static unsafe partial class Lcms2
         if (!SetTextTags(Profile, "Lab identity build-in")) goto Error;
 
         // An empty LUT is all we need
-        LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
+        LUT = cmsPipelineAlloc(ContextID, 3, 3);
         if (LUT is null) goto Error;
 
         if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 3)))
@@ -494,7 +495,7 @@ public static unsafe partial class Lcms2
 
     public static Profile? cmsCreateXYZProfileTHR(Context? ContextID)
     {
-        BoxPtr<Pipeline>? LUT = null;
+        Pipeline? LUT = null;
 
         var Profile = cmsCreateRGBProfileTHR(ContextID, cmsD50_xyY(), null, null);
         if (Profile is null) return null;
@@ -508,7 +509,7 @@ public static unsafe partial class Lcms2
         if (!SetTextTags(Profile, "XYZ identity build-in")) goto Error;
 
         // An identity LUT is all we need
-        LUT = new(cmsPipelineAlloc(ContextID, 3, 3));
+        LUT = cmsPipelineAlloc(ContextID, 3, 3);
         if (LUT is null) goto Error;
 
         if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 3)))
@@ -583,12 +584,14 @@ public static unsafe partial class Lcms2
         public CIEXYZ WPsrc, WPdest;
     }
 
-    private static bool bchswSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool bchswSampler(in ushort* In, ushort* Out, object? Cargo)
     {
         CIELab LabIn, LabOut;
         CIELCh LChIn, LChOut;
         CIEXYZ XYZ;
-        var bchsw = (BCHSWADJUSTS*)Cargo;
+
+        if (Cargo is not BoxPtr<BCHSWADJUSTS> bchsw)
+            return false;
 
         cmsLabEncoded2Float(&LabIn, In);
 
@@ -596,17 +599,17 @@ public static unsafe partial class Lcms2
 
         // Do some adjusts on LCh
 
-        LChOut.L = (LChIn.L * bchsw->Contrast) + bchsw->Brightness;
-        LChOut.C = LChIn.C + bchsw->Saturation;
-        LChOut.h = LChIn.h + bchsw->Hue;
+        LChOut.L = (LChIn.L * bchsw.Ptr->Contrast) + bchsw.Ptr->Brightness;
+        LChOut.C = LChIn.C + bchsw.Ptr->Saturation;
+        LChOut.h = LChIn.h + bchsw.Ptr->Hue;
 
         cmsLCh2Lab(&LabOut, &LChOut);
 
         // Move white point in Lab
-        if (bchsw->lAdjustWP)
+        if (bchsw.Ptr->lAdjustWP)
         {
-            cmsLab2XYZ(&bchsw->WPsrc, &XYZ, &LabOut);
-            cmsXYZ2Lab(&bchsw->WPdest, &LabOut, &XYZ);
+            cmsLab2XYZ(&bchsw.Ptr->WPsrc, &XYZ, &LabOut);
+            cmsXYZ2Lab(&bchsw.Ptr->WPdest, &LabOut, &XYZ);
         }
 
         // Back to encoded
@@ -627,7 +630,7 @@ public static unsafe partial class Lcms2
         var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
         BCHSWADJUSTS bchsw;
         CIExyY WhitePnt;
-        BoxPtr<Pipeline>? Pipeline = null;
+        Pipeline? Pipeline = null;
 
         bchsw.Brightness = Bright;
         bchsw.Contrast = Contrast;
@@ -656,7 +659,7 @@ public static unsafe partial class Lcms2
         cmsSetHeaderRenderingIntent(hICC, INTENT_PERCEPTUAL);
 
         // Creates a Pipeline with 3D grid only
-        Pipeline = new(cmsPipelineAlloc(ContextID, 3, 3));
+        Pipeline = cmsPipelineAlloc(ContextID, 3, 3);
         if (Pipeline is null)
         {
             cmsCloseProfile(hICC);
@@ -667,7 +670,7 @@ public static unsafe partial class Lcms2
         var CLUT = cmsStageAllocCLut16bitGranular(ContextID, Dimensions, 3, 3, null);
         if (CLUT is null) goto Error;
 
-        if (!cmsStageSampleCLut16bit(CLUT, bchswSampler, &bchsw, SamplerFlag.None))
+        if (!cmsStageSampleCLut16bit(CLUT, bchswSampler, new BoxPtr<BCHSWADJUSTS>(&bchsw), SamplerFlag.None))
             goto Error;
 
         if (!cmsPipelineInsertStage(Pipeline, StageLoc.AtEnd, CLUT))
@@ -707,7 +710,7 @@ public static unsafe partial class Lcms2
         var EmptyTab = stackalloc ToneCurve*[3];
         var Zero = stackalloc ushort[2] { 0, 0 };
         ReadOnlySpan<double> PickLstarMatrix = stackalloc double[] { 1, 0, 0 };
-        BoxPtr<Pipeline>? LUT = null;
+        Pipeline? LUT = null;
 
         var Profile = cmsCreateProfilePlaceholder(ContextID);
         if (Profile is null) return null;
@@ -721,7 +724,7 @@ public static unsafe partial class Lcms2
         cmsSetPCS(Profile, cmsSigLabData);
 
         // Create a valid ICC 4 structure
-        LUT = new(cmsPipelineAlloc(ContextID, 3, 1));
+        LUT = cmsPipelineAlloc(ContextID, 3, 1);
         if (LUT is null) goto Error;
 
         EmptyTab[0] = EmptyTab[1] = EmptyTab[2] = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero);
@@ -766,7 +769,7 @@ public static unsafe partial class Lcms2
             (true, true, true) => (cmsSigAbstractClass, ColorSpace, PCS),
             (true, true, false) => (cmsSigOutputClass, PCS, ColorSpace),
             (true, false, true) => (cmsSigInputClass, ColorSpace, PCS),
-            (false, _, _) => (cmsSigLinkClass, ColorSpace, PCS),
+            _ => (cmsSigLinkClass, ColorSpace, PCS),
         };
 
         cmsSetDeviceClass(Profile, cls);
@@ -845,12 +848,12 @@ public static unsafe partial class Lcms2
 
     private const uint SIZE_OF_ALLOWED_LUT = 11;
 
-    private static bool CheckOne(in AllowedLUT* Tab, in Pipeline* Lut)
+    private static bool CheckOne(in AllowedLUT* Tab, Pipeline Lut)
     {
         Stage? mpe;
         int n;
 
-        for (n = 0, mpe = Lut->Elements; mpe is not null; mpe = mpe.Next, n++)
+        for (n = 0, mpe = Lut.Elements; mpe is not null; mpe = mpe.Next, n++)
         {
             if (n > Tab->nTypes) return false;
             if (cmsStageType(mpe) != Tab->MpeTypes[n]) return false;
@@ -859,11 +862,11 @@ public static unsafe partial class Lcms2
         return n == Tab->nTypes;
     }
 
-    private static AllowedLUT* FindCombination(in Pipeline* Lut, bool IsV4, Signature DestinationTag)
+    private static AllowedLUT* FindCombination(Pipeline Lut, bool IsV4, Signature DestinationTag)
     {
         for (var n = 0u; n < SIZE_OF_ALLOWED_LUT; n++)
         {
-            var Tab = (AllowedLUT*)Unsafe.AsPointer(ref AllowedLUTTypes[n]);
+            var Tab = AllowedLUTTypes + n;
 
             if (IsV4 ^ Tab->IsV4) continue;
             if (((uint)Tab->RequiredTag is not 0) && (Tab->RequiredTag != DestinationTag)) continue;
@@ -874,11 +877,11 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile cmsTransform2DeviceLink(Transform* hTransform, double Version, uint dwFlags)
+    public static Profile? cmsTransform2DeviceLink(Transform* hTransform, double Version, uint dwFlags)
     {
         Profile? Profile = null;
         var xform = hTransform;
-        BoxPtr<Pipeline>? LUT = null;
+        Pipeline? LUT = null;
         var ContextID = cmsGetTransformContextID(hTransform);
 
         _cmsAssert(hTransform);
@@ -894,7 +897,7 @@ public static unsafe partial class Lcms2
         }
 
         // First thing to do is to get a copy of the transformation
-        LUT = new(cmsPipelineDup(xform->Lut));
+        LUT = cmsPipelineDup(xform->Lut);
         if (LUT is null) return null;
 
         // Time to fix the Lab2/Lab4 issue.
@@ -943,8 +946,7 @@ public static unsafe partial class Lcms2
         if (AllowedLUT is null)
         {
             // Try to optimize
-            fixed (Pipeline** ptr = &LUT.Ptr)
-                _cmsOptimizePipeline(ContextID, ptr, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
             AllowedLUT = FindCombination(LUT, Version >= 4.0, DestinationTag);
         }
 
@@ -952,19 +954,24 @@ public static unsafe partial class Lcms2
         if (AllowedLUT is null)
         {
             dwFlags |= cmsFLAGS_FORCE_CLUT;
-            fixed (Pipeline** ptr = &LUT.Ptr)
-                _cmsOptimizePipeline(ContextID, ptr, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
 
             // Put identity curves if needed
             var FirstStage = cmsPipelineGetPtrToFirstStage(LUT);
-            if (FirstStage is not null && (uint)FirstStage.Type is cmsSigCurveSetElemType)
-                if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, ChansIn)))
-                    goto Error;
+            if (FirstStage is not null &&
+                (uint)FirstStage.Type is cmsSigCurveSetElemType &&
+                !cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, ChansIn)))
+            {
+                goto Error;
+            }
 
             var LastStage = cmsPipelineGetPtrToLastStage(LUT);
-            if (LastStage is not null && (uint)LastStage.Type is cmsSigCurveSetElemType)
-                if (!cmsPipelineInsertStage(LUT, StageLoc.AtEnd, _cmsStageAllocIdentityCurves(ContextID, ChansOut)))
-                    goto Error;
+            if (LastStage is not null &&
+                (uint)LastStage.Type is cmsSigCurveSetElemType &&
+                !cmsPipelineInsertStage(LUT, StageLoc.AtEnd, _cmsStageAllocIdentityCurves(ContextID, ChansOut)))
+            {
+                goto Error;
+            }
 
             AllowedLUT = FindCombination(LUT, Version >= 4.0, DestinationTag);
         }
@@ -984,14 +991,15 @@ public static unsafe partial class Lcms2
         if (!cmsWriteTag(Profile, DestinationTag, LUT))
             goto Error;
 
-        if (xform->InputColorant is not null)
-            if (!cmsWriteTag(Profile, cmsSigColorantTableTag, new BoxPtr<NamedColorList>(xform->InputColorant))) goto Error;
-
-        if (xform->OutputColorant is not null)
-            if (!cmsWriteTag(Profile, cmsSigColorantTableOutTag, new BoxPtr<NamedColorList>(xform->OutputColorant))) goto Error;
-
-        if (((uint)deviceClass is cmsSigLinkClass) && (xform->Sequence is not null))
-            if (!_cmsWriteProfileSequence(Profile, xform->Sequence)) goto Error;
+        if ((xform->InputColorant is not null &&
+             !cmsWriteTag(Profile, cmsSigColorantTableTag, new BoxPtr<NamedColorList>(xform->InputColorant))) ||
+            (xform->OutputColorant is not null &&
+             !cmsWriteTag(Profile, cmsSigColorantTableOutTag, new BoxPtr<NamedColorList>(xform->OutputColorant))) ||
+            (((uint)deviceClass is cmsSigLinkClass) &&
+             (xform->Sequence is not null) && !_cmsWriteProfileSequence(Profile, xform->Sequence)))
+        {
+            goto Error;
+        }
 
         // Set the white point
         if ((uint)deviceClass is cmsSigInputClass)

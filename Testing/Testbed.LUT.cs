@@ -43,112 +43,38 @@ internal static unsafe partial class Testbed
         return (n1 is 0) && (n2 is 0);
     }
 
-    private static void AddIdentityMatrix(Pipeline* lut)
+    private static void AddIdentityMatrix(Pipeline? lut)
     {
-        ReadOnlySpan<double> Identity = stackalloc double[]
-        {
-            1,
-            0,
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            1,
-            0,
-            0,
-            0
-        };
+        ReadOnlySpan<double> Identity = stackalloc double[] { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 };
+
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocMatrix(DbgThread(), 3, 3, Identity, null));
     }
 
-    private static void AddIdentityCLUTfloat(Pipeline* lut)
+    private static void AddIdentityCLUTfloat(Pipeline? lut)
     {
-        var Table = stackalloc float[] {
-            0,
-            0,
-            0,
-            0,
-            0,
-            1.0f,
-
-            0,
-            1.0f,
-            0,
-            0,
-            1.0f,
-            1.0f,
-
-            1.0f,
-            0,
-            0,
-            1.0f,
-            0,
-            1.0f,
-
-            1.0f,
-            1.0f,
-            0,
-            1.0f,
-            1.0f,
-            1.0f
-        };
+        var Table = stackalloc float[] { 0, 0, 0, 0, 0, 1.0f, 0, 1.0f, 0, 0, 1.0f, 1.0f, 1.0f, 0, 0, 1.0f, 0, 1.0f, 1.0f, 1.0f, 0, 1.0f, 1.0f, 1.0f };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocCLutFloat(DbgThread(), 2, 3, 3, Table));
     }
 
-    private static void AddIdentityCLUT16(Pipeline* lut)
+    private static void AddIdentityCLUT16(Pipeline? lut)
     {
-        var Table = stackalloc ushort[] {
-            0,
-            0,
-            0,
-            0,
-            0,
-            0xffff,
-
-            0,
-            0xffff,
-            0,
-            0,
-            0xffff,
-            0xffff,
-
-            0xffff,
-            0,
-            0,
-            0xffff,
-            0,
-            0xffff,
-
-            0xffff,
-            0xffff,
-            0,
-            0xffff,
-            0xffff,
-            0xffff
-        };
+        var Table = stackalloc ushort[] { 0, 0, 0, 0, 0, 0xffff, 0, 0xffff, 0, 0, 0xffff, 0xffff, 0xffff, 0, 0, 0xffff, 0, 0xffff, 0xffff, 0xffff, 0, 0xffff, 0xffff, 0xffff };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocCLut16bit(DbgThread(), 2, 3, 3, Table));
     }
 
-    private static void Add3GammaCurves(Pipeline* lut, double Curve)
+    private static void Add3GammaCurves(Pipeline? lut, double Curve)
     {
         var id = cmsBuildGamma(DbgThread(), Curve);
-        var id3 = stackalloc ToneCurve*[3]
-        {
-            id,
-            id,
-            id
-        };
+        var id3 = stackalloc ToneCurve*[3] { id, id, id };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocToneCurves(DbgThread(), 3, id3));
 
         cmsFreeToneCurve(id);
     }
 
-    private static bool CheckFloatLUT(Pipeline* lut)
+    private static bool CheckFloatLUT(Pipeline lut)
     {
         var Inf = stackalloc float[3];
         var Outf = stackalloc float[3];
@@ -175,7 +101,7 @@ internal static unsafe partial class Testbed
         return n1 is 0;
     }
 
-    private static bool Check16LUT(Pipeline* lut)
+    private static bool Check16LUT(Pipeline lut)
     {
         var Inf = stackalloc ushort[3];
         var Outf = stackalloc ushort[3];
@@ -202,7 +128,7 @@ internal static unsafe partial class Testbed
         return n2 is 0;
     }
 
-    private static bool CheckStagesLUT(Pipeline* lut, int ExpectedStages)
+    private static bool CheckStagesLUT(Pipeline lut, int ExpectedStages)
     {
         var nInpChans = cmsPipelineInputChannels(lut);
         var nOutpChans = cmsPipelineOutputChannels(lut);
@@ -211,7 +137,7 @@ internal static unsafe partial class Testbed
         return (nInpChans is 3) && (nOutpChans is 3) && (nStages == ExpectedStages);
     }
 
-    private static bool CheckFullLUT(Pipeline* lut, int ExpectedStages)
+    private static bool CheckFullLUT(Pipeline? lut, int ExpectedStages)
     {
         var rc = CheckStagesLUT(lut, ExpectedStages) && Check16LUT(lut) && CheckFloatLUT(lut);
 
@@ -399,8 +325,8 @@ internal static unsafe partial class Testbed
         var Name = stackalloc byte[255];
         var Inw = stackalloc ushort[3];
         var Outw = stackalloc ushort[3];
-        var pre = stackalloc byte[] { (byte)'p', (byte)'r', (byte)'e', 0 };
-        var post = stackalloc byte[] { (byte)'p', (byte)'o', (byte)'s', (byte)'t', 0 };
+        var pre = "pre"u8;
+        var post = "post"u8;
 
         var nc = cmsAllocNamedColorList(DbgThread(), 256, 3, pre, post);
         if (nc is null) return false;
@@ -411,7 +337,7 @@ internal static unsafe partial class Testbed
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)i;
 
             sprintf(Name, $"#{i}");
-            if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { rc = false; break; }
+            if (!cmsAppendNamedColor(nc, new Span<byte>(Name, 255), PCS, Colorant)) { rc = false; break; }
         }
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, _cmsStageAllocNamedColor(nc, false));

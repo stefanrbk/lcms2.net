@@ -29,18 +29,18 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct Pipeline
+public class Pipeline(Context? contextID, uint inputChans, uint outputChans, PipelineEval16Fn eval16, PipelineEvalFloatFn evalFloat, object? data = null)
 {
     internal Stage? Elements;
-    internal uint InputChannels, OutputChannels;
+    internal uint InputChannels = inputChans, OutputChannels = outputChans;
 
-    internal void* Data;
+    internal object? Data = data;
 
-    internal PipelineEval16Fn Eval16Fn;
-    internal PipelineEvalFloatFn EvalFloatFn;
-    internal FreeUserDataFn? FreeDataFn;
-    internal DupUserDataFn? DupDataFn;
+    internal PipelineEval16Fn Eval16Fn = eval16;
+    internal PipelineEvalFloatFn EvalFloatFn = evalFloat;
+    internal FreeManagedUserDataFn? FreeDataFn;
+    internal DupManagedUserDataFn? DupDataFn;
 
-    internal Context? ContextID;
+    internal Context? ContextID = contextID;
     internal bool SaveAs8Bits;
 }

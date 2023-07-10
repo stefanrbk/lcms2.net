@@ -44,9 +44,9 @@ public unsafe struct Transform
 
     public Cache Cache;
 
-    public Pipeline* Lut;
+    public Pipeline? Lut;
 
-    public Pipeline* GamutCheck;
+    public Pipeline? GamutCheck;
 
     public NamedColorList* InputColorant;
     public NamedColorList* OutputColorant;

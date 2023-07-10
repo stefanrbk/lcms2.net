@@ -49,10 +49,8 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(Dest);
 
-        var Tag = cmsReadTag(Profile, cmsSigMediaWhitePointTag) as BoxPtr<CIEXYZ>;
-
         // If no wp, take D50
-        if (Tag is null)
+        if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not BoxPtr<CIEXYZ> Tag)
         {
             *Dest = *cmsD50_XYZ();
             return true;
@@ -77,9 +75,7 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(Dest);
 
-        var Tag = cmsReadTag(Profile, cmsSigChromaticAdaptationTag) as BoxPtr<MAT3>;
-
-        if (Tag is not null)
+        if (cmsReadTag(Profile, cmsSigChromaticAdaptationTag) is BoxPtr<MAT3> Tag)
         {
             *Dest = *Tag.Ptr;
             return true;
@@ -93,9 +89,7 @@ public static unsafe partial class Lcms2
         {
             if ((uint)cmsGetDeviceClass(Profile) is cmsSigDisplayClass)
             {
-                var White = cmsReadTag(Profile, cmsSigMediaWhitePointTag) as BoxPtr<CIEXYZ>;
-
-                if (White is null)
+                if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not BoxPtr<CIEXYZ> White)
                 {
                     _cmsMAT3identity(out *Dest);
                     return true;
@@ -111,12 +105,12 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(r);
 
-        var PtrRed = cmsReadTag(Profile, cmsSigRedColorantTag) as BoxPtr<CIEXYZ>;
-        var PtrGreen = cmsReadTag(Profile, cmsSigGreenColorantTag) as BoxPtr<CIEXYZ>;
-        var PtrBlue = cmsReadTag(Profile, cmsSigBlueColorantTag) as BoxPtr<CIEXYZ>;
-
-        if (PtrRed is null || PtrGreen is null || PtrBlue is null)
+        if (cmsReadTag(Profile, cmsSigRedColorantTag) is not BoxPtr<CIEXYZ> PtrRed ||
+            cmsReadTag(Profile, cmsSigGreenColorantTag) is not BoxPtr<CIEXYZ> PtrGreen ||
+            cmsReadTag(Profile, cmsSigBlueColorantTag) is not BoxPtr<CIEXYZ> PtrBlue)
+        {
             return false;
+        }
 
         _cmsVEC3init(out r->X, PtrRed.Ptr->X, PtrGreen.Ptr->X, PtrBlue.Ptr->X);
         _cmsVEC3init(out r->Y, PtrRed.Ptr->Y, PtrGreen.Ptr->Y, PtrBlue.Ptr->Y);
@@ -125,27 +119,28 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static Pipeline* BuildGrayInputMatrixPipeline(Profile Profile)
+    private static Pipeline? BuildGrayInputMatrixPipeline(Profile Profile)
     {
         var ContextID = cmsGetProfileContextID(Profile);
 
-        var GrayTRC = cmsReadTag(Profile, cmsSigGrayTRCTag) as BoxPtr<ToneCurve>;
-        if (GrayTRC is null) return null;
+        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not BoxPtr<ToneCurve> GrayTRC)
+            return null;
 
         var Lut = cmsPipelineAlloc(ContextID, 1, 3);
         if (Lut is null) goto Error;
+
+        var LabCurves = stackalloc ToneCurve*[3];
+        LabCurves[0] = GrayTRC;
 
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
         {
             // In this case we implement the profile as an identity matrix plus 3 tone curves
             var Zero = stackalloc ushort[] { 0x8080, 0x8080 };
-            var LabCurves = stackalloc ToneCurve*[3];
 
             var EmptyTab = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero);
 
             if (EmptyTab is null) goto Error;
 
-            LabCurves[0] = GrayTRC;
             LabCurves[1] = EmptyTab;
             LabCurves[2] = EmptyTab;
 
@@ -160,13 +155,10 @@ public static unsafe partial class Lcms2
         }
         else
         {
-            fixed (ToneCurve** ptr = &GrayTRC.Ptr)
+            if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, LabCurves)) ||
+                !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 1, GrayInputMatrix, null)))
             {
-                if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, ptr)) ||
-                    !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 1, GrayInputMatrix, null)))
-                {
-                    goto Error;
-                }
+                goto Error;
             }
         }
 
@@ -177,7 +169,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static Pipeline* BuildRGBInputMatrixShaper(Profile Profile)
+    private static Pipeline? BuildRGBInputMatrixShaper(Profile Profile)
     {
         var Shapes = stackalloc ToneCurve*[3];
         var ContextID = cmsGetProfileContextID(Profile); ;
@@ -207,7 +199,7 @@ public static unsafe partial class Lcms2
         var Lut = cmsPipelineAlloc(ContextID, 3, 3);
         if (Lut is null) return null;
 
-        var pool = _cmsGetContext(Lut->ContextID).GetBufferPool<double>();
+        var pool = _cmsGetContext(Lut.ContextID).GetBufferPool<double>();
         var MatArray = Mat.AsArray(pool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
@@ -233,10 +225,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadFloatInputTag(Profile Profile, Signature tagFloat)
+    internal static Pipeline? _cmsReadFloatInputTag(Profile Profile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(Profile);
-        var Lut = cmsPipelineDup((BoxPtr<Pipeline>)cmsReadTag(Profile, tagFloat));
+        var Lut = cmsPipelineDup(cmsReadTag(Profile, tagFloat) as Pipeline);
         var spc = cmsGetColorSpace(Profile);
         var PCS = cmsGetPCS(Profile);
 
@@ -273,16 +265,15 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadInputLUT(Profile Profile, uint Intent)
+    internal static Pipeline? _cmsReadInputLUT(Profile Profile, uint Intent)
     {
         var ContextID = cmsGetProfileContextID(Profile);
 
         // On named color, take the appropriate tag
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
         {
-            var nc = cmsReadTag(Profile, cmsSigNamedColor2Tag) as BoxPtr<NamedColorList>;
-
-            if (nc is null) return null;
+            if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not BoxPtr<NamedColorList> nc)
+                return null;
 
             var Lut = cmsPipelineAlloc(ContextID, 0, 0);
             if (Lut is null)
@@ -324,13 +315,14 @@ public static unsafe partial class Lcms2
                 // Check profile version and LUT type. Do the necessaary adjustments if needed
 
                 // First read the tag
-                if (cmsReadTag(Profile, tag16) is not BoxPtr<Pipeline> Lut) return null;
+                if (cmsReadTag(Profile, tag16) is not Pipeline Lut)
+                    return null;
 
                 // After reading it, we have the info about the original type
                 var OriginalType = _cmsGetTagTrueType(Profile, tag16);
 
                 // The profile owns the Lut, so we need to copy it
-                Lut = new(cmsPipelineDup(Lut));
+                Lut = cmsPipelineDup(Lut);
 
                 // We need to adjust data only for Lab16 on output
                 if ((uint)OriginalType is not cmsSigLut16Type || (uint)cmsGetPCS(Profile) is not cmsSigLabData)
@@ -365,12 +357,11 @@ public static unsafe partial class Lcms2
         return BuildRGBInputMatrixShaper(Profile);
     }
 
-    private static Pipeline* BuildGrayOutputPipeline(Profile Profile)
+    private static Pipeline? BuildGrayOutputPipeline(Profile Profile)
     {
         var ContextID = cmsGetProfileContextID(Profile);
 
-        var GrayTRC = cmsReadTag(Profile, cmsSigGrayTRCTag) as BoxPtr<ToneCurve>;
-        if (GrayTRC is null) return null;
+        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not BoxPtr<ToneCurve> GrayTRC) return null;
 
         var RevGrayTRC = cmsReverseToneCurve(GrayTRC);
         if (RevGrayTRC is null) return null;
@@ -402,11 +393,11 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static Pipeline* BuildRGBOutputMatrixShaper(Profile Profile)
+    private static Pipeline? BuildRGBOutputMatrixShaper(Profile Profile)
     {
         var Shapes = new BoxPtr<ToneCurve>?[3];
         var InvShapes = new BoxPtr<ToneCurve>?[3];
-        MAT3 Mat, Inv;
+        MAT3 Mat;
         //VEC3* Invv = &Inv.X;
 
         var ContextID = cmsGetProfileContextID(Profile);
@@ -414,7 +405,7 @@ public static unsafe partial class Lcms2
         if (!ReadIccMatrixRGB2XYZ(&Mat, Profile))
             return null;
 
-        if (!_cmsMAT3inverse(Mat, out Inv))
+        if (!_cmsMAT3inverse(Mat, out MAT3 Inv))
             return null;
 
         // XYZ PCS in encoded in 1.15 format, and the matrix input should come in 0..0xffff range, so
@@ -462,7 +453,7 @@ public static unsafe partial class Lcms2
                 goto Error2;
         }
 
-        var pool = _cmsGetContext(Lut->ContextID).GetBufferPool<double>();
+        var pool = _cmsGetContext(Lut.ContextID).GetBufferPool<double>();
         var InvArray = Inv.AsArray(pool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, InvArray, null)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, InvShapesTriple)))
@@ -482,7 +473,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static void ChangeInterpolationToTrilinear(Pipeline* Lut)
+    private static void ChangeInterpolationToTrilinear(Pipeline? Lut)
     {
         for (var Stage = cmsPipelineGetPtrToFirstStage(Lut);
              Stage is not null;
@@ -493,15 +484,15 @@ public static unsafe partial class Lcms2
                 var CLUT = (StageCLutData)Stage.Data!;
 
                 CLUT.Params->dwFlags |= (uint)LerpFlag.Trilinear;
-                _cmsSetInterpolationRoutine(Lut->ContextID, CLUT.Params);
+                _cmsSetInterpolationRoutine(Lut?.ContextID, CLUT.Params);
             }
         }
     }
 
-    internal static Pipeline* _cmsReadFloatOutputTag(Profile Profile, Signature tagFloat)
+    internal static Pipeline? _cmsReadFloatOutputTag(Profile Profile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(Profile);
-        var Lut = cmsPipelineDup((BoxPtr<Pipeline>)cmsReadTag(Profile, tagFloat));
+        var Lut = cmsPipelineDup(cmsReadTag(Profile, tagFloat) as Pipeline);
         var PCS = cmsGetPCS(Profile);
         var dataSpace = cmsGetColorSpace(Profile);
 
@@ -542,7 +533,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadOutputLUT(Profile Profile, uint Intent)
+    internal static Pipeline? _cmsReadOutputLUT(Profile Profile, uint Intent)
     {
         var ContextID = cmsGetProfileContextID(Profile);
 
@@ -564,14 +555,14 @@ public static unsafe partial class Lcms2
                 // Check profile version and LUT type. Do the necessary adjustments if needed
 
                 // First read the tag
-                var Lut = (BoxPtr<Pipeline>)cmsReadTag(Profile, tag16);
-                if (Lut is null) return null;
+                if (cmsReadTag(Profile, tag16) is not Pipeline Lut)
+                    return null;
 
                 // After reading it, we have info about the original type
                 var OriginalType = _cmsGetTagTrueType(Profile, tag16);
 
                 // The profile owns the Lut, so we need to copy it
-                Lut = new(cmsPipelineDup(Lut));
+                Lut = cmsPipelineDup(Lut);
                 if (Lut is null) return null;
 
                 // Now it is time for controversial stuff. I found that for 3D LUTS using
@@ -588,9 +579,11 @@ public static unsafe partial class Lcms2
                     goto Error;
 
                 // If the output is Lab, add also a conversion at the end
-                if ((uint)cmsGetColorSpace(Profile) is cmsSigLabData)
-                    if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID)))
-                        goto Error;
+                if ((uint)cmsGetColorSpace(Profile) is cmsSigLabData &&
+                    !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID)))
+                {
+                    goto Error;
+                }
 
                 return Lut;
             Error:
@@ -611,10 +604,10 @@ public static unsafe partial class Lcms2
         return BuildRGBOutputMatrixShaper(Profile);
     }
 
-    internal static Pipeline* _cmsReadFloatDevicelinkTag(Profile Profile, Signature tagFloat)
+    internal static Pipeline? _cmsReadFloatDevicelinkTag(Profile Profile, Signature tagFloat)
     {
         var ContextID = cmsGetProfileContextID(Profile);
-        var Lut = cmsPipelineDup((BoxPtr<Pipeline>)cmsReadTag(Profile, tagFloat));
+        var Lut = cmsPipelineDup(cmsReadTag(Profile, tagFloat) as Pipeline);
         var PCS = cmsGetPCS(Profile);
         var spc = cmsGetColorSpace(Profile);
 
@@ -652,9 +645,9 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsReadDevicelinkLUT(Profile Profile, uint Intent)
+    internal static Pipeline? _cmsReadDevicelinkLUT(Profile Profile, uint Intent)
     {
-        BoxPtr<Pipeline>? Lut;
+        Pipeline? Lut;
         var ContextID = cmsGetProfileContextID(Profile);
 
         if (Intent > INTENT_ABSOLUTE_COLORIMETRIC)
@@ -668,15 +661,15 @@ public static unsafe partial class Lcms2
         {
             if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not BoxPtr<NamedColorList> nc) return null;
 
-            Lut = new(cmsPipelineAlloc(ContextID, 0, 0));
-            if (Lut is null) goto Error;
+            Lut = cmsPipelineAlloc(ContextID, 0, 0);
+            //if (Lut is null) goto Error;
 
-            if (!cmsPipelineInsertStage(Lut, StageLoc.AtBegin, _cmsStageAllocNamedColor(nc, false)))
+            if (!cmsPipelineInsertStage(Lut, StageLoc.AtBegin, _cmsStageAllocNamedColor(nc, false)) ||
+                ((uint)cmsGetColorSpace(Profile) is cmsSigLabData &&
+                 !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID))))
+            {
                 goto Error;
-
-            if ((uint)cmsGetColorSpace(Profile) is cmsSigLabData)
-                if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID)))
-                    goto Error;
+            }
 
             return Lut;
 
@@ -694,7 +687,7 @@ public static unsafe partial class Lcms2
 
         tagFloat = Device2PCSFloat[0];
         if (cmsIsTag(Profile, tagFloat))
-            return cmsPipelineDup((BoxPtr<Pipeline>)cmsReadTag(Profile, tagFloat));
+            return cmsPipelineDup(cmsReadTag(Profile, tagFloat) as Pipeline);
 
         if (!cmsIsTag(Profile, tag16))      // Is there any LUT-Based table?
         {
@@ -706,11 +699,11 @@ public static unsafe partial class Lcms2
         // Check profile version and LUT type. Do the necessary adjustments if needed
 
         // Read the tag
-        Lut = cmsReadTag(Profile, tag16) as BoxPtr<Pipeline>;
+        Lut = cmsReadTag(Profile, tag16) as Pipeline;
         if (Lut is null) return null;
 
         // The profile owns the Lut, so we need to copy it
-        Lut = new(cmsPipelineDup(Lut));
+        Lut = cmsPipelineDup(Lut);
         if (Lut is null) return null;
 
         // Now it is time for controversial stuff. I found that for 3D LUTS using
@@ -725,13 +718,13 @@ public static unsafe partial class Lcms2
         if ((uint)OriginalType is not cmsSigLut16Type)
             return Lut;
         // Here it is possible to get Lab on both sides
-        if ((uint)cmsGetColorSpace(Profile) is cmsSigLabData)
-            if (!cmsPipelineInsertStage(Lut, StageLoc.AtBegin, _cmsStageAllocLabV4ToV2(ContextID)))
-                goto Error2;
-
-        if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
-            if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID)))
-                goto Error2;
+        if (((uint)cmsGetColorSpace(Profile) is cmsSigLabData &&
+             !cmsPipelineInsertStage(Lut, StageLoc.AtBegin, _cmsStageAllocLabV4ToV2(ContextID))) ||
+            ((uint)cmsGetPCS(Profile) is cmsSigLabData &&
+             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocLabV2ToV4(ContextID))))
+        {
+            goto Error2;
+        }
 
         return Lut;
     Error2:

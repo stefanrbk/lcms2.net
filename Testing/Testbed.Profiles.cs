@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using System.Text;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
@@ -123,14 +125,15 @@ internal static unsafe partial class Testbed
     private static double Clip(double v) =>
         Math.Max(Math.Min(v, 1), 0);
 
-    private static bool ForwardSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool ForwardSampler(in ushort* In, ushort* Out, object? Cargo)
     {
         var rgb = stackalloc double[3];
         var cmyk = stackalloc double[4];
 
-        var p = (FakeCMYKParams*)Cargo;
+        if (Cargo is not BoxPtr<FakeCMYKParams> p)
+            return false;
 
-        cmsDoTransform(p->hLab2sRGB, In, rgb, 1);
+        cmsDoTransform(p.Ptr->hLab2sRGB, In, rgb, 1);
 
         var c = 1 - rgb[0];
         var m = 1 - rgb[1];
@@ -147,16 +150,17 @@ internal static unsafe partial class Testbed
         cmyk[2] = y;
         cmyk[3] = k;
 
-        cmsDoTransform(p->hIlimit, cmyk, Out, 1);
+        cmsDoTransform(p.Ptr->hIlimit, cmyk, Out, 1);
 
         return true;
     }
 
-    private static bool ReverseSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool ReverseSampler(in ushort* In, ushort* Out, object? Cargo)
     {
         var rgb = stackalloc double[3];
 
-        var p = (FakeCMYKParams*)Cargo;
+        if (Cargo is not BoxPtr<FakeCMYKParams> p)
+            return false;
 
         var c = In[0] / 65535.0;
         var m = In[1] / 65535.0;
@@ -183,7 +187,7 @@ internal static unsafe partial class Testbed
             }
         }
 
-        cmsDoTransform(p->sRGB2Lab, rgb, Out, 1);
+        cmsDoTransform(p.Ptr->sRGB2Lab, rgb, Out, 1);
 
         return true;
     }
@@ -191,6 +195,7 @@ internal static unsafe partial class Testbed
     private static Profile? CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
     {
         FakeCMYKParams p;
+        var pPtr = new BoxPtr<FakeCMYKParams>(&p);
 
         var hsRGB = lUseAboveRGB
             ? Create_AboveRGB()
@@ -216,11 +221,11 @@ internal static unsafe partial class Testbed
         cmsSetColorSpace(hICC, cmsSigCmykData);
         cmsSetPCS(hICC, cmsSigLabData);
 
-        var BToA0 = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, 3, 4));
+        var BToA0 = cmsPipelineAlloc(ContextID, 3, 4);
         if (BToA0 is null) return null;
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, 3, 4, null);
         if (CLUT is null) return null;
-        if (!cmsStageSampleCLut16bit(CLUT, ForwardSampler, &p, 0)) return null;
+        if (!cmsStageSampleCLut16bit(CLUT, ForwardSampler, pPtr, 0)) return null;
 
         cmsPipelineInsertStage(BToA0, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 3));
         cmsPipelineInsertStage(BToA0, StageLoc.AtEnd, CLUT);
@@ -229,11 +234,11 @@ internal static unsafe partial class Testbed
         if (!cmsWriteTag(hICC, cmsSigBToA0Tag, BToA0)) return null;
         cmsPipelineFree(BToA0);
 
-        var AToB0 = new BoxPtr<Pipeline>(cmsPipelineAlloc(ContextID, 4, 3));
+        var AToB0 = cmsPipelineAlloc(ContextID, 4, 3);
         if (AToB0 is null) return null;
         CLUT = cmsStageAllocCLut16bit(ContextID, 17, 4, 3, null);
         if (CLUT is null) return null;
-        if (!cmsStageSampleCLut16bit(CLUT, ReverseSampler, &p, 0)) return null;
+        if (!cmsStageSampleCLut16bit(CLUT, ReverseSampler, pPtr, 0)) return null;
 
         cmsPipelineInsertStage(AToB0, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, 4));
         cmsPipelineInsertStage(AToB0, StageLoc.AtEnd, CLUT);
@@ -366,7 +371,7 @@ internal static unsafe partial class Testbed
     // This is a very big test that checks every single tag
     public static bool CheckProfileCreation()
     {
-        HPROFILE h;
+        Profile h;
         int Pass;
 
         h = cmsCreateProfilePlaceholder(DbgThread());
@@ -608,7 +613,7 @@ internal static unsafe partial class Testbed
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as Mlu;
                 if (Pt == null) return false;
-                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer);
                 if (strcmp(Buffer, "Test test"u8) != 0) return false;
                 return true;
 
@@ -814,7 +819,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckLUT(int Pass, Profile hProfile, Signature tag)
     {
-        Pipeline* Lut, Pt;
+        Pipeline? Lut, Pt;
         bool rc;
 
 
@@ -836,7 +841,7 @@ internal static unsafe partial class Testbed
                 return rc;
 
             case 2:
-                Pt = (Pipeline*)cmsReadTag(hProfile, tag);
+                Pt = cmsReadTag(hProfile, tag) as Pipeline;
                 if (Pt == null) return false;
 
                 // Transform values, check for identity
@@ -984,7 +989,7 @@ internal static unsafe partial class Testbed
         UcrBg* Pt;
         UcrBg m;
         bool rc;
-        var Buffer = stackalloc byte[256];
+        Span<byte> Buffer = stackalloc byte[256];
 
         switch (Pass)
         {
@@ -1005,7 +1010,7 @@ internal static unsafe partial class Testbed
                 Pt = (cmsReadTag(hProfile, tag) is BoxPtr<UcrBg> box) ? box : null;
                 if (Pt == null) return false;
 
-                cmsMLUgetASCII(Pt->Desc, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                cmsMLUgetASCII(Pt->Desc, cmsNoLanguage, cmsNoCountry, Buffer);
                 if (strcmp(Buffer, "test UCR/BG"u8) != 0) return false;
                 return true;
 
@@ -1104,7 +1109,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckMPE(int Pass, Profile hProfile, Signature tag)
     {
-        Pipeline* Lut, Pt;
+        Pipeline? Lut, Pt;
         var G = stackalloc ToneCurve*[3];
         bool rc;
 
@@ -1128,7 +1133,7 @@ internal static unsafe partial class Testbed
                 return rc;
 
             case 2:
-                Pt = (Pipeline*)cmsReadTag(hProfile, tag);
+                Pt = cmsReadTag(hProfile, tag) as Pipeline;
                 if (Pt == null) return false;
                 return CheckFloatLUT(Pt);
 
@@ -1504,9 +1509,6 @@ internal static unsafe partial class Testbed
                 if (!rc)
                     Fail($"Unexpected string '{Encoding.ASCII.GetString(Buffer)}'");
                 return true;
-
-            default:
-                break;
         }
 
         return false;

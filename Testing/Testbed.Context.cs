@@ -318,7 +318,7 @@ public static bool CheckAllocContext()
     public static bool CheckInterp3DPlugin()
     {
 
-        Pipeline* p;
+        Pipeline p;
         Stage clut;
         Context ctx;
         var In = stackalloc ushort[3];
@@ -854,13 +854,13 @@ public static bool CheckAllocContext()
         Context? cpy = null;
         Context? cpy2 = null;
         Profile? h = null;
-        uint myTag = 1234;
+        const uint myTag = 1234;
         bool rc = false;
         byte* data = null;
         uint clen = 0;
         var In = stackalloc float[3];
         var Out = stackalloc float[3];
-        BoxPtr<Pipeline>? pipe;
+        Pipeline? pipe;
 
         ctx = WatchDogContext(null);
         cmsPluginTHR(ctx, MPEPluginSample);
@@ -878,7 +878,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        pipe = new BoxPtr<Pipeline>(cmsPipelineAlloc(cpy2, 3, 3));
+        pipe = cmsPipelineAlloc(cpy2, 3, 3);
         cmsPipelineInsertStage(pipe, StageLoc.AtBegin, StageAllocNegate(cpy2));
 
 
@@ -895,7 +895,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        if (!cmsWriteTag(h, cmsSigDToB3Tag, new BoxPtr<Pipeline>(pipe)))
+        if (!cmsWriteTag(h, cmsSigDToB3Tag, pipe))
         {
             Fail("Plug-in failed");
             goto Error;
@@ -938,7 +938,7 @@ public static bool CheckAllocContext()
             goto Error;
         }
 
-        pipe = cmsReadTag(h, cmsSigDToB3Tag) as BoxPtr<Pipeline>;
+        pipe = cmsReadTag(h, cmsSigDToB3Tag) as Pipeline;
         if (pipe != null)
         {
 
@@ -961,7 +961,7 @@ public static bool CheckAllocContext()
         // Get rid of data
         free(data); data = null;
 
-        pipe = cmsReadTag(h, cmsSigDToB3Tag) as BoxPtr<Pipeline>;
+        pipe = cmsReadTag(h, cmsSigDToB3Tag) as Pipeline;
         if (pipe == null)
         {
             Fail("Read tag/conext switching failed (2)");
@@ -993,18 +993,18 @@ public static bool CheckAllocContext()
         return false;
     }
 
-    private static void FastEvaluateCurves(in ushort* In, ushort* Out, in void* _)
+    private static void FastEvaluateCurves(in ushort* In, ushort* Out, object? _)
     {
         Out[0] = In[0];
     }
 
-    private static bool MyOptimize(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool MyOptimize(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
         Stage? mpe;
         StageToneCurvesData? Data;
 
         //  Only curves in this LUT? All are identities?
-        for (mpe = cmsPipelineGetPtrToFirstStage(*Lut);
+        for (mpe = cmsPipelineGetPtrToFirstStage(Lut);
              mpe != null;
              mpe = cmsStageNext(mpe))
         {
@@ -1019,7 +1019,7 @@ public static bool CheckAllocContext()
         }
 
         *dwFlags |= cmsFLAGS_NOCACHE;
-        _cmsPipelineSetOptimizationParameters(*Lut, FastEvaluateCurves, null, null, null);
+        _cmsPipelineSetOptimizationParameters(Lut, FastEvaluateCurves, null, null, null);
 
         return true;
     }
@@ -1069,9 +1069,9 @@ public static bool CheckAllocContext()
 
     private const uint INTENT_DECEPTIVE = 300;
 
-    private static Pipeline* MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, Profile[] hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
+    private static Pipeline? MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, Profile[] hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
     {
-        Pipeline* Result;
+        Pipeline? Result;
         var ICCIntents = stackalloc uint[256];
         uint i;
 
@@ -1151,7 +1151,7 @@ public static bool CheckAllocContext()
     }
 
 
-    private static bool TransformFactory(out TransformFn xformPtr, void** _1, FreeUserDataFn? _2, Pipeline** Lut, uint* _3, uint* OutputFormat, uint* _4)
+    private static bool TransformFactory(out TransformFn xformPtr, void** _1, FreeUserDataFn? _2, ref Pipeline Lut, uint* _3, uint* OutputFormat, uint* _4)
 
     {
         if (*OutputFormat == TYPE_GRAY_8)

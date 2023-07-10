@@ -28,13 +28,13 @@
 using lcms2.state;
 using lcms2.types;
 
-using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static Stage? _cmsStageAllocPlaceholder(
+    internal static Stage _cmsStageAllocPlaceholder(
         Context? ContextID,
         Signature Type,
         uint InputChannels,
@@ -45,7 +45,7 @@ public static unsafe partial class Lcms2
         object? Data)
     {
         var ph = new Stage();
-        if (ph is null) return null;
+        //if (ph is null) return null;
 
         ph.ContextID = ContextID;
 
@@ -94,59 +94,102 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static bool cmsPipelineCheckAndRetrieveStages(in Pipeline* Lut, out Stage? out1, params Signature[] Params) =>
-        cmsPipelineCheckAndRetrieveStages(Lut, out out1, out var _, out var _, out var _, out var _, Params);
+    public static bool cmsPipelineCheckAndRetrieveStages(
+        Pipeline Lut, Signature sig1, [NotNullWhen(true)] out Stage? out1) =>
+        cmsPipelineCheckAndRetrieveStages(
+            Lut, sig1, out out1,
+                 default, out var _,
+                 default, out var _,
+                 default, out var _,
+                 default, out var _);
 
-    public static bool cmsPipelineCheckAndRetrieveStages(in Pipeline* Lut, out Stage? out1, out Stage? out2, params Signature[] Params) =>
-        cmsPipelineCheckAndRetrieveStages(Lut, out out1, out out2, out var _, out var _, out var _, Params);
+    public static bool cmsPipelineCheckAndRetrieveStages(
+        Pipeline Lut, Signature sig1, [NotNullWhen(true)] out Stage? out1,
+                      Signature sig2, [NotNullWhen(true)] out Stage? out2) =>
+        cmsPipelineCheckAndRetrieveStages(
+            Lut, sig1, out out1,
+                 sig2, out out2,
+                 default, out var _,
+                 default, out var _,
+                 default, out var _);
 
-    public static bool cmsPipelineCheckAndRetrieveStages(in Pipeline* Lut, out Stage? out1, out Stage? out2, out Stage? out3, params Signature[] Params) =>
-        cmsPipelineCheckAndRetrieveStages(Lut, out out1, out out2, out out3, out var _, out var _, Params);
+    public static bool cmsPipelineCheckAndRetrieveStages(
+        Pipeline Lut, Signature sig1, [NotNullWhen(true)] out Stage? out1,
+                      Signature sig2, [NotNullWhen(true)] out Stage? out2,
+                      Signature sig3, [NotNullWhen(true)] out Stage? out3) =>
+        cmsPipelineCheckAndRetrieveStages(
+            Lut, sig1, out out1,
+                 sig2, out out2,
+                 sig3, out out3,
+                 default, out var _,
+                 default, out var _);
 
-    public static bool cmsPipelineCheckAndRetrieveStages(in Pipeline* Lut, out Stage? out1, out Stage? out2, out Stage? out3, out Stage? out4, params Signature[] Params) =>
-        cmsPipelineCheckAndRetrieveStages(Lut, out out1, out out2, out out3, out out4, out var _, Params);
+    public static bool cmsPipelineCheckAndRetrieveStages(
+        Pipeline Lut, Signature sig1, [NotNullWhen(true)] out Stage? out1,
+                      Signature sig2, [NotNullWhen(true)] out Stage? out2,
+                      Signature sig3, [NotNullWhen(true)] out Stage? out3,
+                      Signature sig4, [NotNullWhen(true)] out Stage? out4) =>
+        cmsPipelineCheckAndRetrieveStages(
+            Lut, sig1, out out1,
+                 sig2, out out2,
+                 sig3, out out3,
+                 sig4, out out4,
+                 default, out var _);
 
-    public static bool cmsPipelineCheckAndRetrieveStages(in Pipeline* Lut, out Stage? out1, out Stage? out2, out Stage? out3, out Stage? out4, out Stage? out5, params Signature[] Params)
+    public static bool cmsPipelineCheckAndRetrieveStages(
+        Pipeline Lut, Signature sig1, [NotNullWhen(true)] out Stage? out1,
+                      Signature sig2, [NotNullWhen(true)] out Stage? out2,
+                      Signature sig3, [NotNullWhen(true)] out Stage? out3,
+                      Signature sig4, [NotNullWhen(true)] out Stage? out4,
+                      Signature sig5, [NotNullWhen(true)] out Stage? out5)
     {
         out1 = out2 = out3 = out4 = out5 = null!;
-        fixed (Signature* ptr = Params)
+
+        var n = (uint)sig2 is 0
+            ? 1
+            : (uint)sig3 is 0
+                ? 2
+                : (uint)sig4 is 0
+                    ? 3
+                    : (uint)sig5 is 0
+                        ? 4
+                        : 5;
+
+        Span<Signature> args = stackalloc Signature[] { sig1, sig2, sig3, sig4, sig5 };
+        args = args[..n];
+
+        // Make sure same number of elements
+        if (cmsPipelineStageCount(Lut) != n) return false;
+
+        // Iterate across asked types
+        var mpe = Lut.Elements;
+        for (var i = 0; i < n; i++)
         {
-            var args = ptr;
-            var n = Params.Length;
+            // Get asked type.
+            var Type = args[i];
+            if (mpe?.Type != Type) return false;
+            mpe = mpe.Next;
+        }
 
-            // Make sure same number of elements
-            if (cmsPipelineStageCount(Lut) != n) return false;
+        // Found a combination, fill pointers
+        out1 = Lut.Elements!;
 
-            // Iterate across asked types
-            var mpe = Lut->Elements;
-            for (var i = 0; i < n; i++)
+        if (out1.Next is not null)
+        {
+            out2 = out1.Next;
+            if (out2.Next is not null)
             {
-                // Get asked type.
-                var Type = *args++;
-                if (mpe.Type != Type) return false;
-                mpe = mpe.Next;
-            }
-
-            // Found a combination, fill pointers
-            out1 = Lut->Elements!;
-
-            if (out1.Next is not null)
-            {
-                out2 = out1.Next;
-                if (out2.Next is not null)
+                out3 = out2.Next;
+                if (out3.Next is not null)
                 {
-                    out3 = out2.Next;
-                    if (out3.Next is not null)
-                    {
-                        out4 = out3.Next;
-                        if (out4.Next is not null)
-                            out5 = out4.Next;
-                    }
+                    out4 = out3.Next;
+                    if (out4.Next is not null)
+                        out5 = out4.Next;
                 }
             }
-
-            return true;
         }
+
+        return true;
     }
 
     internal static ToneCurve** _cmsStageGetPtrToCurveSet(Stage mpe) =>
@@ -627,9 +670,10 @@ public static unsafe partial class Lcms2
         return NewMPE;
     }
 
-    private static bool IdentitySampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool IdentitySampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        int nChan = *(int*)Cargo;
+        if (Cargo is not Box<int> nChan)
+            return false;
 
         for (var i = 0; i < nChan; i++)
             Out[i] = In[i];
@@ -647,7 +691,7 @@ public static unsafe partial class Lcms2
         var mpe = cmsStageAllocCLut16bitGranular(ContextID, Dimensions, nChan, nChan, null);
         if (mpe is null) return null;
 
-        if (!cmsStageSampleCLut16bit(mpe, IdentitySampler, &nChan, 0))
+        if (!cmsStageSampleCLut16bit(mpe, IdentitySampler, new Box<int>((int)nChan), 0))
         {
             cmsStageFree(mpe);
             return null;
@@ -663,7 +707,7 @@ public static unsafe partial class Lcms2
         return _cmsQuickSaturateWord(x);
     }
 
-    public static bool cmsStageSampleCLut16bit(Stage? mpe, SAMPLER16 Sampler, void* Cargo, SamplerFlag dwFlags)
+    public static bool cmsStageSampleCLut16bit(Stage? mpe, SAMPLER16 Sampler, object? Cargo, SamplerFlag dwFlags)
     {
         var In = stackalloc ushort[MAX_INPUT_DIMENSIONS + 1];
         var Out = stackalloc ushort[MAX_INPUT_DIMENSIONS];
@@ -1061,7 +1105,7 @@ public static unsafe partial class Lcms2
     public static Stage? cmsStageNext(Stage mpe) =>
         mpe.Next;
 
-    public static Stage? cmsStageDup(Stage mpe)
+    public static Stage? cmsStageDup(Stage? mpe)
     {
         var NewMPE = _cmsStageAllocPlaceholder(
             mpe.ContextID,
@@ -1072,7 +1116,7 @@ public static unsafe partial class Lcms2
             mpe.DupElemPtr,
             mpe.FreePtr,
             null);
-        if (NewMPE is null) return null;
+        //if (NewMPE is null) return null;
 
         NewMPE.Implements = mpe.Implements;
 
@@ -1094,9 +1138,11 @@ public static unsafe partial class Lcms2
         return NewMPE;
     }
 
-    private static bool BlessLUT(Pipeline* lut)
+    private static bool BlessLUT(Pipeline? lut)
     {
-        if (lut->Elements is null)
+        if (lut is null)
+            return false;
+        if (lut.Elements is null)
             return true;
 
         var First = cmsPipelineGetPtrToFirstStage(lut);
@@ -1104,8 +1150,8 @@ public static unsafe partial class Lcms2
 
         if (First is null || Last is null) return false;
 
-        lut->InputChannels = First.InputChannels;
-        lut->OutputChannels = Last.OutputChannels;
+        lut.InputChannels = First.InputChannels;
+        lut.OutputChannels = Last.OutputChannels;
 
         // Check chain consistency
         var prev = First;
@@ -1123,15 +1169,15 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static void _LUTeval16(in ushort* In, ushort* Out, in void* D)
+    internal static void _LUTeval16(in ushort* In, ushort* Out, object? D)
     {
-        var lut = (Pipeline*)D;
+        if (D is not Pipeline lut) return;
         var Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
         var Phase = 0;
 
-        From16ToFloat(In, &Storage[Phase * MAX_STAGE_CHANNELS], lut->InputChannels);
+        From16ToFloat(In, &Storage[Phase * MAX_STAGE_CHANNELS], lut.InputChannels);
 
-        for (var mpe = lut->Elements;
+        for (var mpe = lut.Elements;
             mpe is not null;
             mpe = mpe.Next)
         {
@@ -1140,18 +1186,18 @@ public static unsafe partial class Lcms2
             Phase = NextPhase;
         }
 
-        FromFloatTo16(&Storage[Phase * MAX_STAGE_CHANNELS], Out, lut->OutputChannels);
+        FromFloatTo16(&Storage[Phase * MAX_STAGE_CHANNELS], Out, lut.OutputChannels);
     }
 
-    internal static void _LUTevalFloat(in float* In, float* Out, in void* D)
+    internal static void _LUTevalFloat(in float* In, float* Out, object? D)
     {
-        var lut = (Pipeline*)D;
+        if (D is not Pipeline lut) return;
         var Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
         var Phase = 0;
 
-        memmove(&Storage[Phase * MAX_STAGE_CHANNELS], In, lut->InputChannels * _sizeof<float>());
+        memmove(&Storage[Phase * MAX_STAGE_CHANNELS], In, lut.InputChannels * _sizeof<float>());
 
-        for (var mpe = lut->Elements;
+        for (var mpe = lut.Elements;
             mpe is not null;
             mpe = mpe.Next)
         {
@@ -1160,62 +1206,62 @@ public static unsafe partial class Lcms2
             Phase = NextPhase;
         }
 
-        memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut->InputChannels * _sizeof<float>());
+        memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut.InputChannels * _sizeof<float>());
     }
 
-    public static Pipeline* cmsPipelineAlloc(Context? ContextID, uint InputChannels, uint OutputChannels)
+    public static Pipeline? cmsPipelineAlloc(Context? ContextID, uint InputChannels, uint OutputChannels)
     {
         // A value of zero in channels is allowed as a placeholder
         if (InputChannels >= cmsMAXCHANNELS ||
-            OutputChannels >= cmsMAXCHANNELS) return null;
+            OutputChannels >= cmsMAXCHANNELS) { return null; }
 
-        var NewLUT = _cmsMallocZero<Pipeline>(ContextID);
-        if (NewLUT is null) return null;
+        var NewLUT = new Pipeline(ContextID, InputChannels, OutputChannels, _LUTeval16, _LUTevalFloat);
+        //if (NewLUT is null) return null;
 
-        NewLUT->InputChannels = InputChannels;
-        NewLUT->OutputChannels = OutputChannels;
+        //NewLUT->InputChannels = InputChannels;
+        //NewLUT->OutputChannels = OutputChannels;
 
-        NewLUT->Eval16Fn = _LUTeval16;
-        NewLUT->EvalFloatFn = _LUTevalFloat;
-        NewLUT->DupDataFn = null;
-        NewLUT->FreeDataFn = null;
-        NewLUT->Data = NewLUT;
-        NewLUT->ContextID = ContextID;
+        //NewLUT->Eval16Fn = _LUTeval16;
+        //NewLUT->EvalFloatFn = _LUTevalFloat;
+        //NewLUT->DupDataFn = null;
+        //NewLUT->FreeDataFn = null;
+        NewLUT.Data = NewLUT;
+        //NewLUT->ContextID = ContextID;
 
         if (!BlessLUT(NewLUT))
         {
-            _cmsFree(ContextID, NewLUT);
+            //_cmsFree(ContextID, NewLUT);
             return null;
         }
 
         return NewLUT;
     }
 
-    public static Context? cmsGetPipelineContextID(in Pipeline* lut)
+    public static Context? cmsGetPipelineContextID(Pipeline lut)
     {
         _cmsAssert(lut);
-        return lut->ContextID;
+        return lut.ContextID;
     }
 
-    public static uint cmsPipelineInputChannels(in Pipeline* lut)
+    public static uint cmsPipelineInputChannels(Pipeline lut)
     {
         _cmsAssert(lut);
-        return lut->InputChannels;
+        return lut.InputChannels;
     }
 
-    public static uint cmsPipelineOutputChannels(in Pipeline* lut)
+    public static uint cmsPipelineOutputChannels(Pipeline lut)
     {
         _cmsAssert(lut);
-        return lut->OutputChannels;
+        return lut.OutputChannels;
     }
 
-    public static void cmsPipelineFree(Pipeline* lut)
+    public static void cmsPipelineFree(Pipeline? lut)
     {
         Stage? Next;
 
         if (lut is null) return;
 
-        for (var mpe = lut->Elements;
+        for (var mpe = lut.Elements;
             mpe is not null;
             mpe = Next)
         {
@@ -1223,37 +1269,35 @@ public static unsafe partial class Lcms2
             cmsStageFree(mpe);
         }
 
-        lut->FreeDataFn?.Invoke(lut->ContextID, lut->Data);
+        lut.FreeDataFn?.Invoke(lut.ContextID, lut.Data);
 
-        _cmsFree(lut->ContextID, lut);
+        //_cmsFree(lut.ContextID, lut);
     }
 
-    public static void cmsPipelineEval16(in ushort* In, ushort* Out, in Pipeline* lut)
+    public static void cmsPipelineEval16(in ushort* In, ushort* Out, Pipeline lut)
     {
         _cmsAssert(lut);
-        lut->Eval16Fn(In, Out, lut->Data);
+        lut.Eval16Fn(In, Out, lut.Data);
     }
 
-    public static void cmsPipelineEvalFloat(in float* In, float* Out, in Pipeline* lut)
+    public static void cmsPipelineEvalFloat(in float* In, float* Out, Pipeline lut)
     {
         _cmsAssert(lut);
-        lut->EvalFloatFn(In, Out, lut->Data);
+        lut.EvalFloatFn(In, Out, lut.Data);
     }
 
-    public static Pipeline* cmsPipelineDup(in Pipeline* lut)
+    public static Pipeline? cmsPipelineDup(Pipeline? lut)
     {
-        Pipeline* NewLUT;
+        Pipeline? NewLUT;
         Stage? NewMPE, Anterior = null, mpe;
         var First = true;
 
         if (lut is null) return null;
 
-        NewLUT = cmsPipelineAlloc(lut->ContextID, lut->InputChannels, lut->OutputChannels);
+        NewLUT = cmsPipelineAlloc(lut.ContextID, lut.InputChannels, lut.OutputChannels);
         if (NewLUT is null) return null;
 
-        for (mpe = lut->Elements;
-             mpe is not null;
-             mpe = mpe.Next)
+        for (mpe = lut.Elements; mpe is not null; mpe = mpe.Next)
         {
             NewMPE = cmsStageDup(mpe);
 
@@ -1265,7 +1309,7 @@ public static unsafe partial class Lcms2
 
             if (First)
             {
-                NewLUT->Elements = NewMPE;
+                NewLUT.Elements = NewMPE;
                 First = false;
             }
             else
@@ -1277,26 +1321,26 @@ public static unsafe partial class Lcms2
             Anterior = NewMPE;
         }
 
-        NewLUT->Eval16Fn = lut->Eval16Fn;
-        NewLUT->EvalFloatFn = lut->EvalFloatFn;
-        NewLUT->DupDataFn = lut->DupDataFn;
-        NewLUT->FreeDataFn = lut->FreeDataFn;
+        NewLUT.Eval16Fn = lut.Eval16Fn;
+        NewLUT.EvalFloatFn = lut.EvalFloatFn;
+        NewLUT.DupDataFn = lut.DupDataFn;
+        NewLUT.FreeDataFn = lut.FreeDataFn;
 
-        if (NewLUT->DupDataFn is not null)
-            NewLUT->Data = NewLUT->DupDataFn!(lut->ContextID, lut->Data);
+        if (NewLUT.DupDataFn is not null)
+            NewLUT.Data = NewLUT.DupDataFn!(lut.ContextID, lut.Data);
 
-        NewLUT->SaveAs8Bits = lut->SaveAs8Bits;
+        NewLUT.SaveAs8Bits = lut.SaveAs8Bits;
 
         if (!BlessLUT(NewLUT))
         {
-            _cmsFree(lut->ContextID, NewLUT);
+            //_cmsFree(lut.ContextID, NewLUT);
             return null;
         }
 
         return NewLUT;
     }
 
-    public static bool cmsPipelineInsertStage(Pipeline* lut, StageLoc loc, Stage? mpe)
+    public static bool cmsPipelineInsertStage(Pipeline? lut, StageLoc loc, [NotNullWhen(true)]Stage? mpe)
     {
         Stage? Anterior = null, pt;
 
@@ -1306,19 +1350,17 @@ public static unsafe partial class Lcms2
         switch (loc)
         {
             case StageLoc.AtBegin:
-                mpe.Next = lut->Elements;
-                lut->Elements = mpe;
+                mpe.Next = lut.Elements;
+                lut.Elements = mpe;
                 break;
 
             case StageLoc.AtEnd:
 
-                if (lut->Elements is null)
-                    lut->Elements = mpe;
+                if (lut.Elements is null) { lut.Elements = mpe; }
                 else
                 {
-                    for (pt = lut->Elements;
-                         pt is not null;
-                         pt = pt.Next) Anterior = pt;
+                    for (pt = lut.Elements; pt is not null; pt = pt.Next)
+                        Anterior = pt;
 
                     Anterior!.Next = mpe;
                     mpe.Next = null;
@@ -1332,19 +1374,19 @@ public static unsafe partial class Lcms2
         return BlessLUT(lut);
     }
 
-    public static void cmsPipelineUnlinkStage(Pipeline* lut, StageLoc loc)
+    public static void cmsPipelineUnlinkStage(Pipeline? lut, StageLoc loc)
     {
         cmsPipelineUnlinkStage(lut, loc, out var mpe);
         cmsStageFree(mpe);
     }
 
-    public static void cmsPipelineUnlinkStage(Pipeline* lut, StageLoc loc, out Stage? mpe)
+    public static void cmsPipelineUnlinkStage(Pipeline? lut, StageLoc loc, out Stage? mpe)
     {
         Stage? Anterior, pt, Last;
         Stage? Unlinked = null;
 
         // If empty LUT, there is nothing to remove
-        if (lut->Elements is null)
+        if (lut?.Elements is null)
         {
             mpe = null;
             return;
@@ -1355,9 +1397,9 @@ public static unsafe partial class Lcms2
         {
             case StageLoc.AtBegin:
                 {
-                    Stage? elem = lut->Elements;
+                    Stage? elem = lut.Elements;
 
-                    lut->Elements = elem!.Next;
+                    lut.Elements = elem!.Next;
                     elem.Next = null;
                     Unlinked = elem;
                 }
@@ -1365,7 +1407,7 @@ public static unsafe partial class Lcms2
 
             case StageLoc.AtEnd:
                 Anterior = Last = null;
-                for (pt = lut->Elements;
+                for (pt = lut.Elements;
                     pt is not null;
                     pt = pt.Next)
                 {
@@ -1379,7 +1421,7 @@ public static unsafe partial class Lcms2
                 if (Anterior is not null)
                     Anterior.Next = null;
                 else
-                    lut->Elements = null;
+                    lut.Elements = null;
                 break;
 
             default:
@@ -1392,22 +1434,20 @@ public static unsafe partial class Lcms2
         BlessLUT(lut);
     }
 
-    public static bool cmsPipelineCat(Pipeline* l1, in Pipeline* l2)
+    public static bool cmsPipelineCat(Pipeline l1, Pipeline l2)
     {
         Stage? mpe;
 
         // If both LUTS does not have elements, we need to inherit
         // the number of channels
-        if (l1->Elements is null && l2->Elements is null)
+        if (l1.Elements is null && l2.Elements is null)
         {
-            l1->InputChannels = l2->InputChannels;
-            l1->OutputChannels = l2->OutputChannels;
+            l1.InputChannels = l2.InputChannels;
+            l1.OutputChannels = l2.OutputChannels;
         }
 
         // Cat second
-        for (mpe = l2->Elements;
-             mpe is not null;
-             mpe = mpe.Next)
+        for (mpe = l2.Elements; mpe is not null; mpe = mpe.Next)
         {
             // We have to dup each element
             if (!cmsPipelineInsertStage(l1, StageLoc.AtEnd, cmsStageDup(mpe)))
@@ -1417,35 +1457,36 @@ public static unsafe partial class Lcms2
         return BlessLUT(l1);
     }
 
-    public static bool cmsPipelineSetSaveAs8bitsFlag(Pipeline* lut, bool On)
+    public static bool? cmsPipelineSetSaveAs8bitsFlag(Pipeline lut, bool On)
     {
-        var Anterior = lut->SaveAs8Bits;
+        if (lut is null)
+            return null;
 
-        lut->SaveAs8Bits = On;
+        var Anterior = lut.SaveAs8Bits;
+
+        lut.SaveAs8Bits = On;
         return Anterior;
     }
 
-    public static Stage? cmsPipelineGetPtrToFirstStage(in Pipeline* lut) =>
-        lut->Elements;
+    public static Stage? cmsPipelineGetPtrToFirstStage(Pipeline? lut) =>
+        lut?.Elements;
 
-    public static Stage? cmsPipelineGetPtrToLastStage(in Pipeline* lut)
+    public static Stage? cmsPipelineGetPtrToLastStage(Pipeline? lut)
     {
         Stage? Anterior = null;
 
-        for (var mpe = lut->Elements;
-            mpe is not null;
-            mpe = mpe.Next)
+        for (var mpe = lut?.Elements; mpe is not null; mpe = mpe.Next)
             Anterior = mpe;
 
         return Anterior;
     }
 
-    public static uint cmsPipelineStageCount(in Pipeline* lut)
+    public static uint cmsPipelineStageCount(Pipeline? lut)
     {
         Stage? mpe;
         uint n;
 
-        for (n = 0, mpe = lut->Elements; mpe is not null; mpe = mpe.Next)
+        for (n = 0, mpe = lut?.Elements; mpe is not null; mpe = mpe.Next)
             n++;
         return n;
     }
@@ -1453,16 +1494,16 @@ public static unsafe partial class Lcms2
     // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
     // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
     internal static void _cmsPipelineSetOptimizationParameters(
-        Pipeline* Lut,
+        Pipeline Lut,
         PipelineEval16Fn Eval16,
-        void* PrivateData,
-        FreeUserDataFn? FreePrivateDataFn,
-        DupUserDataFn? DupPrivateDataFn)
+        object? PrivateData,
+        FreeManagedUserDataFn? FreePrivateDataFn,
+        DupManagedUserDataFn? DupPrivateDataFn)
     {
-        Lut->Eval16Fn = Eval16;
-        Lut->DupDataFn = DupPrivateDataFn;
-        Lut->FreeDataFn = FreePrivateDataFn;
-        Lut->Data = PrivateData;
+        Lut.Eval16Fn = Eval16;
+        Lut.DupDataFn = DupPrivateDataFn;
+        Lut.FreeDataFn = FreePrivateDataFn;
+        Lut.Data = PrivateData;
     }
 
     // ----------------------------------------------------------- Reverse interpolation
@@ -1527,7 +1568,7 @@ public static unsafe partial class Lcms2
         float* Target,
         float* Result,
         float* Hint,
-        in Pipeline* lut)
+        Pipeline lut)
     {
         uint i, j;
         double error, LastError = 1E20;
@@ -1542,8 +1583,8 @@ public static unsafe partial class Lcms2
         var Jacobianv = (VEC3*)&Jacobian;
 
         // Only 3->3 and 4->3 are supported
-        if (lut->InputChannels is not 3 and not 4) return false;
-        if (lut->OutputChannels is not 3) return false;
+        if (lut.InputChannels is not 3 and not 4) return false;
+        if (lut.OutputChannels is not 3) return false;
 
         // Take the hint as starting point if specified
         if (Hint is null)
@@ -1559,11 +1600,9 @@ public static unsafe partial class Lcms2
         }
 
         // If Lut is 4-dimensions, then grab target[3], which is fixed
-        if (lut->InputChannels is 4)
-        {
-            x[3] = Target[3];
-        }
-        else x[3] = 0; // To keep lint happy
+        x[3] = (lut.InputChannels is 4)
+            ? Target[3]
+            : 0; // To keep lint happy
 
         // Iterate
         for (i = 0; i < INVERSION_MAX_ITERATIONS; i++)
@@ -1580,7 +1619,7 @@ public static unsafe partial class Lcms2
 
             // Keep latest values
             LastError = error;
-            for (j = 0; j < lut->InputChannels; j++)
+            for (j = 0; j < lut.InputChannels; j++)
                 Result[j] = x[j];
 
             // Found an exact match?

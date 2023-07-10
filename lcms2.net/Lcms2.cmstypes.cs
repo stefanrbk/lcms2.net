@@ -188,8 +188,8 @@ public static unsafe partial class Lcms2
         IOHandler io,
         uint Count,
         uint BaseOffset,
-        void* Cargo,
-        delegate*<TagTypeHandler*, IOHandler, void*, uint, uint, bool> ElementFn)
+        object? Cargo,
+        delegate*<TagTypeHandler*, IOHandler, object?, uint, uint, bool> ElementFn)
     {
         uint* ElementOffsets = null, ElementSizes = null;
 
@@ -222,70 +222,6 @@ public static unsafe partial class Lcms2
             // This is the reader callback
             if (!ElementFn(self, io, Cargo, (uint)i, ElementSizes[i])) goto Error;
         }
-
-        //Success
-        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
-        return true;
-
-    Error:
-        if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) _cmsFree(io.ContextID, ElementSizes);
-        return false;
-    }
-
-    private static bool WritePositionTable(
-        TagTypeHandler* self,
-        IOHandler io,
-        uint SizeOfTag,
-        uint Count,
-        uint BaseOffset,
-        void* Cargo,
-        delegate*<TagTypeHandler*, IOHandler, void*, uint, uint, bool> ElementFn)
-    {
-        uint* ElementOffsets = null, ElementSizes = null;
-
-        // Create table
-        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementOffsets is null) goto Error;
-
-        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementSizes is null) goto Error;
-
-        // Keep starting position of curve offsets
-        var DirectoryPos = io.Tell(io);
-
-        // Write a fake directory to be filled later on
-        for (var i = 0; i < Count; i++)
-        {
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // Offset
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // size
-        }
-
-        // Write each element. Keep track of the size as well.
-        for (var i = 0; i < Count; i++)
-        {
-            var Before = io.Tell(io);
-            ElementOffsets[i] = Before - BaseOffset;
-
-            // Callback to write...
-            if (!ElementFn(self, io, Cargo, (uint)i, SizeOfTag)) goto Error;
-
-            // Now the size
-            ElementSizes[i] = io.Tell(io) - Before;
-        }
-
-        // Write the directory
-        var CurrentPos = io.Tell(io);
-        if (!io.Seek(io, DirectoryPos)) goto Error;
-
-        for (var i = 0; i < Count; i++)
-        {
-            if (!_cmsWriteUInt32Number(io, ElementOffsets[i])) goto Error;
-            if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
-        }
-
-        if (!io.Seek(io, CurrentPos)) goto Error;
 
         //Success
         if (ElementOffsets is not null) _cmsFree(io.ContextID, ElementOffsets);
@@ -1430,8 +1366,8 @@ public static unsafe partial class Lcms2
 
     private static Signature DecideLUTtypeA2B(double ICCVersion, object? Data) =>
         (ICCVersion < 4.0)
-            ? Data is BoxPtr<Pipeline> p
-                ? p.Ptr->SaveAs8Bits
+            ? Data is Pipeline p
+                ? p.SaveAs8Bits
                     ? cmsSigLut8Type
                     : cmsSigLut16Type
                 : cmsSigLutAtoBType
@@ -1439,14 +1375,14 @@ public static unsafe partial class Lcms2
 
     private static Signature DecideLUTtypeB2A(double ICCVersion, object? Data) =>
         (ICCVersion < 4.0)
-            ? Data is BoxPtr<Pipeline> p
-                ? p.Ptr->SaveAs8Bits
+            ? Data is Pipeline p
+                ? p.SaveAs8Bits
                     ? cmsSigLut8Type
                     : cmsSigLut16Type
                 : cmsSigLutBtoAType
             : cmsSigLutBtoAType;
 
-    private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline* lut, uint nChannels)
+    private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels)
     {
         byte* Temp = null;
         var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
@@ -1491,7 +1427,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool Write8bitTables(Context? ContextID, IOHandler io, uint n, StageToneCurvesData Tables)
+    private static bool Write8bitTables(Context? ContextID, IOHandler io, uint n, StageToneCurvesData? Tables)
     {
         if (Tables is not null)
         {
@@ -1547,11 +1483,11 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    private static BoxPtr<Pipeline>? Type_LUT8_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Pipeline? Type_LUT8_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte InputChannels, OutputChannels, CLUTpoints;
         byte* Temp = null;
-        Pipeline* NewLUT = null;
+        Pipeline? NewLUT = null;
         Span<double> Matrix = stackalloc double[3 * 3];
 
         *nItems = 0;
@@ -1628,7 +1564,7 @@ public static unsafe partial class Lcms2
         if (!Read8bitTables(self->ContextID, io, NewLUT, OutputChannels)) goto Error;
 
         *nItems = 1;
-        return new(NewLUT);
+        return NewLUT;
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -1638,14 +1574,16 @@ public static unsafe partial class Lcms2
 
     private static bool Type_LUT8_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
+        if (Ptr is not Pipeline NewLut)
+            return false;
+
         ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
 
         // Disassemble the LUT into components.
-        var mpe = NewLut.Ptr->Elements;
+        var mpe = NewLut.Elements;
         if (mpe.Type == cmsSigMatrixElemType)
         {
             if (mpe.InputChannels is not 3 || mpe.OutputChannels is not 3) return false;
@@ -1683,8 +1621,8 @@ public static unsafe partial class Lcms2
                 ? clut.Params->nSamples[0]
                 : 0u;
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->OutputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
 
@@ -1693,9 +1631,9 @@ public static unsafe partial class Lcms2
             if (!_cmsWrite15Fixed16Number(io, mat[i])) return false;
 
         // The prelinearization table
-        if (!Write8bitTables(self->ContextID, io, NewLut.Ptr->InputChannels, PreMPE)) return false;
+        if (!Write8bitTables(self->ContextID, io, NewLut.InputChannels, PreMPE)) return false;
 
-        var nTabSize = uipow(NewLut.Ptr->OutputChannels, clutPoints, NewLut.Ptr->InputChannels);
+        var nTabSize = uipow(NewLut.OutputChannels, clutPoints, NewLut.InputChannels);
         if (nTabSize == unchecked((uint)-1)) return false;
         if (nTabSize > 0)
         {
@@ -1711,27 +1649,20 @@ public static unsafe partial class Lcms2
         }
 
         // The postlinearization table
-        if (!Write8bitTables(self->ContextID, io, NewLut.Ptr->OutputChannels, PostMPE)) return false;
-
-        return true;
+        return Write8bitTables(self->ContextID, io, NewLut.OutputChannels, PostMPE);
     }
 
-    private static BoxPtr<Pipeline>? Type_LUT8_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Pipeline> p
-            ? new(cmsPipelineDup(p))
-            : null;
+    private static Pipeline? Type_LUT8_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsPipelineDup(Ptr as Pipeline);
 
-    private static void Type_LUT8_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Pipeline> p)
-            cmsPipelineFree(p);
-    }
+    private static void Type_LUT8_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsPipelineFree(Ptr as Pipeline);
 
     #endregion LUT8
 
     #region LUT16
 
-    private static bool Read16bitTables(Context? ContextID, IOHandler io, Pipeline* lut, uint nChannels, uint nEntries)
+    private static bool Read16bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels, uint nEntries)
     {
         var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
 
@@ -1782,11 +1713,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<Pipeline>? Type_LUT16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Pipeline? Type_LUT16_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputEntries, OutputEntries;
         byte InputChannels, OutputChannels, CLUTpoints;
-        Pipeline* NewLUT = null;
+        Pipeline? NewLUT = null;
         Span<double> Matrix = stackalloc double[3 * 3];
 
         *nItems = 0;
@@ -1853,7 +1784,7 @@ public static unsafe partial class Lcms2
         if (!Read16bitTables(self->ContextID, io, NewLUT, OutputChannels, OutputEntries)) goto Error;
 
         *nItems = 1;
-        return new(NewLUT);
+        return NewLUT;
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -1863,14 +1794,16 @@ public static unsafe partial class Lcms2
 
     private static bool Type_LUT16_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Pipeline> NewLut) return false;
+        if (Ptr is not Pipeline NewLut)
+            return false;
+
         ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
         StageCLutData? clut = null;
 
         // Disassemble the LUT into components.
-        var mpe = NewLut.Ptr->Elements;
+        var mpe = NewLut.Elements;
         if (mpe is not null && mpe.Type == cmsSigMatrixElemType)
         {
             if (mpe.InputChannels is not 3 || mpe.OutputChannels is not 3) return false;
@@ -1911,8 +1844,8 @@ public static unsafe partial class Lcms2
                 ? clut.Params->nSamples[0]
                 : 0u;
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.Ptr->OutputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
 
@@ -1937,7 +1870,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var nTabSize = uipow(NewLut.Ptr->OutputChannels, clutPoints, NewLut.Ptr->InputChannels);
+        var nTabSize = uipow(NewLut.OutputChannels, clutPoints, NewLut.InputChannels);
         if (nTabSize == unchecked((uint)-1)) return false;
         if (nTabSize > 0)
         {
@@ -1962,16 +1895,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<Pipeline>? Type_LUT16_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Pipeline> p
-            ? new(cmsPipelineDup(p))
-            : null;
+    private static Pipeline? Type_LUT16_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsPipelineDup(Ptr as Pipeline);
 
-    private static void Type_LUT16_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Pipeline> p)
-            cmsPipelineFree(p);
-    }
+    private static void Type_LUT16_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsPipelineFree(Ptr as Pipeline);
 
     #endregion LUT16
 
@@ -2124,7 +2052,7 @@ public static unsafe partial class Lcms2
         return Lin;
     }
 
-    private static BoxPtr<Pipeline>? Type_LUTA2B_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Pipeline? Type_LUTA2B_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2133,7 +2061,7 @@ public static unsafe partial class Lcms2
         uint offsetM;       // Offset to first "M" curve
         uint offsetC;       // Offset to CLUT
         uint offsetA;       // Offset to first "A" curve
-        Pipeline* NewLUT = null;
+        Pipeline? NewLUT = null;
 
         *nItems = 0;
 
@@ -2189,7 +2117,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return new(NewLUT);
+        return NewLUT;
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -2302,23 +2230,25 @@ public static unsafe partial class Lcms2
 
     private static bool Type_LUTA2B_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
+        if (Ptr is not Pipeline Lut)
+            return false;
+
         Stage? A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
         var BassOffset = io.Tell(io) - _sizeof<TagBase>();
 
-        if (Lut.Ptr->Elements is not null)
-            if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, cmsSigCurveSetElemType))
-                if (!cmsPipelineCheckAndRetrieveStages(Lut, out M, out Matrix, out B, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
-                    if (!cmsPipelineCheckAndRetrieveStages(Lut, out A, out CLUT, out B, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
-                        if (!cmsPipelineCheckAndRetrieveStages(Lut, out A, out CLUT, out M, out Matrix, out B, cmsSigCurveSetElemType, cmsSigCLutElemType,
-                            cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
-                        {
-                            cmsSignalError(self->ContextID, ErrorCode.NotSuitable, "LUT is not suitable to be saved as LutAToB");
-                            return false;
-                        }
+        if (Lut.Elements is not null &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out M, cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out B) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out A, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out B) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out A, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out M,
+                                                    cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out B))
+        {
+            cmsSignalError(self->ContextID, ErrorCode.NotSuitable, "LUT is not suitable to be saved as LutAToB");
+            return false;
+        }
 
         // Get input/output channels
         var inputChan = cmsPipelineInputChannels(Lut);
@@ -2348,7 +2278,7 @@ public static unsafe partial class Lcms2
         if (CLUT is not null)
         {
             offsetC = io.Tell(io) - BassOffset;
-            if (!WriteCLUT(self, io, (byte)(Lut.Ptr->SaveAs8Bits ? 1 : 2), CLUT)) return false;
+            if (!WriteCLUT(self, io, (byte)(Lut.SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
@@ -2382,22 +2312,17 @@ public static unsafe partial class Lcms2
         return io.Seek(io, CurrentPos);
     }
 
-    private static BoxPtr<Pipeline>? Type_LUTA2B_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Pipeline> p
-            ? new(cmsPipelineDup(p))
-            : null;
+    private static Pipeline? Type_LUTA2B_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsPipelineDup(Ptr as Pipeline);
 
-    private static void Type_LUTA2B_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Pipeline> p)
-            cmsPipelineFree(p);
-    }
+    private static void Type_LUTA2B_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsPipelineFree(Ptr as Pipeline);
 
     #endregion LUTA2B
 
     #region LUTB2A
 
-    private static BoxPtr<Pipeline>? Type_LUTB2A_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Pipeline? Type_LUTB2A_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         byte inputChan;     // Number of input channels
         byte outputChan;    // Number of output channels
@@ -2406,7 +2331,7 @@ public static unsafe partial class Lcms2
         uint offsetM;       // Offset to first "M" curve
         uint offsetC;       // Offset to CLUT
         uint offsetA;       // Offset to first "A" curve
-        Pipeline* NewLUT = null;
+        Pipeline? NewLUT = null;
 
         *nItems = 0;
 
@@ -2462,7 +2387,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return new(NewLUT);
+        return NewLUT;
 
     Error:
         if (NewLUT is not null) cmsPipelineFree(NewLUT);
@@ -2472,23 +2397,25 @@ public static unsafe partial class Lcms2
 
     private static bool Type_LUTB2A_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
+        if (Ptr is not Pipeline Lut)
+            return false;
+
         Stage? A = null, B = null, M = null, Matrix = null, CLUT = null;
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
         var BassOffset = io.Tell(io) - _sizeof<TagBase>();
 
-        if (Lut.Ptr->Elements is not null)
-            if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, cmsSigCurveSetElemType))
-                if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, out Matrix, out M, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
-                    if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, out CLUT, out A, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
-                        if (!cmsPipelineCheckAndRetrieveStages(Lut, out B, out Matrix, out M, out CLUT, out A, cmsSigCurveSetElemType, cmsSigMatrixElemType,
-                            cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
-                        {
-                            cmsSignalError(self->ContextID, ErrorCode.NotSuitable, "LUT is not suitable to be saved as LutAToB");
-                            return false;
-                        }
+        if (Lut.Elements is not null &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B, cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out M) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out A) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B, cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out M,
+                                                    cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out A))
+        {
+            cmsSignalError(self->ContextID, ErrorCode.NotSuitable, "LUT is not suitable to be saved as LutAToB");
+            return false;
+        }
 
         // Get input/output channels
         var inputChan = cmsPipelineInputChannels(Lut);
@@ -2518,7 +2445,7 @@ public static unsafe partial class Lcms2
         if (CLUT is not null)
         {
             offsetC = io.Tell(io) - BassOffset;
-            if (!WriteCLUT(self, io, (byte)(Lut.Ptr->SaveAs8Bits ? 1 : 2), CLUT)) return false;
+            if (!WriteCLUT(self, io, (byte)(Lut.SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
@@ -2552,16 +2479,11 @@ public static unsafe partial class Lcms2
         return io.Seek(io, CurrentPos);
     }
 
-    private static BoxPtr<Pipeline>? Type_LUTB2A_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Pipeline> p
-            ? new(cmsPipelineDup(p))
-            : null;
+    private static Pipeline? Type_LUTB2A_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsPipelineDup(Ptr as Pipeline);
 
-    private static void Type_LUTB2A_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Pipeline> p)
-            cmsPipelineFree(p);
-    }
+    private static void Type_LUTB2A_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsPipelineFree(Ptr as Pipeline);
 
     #endregion LUTB2A
 
@@ -2890,10 +2812,12 @@ public static unsafe partial class Lcms2
 
     #region ProfileSequenceId
 
-    private static bool ReadSeqID(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint SizeOfTag)
+    private static bool ReadSeqID(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint SizeOfTag)
     {
-        var OutSeq = (Sequence*)Cargo;
-        var seq = &OutSeq->seq[n];
+        if (Cargo is not BoxPtr<Sequence> OutSeq)
+            return false;
+
+        var seq = &OutSeq.Ptr->seq[n];
 
         if (io.Read(io, seq->ProfileID.id8, 16, 1) is not 1) return false;
         if (!ReadEmbeddedText(self, io, out seq->Description, SizeOfTag)) return false;
@@ -2920,7 +2844,7 @@ public static unsafe partial class Lcms2
         if (OutSeq is null) return null;
 
         // Read the position table
-        if (!ReadPositionTable(self, io, Count, BaseOffset, OutSeq, &ReadSeqID))
+        if (!ReadPositionTable(self, io, Count, BaseOffset, new BoxPtr<Sequence>(OutSeq), &ReadSeqID))
         {
             cmsFreeProfileSequenceDescription(OutSeq);
             return null;
@@ -2931,14 +2855,15 @@ public static unsafe partial class Lcms2
         return new(OutSeq);
     }
 
-    private static bool WriteSeqID(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint _)
+    private static bool WriteSeqID(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint _)
     {
-        var Seq = (Sequence*)Cargo;
+        if (Cargo is not BoxPtr<Sequence> Seq)
+            return false;
 
-        if (!io.Write(io, 16, Seq->seq[n].ProfileID.id8)) return false;
+        if (!io.Write(io, 16, Seq.Ptr->seq[n].ProfileID.id8)) return false;
 
         // Store MLU here
-        if (!SaveDescription(self, io, Seq->seq[n].Description)) return false;
+        if (!SaveDescription(self, io, Seq.Ptr->seq[n].Description)) return false;
 
         return true;
     }
@@ -3330,12 +3255,14 @@ public static unsafe partial class Lcms2
 
     #region MPE
 
-    private static bool ReadMPEElem(TagTypeHandler* self, IOHandler io, void* Cargo, uint _, uint SizeOfTag)
+    private static bool ReadMPEElem(TagTypeHandler* self, IOHandler io, object? Cargo, uint _, uint SizeOfTag)
     {
         Signature ElementSig;
         uint nItems;
 
-        var NewLUT = (Pipeline*)Cargo;
+        if (Cargo is not Pipeline NewLUT)
+            return false;
+
         var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
 
         // Take signature and channels for each element.
@@ -3370,11 +3297,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<Pipeline>? Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Pipeline? Type_MPE_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         ushort InputChans, OutputChans;
         uint ElementCount;
-        Pipeline* NewLUT = null;
+        Pipeline? NewLUT = null;
 
         *nItems = 0;
 
@@ -3396,12 +3323,12 @@ public static unsafe partial class Lcms2
         if (!ReadPositionTable(self, io, ElementCount, BaseOffset, NewLUT, &ReadMPEElem)) goto Error;
 
         // Check channel count
-        if (InputChans != NewLUT->InputChannels ||
-            OutputChans != NewLUT->OutputChannels) goto Error;
+        if (InputChans != NewLUT.InputChannels ||
+            OutputChans != NewLUT.OutputChannels) goto Error;
 
         // Success
         *nItems = 1;
-        return new(NewLUT);
+        return NewLUT;
 
     // Error
     Error:
@@ -3412,8 +3339,10 @@ public static unsafe partial class Lcms2
 
     private static bool Type_MPE_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Pipeline> Lut) return false;
-        var Elem = Lut.Ptr->Elements;
+        if (Ptr is not Pipeline Lut)
+            return false;
+
+        var Elem = Lut.Elements;
         uint* ElementOffsets = null, ElementSizes = null;
         var MPETypePluginChunk = _cmsGetContext(self->ContextID).MPEPlugin;
         var str = stackalloc byte[5];
@@ -3495,16 +3424,11 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static BoxPtr<Pipeline>? Type_MPE_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Pipeline> p
-            ? new(cmsPipelineDup(p))
-            : null;
+    private static Pipeline? Type_MPE_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsPipelineDup(Ptr as Pipeline);
 
-    private static void Type_MPE_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Pipeline> p)
-            cmsPipelineFree(p);
-    }
+    private static void Type_MPE_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsPipelineFree(Ptr as Pipeline);
 
     #endregion MPE
 
@@ -3513,7 +3437,7 @@ public static unsafe partial class Lcms2
     private const byte cmsVideoCardGammaTableType = 0;
     private const byte cmsVideoCardGammaFormulaType = 1;
 
-    private struct VCGTGAMMA
+    private struct VCGTGAMMA()
     {
         public double Gamma, Min, Max;
     }
@@ -4238,11 +4162,12 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static bool ReadMPECurve(TagTypeHandler* self, IOHandler io, void* Cargo, uint n, uint _)
+    private static bool ReadMPECurve(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint _)
     {
-        var GammaTables = (ToneCurve**)Cargo;
+        if (Cargo is not BoxPtr2<ToneCurve> GammaTables)
+            return false;
 
-        GammaTables[n] = ReadSegmentedCurve(self, io);
+        GammaTables.Ptr[n] = ReadSegmentedCurve(self, io);
         return GammaTables[n] is not null;
     }
 
@@ -4263,7 +4188,7 @@ public static unsafe partial class Lcms2
         var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>());
         if (GammaTables is null) return null;
 
-        var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, GammaTables, &ReadMPECurve)
+        var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, new BoxPtr2<ToneCurve>(GammaTables), &ReadMPECurve)
             ? cmsStageAllocToneCurves(self->ContextID, InputChans, GammaTables)
             : null;
 

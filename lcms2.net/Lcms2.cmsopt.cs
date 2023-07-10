@@ -127,9 +127,9 @@ public static unsafe partial class Lcms2
         cmsStageFree(mpe);
     }
 
-    private static bool _Remove1Op(Pipeline* Lut, Signature UnaryOp)
+    private static bool _Remove1Op(Pipeline Lut, Signature UnaryOp)
     {
-        ref var pt = ref Lut->Elements;
+        ref var pt = ref Lut.Elements;
         var AnyOpt = false;
 
         while (pt is not null)
@@ -148,11 +148,11 @@ public static unsafe partial class Lcms2
         return AnyOpt;
     }
 
-    private static bool _Remove2Op(Pipeline* Lut, Signature Op1, Signature Op2)
+    private static bool _Remove2Op(Pipeline Lut, Signature Op1, Signature Op2)
     {
         var AnyOpt = false;
 
-        ref var pt1 = ref Lut->Elements;
+        ref var pt1 = ref Lut.Elements;
         if (pt1 is null) return AnyOpt;
 
         while (pt1 is not null)
@@ -193,11 +193,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool _MultiplyMatrix(Pipeline* Lut)
+    private static bool _MultiplyMatrix(Pipeline Lut)
     {
         var AnyOpt = false;
 
-        ref var pt1 = ref Lut->Elements;
+        ref var pt1 = ref Lut.Elements;
         if (pt1 is null) return AnyOpt;
 
         while (pt1 is not null)
@@ -233,10 +233,10 @@ public static unsafe partial class Lcms2
                 if (!isFloatMatrixIdentity(&res))
                 {
                     // We can not get rid of full matrix
-                    var ctx = _cmsGetContext(Lut->ContextID);
+                    var ctx = _cmsGetContext(Lut.ContextID);
                     var pool = ctx.GetBufferPool<double>();
                     var resArray = res.AsArray(pool);
-                    var Multmat = cmsStageAllocMatrix(Lut->ContextID, 3, 3, resArray, null);
+                    var Multmat = cmsStageAllocMatrix(Lut.ContextID, 3, 3, resArray, null);
                     pool.Return(resArray);
                     if (Multmat is null) return false;
 
@@ -256,7 +256,7 @@ public static unsafe partial class Lcms2
         return AnyOpt;
     }
 
-    private static bool PreOptimize(Pipeline* Lut)
+    private static bool PreOptimize(Pipeline Lut)
     {
         bool AnyOpt = false, Opt;
 
@@ -297,42 +297,47 @@ public static unsafe partial class Lcms2
         Output[0] = Input[0];
     }
 
-    private static void PrelinEval16(in ushort* Input, ushort* Output, in void* D)
+    private static void PrelinEval16(in ushort* Input, ushort* Output, object? D)
     {
-        var p16 = (Prelin16Data*)D;
+        if (D is not BoxPtr<Prelin16Data> p16)
+            return;
+
         var StageABC = stackalloc ushort[MAX_INPUT_DIMENSIONS];
         var StageDEF = stackalloc ushort[cmsMAXCHANNELS];
 
-        for (var i = 0; i < p16->nInputs; i++)
-            p16->EvalCurveIn16[i](&Input[i], &StageABC[i], p16->ParamsCurveIn16[i]);
+        for (var i = 0; i < p16.Ptr->nInputs; i++)
+            p16.Ptr->EvalCurveIn16[i](&Input[i], &StageABC[i], p16.Ptr->ParamsCurveIn16[i]);
 
-        p16->EvalCLUT(StageABC, StageDEF, p16->CLUTparams);
+        p16.Ptr->EvalCLUT(StageABC, StageDEF, p16.Ptr->CLUTparams);
 
-        for (var i = 0; i < p16->nOutputs; i++)
-            p16->EvalCurveIn16[i](&StageDEF[i], &Output[i], p16->ParamsCurveOut16[i]);
+        for (var i = 0; i < p16.Ptr->nOutputs; i++)
+            p16.Ptr->EvalCurveIn16[i](&StageDEF[i], &Output[i], p16.Ptr->ParamsCurveOut16[i]);
     }
 
-    private static void PrelinOpt16free(Context? ContextID, void* ptr)
+    private static void PrelinOpt16free(Context? ContextID, object? ptr)
     {
-        var p16 = (Prelin16Data*)ptr;
+        if (ptr is not BoxPtr<Prelin16Data> p16)
+            return;
 
-        _cmsFree(ContextID, p16->EvalCurveOut16);
-        _cmsFree(ContextID, p16->ParamsCurveOut16);
+        _cmsFree(ContextID, p16.Ptr->EvalCurveOut16);
+        _cmsFree(ContextID, p16.Ptr->ParamsCurveOut16);
 
         _cmsFree(ContextID, p16);
     }
 
-    private static void* Prelin16dup(Context? ContextID, in void* ptr)
+    private static object? Prelin16dup(Context? ContextID, object? ptr)
     {
-        var p16 = (Prelin16Data*)ptr;
+        if (ptr is not BoxPtr<Prelin16Data> p16)
+            return null;
+
         var Duped = _cmsDupMem<Prelin16Data>(ContextID, p16);
 
         if (Duped is null) return null;
 
-        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<nint>());
-        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<nint>());
+        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16.Ptr->EvalCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
+        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16.Ptr->ParamsCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
 
-        return Duped;
+        return new BoxPtr<Prelin16Data>(Duped);
     }
 
     private static Prelin16Data* PrelinOpt16alloc(
@@ -400,24 +405,26 @@ public static unsafe partial class Lcms2
 
     private const uint PRELINEARIZATION_POINTS = 4096;
 
-    private static bool XFormSampler16(in ushort* In, ushort* Out, void* Cargo)
+    private static bool XFormSampler16(in ushort* In, ushort* Out, object? Cargo)
     {
-        var Lut = (Pipeline*)Cargo;
+        if (Cargo is not Pipeline Lut)
+            return false;
+
         var InFloat = stackalloc float[cmsMAXCHANNELS];
         var OutFloat = stackalloc float[cmsMAXCHANNELS];
 
-        _cmsAssert(Lut->InputChannels < cmsMAXCHANNELS);
-        _cmsAssert(Lut->OutputChannels < cmsMAXCHANNELS);
+        _cmsAssert(Lut.InputChannels < cmsMAXCHANNELS,
+                   Lut.OutputChannels < cmsMAXCHANNELS);
 
         // From 16 bit to floating point
-        for (var i = 0; i < Lut->InputChannels; i++)
+        for (var i = 0; i < Lut.InputChannels; i++)
             InFloat[i] = (float)(In[i] / 65535.0);
 
         // Evaluate in floating point
         cmsPipelineEvalFloat(InFloat, OutFloat, Lut);
 
         // Back to 16 bit representation
-        for (var i = 0; i < Lut->OutputChannels; i++)
+        for (var i = 0; i < Lut.OutputChannels; i++)
             Out[i] = _cmsQuickSaturateWord(OutFloat[i] * 65535.0);
 
         // Always succeed
@@ -545,7 +552,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool FixWhiteMisalignment(Pipeline* Lut, Signature EntryColorSpace, Signature ExitColorSpace)
+    private static bool FixWhiteMisalignment(Pipeline Lut, Signature EntryColorSpace, Signature ExitColorSpace)
     {
         var WhiteIn = stackalloc ushort[cmsMAXCHANNELS];
         var WhiteOut = stackalloc ushort[cmsMAXCHANNELS];
@@ -561,8 +568,8 @@ public static unsafe partial class Lcms2
             return false;
 
         // It needs to be fixed?
-        if (Lut->InputChannels != nIns) return false;
-        if (Lut->OutputChannels != nOuts) return false;
+        if (Lut.InputChannels != nIns) return false;
+        if (Lut.OutputChannels != nOuts) return false;
 
         cmsPipelineEval16(WhitePointIn, ObtainedOut, Lut);
 
@@ -570,11 +577,13 @@ public static unsafe partial class Lcms2
             return true;    // Whites already match
 
         // Check if the LUT comes as Prelin, CLUT or Postlin. We allow all combinations
-        if (!cmsPipelineCheckAndRetrieveStages(Lut, out PreLin, out CLUT, out PostLin, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType))
-            if (!cmsPipelineCheckAndRetrieveStages(Lut, out PreLin, out CLUT, cmsSigCurveSetElemType, cmsSigCLutElemType))
-                if (!cmsPipelineCheckAndRetrieveStages(Lut, out CLUT, out PostLin, cmsSigCLutElemType, cmsSigCurveSetElemType))
-                    if (!cmsPipelineCheckAndRetrieveStages(Lut, out CLUT, cmsSigCLutElemType))
-                        return false;
+        if (!cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out PreLin, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out PostLin) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out PreLin, cmsSigCLutElemType, out CLUT) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out PostLin) &&
+            !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCLutElemType, out CLUT))
+        {
+            return false;
+        }
 
         // We need to interpolate white points of both, pre and post curves
         if (PreLin is not null)
@@ -623,13 +632,13 @@ public static unsafe partial class Lcms2
     }
 
     private static bool OptimizeByResampling(
-        Pipeline** Lut,
+        ref Pipeline Lut,
         uint Intent,
         uint* InputFormat,
         uint* OutputFormat,
         uint* dwFlags)
     {
-        Pipeline* Src = null, Dest = null;
+        Pipeline? Src = null, Dest = null;
         Stage? KeepPreLin = null, KeepPostLin = null;
         Stage? NewPreLin = null, NewPostLin = null;
 
@@ -641,18 +650,18 @@ public static unsafe partial class Lcms2
 
         // Color space must be specified
         if ((uint)ColorSpace is 0 ||
-            (uint)OutputColorSpace is 0) return false;
+            (uint)OutputColorSpace is 0) { return false; }
 
         var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, *dwFlags);
 
         // For empty LUTs, 2 points are enough
-        if (cmsPipelineStageCount(*Lut) is 0)
+        if (cmsPipelineStageCount(Lut) is 0)
             nGridPoints = 2;
 
-        Src = *Lut;
+        Src = Lut;
 
         // Allocate an empty LUT
-        Dest = cmsPipelineAlloc(Src->ContextID, Src->InputChannels, Src->OutputChannels);
+        Dest = cmsPipelineAlloc(Src.ContextID, Src.InputChannels, Src.OutputChannels);
         if (Dest is null) return false;
 
         // Prelinearization tables are kept unless indicated by flags
@@ -680,7 +689,7 @@ public static unsafe partial class Lcms2
         }
 
         // Allocate the CLUT
-        var CLUT = cmsStageAllocCLut16bit(Src->ContextID, nGridPoints, Src->InputChannels, Src->OutputChannels, null);
+        var CLUT = cmsStageAllocCLut16bit(Src.ContextID, nGridPoints, Src.InputChannels, Src.OutputChannels, null);
         if (CLUT is null)
             goto Error;
 
@@ -724,19 +733,27 @@ public static unsafe partial class Lcms2
 
         var DataCLUT = (StageCLutData)CLUT.Data!;
 
-        var DataSetIn = NewPreLin is null ? null : ((StageToneCurvesData)NewPreLin.Data!).TheCurves;
-        var DataSetOut = NewPostLin is null ? null : ((StageToneCurvesData)NewPostLin.Data!).TheCurves;
+        var DataSetIn = NewPreLin is not null && NewPreLin.Data is StageToneCurvesData dataPre ? dataPre.TheCurves : null;
+        var DataSetOut = NewPostLin is not null && NewPostLin.Data is StageToneCurvesData dataPost ? dataPost.TheCurves : null;
 
         if (DataSetIn is null && DataSetOut is null)
         {
             _cmsPipelineSetOptimizationParameters(
-                Dest, *(PipelineEval16Fn*)&DataCLUT.Params->Interpolation.Lerp16, DataCLUT.Params, null, null);
+                Dest,
+                (in ushort* i, ushort* o, object? p) =>
+                {
+                    if (p is not BoxPtr<InterpParams> ptr) return;
+                    DataCLUT.Params->Interpolation.Lerp16?.Invoke(i, o, ptr);
+                },
+                new BoxPtr<InterpParams>(DataCLUT.Params),
+                null,
+                null);
         }
         else
         {
-            var p16 = PrelinOpt16alloc(Dest->ContextID, DataCLUT.Params, Dest->InputChannels, DataSetIn, Dest->OutputChannels, DataSetOut);
+            var p16 = PrelinOpt16alloc(Dest.ContextID, DataCLUT.Params, Dest.InputChannels, DataSetIn, Dest.OutputChannels, DataSetOut);
 
-            _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, new BoxPtr<Prelin16Data>(p16), PrelinOpt16free, Prelin16dup);
         }
 
         // Don't fix white on absolute colorimentric
@@ -746,7 +763,7 @@ public static unsafe partial class Lcms2
         if ((*dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0)
             FixWhiteMisalignment(Dest, ColorSpace, OutputColorSpace);
 
-        *Lut = Dest;
+        Lut = Dest;
         return true;
     Error:
         // Ops, something went wrong, Restore stages
@@ -836,18 +853,22 @@ public static unsafe partial class Lcms2
         return p8;
     }
 
-    private static void Prelin8free(Context? ContextID, void* ptr) =>
-        _cmsFree(ContextID, ptr);
+    private static void Prelin8free(Context? ContextID, object? ptr) =>
+        _cmsFree(ContextID, ptr as BoxPtr<Prelin16Data>);
 
-    private static void* Prelin8dup(Context? ContextID, in void* ptr) =>
-        _cmsDupMem(ContextID, ptr, _sizeof<Prelin8Data>());
+    private static object? Prelin8dup(Context? ContextID, object? ptr) =>
+        ptr is BoxPtr<Prelin8Data> p8
+            ? new BoxPtr<Prelin8Data>((Prelin8Data*)_cmsDupMem(ContextID, p8, _sizeof<Prelin8Data>()))
+            : null;
 
-    private static void PrelinEval8(in ushort* Input, ushort* Output, in void* D)
+    private static void PrelinEval8(in ushort* Input, ushort* Output, object? D)
     {
         int c0, c1, c2, c3;
 
-        var p8 = (Prelin8Data*)D;
-        var p = p8->p;
+        if (D is not BoxPtr<Prelin8Data> p8)
+            return;
+
+        var p = p8.Ptr->p;
         var TotalOut = (int)p->nOutputs;
         var LutTable = (ushort*)p->Table;
 
@@ -855,13 +876,13 @@ public static unsafe partial class Lcms2
         var g = (byte)(Input[1] >> 8);
         var b = (byte)(Input[2] >> 8);
 
-        var X0 = (int)p8->X0[r];
-        var Y0 = (int)p8->Y0[g];
-        var Z0 = (int)p8->Z0[b];
+        var X0 = (int)p8.Ptr->X0[r];
+        var Y0 = (int)p8.Ptr->Y0[g];
+        var Z0 = (int)p8.Ptr->Z0[b];
 
-        var rx = p8->rx[r];
-        var ry = p8->ry[g];
-        var rz = p8->rz[b];
+        var rx = p8.Ptr->rx[r];
+        var ry = p8.Ptr->ry[g];
+        var rz = p8.Ptr->rz[b];
 
         var X1 = X0 + (int)((rx is 0) ? 0 : p->opta[2]);
         var Y1 = Y0 + (int)((ry is 0) ? 0 : p->opta[1]);
@@ -939,13 +960,13 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool OptimizeByComputingLinearization(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeByComputingLinearization(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
         var Trans = stackalloc ToneCurve*[cmsMAXCHANNELS];
         var TransReverse = stackalloc ToneCurve*[cmsMAXCHANNELS];
         var In = stackalloc float[cmsMAXCHANNELS];
         var Out = stackalloc float[cmsMAXCHANNELS];
-        Pipeline* OptimizedLUT = null, LutPlusCurves = null;
+        Pipeline? OptimizedLUT = null, LutPlusCurves = null;
 
         // This is a lossy optimization! does not apply in floating-point cases
         if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
@@ -961,7 +982,7 @@ public static unsafe partial class Lcms2
         if (!_cmsFormatterIs8bit(*InputFormat))
             if ((*dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is 0) return false;
 
-        var OriginalLut = *Lut;
+        var OriginalLut = Lut;
 
         var ColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*InputFormat));
         var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*OutputFormat));
@@ -985,8 +1006,8 @@ public static unsafe partial class Lcms2
             if (last is null) goto Error;
             if ((uint)cmsStageType(last) is cmsSigCurveSetElemType)
             {
-                var Data = (StageToneCurvesData)cmsStageData(last);
-                for (var i = 0; i < Data.nCurves; i++)
+                var Data = cmsStageData(last) as StageToneCurvesData;
+                for (var i = 0; i < Data?.nCurves; i++)
                 {
                     if (IsDegenerated(Data.TheCurves[i]))
                         goto Error;
@@ -994,9 +1015,9 @@ public static unsafe partial class Lcms2
             }
         }
 
-        for (var t = 0; t < OriginalLut->InputChannels; t++)
+        for (var t = 0; t < OriginalLut.InputChannels; t++)
         {
-            Trans[t] = cmsBuildTabulatedToneCurve16(OriginalLut->ContextID, PRELINEARIZATION_POINTS, null);
+            Trans[t] = cmsBuildTabulatedToneCurve16(OriginalLut.ContextID, PRELINEARIZATION_POINTS, null);
             if (Trans[t] is null) goto Error;
         }
 
@@ -1006,18 +1027,18 @@ public static unsafe partial class Lcms2
             var v = (float)((double)i / (PRELINEARIZATION_POINTS - 1));
 
             // Feed input with a gray ramp
-            for (var t = 0; t < OriginalLut->InputChannels; t++)
+            for (var t = 0; t < OriginalLut.InputChannels; t++)
                 Trans[t]->Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
         }
 
         // Slope-limit the obtained curves
-        for (var t = 0; t < OriginalLut->InputChannels; t++)
+        for (var t = 0; t < OriginalLut.InputChannels; t++)
             SlopeLimiting(Trans[t]);
 
         // Check for validity
         var lIsSuitable = true;
         var lIsLinear = true;
-        for (var t = 0; (lIsSuitable && (t < OriginalLut->InputChannels)); t++)
+        for (var t = 0; (lIsSuitable && (t < OriginalLut.InputChannels)); t++)
         {
             // Exclude if already linear
             if (!cmsIsToneCurveLinear(Trans[t]))
@@ -1035,7 +1056,7 @@ public static unsafe partial class Lcms2
         if (!lIsSuitable) goto Error;
 
         // Invert curves if possible
-        for (var t = 0; t < OriginalLut->InputChannels; t++)
+        for (var t = 0; t < OriginalLut.InputChannels; t++)
         {
             TransReverse[t] = cmsReverseToneCurveEx(PRELINEARIZATION_POINTS, Trans[t]);
             if (TransReverse[t] is null) goto Error;
@@ -1045,21 +1066,21 @@ public static unsafe partial class Lcms2
         LutPlusCurves = cmsPipelineDup(OriginalLut);
         if (LutPlusCurves is null) goto Error;
 
-        if (!cmsPipelineInsertStage(LutPlusCurves, StageLoc.AtBegin, cmsStageAllocToneCurves(OriginalLut->ContextID, OriginalLut->InputChannels, TransReverse)))
+        if (!cmsPipelineInsertStage(LutPlusCurves, StageLoc.AtBegin, cmsStageAllocToneCurves(OriginalLut.ContextID, OriginalLut.InputChannels, TransReverse)))
             goto Error;
 
         // Create the result LUT
-        OptimizedLUT = cmsPipelineAlloc(OriginalLut->ContextID, OriginalLut->InputChannels, OriginalLut->OutputChannels);
+        OptimizedLUT = cmsPipelineAlloc(OriginalLut.ContextID, OriginalLut.InputChannels, OriginalLut.OutputChannels);
         if (OptimizedLUT is null) goto Error;
 
-        var OptimizedPrelinMpe = cmsStageAllocToneCurves(OriginalLut->ContextID, OriginalLut->InputChannels, Trans);
+        var OptimizedPrelinMpe = cmsStageAllocToneCurves(OriginalLut.ContextID, OriginalLut.InputChannels, Trans);
 
         // Create and insert the curves at the beginning
         if (!cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtBegin, OptimizedPrelinMpe))
             goto Error;
 
         // Allocate the CLUT for result
-        var OptimizedCLUTmpe = cmsStageAllocCLut16bit(OriginalLut->ContextID, nGridPoints, OriginalLut->InputChannels, OriginalLut->OutputChannels, null);
+        var OptimizedCLUTmpe = cmsStageAllocCLut16bit(OriginalLut.ContextID, nGridPoints, OriginalLut.InputChannels, OriginalLut.OutputChannels, null);
 
         // Add the CLUT to the destination LUT
         if (!cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtEnd, OptimizedCLUTmpe))
@@ -1069,7 +1090,7 @@ public static unsafe partial class Lcms2
         if (!cmsStageSampleCLut16bit(OptimizedCLUTmpe, XFormSampler16, LutPlusCurves, 0)) goto Error;
 
         // Free resources
-        for (var t = 0; t < OriginalLut->InputChannels; t++)
+        for (var t = 0; t < OriginalLut.InputChannels; t++)
         {
             if (Trans[t] is not null) cmsFreeToneCurve(Trans[t]);
             if (TransReverse[t] is not null) cmsFreeToneCurve(TransReverse[t]);
@@ -1078,22 +1099,23 @@ public static unsafe partial class Lcms2
         cmsPipelineFree(LutPlusCurves);
 
         var OptimizedPrelinCurves = _cmsStageGetPtrToCurveSet(OptimizedPrelinMpe);
-        var OptimizedPrelinCLUT = (StageCLutData)OptimizedCLUTmpe.Data;
+        if (OptimizedCLUTmpe.Data is not StageCLutData OptimizedPrelinCLUT)
+            return false;
 
         // Set the evaluator if 8-bit
         if (_cmsFormatterIs8bit(*InputFormat))
         {
-            var p8 = PrelinOpt8alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT.Params, OptimizedPrelinCurves);
+            var p8 = PrelinOpt8alloc(OptimizedLUT.ContextID, OptimizedPrelinCLUT.Params, OptimizedPrelinCurves);
             if (p8 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, p8, Prelin8free, Prelin8dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, new BoxPtr<Prelin8Data>(p8), Prelin8free, Prelin8dup);
         }
         else
         {
-            var p16 = PrelinOpt16alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT.Params, 3, OptimizedPrelinCurves, 3, null);
+            var p16 = PrelinOpt16alloc(OptimizedLUT.ContextID, OptimizedPrelinCLUT.Params, 3, OptimizedPrelinCurves, 3, null);
             if (p16 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, new BoxPtr<Prelin16Data>(p16), PrelinOpt16free, Prelin16dup);
         }
 
         // Don't fix white on absolute colorimetric
@@ -1106,11 +1128,11 @@ public static unsafe partial class Lcms2
         // And return the obtained LUT
 
         cmsPipelineFree(OriginalLut);
-        *Lut = OptimizedLUT;
+        Lut = OptimizedLUT;
         return true;
 
     Error:
-        for (var t = 0; t < OriginalLut->InputChannels; t++)
+        for (var t = 0; t < OriginalLut.InputChannels; t++)
         {
             if (Trans[t] is not null) cmsFreeToneCurve(Trans[t]);
             if (TransReverse[t] is not null) cmsFreeToneCurve(TransReverse[t]);
@@ -1122,20 +1144,24 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void CurvesFree(Context? ContextID, void* ptr)
+    private static void CurvesFree(Context? ContextID, object? ptr)
     {
-        var Data = (Curves16Data*)ptr;
+        if (ptr is not BoxPtr<Curves16Data> Data)
+            return;
 
-        for (var i = 0; i < Data->nCurves; i++)
-            _cmsFree(ContextID, Data->Curves[i]);
+        for (var i = 0; i < Data.Ptr->nCurves; i++)
+            _cmsFree(ContextID, Data.Ptr->Curves[i]);
 
-        _cmsFree(ContextID, Data->Curves);
-        _cmsFree(ContextID, ptr);
+        _cmsFree(ContextID, Data.Ptr->Curves);
+        _cmsFree(ContextID, Data.Ptr);
     }
 
-    private static void* CurvesDup(Context? ContextID, in void* ptr)
+    private static BoxPtr<Curves16Data>? CurvesDup(Context? ContextID, object? ptr)
     {
-        var Data = _cmsDupMem<Curves16Data>(ContextID, ptr);
+        if (ptr is not BoxPtr<Curves16Data> curves)
+            return null;
+
+        var Data = _cmsDupMem<Curves16Data>(ContextID, curves);
 
         if (Data is null) return null;
 
@@ -1144,7 +1170,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < Data->nCurves; i++)
             Data->Curves[i] = _cmsDupMem<ushort>(ContextID, Data->Curves[i], Data->nElements);
 
-        return Data;
+        return new(Data);
     }
 
     private static Curves16Data* CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve** G)
@@ -1199,42 +1225,45 @@ public static unsafe partial class Lcms2
     //    return null;
     }
 
-    private static void FastEvaluateCurves8(in ushort* In, ushort* Out, in void* D)
+    private static void FastEvaluateCurves8(in ushort* In, ushort* Out, object? D)
     {
-        var Data = (Curves16Data*)D;
+        if (D is not BoxPtr<Curves16Data> Data)
+            return;
 
-        for (var i = 0; i < Data->nCurves; i++)
+        for (var i = 0; i < Data.Ptr->nCurves; i++)
         {
             var x = In[i] >> 8;
-            Out[i] = Data->Curves[i][x];
+            Out[i] = Data.Ptr->Curves[i][x];
         }
     }
 
-    private static void FastEvaluateCurves16(in ushort* In, ushort* Out, in void* D)
+    private static void FastEvaluateCurves16(in ushort* In, ushort* Out, object? D)
     {
-        var Data = (Curves16Data*)D;
+        if (D is not BoxPtr<Curves16Data> Data)
+            return;
 
-        for (var i = 0; i < Data->nCurves; i++)
-            Out[i] = Data->Curves[i][In[i]];
+        for (var i = 0; i < Data.Ptr->nCurves; i++)
+            Out[i] = Data.Ptr->Curves[i][In[i]];
     }
 
-    private static void FastIdentify16(in ushort* In, ushort* Out, in void* D)
+    private static void FastIdentify16(in ushort* In, ushort* Out, object? D)
     {
-        var Lut = (Pipeline*)D;
+        if (D is not Pipeline Lut)
+            return;
 
-        for (var i = 0; i < Lut->InputChannels; i++)
+        for (var i = 0; i < Lut.InputChannels; i++)
             Out[i] = In[i];
     }
 
-    private static bool OptimizeByJoiningCurves(Pipeline** Lut, uint _, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeByJoiningCurves(ref Pipeline Lut, uint _, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
         var InFloat = stackalloc float[cmsMAXCHANNELS];
         var OutFloat = stackalloc float[cmsMAXCHANNELS];
 
         Stage? ObtainedCurves = null;
         ToneCurve** GammaTables = null;
-        Pipeline* Dest = null;
-        var Src = *Lut;
+        Pipeline? Dest = null;
+        var Src = Lut;
 
         // This is a lossy optimization! does not apply in floating-point cases
         if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
@@ -1249,35 +1278,35 @@ public static unsafe partial class Lcms2
         }
 
         // Allocate an empty LUT
-        Dest = cmsPipelineAlloc(Src->ContextID, Src->InputChannels, Src->OutputChannels);
+        Dest = cmsPipelineAlloc(Src.ContextID, Src.InputChannels, Src.OutputChannels);
         if (Dest is null) return false;
 
         // Create target curves
-        GammaTables = _cmsCalloc2<ToneCurve>(Src->ContextID, Src->InputChannels);
+        GammaTables = _cmsCalloc2<ToneCurve>(Src.ContextID, Src.InputChannels);
         if (GammaTables is null) goto Error;
 
-        for (var i = 0; i < Src->InputChannels; i++)
+        for (var i = 0; i < Src.InputChannels; i++)
         {
-            GammaTables[i] = cmsBuildTabulatedToneCurve16(Src->ContextID, PRELINEARIZATION_POINTS, null);
+            GammaTables[i] = cmsBuildTabulatedToneCurve16(Src.ContextID, PRELINEARIZATION_POINTS, null);
             if (GammaTables[i] is null) goto Error;
         }
 
         // Compute 16 bit result by using floating point
         for (var i = 0; i < PRELINEARIZATION_POINTS; i++)
         {
-            for (var j = 0; j < Src->InputChannels; j++)
+            for (var j = 0; j < Src.InputChannels; j++)
                 InFloat[j] = (float)((double)i / (PRELINEARIZATION_POINTS - 1));
 
             cmsPipelineEvalFloat(InFloat, OutFloat, Src);
 
-            for (var j = 0; j < Src->InputChannels; j++)
+            for (var j = 0; j < Src.InputChannels; j++)
                 GammaTables[j]->Table16[i] = _cmsQuickSaturateWord(OutFloat[j] * 65535.0);
         }
 
-        ObtainedCurves = cmsStageAllocToneCurves(Src->ContextID, Src->InputChannels, GammaTables);
+        ObtainedCurves = cmsStageAllocToneCurves(Src.ContextID, Src.InputChannels, GammaTables);
         if (ObtainedCurves is null) goto Error;
 
-        for (var i = 0; i < Src->InputChannels; i++)
+        for (var i = 0; i < Src.InputChannels; i++)
         {
             cmsFreeToneCurve(GammaTables[i]);
             GammaTables[i] = null;
@@ -1285,7 +1314,7 @@ public static unsafe partial class Lcms2
 
         if (GammaTables is not null)
         {
-            _cmsFree(Src->ContextID, GammaTables);
+            _cmsFree(Src.ContextID, GammaTables);
             GammaTables = null;
         }
 
@@ -1294,24 +1323,25 @@ public static unsafe partial class Lcms2
         {
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtBegin, ObtainedCurves))
                 goto Error;
-            var Data = (StageToneCurvesData)cmsStageData(ObtainedCurves);
+            if (cmsStageData(ObtainedCurves) is not StageToneCurvesData Data)
+                goto Error;
             ObtainedCurves = null;
 
             // If the curves are to by applied in 8 bits, we can save memory
             if (_cmsFormatterIs8bit(*InputFormat))
             {
-                var c16 = CurvesAlloc(Dest->ContextID, Data.nCurves, 256, Data.TheCurves);
+                var c16 = CurvesAlloc(Dest.ContextID, Data.nCurves, 256, Data.TheCurves);
 
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, c16, CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, new BoxPtr<Curves16Data>(c16), CurvesFree, CurvesDup);
             }
             else
             {
-                var c16 = CurvesAlloc(Dest->ContextID, Data.nCurves, 65536, Data.TheCurves);
+                var c16 = CurvesAlloc(Dest.ContextID, Data.nCurves, 65536, Data.TheCurves);
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, c16, CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, new BoxPtr<Curves16Data>(c16), CurvesFree, CurvesDup);
             }
         }
         else
@@ -1320,7 +1350,7 @@ public static unsafe partial class Lcms2
             cmsStageFree(ObtainedCurves);
             ObtainedCurves = null;
 
-            if (!cmsPipelineInsertStage(Dest, StageLoc.AtBegin, cmsStageAllocIdentity(Dest->ContextID, Src->InputChannels)))
+            if (!cmsPipelineInsertStage(Dest, StageLoc.AtBegin, cmsStageAllocIdentity(Dest.ContextID, Src.InputChannels)))
                 goto Error;
 
             *dwFlags |= cmsFLAGS_NOCACHE;
@@ -1329,7 +1359,7 @@ public static unsafe partial class Lcms2
 
         // We are done.
         cmsPipelineFree(Src);
-        *Lut = Dest;
+        Lut = Dest;
         return true;
 
     Error:
@@ -1337,30 +1367,30 @@ public static unsafe partial class Lcms2
         if (ObtainedCurves != null) cmsStageFree(ObtainedCurves);
         if (GammaTables != null)
         {
-            for (var i = 0; i < Src->InputChannels; i++)
+            for (var i = 0; i < Src.InputChannels; i++)
             {
                 if (GammaTables[i] != null) cmsFreeToneCurve(GammaTables[i]);
             }
 
-            _cmsFree(Src->ContextID, GammaTables);
+            _cmsFree(Src.ContextID, GammaTables);
         }
 
         if (Dest != null) cmsPipelineFree(Dest);
         return false;
     }
 
-    private static void FreeMatShaper(Context? ContextID, void* Data)
-    {
-        if (Data is not null)
-            _cmsFree(ContextID, Data);
-    }
+    private static void FreeMatShaper(Context? ContextID, object? Data) =>
+        _cmsFree(ContextID, Data as BoxPtr<MatShaper8Data>);
 
-    private static void* DupMatShaper(Context? ContextID, in void* Data) =>
-        _cmsDupMem<MatShaper8Data>(ContextID, Data);
+    private static BoxPtr<MatShaper8Data>? DupMatShaper(Context? ContextID, object? Data) =>
+        Data is BoxPtr<MatShaper8Data> mat
+            ? new(_cmsDupMem<MatShaper8Data>(ContextID, mat))
+            : null;
 
-    private static void MatShaperEval16(in ushort* In, ushort* Out, in void* D)
+    private static void MatShaperEval16(in ushort* In, ushort* Out, object? D)
     {
-        var p = (MatShaper8Data*)D;
+        if (D is not BoxPtr<MatShaper8Data> p)
+            return;
 
         // In this case (and only in this case!) we can use this simplification since
         // In[] is assured to come from an 8 bit number. (a << 8 | a)
@@ -1369,14 +1399,14 @@ public static unsafe partial class Lcms2
         var bi = In[2] & 0xFFu;
 
         // Across first shaper, which also converts to 1.14 fixed point
-        var r = p->Shaper1R[ri];
-        var g = p->Shaper1G[gi];
-        var b = p->Shaper1B[bi];
+        var r = p.Ptr->Shaper1R[ri];
+        var g = p.Ptr->Shaper1G[gi];
+        var b = p.Ptr->Shaper1B[bi];
 
         // Evaluate the matrix in 1.14 fixed point
-        var l1 = ((p->Mat[(0 * 3) + 0] * r) + (p->Mat[(0 * 3) + 1] * g) + (p->Mat[(0 * 3) + 2] * b) + p->Off[0] + 0x2000) >> 14;
-        var l2 = ((p->Mat[(1 * 3) + 0] * r) + (p->Mat[(1 * 3) + 1] * g) + (p->Mat[(1 * 3) + 2] * b) + p->Off[1] + 0x2000) >> 14;
-        var l3 = ((p->Mat[(2 * 3) + 0] * r) + (p->Mat[(2 * 3) + 1] * g) + (p->Mat[(2 * 3) + 2] * b) + p->Off[2] + 0x2000) >> 14;
+        var l1 = ((p.Ptr->Mat[(0 * 3) + 0] * r) + (p.Ptr->Mat[(0 * 3) + 1] * g) + (p.Ptr->Mat[(0 * 3) + 2] * b) + p.Ptr->Off[0] + 0x2000) >> 14;
+        var l2 = ((p.Ptr->Mat[(1 * 3) + 0] * r) + (p.Ptr->Mat[(1 * 3) + 1] * g) + (p.Ptr->Mat[(1 * 3) + 2] * b) + p.Ptr->Off[1] + 0x2000) >> 14;
+        var l3 = ((p.Ptr->Mat[(2 * 3) + 0] * r) + (p.Ptr->Mat[(2 * 3) + 1] * g) + (p.Ptr->Mat[(2 * 3) + 2] * b) + p.Ptr->Off[2] + 0x2000) >> 14;
 
         // Now we have to clip to 0..1.0 range
         ri = (l1 < 0) ? 0 : ((l1 > 16384) ? 16384 : (uint)l1);
@@ -1384,9 +1414,9 @@ public static unsafe partial class Lcms2
         bi = (l3 < 0) ? 0 : ((l3 > 16384) ? 16384 : (uint)l3);
 
         // And across second shaper
-        Out[0] = p->Shaper2R[ri];
-        Out[1] = p->Shaper2G[gi];
-        Out[2] = p->Shaper2B[bi];
+        Out[0] = p.Ptr->Shaper2R[ri];
+        Out[1] = p.Ptr->Shaper2G[gi];
+        Out[2] = p.Ptr->Shaper2B[bi];
     }
 
     private static void FillFirstShaper(int* Table, ToneCurve* Curve)
@@ -1426,16 +1456,16 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool SetMatShaper(Pipeline* Dest, ToneCurve** Curve1, MAT3* Mat, VEC3* Off, ToneCurve** Curve2, uint* OutputFormat)
+    private static bool SetMatShaper(Pipeline Dest, ToneCurve** Curve1, MAT3* Mat, VEC3* Off, ToneCurve** Curve2, uint* OutputFormat)
     {
         var Offn = &Off->X;
         bool Is8Bits = _cmsFormatterIs8bit(*OutputFormat);
 
         // Allocate a big chunk of memory to store precomputed tables
-        var p = _cmsMalloc<MatShaper8Data>(Dest->ContextID);
+        var p = _cmsMalloc<MatShaper8Data>(Dest.ContextID);
         if (p is null) return false;
 
-        p->ContextID = Dest->ContextID;
+        p->ContextID = Dest.ContextID;
 
         // Precompute tables
         FillFirstShaper(p->Shaper1R, Curve1[0]);
@@ -1472,11 +1502,11 @@ public static unsafe partial class Lcms2
             *OutputFormat |= OPTIMIZED_SH(1);
 
         // Fill function pointers
-        _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, p, FreeMatShaper, DupMatShaper);
+        _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, new BoxPtr<MatShaper8Data>(p), FreeMatShaper, DupMatShaper);
         return true;
     }
 
-    private static bool OptimizeMatrixShaper(Pipeline** Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeMatrixShaper(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
         double[]? Offset;
         MAT3 res;
@@ -1488,7 +1518,7 @@ public static unsafe partial class Lcms2
         if (!_cmsFormatterIs8bit(*InputFormat)) return false;
 
         // Seems suitable, proceed
-        var Src = *Lut;
+        var Src = Lut;
 
         // Check for:
         //
@@ -1499,8 +1529,11 @@ public static unsafe partial class Lcms2
         // Additionally, in the first case, the input matrix offset should be zero.
 
         var IdentityMat = false;
-        if (cmsPipelineCheckAndRetrieveStages(Src, out var Curve1, out var Matrix1, out var Matrix2, out var Curve2,
-            cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
+        if (cmsPipelineCheckAndRetrieveStages(
+            Src, cmsSigCurveSetElemType, out var Curve1,
+                 cmsSigMatrixElemType, out var Matrix1,
+                 cmsSigMatrixElemType, out var Matrix2,
+                 cmsSigCurveSetElemType, out var Curve2))
         {
             // Get both matrices
             var Data1 = (StageMatrixData)cmsStageData(Matrix1!)!;
@@ -1522,8 +1555,10 @@ public static unsafe partial class Lcms2
                 IdentityMat = true;
             }
         }
-        else if (cmsPipelineCheckAndRetrieveStages(Src, out Curve1, out Matrix1, out Curve2,
-            cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType))
+        else if (cmsPipelineCheckAndRetrieveStages(
+            Src, cmsSigCurveSetElemType, out Curve1,
+                 cmsSigMatrixElemType, out Matrix1,
+                 cmsSigCurveSetElemType, out Curve2))
         {
             var Data = (StageMatrixData)cmsStageData(Matrix1!)!;
 
@@ -1546,7 +1581,7 @@ public static unsafe partial class Lcms2
         }
 
         // Allocate an empty LUT
-        var Dest = cmsPipelineAlloc(Src->ContextID, Src->InputChannels, Src->OutputChannels);
+        var Dest = cmsPipelineAlloc(Src.ContextID, Src.InputChannels, Src.OutputChannels);
         if (Dest == null) return false;
 
         // Assemble the new LUT
@@ -1555,9 +1590,9 @@ public static unsafe partial class Lcms2
 
         if (!IdentityMat)
         {
-            var pool = _cmsGetContext(Src->ContextID).GetBufferPool<double>();
+            var pool = _cmsGetContext(Src.ContextID).GetBufferPool<double>();
             var resArray = res.AsArray(pool);
-            if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest->ContextID, 3, 3, resArray, Offset)))
+            if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest.ContextID, 3, 3, resArray, Offset)))
             {
                 pool.Return(resArray);
                 goto Error;
@@ -1568,12 +1603,15 @@ public static unsafe partial class Lcms2
         // If identity on matrix, we can further optimize the curves, so call the join curves routine
         if (IdentityMat)
         {
-            OptimizeByJoiningCurves(&Dest, Intent, InputFormat, OutputFormat, dwFlags);
+            OptimizeByJoiningCurves(ref Dest, Intent, InputFormat, OutputFormat, dwFlags);
         }
         else
         {
-            var mpeC1 = (StageToneCurvesData)cmsStageData(Curve1);
-            var mpeC2 = (StageToneCurvesData)cmsStageData(Curve2);
+            if (cmsStageData(Curve1) is not StageToneCurvesData mpeC1 ||
+                cmsStageData(Curve2) is not StageToneCurvesData mpeC2)
+            {
+                goto Error;
+            }
 
             // In this particular optimization, cache does not help as it takes more time to deal with
             // the cache than with the pixel handling
@@ -1585,7 +1623,7 @@ public static unsafe partial class Lcms2
         }
 
         cmsPipelineFree(Src);
-        *Lut = Dest;
+        Lut = Dest;
         return true;
 
     Error:
@@ -1644,14 +1682,15 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase? Data)
     {
-        var Plugin = (PluginOptimization?)Data;
         var ctx = _cmsGetContext(id).OptimizationPlugin;
-
         if (Data is null)
         {
             ctx.OptimizationCollection = null;
             return true;
         }
+
+        if (Data is not PluginOptimization Plugin)
+            return false;
 
         // Optimizer callback is required
         if (Plugin!.OptimizePtr is null) return false;
@@ -1674,7 +1713,7 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsOptimizePipeline(
         Context? ContextID,
-        Pipeline** PtrLut,
+        ref Pipeline PtrLut,
         uint Intent,
         uint* InputFormat,
         uint* OutputFormat,
@@ -1686,19 +1725,19 @@ public static unsafe partial class Lcms2
         // A CLUT is being asked, so force this specific optimization
         if ((*dwFlags & cmsFLAGS_FORCE_CLUT) is not 0)
         {
-            PreOptimize(*PtrLut);
-            return OptimizeByResampling(PtrLut, Intent, InputFormat, OutputFormat, dwFlags);
+            PreOptimize(PtrLut);
+            return OptimizeByResampling(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags);
         }
 
         // Anything to optimize?
-        if ((*PtrLut)->Elements is null)
+        if (PtrLut.Elements is null)
         {
-            _cmsPipelineSetOptimizationParameters(*PtrLut, FastIdentify16, *PtrLut, null, null);
+            _cmsPipelineSetOptimizationParameters(PtrLut, FastIdentify16, PtrLut, null, null);
             return true;
         }
 
         // Named color pipelines cannot be optimized
-        for (var mpe = cmsPipelineGetPtrToFirstStage(*PtrLut);
+        for (var mpe = cmsPipelineGetPtrToFirstStage(PtrLut);
              mpe is not null;
              mpe = cmsStageNext(mpe))
         {
@@ -1706,12 +1745,12 @@ public static unsafe partial class Lcms2
         }
 
         // Try to get rid of identities and trivial conversions.
-        AnySuccess = PreOptimize(*PtrLut);
+        AnySuccess = PreOptimize(PtrLut);
 
         // After removal do we end with an identity?
-        if ((*PtrLut)->Elements is null)
+        if (PtrLut.Elements is null)
         {
-            _cmsPipelineSetOptimizationParameters(*PtrLut, FastIdentify16, *PtrLut, null, null);
+            _cmsPipelineSetOptimizationParameters(PtrLut, FastIdentify16, PtrLut, null, null);
             return true;
         }
 
@@ -1725,7 +1764,7 @@ public static unsafe partial class Lcms2
              Opts = Opts->Next)
         {
             // If one schema succeeded, we are done
-            if (Opts->OptimizePtr(PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+            if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
                 return true;    // Optimized!
         }
 
@@ -1734,7 +1773,7 @@ public static unsafe partial class Lcms2
              Opts is not null;
              Opts = Opts->Next)
         {
-            if (Opts->OptimizePtr(PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+            if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
                 return true;
         }
 

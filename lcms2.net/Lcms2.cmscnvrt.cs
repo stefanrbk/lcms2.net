@@ -314,9 +314,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool AddConversion(Pipeline* Result, Signature InPCS, Signature OutPCS, MAT3* m, VEC3* off)
+    private static bool AddConversion(Pipeline Result, Signature InPCS, Signature OutPCS, MAT3* m, VEC3* off)
     {
-        var pool = _cmsGetContext(Result->ContextID).GetBufferPool<double>();
+        var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
         var m_as_dbl = m->AsArray(pool);
         var off_as_dbl = off->AsArray(pool);
 
@@ -329,15 +329,15 @@ public static unsafe partial class Lcms2
                 {
                     case cmsSigXYZData:     // XYZ -> XYZ
                         if (!IsEmptyLayer(m, off) &&
-                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
+                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result.ContextID, 3, 3, m_as_dbl, off_as_dbl)))
                         { goto Error; }
                         break;
 
                     case cmsSigLabData:     // XYZ -> Lab
                         if (!IsEmptyLayer(m, off) &&
-                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
+                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result.ContextID, 3, 3, m_as_dbl, off_as_dbl)))
                         { goto Error; }
-                        if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result->ContextID)))
+                        if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result.ContextID)))
                             goto Error;
                         break;
 
@@ -351,19 +351,19 @@ public static unsafe partial class Lcms2
                 switch ((uint)OutPCS)
                 {
                     case cmsSigXYZData:     // Lab -> XYZ
-                        if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result->ContextID)))
+                        if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result.ContextID)))
                             goto Error;
                         if (!IsEmptyLayer(m, off) &&
-                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)))
+                            !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result.ContextID, 3, 3, m_as_dbl, off_as_dbl)))
                         { goto Error; }
                         break;
 
                     case cmsSigLabData:     // Lab -> Lab
                         if (!IsEmptyLayer(m, off))
                         {
-                            if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result->ContextID)) ||
-                                !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result->ContextID, 3, 3, m_as_dbl, off_as_dbl)) ||
-                                !cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result->ContextID)))
+                            if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocLab2XYZ(Result.ContextID)) ||
+                                !cmsPipelineInsertStage(Result, StageLoc.AtEnd, cmsStageAllocMatrix(Result.ContextID, 3, 3, m_as_dbl, off_as_dbl)) ||
+                                !cmsPipelineInsertStage(Result, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(Result.ContextID)))
                             { goto Error; }
                         }
 
@@ -410,7 +410,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static Pipeline* DefaultICCintents(
+    private static Pipeline? DefaultICCintents(
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
@@ -419,7 +419,7 @@ public static unsafe partial class Lcms2
         double* AdaptationStates,
         uint dwFlags)
     {
-        Pipeline* Lut = null, Result;
+        Pipeline? Lut = null, Result;
         Profile Profile;
         MAT3 m;
         VEC3 off;
@@ -516,7 +516,7 @@ public static unsafe partial class Lcms2
         {
             if ((uint)ColorSpaceOut is cmsSigGrayData or cmsSigRgbData or cmsSigCmykData)
             {
-                var clip = _cmsStageClipNegatives(Result->ContextID, cmsChannelsOf(ColorSpaceOut));
+                var clip = _cmsStageClipNegatives(Result.ContextID, cmsChannelsOf(ColorSpaceOut));
                 if (clip is null) goto Error;
 
                 if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, clip))
@@ -535,7 +535,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    internal static Pipeline* _cmsDefaultICCintents(
+    internal static Pipeline? _cmsDefaultICCintents(
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
@@ -562,29 +562,30 @@ public static unsafe partial class Lcms2
 
     private struct GrayOnlyParams
     {
-        public Pipeline* cmyk2cmyk;
+        public Pipeline? cmyk2cmyk;
         public ToneCurve* KTone;
     }
 
-    private static bool BlackPreservingGrayOnlySampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool BlackPreservingGrayOnlySampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        var bp = (GrayOnlyParams*)Cargo;
+        if (Cargo is not BoxPtr<GrayOnlyParams> bp)
+            return false;
 
         // If going across black only, keep black only
         if (In[0] is 0 && In[1] is 0 && In[2] is 0)
         {
             // TAC does not apply because it is black ink!
             Out[0] = Out[1] = Out[2] = 0;
-            Out[3] = cmsEvalToneCurve16(bp->KTone, In[3]);
+            Out[3] = cmsEvalToneCurve16(bp.Ptr->KTone, In[3]);
             return true;
         }
 
         // Keep normal transform for other colors
-        bp->cmyk2cmyk->Eval16Fn(In, Out, bp->cmyk2cmyk->Data);
+        bp.Ptr->cmyk2cmyk?.Eval16Fn(In, Out, bp.Ptr->cmyk2cmyk?.Data);
         return true;
     }
 
-    private static Pipeline* BlackPreservingKOnlyIntents(
+    private static Pipeline? BlackPreservingKOnlyIntents(
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
@@ -594,7 +595,7 @@ public static unsafe partial class Lcms2
         uint dwFlags)
     {
         GrayOnlyParams bp;
-        Pipeline* Result;
+        Pipeline? Result;
         var ICCIntents = stackalloc uint[256];
         Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
@@ -615,7 +616,10 @@ public static unsafe partial class Lcms2
         {
             hLastProfile = Profiles[--lastProfilePos];
             if ((uint)cmsGetColorSpace(hLastProfile) is not cmsSigCmykData ||
-                (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass) break;
+                (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass)
+            {
+                break;
+            }
         }
 
         preservationProfilesCount = lastProfilePos + 1;
@@ -654,7 +658,7 @@ public static unsafe partial class Lcms2
             goto Error2;
 
         // Sample it. We cannot afford pre/post linearization this time.
-        if (!cmsStageSampleCLut16bit(CLUT, BlackPreservingGrayOnlySampler, &bp, 0))
+        if (!cmsStageSampleCLut16bit(CLUT, BlackPreservingGrayOnlySampler, new BoxPtr<GrayOnlyParams>(&bp), 0))
             goto Error;
 
         // Insert possible devicelinks at the end
@@ -687,32 +691,34 @@ public static unsafe partial class Lcms2
 
     private struct PreserveKPlaneParams
     {
-        public Pipeline* cmyk2cmyk;
+        public Pipeline? cmyk2cmyk;
         public Transform* hProofOutput;
         public Transform* cmyk2Lab;
         public ToneCurve* KTone;
-        public Pipeline* LabK2cmyk;
+        public Pipeline? LabK2cmyk;
         public double MaxError;
 
         public Transform* hRoundTrip;
         public double MaxTAC;
     }
 
-    private static bool BlackPreservingSampler(in ushort* In, ushort* Out, void* Cargo)
+    private static bool BlackPreservingSampler(in ushort* In, ushort* Out, object? Cargo)
     {
         var Inf = stackalloc float[4];
         var Outf = stackalloc float[4];
         var LabK = stackalloc float[4];
         double SumCMY, SumCMYK, Error, Ratio;
         CIELab ColorimetricLab, BlackPreservingLab;
-        var bp = (PreserveKPlaneParams*)Cargo;
+
+        if (Cargo is not BoxPtr<PreserveKPlaneParams> bp)
+            return false;
 
         // Convert from 16 bits to floating point
         for (var i = 0; i < 4; i++)
             Inf[i] = (float)(In[i] / 65535.0);
 
         // Get the K across Tone curve
-        LabK[3] = cmsEvalToneCurveFloat(bp->KTone, Inf[3]);
+        LabK[3] = cmsEvalToneCurveFloat(bp.Ptr->KTone, Inf[3]);
 
         // If going across black only, keep black only
         if (In[0] is 0 && In[1] is 0 && In[2] is 0)
@@ -723,7 +729,7 @@ public static unsafe partial class Lcms2
         }
 
         // Try the original transform.
-        cmsPipelineEvalFloat(Inf, Outf, bp->cmyk2cmyk);
+        cmsPipelineEvalFloat(Inf, Outf, bp.Ptr->cmyk2cmyk);
 
         // Store a copy of the floating point result into 16-bit
         for (var i = 0; i < 4; i++)
@@ -735,11 +741,11 @@ public static unsafe partial class Lcms2
 
         // K differs, measure and keep Lab measurement for further usage
         // this is done in relative colorimetric intent
-        cmsDoTransform(bp->cmyk2Lab, Outf, LabK, 1);
+        cmsDoTransform(bp.Ptr->cmyk2Lab, Outf, LabK, 1);
 
         // Obtain the corresponding CMY using reverse interpolation
         // (K is fixed in LabK[3])
-        if (!cmsPipelineEvalReverseFloat(LabK, Outf, Outf, bp->LabK2cmyk))
+        if (!cmsPipelineEvalReverseFloat(LabK, Outf, Outf, bp.Ptr->LabK2cmyk))
         {
             // Cannot find a suitable value, so use colorimetric xform
             // which is already stored in Out[]
@@ -753,9 +759,9 @@ public static unsafe partial class Lcms2
         SumCMY = Outf[0] + Outf[1] + Outf[2];
         SumCMYK = SumCMY + Outf[3];
 
-        if (SumCMYK > bp->MaxTAC)
+        if (SumCMYK > bp.Ptr->MaxTAC)
         {
-            Ratio = Math.Max(1 - ((SumCMYK - bp->MaxTAC) / SumCMY), 0);
+            Ratio = Math.Max(1 - ((SumCMYK - bp.Ptr->MaxTAC) / SumCMY), 0);
         }
         else
         {
@@ -768,15 +774,15 @@ public static unsafe partial class Lcms2
         Out[3] = _cmsQuickSaturateWord(Outf[3] * 65535.0);
 
         // Estimate the error (this goes 16 bits to Lab DBL)
-        cmsDoTransform(bp->hProofOutput, Out, &BlackPreservingLab, 1);
+        cmsDoTransform(bp.Ptr->hProofOutput, Out, &BlackPreservingLab, 1);
         Error = cmsDeltaE(&ColorimetricLab, &BlackPreservingLab);
-        if (Error > bp->MaxError)
-            bp->MaxError = Error;
+        if (Error > bp.Ptr->MaxError)
+            bp.Ptr->MaxError = Error;
 
         return true;
     }
 
-    private static Pipeline* BlackPreservingKPlaneIntents(
+    private static Pipeline? BlackPreservingKPlaneIntents(
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
@@ -786,11 +792,11 @@ public static unsafe partial class Lcms2
         uint dwFlags)
     {
         PreserveKPlaneParams bp;
-        Pipeline* Result = null;
+        Pipeline? Result = null;
         var ICCIntents = stackalloc uint[256];
         Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
-        Profile hLastProfile, hLab;
+        Profile? hLastProfile, hLab;
 
         // Sanity check
         if (nProfiles is < 1 or > 255) return null;
@@ -877,7 +883,7 @@ public static unsafe partial class Lcms2
         if (!cmsPipelineInsertStage(Result, StageLoc.AtBegin, CLUT))
             goto Cleanup;
 
-        cmsStageSampleCLut16bit(CLUT, BlackPreservingSampler, &bp, 0);
+        cmsStageSampleCLut16bit(CLUT, BlackPreservingSampler, new BoxPtr<PreserveKPlaneParams>(&bp), 0);
 
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
@@ -903,7 +909,7 @@ public static unsafe partial class Lcms2
         return Result;
     }
 
-    internal static Pipeline* _cmsLinkProfiles(
+    internal static Pipeline? _cmsLinkProfiles(
         Context? ContextID,
         uint nProfiles,
         uint* TheIntents,
