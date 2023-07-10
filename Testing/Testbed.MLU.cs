@@ -188,7 +188,7 @@ internal static unsafe partial class Testbed
         var CheckName = stackalloc byte[cmsMAX_PATH];
         var CheckPCS = stackalloc ushort[3];
         var CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
-        HPROFILE h;
+        Profile h;
 
         nc = cmsAllocNamedColorList(DbgThread(), 0, 4, "prefix"u8, "suffix"u8);
         if (nc == null) return false;
@@ -201,7 +201,7 @@ internal static unsafe partial class Testbed
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(4096 - i);
 
             sprintf(Name, "#{0}", i);
-            if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { rc = false; break; }
+            if (!cmsAppendNamedColor(nc, new Span<byte>(Name, 255), PCS, Colorant)) { rc = false; break; }
         }
 
         for (i = 0; i < 4096; i++)
@@ -229,13 +229,13 @@ internal static unsafe partial class Testbed
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "w");
         if (h == null) return false;
-        if (!cmsWriteTag(h, cmsSigNamedColor2Tag, nc)) return false;
+        if (!cmsWriteTag(h, cmsSigNamedColor2Tag, new BoxPtr<NamedColorList>(nc))) return false;
         cmsCloseProfile(h);
         cmsFreeNamedColorList(nc);
         nc = null;
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "r");
-        nc2 = (NamedColorList*)cmsReadTag(h, cmsSigNamedColor2Tag);
+        nc2 = (cmsReadTag(h, cmsSigNamedColor2Tag) is BoxPtr<NamedColorList> box) ? box : null;
 
         if (cmsNamedColorCount(nc2) != 4096) { rc = Fail("Invalid count"); goto Error; }
 
@@ -283,10 +283,10 @@ internal static unsafe partial class Testbed
         NamedColorList* colors = cmsAllocNamedColorList(null, 10, 4, "PANTONE"u8, "TCX"u8);
 
         // Containers for names
-        Mlu* DescriptionMLU, CopyrightMLU;
+        Mlu? DescriptionMLU, CopyrightMLU;
 
         // Create n empty profile
-        HPROFILE hProfile = cmsOpenProfileFromFile("named.icc", "w");
+        var hProfile = cmsOpenProfileFromFile("named.icc", "w");
 
         // Values
         CIELab Lab;
@@ -311,7 +311,7 @@ internal static unsafe partial class Testbed
         cmsWriteTag(hProfile, cmsSigCopyrightTag, CopyrightMLU);
 
         // Set the media white point
-        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, cmsD50_XYZ());
+        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()));
 
 
         // Populate one value, Colorant = CMYK values in 16 bits, PCS[] = Encoded Lab values (in V2 format!!)
@@ -327,7 +327,7 @@ internal static unsafe partial class Testbed
         cmsAppendNamedColor(colors, "Kale 18-0107"u8, PCS, Colorant);
 
         // Write the colors database
-        cmsWriteTag(hProfile, cmsSigNamedColor2Tag, colors);
+        cmsWriteTag(hProfile, cmsSigNamedColor2Tag, new BoxPtr<NamedColorList>(colors));
 
         // That will create the file
         cmsCloseProfile(hProfile);

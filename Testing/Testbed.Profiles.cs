@@ -536,7 +536,7 @@ internal static unsafe partial class Testbed
         return false;
     }
 
-    private static bool CheckXYZ(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckXYZ(int Pass, Profile hProfile, Signature tag)
     {
         CIEXYZ XYZ;
         CIEXYZ* Pt;
@@ -548,10 +548,10 @@ internal static unsafe partial class Testbed
             case 1:
 
                 XYZ.X = 1.0; XYZ.Y = 1.1; XYZ.Z = 1.2;
-                return cmsWriteTag(hProfile, tag, &XYZ);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<CIEXYZ>(&XYZ));
 
             case 2:
-                Pt = (CIEXYZ*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<CIEXYZ> box) ? box : null;
                 if (Pt == null) return false;
                 return IsGoodFixed15_16("X", 1.0, Pt->X) &&
                        IsGoodFixed15_16("Y", 1.1, Pt->Y) &&
@@ -563,7 +563,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckGamma(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckGamma(int Pass, Profile hProfile, Signature tag)
     {
         ToneCurve* g, Pt;
         bool rc;
@@ -574,12 +574,12 @@ internal static unsafe partial class Testbed
             case 1:
 
                 g = cmsBuildGamma(DbgThread(), 1.0);
-                rc = cmsWriteTag(hProfile, tag, g);
+                rc = cmsWriteTag(hProfile, tag, new BoxPtr<ToneCurve>(g));
                 cmsFreeToneCurve(g);
                 return rc;
 
             case 2:
-                Pt = (ToneCurve*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<ToneCurve> box) ? box : null;
                 if (Pt == null) return false;
                 return cmsIsToneCurveLinear(Pt);
 
@@ -588,11 +588,11 @@ internal static unsafe partial class Testbed
         }
     }
 
-    private static bool CheckTextSingle(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckTextSingle(int Pass, Profile hProfile, Signature tag)
     {
-        Mlu* m, Pt;
+        Mlu? m, Pt;
         bool rc;
-        var Buffer = stackalloc byte[256];
+        Span<byte> Buffer = stackalloc byte[256];
 
 
         switch (Pass)
@@ -606,7 +606,7 @@ internal static unsafe partial class Testbed
                 return rc;
 
             case 2:
-                Pt = (Mlu*)cmsReadTag(hProfile, tag);
+                Pt = cmsReadTag(hProfile, tag) as Mlu;
                 if (Pt == null) return false;
                 cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer, 256);
                 if (strcmp(Buffer, "Test test"u8) != 0) return false;
@@ -618,11 +618,11 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckText(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckText(int Pass, Profile hProfile, Signature tag)
     {
-        Mlu* m, Pt;
+        Mlu? m, Pt;
         bool rc;
-        var Buffer = stackalloc byte[256];
+        Span<byte> Buffer = stackalloc byte[256];
 
 
         switch (Pass)
@@ -640,17 +640,17 @@ internal static unsafe partial class Testbed
                 return rc;
 
             case 2:
-                Pt = (Mlu*)cmsReadTag(hProfile, tag);
+                Pt = cmsReadTag(hProfile, tag) as Mlu;
                 if (Pt == null) return false;
-                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer, 256);
+                cmsMLUgetASCII(Pt, cmsNoLanguage, cmsNoCountry, Buffer);
                 if (strcmp(Buffer, "Test test"u8) != 0) return false;
-                cmsMLUgetASCII(Pt, "en"u8, "US"u8, Buffer, 256);
+                cmsMLUgetASCII(Pt, "en"u8, "US"u8, Buffer);
                 if (strcmp(Buffer, "1 1 1 1"u8) != 0) return false;
-                cmsMLUgetASCII(Pt, "es"u8, "ES"u8, Buffer, 256);
+                cmsMLUgetASCII(Pt, "es"u8, "ES"u8, Buffer);
                 if (strcmp(Buffer, "2 2 2 2"u8) != 0) return false;
-                cmsMLUgetASCII(Pt, "ct"u8, "ES"u8, Buffer, 256);
+                cmsMLUgetASCII(Pt, "ct"u8, "ES"u8, Buffer);
                 if (strcmp(Buffer, "3 3 3 3"u8) != 0) return false;
-                cmsMLUgetASCII(Pt, "en"u8, "GB"u8, Buffer, 256);
+                cmsMLUgetASCII(Pt, "en"u8, "GB"u8, Buffer);
                 if (strcmp(Buffer, "444444444"u8) != 0) return false;
                 return true;
 
@@ -659,7 +659,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    private static bool CheckData(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckData(int Pass, Profile hProfile, Signature tag)
     {
         IccData* Pt;
         var d = new IccData() { len = 1, flag = 0 };
@@ -671,11 +671,11 @@ internal static unsafe partial class Testbed
         {
 
             case 1:
-                rc = cmsWriteTag(hProfile, tag, &d);
+                rc = cmsWriteTag(hProfile, tag, new BoxPtr<IccData>(&d));
                 return rc;
 
             case 2:
-                Pt = (IccData*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<IccData> box) ? box.Ptr : null;
                 if (Pt == null) return false;
                 return (Pt->data[0] == '?') && (Pt->flag == 0) && (Pt->len == 1);
 
@@ -685,7 +685,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckSignature(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckSignature(int Pass, Profile hProfile, Signature tag)
     {
         Signature* Pt;
         Signature Holder;
@@ -695,10 +695,10 @@ internal static unsafe partial class Testbed
 
             case 1:
                 Holder = (Signature)cmsSigPerceptualReferenceMediumGamut;
-                return cmsWriteTag(hProfile, tag, &Holder);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<Signature>(&Holder));
 
             case 2:
-                Pt = (Signature*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<Signature> box) ? box : null;
                 if (Pt == null) return false;
                 return *Pt == cmsSigPerceptualReferenceMediumGamut;
 
@@ -708,7 +708,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckDateTime(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckDateTime(int Pass, Profile hProfile, Signature tag)
     {
         DateTime* Pt;
         DateTime Holder;
@@ -718,10 +718,10 @@ internal static unsafe partial class Testbed
             case 1:
 
                 Holder = new(2009, 5, 4, 1, 2, 3);
-                return cmsWriteTag(hProfile, tag, &Holder);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<DateTime>(&Holder));
 
             case 2:
-                Pt = (DateTime*) cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<DateTime> box) ? box : null;
                 if (Pt == null) return false;
 
                 return Pt->Hour == 1 &&
@@ -738,7 +738,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckNamedColor(int Pass, HPROFILE hProfile, Signature tag, int max_check, bool colorant_check)
+    private static bool CheckNamedColor(int Pass, Profile hProfile, Signature tag, int max_check, bool colorant_check)
     {
         NamedColorList* nc;
         int i, j;
@@ -765,16 +765,16 @@ internal static unsafe partial class Testbed
                     Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(max_check - i);
 
                     sprintf(Name, "#{0}", i);
-                    if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
+                    if (!cmsAppendNamedColor(nc, new ReadOnlySpan<byte>(Name, 255), PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
                 }
 
-                rc = cmsWriteTag(hProfile, tag, nc);
+                rc = cmsWriteTag(hProfile, tag, new BoxPtr<NamedColorList>(nc));
                 cmsFreeNamedColorList(nc);
                 return rc;
 
             case 2:
 
-                nc = (NamedColorList*)cmsReadTag(hProfile, tag);
+                nc = (cmsReadTag(hProfile, tag) is BoxPtr<NamedColorList> box) ? box : null;
                 if (nc == null) return false;
 
                 for (i = 0; i < max_check; i++)
@@ -812,7 +812,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckLUT(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckLUT(int Pass, Profile hProfile, Signature tag)
     {
         Pipeline* Lut, Pt;
         bool rc;
@@ -847,7 +847,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    private static bool CheckCHAD(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckCHAD(int Pass, Profile hProfile, Signature tag)
     {
         double* Pt;
         var CHAD = stackalloc double[] { 0, .1, .2, .3, .4, .5, .6, .7, .8 };
@@ -857,11 +857,11 @@ internal static unsafe partial class Testbed
         {
 
             case 1:
-                return cmsWriteTag(hProfile, tag, CHAD);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<double>(CHAD));
 
 
             case 2:
-                Pt = (double*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<double> box) ? box : null;
                 if (Pt == null) return false;
 
                 for (i = 0; i < 9; i++)
@@ -876,7 +876,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    private static bool CheckChromaticity(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckChromaticity(int Pass, Profile hProfile, Signature tag)
     {
         CIExyYTRIPLE* Pt;
         var c = new CIExyYTRIPLE()
@@ -890,11 +890,11 @@ internal static unsafe partial class Testbed
         {
 
             case 1:
-                return cmsWriteTag(hProfile, tag, &c);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<CIExyYTRIPLE>(&c));
 
 
             case 2:
-                Pt = (CIExyYTRIPLE*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<CIExyYTRIPLE> box) ? box : null;
                 if (Pt == null) return false;
 
                 if (!IsGoodFixed15_16("xyY", Pt->Red.x, c.Red.x)) return false;
@@ -911,7 +911,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckColorantOrder(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckColorantOrder(int Pass, Profile hProfile, Signature tag)
     {
         byte* Pt;
         var c = stackalloc byte[cmsMAXCHANNELS];
@@ -922,11 +922,11 @@ internal static unsafe partial class Testbed
 
             case 1:
                 for (i = 0; i < cmsMAXCHANNELS; i++) c[i] = (byte)(cmsMAXCHANNELS - i - 1);
-                return cmsWriteTag(hProfile, tag, c);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<byte>(c));
 
 
             case 2:
-                Pt = (byte*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<byte> box) ? box : null;
                 if (Pt == null) return false;
 
                 for (i = 0; i < cmsMAXCHANNELS; i++)
@@ -940,7 +940,7 @@ internal static unsafe partial class Testbed
         }
     }
 
-    private static bool CheckMeasurement(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckMeasurement(int Pass, Profile hProfile, Signature tag)
     {
         IccMeasurementConditions* Pt;
         IccMeasurementConditions m;
@@ -956,11 +956,11 @@ internal static unsafe partial class Testbed
                 m.Geometry = 1;
                 m.IlluminantType = IlluminantType.D50;
                 m.Observer = 1;
-                return cmsWriteTag(hProfile, tag, &m);
+                return cmsWriteTag(hProfile, tag, new BoxPtr<IccMeasurementConditions>(&m));
 
 
             case 2:
-                Pt = (IccMeasurementConditions*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<IccMeasurementConditions> box) ? box : null;
                 if (Pt == null) return false;
 
                 if (!IsGoodFixed15_16("Backing", Pt->Backing.X, 0.1)) return false;
@@ -979,7 +979,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckUcrBg(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckUcrBg(int Pass, Profile hProfile, Signature tag)
     {
         UcrBg* Pt;
         UcrBg m;
@@ -994,7 +994,7 @@ internal static unsafe partial class Testbed
                 m.Bg = cmsBuildGamma(DbgThread(), -2.2);
                 m.Desc = cmsMLUalloc(DbgThread(), 1);
                 cmsMLUsetASCII(m.Desc, cmsNoLanguage, cmsNoCountry, "test UCR/BG"u8);
-                rc = cmsWriteTag(hProfile, tag, &m);
+                rc = cmsWriteTag(hProfile, tag, new BoxPtr<UcrBg>(&m));
                 cmsMLUfree(m.Desc);
                 cmsFreeToneCurve(m.Bg);
                 cmsFreeToneCurve(m.Ucr);
@@ -1002,7 +1002,7 @@ internal static unsafe partial class Testbed
 
 
             case 2:
-                Pt = (UcrBg*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<UcrBg> box) ? box : null;
                 if (Pt == null) return false;
 
                 cmsMLUgetASCII(Pt->Desc, cmsNoLanguage, cmsNoCountry, Buffer, 256);
@@ -1015,10 +1015,10 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckCRDinfo(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckCRDinfo(int Pass, Profile hProfile, Signature tag)
     {
-        Mlu* mlu;
-        var Buffer = stackalloc byte[256];
+        Mlu? mlu;
+        Span<byte> Buffer = stackalloc byte[256];
         bool rc;
 
         switch (Pass)
@@ -1038,28 +1038,28 @@ internal static unsafe partial class Testbed
 
 
             case 2:
-                mlu = (Mlu*)cmsReadTag(hProfile, tag);
+                mlu = cmsReadTag(hProfile, tag) as Mlu;
                 if (mlu == null) return false;
 
 
 
-                cmsMLUgetASCII(mlu, "PS"u8, "nm"u8, Buffer, 256);
+                cmsMLUgetASCII(mlu, "PS"u8, "nm"u8, Buffer);
                 if (strcmp(Buffer, "test postscript"u8) != 0) return false;
 
 
-                cmsMLUgetASCII(mlu, "PS"u8, "#0"u8, Buffer, 256);
+                cmsMLUgetASCII(mlu, "PS"u8, "#0"u8, Buffer);
                 if (strcmp(Buffer, "perceptual"u8) != 0) return false;
 
 
-                cmsMLUgetASCII(mlu, "PS"u8, "#1"u8, Buffer, 256);
+                cmsMLUgetASCII(mlu, "PS"u8, "#1"u8, Buffer);
                 if (strcmp(Buffer, "relative_colorimetric"u8) != 0) return false;
 
 
-                cmsMLUgetASCII(mlu, "PS"u8, "#2"u8, Buffer, 256);
+                cmsMLUgetASCII(mlu, "PS"u8, "#2"u8, Buffer);
                 if (strcmp(Buffer, "saturation"u8) != 0) return false;
 
 
-                cmsMLUgetASCII(mlu, "PS"u8, "#3"u8, Buffer, 256);
+                cmsMLUgetASCII(mlu, "PS"u8, "#3"u8, Buffer);
                 if (strcmp(Buffer, "absolute_colorimetric"u8) != 0) return false;
                 return true;
 
@@ -1102,7 +1102,7 @@ internal static unsafe partial class Testbed
     internal const StageLoc cmsAT_BEGIN = StageLoc.AtBegin;
     internal const StageLoc cmsAT_END = StageLoc.AtEnd;
 
-    private static bool CheckMPE(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckMPE(int Pass, Profile hProfile, Signature tag)
     {
         Pipeline* Lut, Pt;
         var G = stackalloc ToneCurve*[3];
@@ -1138,7 +1138,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckScreening(int Pass, HPROFILE hProfile, Signature tag)
+    private static bool CheckScreening(int Pass, Profile hProfile, Signature tag)
     {
         Screening* Pt;
         Screening sc;
@@ -1155,12 +1155,12 @@ internal static unsafe partial class Testbed
                 ((ScreeningChannel*)sc.Channels)[0].ScreenAngle = 3.0;
                 ((ScreeningChannel*)sc.Channels)[0].SpotShape = cmsSPOT_ELLIPSE;
 
-                rc = cmsWriteTag(hProfile, tag, &sc);
+                rc = cmsWriteTag(hProfile, tag, new BoxPtr<Screening>(&sc));
                 return rc;
 
 
             case 2:
-                Pt = (Screening*)cmsReadTag(hProfile, tag);
+                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<Screening> box) ? box : null;
                 if (Pt == null) return false;
 
                 if (Pt->nChannels != 1) return false;
@@ -1176,18 +1176,18 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckOneStr(Mlu* mlu, int n)
+    private static bool CheckOneStr(Mlu mlu, int n)
     {
         var Buffer = stackalloc byte[256];
         var Buffer2 = stackalloc byte[256];
 
 
-        cmsMLUgetASCII(mlu, "en"u8, "US"u8, Buffer, 255);
+        cmsMLUgetASCII(mlu, "en"u8, "US"u8, new Span<byte>(Buffer, 255));
         sprintf(Buffer2, "Hello, world {0}", n);
         if (strcmp(Buffer, Buffer2) != 0) return false;
 
 
-        cmsMLUgetASCII(mlu, "es"u8, "ES"u8, Buffer, 255);
+        cmsMLUgetASCII(mlu, "es"u8, "ES"u8, new Span<byte>(Buffer, 255));
         sprintf(Buffer2, "Hola, mundo {0}", n);
         if (strcmp(Buffer, Buffer2) != 0) return false;
 
@@ -1195,15 +1195,15 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static void SetOneStr(Mlu** mlu, string s1, string s2)
+    private static void SetOneStr(out Mlu mlu, string s1, string s2)
     {
-        *mlu = cmsMLUalloc(DbgThread(), 0);
-        cmsMLUsetWide(*mlu, "en"u8, "US"u8, s1);
-        cmsMLUsetWide(*mlu, "es"u8, "ES"u8, s2);
+        mlu = cmsMLUalloc(DbgThread(), 0);
+        cmsMLUsetWide(mlu, "en"u8, "US"u8, s1);
+        cmsMLUsetWide(mlu, "es"u8, "ES"u8, s2);
     }
 
 
-    private static bool CheckProfileSequenceTag(int Pass, HPROFILE hProfile)
+    private static bool CheckProfileSequenceTag(int Pass, Profile hProfile)
     {
         Sequence* s;
         int i;
@@ -1217,25 +1217,25 @@ internal static unsafe partial class Testbed
                 if (s == null)
                     return false;
 
-                SetOneStr(&s->seq[0].Manufacturer, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(&s->seq[0].Model, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(&s->seq[1].Manufacturer, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(&s->seq[1].Model, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(&s->seq[2].Manufacturer, "Hello, world 2", "Hola, mundo 2");
-                SetOneStr(&s->seq[2].Model, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s->seq[0].Manufacturer, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s->seq[0].Model, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s->seq[1].Manufacturer, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s->seq[1].Model, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s->seq[2].Manufacturer, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s->seq[2].Model, "Hello, world 2", "Hola, mundo 2");
 
                 s->seq[0].attributes = cmsTransparency | cmsMatte;
                 s->seq[1].attributes = cmsReflective | cmsMatte;
                 s->seq[2].attributes = cmsTransparency | cmsGlossy;
 
-                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, s))
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, new BoxPtr<Sequence>(s)))
                     return false;
                 cmsFreeProfileSequenceDescription(s);
                 return true;
 
             case 2:
 
-                s = (Sequence*)cmsReadTag(hProfile, cmsSigProfileSequenceDescTag);
+                s = (cmsReadTag(hProfile, cmsSigProfileSequenceDescTag) is BoxPtr<Sequence> box) ? box : null;
                 if (s == null)
                     return false;
 
@@ -1266,7 +1266,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckProfileSequenceIDTag(int Pass, HPROFILE hProfile)
+    private static bool CheckProfileSequenceIDTag(int Pass, Profile hProfile)
     {
         Sequence* s;
         int i;
@@ -1284,17 +1284,17 @@ internal static unsafe partial class Testbed
                 memcpy(s->seq[2].ProfileID.id8, "2222222222222222"u8);
 
 
-                SetOneStr(&s->seq[0].Description, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(&s->seq[1].Description, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(&s->seq[2].Description, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s->seq[0].Description, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s->seq[1].Description, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s->seq[2].Description, "Hello, world 2", "Hola, mundo 2");
 
-                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceIdTag, s)) return false;
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceIdTag, new BoxPtr<Sequence>(s))) return false;
                 cmsFreeProfileSequenceDescription(s);
                 return true;
 
             case 2:
 
-                s = (Sequence*)cmsReadTag(hProfile, cmsSigProfileSequenceIdTag);
+                s = (cmsReadTag(hProfile, cmsSigProfileSequenceIdTag) is BoxPtr<Sequence> box) ? box : null;
                 if (s == null) return false;
 
                 if (s->n != 3) return false;
@@ -1317,7 +1317,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckICCViewingConditions(int Pass, HPROFILE hProfile)
+    private static bool CheckICCViewingConditions(int Pass, Profile hProfile)
     {
         IccViewingConditions* v;
         IccViewingConditions s;
@@ -1334,11 +1334,11 @@ internal static unsafe partial class Testbed
                 s.SurroundXYZ.Y = 0.5;
                 s.SurroundXYZ.Z = 0.6;
 
-                if (!cmsWriteTag(hProfile, cmsSigViewingConditionsTag, &s)) return false;
+                if (!cmsWriteTag(hProfile, cmsSigViewingConditionsTag, new BoxPtr<IccViewingConditions>(&s))) return false;
                 return true;
 
             case 2:
-                v = (IccViewingConditions*)cmsReadTag(hProfile, cmsSigViewingConditionsTag);
+                v = (cmsReadTag(hProfile, cmsSigViewingConditionsTag) is BoxPtr<IccViewingConditions> box) ? box : null;
                 if (v == null) return false;
 
                 if (v->IlluminantType != IlluminantType.D50) return false;
@@ -1359,7 +1359,7 @@ internal static unsafe partial class Testbed
     }
 
 
-    private static bool CheckVCGT(int Pass, HPROFILE hProfile)
+    private static bool CheckVCGT(int Pass, Profile hProfile)
     {
         var Curves = stackalloc ToneCurve*[3];
         ToneCurve** PtrCurve;
@@ -1372,7 +1372,7 @@ internal static unsafe partial class Testbed
                 Curves[1] = cmsBuildGamma(DbgThread(), 2.2);
                 Curves[2] = cmsBuildGamma(DbgThread(), 3.4);
 
-                if (!cmsWriteTag(hProfile, cmsSigVcgtTag, Curves)) return false;
+                if (!cmsWriteTag(hProfile, cmsSigVcgtTag, new BoxPtr2<ToneCurve>(Curves))) return false;
 
                 cmsFreeToneCurveTriple(Curves);
                 return true;
@@ -1380,11 +1380,11 @@ internal static unsafe partial class Testbed
 
             case 2:
 
-                //PtrCurve = (ToneCurve**)cmsReadTag(hProfile, cmsSigVcgtTag);
-                //if (PtrCurve == null) return false;
-                //if (!IsGoodVal("VCGT R", cmsEstimateGamma(PtrCurve[0], 0.01), 1.1, 0.001)) return false;
-                //if (!IsGoodVal("VCGT G", cmsEstimateGamma(PtrCurve[1], 0.01), 2.2, 0.001)) return false;
-                //if (!IsGoodVal("VCGT B", cmsEstimateGamma(PtrCurve[2], 0.01), 3.4, 0.001)) return false;
+                PtrCurve = (cmsReadTag(hProfile, cmsSigVcgtTag) is BoxPtr2<ToneCurve> box) ? box : null;
+                if (PtrCurve == null) return false;
+                if (!IsGoodVal("VCGT R", cmsEstimateGamma(PtrCurve[0], 0.01), 1.1, 0.001)) return false;
+                if (!IsGoodVal("VCGT G", cmsEstimateGamma(PtrCurve[1], 0.01), 2.2, 0.001)) return false;
+                if (!IsGoodVal("VCGT B", cmsEstimateGamma(PtrCurve[2], 0.01), 3.4, 0.001)) return false;
                 return true;
 
             default:
@@ -1443,12 +1443,12 @@ internal static unsafe partial class Testbed
 
 
 
-    private static bool CheckDictionary24(int Pass, HPROFILE hProfile)
+    private static bool CheckDictionary24(int Pass, Profile hProfile)
     {
         void* hDict;
         Dictionary.Entry* e;
-        Mlu* DisplayName;
-        var Buffer = stackalloc byte[256];
+        Mlu DisplayName;
+        Span<byte> Buffer = stackalloc byte[256];
         bool rc = true;
 
         switch (Pass)
@@ -1468,7 +1468,7 @@ internal static unsafe partial class Testbed
                 cmsMLUfree(DisplayName);
 
                 cmsDictAddEntry(hDict, "Name2", "12", null, null);
-                if (!cmsWriteTag(hProfile, cmsSigMetaTag, hDict)) return false;
+                if (!cmsWriteTag(hProfile, cmsSigMetaTag, new BoxPtrVoid(hDict))) return false;
                 cmsDictFree(hDict);
 
                 return true;
@@ -1476,7 +1476,7 @@ internal static unsafe partial class Testbed
 
             case 2:
 
-                hDict = cmsReadTag(hProfile, cmsSigMetaTag);
+                hDict = (cmsReadTag(hProfile, cmsSigMetaTag) is BoxPtrVoid box) ? box.Ptr : null;
                 if (hDict == null) return false;
 
                 e = cmsDictGetEntryList(hDict);
@@ -1486,23 +1486,23 @@ internal static unsafe partial class Testbed
                 if (memcmp(e->Name, "Name") != 0) return false;
                 if (memcmp(e->Value, "String") != 0) return false;
 
-                cmsMLUgetASCII(e->DisplayName, "en"u8, "US"u8, Buffer, 256);
+                cmsMLUgetASCII(e->DisplayName, "en"u8, "US"u8, Buffer);
                 if (strcmp(Buffer, "Hello, world"u8) != 0) rc = false;
 
 
-                cmsMLUgetASCII(e->DisplayName, "es"u8, "ES"u8, Buffer, 256);
+                cmsMLUgetASCII(e->DisplayName, "es"u8, "ES"u8, Buffer);
                 if (strcmp(Buffer, "Hola, mundo"u8) != 0) rc = false;
 
 
-                cmsMLUgetASCII(e->DisplayName, "fr"u8, "FR"u8, Buffer, 256);
+                cmsMLUgetASCII(e->DisplayName, "fr"u8, "FR"u8, Buffer);
                 if (strcmp(Buffer, "Bonjour, le monde"u8) != 0) rc = false;
 
 
-                cmsMLUgetASCII(e->DisplayName, "ca"u8, "CA"u8, Buffer, 256);
+                cmsMLUgetASCII(e->DisplayName, "ca"u8, "CA"u8, Buffer);
                 if (strcmp(Buffer, "Hola, mon"u8) != 0) rc = false;
 
                 if (!rc)
-                    Fail($"Unexpected string '{new string((sbyte*)Buffer)}'");
+                    Fail($"Unexpected string '{Encoding.ASCII.GetString(Buffer)}'");
                 return true;
 
             default:
@@ -1512,7 +1512,7 @@ internal static unsafe partial class Testbed
         return false;
     }
 
-    private static bool CheckRAWtags(int Pass, HPROFILE hProfile)
+    private static bool CheckRAWtags(int Pass, Profile hProfile)
     {
         var Buffer = stackalloc byte[7];
         memcpy(Buffer, "data123"u8);

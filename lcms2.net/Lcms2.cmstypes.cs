@@ -3708,8 +3708,10 @@ public static unsafe partial class Lcms2
     private static void Type_vcgt_Free(TagTypeHandler* self, object? Ptr)
     {
         if (Ptr is BoxPtr2<ToneCurve> curves)
+        {
             cmsFreeToneCurveTriple(curves);
-        _cmsFree(self->ContextID, curves)
+            _cmsFree(self->ContextID, curves);
+        }
     }
 
     #endregion vcgt

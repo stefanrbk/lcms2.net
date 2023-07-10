@@ -203,7 +203,7 @@ public static unsafe partial class Lcms2
         str[1] = buf[1];
     }
 
-    public static bool cmsMLUsetASCII(Mlu mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
+    public static bool cmsMLUsetASCII(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
     {
         if (mlu is null) return false;
 
@@ -384,8 +384,7 @@ public static unsafe partial class Lcms2
         Mlu mlu,
         ReadOnlySpan<byte> LanguageCode,
         ReadOnlySpan<byte> CountryCode,
-        Span<byte> Buffer,
-        uint BufferSize)
+        Span<byte> Buffer)
     {
         var bufLang = stackalloc byte[LanguageCode.Length + 1];
         for (var i = 0; i < LanguageCode.Length; i++)
@@ -394,15 +393,14 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < CountryCode.Length; i++)
             bufCnty[i] = CountryCode[i];
 
-        return cmsMLUgetASCII(mlu, bufLang, bufCnty, Buffer, BufferSize);
+        return cmsMLUgetASCII(mlu, bufLang, bufCnty, Buffer);
     }
 
     public static uint cmsMLUgetASCII(
         Mlu mlu,
         in byte* LanguageCode,
         in byte* CountryCode,
-        Span<byte> Buffer,
-        uint BufferSize)
+        Span<byte> Buffer)
     {
         var Lang = strTo16(LanguageCode);
         var Cntry = strTo16(CountryCode);
