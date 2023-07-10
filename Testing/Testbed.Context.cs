@@ -701,9 +701,9 @@ public static bool CheckAllocContext()
         Context? cpy = null;
         Context? cpy2 = null;
         Profile? h = null;
-        uint myTag = 1234;
+        const uint myTag = 1234;
         bool rc = false;
-        byte* data = null;
+        byte[]? data = null;
         Box<uint>? ptr = null;
         uint clen = 0;
 
@@ -739,12 +739,12 @@ public static bool CheckAllocContext()
         }
 
 
-        data = (byte*)alloc(clen);
-        if (data == null)
-        {
-            Fail("malloc failed ?!?");
-            goto Error;
-        }
+        data = new byte[(int)clen];
+        //if (data == null)
+        //{
+        //    Fail("malloc failed ?!?");
+        //    goto Error;
+        //}
 
 
         rc = cmsSaveProfileToMem(h, data, &clen);
@@ -783,7 +783,7 @@ public static bool CheckAllocContext()
         }
 
         // Get rid of data
-        free(data); data = null;
+        /*free(data);*/ data = null;
 
         ptr = cmsReadTag(h, SigInt) as Box<uint>;
         if (ptr == null)
@@ -806,7 +806,7 @@ public static bool CheckAllocContext()
         if (ctx != null) cmsDeleteContext(ctx);
         if (cpy != null) cmsDeleteContext(cpy);
         if (cpy2 != null) cmsDeleteContext(cpy2);
-        if (data is not null) free(data);
+        //if (data is not null) free(data);
 
         return false;
     }
@@ -856,7 +856,7 @@ public static bool CheckAllocContext()
         Profile? h = null;
         const uint myTag = 1234;
         bool rc = false;
-        byte* data = null;
+        byte[]? data = null;
         uint clen = 0;
         var In = stackalloc float[3];
         var Out = stackalloc float[3];
@@ -912,7 +912,7 @@ public static bool CheckAllocContext()
         }
 
 
-        data = (byte*)alloc(clen);
+        data = new byte[(int)clen];
         if (data == null)
         {
             Fail("malloc failed ?!?");
@@ -959,7 +959,7 @@ public static bool CheckAllocContext()
         }
 
         // Get rid of data
-        free(data); data = null;
+        /*free(data);*/ data = null;
 
         pipe = cmsReadTag(h, cmsSigDToB3Tag) as Pipeline;
         if (pipe == null)
@@ -988,7 +988,7 @@ public static bool CheckAllocContext()
         if (ctx != null) cmsDeleteContext(ctx);
         if (cpy != null) cmsDeleteContext(cpy);
         if (cpy2 != null) cmsDeleteContext(cpy2);
-        if (data != null) free(data);
+        //if (data != null) free(data);
 
         return false;
     }

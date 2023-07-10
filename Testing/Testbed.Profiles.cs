@@ -26,6 +26,7 @@
 //
 using lcms2.types;
 
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace lcms2.testbed;
@@ -1516,19 +1517,19 @@ internal static unsafe partial class Testbed
 
     private static bool CheckRAWtags(int Pass, Profile hProfile)
     {
-        var Buffer = stackalloc byte[7];
-        memcpy(Buffer, "data123"u8);
+        byte[] Buffer = new byte[7];
+        "data123"u8.CopyTo(Buffer);
 
         switch (Pass)
         {
 
             case 1:
-                return cmsWriteRawTag(hProfile, (Signature)0x31323334, Buffer, 7);
+                return cmsWriteRawTag(hProfile, (Signature)0x31323334, Unsafe.AsPointer(ref Buffer.AsSpan().GetPinnableReference()), 7);
 
             case 2:
                 if (cmsReadRawTag(hProfile, (Signature)0x31323334, Buffer, 7) is 0) return false;
 
-                if (memcmp(Buffer, "data123"u8) != 0) return false;
+                if (memcmp((byte*)Unsafe.AsPointer(ref Buffer.AsSpan().GetPinnableReference()), "data123"u8) != 0) return false;
                 return true;
 
             default:

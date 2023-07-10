@@ -26,7 +26,7 @@
 //
 namespace lcms2.io;
 
-public struct FILENULL
+public class FILENULL
 {
     public uint Pointer;
 }

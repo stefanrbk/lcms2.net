@@ -26,8 +26,8 @@
 //
 namespace lcms2.io;
 
-public struct FILE
+public class FILE(Stream stream, string filename = "")
 {
-    public string Filename;
-    public Stream Stream;
+    public string Filename = filename;
+    public Stream Stream = stream;
 }

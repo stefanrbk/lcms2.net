@@ -1750,9 +1750,9 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    internal static nuint fread(void* Buffer, nuint ElementSize, nuint ElementCount, FILE* Stream)
+    internal static nuint fread(void* Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
     {
-        var stream = Stream->Stream;
+        var stream = Stream.Stream;
 
         _cmsAssert(Buffer);
         _cmsAssert(stream);
@@ -1779,9 +1779,9 @@ public static unsafe partial class Lcms2
     internal const byte SEEK_END = 2;
     internal const byte SEEK_SET = 0;
 
-    internal static int fseek(FILE* stream, long offset, int origin)
+    internal static int fseek(FILE stream, long offset, int origin)
     {
-        var file = stream->Stream;
+        var file = stream.Stream;
 
         try
         {
@@ -1794,9 +1794,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static long ftell(FILE* stream)
+    internal static long ftell(FILE stream)
     {
-        var file = stream->Stream;
+        var file = stream.Stream;
 
         try
         {
@@ -1808,9 +1808,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static nuint fwrite(in void* Buffer, nuint ElementSize, nuint ElementCount, FILE* Stream)
+    internal static nuint fwrite(in void* Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
     {
-        var stream = Stream->Stream;
+        var stream = Stream.Stream;
         var buffer = (byte*)Buffer;
 
         _cmsAssert(Buffer);
@@ -1833,11 +1833,11 @@ public static unsafe partial class Lcms2
         return ElementCount;
     }
 
-    internal static int fclose(FILE* stream)
+    internal static int fclose(FILE stream)
     {
-        var file = stream->Stream;
-        var filename = stream->Filename;
-        free(stream);
+        var file = stream.Stream;
+        var filename = stream.Filename;
+        //free(stream);
 
         var index = OpenFiles.FindIndex(i => i.file.Filename == filename);
         var f = OpenFiles[index];
@@ -1862,7 +1862,7 @@ public static unsafe partial class Lcms2
         return 0;
     }
     
-    internal static FILE* fopen(string filename, string mode)
+    internal static FILE? fopen(string filename, string mode)
     {
         Stream stream;
         int index = OpenFiles.FindIndex(i => i.file.Filename == filename);
@@ -1899,13 +1899,11 @@ public static unsafe partial class Lcms2
                 return null;
             }
         }
-        var file = alloc<FILE>();
-        file->Stream = stream;
-        file->Filename = filename;
+        var file = new FILE(stream, filename);
 
         if (index is -1)
         {
-            OpenFiles.Add((*file, 1));
+            OpenFiles.Add((file, 1));
         }
 
         return file;

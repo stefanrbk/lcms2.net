@@ -1272,10 +1272,10 @@ public static unsafe partial class Lcms2
         };
 
     public static uint cmsGetPostScriptCRD(Context? ContextID, Profile Profile, uint Intent, uint dwFlags,
-                                           void* Buffer, uint dwBufferLen)
+                                           Memory<byte> Buffer, uint dwBufferLen)
     {
         // Set up the serialization engine
-        var mem = Buffer is null
+        var mem = Buffer.IsEmpty
             ? cmsOpenIOhandlerFromNULL(ContextID)
             : cmsOpenIOhandlerFromMem(ContextID, Buffer, dwBufferLen, "w");
 
@@ -1290,10 +1290,10 @@ public static unsafe partial class Lcms2
     }
 
     public static uint cmsGetPostScriptCSA(Context? ContextID, Profile Profile, uint Intent, uint dwFlags,
-                                           void* Buffer, uint dwBufferLen)
+                                           Memory<byte> Buffer, uint dwBufferLen)
     {
         // Set up the serialization engine
-        var mem = Buffer is null
+        var mem = Buffer.IsEmpty
             ? cmsOpenIOhandlerFromNULL(ContextID)
             : cmsOpenIOhandlerFromMem(ContextID, Buffer, dwBufferLen, "w");
 

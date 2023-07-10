@@ -31,7 +31,7 @@ namespace lcms2.io;
 
 public unsafe class IOHandler
 {
-    internal void* stream;
+    internal object? stream;
     internal Context? ContextID;
     internal uint UsedSpace;
     internal uint reportedSize;

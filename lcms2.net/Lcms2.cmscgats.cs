@@ -1856,7 +1856,7 @@ public static unsafe partial class Lcms2
             cmsIT8Free(hIT8);
             return null;
         }
-        it8->FileStack[0]->Stream = (FileStream)file->Stream;
+        it8->FileStack[0]->Stream = (FileStream)file.Stream;
 
         strncpy(it8->FileStack[0]->FileName, cFileName, cmsMAX_PATH - 1);
         it8->FileStack[0]->FileName[cmsMAX_PATH - 1] = 0;

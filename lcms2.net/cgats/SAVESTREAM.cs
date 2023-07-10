@@ -31,7 +31,7 @@ namespace lcms2.cgats;
 
 internal unsafe struct SAVESTREAM
 {
-    public FILE* stream;
+    public FILE? stream;
 
     public byte* Base;
     public byte* Ptr;

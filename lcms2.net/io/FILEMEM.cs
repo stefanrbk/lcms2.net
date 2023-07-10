@@ -26,10 +26,32 @@
 //
 namespace lcms2.io;
 
-public unsafe struct FILEMEM
+public class FILEMEM
 {
-    public byte* Block;
+    public Memory<byte> Block;
     public uint Size;
     public uint Pointer;
     public bool FreeBlockOnClose;
+    public byte[]? Array;
+
+    private FILEMEM(uint size, uint ptr)
+    {
+        Size = size;
+        Pointer = ptr;
+    }
+
+    public FILEMEM(Memory<byte> mem, uint size, uint ptr)
+        : this(size, ptr)
+    {
+        Block = mem;
+        FreeBlockOnClose = false;
+        Array = null;
+    }
+
+    public FILEMEM(byte[] mem, uint size, uint ptr)
+        : this(size, ptr)
+    {
+        Block = Array = mem;
+        FreeBlockOnClose = true;
+    }
 }

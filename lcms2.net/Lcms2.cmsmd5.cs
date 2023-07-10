@@ -151,7 +151,7 @@ public static unsafe partial class Lcms2
         return ctx;
     }
 
-    public static void cmsMD5add(HANDLE Handle, byte* buf, uint len)
+    public static void cmsMD5add(HANDLE Handle, Span<byte> buf, uint len)
     {
         var ctx = (MD5*)Handle;
 
@@ -170,28 +170,28 @@ public static unsafe partial class Lcms2
             t = 64 - t;
             if (len < t)
             {
-                memmove(p, buf, len);
+                memcpy(p, buf[..(int)len]);
                 return;
             }
 
-            memmove(p, buf, t);
+            memcpy(p, buf[..(int)t]);
             // byteReverse(ctx->@in, 16);
 
             cmsMD5_Transform(ctx->buf, (uint*)ctx->@in);
-            buf += t;
+            buf = buf[(int)t..];
             len -= t;
         }
 
         while (len >= 64)
         {
-            memmove(ctx->@in, buf, 64);
+            memcpy(ctx->@in, buf[..64]);
             // byteReverse(ctx->@in, 16);
             cmsMD5_Transform(ctx->buf, (uint*)ctx->@in);
-            buf += 64;
+            buf = buf[64..];
             len -= 64;
         }
 
-        memmove(ctx->@in, buf, len);
+        memcpy(ctx->@in, buf[..(int)len]);
     }
 
     public static void cmsMD5finish(ProfileID* ProfileID, HANDLE Handle)
@@ -233,7 +233,7 @@ public static unsafe partial class Lcms2
     public static bool cmsMD5computeID(Profile Profile)
     {
         Profile Icc;
-        byte* Mem = null;
+        byte[]? Mem = null;
         var Keep = Profile;
 
         _cmsAssert(Profile);
@@ -256,8 +256,9 @@ public static unsafe partial class Lcms2
         if (!cmsSaveProfileToMem(Profile, null, &BytesNeeded)) goto Error;
 
         // Allocate memory
-        Mem = _cmsMalloc<byte>(ContextID, BytesNeeded);
-        if (Mem is null) goto Error;
+        var pool = _cmsGetContext(ContextID).GetBufferPool<byte>();
+        Mem = pool.Rent((int)BytesNeeded);
+        //if (Mem is null) goto Error;
 
         // Save to temporary storage
         if (!cmsSaveProfileToMem(Profile, Mem, &BytesNeeded)) goto Error;
