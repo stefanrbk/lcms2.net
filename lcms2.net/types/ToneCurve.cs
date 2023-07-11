@@ -31,10 +31,10 @@ public unsafe struct ToneCurve
 {
     internal InterpParams* InterpParams;
     internal uint nSegments;
-    internal CurveSegment* Segments;
+    internal CurveSegment[]? Segments;
     internal InterpParams** SegInterp;
 
     internal ParametricCurveEvaluator* Evals;
     internal uint nEntries;
-    internal ushort* Table16;
+    internal ushort[]? Table16;
 }

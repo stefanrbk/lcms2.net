@@ -37,7 +37,7 @@ internal static unsafe partial class Testbed
     //            0xFFFF = 3 * 5 * 17 * 257
     //
     // I test tables of 2, 4, 6, and 18 points, that will be exact.
-    private static void BuildTable(int n, ushort* tab, bool descending)
+    private static void BuildTable(int n, Span<ushort> tab, bool descending)
     {
         for (var i = 0; i < n; i++)
         {
@@ -57,8 +57,9 @@ internal static unsafe partial class Testbed
         ushort @in;
         ushort @out;
 
-        var tab = calloc<ushort>((uint)numNodesToCheck);
-        if (tab is null) return false;
+        //var tab = calloc<ushort>((uint)numNodesToCheck);
+        //if (tab is null) return false;
+        var tab = new ushort[numNodesToCheck];
 
         var p = _cmsComputeInterpParams(DbgThread(), (uint)numNodesToCheck, 1, 1, tab, LerpFlag.Ushort);
         if (p is null) return false;
@@ -78,13 +79,13 @@ internal static unsafe partial class Testbed
             {
                 Fail($"({numNodesToCheck}): Must be {@in}, but was {@out} : ");
                 _cmsFreeInterpParams(p);
-                free(tab);
+                //free(tab);
                 return false;
             }
         }
 
         _cmsFreeInterpParams(p);
-        free(tab);
+        //free(tab);
         return true;
     }
 
@@ -238,7 +239,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check3DInterpolationFloatTetrahedral()
     {
-        var floatTable = stackalloc float[]
+        var floatTable = new float[]
         {
             0,
             0,
@@ -301,7 +302,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check3DInterpolationFloatTrilinear()
     {
-        var floatTable = stackalloc float[]
+        var floatTable = new float[]
         {
             0,
             0,
@@ -363,7 +364,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check3DInterpolationTetrahedral16()
     {
-        var table = stackalloc ushort[]
+        var table = new ushort[]
         {
             0,
             0,
@@ -425,7 +426,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check3DInterpolationTrilinear16()
     {
-        var table = stackalloc ushort[]
+        var table = new ushort[]
         {
             0,
             0,
@@ -554,7 +555,7 @@ internal static unsafe partial class Testbed
 
     public static bool ExhaustiveCheck3DInterpolationFloatTetrahedral()
     {
-        var floatTable = stackalloc float[]
+        var floatTable = new float[]
         {
             0,
             0,
@@ -610,7 +611,7 @@ internal static unsafe partial class Testbed
 
     public static bool ExhaustiveCheck3DInterpolationFloatTrilinear()
     {
-        var floatTable = stackalloc float[]
+        var floatTable = new float[]
         {
             0,
             0,
@@ -693,7 +694,7 @@ internal static unsafe partial class Testbed
 
     public static bool ExhaustiveCheck3DInterpolationTetrahedral16()
     {
-        var table = stackalloc ushort[]
+        var table = new ushort[]
         {
             0,
             0,
@@ -749,7 +750,7 @@ internal static unsafe partial class Testbed
 
     public static bool ExhaustiveCheck3DInterpolationTrilinear16()
     {
-        var table = stackalloc ushort[]
+        var table = new ushort[]
         {
             0,
             0,

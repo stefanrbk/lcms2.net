@@ -31,6 +31,8 @@ using lcms2.types;
 
 using System.Runtime.CompilerServices;
 
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
@@ -986,10 +988,13 @@ public static unsafe partial class Lcms2
                 NewGamma = cmsBuildTabulatedToneCurve16(self->ContextID, Count, null);
                 if (NewGamma is null) return null;
 
-                if (!_cmsReadUInt16Array(io, Count, NewGamma->Table16))
+                fixed (ushort* t = &NewGamma->Table16[0])
                 {
-                    cmsFreeToneCurve(NewGamma);
-                    return null;
+                    if (!_cmsReadUInt16Array(io, Count, t))
+                    {
+                        cmsFreeToneCurve(NewGamma);
+                        return null;
+                    }
                 }
 
                 *nItems = 1;
@@ -1012,7 +1017,8 @@ public static unsafe partial class Lcms2
         }
 
         if (!_cmsWriteUInt32Number(io, Curve.Ptr->nEntries)) return false;
-        return _cmsWriteUInt16Array(io, Curve.Ptr->nEntries, Curve.Ptr->Table16);
+        fixed (ushort* t = &Curve.Ptr->Table16[0])
+            return _cmsWriteUInt16Array(io, Curve.Ptr->nEntries, t);
     }
 
     private static BoxPtr<ToneCurve>? Type_Curve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
@@ -1642,7 +1648,7 @@ public static unsafe partial class Lcms2
             {
                 for (var j = 0; j < nTabSize; j++)
                 {
-                    var val = FROM_16_TO_8(clut.Tab.T[j]);
+                    var val = FROM_16_TO_8(clut.T[j]);
                     if (!_cmsWriteUInt8Number(io, val)) return false;
                 }
             }
@@ -1679,7 +1685,8 @@ public static unsafe partial class Lcms2
             Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, nEntries, null);
             if (Tables[i] is null) goto Error;
 
-            if (!_cmsReadUInt16Array(io, nEntries, Tables[i]->Table16)) goto Error;
+            fixed (ushort* t = &Tables[i]->Table16[0])
+                if (!_cmsReadUInt16Array(io, nEntries, t)) goto Error;
         }
 
         // Add the table (which may certainly be an identity, but this is up to the optimizer, not the reading code)
@@ -1875,7 +1882,7 @@ public static unsafe partial class Lcms2
         if (nTabSize > 0)
         {
             // The 3D CLUT
-            if (clut is not null && !_cmsWriteUInt16Array(io, nTabSize, clut.Tab.T)) return false;
+            if (clut is not null && !_cmsWriteUInt16Array(io, nTabSize, (ushort*)Unsafe.AsPointer(ref clut.T.GetPinnableReference()))) return false;
         }
 
         // The postlinearization table
@@ -1981,12 +1988,12 @@ public static unsafe partial class Lcms2
                         cmsStageFree(CLUT);
                         return null;
                     }
-                    Data.Tab.T[i] = FROM_8_TO_16(v);
+                    Data.T[i] = FROM_8_TO_16(v);
                 }
                 break;
 
             case 2:
-                if (!_cmsReadUInt16Array(io, Data.nEntries, Data.Tab.T))
+                if (!_cmsReadUInt16Array(io, Data.nEntries, (ushort*)Unsafe.AsPointer(ref Data.T.GetPinnableReference())))
                 {
                     cmsStageFree(CLUT);
                     return null;
@@ -2213,11 +2220,11 @@ public static unsafe partial class Lcms2
         {
             case 1:
                 for (var i = 0; i < CLUT.nEntries; i++)
-                    if (!_cmsWriteUInt8Number(io, FROM_16_TO_8(CLUT.Tab.T[i]))) return false;
+                    if (!_cmsWriteUInt8Number(io, FROM_16_TO_8(CLUT.T[i]))) return false;
                 break;
 
             case 2:
-                if (!_cmsWriteUInt16Array(io, CLUT.nEntries, CLUT.Tab.T)) return false;
+                if (!_cmsWriteUInt16Array(io, CLUT.nEntries, (ushort*)Unsafe.AsPointer(ref CLUT.T.GetPinnableReference()))) return false;
                 break;
 
             default:
@@ -2918,7 +2925,8 @@ public static unsafe partial class Lcms2
         if (n->Ucr is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountUcr * _sizeof<ushort>())) goto Error;
-        if (!_cmsReadUInt16Array(io, CountUcr, n->Ucr->Table16)) goto Error;
+        fixed (ushort* t = &n->Ucr->Table16[0])
+            if (!_cmsReadUInt16Array(io, CountUcr, t)) goto Error;
 
         SignedSizeOfTag -= (int)(CountUcr * _sizeof<ushort>());
 
@@ -2932,7 +2940,8 @@ public static unsafe partial class Lcms2
         if (n->Bg is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountBg * _sizeof<ushort>())) goto Error;
-        if (!_cmsReadUInt16Array(io, CountBg, n->Bg->Table16)) goto Error;
+        fixed (ushort* t = &n->Bg->Table16[0])
+            if (!_cmsReadUInt16Array(io, CountBg, t)) goto Error;
         SignedSizeOfTag -= (int)(CountBg * _sizeof<ushort>());
 
         if (SignedSizeOfTag is < 0 or > 32000) goto Error;
@@ -2973,11 +2982,13 @@ public static unsafe partial class Lcms2
 
         // First curve is Under color removal
         if (!_cmsWriteUInt32Number(io, Value.Ptr->Ucr->nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value.Ptr->Ucr->nEntries, Value.Ptr->Ucr->Table16)) return false;
+        fixed (ushort* t = &Value.Ptr->Ucr->Table16[0])
+            if (!_cmsWriteUInt16Array(io, Value.Ptr->Ucr->nEntries, t)) return false;
 
         // Then black generation
         if (!_cmsWriteUInt32Number(io, Value.Ptr->Bg->nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg->nEntries, Value.Ptr->Bg->Table16)) return false;
+        fixed (ushort* t = &Value.Ptr->Bg->Table16[0])
+            if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg->nEntries, t)) return false;
 
         // Now comes the text. The length is specified by the tag size
         var TextSize = cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, null);
@@ -3502,7 +3513,8 @@ public static unsafe partial class Lcms2
 
                             // One word 0..65535
                             case 2:
-                                if (!_cmsReadUInt16Array(io, nElems, Curves[n]->Table16)) goto Error;
+                                fixed (ushort* t = &Curves[n]->Table16[0])
+                                    if (!_cmsReadUInt16Array(io, nElems, t)) goto Error;
                                 break;
 
                             // Unsupported
@@ -4121,12 +4133,13 @@ public static unsafe partial class Lcms2
                         // This first point is implicit in the last stage, we allocate an extra note to be populated later on
                         Count++;
                         Segments[i].nGridPoints = Count;
-                        Segments[i].SampledPoints = _cmsCalloc<float>(self->ContextID, Count);
-                        if (Segments[i].SampledPoints is null) goto Error;
+                        //Segments[i].SampledPoints = _cmsCalloc<float>(self->ContextID, Count);
+                        //if (Segments[i].SampledPoints is null) goto Error;
+                        Segments[i].SampledPoints = Context.GetPool<float>(self->ContextID).Rent((int)Count);
 
                         Segments[i].SampledPoints[0] = 0;
                         for (var j = 1; j < Count; j++)
-                            if (!_cmsReadFloat32Number(io, &Segments[i].SampledPoints[j])) goto Error;
+                            fixed (float* sp = &Segments[i].SampledPoints[j]) if (!_cmsReadFloat32Number(io, sp)) goto Error;
                     }
                     break;
 
@@ -4139,7 +4152,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var Curve = cmsBuildSegmentedToneCurve(self->ContextID, nSegments, Segments);
+        var Curve = cmsBuildSegmentedToneCurve(self->ContextID, nSegments, new ReadOnlySpan<CurveSegment>(Segments, (int)nSegments));
 
         for (var i = 0; i < nSegments; i++)
             if (Segments[i].SampledPoints is not null) _cmsFree(self->ContextID, Segments[i].SampledPoints);
@@ -4219,17 +4232,17 @@ public static unsafe partial class Lcms2
         // Write the segments
         for (var i = 0; i < nSegments; i++)
         {
-            var ActualSeg = Segments + i;
+            var ActualSeg = Segments[i];
 
-            if (ActualSeg->Type is 0)
+            if (ActualSeg.Type is 0)
             {
                 // This is a sampled curve. First point is implicit in the ICC format, but not in our representation
                 if (!_cmsWriteUInt32Number(io, cmsSigSampledCurveSeg)) return false;
                 if (!_cmsWriteUInt32Number(io, 0)) return false;
-                if (!_cmsWriteUInt32Number(io, ActualSeg->nGridPoints - 1)) return false;
+                if (!_cmsWriteUInt32Number(io, ActualSeg.nGridPoints - 1)) return false;
 
                 for (var j = 1; j < g->Segments[i].nGridPoints; j++)
-                    if (!_cmsWriteFloat32Number(io, ActualSeg->SampledPoints[j])) return false;
+                    if (!_cmsWriteFloat32Number(io, ActualSeg.SampledPoints[j])) return false;
             }
             else
             {
@@ -4238,14 +4251,14 @@ public static unsafe partial class Lcms2
                 if (!_cmsWriteUInt32Number(io, 0)) return false;
 
                 // We only allow 1, 2, and 3 as types
-                var Type = ActualSeg->Type - 6;
+                var Type = ActualSeg.Type - 6;
                 if (Type is > 2 or < 0) return false;
 
                 if (!_cmsWriteUInt16Number(io, (ushort)Type)) return false;
                 if (!_cmsWriteUInt16Number(io, 0)) return false;
 
                 for (var j = 0; j < ParamsByType[Type]; j++)
-                    if (!_cmsWriteFloat32Number(io, (float)ActualSeg->Params[j])) return false;
+                    if (!_cmsWriteFloat32Number(io, (float)ActualSeg.Params[j])) return false;
             }
 
             // It seems there is no need to align. Code is here, and for safety commented out
@@ -4398,7 +4411,7 @@ public static unsafe partial class Lcms2
         // Read and sanitize the data
         var clut = (StageCLutData)mpe.Data;
         for (var i = 0; i < clut.nEntries; i++)
-            if (!_cmsReadFloat32Number(io, &clut.Tab.TFloat[i])) goto Error;
+            fixed (float* t = &clut.TFloat[i]) if (!_cmsReadFloat32Number(io, t)) goto Error;
 
         *nItems = 1;
         return mpe;
@@ -4431,7 +4444,7 @@ public static unsafe partial class Lcms2
         if (!io.Write(io, 16, Dimensions8)) return false;
 
         for (var i = 0; i < clut.nEntries; i++)
-            if (!_cmsWriteFloat32Number(io, clut.Tab.TFloat[i])) return false;
+            if (!_cmsWriteFloat32Number(io, clut.TFloat[i])) return false;
 
         return true;
     }

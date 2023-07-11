@@ -38,6 +38,6 @@ public unsafe struct InterpParams
     public fixed uint nSamples[MAX_INPUT_DIMENSIONS];
     public fixed uint Domain[MAX_INPUT_DIMENSIONS];
     public fixed uint opta[MAX_INPUT_DIMENSIONS];
-    public void* Table;
+    public object? Table;
     public InterpFunction Interpolation;
 }

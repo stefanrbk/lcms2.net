@@ -90,7 +90,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParamsEx(
-        Context? ContextID, in uint* nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context? ContextID, in uint* nSamples, uint InputChan, uint OutputChan, object? Table, LerpFlag flags)
     {
         var dwFlags = (uint)flags;
 
@@ -136,7 +136,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static InterpParams* _cmsComputeInterpParams(
-        Context? ContextID, uint nSamples, uint InputChan, uint OutputChan, void* Table, LerpFlag flags)
+        Context? ContextID, uint nSamples, uint InputChan, uint OutputChan, object? Table, LerpFlag flags)
     {
         var Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
@@ -163,12 +163,14 @@ public static unsafe partial class Lcms2
 
     private static void LinLerp1D(in ushort* Value, ushort* Output, in InterpParams* p)
     {
-        var lutTable = (ushort*)p->Table;
+        if (p->Table is not Memory<ushort> tab)
+            return;
+        var lutTable = tab.Span;
 
         // if last value or just one point
         if (Value[0] == 0xFFFF || p->Domain[0] == 0)
         {
-            Output[0] = lutTable[p->Domain[0]];
+            Output[0] = lutTable[(int)p->Domain[0]];
         }
         else
         {
@@ -193,14 +195,16 @@ public static unsafe partial class Lcms2
 
     private static void LinLerp1Dfloat(in float* value, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var lutTable = tab.Span;
 
         var val2 = Fclamp(value[0]);
 
         // if last value...
         if (val2 == 1.0 || p->Domain[0] == 0)
         {
-            output[0] = lutTable[p->Domain[0]];
+            output[0] = lutTable[(int)p->Domain[0]];
         }
         else
         {
@@ -221,7 +225,9 @@ public static unsafe partial class Lcms2
 
     private static void Eval1Input(in ushort* input, ushort* output, in InterpParams* p16)
     {
-        var lutTable = (ushort*)p16->Table;
+        if (p16->Table is not Memory<ushort> tab)
+            return;
+        var lutTable = tab.Span;
 
         // if last value...
         if (input[0] == 0xFFFF || p16->Domain[0] == 0)
@@ -229,7 +235,7 @@ public static unsafe partial class Lcms2
             var y0 = p16->Domain[0] * p16->opta[0];
 
             for (var outChan = 0; outChan < p16->nOutputs; outChan++)
-                output[outChan] = lutTable[y0 + outChan];
+                output[outChan] = lutTable[(int)y0 + outChan];
         }
         else
         {
@@ -251,7 +257,9 @@ public static unsafe partial class Lcms2
 
     private static void Eval1InputFloat(in float* value, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var lutTable = tab.Span;
 
         var val2 = Fclamp(value[0]);
 
@@ -260,7 +268,7 @@ public static unsafe partial class Lcms2
             var start = p->Domain[0] * p->opta[0];
 
             for (var outChan = 0; outChan < p->nOutputs; outChan++)
-                output[outChan] = lutTable[start + outChan];
+                output[outChan] = lutTable[(int)start + outChan];
         }
         else
         {
@@ -286,7 +294,9 @@ public static unsafe partial class Lcms2
 
     private static void BilinearInterpFloat(in float* input, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var lutTable = tab.Span;
 
         var totalOut = p->nOutputs;
         var px = Fclamp(input[0]) * p->Domain[0];
@@ -317,7 +327,9 @@ public static unsafe partial class Lcms2
 
     private static void BilinearInterp16(in ushort* input, ushort* output, in InterpParams* p)
     {
-        var lutTable = (ushort*)p->Table;
+        if (p->Table is not Memory<ushort> tab)
+            return;
+        var lutTable = tab.Span;
 
         var totalOut = p->nOutputs;
 
@@ -351,7 +363,9 @@ public static unsafe partial class Lcms2
 
     private static void TrilinearInterpFloat(in float* input, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var lutTable = tab.Span;
 
         var totalOut = p->nOutputs;
 
@@ -399,7 +413,9 @@ public static unsafe partial class Lcms2
 
     private static void TrilinearInterp16(in ushort* input, ushort* output, in InterpParams* p)
     {
-        var lutTable = (ushort*)p->Table;
+        if (p->Table is not Memory<ushort> tab)
+            return;
+        var lutTable = tab.Span;
 
         var totalOut = p->nOutputs;
 
@@ -451,7 +467,10 @@ public static unsafe partial class Lcms2
     // Tetrahedral interpolation, using Sakamoto algorithm.
     private static void TetrahedralInterpFloat(in float* input, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var lutTable = tab.Span;
+
         float c1 = 0, c2 = 0, c3 = 0;
 
         var totalOut = p->nOutputs;
@@ -525,7 +544,8 @@ public static unsafe partial class Lcms2
 
     private static void TetrahedralInterp16(in ushort* input, ushort* output, in InterpParams* p)
     {
-        var lutTable = (ushort*)p->Table;
+        if (p->Table is not Memory<ushort> tab)
+            return;
         int rest, c0, c1 = 0, c2 = 0, c3 = 0;
 
         var totalOut = p->nOutputs;
@@ -552,7 +572,7 @@ public static unsafe partial class Lcms2
         z0 *= (int)p->opta[0];
         var z1 = input[2] == 0xFFFF ? 0 : (int)p->opta[0];
 
-        lutTable += x0 + y0 + z0;
+        var lutTable = tab.Span[(x0 + y0 + z0)..];
         if (rx >= ry)
         {
             if (ry >= rz)
@@ -564,12 +584,13 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c3 -= c2;
                     c2 -= c1;
                     c1 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
             else if (rz >= rx)
@@ -581,12 +602,13 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c2 -= c1;
                     c1 -= c3;
                     c3 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
             else
@@ -598,12 +620,13 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c2 -= c3;
                     c3 -= c1;
                     c1 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
         }
@@ -618,12 +641,13 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c3 -= c1;
                     c1 -= c2;
                     c2 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
             else if (ry >= rz)
@@ -635,12 +659,13 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c1 -= c3;
                     c3 -= c2;
                     c2 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
             else
@@ -652,31 +677,32 @@ public static unsafe partial class Lcms2
                     c1 = lutTable[x1];
                     c2 = lutTable[y1];
                     c3 = lutTable[z1];
-                    c0 = *lutTable++;
+                    c0 = lutTable[0];
                     c1 -= c2;
                     c2 -= c3;
                     c3 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
                     *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Dens(float* table, int i, int j, int outChan) =>
+    private static float Dens(ReadOnlySpan<float> table, int i, int j, int outChan) =>
         table[i + j + outChan];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort Dens(ushort* table, int i, int j, int outChan) =>
+    private static ushort Dens(ReadOnlySpan<ushort> table, int i, int j, int outChan) =>
         table[i + j + outChan];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float Dens(float* table, int i, int j, int k, int outChan) =>
+    private static float Dens(ReadOnlySpan<float> table, int i, int j, int k, int outChan) =>
         table[i + j + k + outChan];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ushort Dens(ushort* table, int i, int j, int k, int outChan) =>
+    private static ushort Dens(ReadOnlySpan<ushort> table, int i, int j, int k, int outChan) =>
         table[i + j + k + outChan];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -721,8 +747,9 @@ public static unsafe partial class Lcms2
         z0 *= (int)p16->opta[0];
         var z1 = z0 + (input[3] == 0xFFFF ? 0 : (int)p16->opta[0]);
 
-        var lutTable = (ushort*)p16->Table;
-        lutTable += k0;
+        if (p16->Table is not Memory<ushort> tab)
+            return;
+        var lutTable = tab.Span[k0..];
 
         for (var outChan = 0; outChan < p16->nOutputs; outChan++)
         {
@@ -773,8 +800,7 @@ public static unsafe partial class Lcms2
             tmp1[outChan] = (ushort)(c0 + ROUND_FIXED_TO_INT(_cmsToFixedDomain(rest)));
         }
 
-        lutTable = (ushort*)p16->Table;
-        lutTable += k1;
+        lutTable = tab.Span[k1..];
 
         for (var outChan = 0; outChan < p16->nOutputs; outChan++)
         {
@@ -831,7 +857,8 @@ public static unsafe partial class Lcms2
 
     private static void Eval4InputsFloat(in float* input, float* output, in InterpParams* p)
     {
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> lutTable)
+            return;
         var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
@@ -845,12 +872,12 @@ public static unsafe partial class Lcms2
         var p1 = *p;
         memcpy(&p1.Domain[0], &p->Domain[1], 3 * _sizeof<uint>());
 
-        var t = lutTable + k0;
+        var t = lutTable[k0..];
         p1.Table = t;
 
         TetrahedralInterpFloat(input + 1, tmp1, &p1);
 
-        t = lutTable + k1;
+        t = lutTable[k1..];
         p1.Table = t;
 
         TetrahedralInterpFloat(input + 1, tmp2, &p1);
@@ -866,9 +893,10 @@ public static unsafe partial class Lcms2
 
     private static void EvalXInputs(int N, in ushort* input, ushort* output, in InterpParams* p16)
     {
-        var NM = N - 1;
+        if (p16->Table is not Memory<ushort> lutTable)
+            return;
 
-        var lutTable = (ushort*)p16->Table;
+        var NM = N - 1;
 
         var tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
@@ -883,7 +911,7 @@ public static unsafe partial class Lcms2
         var p1 = *p16;
         Buffer.MemoryCopy(&p16->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
 
-        var t = lutTable + K0;
+        var t = lutTable[K0..];
         p1.Table = t;
 
         if (NM is 4)
@@ -891,7 +919,7 @@ public static unsafe partial class Lcms2
         else
             EvalXInputs(NM, input + 1, tmp1, &p1);
 
-        t = lutTable + K1;
+        t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)
@@ -907,7 +935,8 @@ public static unsafe partial class Lcms2
     {
         var NM = N - 1;
 
-        var lutTable = (float*)p->Table;
+        if (p->Table is not Memory<float> lutTable)
+            return;
         var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
@@ -921,7 +950,7 @@ public static unsafe partial class Lcms2
         var p1 = *p;
         Buffer.MemoryCopy(&p->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
 
-        var t = lutTable + K0;
+        var t = lutTable[K0..];
         p1.Table = t;
 
         if (NM is 4)
@@ -929,7 +958,7 @@ public static unsafe partial class Lcms2
         else
             EvalXInputsFloat(NM, input + 1, tmp1, &p1);
 
-        t = lutTable + K1;
+        t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)

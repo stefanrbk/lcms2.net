@@ -536,7 +536,7 @@ public static unsafe partial class Lcms2
         }
 
         for (var i = 0; i < nChannelsOut; i++)
-            Grid.Tab.T[index + i] = Value[i];
+            Grid.T[index + i] = Value[i];
 
         return true;
     }
@@ -870,7 +870,8 @@ public static unsafe partial class Lcms2
 
         var p = p8.Ptr->p;
         var TotalOut = (int)p->nOutputs;
-        var LutTable = (ushort*)p->Table;
+        if (p->Table is not Memory<ushort> tab)
+            return;
 
         var r = (byte)(Input[0] >> 8);
         var g = (byte)(Input[1] >> 8);
@@ -892,7 +893,7 @@ public static unsafe partial class Lcms2
         for (var OutChan = 0; OutChan < TotalOut; OutChan++)
         {
             var DENS = (int i, int j, int k) =>
-                LutTable[i + j + k + OutChan];
+                tab.Span[i + j + k + OutChan];
 
             c0 = DENS(X0, Y0, Z0);
 

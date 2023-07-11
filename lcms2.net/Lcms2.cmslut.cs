@@ -377,7 +377,7 @@ public static unsafe partial class Lcms2
 
         //var NewElem = new StageMatrixData();
         //if (NewElem is null) goto Error;
-        var pool = _cmsGetContext(ContextID).GetBufferPool<double>();
+        var pool = Context.GetPool<double>(ContextID);
         var NewElem = Offset.Length >= Rows
             ? new StageMatrixData(Matrix, Offset, pool)
             : new StageMatrixData(Matrix, default, pool);
@@ -455,25 +455,34 @@ public static unsafe partial class Lcms2
         if (mpe.Data is not StageCLutData Data)
             return null;
 
-        var NewElem = new StageCLutData();
+        var wordPool = Context.GetPool<ushort>(mpe.ContextID);
+        var floatPool = Context.GetPool<float>(mpe.ContextID);
+
+        var NewElem = new StageCLutData
+        {
+            nEntries = Data.nEntries,
+            HasFloatValues = Data.HasFloatValues
+        };
+
         //if (NewElem is null) return null;
 
-        NewElem.nEntries = Data.nEntries;
-        NewElem.HasFloatValues = Data.HasFloatValues;
-
-        if (Data.Tab.T is not null)
+        if (Data.Tab is not null)
         {
             if (Data.HasFloatValues)
             {
-                NewElem.Tab.TFloat = _cmsDupMem<float>(mpe.ContextID, Data.Tab.TFloat, Data.nEntries);
-                if (NewElem.Tab.TFloat is null)
-                    goto Error;
+                //NewElem.Tab = _cmsDupMem<float>(mpe.ContextID, Data.TFloat, Data.nEntries);
+                //if (NewElem.Tab is null)
+                //    goto Error;
+                NewElem.Tab = floatPool.Rent((int)Data.nEntries);
+                Data.TFloat.CopyTo(NewElem.TFloat);
             }
             else
             {
-                NewElem.Tab.T = _cmsDupMem<ushort>(mpe.ContextID, Data.Tab.T, Data.nEntries);
-                if (NewElem.Tab.T is null)
-                    goto Error;
+                //NewElem.Tab = _cmsDupMem<ushort>(mpe.ContextID, Data.T, Data.nEntries);
+                //if (NewElem.Tab is null)
+                //    goto Error;
+                NewElem.Tab = wordPool.Rent((int)Data.nEntries);
+                Data.T.CopyTo(NewElem.T);
             }
         }
 
@@ -481,15 +490,15 @@ public static unsafe partial class Lcms2
                                                    Data.Params->nSamples,
                                                    Data.Params->nInputs,
                                                    Data.Params->nOutputs,
-                                                   NewElem.Tab.T,
+                                                   NewElem.Tab,
                                                    (LerpFlag)Data.Params->dwFlags);
         if (NewElem.Params is not null)
             return NewElem;
 
-        Error:
-        if (NewElem.Tab.T is not null)
-            // This works for both types
-            _cmsFree(mpe.ContextID, NewElem.Tab.T);
+        //Error:
+        //if (NewElem.Tab.T is not null)
+        //    // This works for both types
+        //    _cmsFree(mpe.ContextID, NewElem.Tab.T);
         return null;
     }
 
@@ -499,8 +508,13 @@ public static unsafe partial class Lcms2
             return;
 
         // This works for both types
-        if (Data.Tab.T is not null)
-            _cmsFree(mpe.ContextID, Data.Tab.T);
+        //if (Data.Tab.T is not null)
+        //    _cmsFree(mpe.ContextID, Data.Tab.T);
+        if (Data.Tab is float[] tfloat)
+            _cmsFree(mpe.ContextID, tfloat);
+        if (Data.Tab is ushort[] t)
+            _cmsFree(mpe.ContextID, t);
+        Data.Tab = null;
 
         _cmsFreeInterpParams(Data.Params);
     }
@@ -543,22 +557,23 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        NewElem.Tab.T = _cmsCalloc<ushort>(ContextID, n);
-        if (NewElem.Tab.T is null)
-        {
-            cmsStageFree(NewMPE);
-            return null;
-        }
+        //NewElem.Tab = _cmsCalloc<ushort>(ContextID, n);
+        NewElem.Tab = Context.GetPool<ushort>(ContextID).Rent((int)n);
+        //if (NewElem.Tab is null)
+        //{
+        //    cmsStageFree(NewMPE);
+        //    return null;
+        //}
 
         if (Table is not null)
         {
             for (var i = 0; i < n; i++)
             {
-                NewElem.Tab.T[i] = Table[i];
+                NewElem.T[i] = Table[i];
             }
         }
 
-        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab.T, LerpFlag.Ushort);
+        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Ushort);
         if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);
@@ -645,22 +660,23 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        NewElem.Tab.TFloat = _cmsCalloc<float>(ContextID, n);
-        if (NewElem.Tab.TFloat is null)
-        {
-            cmsStageFree(NewMPE);
-            return null;
-        }
+        //NewElem.Tab = _cmsCalloc<float>(ContextID, n);
+        //if (NewElem.Tab is null)
+        //{
+        //    cmsStageFree(NewMPE);
+        //    return null;
+        //}
+        NewElem.Tab = Context.GetPool<float>(ContextID).Rent((int)n);
 
         if (Table is not null)
         {
             for (var i = 0; i < n; i++)
             {
-                NewElem.Tab.TFloat[i] = Table[i];
+                NewElem.TFloat[i] = Table[i];
             }
         }
 
-        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab.TFloat, LerpFlag.Float);
+        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Float);
         if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);
@@ -740,10 +756,10 @@ public static unsafe partial class Lcms2
                 In[t] = _cmsQuantizeVal(Colorant, nSamples[t]);
             }
 
-            if (clut.Tab.T is not null)
+            if (!clut.T.IsEmpty)
             {
                 for (var t = 0; t < (int)nOutputs; t++)
-                    Out[t] = clut.Tab.T[index + t];
+                    Out[t] = clut.T[index + t];
             }
 
             if (!Sampler(In, Out, Cargo))
@@ -751,10 +767,10 @@ public static unsafe partial class Lcms2
 
             if (dwFlags.IsUnset(SamplerFlag.Inspect))
             {
-                if (clut.Tab.T is not null)
+                if (!clut.T.IsEmpty)
                 {
                     for (var t = 0; t < (int)nOutputs; t++)
-                        clut.Tab.T[index + t] = Out[t];
+                        clut.T[index + t] = Out[t];
                 }
             }
 
@@ -797,10 +813,10 @@ public static unsafe partial class Lcms2
                 In[t] = (float)(_cmsQuantizeVal(Colorant, nSamples[t]) / 65535.0);
             }
 
-            if (clut.Tab.TFloat is not null)
+            if (!clut.TFloat.IsEmpty)
             {
                 for (var t = 0; t < (int)nOutputs; t++)
-                    Out[t] = clut.Tab.TFloat[index + t];
+                    Out[t] = clut.TFloat[index + t];
             }
 
             if (!Sampler(In, Out, Cargo))
@@ -808,10 +824,10 @@ public static unsafe partial class Lcms2
 
             if (dwFlags.IsUnset(SamplerFlag.Inspect))
             {
-                if (clut.Tab.TFloat is not null)
+                if (!clut.TFloat.IsEmpty)
                 {
                     for (var t = 0; t < (int)nOutputs; t++)
-                        clut.Tab.TFloat[index + t] = Out[t];
+                        clut.TFloat[index + t] = Out[t];
                 }
             }
 

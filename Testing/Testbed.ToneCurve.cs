@@ -115,7 +115,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckGammaFloatTable(double g)
     {
-        var Values = stackalloc float[1025];
+        var Values = new float[1025];
 
         for (var i = 0; i <= 1024; i++)
         {

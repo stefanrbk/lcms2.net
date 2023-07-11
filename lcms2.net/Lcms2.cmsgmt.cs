@@ -97,8 +97,9 @@ public static unsafe partial class Lcms2
         var xform = _cmsChain2Lab(ContextID, nProfiles, TYPE_CMYK_FLT, TYPE_Lab_DBL, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (xform is null) return null;
 
-        var SampledPoints = _cmsCalloc<float>(ContextID, nPoints);
-        if (SampledPoints is null) goto Error;
+        //var SampledPoints = _cmsCalloc<float>(ContextID, nPoints);
+        //if (SampledPoints is null) goto Error;
+        var SampledPoints = Context.GetPool<float>(ContextID).Rent((int)nPoints);
 
         for (var i = 0; i < nPoints; i++)
         {
@@ -506,7 +507,8 @@ public static unsafe partial class Lcms2
     {
         var rgb = stackalloc Rgb<ushort>[256];
         var XYZ = stackalloc CIEXYZ[256];
-        var Y_normalized = stackalloc float[256];
+        //var Y_normalized = stackalloc float[256];
+        var pool = Context.GetPool<float>(Profile.ContextID);
 
         if ((uint)cmsGetColorSpace(Profile) is not cmsSigRgbData)
             return -1;
@@ -533,10 +535,12 @@ public static unsafe partial class Lcms2
         cmsDeleteTransform(xform);
         cmsCloseProfile(hXYZ);
 
+        var Y_normalized = pool.Rent(256);
         for (var i = 0; i < 256; i++)
             Y_normalized[i] = (float)XYZ[i].Y;
 
         var Y_curve = cmsBuildTabulatedToneCurveFloat(ContextID, 256, Y_normalized);
+        pool.Return(Y_normalized);
         if (Y_curve is null)
             return -1;
 

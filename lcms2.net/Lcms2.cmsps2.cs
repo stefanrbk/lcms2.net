@@ -496,15 +496,21 @@ public static unsafe partial class Lcms2
         {
             if (g[i] is null) return;   // Error
 
-            if (i > 0 && GammaTableEquals(g[i-1]->Table16, g[i]->Table16, g[i-1]->nEntries, g[i]->nEntries))
+            fixed (ushort* t1 = &g[i - 1]->Table16[0])
             {
-                _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", new string((sbyte*)nameprefix), i, i - 1);
-            }
-            else
-            {
-                snprintf(buffer, 2048, "{0}{1:d}".ToBytePtr(), new string((sbyte*)nameprefix), i);
-                buffer[2047] = 0;
-                Emit1Gamma(m, g[i], buffer);
+                fixed (ushort* t2 = &g[i]->Table16[0])
+                {
+                    if (i > 0 && GammaTableEquals(t1, t2, g[i-1]->nEntries, g[i]->nEntries))
+                    {
+                        _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", new string((sbyte*)nameprefix), i, i - 1);
+                    }
+                    else
+                    {
+                        snprintf(buffer, 2048, "{0}{1:d}".ToBytePtr(), new string((sbyte*)nameprefix), i);
+                        buffer[2047] = 0;
+                        Emit1Gamma(m, g[i], buffer);
+                    }
+                }
             }
         }
     }

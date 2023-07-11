@@ -24,24 +24,33 @@
 //
 //---------------------------------------------------------------------------------
 //
-using System.Runtime.InteropServices;
-
 namespace lcms2.types;
 
 public unsafe class StageCLutData
 {
-    [StructLayout(LayoutKind.Explicit)]
-    public struct CmsTab
-    {
-        [FieldOffset(0)]
-        public ushort* T;
+    //[StructLayout(LayoutKind.Explicit)]
+    //public struct CmsTab
+    //{
+    //    [FieldOffset(0)]
+    //    public ushort* T;
 
-        [FieldOffset(0)]
-        public float* TFloat;
-    }
+    //    [FieldOffset(0)]
+    //    public float* TFloat;
+    //}
 
-    public CmsTab Tab;
+    //public CmsTab Tab;
+    public object? Tab;
     public InterpParams* Params;
     public uint nEntries;
     public bool HasFloatValues;
+
+    public Span<ushort> T =>
+        Tab is ushort[] wordTab
+            ? wordTab.AsSpan(..(int)nEntries)
+            : Span<ushort>.Empty;
+
+    public Span<float> TFloat =>
+        Tab is float[] floatTab
+            ? floatTab.AsSpan(..(int)nEntries)
+            : Span<float>.Empty;
 }

@@ -1077,8 +1077,8 @@ internal static unsafe partial class Testbed
 
     private static ToneCurve* CreateSegmentedCurve()
     {
-        var Seg = stackalloc CurveSegment[3];
-        var Sampled = stackalloc float[2] { 0, 1 };
+        var Seg = new CurveSegment[3];
+        var Sampled = new float[2] { 0, 1 };
 
         Seg[0].Type = 6;
         Seg[0].Params[0] = 1;

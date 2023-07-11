@@ -29,7 +29,7 @@ using System.Buffers;
 
 namespace lcms2.state;
 
-public unsafe class Context
+public class Context
 {
     internal Context? Next;
     private readonly List<object> BufferPools = new();
@@ -64,4 +64,21 @@ public unsafe class Context
 
         return newPool;
     }
+
+    internal static ArrayPool<T> GetPool<T>(Context? context) =>
+        _cmsGetContext(context).GetBufferPool<T>();
+
+    //internal MemoryPool<T> GetMemoryPool<T>()
+    //{
+    //    foreach (var pool in BufferPools)
+    //    {
+    //        if (pool is MemoryPool<T> foundPool)
+    //            return foundPool;
+    //    }
+
+    //    var newPool = MemoryPool.<T>..Create();
+    //    BufferPools.Add(newPool);
+
+    //    return newPool;
+    //}
 }

@@ -60,11 +60,13 @@ internal static unsafe partial class Testbed
     {
         float val2;
         int cell;
-        float* LutTable = (float*) p ->Table;
+        if (p->Table is not Memory<float> tab)
+            return;
+        var LutTable = tab.Span;
 
            // Clip upper values
            if (Value[0] >= 1.0) {
-               Output[0] = LutTable[p->Domain[0]]; 
+               Output[0] = LutTable[(int)p->Domain[0]]; 
                return; 
            }
 
@@ -253,7 +255,7 @@ public static bool CheckAllocContext()
         ToneCurve* Sampled1D = null;
         Context? ctx = null;
         Context? cpy = null;
-        var tab = stackalloc float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
+        var tab = new float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
 
         // 1st level context
         ctx = WatchDogContext(null);

@@ -27,11 +27,11 @@
 
 namespace lcms2.types;
 
-public unsafe struct CurveSegment
+public struct CurveSegment
 {
     internal float x0, x1;
     internal int Type;
-    internal fixed double Params[10];
+    internal double[] Params;
     internal uint nGridPoints;
-    internal float* SampledPoints;
+    internal float[]? SampledPoints;
 }
