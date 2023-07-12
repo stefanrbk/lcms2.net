@@ -67,7 +67,7 @@ internal static unsafe partial class Testbed
     private static void Add3GammaCurves(Pipeline? lut, double Curve)
     {
         var id = cmsBuildGamma(DbgThread(), Curve);
-        var id3 = stackalloc ToneCurve*[3] { id, id, id };
+        var id3 = new ToneCurve[3] { id, id, id };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocToneCurves(DbgThread(), 3, id3));
 

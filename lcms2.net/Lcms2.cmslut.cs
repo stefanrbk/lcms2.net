@@ -192,10 +192,10 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static ToneCurve** _cmsStageGetPtrToCurveSet(Stage mpe) =>
+    internal static Span<ToneCurve> _cmsStageGetPtrToCurveSet(Stage mpe) =>
         (mpe.Data is StageToneCurvesData Data)
             ? (Data is not null)
-                ? Data.TheCurves
+                ? Data.TheCurves.AsSpan(..(int)Data.nCurves)
                 : null
             : null;
 
@@ -204,8 +204,8 @@ public static unsafe partial class Lcms2
         float* Out,
         Stage mpe)
     {
-        if (mpe.Data is not StageToneCurvesData Data ||
-            Data.TheCurves is null) return;
+        if (mpe.Data is not StageToneCurvesData Data || Data.TheCurves is null)
+            return;
 
         for (var i = 0; i < Data.nCurves; i++)
         {
@@ -240,18 +240,17 @@ public static unsafe partial class Lcms2
         if (mpe.Data is not StageToneCurvesData Data)
             return null;
 
-        var NewElem = new StageToneCurvesData();
+        var NewElem = new StageToneCurvesData(mpe.ContextID, Data.nCurves);
+
         //if (NewElem is null) return null;
 
-        NewElem.nCurves = Data.nCurves;
-        NewElem.TheCurves = _cmsCalloc2<ToneCurve>(mpe.ContextID, NewElem.nCurves);
-
-        if (NewElem.TheCurves is null) goto Error;
+        //NewElem.TheCurves = _cmsCalloc2<ToneCurve>(mpe.ContextID, NewElem.nCurves);
+        //if (NewElem.TheCurves is null) goto Error;
 
         for (var i = 0; i < NewElem.nCurves; i++)
         {
             // Duplicate each curve. It may fail.
-            NewElem.TheCurves[i] = cmsDupToneCurve(Data.TheCurves[i]);
+            NewElem.TheCurves[i] = cmsDupToneCurve(Data.TheCurves[i])!;
             if (NewElem.TheCurves[i] is null) goto Error;
         }
 
@@ -262,12 +261,12 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Stage? cmsStageAllocToneCurves(Context? ContextID, uint nChannels, in ToneCurve** Curves)
+    public static Stage? cmsStageAllocToneCurves(Context? ContextID, uint nChannels, ReadOnlySpan<ToneCurve> Curves)
     {
         var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, EvaluateCurves, CurveSetDup, CurveSetElemTypeFree, null);
         if (NewMPE is null) return null;
 
-        var NewElem = new StageToneCurvesData();
+        var NewElem = new StageToneCurvesData(ContextID, nChannels);
         //if (NewElem is null)
         //{
         //    cmsStageFree(NewMPE);
@@ -276,19 +275,19 @@ public static unsafe partial class Lcms2
 
         NewMPE.Data = NewElem;
 
-        NewElem.nCurves = nChannels;
-        NewElem.TheCurves = _cmsCalloc2<ToneCurve>(ContextID, nChannels);
-        if (NewElem.TheCurves is null)
-        {
-            cmsStageFree(NewMPE);
-            return null;
-        }
+        //NewElem.nCurves = nChannels;
+        //NewElem.TheCurves = _cmsCalloc2<ToneCurve>(ContextID, nChannels);
+        //if (NewElem.TheCurves is null)
+        //{
+        //    cmsStageFree(NewMPE);
+        //    return null;
+        //}
 
         for (var i = 0; i < nChannels; i++)
         {
-            NewElem.TheCurves[i] = Curves is not null
-                ? cmsDupToneCurve(Curves[i])
-                : cmsBuildGamma(ContextID, 1.0);
+            NewElem.TheCurves[i] = !Curves.IsEmpty
+                ? cmsDupToneCurve(Curves[i])!
+                : cmsBuildGamma(ContextID, 1.0)!;
 
             if (NewElem.TheCurves[i] is null)
             {
@@ -918,17 +917,19 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabV2ToV4curves(Context? ContextID)
     {
-        var LabTable = stackalloc ToneCurve*[3];
+        var pool = Context.GetPool<ToneCurve>(ContextID);
+        ToneCurve[] LabTable = pool.Rent(3);
 
-        LabTable[0] = cmsBuildTabulatedToneCurve16(ContextID, 258, null);
-        LabTable[1] = cmsBuildTabulatedToneCurve16(ContextID, 258, null);
-        LabTable[2] = cmsBuildTabulatedToneCurve16(ContextID, 258, null);
+        LabTable[0] = cmsBuildTabulatedToneCurve16(ContextID, 258, null)!;
+        LabTable[1] = cmsBuildTabulatedToneCurve16(ContextID, 258, null)!;
+        LabTable[2] = cmsBuildTabulatedToneCurve16(ContextID, 258, null)!;
 
         for (var j = 0; j < 3; j++)
         {
             if (LabTable[j] is null)
             {
                 cmsFreeToneCurveTriple(LabTable);
+                pool.Return(LabTable);
                 return null;
             }
 
@@ -936,14 +937,15 @@ public static unsafe partial class Lcms2
             // So we can use 258-entry tables to do the trick (i / 257) * (255 * 257) * (257 / 256);
             for (var i = 0; i < 257; i++)
             {
-                LabTable[j]->Table16[i] = (ushort)(((i * 0xffff) + 0x80) >> 8);
+                LabTable[j].Table16![i] = (ushort)(((i * 0xffff) + 0x80) >> 8);
             }
 
-            LabTable[j]->Table16[257] = 0xffff;
+            LabTable[j].Table16![257] = 0xffff;
         }
 
         var mpe = cmsStageAllocToneCurves(ContextID, 3, LabTable);
         cmsFreeToneCurveTriple(LabTable);
+        pool.Return(LabTable);
 
         if (mpe is null) return null;
         mpe.Implements = cmsSigLabV2toV4;
@@ -1088,7 +1090,8 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabPrelin(Context? ContextID)
     {
-        var LabTable = stackalloc ToneCurve*[3];
+        var pool = Context.GetPool<ToneCurve>(ContextID);
+        ToneCurve?[] LabTable = pool.Rent(3);
         var Params = stackalloc double[1] { 2.4 };
 
         LabTable[0] = cmsBuildGamma(ContextID, 1.0);
@@ -1098,13 +1101,9 @@ public static unsafe partial class Lcms2
         return cmsStageAllocToneCurves(ContextID, 3, LabTable);
     }
 
-    public static void cmsStageFree(Stage? mpe)
-    {
-        if (mpe is not null &&
-            mpe.FreePtr is not null) mpe.FreePtr(mpe);
-
+    public static void cmsStageFree(Stage? mpe) =>
         //_cmsFree(mpe.ContextID, mpe);
-    }
+        mpe?.FreePtr?.Invoke(mpe);
 
     public static uint cmsStageInputChannels(Stage mpe) =>
         mpe.InputChannels;

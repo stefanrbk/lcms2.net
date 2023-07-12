@@ -28,6 +28,7 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 using static System.Math;
@@ -179,13 +180,14 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static ToneCurve* AllocateToneCurveStruct(
+    private static ToneCurve? AllocateToneCurveStruct(
         Context? ContextID, uint nEntries,
         uint nSegments, ReadOnlySpan<CurveSegment> Segments,
         in ushort* Values)
     {
         var csPool = Context.GetPool<CurveSegment>(ContextID);
         var ipPool = Context.GetPool<InterpParams>(ContextID);
+        var pcePool = Context.GetPool<ParametricCurveEvaluator>(ContextID);
 
         // We allow huge tables, which are then restricted for smoothing operations
         if (nEntries > 65530)
@@ -201,48 +203,50 @@ public static unsafe partial class Lcms2
         }
 
         // Allocate all required pointers, etc
-        var p = _cmsMallocZero<ToneCurve>(ContextID);
-        if (p is null) return null;
+        //var p = _cmsMallocZero<ToneCurve>(ContextID);
+        //if (p is null) return null;
+        var p = new ToneCurve();
 
         // In this case, there are no segments
         if (nSegments is 0)
         {
-            p->Segments = null;
-            p->Evals = null;
+            p.Segments = null;
+            p.Evals = null;
         }
         else
         {
             //p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             //if (p->Segments is null) goto Error;
-            p->Segments = csPool.Rent((int)nSegments);
+            p.Segments = csPool.Rent((int)nSegments);
 
-            p->Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
-            if (p->Evals is null) goto Error;
+            //p.Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
+            //if (p.Evals is null) goto Error;
+            p.Evals = pcePool.Rent((int)nSegments);
         }
 
-        p->nSegments = nSegments;
+        p.nSegments = nSegments;
 
         // This 16-bit table contains a limited precision representation of the whole curve and is kept for
         // increasing xput on certain operations.
         if (nEntries is 0)
         {
-            p->Table16 = null;
+            p.Table16 = null;
         }
         else
         {
             //p->Table16 = _cmsCalloc<ushort>(ContextID, nEntries);
             //if (p->Table16 is null) goto Error;
-            p->Table16 = Context.GetPool<ushort>(ContextID).Rent((int)nEntries);
+            p.Table16 = Context.GetPool<ushort>(ContextID).Rent((int)nEntries);
         }
 
-        p->nEntries = nEntries;
+        p.nEntries = nEntries;
 
         // Initialize members if requested
         if (Values is not null && (nEntries > 0))
         {
             for (var i = 0; i < nEntries; i++)
             {
-                p->Table16[i] = Values[i];
+                p.Table16[i] = Values[i];
             }
         }
 
@@ -251,36 +255,36 @@ public static unsafe partial class Lcms2
         if (!Segments.IsEmpty && (nSegments > 0))
         {
             //p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
-            p->SegInterp = ipPool.Rent((int)nSegments);
+            p.SegInterp = ipPool.Rent((int)nSegments);
 
             for (var i = 0; i < nSegments; i++)
             {
                 // Type 0 is a special marker for table-based curves
                 if (Segments[i].Type == 0)
-                    p->SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
+                    p.SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
 
                 //memcpy(&p->Segments[i], &Segments[i], _sizeof<CurveSegment>());
-                p->Segments[i] = Segments[i];
+                p.Segments[i] = Segments[i];
 
-                p->Segments[i].SampledPoints = Segments[i].Type == 0 && Segments[i].SampledPoints is not null
+                p.Segments[i].SampledPoints = Segments[i].Type == 0 && Segments[i].SampledPoints is not null
                     ? _cmsDupMem<float>(ContextID, Segments[i].SampledPoints, Segments[i].nGridPoints)
                     : null;
 
                 var c = GetParametricCurveByType(ContextID, Segments[i].Type, null);
                 if (c is not null)
-                    p->Evals[i] = c.Evaluator;
+                    p.Evals[i] = c.Evaluator;
             }
         }
 
-        p->InterpParams = _cmsComputeInterpParams(ContextID, p->nEntries, 1, 1, p->Table16.AsMemory(), LerpFlag.Ushort);
-        if (p->InterpParams is not null)
+        p.InterpParams = _cmsComputeInterpParams(ContextID, p.nEntries, 1, 1, p.Table16.AsMemory(), LerpFlag.Ushort);
+        if (p.InterpParams is not null)
             return p;
         Error:
-        if (p->SegInterp is not null) ipPool.Return(p->SegInterp!); //_cmsFree(ContextID, p->SegInterp);
-        if (p->Segments is not null) _cmsFree(ContextID, p->Segments);
-        if (p->Evals is not null) _cmsFree(ContextID, p->Evals);
-        if (p->Table16 is not null) _cmsFree(ContextID, p->Table16);
-        _cmsFree(ContextID, p);
+        if (p.SegInterp is not null) ipPool.Return(p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
+        if (p.Segments is not null) _cmsFree(ContextID, p.Segments);
+        if (p.Evals is not null) _cmsFree(ContextID, p.Evals);
+        if (p.Table16 is not null) _cmsFree(ContextID, p.Table16);
+        //_cmsFree(ContextID, p);
         return null;
     }
 
@@ -633,31 +637,31 @@ public static unsafe partial class Lcms2
         return val;
     }
 
-    private static double EvalSegmentedFn(in ToneCurve* g, double R)
+    private static double EvalSegmentedFn(in ToneCurve g, double R)
     {
         float Out32;
         double Out;
 
-        for (var i = (int)g->nSegments - 1; i >= 0; i--)
+        for (var i = (int)g.nSegments - 1; i >= 0; i--)
         {
             // Check for domain
-            if ((R > g->Segments[i].x0) && (R <= g->Segments[i].x1))
+            if ((R > g.Segments[i].x0) && (R <= g.Segments[i].x1))
             {
                 // Type == 0 means segment is sampled
-                if (g->Segments[i].Type == 0)
+                if (g.Segments[i].Type == 0)
                 {
-                    var R1 = (float)(R - g->Segments[i].x0) / (g->Segments[i].x1 - g->Segments[i].x0);
+                    var R1 = (float)(R - g.Segments[i].x0) / (g.Segments[i].x1 - g.Segments[i].x0);
 
                     // Setup the table (TODO: clean that)
-                    g->SegInterp[i].Table = g->Segments[i].SampledPoints;
+                    g.SegInterp[i].Table = g.Segments[i].SampledPoints;
 
-                    g->SegInterp[i].Interpolation.LerpFloat(&R1, &Out32, g->SegInterp[i]);
+                    g.SegInterp[i].Interpolation.LerpFloat(&R1, &Out32, g.SegInterp[i]);
                     Out = Out32;
                 }
                 else
                 {
-                    fixed (double* p = &g->Segments[i].Params[0])
-                        Out = g->Evals[i](g->Segments[i].Type, p, R);
+                    fixed (double* p = &g.Segments[i].Params[0])
+                        Out = g.Evals[i](g.Segments[i].Type, p, R);
                 }
 
                 if (Double.IsPositiveInfinity(Out))
@@ -684,13 +688,13 @@ public static unsafe partial class Lcms2
         return t->Table16;
     }
 
-    public static ToneCurve* cmsBuildTabulatedToneCurve16(Context? ContextID, uint nEntries, in ushort* Values) =>
+    public static ToneCurve? cmsBuildTabulatedToneCurve16(Context? ContextID, uint nEntries, in ushort* Values) =>
         AllocateToneCurveStruct(ContextID, nEntries, 0, null, Values);
 
     private static uint EntriesByGamma(double Gamma) =>
         (Abs(Gamma - 1.0) < 0.001) ? 2u : 4096u;
 
-    public static ToneCurve* cmsBuildSegmentedToneCurve(Context? ContextID, uint nSegments, ReadOnlySpan<CurveSegment> Segments)
+    public static ToneCurve? cmsBuildSegmentedToneCurve(Context? ContextID, uint nSegments, ReadOnlySpan<CurveSegment> Segments)
     {
         var nGridPoints = 4096u;
 
@@ -712,13 +716,13 @@ public static unsafe partial class Lcms2
             var Val = EvalSegmentedFn(g, R);
 
             // Round and saturate
-            g->Table16[i] = _cmsQuickSaturateWord(Val * 65535.0);
+            g.Table16[i] = _cmsQuickSaturateWord(Val * 65535.0);
         }
 
         return g;
     }
 
-    public static ToneCurve* cmsBuildTabulatedToneCurveFloat(Context? ContextID, uint nEntries, float[] values)
+    public static ToneCurve? cmsBuildTabulatedToneCurveFloat(Context? ContextID, uint nEntries, float[] values)
     {
         var pool = Context.GetPool<CurveSegment>(ContextID);
         var dPool = Context.GetPool<double>(ContextID);
@@ -764,7 +768,7 @@ public static unsafe partial class Lcms2
         return result;
     }
 
-    public static ToneCurve* cmsBuildParametricToneCurve(Context? ContextID, int Type, in double* Params)
+    public static ToneCurve? cmsBuildParametricToneCurve(Context? ContextID, int Type, in double* Params)
     {
         var pool = Context.GetPool<CurveSegment>(ContextID);
         var dPool = Context.GetPool<double>(ContextID);
@@ -796,42 +800,42 @@ public static unsafe partial class Lcms2
         return result;
     }
 
-    public static ToneCurve* cmsBuildGamma(Context? ContextID, double Gamma) =>
+    public static ToneCurve? cmsBuildGamma(Context? ContextID, double Gamma) =>
         cmsBuildParametricToneCurve(ContextID, 1, &Gamma);
 
-    public static void cmsFreeToneCurve(ToneCurve* Curve)
+    public static void cmsFreeToneCurve(ToneCurve? Curve)
     {
         if (Curve is null) return;
 
-        var ContextID = Curve->InterpParams.ContextID;
+        var ContextID = Curve.InterpParams.ContextID;
 
-        _cmsFreeInterpParams(Curve->InterpParams);
+        _cmsFreeInterpParams(Curve.InterpParams);
 
-        if (Curve->Table16 is not null)
-            _cmsFree(ContextID, Curve->Table16);
+        if (Curve.Table16 is not null)
+            _cmsFree(ContextID, Curve.Table16);
 
-        if (Curve->Segments is not null)
+        if (Curve.Segments is not null)
         {
-            for (var i = 0; i < Curve->nSegments; i++)
+            for (var i = 0; i < Curve.nSegments; i++)
             {
-                if (Curve->Segments[i].SampledPoints is not null)
-                    _cmsFree(ContextID, Curve->Segments[i].SampledPoints);
+                if (Curve.Segments[i].SampledPoints is not null)
+                    _cmsFree(ContextID, Curve.Segments[i].SampledPoints);
 
-                if (Curve->SegInterp[i] is not null)
-                    _cmsFreeInterpParams(Curve->SegInterp[i]);
+                if (Curve.SegInterp[i] is not null)
+                    _cmsFreeInterpParams(Curve.SegInterp[i]);
             }
 
-            _cmsFree(ContextID, Curve->Segments);
-            _cmsFree(ContextID, Curve->SegInterp);
+            _cmsFree(ContextID, Curve.Segments);
+            _cmsFree(ContextID, Curve.SegInterp);
         }
 
-        if (Curve->Evals is not null)
-            _cmsFree(ContextID, Curve->Evals);
+        if (Curve.Evals is not null)
+            _cmsFree(ContextID, Curve.Evals);
 
-        _cmsFree(ContextID, Curve);
+        //_cmsFree(ContextID, Curve);
     }
 
-    public static void cmsFreeToneCurveTriple(ToneCurve** Curve)
+    public static void cmsFreeToneCurveTriple(ToneCurve?[] Curve)
     {
         _cmsAssert(Curve);
 
@@ -842,18 +846,18 @@ public static unsafe partial class Lcms2
         Curve[0] = Curve[1] = Curve[2] = null;
     }
 
-    public static ToneCurve* cmsDupToneCurve(in ToneCurve* In)
+    public static ToneCurve? cmsDupToneCurve(ToneCurve? In)
     {
         if (In is null) return null;
 
-        fixed (ushort* t = &In->Table16[0])
-            return AllocateToneCurveStruct(In->InterpParams.ContextID, In->nEntries, In->nSegments, In->Segments, t);
+        fixed (ushort* t = &In.Table16[0])
+            return AllocateToneCurveStruct(In.InterpParams.ContextID, In.nEntries, In.nSegments, In.Segments, t);
     }
 
-    public static ToneCurve* cmsJoinToneCurve(Context? ContextID, in ToneCurve* X, in ToneCurve* Y, uint nResultingPoints)
+    public static ToneCurve? cmsJoinToneCurve(Context? ContextID, ToneCurve X, ToneCurve Y, uint nResultingPoints)
     {
-        ToneCurve* @out = null;
-        ToneCurve* Yreversed = null;
+        ToneCurve? @out = null;
+        ToneCurve? Yreversed = null;
         float[]? Res = null;
 
         _cmsAssert(X);
@@ -932,7 +936,7 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    public static ToneCurve* cmsReverseToneCurveEx(uint nResultingSamples, in ToneCurve* InCurve)
+    public static ToneCurve? cmsReverseToneCurveEx(uint nResultingSamples, ToneCurve InCurve)
     {
         double a = 0, b = 0, y, x1, y1, x2, y2;
 
@@ -940,18 +944,16 @@ public static unsafe partial class Lcms2
 
         // Try to reverse it analytically whatever possible
 
-        if (InCurve->nSegments is 1 && InCurve->Segments[0].Type > 0 &&
+        if (InCurve.nSegments is 1 && InCurve.Segments[0].Type > 0 &&
             /* InCurve->Segments[0].Type <= 5 */
-            GetParametricCurveByType(InCurve->InterpParams.ContextID, InCurve->Segments[0].Type, null) is not null)
+            GetParametricCurveByType(InCurve.InterpParams.ContextID, InCurve.Segments[0].Type, null) is not null)
         {
-            fixed (double* p = &InCurve->Segments[0].Params[0])
-                return cmsBuildParametricToneCurve(InCurve->InterpParams.ContextID,
-                    -InCurve->Segments[0].Type,
-                    p);
+            fixed (double* p = &InCurve.Segments[0].Params[0])
+                return cmsBuildParametricToneCurve(InCurve.InterpParams.ContextID, -InCurve.Segments[0].Type, p);
         }
 
         // Nope, reverse the table.
-        var @out = cmsBuildTabulatedToneCurve16(InCurve->InterpParams.ContextID, nResultingSamples, null);
+        var @out = cmsBuildTabulatedToneCurve16(InCurve.InterpParams.ContextID, nResultingSamples, null);
         if (@out is null) return null;
 
         // We want to know if this is an ascending or descending table
@@ -964,22 +966,22 @@ public static unsafe partial class Lcms2
 
             // Find interval in which y is within.
             int j;
-            fixed (ushort* t = &InCurve->Table16[0])
-                j = GetInterval(y, t, InCurve->InterpParams);
+            fixed (ushort* t = &InCurve.Table16[0])
+                j = GetInterval(y, t, InCurve.InterpParams);
 
             if (j >= 0)
             {
                 // Get limits of interval
-                x1 = InCurve->Table16[j];
-                x2 = InCurve->Table16[j + 1];
+                x1 = InCurve.Table16[j];
+                x2 = InCurve.Table16[j + 1];
 
-                y1 = j * 65535.0 / (InCurve->nEntries - 1);
-                y2 = (j + 1) * 65535.0 / (InCurve->nEntries - 1);
+                y1 = j * 65535.0 / (InCurve.nEntries - 1);
+                y2 = (j + 1) * 65535.0 / (InCurve.nEntries - 1);
 
                 // If collapsed, then use any
                 if (x1 == x2)
                 {
-                    @out->Table16[i] = _cmsQuickSaturateWord(Ascending ? y2 : y1);
+                    @out.Table16[i] = _cmsQuickSaturateWord(Ascending ? y2 : y1);
                     continue;
                 }
                 else
@@ -990,13 +992,13 @@ public static unsafe partial class Lcms2
                 }
             }
 
-            @out->Table16[i] = _cmsQuickSaturateWord((a * y) + b);
+            @out.Table16[i] = _cmsQuickSaturateWord((a * y) + b);
         }
 
         return @out;
     }
 
-    public static ToneCurve* cmsReverseToneCurve(in ToneCurve* InGamma)
+    public static ToneCurve? cmsReverseToneCurve(ToneCurve InGamma)
     {
         _cmsAssert(InGamma);
 
@@ -1062,24 +1064,24 @@ public static unsafe partial class Lcms2
         return st;
     }
 
-    public static bool cmsSmoothToneCurve(ToneCurve* Tab, double lambda)
+    public static bool cmsSmoothToneCurve(ToneCurve Tab, double lambda)
     {
         bool SuccessStatus = true, notCheck = false;
         float* w, y, z;
         uint i, nItems, Zeros, Poles;
 
-        if (Tab is null || Tab->InterpParams is null)
+        if (Tab is null || Tab.InterpParams is null)
         {
             // Can't signal an error here since ContextID is not known at this point
             return false;
         }
 
-        var ContextID = Tab->InterpParams.ContextID;
+        var ContextID = Tab.InterpParams.ContextID;
 
         if (cmsIsToneCurveLinear(Tab)) // Only non-linear curves need smoothing
             return SuccessStatus;
 
-        nItems = Tab->nEntries;
+        nItems = Tab.nEntries;
         if (nItems >= maxNodesInCurve)    // too many items in the table
         {
             cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Too many points.");
@@ -1103,7 +1105,7 @@ public static unsafe partial class Lcms2
 
         for (i = 0; i < nItems; i++)
         {
-            y[i + 1] = Tab->Table16[i];
+            y[i + 1] = Tab.Table16[i];
             w[i + 1] = 1f;
         }
 
@@ -1154,7 +1156,7 @@ public static unsafe partial class Lcms2
         for (i = 0; i < nItems; ++i)
         {
             // Clamp to ushort
-            Tab->Table16[i] = _cmsQuickSaturateWord(z[i + 1]);
+            Tab.Table16[i] = _cmsQuickSaturateWord(z[i + 1]);
         }
 
     Done:
@@ -1166,13 +1168,13 @@ public static unsafe partial class Lcms2
         return SuccessStatus;
     }
 
-    public static bool cmsIsToneCurveLinear(in ToneCurve* Curve)
+    public static bool cmsIsToneCurveLinear(ToneCurve Curve)
     {
         _cmsAssert(Curve);
 
-        for (var i = 0; i < Curve->nEntries; i++)
+        for (var i = 0; i < Curve.nEntries; i++)
         {
-            var diff = Abs(Curve->Table16[i] - _cmsQuantizeVal(i, Curve->nEntries));
+            var diff = Abs(Curve.Table16[i] - _cmsQuantizeVal(i, Curve.nEntries));
             if (diff > 0x0f)
                 return false;
         }
@@ -1180,12 +1182,12 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsIsToneCurveMonotonic(in ToneCurve* t)
+    public static bool cmsIsToneCurveMonotonic(ToneCurve t)
     {
         _cmsAssert(t);
 
         // Degenerated curves are monotonic? Ok, let's pass them
-        var n = t->nEntries;
+        var n = t.nEntries;
         if (n < 2) return true;
 
         // Curve direction
@@ -1193,60 +1195,61 @@ public static unsafe partial class Lcms2
 
         if (lDescending)
         {
-            var last = t->Table16[0];
+            var last = t.Table16[0];
 
             for (var i = 1; i < n; i++)
             {
-                if (t->Table16[i] - last > 2)   // We allow some ripple
+                if (t.Table16[i] - last > 2)   // We allow some ripple
                     return false;
                 else
-                    last = t->Table16[i];
+                    last = t.Table16[i];
             }
         }
         else
         {
-            var last = t->Table16[n - 1];
+            var last = t.Table16[n - 1];
 
             for (var i = (int)n - 2; i >= 0; --i)
             {
-                if (t->Table16[i] - last > 2)
+                if (t.Table16[i] - last > 2)
                     return false;
                 else
-                    last = t->Table16[i];
+                    last = t.Table16[i];
             }
         }
 
         return true;
     }
 
-    public static bool cmsIsToneCurveDescending(in ToneCurve* t)
+    public static bool cmsIsToneCurveDescending(ToneCurve t)
     {
         _cmsAssert(t);
 
-        return t->Table16[0] > t->Table16[t->nEntries - 1];
+        return t.Table16[0] > t.Table16[t.nEntries - 1];
     }
 
-    public static bool cmsIsToneMultisegment(in ToneCurve* t)
+    public static bool cmsIsToneMultisegment(ToneCurve t)
     {
         _cmsAssert(t);
 
-        return t->nSegments > 1;
+        return t.nSegments > 1;
     }
 
-    public static int cmsGetToneCurveParametricType(in ToneCurve* t)
+    public static int cmsGetToneCurveParametricType(ToneCurve t)
     {
         _cmsAssert(t);
 
-        if (t->nSegments is not 1) return 0;
-        return t->Segments[0].Type;
+        return t.nSegments is 1
+            ? t.Segments[0].Type
+            : 0;
     }
 
-    public static float cmsEvalToneCurveFloat(in ToneCurve* Curve, float v)
+    public static float cmsEvalToneCurveFloat(ToneCurve Curve, float v)
     {
         _cmsAssert(Curve);
 
         // Check for 16 bit table. If so, this is a limited-precision tone curve
-        if (Curve->nSegments is 0)
+        if (Curve.nSegments is 0)
         {
             var In = _cmsQuickSaturateWord(v * 65535.0);
             var Out = cmsEvalToneCurve16(Curve, In);
@@ -1257,17 +1260,17 @@ public static unsafe partial class Lcms2
         return (float)EvalSegmentedFn(Curve, v);
     }
 
-    public static ushort cmsEvalToneCurve16(in ToneCurve* Curve, ushort v)
+    public static ushort cmsEvalToneCurve16(ToneCurve Curve, ushort v)
     {
         ushort @out;
 
         _cmsAssert(Curve);
 
-        Curve->InterpParams.Interpolation.Lerp16(&v, &@out, Curve->InterpParams);
+        Curve.InterpParams.Interpolation.Lerp16(&v, &@out, Curve.InterpParams);
         return @out;
     }
 
-    public static double cmsEstimateGamma(in ToneCurve* t, double Precision)
+    public static double cmsEstimateGamma(ToneCurve t, double Precision)
     {
         _cmsAssert(t);
 
@@ -1299,12 +1302,12 @@ public static unsafe partial class Lcms2
             : sum / n;   // The mean
     }
 
-    public static Span<double> cmsGetToneCurveParams(in ToneCurve* t)
+    public static Span<double> cmsGetToneCurveParams(ToneCurve t)
     {
         _cmsAssert(t);
 
-        return (t->nSegments is not 1)
-            ? null
-            : t->Segments[0].Params.AsSpan(..10);
+        return t.nSegments is 1
+            ? t.Segments[0].Params.AsSpan(..10)
+            : null;
     }
 }

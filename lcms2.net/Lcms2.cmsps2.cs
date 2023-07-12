@@ -409,10 +409,10 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "dup null eq {{ pop currentdict /{0} undef }} {{ /{0} exch def }} ifelse\n", nameStr);
     }
 
-    private static void Emit1Gamma(IOHandler m, ToneCurve* Table, byte* name)
+    private static void Emit1Gamma(IOHandler m, ToneCurve Table, byte* name)
     {
         if (Table is null ||        // Error
-            Table->nEntries <= 0)   // Empty table
+            Table.nEntries <= 0)   // Empty table
         {
             return;
         }
@@ -432,11 +432,11 @@ public static unsafe partial class Lcms2
         EmitSafeGuardBegin(m, lcms2gammatable);
         _cmsIOPrintf(m, "/lcms2gammatable [");
 
-        for (var i = 0; i < Table->nEntries; i++)
+        for (var i = 0; i < Table.nEntries; i++)
         {
             if (i % 10 is 0)
                 _cmsIOPrintf(m, "\n  ");
-            _cmsIOPrintf(m, "{0:d} ", Table->Table16[i]);
+            _cmsIOPrintf(m, "{0:d} ", Table.Table16[i]);
         }
 
         _cmsIOPrintf(m, "] def\n");
@@ -488,19 +488,19 @@ public static unsafe partial class Lcms2
             ? memcmp(g1, g2, (nint)(nG1 * _sizeof<ushort>())) == 0
             : false;
 
-    private static void EmitNGamma(IOHandler m, uint n, ToneCurve** g, byte* nameprefix)
+    private static void EmitNGamma(IOHandler m, uint n, ReadOnlySpan<ToneCurve> g, byte* nameprefix)
     {
         var buffer = stackalloc byte[2048];
 
-        for (var i = 0u; i < n; i++)
+        for (var i = 0; i < n; i++)
         {
             if (g[i] is null) return;   // Error
 
-            fixed (ushort* t1 = &g[i - 1]->Table16[0])
+            fixed (ushort* t1 = &g[i - 1].Table16[0])
             {
-                fixed (ushort* t2 = &g[i]->Table16[0])
+                fixed (ushort* t2 = &g[i].Table16[0])
                 {
-                    if (i > 0 && GammaTableEquals(t1, t2, g[i-1]->nEntries, g[i]->nEntries))
+                    if (i > 0 && GammaTableEquals(t1, t2, g[i-1].nEntries, g[i].nEntries))
                     {
                         _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", new string((sbyte*)nameprefix), i, i - 1);
                     }
@@ -625,7 +625,7 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "] ");
     }
 
-    private static bool EmitCIEBasedA(IOHandler m, ToneCurve* Curve, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedA(IOHandler m, ToneCurve Curve, CIEXYZ* BlackPoint)
     {
         var lcms2gammaproc = "lcms2gammaproc".ToBytePtr();
 
@@ -650,7 +650,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ToneCurve** CurveSet, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ReadOnlySpan<ToneCurve> CurveSet, CIEXYZ* BlackPoint)
     {
         var lcms2gammaproc = "lcms2gammaproc".ToBytePtr();
         var lcms2gammaproc0 = "lcms2gammaproc0".ToBytePtr();
@@ -774,7 +774,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static ToneCurve* ExtractGray2Y(Context? ContextID, Profile Profile, uint Intent)
+    private static ToneCurve ExtractGray2Y(Context? ContextID, Profile Profile, uint Intent)
     {
         var Out = cmsBuildTabulatedToneCurve16(ContextID, 256, null);
         var hXYZ = cmsCreateXYZProfile();
@@ -789,7 +789,7 @@ public static unsafe partial class Lcms2
 
                 cmsDoTransform(xform, &Gray, &XYZ, 1);
 
-                Out->Table16[i] = _cmsQuickSaturateWord(XYZ.Y * 65535.0);
+                Out.Table16[i] = _cmsQuickSaturateWord(XYZ.Y * 65535.0);
             }
         }
 

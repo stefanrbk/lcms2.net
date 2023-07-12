@@ -121,15 +121,17 @@ public static unsafe partial class Lcms2
 
     private static Pipeline? BuildGrayInputMatrixPipeline(Profile Profile)
     {
+        ToneCurve[]? LabCurves = null;
         var ContextID = cmsGetProfileContextID(Profile);
+        var pool = Context.GetPool<ToneCurve>(ContextID);
 
-        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not BoxPtr<ToneCurve> GrayTRC)
+        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not ToneCurve GrayTRC)
             return null;
 
         var Lut = cmsPipelineAlloc(ContextID, 1, 3);
         if (Lut is null) goto Error;
 
-        var LabCurves = stackalloc ToneCurve*[3];
+        LabCurves = pool.Rent(3);
         LabCurves[0] = GrayTRC;
 
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
@@ -162,21 +164,32 @@ public static unsafe partial class Lcms2
             }
         }
 
+        pool.Return(LabCurves);
         return Lut;
 
     Error:
+        if (LabCurves is not null)
+            pool.Return(LabCurves);
+
         cmsPipelineFree(Lut);
         return null;
     }
 
     private static Pipeline? BuildRGBInputMatrixShaper(Profile Profile)
     {
-        var Shapes = stackalloc ToneCurve*[3];
-        var ContextID = cmsGetProfileContextID(Profile); ;
-        MAT3 Mat;
         //VEC3* Matv = &Mat.X;
+        MAT3 Mat;
+        Pipeline? Lut = null;
+        double[]? MatArray = null;
 
-        if (!ReadIccMatrixRGB2XYZ(&Mat, Profile)) return null;
+        var ContextID = cmsGetProfileContextID(Profile);
+        var tcPool = Context.GetPool<ToneCurve>(ContextID);
+        var dPool = Context.GetPool<double>(ContextID);
+
+        ToneCurve[] Shapes = tcPool.Rent(3);
+
+        if (!ReadIccMatrixRGB2XYZ(&Mat, Profile))
+            goto Error;
 
         // XYZ PCS in encoded in 1.15 format, and the matrix output comes in 0..0xffff range, so
         // we need to adjust the output by a factor of (0x10000/0xffff) to put data in
@@ -189,38 +202,42 @@ public static unsafe partial class Lcms2
         Mat.Y *= InpAdj;
         Mat.Z *= InpAdj;
 
-        Shapes[0] = cmsReadTag(Profile, cmsSigRedTRCTag) as BoxPtr<ToneCurve>;
-        Shapes[1] = cmsReadTag(Profile, cmsSigGreenTRCTag) as BoxPtr<ToneCurve>;
-        Shapes[2] = cmsReadTag(Profile, cmsSigBlueTRCTag) as BoxPtr<ToneCurve>;
+        Shapes[0] = (cmsReadTag(Profile, cmsSigRedTRCTag) as ToneCurve)!;
+        Shapes[1] = (cmsReadTag(Profile, cmsSigGreenTRCTag) as ToneCurve)!;
+        Shapes[2] = (cmsReadTag(Profile, cmsSigBlueTRCTag) as ToneCurve)!;
 
         if (Shapes[0] is null || Shapes[1] is null || Shapes[2] is null)
-            return null;
+            goto Error;
 
-        var Lut = cmsPipelineAlloc(ContextID, 3, 3);
-        if (Lut is null) return null;
+        Lut = cmsPipelineAlloc(ContextID, 3, 3);
+        if (Lut is null)
+            goto Error;
 
-        var pool = _cmsGetContext(Lut.ContextID).GetBufferPool<double>();
-        var MatArray = Mat.AsArray(pool);
+        MatArray = Mat.AsArray(dPool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
         {
-            pool.Return(MatArray);
             goto Error;
         }
-        pool.Return(MatArray);
 
         // Note that it is certainly possible a single profile would have a LUT based
         // tag for output working in lab and a matrix-shaper for the fallback cases.
         // This is not allowed by the spec, but this code is tolerant to those cases
-        if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
+        if ((uint)cmsGetPCS(Profile) is cmsSigLabData &&
+            !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(ContextID)))
         {
-            if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, _cmsStageAllocXYZ2Lab(ContextID)))
-                goto Error;
+            goto Error;
         }
 
+        tcPool.Return(Shapes);
+        dPool.Return(MatArray);
         return Lut;
 
     Error:
+        if (Shapes is not null)
+            tcPool.Return(Shapes);
+        if (MatArray is not null)
+            dPool.Return(MatArray);
         cmsPipelineFree(Lut);
         return null;
     }
@@ -361,13 +378,17 @@ public static unsafe partial class Lcms2
     {
         var ContextID = cmsGetProfileContextID(Profile);
 
-        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not BoxPtr<ToneCurve> GrayTRC) return null;
+        if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not ToneCurve GrayTRC)
+            return null;
 
         var RevGrayTRC = cmsReverseToneCurve(GrayTRC);
         if (RevGrayTRC is null) return null;
 
         var Lut = cmsPipelineAlloc(ContextID, 3, 1);
         if (Lut is null) goto Error1;
+
+        var pool = Context.GetPool<ToneCurve>(ContextID);
+        var rev = pool.Rent(1);
 
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
         {
@@ -379,14 +400,16 @@ public static unsafe partial class Lcms2
             if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 1, 3, PickYMatrix, null)))
                 goto Error2;
         }
-
-        if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, &RevGrayTRC)))
+        rev[0] = RevGrayTRC;
+        if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, rev)))
             goto Error2;
 
+        pool.Return(rev);
         cmsFreeToneCurve(RevGrayTRC);
         return Lut;
 
     Error2:
+        pool.Return(rev);
         cmsPipelineFree(Lut);
     Error1:
         cmsFreeToneCurve(RevGrayTRC);
@@ -395,8 +418,8 @@ public static unsafe partial class Lcms2
 
     private static Pipeline? BuildRGBOutputMatrixShaper(Profile Profile)
     {
-        var Shapes = new BoxPtr<ToneCurve>?[3];
-        var InvShapes = new BoxPtr<ToneCurve>?[3];
+        var Shapes = new ToneCurve?[3];
+        var InvShapes = new ToneCurve?[3];
         MAT3 Mat;
         //VEC3* Invv = &Inv.X;
 
@@ -419,21 +442,21 @@ public static unsafe partial class Lcms2
         Inv.Y *= OutpAdj;
         Inv.Z *= OutpAdj;
 
-        Shapes[0] = cmsReadTag(Profile, cmsSigRedTRCTag) as BoxPtr<ToneCurve>;
-        Shapes[1] = cmsReadTag(Profile, cmsSigGreenTRCTag) as BoxPtr<ToneCurve>;
-        Shapes[2] = cmsReadTag(Profile, cmsSigBlueTRCTag) as BoxPtr<ToneCurve>;
+        Shapes[0] = cmsReadTag(Profile, cmsSigRedTRCTag) as ToneCurve;
+        Shapes[1] = cmsReadTag(Profile, cmsSigGreenTRCTag) as ToneCurve;
+        Shapes[2] = cmsReadTag(Profile, cmsSigBlueTRCTag) as ToneCurve;
 
         if (Shapes[0] is null || Shapes[1] is null || Shapes[2] is null)
             return null;
 
-        InvShapes[0] = new(cmsReverseToneCurve(Shapes[0]!));
-        InvShapes[1] = new(cmsReverseToneCurve(Shapes[1]!));
-        InvShapes[2] = new(cmsReverseToneCurve(Shapes[2]!));
+        InvShapes[0] = cmsReverseToneCurve(Shapes[0]!);
+        InvShapes[1] = cmsReverseToneCurve(Shapes[1]!);
+        InvShapes[2] = cmsReverseToneCurve(Shapes[2]!);
 
         if (InvShapes[0] is null || InvShapes[1] is null || InvShapes[2] is null)
             return null;
 
-        var InvShapesTriple = stackalloc ToneCurve*[3]
+        ToneCurve[] InvShapesTriple = new ToneCurve[3]
         {
             InvShapes[0]!,
             InvShapes[1]!,

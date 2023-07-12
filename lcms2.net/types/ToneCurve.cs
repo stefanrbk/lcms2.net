@@ -27,14 +27,14 @@
 
 namespace lcms2.types;
 
-public unsafe struct ToneCurve
+public class ToneCurve
 {
     internal InterpParams? InterpParams;
     internal uint nSegments;
     internal CurveSegment[]? Segments;
     internal InterpParams[]? SegInterp;
 
-    internal ParametricCurveEvaluator* Evals;
+    internal ParametricCurveEvaluator[]? Evals;
     internal uint nEntries;
     internal ushort[]? Table16;
 }

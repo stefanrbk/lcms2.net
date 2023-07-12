@@ -25,10 +25,35 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
+using System.Buffers;
+
 namespace lcms2.types;
 
-public unsafe class StageToneCurvesData
+public class StageToneCurvesData(Context? context, uint numCurves) : IDisposable
 {
-    public uint nCurves;
-    public ToneCurve** TheCurves;
+    private readonly Context? ctx = context;
+    public uint nCurves = numCurves;
+    public ToneCurve[] TheCurves = Context.GetPool<ToneCurve>(context).Rent((int)numCurves);
+    private bool disposedValue;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                Context.GetPool<ToneCurve>(ctx).Return(TheCurves); TheCurves = null!;
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

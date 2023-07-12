@@ -563,7 +563,7 @@ public static unsafe partial class Lcms2
     private struct GrayOnlyParams
     {
         public Pipeline? cmyk2cmyk;
-        public ToneCurve* KTone;
+        public ToneCurve KTone;
     }
 
     private static bool BlackPreservingGrayOnlySampler(in ushort* In, ushort* Out, object? Cargo)
@@ -694,7 +694,7 @@ public static unsafe partial class Lcms2
         public Pipeline? cmyk2cmyk;
         public Transform* hProofOutput;
         public Transform* cmyk2Lab;
-        public ToneCurve* KTone;
+        public ToneCurve KTone;
         public Pipeline? LabK2cmyk;
         public double MaxError;
 

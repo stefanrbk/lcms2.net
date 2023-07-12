@@ -30,7 +30,7 @@ namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
 {
-    private static bool CheckGammaEstimation(ToneCurve* c, double g)
+    private static bool CheckGammaEstimation(ToneCurve c, double g)
     {
         var est = cmsEstimateGamma(c, 0.001);
 
@@ -208,7 +208,7 @@ internal static unsafe partial class Testbed
         return rc;
     }
 
-    private static ToneCurve* GammaTableLinear(uint nEntries, bool Dir)
+    private static ToneCurve GammaTableLinear(uint nEntries, bool Dir)
     {
         var g = cmsBuildTabulatedToneCurve16(DbgThread(), nEntries, null);
 
@@ -216,7 +216,7 @@ internal static unsafe partial class Testbed
         {
             var v = _cmsQuantizeVal(i, nEntries);
 
-            g->Table16[i] =
+            g.Table16[i] =
                 Dir
                     ? v
                     : (ushort)(0xFFFF - v);
@@ -231,8 +231,8 @@ internal static unsafe partial class Testbed
 
         // Fake the curve to be table-based
         for (var i = 0; i < 4096; i++)
-            Forward->Table16[i] = (ushort)(0xFFFF - Forward->Table16[i]);
-        Forward->Segments[0].Type = 0;
+            Forward.Table16[i] = (ushort)(0xFFFF - Forward.Table16[i]);
+        Forward.Segments[0].Type = 0;
 
         var Reverse = cmsReverseToneCurve(Forward);
 
@@ -246,7 +246,7 @@ internal static unsafe partial class Testbed
         return rc;
     }
 
-    private static bool CheckFToneCurvePoint(ToneCurve* c, ushort Point, int Value) =>
+    private static bool CheckFToneCurvePoint(ToneCurve c, ushort Point, int Value) =>
         Math.Abs(Value - cmsEvalToneCurve16(c, Point)) < 2;
 
     public static bool CheckReverseDegenerated()
@@ -290,7 +290,7 @@ internal static unsafe partial class Testbed
         return rc;
     }
 
-    private static ToneCurve* Build_sRGBGamma()
+    private static ToneCurve Build_sRGBGamma()
     {
         var Parameters = stackalloc double[5]
         {
@@ -301,10 +301,10 @@ internal static unsafe partial class Testbed
             0.04045,
         };
 
-        return cmsBuildParametricToneCurve(DbgThread(), 4, Parameters);
+        return cmsBuildParametricToneCurve(DbgThread(), 4, Parameters)!;
     }
 
-    private static ToneCurve* CombineGammaFloat(ToneCurve* g1, ToneCurve* g2)
+    private static ToneCurve CombineGammaFloat(ToneCurve g1, ToneCurve g2)
     {
         var Tab = stackalloc ushort[256];
 
@@ -319,7 +319,7 @@ internal static unsafe partial class Testbed
         return cmsBuildTabulatedToneCurve16(DbgThread(), 256, Tab);
     }
 
-    private static ToneCurve* CombineGamma16(ToneCurve* g1, ToneCurve* g2)
+    private static ToneCurve CombineGamma16(ToneCurve g1, ToneCurve g2)
     {
         var Tab = stackalloc ushort[256];
 

@@ -950,10 +950,10 @@ public static unsafe partial class Lcms2
 
     #region Curve
 
-    private static BoxPtr<ToneCurve>? Type_Curve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static ToneCurve? Type_Curve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint Count;
-        ToneCurve* NewGamma;
+        ToneCurve NewGamma;
 
         *nItems = 0;
         if (!_cmsReadUInt32Number(io, &Count)) return null;
@@ -967,7 +967,7 @@ public static unsafe partial class Lcms2
                     NewGamma = cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma);
                     if (NewGamma is null) return null;
                     *nItems = 1;
-                    return new(NewGamma);
+                    return NewGamma;
                 }
             case 1:     // Specified as the exponent of gamma function
                 {
@@ -978,7 +978,7 @@ public static unsafe partial class Lcms2
                     SingleGamma = _cms8Fixed8toDouble(SingleGammaFixed);
 
                     *nItems = 1;
-                    return new(cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma));
+                    return cmsBuildParametricToneCurve(self->ContextID, 1, &SingleGamma);
                 }
             default:
 
@@ -988,7 +988,7 @@ public static unsafe partial class Lcms2
                 NewGamma = cmsBuildTabulatedToneCurve16(self->ContextID, Count, null);
                 if (NewGamma is null) return null;
 
-                fixed (ushort* t = &NewGamma->Table16[0])
+                fixed (ushort* t = &NewGamma.Table16[0])
                 {
                     if (!_cmsReadUInt16Array(io, Count, t))
                     {
@@ -998,38 +998,28 @@ public static unsafe partial class Lcms2
                 }
 
                 *nItems = 1;
-                return new(NewGamma);
+                return NewGamma;
         }
     }
 
     private static bool Type_Curve_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<ToneCurve> Curve) return false;
+        if (Ptr is not ToneCurve Curve)
+            return false;
 
-        if (Curve.Ptr->nSegments is 1 && Curve.Ptr->Segments[0].Type is 1)
+        if (Curve.nSegments is 1 && Curve.Segments[0].Type is 1)
         {
             // Single gamma, preserve number
-            var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve.Ptr->Segments[0].Params[0]);
+            var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve.Segments[0].Params[0]);
 
             if (!_cmsWriteUInt32Number(io, 1)) return false;
             if (!_cmsWriteUInt16Number(io, SingleGammaFixed)) return false;
             return true;
         }
 
-        if (!_cmsWriteUInt32Number(io, Curve.Ptr->nEntries)) return false;
-        fixed (ushort* t = &Curve.Ptr->Table16[0])
-            return _cmsWriteUInt16Array(io, Curve.Ptr->nEntries, t);
-    }
-
-    private static BoxPtr<ToneCurve>? Type_Curve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<ToneCurve> curve
-            ? new(cmsDupToneCurve(curve))
-            : null;
-
-    private static void Type_Curve_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<ToneCurve> Curve)
-            cmsFreeToneCurve(Curve);
+        if (!_cmsWriteUInt32Number(io, Curve.nEntries)) return false;
+        fixed (ushort* t = &Curve.Table16[0])
+            return _cmsWriteUInt16Array(io, Curve.nEntries, t);
     }
 
     #endregion Curve
@@ -1040,21 +1030,20 @@ public static unsafe partial class Lcms2
     {
         if (ICCVersion < 4.0) return cmsSigCurveType;
 
-        if (Data is BoxPtr<ToneCurve> Curve)
+        if (Data is ToneCurve Curve)
         {
-            if (Curve.Ptr->nSegments is not 1) return cmsSigCurveType;
-            if (Curve.Ptr->Segments[0].Type is < 0 or > 5) return cmsSigCurveType;
+            if (Curve.nSegments is not 1) return cmsSigCurveType;
+            if (Curve.Segments[0].Type is < 0 or > 5) return cmsSigCurveType;
         }
 
         return cmsSigParametricCurveType;
     }
 
-    private static BoxPtr<ToneCurve>? Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static ToneCurve? Type_ParametricCurve_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var ParamsByType = stackalloc int[] { 1, 3, 4, 5, 7 };
         var Params = stackalloc double[10];
         ushort Type;
-        ToneCurve* NewGamma;
 
         *nItems = 0;
         if (!_cmsReadUInt16Number(io, &Type)) return null;
@@ -1072,20 +1061,22 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < n; i++)
             if (!_cmsRead15Fixed16Number(io, out Params[i])) return null;
 
-        NewGamma = cmsBuildParametricToneCurve(self->ContextID, Type + 1, Params);
+        var NewGamma = cmsBuildParametricToneCurve(self->ContextID, Type + 1, Params);
 
         *nItems = 1;
-        return new(NewGamma);
+        return NewGamma;
     }
 
     private static bool Type_ParametricCurve_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<ToneCurve> Curve) return false;
+        if (Ptr is not ToneCurve Curve)
+            return false;
+
         var ParamsByType = stackalloc int[] { 0, 1, 3, 4, 5, 7 };
 
-        var typen = Curve.Ptr->Segments[0].Type;
+        var typen = Curve.Segments[0].Type;
 
-        if (Curve.Ptr->nSegments is 1 && typen < 1)
+        if (Curve.nSegments is 1 && typen < 1)
         {
             cmsSignalError(self->ContextID, ErrorCode.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
@@ -1099,26 +1090,15 @@ public static unsafe partial class Lcms2
 
         var nParam = ParamsByType[typen];
 
-        if (!_cmsWriteUInt16Number(io, (ushort)(Curve.Ptr->Segments[0].Type - 1))) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)(Curve.Segments[0].Type - 1))) return false;
         if (!_cmsWriteUInt16Number(io, 0)) return false;    // Reserved
 
         for (var i = 0; i < nParam; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, Curve.Ptr->Segments[0].Params[i])) return false;
+            if (!_cmsWrite15Fixed16Number(io, Curve.Segments[0].Params[i])) return false;
         }
 
         return true;
-    }
-
-    private static BoxPtr<ToneCurve>? Type_ParametricCurve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<ToneCurve> curve
-            ? new(cmsDupToneCurve(curve))
-            : null;
-
-    private static void Type_ParametricCurve_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<ToneCurve> curve)
-            cmsFreeToneCurve(curve);
     }
 
     #endregion ParametricCurve
@@ -1391,18 +1371,20 @@ public static unsafe partial class Lcms2
     private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels)
     {
         byte* Temp = null;
-        var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
 
-        if (nChannels is > cmsMAXCHANNELS or <= 0) return false;
+        var pool = Context.GetPool<ToneCurve>(ContextID);
+        ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
 
-        memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        if (nChannels is > cmsMAXCHANNELS or <= 0) goto Error2;
+
+        //memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
 
         Temp = _cmsMalloc<byte>(ContextID, 256);
-        if (Temp is null) return false;
+        if (Temp is null) goto Error2;
 
         for (var i = 0; i < nChannels; i++)
         {
-            Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, 256, null);
+            Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, 256, null)!;
             if (Tables[i] is null) goto Error;
         }
 
@@ -1411,7 +1393,7 @@ public static unsafe partial class Lcms2
             if (io.Read(io, Temp, 256, 1) is not 1) goto Error;
 
             for (var j = 0; j < 256; j++)
-                Tables[i]->Table16[j] = FROM_8_TO_16(Temp[j]);
+                if (Tables[i].Table16 is not null) Tables[i].Table16![j] = FROM_8_TO_16(Temp[j]);
         }
 
         _cmsFree(ContextID, Temp);
@@ -1430,6 +1412,9 @@ public static unsafe partial class Lcms2
             if (Tables[i] is not null) cmsFreeToneCurve(Tables[i]);
 
         if (Temp is not null) _cmsFree(ContextID, Temp);
+
+    Error2:
+        pool.Return(Tables);
         return false;
     }
 
@@ -1440,16 +1425,17 @@ public static unsafe partial class Lcms2
             for (var i = 0; i < n; i++)
             {
                 // Usual case of identity curves
-                if ((Tables.TheCurves[i]->nEntries is 2) &&
-                    (Tables.TheCurves[i]->Table16[0] is 0) &&
-                    (Tables.TheCurves[i]->Table16[1] is 65535))
+                if ((Tables.TheCurves[i].nEntries is 2) &&
+                    (Tables.TheCurves[i].Table16 is not null) &&
+                    (Tables.TheCurves[i].Table16![0] is 0) &&
+                    (Tables.TheCurves[i].Table16![1] is 65535))
                 {
                     for (var j = 0; j < 256; j++)
                         if (!_cmsWriteUInt8Number(io, (byte)j)) return false;
                 }
                 else
                 {
-                    if (Tables.TheCurves[i]->nEntries is not 256)
+                    if (Tables.TheCurves[i].nEntries is not 256)
                     {
                         cmsSignalError(ContextID, ErrorCode.Range, "LUT8 needs 256 entries on prelinearization");
                         return false;
@@ -1458,7 +1444,7 @@ public static unsafe partial class Lcms2
                     {
                         for (var j = 0; j < 256; j++)
                         {
-                            var val = FROM_16_TO_8(Tables.TheCurves[i]->Table16[j]);
+                            var val = FROM_16_TO_8(Tables.TheCurves[i].Table16[j]);
                             if (!_cmsWriteUInt8Number(io, val)) return false;
                         }
                     }
@@ -1667,7 +1653,7 @@ public static unsafe partial class Lcms2
 
     private static bool Read16bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels, uint nEntries)
     {
-        var Tables = stackalloc ToneCurve*[cmsMAXCHANNELS];
+        var pool = Context.GetPool<ToneCurve>(ContextID);
 
         // Maybe an empty table? (this is a lcms extension)
         if (nEntries <= 0) return true;
@@ -1675,14 +1661,15 @@ public static unsafe partial class Lcms2
         if (nEntries < 2 || nChannels > cmsMAXCHANNELS) return false;
 
         // Init table to zero
-        memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        //memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
 
         for (var i = 0; i < nChannels; i++)
         {
-            Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, nEntries, null);
+            Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, nEntries, null)!;
             if (Tables[i] is null) goto Error;
 
-            fixed (ushort* t = &Tables[i]->Table16[0])
+            fixed (ushort* t = &Tables[i].Table16[0])
                 if (!_cmsReadUInt16Array(io, nEntries, t)) goto Error;
         }
 
@@ -1693,12 +1680,14 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < nChannels; i++)
             cmsFreeToneCurve(Tables[i]);
 
+        pool.Return(Tables);
         return true;
 
     Error:
         for (var i = 0; i < nChannels; i++)
             if (Tables[i] is not null) cmsFreeToneCurve(Tables[i]);
 
+        pool.Return(Tables);
         return false;
     }
 
@@ -1706,13 +1695,13 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(Tables);
 
-        var nEntries = Tables.TheCurves[0]->nEntries;
+        var nEntries = Tables.TheCurves[0].nEntries;
 
         for (var i = 0; i < nEntries; i++)
         {
             // Usual case of identity curves
             for (var j = 0; j < 256; j++)
-                if (!_cmsWriteUInt16Number(io, Tables.TheCurves[i]->Table16[j])) return false;
+                if (!_cmsWriteUInt16Number(io, Tables.TheCurves[i].Table16[j])) return false;
         }
         return true;
     }
@@ -1854,8 +1843,8 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < 9; i++)
             if (!_cmsWrite15Fixed16Number(io, mat[i])) return false;
 
-        if (!_cmsWriteUInt16Number(io, (ushort)(PreMPE is not null ? PreMPE.TheCurves[0]->nEntries : 2))) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)(PostMPE is not null ? PostMPE.TheCurves[0]->nEntries : 2))) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)(PreMPE is not null ? PreMPE.TheCurves[0].nEntries : 2))) return false;
+        if (!_cmsWriteUInt16Number(io, (ushort)(PostMPE is not null ? PostMPE.TheCurves[0].nEntries : 2))) return false;
 
         // The prelinearization table
         if (PreMPE is not null)
@@ -2002,7 +1991,7 @@ public static unsafe partial class Lcms2
         return CLUT;
     }
 
-    private static ToneCurve* ReadEmbeddedCurve(TagTypeHandler* self, IOHandler io)
+    private static ToneCurve? ReadEmbeddedCurve(TagTypeHandler* self, IOHandler io)
     {
         uint nItems;
 
@@ -2026,19 +2015,20 @@ public static unsafe partial class Lcms2
 
     private static Stage? ReadSetOfCurves(TagTypeHandler* self, IOHandler io, uint Offset, uint nCurves)
     {
-        var Curves = stackalloc ToneCurve*[cmsMAXCHANNELS];
+        var pool = Context.GetPool<ToneCurve>(self->ContextID);
         Stage? Lin = null;
 
         if (nCurves > cmsMAXCHANNELS) return null;
 
         if (!io.Seek(io, Offset)) return null;
 
+        ToneCurve[] Curves = pool.Rent(cmsMAXCHANNELS);
         for (var i = 0; i < nCurves; i++)
-            Curves[i] = null;
+            Curves[i] = null!;
 
         for (var i = 0; i < nCurves; i++)
         {
-            Curves[i] = ReadEmbeddedCurve(self, io);
+            Curves[i] = ReadEmbeddedCurve(self, io)!;
             if (Curves[i] is null) goto Error;
             if (!_cmsReadAlignment(io)) goto Error;
         }
@@ -2049,6 +2039,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < nCurves; i++)
             cmsFreeToneCurve(Curves[i]);
 
+        pool.Return(Curves);
         return Lin;
     }
 
@@ -2157,9 +2148,9 @@ public static unsafe partial class Lcms2
             // If this is a table-based curve, use curve type even on V4
             var CurrentType = Type;
 
-            if ((Curves[i]->nSegments is 0) ||
-                ((Curves[i]->nSegments is 2) && (Curves[i]->Segments[1].Type is 0)) ||
-                Curves[i]->Segments[0].Type < 0)
+            if ((Curves[i].nSegments is 0) ||
+                ((Curves[i].nSegments is 2) && (Curves[i].Segments[1].Type is 0)) ||
+                Curves[i].Segments[0].Type < 0)
             {
                 CurrentType = cmsSigCurveType;
             }
@@ -2168,11 +2159,11 @@ public static unsafe partial class Lcms2
 
             if (CurrentType == cmsSigCurveType)
             {
-                if (!Type_Curve_Write(self, io, new BoxPtr<ToneCurve>(Curves[i]), 1)) return false;
+                if (!Type_Curve_Write(self, io, Curves[i], 1)) return false;
             }
             else if (CurrentType == cmsSigParametricCurveType)
             {
-                if (!Type_ParametricCurve_Write(self, io, new BoxPtr<ToneCurve>(Curves[i]), 1)) return false;
+                if (!Type_ParametricCurve_Write(self, io, Curves[i], 1)) return false;
             }
             else
             {
@@ -2916,11 +2907,11 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &CountUcr)) return null;
         SignedSizeOfTag -= _sizeof<uint>();
 
-        n->Ucr = cmsBuildTabulatedToneCurve16(self->ContextID, CountUcr, null);
+        n->Ucr = cmsBuildTabulatedToneCurve16(self->ContextID, CountUcr, null)!;
         if (n->Ucr is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountUcr * _sizeof<ushort>())) goto Error;
-        fixed (ushort* t = &n->Ucr->Table16[0])
+        fixed (ushort* t = &n->Ucr.Table16[0])
             if (!_cmsReadUInt16Array(io, CountUcr, t)) goto Error;
 
         SignedSizeOfTag -= (int)(CountUcr * _sizeof<ushort>());
@@ -2931,11 +2922,11 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &CountBg)) goto Error;
         SignedSizeOfTag -= _sizeof<uint>();
 
-        n->Bg = cmsBuildTabulatedToneCurve16(self->ContextID, CountBg, null);
+        n->Bg = cmsBuildTabulatedToneCurve16(self->ContextID, CountBg, null)!;
         if (n->Bg is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountBg * _sizeof<ushort>())) goto Error;
-        fixed (ushort* t = &n->Bg->Table16[0])
+        fixed (ushort* t = &n->Bg.Table16[0])
             if (!_cmsReadUInt16Array(io, CountBg, t)) goto Error;
         SignedSizeOfTag -= (int)(CountBg * _sizeof<ushort>());
 
@@ -2976,14 +2967,14 @@ public static unsafe partial class Lcms2
         if (Ptr is not BoxPtr<UcrBg> Value) return false;
 
         // First curve is Under color removal
-        if (!_cmsWriteUInt32Number(io, Value.Ptr->Ucr->nEntries)) return false;
-        fixed (ushort* t = &Value.Ptr->Ucr->Table16[0])
-            if (!_cmsWriteUInt16Array(io, Value.Ptr->Ucr->nEntries, t)) return false;
+        if (!_cmsWriteUInt32Number(io, Value.Ptr->Ucr.nEntries)) return false;
+        fixed (ushort* t = &Value.Ptr->Ucr.Table16[0])
+            if (!_cmsWriteUInt16Array(io, Value.Ptr->Ucr.nEntries, t)) return false;
 
         // Then black generation
-        if (!_cmsWriteUInt32Number(io, Value.Ptr->Bg->nEntries)) return false;
-        fixed (ushort* t = &Value.Ptr->Bg->Table16[0])
-            if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg->nEntries, t)) return false;
+        if (!_cmsWriteUInt32Number(io, Value.Ptr->Bg.nEntries)) return false;
+        fixed (ushort* t = &Value.Ptr->Bg.Table16[0])
+            if (!_cmsWriteUInt16Array(io, Value.Ptr->Bg.nEntries, t)) return false;
 
         // Now comes the text. The length is specified by the tag size
         var TextSize = cmsMLUgetASCII(Value.Ptr->Desc, cmsNoLanguage, cmsNoCountry, null);
@@ -3006,9 +2997,9 @@ public static unsafe partial class Lcms2
 
         if (NewUcrBg is null) return null;
 
-        NewUcrBg->Bg = cmsDupToneCurve(Src.Ptr->Bg);
+        NewUcrBg->Bg = cmsDupToneCurve(Src.Ptr->Bg)!;
         if (NewUcrBg->Bg is null) goto Error;
-        NewUcrBg->Ucr = cmsDupToneCurve(Src.Ptr->Ucr);
+        NewUcrBg->Ucr = cmsDupToneCurve(Src.Ptr->Ucr)!;
         if (NewUcrBg->Ucr is null) goto Error;
         var desc = cmsMLUdup(Src.Ptr->Desc);
         if (desc is null) goto Error;
@@ -3448,9 +3439,8 @@ public static unsafe partial class Lcms2
         public double Gamma, Min, Max;
     }
 
-    private static BoxPtr2<ToneCurve>? Type_vcgt_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static ToneCurve[]? Type_vcgt_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        ToneCurve** Curves;
         uint TagType;
 
         *nItems = 0;
@@ -3459,8 +3449,9 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &TagType)) return null;
 
         // Allocate space for the array
-        Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
-        if (Curves is null) return null;
+        //Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
+        //if (Curves is null) return null;
+        var Curves = Context.GetPool<ToneCurve>(self->ContextID).Rent(3);
 
         // There are two possible flavors
         switch (TagType)
@@ -3502,13 +3493,13 @@ public static unsafe partial class Lcms2
                                 {
                                     byte v;
                                     if (!_cmsReadUInt8Number(io, &v)) goto Error;
-                                    Curves[n]->Table16[i] = FROM_8_TO_16(v);
+                                    Curves[n].Table16[i] = FROM_8_TO_16(v);
                                 }
                                 break;
 
                             // One word 0..65535
                             case 2:
-                                fixed (ushort* t = &Curves[n]->Table16[0])
+                                fixed (ushort* t = &Curves[n].Table16[0])
                                     if (!_cmsReadUInt16Array(io, nElems, t)) goto Error;
                                 break;
 
@@ -3566,7 +3557,7 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = 1;
-        return new(Curves);
+        return Curves;
 
     // Regret, free all resources
     Error:
@@ -3577,7 +3568,7 @@ public static unsafe partial class Lcms2
 
     private static bool Type_vcgt_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr2<ToneCurve> Curves) return false;
+        if (Ptr is not ToneCurve[] Curves) return false;
 
         if (cmsGetToneCurveParametricType(Curves[0]) is 5 &&
             cmsGetToneCurveParametricType(Curves[1]) is 5 &&
@@ -3590,9 +3581,9 @@ public static unsafe partial class Lcms2
             {
                 VCGTGAMMA v;
 
-                v.Gamma = Curves[i]->Segments[0].Params[0];
-                v.Min = Curves[i]->Segments[0].Params[5];
-                v.Max = Math.Pow(Curves[i]->Segments[0].Params[1], v.Gamma) + v.Min;
+                v.Gamma = Curves[i].Segments[0].Params[0];
+                v.Min = Curves[i].Segments[0].Params[5];
+                v.Max = Math.Pow(Curves[i].Segments[0].Params[1], v.Gamma) + v.Min;
 
                 if (!_cmsWrite15Fixed16Number(io, v.Gamma)) return false;
                 if (!_cmsWrite15Fixed16Number(io, v.Min)) return false;
@@ -3622,23 +3613,26 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr2<ToneCurve>? Type_vcgt_Dup(TagTypeHandler* self, object? Ptr, uint _)
+    private static ToneCurve[]? Type_vcgt_Dup(TagTypeHandler* self, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr2<ToneCurve> OldCurves) return null;
+        if (Ptr is not ToneCurve[] OldCurves)
+            return null;
 
-        var NewCurves = _cmsCalloc2<ToneCurve>(self->ContextID, 3);
-        if (NewCurves is null) return null;
+        //var NewCurves = _cmsCalloc2<ToneCurve>(self->ContextID, 3);
+        //if (NewCurves is null) return null;
+
+        var NewCurves = Context.GetPool<ToneCurve>(self->ContextID).Rent(3);
 
         NewCurves[0] = cmsDupToneCurve(OldCurves[0]);
         NewCurves[1] = cmsDupToneCurve(OldCurves[1]);
         NewCurves[2] = cmsDupToneCurve(OldCurves[2]);
 
-        return new(NewCurves);
+        return NewCurves;
     }
 
     private static void Type_vcgt_Free(TagTypeHandler* self, object? Ptr)
     {
-        if (Ptr is BoxPtr2<ToneCurve> curves)
+        if (Ptr is ToneCurve[] curves)
         {
             cmsFreeToneCurveTriple(curves);
             _cmsFree(self->ContextID, curves);
@@ -4038,6 +4032,20 @@ public static unsafe partial class Lcms2
 
     #endregion Dictionary
 
+    #region Generic
+
+    #region ToneCurve types
+
+    private static ToneCurve? ToneCurve_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsDupToneCurve(Ptr as ToneCurve);
+
+    private static void ToneCurve_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsFreeToneCurve(Ptr as ToneCurve);
+
+    #endregion ToneCurve types
+
+    #endregion Generic
+
     #endregion TypeHandlers
 
     #region MPE Handlers
@@ -4059,7 +4067,7 @@ public static unsafe partial class Lcms2
 
     #region MPEcurve
 
-    private static ToneCurve* ReadSegmentedCurve(TagTypeHandler* self, IOHandler io)
+    private static ToneCurve? ReadSegmentedCurve(TagTypeHandler* self, IOHandler io)
     {
         var str = stackalloc byte[5];
         var ParamsByType = stackalloc uint[] { 4, 5, 5 };
@@ -4157,8 +4165,8 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < nSegments; i++)
         {
             // If sampled curve, fix it
-            if (Curve->Segments[i].Type is 0)
-                Curve->Segments[i].SampledPoints[0] = cmsEvalToneCurveFloat(Curve, Curve->Segments[i].x0);
+            if (Curve.Segments[i].Type is 0)
+                Curve.Segments[i].SampledPoints[0] = cmsEvalToneCurveFloat(Curve, Curve.Segments[i].x0);
         }
 
         return Curve;
@@ -4172,10 +4180,10 @@ public static unsafe partial class Lcms2
 
     private static bool ReadMPECurve(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint _)
     {
-        if (Cargo is not BoxPtr2<ToneCurve> GammaTables)
+        if (Cargo is not ToneCurve[] GammaTables)
             return false;
 
-        GammaTables.Ptr[n] = ReadSegmentedCurve(self, io);
+        GammaTables[n] = ReadSegmentedCurve(self, io)!;
         return GammaTables[n] is not null;
     }
 
@@ -4193,10 +4201,12 @@ public static unsafe partial class Lcms2
 
         if (InputChans != OutputChans) return null;
 
-        var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>());
-        if (GammaTables is null) return null;
+        //var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>());
+        //if (GammaTables is null) return null;
+        var pool = Context.GetPool<ToneCurve>(self->ContextID);
+        var GammaTables = pool.Rent(InputChans);
 
-        var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, new BoxPtr2<ToneCurve>(GammaTables), &ReadMPECurve)
+        var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, GammaTables, &ReadMPECurve)
             ? cmsStageAllocToneCurves(self->ContextID, InputChans, GammaTables)
             : null;
 
@@ -4208,12 +4218,12 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    private static bool WriteSegmentedCurve(IOHandler io, ToneCurve* g)
+    private static bool WriteSegmentedCurve(IOHandler io, ToneCurve g)
     {
         var ParamsByType = stackalloc uint[] { 4, 5, 5 };
 
-        var Segments = g->Segments;
-        var nSegments = g->nSegments;
+        var Segments = g.Segments;
+        var nSegments = g.nSegments;
 
         if (!_cmsWriteUInt32Number(io, cmsSigSegmentedCurve)) return false;
         if (!_cmsWriteUInt32Number(io, 0)) return false;
@@ -4236,7 +4246,7 @@ public static unsafe partial class Lcms2
                 if (!_cmsWriteUInt32Number(io, 0)) return false;
                 if (!_cmsWriteUInt32Number(io, ActualSeg.nGridPoints - 1)) return false;
 
-                for (var j = 1; j < g->Segments[i].nGridPoints; j++)
+                for (var j = 1; j < g.Segments[i].nGridPoints; j++)
                     if (!_cmsWriteFloat32Number(io, ActualSeg.SampledPoints[j])) return false;
             }
             else

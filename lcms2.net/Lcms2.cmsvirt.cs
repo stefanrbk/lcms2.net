@@ -102,7 +102,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static Profile? cmsCreateRGBProfileTHR(Context? ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction)
+    public static Profile? cmsCreateRGBProfileTHR(Context? ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ReadOnlySpan<ToneCurve> TransferFunction)
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
@@ -179,10 +179,10 @@ public static unsafe partial class Lcms2
             }
         }
 
-        if (TransferFunction is not null)
+        if (!TransferFunction.IsEmpty)
         {
             // Tries to minimize space. Thanks to Richard Hughes for this nice idea
-            if (!cmsWriteTag(hICC, cmsSigRedTRCTag, new BoxPtr<ToneCurve>(TransferFunction[0])))
+            if (!cmsWriteTag(hICC, cmsSigRedTRCTag, TransferFunction[0]))
                 goto Error;
 
             if (TransferFunction[1] == TransferFunction[0])
@@ -191,7 +191,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                if (!cmsWriteTag(hICC, cmsSigGreenTRCTag, new BoxPtr<ToneCurve>(TransferFunction[1]))) goto Error;
+                if (!cmsWriteTag(hICC, cmsSigGreenTRCTag, TransferFunction[1])) goto Error;
             }
 
             if (TransferFunction[2] == TransferFunction[0])
@@ -200,7 +200,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                if (!cmsWriteTag(hICC, cmsSigBlueTRCTag, new BoxPtr<ToneCurve>(TransferFunction[2]))) goto Error;
+                if (!cmsWriteTag(hICC, cmsSigBlueTRCTag, TransferFunction[2])) goto Error;
             }
         }
 
@@ -215,10 +215,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ToneCurve** TransferFunction) =>
+    public static Profile? cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ReadOnlySpan<ToneCurve> TransferFunction) =>
         cmsCreateRGBProfileTHR(null, WhitePoint, Primaries, TransferFunction);
 
-    public static Profile? cmsCreateGrayProfileTHR(Context? ContextID, in CIExyY* WhitePoint, ToneCurve* TransferFunction)
+    public static Profile? cmsCreateGrayProfileTHR(Context? ContextID, in CIExyY* WhitePoint, ToneCurve TransferFunction)
     {
         CIEXYZ tmp;
 
@@ -251,7 +251,7 @@ public static unsafe partial class Lcms2
             if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(&tmp))) goto Error;
         }
 
-        if (TransferFunction is not null && !cmsWriteTag(hICC, cmsSigGrayTRCTag, new BoxPtr<ToneCurve>(TransferFunction))) goto Error;
+        if (TransferFunction is not null && !cmsWriteTag(hICC, cmsSigGrayTRCTag, TransferFunction)) goto Error;
 
         return hICC;
 
@@ -261,10 +261,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve* TransferFunction) =>
+    public static Profile? cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve TransferFunction) =>
         cmsCreateGrayProfileTHR(null, WhitePoint, TransferFunction);
 
-    public static Profile? cmsCreateLinearizationDeviceLinkTHR(Context? ContextID, Signature ColorSpace, ToneCurve** TransferFunctions)
+    public static Profile? cmsCreateLinearizationDeviceLinkTHR(Context? ContextID, Signature ColorSpace, ReadOnlySpan<ToneCurve> TransferFunctions)
     {
         var hICC = cmsCreateProfilePlaceholder(ContextID);
         if (hICC is null) return null;
@@ -306,7 +306,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateLinearizationDeviceLink(Signature ColorSpace, ToneCurve** TransferFunctions) =>
+    public static Profile? cmsCreateLinearizationDeviceLink(Signature ColorSpace, ReadOnlySpan<ToneCurve> TransferFunctions) =>
         cmsCreateLinearizationDeviceLinkTHR(null, ColorSpace, TransferFunctions);
 
     private static bool InkLimitingSampler(in ushort* In, ushort* Out, object? Cargo)
@@ -532,7 +532,7 @@ public static unsafe partial class Lcms2
     public static Profile? cmsCreateXYZProfile() =>
         cmsCreateXYZProfileTHR(null);
 
-    private static ToneCurve* Build_sRGBGamma(Context? ContextID)
+    private static ToneCurve? Build_sRGBGamma(Context? ContextID)
     {
         var Parameters = stackalloc double[5]
         {
@@ -555,23 +555,28 @@ public static unsafe partial class Lcms2
             Green = new() { x = 0.3000, y = 0.6000, Y = 1.0 },
             Blue = new() { x = 0.1500, y = 0.0600, Y = 1.0 },
         };
-        var Gamma22 = stackalloc ToneCurve*[3];
+        var pool = Context.GetPool<ToneCurve>(ContextID);
+        ToneCurve[] Gamma22 = pool.Rent(3);
 
         // cmsWhitePointFromTemp(&D65, 6504);
-        Gamma22[0] = Gamma22[1] = Gamma22[2] = Build_sRGBGamma(ContextID);
-        if (Gamma22[0] is null) return null;
+        Gamma22[0] = Gamma22[1] = Gamma22[2] = Build_sRGBGamma(ContextID)!;
+        if (Gamma22[0] is null) goto Error;
 
         var hsRGB = cmsCreateRGBProfileTHR(ContextID, &D65, &Rec709Primaries, Gamma22);
         cmsFreeToneCurve(Gamma22[0]);
-        if (hsRGB is null) return null;
+        if (hsRGB is null) goto Error;
 
         if (!SetTextTags(hsRGB, "sRGB build-in"))
         {
             cmsCloseProfile(hsRGB);
-            return null;
+            goto Error;
         }
 
         return hsRGB;
+
+    Error:
+        pool.Return(Gamma22);
+        return null;
     }
 
     public static Profile? cmsCreate_sRGBProfile() =>
@@ -707,10 +712,12 @@ public static unsafe partial class Lcms2
 
     public static Profile? cmsCreateNULLProfileTHR(Context? ContextID)
     {
-        var EmptyTab = stackalloc ToneCurve*[3];
         var Zero = stackalloc ushort[2] { 0, 0 };
         ReadOnlySpan<double> PickLstarMatrix = stackalloc double[] { 1, 0, 0 };
+        ToneCurve[]? EmptyTab = null;
         Pipeline? LUT = null;
+
+        var pool = Context.GetPool<ToneCurve>(ContextID);
 
         var Profile = cmsCreateProfilePlaceholder(ContextID);
         if (Profile is null) return null;
@@ -727,7 +734,8 @@ public static unsafe partial class Lcms2
         LUT = cmsPipelineAlloc(ContextID, 3, 1);
         if (LUT is null) goto Error;
 
-        EmptyTab[0] = EmptyTab[1] = EmptyTab[2] = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero);
+        EmptyTab = pool.Rent(3);
+        EmptyTab[0] = EmptyTab[1] = EmptyTab[2] = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero)!;
         var PostLin = cmsStageAllocToneCurves(ContextID, 3, EmptyTab);
         var OutLin = cmsStageAllocToneCurves(ContextID, 1, EmptyTab);
         cmsFreeToneCurve(EmptyTab[0]);
@@ -744,10 +752,13 @@ public static unsafe partial class Lcms2
         if (!cmsWriteTag(Profile, cmsSigBToA0Tag, LUT)) goto Error;
         if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()))) goto Error;
 
+        pool.Return(EmptyTab);
         cmsPipelineFree(LUT);
         return Profile;
 
     Error:
+        if (EmptyTab is not null)
+            pool.Return(EmptyTab);
         if (LUT is not null)
             cmsPipelineFree(LUT);
         if (Profile is not null)

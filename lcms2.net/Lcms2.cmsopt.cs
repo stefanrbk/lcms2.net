@@ -307,7 +307,7 @@ public static unsafe partial class Lcms2
 
                     // Recover the chain
                     Multmat.Next = chain;
-                    pt1 = ref Multmat;
+                    pt1 = Multmat;
                 }
 
                 AnyOpt = true;
@@ -410,9 +410,9 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         InterpParams ColorMap,
         uint nInputs,
-        ToneCurve** In,
+        Span<ToneCurve> In,
         uint nOutputs,
-        ToneCurve** Out)
+        Span<ToneCurve> Out)
     {
         //var p16 = _cmsMallocZero<Prelin16Data>(ContextID);
         //if (p16 is null) return null;
@@ -424,14 +424,14 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nInputs; i++)
         {
-            if (In is null)
+            if (In.IsEmpty)
             {
                 p16.ParamsCurveIn16[i] = null;
                 p16.EvalCurveIn16[i] = Eval16nop1D;
             }
             else
             {
-                p16.ParamsCurveIn16[i] = In[i]->InterpParams;
+                p16.ParamsCurveIn16[i] = In[i].InterpParams;
                 p16.EvalCurveIn16[i] = p16.ParamsCurveIn16[i].Interpolation.Lerp16;
             }
         }
@@ -456,14 +456,14 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nOutputs; i++)
         {
-            if (Out is null)
+            if (Out.IsEmpty)
             {
                 p16.ParamsCurveOut16[i] = null;
                 p16.EvalCurveOut16[i] = Eval16nop1D;
             }
             else
             {
-                p16.ParamsCurveOut16[i] = Out[i]->InterpParams;
+                p16.ParamsCurveOut16[i] = Out[i].InterpParams;
                 p16.EvalCurveOut16[i] = p16.ParamsCurveOut16[i].Interpolation;
             }
         }
@@ -502,7 +502,7 @@ public static unsafe partial class Lcms2
     private static bool AllCurvesAreLinear(Stage mpe)
     {
         var Curves = _cmsStageGetPtrToCurveSet(mpe);
-        if (Curves is null) return false;
+        if (Curves.IsEmpty) return false;
 
         var n = cmsStageOutputChannels(mpe);
 
@@ -800,8 +800,8 @@ public static unsafe partial class Lcms2
 
         var DataCLUT = (StageCLutData)CLUT.Data!;
 
-        var DataSetIn = NewPreLin is not null && NewPreLin.Data is StageToneCurvesData dataPre ? dataPre.TheCurves : null;
-        var DataSetOut = NewPostLin is not null && NewPostLin.Data is StageToneCurvesData dataPost ? dataPost.TheCurves : null;
+        var DataSetIn = (NewPreLin?.Data as StageToneCurvesData)?.TheCurves;
+        var DataSetOut = (NewPostLin?.Data as StageToneCurvesData)?.TheCurves;
 
         if (DataSetIn is null && DataSetOut is null)
         {
@@ -848,31 +848,31 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void SlopeLimiting(ToneCurve* g)
+    private static void SlopeLimiting(ToneCurve g)
     {
-        var AtBegin = (int)Math.Floor((g->nEntries * 0.02) + 0.5);  // Cutoff at 2%
-        var AtEnd = (int)g->nEntries - AtBegin - 1;                 // And 98%
+        var AtBegin = (int)Math.Floor((g.nEntries * 0.02) + 0.5);  // Cutoff at 2%
+        var AtEnd = (int)g.nEntries - AtBegin - 1;                 // And 98%
 
         var (BeginVal, EndVal) = cmsIsToneCurveDescending(g) ? (0xFFFF, 0) : (0, 0xFFFF);
 
         // Compute slope and offset for begin of curve
-        var Val = (double)g->Table16[AtBegin];
+        var Val = (double)g.Table16[AtBegin];
         var Slope = (Val - BeginVal) / AtBegin;
         var beta = Val - (Slope * AtBegin);
 
         for (var i = 0; i < AtBegin; i++)
-            g->Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
+            g.Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
 
         // Compute slope and offset for the end
-        Val = g->Table16[AtEnd];
+        Val = g.Table16[AtEnd];
         Slope = (EndVal - Val) / AtBegin;   // AtBegin holds the X interval, which is the same in both cases
         beta = Val - (Slope * AtEnd);
 
-        for (var i = AtEnd; i < g->nEntries; i++)
-            g->Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
+        for (var i = AtEnd; i < g.nEntries; i++)
+            g.Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
     }
 
-    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams p, ToneCurve** G)
+    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams p, Span<ToneCurve> G)
     {
         var Input = stackalloc ushort[3];
 
@@ -884,7 +884,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < 256; i++)
         {
-            if (G is not null)
+            if (!G.IsEmpty)
             {
                 // Get 16-bit representation
                 Input[0] = cmsEvalToneCurve16(G[0], FROM_8_TO_16((uint)i));
@@ -1011,15 +1011,15 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool IsDegenerated(ToneCurve* g)
+    private static bool IsDegenerated(ToneCurve g)
     {
         uint Zeros = 0, Poles = 0;
-        var nEntries = g->nEntries;
+        var nEntries = g.nEntries;
 
         for (var i = 0; i < nEntries; i++)
         {
-            if (g->Table16[i] is 0x0000) Zeros++;
-            if (g->Table16[i] is 0xFFFF) Poles++;
+            if (g.Table16[i] is 0x0000) Zeros++;
+            if (g.Table16[i] is 0xFFFF) Poles++;
         }
 
         if (Zeros is 1 && Poles is 1) return false; // For linear tables
@@ -1031,8 +1031,7 @@ public static unsafe partial class Lcms2
 
     private static bool OptimizeByComputingLinearization(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
     {
-        var Trans = stackalloc ToneCurve*[cmsMAXCHANNELS];
-        var TransReverse = stackalloc ToneCurve*[cmsMAXCHANNELS];
+        var pool = Context.GetPool<ToneCurve>(Lut.ContextID);
         var In = stackalloc float[cmsMAXCHANNELS];
         var Out = stackalloc float[cmsMAXCHANNELS];
         Pipeline? OptimizedLUT = null, LutPlusCurves = null;
@@ -1048,8 +1047,8 @@ public static unsafe partial class Lcms2
         if (T_PLANAR(*OutputFormat) is not 0) return false;
 
         // On 16 bits, user has to specify the feature
-        if (!_cmsFormatterIs8bit(*InputFormat))
-            if ((*dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is 0) return false;
+        if (!_cmsFormatterIs8bit(*InputFormat) && (*dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is 0)
+            return false;
 
         var OriginalLut = Lut;
 
@@ -1057,14 +1056,16 @@ public static unsafe partial class Lcms2
         var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*OutputFormat));
 
         // Color space must be specified
-        if ((uint)ColorSpace is 0 ||
-            (uint)OutputColorSpace is 0) return false;
+        if ((uint)ColorSpace is 0 || (uint)OutputColorSpace is 0)
+            return false;
 
         var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, *dwFlags);
 
         // Empty gamma containers
-        memset(Trans, 0, _sizeof<nint>() * cmsMAXCHANNELS);
-        memset(TransReverse, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        //memset(Trans, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        //memset(TransReverse, 0, _sizeof<nint>() * cmsMAXCHANNELS);
+        ToneCurve[] Trans = pool.Rent(cmsMAXCHANNELS);
+        ToneCurve[] TransReverse = pool.Rent(cmsMAXCHANNELS);
 
         // If the last stage of the original lut are curves, and those curves are
         // degenerated, it is likely the transform is squeezing and clipping
@@ -1097,7 +1098,7 @@ public static unsafe partial class Lcms2
 
             // Feed input with a gray ramp
             for (var t = 0; t < OriginalLut.InputChannels; t++)
-                Trans[t]->Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
+                Trans[t].Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
         }
 
         // Slope-limit the obtained curves
@@ -1198,6 +1199,8 @@ public static unsafe partial class Lcms2
 
         cmsPipelineFree(OriginalLut);
         Lut = OptimizedLUT;
+        pool.Return(TransReverse);
+        pool.Return(Trans);
         return true;
 
     Error:
@@ -1206,6 +1209,8 @@ public static unsafe partial class Lcms2
             if (Trans[t] is not null) cmsFreeToneCurve(Trans[t]);
             if (TransReverse[t] is not null) cmsFreeToneCurve(TransReverse[t]);
         }
+        pool.Return(TransReverse);
+        pool.Return(Trans);
 
         if (LutPlusCurves is not null) cmsPipelineFree(LutPlusCurves);
         if (OptimizedLUT is not null) cmsPipelineFree(OptimizedLUT);
@@ -1242,7 +1247,7 @@ public static unsafe partial class Lcms2
         return new(Data);
     }
 
-    private static Curves16Data* CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve** G)
+    private static Curves16Data* CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve[] G)
     {
         int i;
         var c16 = _cmsMallocZero<Curves16Data>(ContextID);
@@ -1330,7 +1335,6 @@ public static unsafe partial class Lcms2
         var OutFloat = stackalloc float[cmsMAXCHANNELS];
 
         Stage? ObtainedCurves = null;
-        ToneCurve** GammaTables = null;
         Pipeline? Dest = null;
         var Src = Lut;
 
@@ -1350,13 +1354,15 @@ public static unsafe partial class Lcms2
         Dest = cmsPipelineAlloc(Src.ContextID, Src.InputChannels, Src.OutputChannels);
         if (Dest is null) return false;
 
-        // Create target curves
-        GammaTables = _cmsCalloc2<ToneCurve>(Src.ContextID, Src.InputChannels);
-        if (GammaTables is null) goto Error;
+        //// Create target curves
+        //GammaTables = _cmsCalloc2<ToneCurve>(Src.ContextID, Src.InputChannels);
+        //if (GammaTables is null) goto Error;
+        var pool = Context.GetPool<ToneCurve>(Src.ContextID);
+        ToneCurve[] GammaTables = pool.Rent((int)Src.InputChannels);
 
         for (var i = 0; i < Src.InputChannels; i++)
         {
-            GammaTables[i] = cmsBuildTabulatedToneCurve16(Src.ContextID, PRELINEARIZATION_POINTS, null);
+            GammaTables[i] = cmsBuildTabulatedToneCurve16(Src.ContextID, PRELINEARIZATION_POINTS, null)!;
             if (GammaTables[i] is null) goto Error;
         }
 
@@ -1369,7 +1375,7 @@ public static unsafe partial class Lcms2
             cmsPipelineEvalFloat(InFloat, OutFloat, Src);
 
             for (var j = 0; j < Src.InputChannels; j++)
-                GammaTables[j]->Table16[i] = _cmsQuickSaturateWord(OutFloat[j] * 65535.0);
+                GammaTables[j].Table16[i] = _cmsQuickSaturateWord(OutFloat[j] * 65535.0);
         }
 
         ObtainedCurves = cmsStageAllocToneCurves(Src.ContextID, Src.InputChannels, GammaTables);
@@ -1378,13 +1384,13 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < Src.InputChannels; i++)
         {
             cmsFreeToneCurve(GammaTables[i]);
-            GammaTables[i] = null;
+            GammaTables[i] = null!;
         }
 
         if (GammaTables is not null)
         {
             _cmsFree(Src.ContextID, GammaTables);
-            GammaTables = null;
+            GammaTables = null!;
         }
 
         // Maybe the curves are linear at the end
@@ -1433,18 +1439,16 @@ public static unsafe partial class Lcms2
 
     Error:
 
-        if (ObtainedCurves != null) cmsStageFree(ObtainedCurves);
-        if (GammaTables != null)
-        {
-            for (var i = 0; i < Src.InputChannels; i++)
-            {
-                if (GammaTables[i] != null) cmsFreeToneCurve(GammaTables[i]);
-            }
+        for (var i = 0; i < Src.InputChannels; i++)
+            cmsFreeToneCurve(GammaTables?[i]);
+        _cmsFree(Src.ContextID, GammaTables);
 
-            _cmsFree(Src.ContextID, GammaTables);
-        }
+        if (ObtainedCurves is not null)
+            cmsStageFree(ObtainedCurves);
 
-        if (Dest != null) cmsPipelineFree(Dest);
+        if (Dest is not null)
+            cmsPipelineFree(Dest);
+
         return false;
     }
 
@@ -1488,7 +1492,7 @@ public static unsafe partial class Lcms2
         Out[2] = p.Ptr->Shaper2B[bi];
     }
 
-    private static void FillFirstShaper(int* Table, ToneCurve* Curve)
+    private static void FillFirstShaper(int* Table, ToneCurve Curve)
     {
         for (var i = 0; i < 256; i++)
         {
@@ -1501,7 +1505,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void FillSecondShaper(ushort* Table, ToneCurve* Curve, bool Is8BitsOutput)
+    private static void FillSecondShaper(ushort* Table, ToneCurve Curve, bool Is8BitsOutput)
     {
         for (var i = 0; i < 16385; i++)
         {
@@ -1525,7 +1529,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool SetMatShaper(Pipeline Dest, ToneCurve** Curve1, MAT3* Mat, VEC3* Off, ToneCurve** Curve2, uint* OutputFormat)
+    private static bool SetMatShaper(Pipeline Dest, ReadOnlySpan<ToneCurve> Curve1, MAT3* Mat, VEC3* Off, ReadOnlySpan<ToneCurve> Curve2, uint* OutputFormat)
     {
         var Offn = &Off->X;
         bool Is8Bits = _cmsFormatterIs8bit(*OutputFormat);

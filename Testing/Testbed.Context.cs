@@ -259,13 +259,12 @@ public static bool CheckAllocContext()
     // This is the check code for 1D interpolation plug-in
     public static bool CheckInterp1DPlugin()
     {
-        ToneCurve* Sampled1D = null;
-        Context? ctx = null;
+        ToneCurve? Sampled1D = null;
         Context? cpy = null;
         var tab = new float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
 
         // 1st level context
-        ctx = WatchDogContext(null);
+        Context? ctx = WatchDogContext(null);
         if (ctx == null)
         {
             Fail("Cannot create context");
@@ -473,26 +472,21 @@ public static bool CheckAllocContext()
     // --------------------------------------------------------------------------------------------------
     public static bool CheckParametricCurvePlugin()
     {
-        Context? ctx = null;
-        Context? cpy = null;
-        Context? cpy2 = null;
-        ToneCurve* sinus;
-        ToneCurve* cosinus;
-        ToneCurve* tangent;
-        ToneCurve* reverse_sinus;
-        ToneCurve* reverse_cosinus;
+        ToneCurve sinus;
+        ToneCurve cosinus;
+        ToneCurve tangent;
+        ToneCurve reverse_sinus;
+        ToneCurve reverse_cosinus;
         var scale = 1.0;
 
 
-        ctx = WatchDogContext(null);
+        Context? ctx = WatchDogContext(null);
 
         cmsPluginTHR(ctx, CurvePluginSample);
-
-        cpy = DupContext(ctx, null);
+        Context? cpy = DupContext(ctx, null);
 
         cmsPluginTHR(cpy, CurvePluginSample2);
-
-        cpy2 = DupContext(cpy, null);
+        Context? cpy2 = DupContext(cpy, null);
 
         cmsPluginTHR(cpy2, Rec709Plugin);
 
@@ -1047,7 +1041,7 @@ public static bool CheckAllocContext()
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
-        var Linear = stackalloc ToneCurve*[1];
+        var Linear = new ToneCurve[1];
         Profile? h;
         int i;
 
@@ -1112,8 +1106,8 @@ public static bool CheckAllocContext()
         Context? cpy2;
         Transform* xform;
         Profile? h1, h2;
-        ToneCurve* Linear1;
-        ToneCurve* Linear2;
+        ToneCurve Linear1;
+        ToneCurve Linear2;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         int i;
@@ -1123,10 +1117,10 @@ public static bool CheckAllocContext()
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
 
-        Linear1 = cmsBuildGamma(cpy2, 3.0);
-        Linear2 = cmsBuildGamma(cpy2, 0.1);
-        h1 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear1);
-        h2 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear2);
+        Linear1 = cmsBuildGamma(cpy2, 3.0)!;
+        Linear2 = cmsBuildGamma(cpy2, 0.1)!;
+        h1 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear1 });
+        h2 = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear2 });
 
         cmsFreeToneCurve(Linear1);
         cmsFreeToneCurve(Linear2);
@@ -1189,7 +1183,7 @@ public static bool CheckAllocContext()
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
-        ToneCurve* Linear;
+        ToneCurve Linear;
         Profile? h;
         int i;
 
@@ -1198,8 +1192,8 @@ public static bool CheckAllocContext()
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
 
-        Linear = cmsBuildGamma(cpy2, 1.0);
-        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear);
+        Linear = cmsBuildGamma(cpy2, 1.0)!;
+        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear });
         cmsFreeToneCurve(Linear);
 
         xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
@@ -1279,7 +1273,7 @@ public static bool CheckAllocContext()
         Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
-        ToneCurve* Linear;
+        ToneCurve Linear;
         Profile? h;
         int i;
 
@@ -1288,8 +1282,8 @@ public static bool CheckAllocContext()
         cpy = DupContext(ctx, null);
         cpy2 = DupContext(cpy, null);
 
-        Linear = cmsBuildGamma(cpy2, 1.0);
-        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, &Linear);
+        Linear = cmsBuildGamma(cpy2, 1.0)!;
+        h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear });
         cmsFreeToneCurve(Linear);
 
         xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);

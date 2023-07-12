@@ -79,7 +79,7 @@ public static unsafe partial class Lcms2
         return xform;
     }
 
-    private static ToneCurve* ComputeKToLstar(
+    private static ToneCurve? ComputeKToLstar(
         Context? ContextID,
         uint nPoints,
         uint nProfiles,
@@ -92,7 +92,7 @@ public static unsafe partial class Lcms2
         var cmyk = stackalloc float[4];
         CIELab Lab;
 
-        ToneCurve* @out = null;
+        ToneCurve? @out = null;
 
         var xform = _cmsChain2Lab(ContextID, nProfiles, TYPE_CMYK_FLT, TYPE_Lab_DBL, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (xform is null) return null;
@@ -121,7 +121,7 @@ public static unsafe partial class Lcms2
         return @out;
     }
 
-    internal static ToneCurve* _cmsBuildKToneCurve(
+    internal static ToneCurve? _cmsBuildKToneCurve(
         Context? ContextID,
         uint nPoints,
         uint nProfiles,
@@ -133,7 +133,10 @@ public static unsafe partial class Lcms2
     {
         // Make sure CMYK -> CMYK
         if ((uint)cmsGetColorSpace(Profiles[0]) is not cmsSigCmykData ||
-            (uint)cmsGetColorSpace(Profiles[nProfiles - 1]) is not cmsSigCmykData) return null;
+            (uint)cmsGetColorSpace(Profiles[nProfiles - 1]) is not cmsSigCmykData)
+        {
+            return null;
+        }
 
         // Make sure last is an output profile
         if ((uint)cmsGetDeviceClass(Profiles[nProfiles - 1]) is not cmsSigOutputClass) return null;
