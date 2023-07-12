@@ -163,7 +163,7 @@ public static unsafe partial class Lcms2
 
         if (size is 0) return true;     // Write zero bytes is ok, but does nothing
 
-        new Span<byte>(Ptr, (int)size).CopyTo(ResData.Block.Span[..(int)ResData.Pointer]);
+        new Span<byte>(Ptr, (int)size).CopyTo(ResData.Block.Span[(int)ResData.Pointer..]);
         //memmove(ResData.Block + ResData.Pointer, Ptr, size);
         ResData.Pointer += size;
 

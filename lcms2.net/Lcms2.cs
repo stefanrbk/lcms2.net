@@ -1622,6 +1622,22 @@ public static unsafe partial class Lcms2
         return strDestination;
     }
 
+    internal static Span<byte> strcpy(Span<byte> dest, ReadOnlySpan<byte> src)
+    {
+        if (dest.IsEmpty)
+            return dest;
+
+        for (var i = 0; i < src.Length; i++)
+        {
+            dest[i] = src[i];
+
+            if (src[i] is 0)
+                break;
+        }
+
+        return dest;
+    }
+
     internal static byte* strcpy(byte* dest, in byte* src)
     {
         var strSrc = src;
@@ -1694,6 +1710,26 @@ public static unsafe partial class Lcms2
         }
 
         return last;
+    }
+
+    internal static ReadOnlySpan<byte> TrimAsciiBuffer(ReadOnlySpan<byte> str)
+    {
+        if (str.IsEmpty)
+            return str;
+
+        for (var i = 0; i < str.Length; i++)
+            if (str[i] is 0) return str[..i];
+
+        return str;
+    }
+
+    internal static int sprintf(Span<byte> buffer, string format, params object[] args)
+    {
+        var asString = String.Format(format, args);
+        var len = Encoding.ASCII.GetBytes(asString, buffer);
+        buffer[len] = 0;
+
+        return len;
     }
 
     internal static int sprintf(byte* buffer, string format, params object[] args)

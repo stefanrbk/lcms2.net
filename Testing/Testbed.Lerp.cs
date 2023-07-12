@@ -486,7 +486,7 @@ internal static unsafe partial class Testbed
         return false;
     }
 
-    private static void Check3DInterpolationFloatTask(InterpParams p, bool[,,] check, bool[,,] isGood, object? o)
+    private static void Check3DInterpolationFloatTask(InterpParams<float> p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
         var @in = stackalloc float[3];
@@ -665,7 +665,7 @@ internal static unsafe partial class Testbed
         return Validate3DInterpolationValues(check, isGood);
     }
 
-    private static void Check3DInterpolation16Task(InterpParams p, bool[,,] check, bool[,,] isGood, object? o)
+    private static void Check3DInterpolation16Task(InterpParams<ushort> p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
         var @in = stackalloc ushort[3];

@@ -26,7 +26,7 @@
 //
 namespace lcms2.types;
 
-public unsafe class StageCLutData
+public class StageCLutData<T>
 {
     //[StructLayout(LayoutKind.Explicit)]
     //public struct CmsTab
@@ -39,12 +39,13 @@ public unsafe class StageCLutData
     //}
 
     //public CmsTab Tab;
-    public object? Tab;
-    public InterpParams Params;
+    public T[]? Tab;
+    public InterpParams<T> Params;
     public uint nEntries;
-    public bool HasFloatValues;
+    public bool HasFloatValues =>
+        typeof(T) == typeof(float);
 
-    public Span<ushort> T =>
+    public Span<ushort> TUshort =>
         Tab is ushort[] wordTab
             ? wordTab.AsSpan(..(int)nEntries)
             : Span<ushort>.Empty;

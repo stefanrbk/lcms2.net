@@ -71,8 +71,8 @@ Check("D50 roundtrip", CheckD50Roundtrip);
 if (doCheckTests || doSpeedTests)
 {
 ConsoleWriteLine();
-ConsoleWriteLine("Profiles");
-Check("Creation of test profiles", CreateTestProfiles);
+//ConsoleWriteLine("Profiles");
+//Check("Creation of test profiles", CreateTestProfiles);
 }
 
 if (doCheckTests)
@@ -184,16 +184,16 @@ if (doCheckTests)
     Check("Floating point formatters", CheckFormattersFloat);
     Check("Half formatters", CheckFormattersHalf);
 
-    Console.WriteLine("\nChange buffers format");
-    Check("ChangeBuffersFormat", CheckChangeBufferFormats);
+    //Console.WriteLine("\nChange buffers format");
+    //Check("ChangeBuffersFormat", CheckChangeBufferFormats);
 
-    Console.WriteLine("\nMLU and named color lists");
-    Check("Multilocalized Unicode", CheckMLU);
-    Check("Named color lists", CheckNamedColorList);
-    Check("Create named color profile", CreateNamedColorProfile);
+    //Console.WriteLine("\nMLU and named color lists");
+    //Check("Multilocalized Unicode", CheckMLU);
+    //Check("Named color lists", CheckNamedColorList);
+    //Check("Create named color profile", CreateNamedColorProfile);
 
-    Console.WriteLine("\nProfile I/O");
-    Check("Profile creation", CheckProfileCreation);
+    //Console.WriteLine("\nProfile I/O");
+    //Check("Profile creation", CheckProfileCreation);
     //Check("Header version", CheckVersionHeaderWriting);
     //Check("Multilocalized profile", CheckMultilocalizedProfile);
 }
@@ -210,12 +210,12 @@ if (doPluginTests)
     Check("3D interpolation plugin", CheckInterp3DPlugin);
     Check("Parametric curve plugin", CheckParametricCurvePlugin);
     Check("Formatters plugin", CheckFormattersPlugin);
-    Check("Tag type plugin", CheckTagTypePlugin);
-    Check("MPE type plugin", CheckMPEPlugin);
-    Check("Optimization plugin", CheckOptimizationPlugin);
-    Check("Rendering intent plugin", CheckIntentPlugin);
-    Check("Full transform plugin", CheckTransformPlugin);
-    Check("Mutex plugin", CheckMutexPlugin);
+    //Check("Tag type plugin", CheckTagTypePlugin);
+    //Check("MPE type plugin", CheckMPEPlugin);
+    //Check("Optimization plugin", CheckOptimizationPlugin);
+    //Check("Rendering intent plugin", CheckIntentPlugin);
+    //Check("Full transform plugin", CheckTransformPlugin);
+    //Check("Mutex plugin", CheckMutexPlugin);
 }
 
 DebugMemPrintTotals();

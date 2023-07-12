@@ -29,10 +29,10 @@ namespace lcms2.types;
 
 public class ToneCurve
 {
-    internal InterpParams? InterpParams;
+    internal InterpParams<ushort>? InterpParams;
     internal uint nSegments;
     internal CurveSegment[]? Segments;
-    internal InterpParams[]? SegInterp;
+    internal InterpParams<float>[]? SegInterp;
 
     internal ParametricCurveEvaluator[]? Evals;
     internal uint nEntries;

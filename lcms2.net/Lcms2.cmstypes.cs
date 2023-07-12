@@ -1572,32 +1572,32 @@ public static unsafe partial class Lcms2
         ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
-        StageCLutData? clut = null;
+        StageCLutData<ushort>? clut = null;
 
         // Disassemble the LUT into components.
         var mpe = NewLut.Elements;
         if (mpe.Type == cmsSigMatrixElemType)
         {
             if (mpe.InputChannels is not 3 || mpe.OutputChannels is not 3) return false;
-            MatMPE = (StageMatrixData?)mpe.Data;
+            MatMPE = mpe.Data as StageMatrixData;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCurveSetElemType)
+        if (mpe?.Type == cmsSigCurveSetElemType)
         {
-            PreMPE = (StageToneCurvesData?)mpe.Data;
+            PreMPE = mpe.Data as StageToneCurvesData;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCLutElemType)
+        if (mpe?.Type == cmsSigCLutElemType)
         {
-            clut = (StageCLutData?)mpe.Data;
+            clut = mpe.Data as StageCLutData<ushort>;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCurveSetElemType)
+        if (mpe?.Type == cmsSigCurveSetElemType)
         {
-            PostMPE = (StageToneCurvesData?)mpe.Data;
+            PostMPE = mpe.Data as StageToneCurvesData;
             mpe = mpe.Next;
         }
 
@@ -1631,7 +1631,7 @@ public static unsafe partial class Lcms2
             {
                 for (var j = 0; j < nTabSize; j++)
                 {
-                    var val = FROM_16_TO_8(clut.T[j]);
+                    var val = FROM_16_TO_8(clut.TUshort[j]);
                     if (!_cmsWriteUInt8Number(io, val)) return false;
                 }
             }
@@ -1793,32 +1793,32 @@ public static unsafe partial class Lcms2
         ReadOnlySpan<double> ident = stackalloc double[9] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
         StageToneCurvesData? PreMPE = null, PostMPE = null;
         StageMatrixData? MatMPE = null;
-        StageCLutData? clut = null;
+        StageCLutData<ushort>? clut = null;
 
         // Disassemble the LUT into components.
         var mpe = NewLut.Elements;
-        if (mpe is not null && mpe.Type == cmsSigMatrixElemType)
+        if (mpe?.Type == cmsSigMatrixElemType)
         {
             if (mpe.InputChannels is not 3 || mpe.OutputChannels is not 3) return false;
-            MatMPE = (StageMatrixData?)mpe.Data;
+            MatMPE = mpe.Data as StageMatrixData;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCurveSetElemType)
+        if (mpe?.Type == cmsSigCurveSetElemType)
         {
-            PreMPE = (StageToneCurvesData?)mpe.Data;
+            PreMPE = mpe.Data as StageToneCurvesData;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCLutElemType)
+        if (mpe?.Type == cmsSigCLutElemType)
         {
-            clut = (StageCLutData?)mpe.Data;
+            clut = mpe.Data as StageCLutData<ushort>;
             mpe = mpe.Next;
         }
 
-        if (mpe is not null && mpe.Type == cmsSigCurveSetElemType)
+        if (mpe?.Type == cmsSigCurveSetElemType)
         {
-            PostMPE = (StageToneCurvesData?)mpe.Data;
+            PostMPE = mpe.Data as StageToneCurvesData;
             mpe = mpe.Next;
         }
 
@@ -1865,7 +1865,7 @@ public static unsafe partial class Lcms2
         if (nTabSize > 0)
         {
             // The 3D CLUT
-            if (clut is not null && !_cmsWriteUInt16Array(io, nTabSize, (ushort*)Unsafe.AsPointer(ref clut.T.GetPinnableReference()))) return false;
+            if (clut is not null && !_cmsWriteUInt16Array(io, nTabSize, (ushort*)Unsafe.AsPointer(ref clut.TUshort.GetPinnableReference()))) return false;
         }
 
         // The postlinearization table
@@ -1954,7 +1954,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt8Number(io, null)) return null;
 
         var CLUT = cmsStageAllocCLut16bitGranular(self->ContextID, GridPoints, InputChannels, OutputChannels, null);
-        if (CLUT is null || CLUT.Data is not StageCLutData Data)
+        if (CLUT is null || CLUT.Data is not StageCLutData<ushort> Data)
             return null;
 
         // Predcision can be 1 or 2 bytes
@@ -1970,12 +1970,12 @@ public static unsafe partial class Lcms2
                         cmsStageFree(CLUT);
                         return null;
                     }
-                    Data.T[i] = FROM_8_TO_16(v);
+                    Data.TUshort[i] = FROM_8_TO_16(v);
                 }
                 break;
 
             case 2:
-                if (!_cmsReadUInt16Array(io, Data.nEntries, (ushort*)Unsafe.AsPointer(ref Data.T.GetPinnableReference())))
+                if (!_cmsReadUInt16Array(io, Data.nEntries, (ushort*)Unsafe.AsPointer(ref Data.TUshort.GetPinnableReference())))
                 {
                     cmsStageFree(CLUT);
                     return null;
@@ -2181,14 +2181,15 @@ public static unsafe partial class Lcms2
     private static bool WriteCLUT(TagTypeHandler* self, IOHandler io, byte Precision, Stage mpe)
     {
         var gridPoints = stackalloc byte[cmsMAXCHANNELS]; // Number of grid points in each dimension.
-        if (mpe.Data is not StageCLutData CLUT)
-            return false;
 
-        if (CLUT.HasFloatValues)
+        if (mpe.Data is StageCLutData<float>)
         {
             cmsSignalError(self->ContextID, ErrorCode.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
             return false;
         }
+
+        if (mpe.Data is not StageCLutData<ushort> CLUT)
+            return false;
 
         memset(gridPoints, 0, _sizeof<byte>() * cmsMAXCHANNELS);
         for (var i = 0; i < CLUT.Params.nInputs; i++)
@@ -2206,11 +2207,11 @@ public static unsafe partial class Lcms2
         {
             case 1:
                 for (var i = 0; i < CLUT.nEntries; i++)
-                    if (!_cmsWriteUInt8Number(io, FROM_16_TO_8(CLUT.T[i]))) return false;
+                    if (!_cmsWriteUInt8Number(io, FROM_16_TO_8(CLUT.TUshort[i]))) return false;
                 break;
 
             case 2:
-                if (!_cmsWriteUInt16Array(io, CLUT.nEntries, (ushort*)Unsafe.AsPointer(ref CLUT.T.GetPinnableReference()))) return false;
+                if (!_cmsWriteUInt16Array(io, CLUT.nEntries, (ushort*)Unsafe.AsPointer(ref CLUT.TUshort.GetPinnableReference()))) return false;
                 break;
 
             default:
@@ -2509,7 +2510,7 @@ public static unsafe partial class Lcms2
 
             if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
 
-            if (!cmsAppendNamedColor(List, Name, PCS, null)) goto Error;
+            if (!cmsAppendNamedColor(List, new Span<byte>(Name, 34), new Span<ushort>(PCS, 3), null)) goto Error;
         }
 
         *nItems = 1;
@@ -2535,7 +2536,7 @@ public static unsafe partial class Lcms2
         {
             memset(root, 0, cmsMAX_PATH * _sizeof<byte>());
 
-            if (!cmsNamedColorInfo(NamedColorList, i, root, null, null, PCS, null)) return false;
+            if (!cmsNamedColorInfo(NamedColorList, i, new Span<byte>(root, cmsMAX_PATH), null, null, new Span<ushort>(PCS, 3), null)) return false;
             root[32] = 0;
 
             if (!io.Write(io, 32, root)) return false;
@@ -2604,7 +2605,7 @@ public static unsafe partial class Lcms2
             if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
             if (!_cmsReadUInt16Array(io, nDeviceCoords, Colorant)) goto Error;
 
-            if (!cmsAppendNamedColor(v, Root, PCS, Colorant)) goto Error;
+            if (!cmsAppendNamedColor(v, new(Root, 33), new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) goto Error;
         }
 
         *nItems = 1;
@@ -2645,7 +2646,7 @@ public static unsafe partial class Lcms2
             memset(PCS, 0, 3 * _sizeof<ushort>());
             memset(Colorant, 0, cmsMAXCHANNELS * _sizeof<ushort>());
 
-            if (!cmsNamedColorInfo(NamedColorList, i, Root, null, null, PCS, Colorant)) return false;
+            if (!cmsNamedColorInfo(NamedColorList, i, new(Root, cmsMAX_PATH), null, null, new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) return false;
             Root[32] = 0;
             if (!io.Write(io, 32, Root)) return false;
             if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
@@ -4414,7 +4415,7 @@ public static unsafe partial class Lcms2
         if (mpe is null) goto Error;
 
         // Read and sanitize the data
-        var clut = (StageCLutData)mpe.Data;
+        var clut = (StageCLutData<float>)mpe.Data;
         for (var i = 0; i < clut.nEntries; i++)
             fixed (float* t = &clut.TFloat[i]) if (!_cmsReadFloat32Number(io, t)) goto Error;
 
@@ -4428,15 +4429,19 @@ public static unsafe partial class Lcms2
 
     private static bool Type_MPEclut_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not Stage mpe ||
-            mpe.Data is not StageCLutData clut) return false;
         var Dimensions8 = stackalloc byte[16];
+
+        if (Ptr is not Stage mpe || mpe.Data is not StageCLutData<float> clut)
+            return false;
 
         // Check for maximum number of channels supported by lcms
         if (mpe.InputChannels > MAX_INPUT_DIMENSIONS) return false;
 
-        // Only floats are supported in MPE
-        if (clut.HasFloatValues is false) return false;
+        //// Only floats are supported in MPE
+        //if (!clut.HasFloatValues) return false;
+        //
+        // We already check for HasFloatValues by making sure we are working with
+        // a StageCLutData<float> from the beginning.
 
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.OutputChannels)) return false;

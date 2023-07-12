@@ -42,7 +42,7 @@ public static unsafe partial class Lcms2
     {
         public Context? ContextID;
 
-        public InterpParams p;
+        public InterpParams<ushort> p;
         public fixed ushort rx[256];
         public fixed ushort ry[256];
         public fixed ushort rz[256];
@@ -63,25 +63,25 @@ public static unsafe partial class Lcms2
         // The maximum number of input channels is known in advance
         private readonly InterpFn<ushort>[] evalCurveIn16;
 
-        private readonly InterpParams?[] paramsCurveIn16;
+        private readonly InterpParams<ushort>?[] paramsCurveIn16;
 
         // The evaluator for 3D grid
         public InterpFn<ushort> EvalCLUT;
 
         // (not-owned pointer)
-        public InterpParams CLUTparams;
+        public InterpParams<ushort> CLUTparams;
 
         // Points to an array of curve evaluators in 16 bits (not-owned pointer)
         private readonly InterpFn<ushort>[] evalCurveOut16;
 
         // Points to an array of references to interpolation params (not-owned pointer)
-        private readonly InterpParams?[] paramsCurveOut16;
+        private readonly InterpParams<ushort>?[] paramsCurveOut16;
         private bool disposedValue;
 
         public Span<InterpFn<ushort>> EvalCurveIn16 => evalCurveIn16;
-        public Span<InterpParams?> ParamsCurveIn16 => paramsCurveIn16;
+        public Span<InterpParams<ushort>?> ParamsCurveIn16 => paramsCurveIn16;
         public Span<InterpFn<ushort>> EvalCurveOut16 => evalCurveOut16;
-        public Span<InterpParams?> ParamsCurveOut16 => paramsCurveOut16;
+        public Span<InterpParams<ushort>?> ParamsCurveOut16 => paramsCurveOut16;
 
         public Prelin16Data(Context? context, uint numInputs, uint numOutputs)
         {
@@ -90,7 +90,7 @@ public static unsafe partial class Lcms2
             nOutputs = numOutputs;
 
             var ifPool = Context.GetPool<InterpFn<ushort>>(context);
-            var ipPool = Context.GetPool<InterpParams>(context);
+            var ipPool = Context.GetPool<InterpParams<ushort>>(context);
 
             evalCurveIn16 = ifPool.Rent((int)numInputs);
             paramsCurveIn16 = ipPool.Rent((int)numInputs);
@@ -106,7 +106,7 @@ public static unsafe partial class Lcms2
                 if (disposing)
                 {
                     var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
-                    var ipPool = Context.GetPool<InterpParams>(ContextID);
+                    var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
 
                     ifPool.Return(evalCurveIn16);
                     ipPool.Return(paramsCurveIn16);
@@ -357,7 +357,7 @@ public static unsafe partial class Lcms2
         return AnyOpt;
     }
 
-    private static void Eval16nop1D(in ushort* Input, ushort* Output, InterpParams _)
+    private static void Eval16nop1D(in ushort* Input, ushort* Output, InterpParams<ushort> _)
     {
         Output[0] = Input[0];
     }
@@ -408,7 +408,7 @@ public static unsafe partial class Lcms2
 
     private static Prelin16Data? PrelinOpt16alloc(
         Context? ContextID,
-        InterpParams ColorMap,
+        InterpParams<ushort> ColorMap,
         uint nInputs,
         Span<ToneCurve> In,
         uint nOutputs,
@@ -519,7 +519,7 @@ public static unsafe partial class Lcms2
         uint nChannelsOut,
         uint nChannelsIn)
     {
-        if (CLUT is null || CLUT.Data is not StageCLutData Grid)
+        if (CLUT is null || CLUT.Data is not StageCLutData<ushort> Grid)
             return false;
         var p16 = Grid.Params;
         double px, py, pz, pw;
@@ -604,7 +604,7 @@ public static unsafe partial class Lcms2
         }
 
         for (var i = 0; i < nChannelsOut; i++)
-            Grid.T[index + i] = Value[i];
+            Grid.Tab[index + i] = Value[i];
 
         return true;
     }
@@ -798,7 +798,7 @@ public static unsafe partial class Lcms2
         if (KeepPostLin is not null) cmsStageFree(KeepPostLin);
         cmsPipelineFree(Src);
 
-        var DataCLUT = (StageCLutData)CLUT.Data!;
+        var DataCLUT = (StageCLutData<ushort>)CLUT.Data!;
 
         var DataSetIn = (NewPreLin?.Data as StageToneCurvesData)?.TheCurves;
         var DataSetOut = (NewPostLin?.Data as StageToneCurvesData)?.TheCurves;
@@ -809,7 +809,7 @@ public static unsafe partial class Lcms2
                 Dest,
                 (in ushort* i, ushort* o, object? p) =>
                 {
-                    if (p is not InterpParams ptr) return;
+                    if (p is not InterpParams<ushort> ptr) return;
                     DataCLUT.Params.Interpolation.Lerp16?.Invoke(i, o, ptr);
                 },
                 DataCLUT.Params,
@@ -872,7 +872,7 @@ public static unsafe partial class Lcms2
             g.Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
     }
 
-    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams p, Span<ToneCurve> G)
+    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams<ushort> p, Span<ToneCurve> G)
     {
         var Input = stackalloc ushort[3];
 
@@ -938,8 +938,7 @@ public static unsafe partial class Lcms2
 
         var p = p8.Ptr->p;
         var TotalOut = (int)p.nOutputs;
-        if (p.Table is not Memory<ushort> tab)
-            return;
+        var tab = p.Table;
 
         var r = (byte)(Input[0] >> 8);
         var g = (byte)(Input[1] >> 8);
@@ -1169,7 +1168,7 @@ public static unsafe partial class Lcms2
         cmsPipelineFree(LutPlusCurves);
 
         var OptimizedPrelinCurves = _cmsStageGetPtrToCurveSet(OptimizedPrelinMpe);
-        if (OptimizedCLUTmpe.Data is not StageCLutData OptimizedPrelinCLUT)
+        if (OptimizedCLUTmpe.Data is not StageCLutData<ushort> OptimizedPrelinCLUT)
             return false;
 
         // Set the evaluator if 8-bit

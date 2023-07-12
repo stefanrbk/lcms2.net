@@ -271,7 +271,7 @@ public static unsafe partial class Lcms2
 
     private struct PsSamplerCargo
     {
-        public StageCLutData Pipeline;
+        public StageCLutData<ushort> Pipeline;
         public IOHandler m;
 
         public int FirstComponent;
@@ -596,7 +596,7 @@ public static unsafe partial class Lcms2
     {
         PsSamplerCargo sc;
 
-        if (mpe.Data is not StageCLutData clut)
+        if (mpe.Data is not StageCLutData<ushort> clut)
             return;
 
         sc.FirstComponent = -1;
@@ -903,14 +903,15 @@ public static unsafe partial class Lcms2
 
     private static bool WriteNamedColorCSA(IOHandler m, Profile hNamedColor, uint Intent)
     {
-        var ColorName = stackalloc byte[cmsMAX_PATH];
-
         var hLab = cmsCreateLab4ProfileTHR(m.ContextID, null);
         var xform = cmsCreateTransform(hNamedColor, TYPE_NAMED_COLOR_INDEX, hLab, TYPE_Lab_DBL, Intent, 0);
         if (xform is null) return false;
 
         var NamedColorList = cmsGetNamedColorList(xform);
         if (NamedColorList is null) return false;
+
+        var pool = Context.GetPool<byte>(NamedColorList.Ptr->ContextID);
+        var ColorName = pool.Rent(cmsMAX_PATH);
 
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "(colorlistcomment) (Named color CSA)\n");
@@ -930,7 +931,7 @@ public static unsafe partial class Lcms2
                 continue;
 
             cmsDoTransform(xform, In, &Lab, 1);
-            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", new string((sbyte*)ColorName), Lab.L, Lab.a, Lab.b);
+            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Lab.L, Lab.a, Lab.b);
         }
 
         _cmsIOPrintf(m, ">>\n");
@@ -1197,7 +1198,7 @@ public static unsafe partial class Lcms2
 
     private static bool WriteNamedColorCRD(IOHandler m, Profile hNamedColor, uint Intent, uint dwFlags)
     {
-        var ColorName = stackalloc byte[cmsMAX_PATH];
+        Span<byte> ColorName = stackalloc byte[cmsMAX_PATH];
         var Colorant = stackalloc byte[512];
 
         var OutputFormat = cmsFormatterForColorspaceOfProfile(hNamedColor, 2, false);
@@ -1227,7 +1228,7 @@ public static unsafe partial class Lcms2
 
             cmsDoTransform(xform, In, Out, 1);
             BuildColorantList(Colorant, nColorant, Out);
-            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", new string((sbyte*)ColorName), new string((sbyte*)Colorant));
+            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), new string((sbyte*)Colorant));
         }
 
         _cmsIOPrintf(m, "   >>");

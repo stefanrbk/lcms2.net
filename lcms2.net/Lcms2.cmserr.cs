@@ -51,6 +51,28 @@ public static unsafe partial class Lcms2
     public static int cmsGetEncodedCMMversion() =>
         LCMS_VERSION;
 
+    public static int cmsstrcasecmp(ReadOnlySpan<byte> s1, ReadOnlySpan<byte> s2)
+    {
+        var ss1 = s1;
+        var ss2 = s2;
+
+        var us1 = (char)s1[0];
+        var us2 = (char)s2[0];
+
+        while (Char.ToUpper(us1) == Char.ToUpper(us2))
+        {
+            ss1 = ss1.Length > 1 ? ss1[1..] : ReadOnlySpan<byte>.Empty;
+            ss2 = ss2.Length > 1 ? ss2[1..] : ReadOnlySpan<byte>.Empty;
+            us1 = !ss1.IsEmpty ? (char)ss1[0] : '\0';
+            us2 = !ss2.IsEmpty ? (char)ss2[0] : '\0';
+
+            if (us1 is '\0')
+                return 0;
+        }
+
+        return Char.ToUpper(us1) - Char.ToUpper(us2);
+    }
+
     public static int cmsstrcasecmp(in byte* s1, in byte* s2)
     {
         var ss1 = s1;

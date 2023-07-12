@@ -42,7 +42,7 @@ public static unsafe partial class Lcms2
     public delegate void* MallocZerocFnPtrType(Context? ContextID, uint size);
     public delegate void* CallocFnPtrType(Context? ContextID, uint num, uint size);
     public delegate void* DupFnPtrType(Context? ContextID, in void* Org, uint size);
-    public delegate void InterpFn<T>(in T* Input, T* Output, InterpParams p);
+    public delegate void InterpFn<T>(in T* Input, T* Output, InterpParams<T> p);
     public delegate InterpFunction? InterpFnFactory(uint nInputChannels, uint nOutputChannels, uint dwFlags);
     public delegate double ParametricCurveEvaluator(int Type, in double* Params, double R);
     public delegate byte* Formatter16(Transform* CMMcargo, ushort* Values, byte* Buffer, uint Stride);

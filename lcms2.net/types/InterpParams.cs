@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public class InterpParams : ICloneable, IDisposable
+public class InterpParams<T> : ICloneable, IDisposable
 {
     public Context? ContextID;
     public uint dwFlags;
@@ -38,7 +38,7 @@ public class InterpParams : ICloneable, IDisposable
     public uint[] nSamples;
     public uint[] Domain;
     public uint[] opta;
-    public object? Table;
+    public Memory<T> Table;
     public InterpFunction? Interpolation;
     private bool disposedValue;
 
@@ -78,7 +78,7 @@ public class InterpParams : ICloneable, IDisposable
 
     public object Clone()
     {
-        var result = new InterpParams(ContextID)
+        var result = new InterpParams<T>(ContextID)
         {
             dwFlags = dwFlags,
             nInputs = nInputs,

@@ -320,9 +320,9 @@ internal static unsafe partial class Testbed
     {
         var lut = cmsPipelineAlloc(DbgThread(), 3, 3);
         var rc = true;
-        var PCS = stackalloc ushort[3];
-        var Colorant = stackalloc ushort[cmsMAXCHANNELS];
-        var Name = stackalloc byte[255];
+        Span<ushort> PCS = stackalloc ushort[3];
+        Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> Name = stackalloc byte[255];
         var Inw = stackalloc ushort[3];
         var Outw = stackalloc ushort[3];
         var pre = "pre"u8;
@@ -337,7 +337,7 @@ internal static unsafe partial class Testbed
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)i;
 
             sprintf(Name, $"#{i}");
-            if (!cmsAppendNamedColor(nc, new Span<byte>(Name, 255), PCS, Colorant)) { rc = false; break; }
+            if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { rc = false; break; }
         }
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, _cmsStageAllocNamedColor(nc, false));

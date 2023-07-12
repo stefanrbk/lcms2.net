@@ -407,7 +407,7 @@ public static unsafe partial class Lcms2
 
     private static void EvaluateCLUTfloat(in float* In, float* Out, Stage mpe)
     {
-        if (mpe.Data is not StageCLutData Data)
+        if (mpe.Data is not StageCLutData<float> Data)
             return;
 
         Data.Params.Interpolation.LerpFloat?.Invoke(In, Out, Data.Params);
@@ -415,7 +415,7 @@ public static unsafe partial class Lcms2
 
     private static void EvaluateCLUTfloatIn16(in float* In, float* Out, Stage mpe)
     {
-        if (mpe.Data is not StageCLutData Data)
+        if (mpe.Data is not StageCLutData<ushort> Data)
             return;
 
         var In16 = stackalloc ushort[MAX_STAGE_CHANNELS];
@@ -451,50 +451,67 @@ public static unsafe partial class Lcms2
 
     private static object? CLUTElemDup(Stage mpe)
     {
-        if (mpe.Data is not StageCLutData Data)
-            return null;
-
-        var wordPool = Context.GetPool<ushort>(mpe.ContextID);
-        var floatPool = Context.GetPool<float>(mpe.ContextID);
-
-        var NewElem = new StageCLutData
+        if (mpe.Data is StageCLutData<float> DataF)
         {
-            nEntries = Data.nEntries,
-            HasFloatValues = Data.HasFloatValues
-        };
+            var pool = Context.GetPool<float>(mpe.ContextID);
 
-        //if (NewElem is null) return null;
+            var NewElem = new StageCLutData<float>
+            {
+                nEntries = DataF.nEntries
+            };
 
-        if (Data.Tab is not null)
-        {
-            if (Data.HasFloatValues)
+            //if (NewElem is null) return null;
+
+            if (DataF.Tab is not null)
             {
                 //NewElem.Tab = _cmsDupMem<float>(mpe.ContextID, Data.TFloat, Data.nEntries);
                 //if (NewElem.Tab is null)
                 //    goto Error;
-                NewElem.Tab = floatPool.Rent((int)Data.nEntries);
-                Data.TFloat.CopyTo(NewElem.TFloat);
+                NewElem.Tab = pool.Rent((int)DataF.nEntries);
+                DataF.TFloat.CopyTo(NewElem.TFloat);
             }
-            else
+
+            var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
+                                                    DataF.Params.nSamples,
+                                                    DataF.Params.nInputs,
+                                                    DataF.Params.nOutputs,
+                                                    NewElem.Tab,
+                                                    (LerpFlag)DataF.Params.dwFlags)!;
+            if (@params is not null)
+            {
+                NewElem.Params = @params;
+                return NewElem;
+            }
+        }
+        if (mpe.Data is StageCLutData<ushort> Data)
+        {
+            var pool = Context.GetPool<ushort>(mpe.ContextID);
+
+            var NewElem = new StageCLutData<ushort>
+            {
+                nEntries = Data.nEntries
+            };
+
+            if (Data.Tab is not null)
             {
                 //NewElem.Tab = _cmsDupMem<ushort>(mpe.ContextID, Data.T, Data.nEntries);
                 //if (NewElem.Tab is null)
                 //    goto Error;
-                NewElem.Tab = wordPool.Rent((int)Data.nEntries);
-                Data.T.CopyTo(NewElem.T);
+                NewElem.Tab = pool.Rent((int)Data.nEntries);
+                Data.TUshort.CopyTo(NewElem.TUshort);
             }
-        }
 
-        var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
-                                                Data.Params.nSamples,
-                                                Data.Params.nInputs,
-                                                Data.Params.nOutputs,
-                                                NewElem.Tab,
-                                                (LerpFlag)Data.Params.dwFlags)!;
-        if (@params is not null)
-        {
-            NewElem.Params = @params;
-            return NewElem;
+            var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
+                                                    Data.Params.nSamples,
+                                                    Data.Params.nInputs,
+                                                    Data.Params.nOutputs,
+                                                    NewElem.Tab,
+                                                    (LerpFlag)Data.Params.dwFlags)!;
+            if (@params is not null)
+            {
+                NewElem.Params = @params;
+                return NewElem;
+            }
         }
 
         //Error:
@@ -506,19 +523,25 @@ public static unsafe partial class Lcms2
 
     private static void CLutElemTypeFree(Stage mpe)
     {
-        if (mpe.Data is not StageCLutData Data)
-            return;
-
         // This works for both types
         //if (Data.Tab.T is not null)
         //    _cmsFree(mpe.ContextID, Data.Tab.T);
-        if (Data.Tab is float[] tfloat)
-            _cmsFree(mpe.ContextID, tfloat);
-        if (Data.Tab is ushort[] t)
-            _cmsFree(mpe.ContextID, t);
-        Data.Tab = null;
 
-        _cmsFreeInterpParams(Data.Params);
+        if (mpe.Data is StageCLutData<float> DataF)
+        {
+            _cmsFree(mpe.ContextID, DataF.Tab);
+            DataF.Tab = null;
+
+            _cmsFreeInterpParams(DataF.Params);
+        }
+
+        if (mpe.Data is StageCLutData<ushort> DataU)
+        {
+            _cmsFree(mpe.ContextID, DataU.Tab);
+            DataU.Tab = null;
+
+            _cmsFreeInterpParams(DataU.Params);
+        }
     }
 
     public static Stage? cmsStageAllocCLut16bitGranular(
@@ -541,7 +564,7 @@ public static unsafe partial class Lcms2
 
         if (NewMPE is null) return null;
 
-        var NewElem = new StageCLutData();
+        var NewElem = new StageCLutData<ushort>();
         if (NewElem is null)
         {
             cmsStageFree(NewMPE);
@@ -551,7 +574,6 @@ public static unsafe partial class Lcms2
         NewMPE.Data = NewElem;
 
         var n = NewElem.nEntries = outputChan * CubeSize(clutPoints, inputChan);
-        NewElem.HasFloatValues = false;
 
         if (n is 0)
         {
@@ -571,7 +593,7 @@ public static unsafe partial class Lcms2
         {
             for (var i = 0; i < n; i++)
             {
-                NewElem.T[i] = Table[i];
+                NewElem.TUshort[i] = Table[i];
             }
         }
 
@@ -643,7 +665,7 @@ public static unsafe partial class Lcms2
             null!);
         if (NewMPE is null) return null;
 
-        var NewElem = new StageCLutData();
+        var NewElem = new StageCLutData<float>();
         if (NewElem is null)
         {
             cmsStageFree(NewMPE);
@@ -654,7 +676,6 @@ public static unsafe partial class Lcms2
 
         // There is a potential integer overflow on conputing n and nEntries.
         var n = NewElem.nEntries = outputChan * CubeSize(clutPoints, inputChan);
-        NewElem.HasFloatValues = true;
 
         if (n is 0)
         {
@@ -730,7 +751,7 @@ public static unsafe partial class Lcms2
         var In = stackalloc ushort[MAX_INPUT_DIMENSIONS + 1];
         var Out = stackalloc ushort[MAX_INPUT_DIMENSIONS];
 
-        if (mpe?.Data is not StageCLutData clut)
+        if (mpe?.Data is not StageCLutData<ushort> clut)
             return false;
 
         var nSamples = clut.Params.nSamples;
@@ -758,10 +779,10 @@ public static unsafe partial class Lcms2
                 In[t] = _cmsQuantizeVal(Colorant, nSamples[t]);
             }
 
-            if (!clut.T.IsEmpty)
+            if (!clut.TUshort.IsEmpty)
             {
                 for (var t = 0; t < (int)nOutputs; t++)
-                    Out[t] = clut.T[index + t];
+                    Out[t] = clut.TUshort[index + t];
             }
 
             if (!Sampler(In, Out, Cargo))
@@ -769,10 +790,10 @@ public static unsafe partial class Lcms2
 
             if (dwFlags.IsUnset(SamplerFlag.Inspect))
             {
-                if (!clut.T.IsEmpty)
+                if (!clut.TUshort.IsEmpty)
                 {
                     for (var t = 0; t < (int)nOutputs; t++)
-                        clut.T[index + t] = Out[t];
+                        clut.TUshort[index + t] = Out[t];
                 }
             }
 
@@ -787,7 +808,7 @@ public static unsafe partial class Lcms2
         var In = stackalloc float[MAX_INPUT_DIMENSIONS + 1];
         var Out = stackalloc float[MAX_INPUT_DIMENSIONS];
 
-        if (mpe?.Data is not StageCLutData clut)
+        if (mpe?.Data is not StageCLutData<float> clut)
             return false;
 
         var nSamples = clut.Params.nSamples;

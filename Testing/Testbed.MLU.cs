@@ -201,7 +201,7 @@ internal static unsafe partial class Testbed
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(4096 - i);
 
             sprintf(Name, "#{0}", i);
-            if (!cmsAppendNamedColor(nc, new Span<byte>(Name, 255), PCS, Colorant)) { rc = false; break; }
+            if (!cmsAppendNamedColor(nc, new (Name, 255), new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; break; }
         }
 
         for (i = 0; i < 4096; i++)
@@ -211,7 +211,7 @@ internal static unsafe partial class Testbed
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
-            if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
+            if (!cmsNamedColorInfo(nc, (uint)i, new(Name, 255), null, null, new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; goto Error; }
 
 
             for (j = 0; j < 3; j++)
@@ -250,7 +250,7 @@ internal static unsafe partial class Testbed
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
-            if (!cmsNamedColorInfo(nc2, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
+            if (!cmsNamedColorInfo(nc2, (uint)i, new(Name, 255), null, null, new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; goto Error; }
 
 
             for (j = 0; j < 3; j++)
@@ -318,13 +318,13 @@ internal static unsafe partial class Testbed
         Lab.L = 50; Lab.a = 10; Lab.b = -10;
         cmsFloat2LabEncodedV2(PCS, &Lab);
         Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
-        cmsAppendNamedColor(colors, "Hazelnut 14-1315"u8, PCS, Colorant);
+        cmsAppendNamedColor(colors, "Hazelnut 14-1315"u8, new(PCS, 3), new(Colorant, cmsMAXCHANNELS));
 
         // Another one. Consider to write a routine for that
         Lab.L = 40; Lab.a = -5; Lab.b = 8;
         cmsFloat2LabEncodedV2(PCS, &Lab);
         Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
-        cmsAppendNamedColor(colors, "Kale 18-0107"u8, PCS, Colorant);
+        cmsAppendNamedColor(colors, "Kale 18-0107"u8, new(PCS, 3), new(Colorant, cmsMAXCHANNELS));
 
         // Write the colors database
         cmsWriteTag(hProfile, cmsSigNamedColor2Tag, new BoxPtr<NamedColorList>(colors));

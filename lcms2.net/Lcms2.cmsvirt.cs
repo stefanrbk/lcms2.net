@@ -822,7 +822,10 @@ public static unsafe partial class Lcms2
 
         // Apply the transform to colorants.
         for (var i = 0; i < nColors; i++)
-            cmsDoTransform(xform, &i, nc2.Ptr->List[i].DeviceColorant, 1);
+        {
+            fixed (ushort* colorant = &nc2.Ptr->List[i].DeviceColorant[0])
+            cmsDoTransform(xform, &i, colorant, 1);
+        }
 
         if (!cmsWriteTag(hICC, cmsSigNamedColor2Tag, nc2)) goto Error;
         cmsFreeNamedColorList(nc2);

@@ -186,7 +186,7 @@ public static unsafe partial class Lcms2
         in ushort* Values)
     {
         var csPool = Context.GetPool<CurveSegment>(ContextID);
-        var ipPool = Context.GetPool<InterpParams>(ContextID);
+        var ipPool = Context.GetPool<InterpParams<float>>(ContextID);
         var pcePool = Context.GetPool<ParametricCurveEvaluator>(ContextID);
 
         // We allow huge tables, which are then restricted for smoothing operations
@@ -261,7 +261,7 @@ public static unsafe partial class Lcms2
             {
                 // Type 0 is a special marker for table-based curves
                 if (Segments[i].Type == 0)
-                    p.SegInterp[i] = _cmsComputeInterpParams(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
+                    p.SegInterp[i] = _cmsComputeInterpParams<float>(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
 
                 //memcpy(&p->Segments[i], &Segments[i], _sizeof<CurveSegment>());
                 p.Segments[i] = Segments[i];
@@ -888,7 +888,7 @@ public static unsafe partial class Lcms2
         return @out;
     }
 
-    private static int GetInterval(double In, in ushort* LutTable, InterpParams p)
+    private static int GetInterval<T>(double In, in ushort* LutTable, InterpParams<T> p)
     {
         // A 1 point table is not allowed
         if (p.Domain[0] < 1) return -1;

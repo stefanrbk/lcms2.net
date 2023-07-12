@@ -38,7 +38,7 @@ public unsafe struct NamedColorList
     public fixed byte Prefix[33];
     public fixed byte Suffix[33];
 
-    public NamedColor* List;
+    public NamedColor[] List;
 
     public Context? ContextID;
 }

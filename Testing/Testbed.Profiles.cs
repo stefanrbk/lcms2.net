@@ -749,12 +749,12 @@ internal static unsafe partial class Testbed
         NamedColorList* nc;
         int i, j;
         bool rc;
-        var Name = stackalloc byte[255];
-        var PCS = stackalloc ushort[3];
-        var Colorant = stackalloc ushort[cmsMAXCHANNELS];
-        var CheckName = stackalloc byte[255];
-        var CheckPCS = stackalloc ushort[3];
-        var CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> Name = stackalloc byte[255];
+        Span<ushort> PCS = stackalloc ushort[3];
+        Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> CheckName = stackalloc byte[255];
+        Span<ushort> CheckPCS = stackalloc ushort[3];
+        Span<ushort> CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
 
         switch (Pass)
         {
@@ -771,7 +771,7 @@ internal static unsafe partial class Testbed
                     Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(max_check - i);
 
                     sprintf(Name, "#{0}", i);
-                    if (!cmsAppendNamedColor(nc, new ReadOnlySpan<byte>(Name, 255), PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
+                    if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
                 }
 
                 rc = cmsWriteTag(hProfile, tag, new BoxPtr<NamedColorList>(nc));

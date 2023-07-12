@@ -56,13 +56,11 @@ internal static unsafe partial class Testbed
     // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
     private static void Fake1Dfloat(in float* Value,
                                     float* Output,
-                                    InterpParams p)
+                                    InterpParams<float> p)
     {
         float val2;
         int cell;
-        if (p.Table is not Memory<float> tab)
-            return;
-        var LutTable = tab.Span;
+        var LutTable = p.Table.Span;
 
            // Clip upper values
            if (Value[0] >= 1.0) {
@@ -78,7 +76,7 @@ internal static unsafe partial class Testbed
     // This fake interpolation just uses scrambled negated indexes for output
     private static void Fake3D16(in ushort* Input,
                                  ushort* Output,
-                                 InterpParams _)
+                                 InterpParams<ushort> _)
     {
         Output[0] = (ushort)(0xFFFF - Input[2]);
         Output[1] = (ushort)(0xFFFF - Input[1]);
