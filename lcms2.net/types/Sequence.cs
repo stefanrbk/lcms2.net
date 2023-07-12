@@ -28,14 +28,14 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct Sequence
+public class Sequence
 {
     public uint n;
     public Context? ContextID;
-    public ProfileSequenceDescription* seq;
+    public ProfileSequenceDescription[] seq;
 }
 
-public unsafe struct ProfileSequenceDescription
+public class ProfileSequenceDescription
 {
     public Signature deviceMfg;
     public Signature deviceModel;

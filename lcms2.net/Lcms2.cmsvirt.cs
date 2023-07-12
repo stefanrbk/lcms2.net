@@ -80,15 +80,15 @@ public static unsafe partial class Lcms2
 
         if (Seq is null) return false;
 
-        Seq->seq[0].deviceMfg = 0;
-        Seq->seq[0].deviceModel = 0;
+        Seq.seq[0].deviceMfg = 0;
+        Seq.seq[0].deviceModel = 0;
 
-        Seq->seq[0].attributes = 0;
+        Seq.seq[0].attributes = 0;
 
-        Seq->seq[0].technology = 0;
+        Seq.seq[0].technology = 0;
 
-        cmsMLUsetASCII(Seq->seq[0].Manufacturer, cmsNoLanguage, cmsNoCountry, name);
-        cmsMLUsetASCII(Seq->seq[0].Model, cmsNoLanguage, cmsNoCountry, Model);
+        cmsMLUsetASCII(Seq.seq[0].Manufacturer, cmsNoLanguage, cmsNoCountry, name);
+        cmsMLUsetASCII(Seq.seq[0].Model, cmsNoLanguage, cmsNoCountry, Model);
 
         if (!_cmsWriteProfileSequence(Profile, Seq))
             goto Error;

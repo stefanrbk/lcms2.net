@@ -1211,7 +1211,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckProfileSequenceTag(int Pass, Profile hProfile)
     {
-        Sequence* s;
+        Sequence s;
         int i;
 
         switch (Pass)
@@ -1223,45 +1223,45 @@ internal static unsafe partial class Testbed
                 if (s == null)
                     return false;
 
-                SetOneStr(out s->seq[0].Manufacturer, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(out s->seq[0].Model, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(out s->seq[1].Manufacturer, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(out s->seq[1].Model, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(out s->seq[2].Manufacturer, "Hello, world 2", "Hola, mundo 2");
-                SetOneStr(out s->seq[2].Model, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s.seq[0].Manufacturer, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s.seq[0].Model, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s.seq[1].Manufacturer, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s.seq[1].Model, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s.seq[2].Manufacturer, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s.seq[2].Model, "Hello, world 2", "Hola, mundo 2");
 
-                s->seq[0].attributes = cmsTransparency | cmsMatte;
-                s->seq[1].attributes = cmsReflective | cmsMatte;
-                s->seq[2].attributes = cmsTransparency | cmsGlossy;
+                s.seq[0].attributes = cmsTransparency | cmsMatte;
+                s.seq[1].attributes = cmsReflective | cmsMatte;
+                s.seq[2].attributes = cmsTransparency | cmsGlossy;
 
-                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, new BoxPtr<Sequence>(s)))
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceDescTag, s))
                     return false;
                 cmsFreeProfileSequenceDescription(s);
                 return true;
 
             case 2:
 
-                s = (cmsReadTag(hProfile, cmsSigProfileSequenceDescTag) is BoxPtr<Sequence> box) ? box : null;
+                s = (cmsReadTag(hProfile, cmsSigProfileSequenceDescTag) is Sequence box) ? box : null;
                 if (s == null)
                     return false;
 
-                if (s->n != 3)
+                if (s.n != 3)
                     return false;
 
-                if (s->seq[0].attributes != (cmsTransparency | cmsMatte))
+                if (s.seq[0].attributes != (cmsTransparency | cmsMatte))
                     return false;
-                if (s->seq[1].attributes != (cmsReflective | cmsMatte))
+                if (s.seq[1].attributes != (cmsReflective | cmsMatte))
                     return false;
-                if (s->seq[2].attributes != (cmsTransparency | cmsGlossy))
+                if (s.seq[2].attributes != (cmsTransparency | cmsGlossy))
                     return false;
 
                 // Check MLU
                 for (i = 0; i < 3; i++)
                 {
 
-                    if (!CheckOneStr(s->seq[i].Manufacturer, i))
+                    if (!CheckOneStr(s.seq[i].Manufacturer, i))
                         return false;
-                    if (!CheckOneStr(s->seq[i].Model, i))
+                    if (!CheckOneStr(s.seq[i].Model, i))
                         return false;
                 }
                 return true;
@@ -1274,7 +1274,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckProfileSequenceIDTag(int Pass, Profile hProfile)
     {
-        Sequence* s;
+        Sequence? s;
         int i;
 
         switch (Pass)
@@ -1285,34 +1285,40 @@ internal static unsafe partial class Testbed
                 s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
                 if (s == null) return false;
 
-                memcpy(s->seq[0].ProfileID.id8, "0123456789ABCDEF"u8);
-                memcpy(s->seq[1].ProfileID.id8, "1111111111111111"u8);
-                memcpy(s->seq[2].ProfileID.id8, "2222222222222222"u8);
+                fixed (byte* id8 = s.seq[0].ProfileID.id8)
+                    memcpy(id8, "0123456789ABCDEF"u8);
+                fixed (byte* id8 = s.seq[1].ProfileID.id8)
+                    memcpy(id8, "1111111111111111"u8);
+                fixed (byte* id8 = s.seq[2].ProfileID.id8)
+                    memcpy(id8, "2222222222222222"u8);
 
 
-                SetOneStr(out s->seq[0].Description, "Hello, world 0", "Hola, mundo 0");
-                SetOneStr(out s->seq[1].Description, "Hello, world 1", "Hola, mundo 1");
-                SetOneStr(out s->seq[2].Description, "Hello, world 2", "Hola, mundo 2");
+                SetOneStr(out s.seq[0].Description, "Hello, world 0", "Hola, mundo 0");
+                SetOneStr(out s.seq[1].Description, "Hello, world 1", "Hola, mundo 1");
+                SetOneStr(out s.seq[2].Description, "Hello, world 2", "Hola, mundo 2");
 
-                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceIdTag, new BoxPtr<Sequence>(s))) return false;
+                if (!cmsWriteTag(hProfile, cmsSigProfileSequenceIdTag, s)) return false;
                 cmsFreeProfileSequenceDescription(s);
                 return true;
 
             case 2:
 
-                s = (cmsReadTag(hProfile, cmsSigProfileSequenceIdTag) is BoxPtr<Sequence> box) ? box : null;
+                s = (cmsReadTag(hProfile, cmsSigProfileSequenceIdTag) is Sequence seq) ? seq : null;
                 if (s == null) return false;
 
-                if (s->n != 3) return false;
+                if (s.n != 3) return false;
 
-                if (memcmp(s->seq[0].ProfileID.id8, "0123456789ABCDEF"u8) != 0) return false;
-                if (memcmp(s->seq[1].ProfileID.id8, "1111111111111111"u8) != 0) return false;
-                if (memcmp(s->seq[2].ProfileID.id8, "2222222222222222"u8) != 0) return false;
+                fixed (byte* id8 = s.seq[0].ProfileID.id8)
+                    if (memcmp(id8, "0123456789ABCDEF"u8) != 0) return false;
+                fixed (byte* id8 = s.seq[1].ProfileID.id8)
+                    if (memcmp(id8, "1111111111111111"u8) != 0) return false;
+                fixed (byte* id8 = s.seq[2].ProfileID.id8)
+                    if (memcmp(id8, "2222222222222222"u8) != 0) return false;
 
                 for (i = 0; i < 3; i++)
                 {
 
-                    if (!CheckOneStr(s->seq[i].Description, i)) return false;
+                    if (!CheckOneStr(s.seq[i].Description, i)) return false;
                 }
 
                 return true;

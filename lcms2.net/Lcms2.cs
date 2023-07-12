@@ -1040,7 +1040,7 @@ public static unsafe partial class Lcms2
         supportedTagTypes[11] = new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, NamedColor_Dup, NamedColor_Free, null, 0), &supportedTagTypes[12]);
         supportedTagTypes[12] = new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, NamedColor_Dup, NamedColor_Free, null, 0), &supportedTagTypes[13]);
         supportedTagTypes[13] = new(new(cmsSigMultiLocalizedUnicodeType, Type_MLU_Read, Type_MLU_Write, Type_MLU_Dup, Type_MLU_Free, null, 0), &supportedTagTypes[14]);
-        supportedTagTypes[14] = new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Type_ProfileSequenceDesc_Dup, Type_ProfileSequenceDesc_Free, null, 0), &supportedTagTypes[15]);
+        supportedTagTypes[14] = new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Sequence_Dup, Sequence_Free, null, 0), &supportedTagTypes[15]);
         supportedTagTypes[15] = new(new(cmsSigSignatureType, Type_Signature_Read, Type_Signature_Write, Type_Signature_Dup, Type_Signature_Free, null, 0), &supportedTagTypes[16]);
         supportedTagTypes[16] = new(new(cmsSigMeasurementType, Type_Measurement_Read, Type_Measurement_Write, Type_Measurement_Dup, Type_Measurement_Free, null, 0), &supportedTagTypes[17]);
         supportedTagTypes[17] = new(new(cmsSigDataType, Type_Data_Read, Type_Data_Write, Type_Data_Dup, Type_Data_Free, null, 0), &supportedTagTypes[18]);
@@ -1054,7 +1054,7 @@ public static unsafe partial class Lcms2
         supportedTagTypes[25] = new(new(cmsSigXYZType, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0), &supportedTagTypes[26]);
         supportedTagTypes[26] = new(new(cmsCorbisBrokenXYZtype, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0), &supportedTagTypes[27]);
         supportedTagTypes[27] = new(new(cmsMonacoBrokenCurveType, Type_Curve_Read, Type_Curve_Write, ToneCurve_Dup, ToneCurve_Free, null, 0), &supportedTagTypes[28]);
-        supportedTagTypes[28] = new(new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Type_ProfileSequenceId_Dup, Type_ProfileSequenceId_Free, null, 0), &supportedTagTypes[29]);
+        supportedTagTypes[28] = new(new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Sequence_Dup, Sequence_Free, null, 0), &supportedTagTypes[29]);
         supportedTagTypes[29] = new(new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0), &supportedTagTypes[30]);
         supportedTagTypes[30] = new(new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0), null);
 

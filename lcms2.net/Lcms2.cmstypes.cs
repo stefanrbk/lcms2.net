@@ -2686,9 +2686,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static BoxPtr<Sequence>? Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Sequence? Type_ProfileSequenceDesc_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        Sequence* OutSeq = null;
+        Sequence? OutSeq = null;
         uint Count;
 
         *nItems = 0;
@@ -2700,37 +2700,41 @@ public static unsafe partial class Lcms2
         OutSeq = cmsAllocProfileSequenceDescription(self->ContextID, Count);
         if (OutSeq is null) return null;
 
-        OutSeq->n = Count;
+        OutSeq.n = Count;
 
         // Get structures as well
 
         for (var i = 0; i < Count; i++)
         {
-            var sec = &OutSeq->seq[i];
+            var sec = OutSeq.seq[i];
 
-            if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->deviceMfg)) goto Error;
+            fixed (void* ptr = &sec.deviceMfg)
+                if (!_cmsReadUInt32Number(io, (uint*)ptr)) goto Error;
             if (SizeOfTag < _sizeof<uint>()) goto Error;
             SizeOfTag -= _sizeof<uint>();
 
-            if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->deviceModel)) goto Error;
+            fixed (void* ptr = &sec.deviceModel)
+                if (!_cmsReadUInt32Number(io, (uint*)ptr)) goto Error;
             if (SizeOfTag < _sizeof<uint>()) goto Error;
             SizeOfTag -= _sizeof<uint>();
 
-            if (!_cmsReadUInt64Number(io, &sec->attributes)) goto Error;
+            fixed (ulong* ptr = &sec.attributes)
+                if (!_cmsReadUInt64Number(io, ptr)) goto Error;
             if (SizeOfTag < _sizeof<ulong>()) goto Error;
             SizeOfTag -= _sizeof<ulong>();
 
-            if (!_cmsReadUInt32Number(io, (uint*)(void*)&sec->technology)) goto Error;
+            fixed (void* ptr = &sec.technology)
+                if (!_cmsReadUInt32Number(io, (uint*)ptr)) goto Error;
             if (SizeOfTag < _sizeof<uint>()) goto Error;
             SizeOfTag -= _sizeof<uint>();
 
-            if (!ReadEmbeddedText(self, io, out sec->Manufacturer, SizeOfTag)) goto Error;
-            if (!ReadEmbeddedText(self, io, out sec->Model, SizeOfTag)) goto Error;
+            if (!ReadEmbeddedText(self, io, out sec.Manufacturer, SizeOfTag)) goto Error;
+            if (!ReadEmbeddedText(self, io, out sec.Model, SizeOfTag)) goto Error;
         }
 
         *nItems = 1;
 
-        return new(OutSeq);
+        return OutSeq;
 
     Error:
         cmsFreeProfileSequenceDescription(OutSeq);
@@ -2753,35 +2757,25 @@ public static unsafe partial class Lcms2
 
     private static bool Type_ProfileSequenceDesc_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Sequence> Seq) return false;
+        if (Ptr is not Sequence Seq)
+            return false;
 
-        if (!_cmsWriteUInt32Number(io, Seq.Ptr->n)) return false;
+        if (!_cmsWriteUInt32Number(io, Seq.n)) return false;
 
-        for (var i = 0u; i < Seq.Ptr->n; i++)
+        for (var i = 0u; i < Seq.n; i++)
         {
-            var sec = &Seq.Ptr->seq[i];
+            var sec = Seq.seq[i];
 
-            if (!_cmsWriteUInt32Number(io, sec->deviceMfg)) return false;
-            if (!_cmsWriteUInt32Number(io, sec->deviceModel)) return false;
-            if (!_cmsWriteUInt64Number(io, sec->attributes)) return false;
-            if (!_cmsWriteUInt32Number(io, sec->technology)) return false;
+            if (!_cmsWriteUInt32Number(io, sec.deviceMfg)) return false;
+            if (!_cmsWriteUInt32Number(io, sec.deviceModel)) return false;
+            if (!_cmsWriteUInt64Number(io, sec.attributes)) return false;
+            if (!_cmsWriteUInt32Number(io, sec.technology)) return false;
 
-            if (!SaveDescription(self, io, sec->Manufacturer)) return false;
-            if (!SaveDescription(self, io, sec->Model)) return false;
+            if (!SaveDescription(self, io, sec.Manufacturer)) return false;
+            if (!SaveDescription(self, io, sec.Model)) return false;
         }
 
         return true;
-    }
-
-    private static BoxPtr<Sequence>? Type_ProfileSequenceDesc_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Sequence> Seq
-            ? new(cmsDupProfileSequenceDescription(Seq))
-            : null;
-
-    private static void Type_ProfileSequenceDesc_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Sequence> Seq)
-            cmsFreeProfileSequenceDescription(Seq);
     }
 
     #endregion ProfileSequenceDesc
@@ -2790,20 +2784,19 @@ public static unsafe partial class Lcms2
 
     private static bool ReadSeqID(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint SizeOfTag)
     {
-        if (Cargo is not BoxPtr<Sequence> OutSeq)
+        if (Cargo is not Sequence OutSeq)
             return false;
 
-        var seq = &OutSeq.Ptr->seq[n];
+        var seq = OutSeq.seq[n];
+        fixed (void* id8 = seq.ProfileID.id8)
+            if (io.Read(io, id8, 16, 1) is not 1) return false;
 
-        if (io.Read(io, seq->ProfileID.id8, 16, 1) is not 1) return false;
-        if (!ReadEmbeddedText(self, io, out seq->Description, SizeOfTag)) return false;
-
-        return true;
+        return ReadEmbeddedText(self, io, out seq.Description, SizeOfTag);
     }
 
-    private static BoxPtr<Sequence>? Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Sequence? Type_ProfileSequenceId_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        Sequence* OutSeq = null;
+        Sequence? OutSeq = null;
         uint Count;
 
         *nItems = 0;
@@ -2820,7 +2813,7 @@ public static unsafe partial class Lcms2
         if (OutSeq is null) return null;
 
         // Read the position table
-        if (!ReadPositionTable(self, io, Count, BaseOffset, new BoxPtr<Sequence>(OutSeq), &ReadSeqID))
+        if (!ReadPositionTable(self, io, Count, BaseOffset, OutSeq, &ReadSeqID))
         {
             cmsFreeProfileSequenceDescription(OutSeq);
             return null;
@@ -2828,47 +2821,37 @@ public static unsafe partial class Lcms2
 
         // Success
         *nItems = 1;
-        return new(OutSeq);
+        return OutSeq;
     }
 
     private static bool WriteSeqID(TagTypeHandler* self, IOHandler io, object? Cargo, uint n, uint _)
     {
-        if (Cargo is not BoxPtr<Sequence> Seq)
+        if (Cargo is not Sequence Seq)
             return false;
 
-        if (!io.Write(io, 16, Seq.Ptr->seq[n].ProfileID.id8)) return false;
+        fixed (void* id8 = Seq.seq[n].ProfileID.id8)
+            if (!io.Write(io, 16, id8)) return false;
 
         // Store MLU here
-        if (!SaveDescription(self, io, Seq.Ptr->seq[n].Description)) return false;
+        if (!SaveDescription(self, io, Seq.seq[n].Description)) return false;
 
         return true;
     }
 
     private static bool Type_ProfileSequenceId_Write(TagTypeHandler* self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtr<Sequence> Seq) return false;
+        if (Ptr is not Sequence Seq) return false;
 
         // Keep the base offset
         var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
         // This is the table count
-        if (!_cmsWriteUInt32Number(io, Seq.Ptr->n)) return false;
+        if (!_cmsWriteUInt32Number(io, Seq.n)) return false;
 
         // This is the position table and content
-        if (!WritePositionTable(self, io, 0, Seq.Ptr->n, BaseOffset, Seq, &WriteSeqID)) return false;
+        if (!WritePositionTable(self, io, 0, Seq.n, BaseOffset, Seq, &WriteSeqID)) return false;
 
         return true;
-    }
-
-    private static BoxPtr<Sequence>? Type_ProfileSequenceId_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Sequence> Seq
-            ? new(cmsDupProfileSequenceDescription(Seq))
-            : null;
-
-    private static void Type_ProfileSequenceId_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<Sequence> Seq)
-            cmsFreeProfileSequenceDescription(Seq);
     }
 
     #endregion ProfileSequenceId
@@ -4036,6 +4019,16 @@ public static unsafe partial class Lcms2
         cmsFreeNamedColorList(Ptr as NamedColorList);
 
     #endregion NamedColorList types
+
+    #region Sequence types
+
+    private static Sequence? Sequence_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsDupProfileSequenceDescription(Ptr as Sequence);
+
+    private static void Sequence_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsFreeProfileSequenceDescription(Ptr as Sequence);
+
+    #endregion Sequence types
 
     #endregion Generic
 

@@ -57,7 +57,7 @@ public unsafe struct Transform
     public CIEXYZ EntryWhitePoint;
     public CIEXYZ ExitWhitePoint;
 
-    public Sequence* Sequence;
+    public Sequence Sequence;
 
     public uint dwOriginalFlags;
     public double AdaptationState;

@@ -810,43 +810,44 @@ public static unsafe partial class Lcms2
         // the accuracy would be less than optimal in rel.col and v2 case.
         cmsIsMatrixShaper(Profile);
 
-    internal static Sequence* _cmsReadProfileSequence(Profile Profile)
+    internal static Sequence? _cmsReadProfileSequence(Profile Profile)
     {
         // Take profile sequence description first
-        var ProfileSeq = cmsReadTag(Profile, cmsSigProfileSequenceDescTag) as BoxPtr<Sequence>;
+        var ProfileSeq = cmsReadTag(Profile, cmsSigProfileSequenceDescTag) as Sequence;
 
         // Take profile sequence ID
-        var ProfileID = cmsReadTag(Profile, cmsSigProfileSequenceIdTag) as BoxPtr<Sequence>;
+        var ProfileID = cmsReadTag(Profile, cmsSigProfileSequenceIdTag) as Sequence;
 
         if (ProfileSeq is null && ProfileID is null) return null;
 
-        if (ProfileSeq is null) return cmsDupProfileSequenceDescription(ProfileID!);
+        if (ProfileSeq is null) return cmsDupProfileSequenceDescription(ProfileID);
         if (ProfileID is null) return cmsDupProfileSequenceDescription(ProfileSeq);
 
         // We have to mix both together. For that they agree
-        if (ProfileSeq.Ptr->n != ProfileID.Ptr->n) return cmsDupProfileSequenceDescription(ProfileSeq);
+        if (ProfileSeq.n != ProfileID.n) return cmsDupProfileSequenceDescription(ProfileSeq);
 
         var NewSeq = cmsDupProfileSequenceDescription(ProfileSeq);
 
         // Ok, proceed to the mixing
         if (NewSeq is not null)
         {
-            for (var i = 0; i < ProfileSeq.Ptr->n; i++)
+            for (var i = 0; i < ProfileSeq.n; i++)
             {
-                memmove(&NewSeq->seq[i].ProfileID, &ProfileID.Ptr->seq[i].ProfileID, _sizeof<ProfileID>());
-                NewSeq->seq[i].Description = cmsMLUdup(ProfileID.Ptr->seq[i].Description);
+                //memmove(&NewSeq.seq[i].ProfileID, &ProfileID.seq[i].ProfileID, _sizeof<ProfileID>());
+                NewSeq.seq[i].ProfileID = ProfileID.seq[i].ProfileID;
+                NewSeq.seq[i].Description = cmsMLUdup(ProfileID.seq[i].Description);
             }
         }
 
         return NewSeq;
     }
 
-    internal static bool _cmsWriteProfileSequence(Profile Profile, in Sequence* seq)
+    internal static bool _cmsWriteProfileSequence(Profile Profile, Sequence seq)
     {
-        if (!cmsWriteTag(Profile, cmsSigProfileSequenceDescTag, new BoxPtr<Sequence>(seq))) return false;
+        if (!cmsWriteTag(Profile, cmsSigProfileSequenceDescTag, seq)) return false;
 
         if (cmsGetEncodedICCVersion(Profile) >= 0x04000000)
-            if (!cmsWriteTag(Profile, cmsSigProfileSequenceIdTag, new BoxPtr<Sequence>(seq))) return false;
+            if (!cmsWriteTag(Profile, cmsSigProfileSequenceIdTag, seq)) return false;
 
         return true;
     }
@@ -856,7 +857,7 @@ public static unsafe partial class Lcms2
             ? cmsMLUdup(mlu)
             : null;
 
-    internal static Sequence* _cmsCompileProfileSequence(Context? ContextID, uint nProfiles, Profile[] Profiles)
+    internal static Sequence? _cmsCompileProfileSequence(Context? ContextID, uint nProfiles, Profile[] Profiles)
     {
         var seq = cmsAllocProfileSequenceDescription(ContextID, nProfiles);
 
@@ -864,23 +865,25 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nProfiles; i++)
         {
-            var ps = &seq->seq[i];
+            var ps = seq.seq[i];
             var h = Profiles[i];
 
-            cmsGetHeaderAttributes(h, &ps->attributes);
-            cmsGetHeaderProfileID(h, ps->ProfileID.id8);
-            ps->deviceMfg = cmsGetHeaderManufacturer(h);
-            ps->deviceModel = cmsGetHeaderModel(h);
+            fixed (ulong* ptr = &ps.attributes)
+                cmsGetHeaderAttributes(h, ptr);
+            fixed (byte* id8 = ps.ProfileID.id8)
+                cmsGetHeaderProfileID(h, id8);
+            ps.deviceMfg = cmsGetHeaderManufacturer(h);
+            ps.deviceModel = cmsGetHeaderModel(h);
 
             var techpt = cmsReadTag(h, cmsSigTechnologyTag) as BoxPtr<Signature>;
-            ps->technology =
+            ps.technology =
                 techpt is not null
                     ? *techpt.Ptr
                     : 0;
 
-            ps->Manufacturer = GetMLUFromProfile(h, cmsSigDeviceMfgDescTag);
-            ps->Model = GetMLUFromProfile(h, cmsSigDeviceModelDescTag);
-            ps->Description = GetMLUFromProfile(h, cmsSigProfileDescriptionTag);
+            ps.Manufacturer = GetMLUFromProfile(h, cmsSigDeviceMfgDescTag);
+            ps.Model = GetMLUFromProfile(h, cmsSigDeviceModelDescTag);
+            ps.Description = GetMLUFromProfile(h, cmsSigProfileDescriptionTag);
         }
 
         return seq;

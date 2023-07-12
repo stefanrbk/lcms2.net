@@ -820,79 +820,89 @@ public static unsafe partial class Lcms2
             : null;
     }
 
-    public static Sequence* cmsAllocProfileSequenceDescription(Context? ContextID, uint n)
+    public static Sequence? cmsAllocProfileSequenceDescription(Context? ContextID, uint n)
     {
         // In a absolutely arbitrary way, I hereby decide to allow a maxim of 255 profiles linked
         // in a devicelink. It makes not sense anyway and may be used for exploits, so let's close the door!
         if (n is 0 or > 255) return null;
 
-        var Seq = _cmsMallocZero<Sequence>(ContextID);
-        if (Seq is null) return null;
-
-        Seq->ContextID = ContextID;
-        Seq->seq = _cmsCalloc<ProfileSequenceDescription>(ContextID, n);
-        Seq->n = n;
-
-        if (Seq->seq is null)
+        //var Seq = _cmsMallocZero<Sequence>(ContextID);
+        //if (Seq is null) return null;
+        var pool = Context.GetPool<ProfileSequenceDescription>(ContextID);
+        var Seq = new Sequence
         {
-            _cmsFree(ContextID, Seq);
+            ContextID = ContextID,
+            //Seq.seq = _cmsCalloc<ProfileSequenceDescription>(ContextID, n);
+            seq = pool.Rent((int)n),
+            n = n
+        };
+
+        if (Seq.seq is null)
+        {
+            //_cmsFree(ContextID, Seq);
             return null;
         }
 
         for (var i = 0; i < n; i++)
         {
-            Seq->seq[i].Manufacturer = null;
-            Seq->seq[i].Model = null;
-            Seq->seq[i].Description = null;
+            Seq.seq[i].Manufacturer = null;
+            Seq.seq[i].Model = null;
+            Seq.seq[i].Description = null;
         }
 
         return Seq;
     }
 
-    public static void cmsFreeProfileSequenceDescription(Sequence* pseq)
+    public static void cmsFreeProfileSequenceDescription(Sequence? pseq)
     {
         if (pseq is null) return;
 
-        for (var i = 0; i < pseq->n; i++)
+        for (var i = 0; i < pseq.n; i++)
         {
-            if (pseq->seq[i].Manufacturer is not null)
-                cmsMLUfree(pseq->seq[i].Manufacturer);
-            if (pseq->seq[i].Model is not null)
-                cmsMLUfree(pseq->seq[i].Model);
-            if (pseq->seq[i].Description is not null)
-                cmsMLUfree(pseq->seq[i].Description);
+            if (pseq.seq[i].Manufacturer is not null)
+                cmsMLUfree(pseq.seq[i].Manufacturer);
+            if (pseq.seq[i].Model is not null)
+                cmsMLUfree(pseq.seq[i].Model);
+            if (pseq.seq[i].Description is not null)
+                cmsMLUfree(pseq.seq[i].Description);
         }
 
-        if (pseq->seq is not null)
-            _cmsFree(pseq->ContextID, pseq->seq);
-        _cmsFree(pseq->ContextID, pseq);
+        if (pseq.seq is not null)
+            _cmsFree(pseq.ContextID, pseq.seq);
+        //_cmsFree(pseq.ContextID, pseq);
     }
 
-    public static Sequence* cmsDupProfileSequenceDescription(in Sequence* pseq)
+    public static Sequence? cmsDupProfileSequenceDescription(Sequence? pseq)
     {
         if (pseq is null) return null;
 
-        var NewSeq = _cmsMalloc<Sequence>(pseq->ContextID);
-        if (NewSeq is null) return null;
-
-        NewSeq->seq = _cmsCalloc<ProfileSequenceDescription>(pseq->ContextID, pseq->n);
-        if (NewSeq->seq is null) goto Error;
-
-        NewSeq->ContextID = pseq->ContextID;
-        NewSeq->n = pseq->n;
-
-        for (var i = 0; i < pseq->n; i++)
+        //var NewSeq = _cmsMalloc<Sequence>(pseq->ContextID);
+        //if (NewSeq is null) return null;
+        var pool = Context.GetPool<ProfileSequenceDescription>(pseq.ContextID);
+        var NewSeq = new Sequence
         {
-            memmove(&NewSeq->seq[i].attributes, &pseq->seq[i].attributes);
+            //NewSeq.seq = _cmsCalloc<ProfileSequenceDescription>(pseq.ContextID, pseq.n);
+            //if (NewSeq.seq is null) goto Error;
+            seq = pool.Rent((int)pseq.n),
 
-            NewSeq->seq[i].deviceMfg = pseq->seq[i].deviceMfg;
-            NewSeq->seq[i].deviceModel = pseq->seq[i].deviceModel;
-            memmove(&NewSeq->seq[i].ProfileID, &pseq->seq[i].ProfileID);
-            NewSeq->seq[i].technology = pseq->seq[i].technology;
+            ContextID = pseq.ContextID,
+            n = pseq.n
+        };
 
-            NewSeq->seq[i].Manufacturer = cmsMLUdup(pseq->seq[i].Manufacturer);
-            NewSeq->seq[i].Model = cmsMLUdup(pseq->seq[i].Model);
-            NewSeq->seq[i].Description = cmsMLUdup(pseq->seq[i].Description);
+        for (var i = 0; i < pseq.n; i++)
+        {
+            //memmove(&NewSeq.seq[i].attributes, &pseq.seq[i].attributes);
+            NewSeq.seq[i].attributes = pseq.seq[i].attributes;
+
+            NewSeq.seq[i].deviceMfg = pseq.seq[i].deviceMfg;
+            NewSeq.seq[i].deviceModel = pseq.seq[i].deviceModel;
+            //memmove(&NewSeq.seq[i].ProfileID, &pseq.seq[i].ProfileID);
+            NewSeq.seq[i].ProfileID = pseq.seq[i].ProfileID;
+            NewSeq.seq[i].technology = pseq.seq[i].technology;
+
+            NewSeq.seq[i].Manufacturer = cmsMLUdup(pseq.seq[i].Manufacturer);
+            NewSeq.seq[i].Model = cmsMLUdup(pseq.seq[i].Model);
+            NewSeq.seq[i].Description = cmsMLUdup(pseq.seq[i].Description);
         }
 
         return NewSeq;
