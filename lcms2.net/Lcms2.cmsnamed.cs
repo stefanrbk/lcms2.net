@@ -510,63 +510,65 @@ public static unsafe partial class Lcms2
     public static uint cmsMLUtranslationsCount(Mlu? mlu) =>
         mlu?.UsedEntries ?? 0;
 
-    private static bool GrowNamedColorList(NamedColorList* v)
+    private static bool GrowNamedColorList(NamedColorList? v)
     {
         if (v is null) return false;
 
         var size =
-            (v->Allocated is 0)
+            (v.Allocated is 0)
                 ? 64                // Initial guess
-                : v->Allocated * 2;
+                : v.Allocated * 2;
 
         // Keep a maximum color lists can grow, 100k entries seems reasonable
         if (size > 1024 * 100)
         {
-            _cmsFree(v->ContextID, v->List);
-            v->List = null!;
+            _cmsFree(v.ContextID, v.List);
+            v.List = null!;
             return false;
         }
 
         //var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * _sizeof<NamedColor>());
         //if (NewPtr is null) return false;
 
-        var pool = Context.GetPool<NamedColor>(v->ContextID);
+        var pool = Context.GetPool<NamedColor>(v.ContextID);
         var NewPtr = pool.Rent((int)size);
-        v->List.AsSpan(..(int)v->Allocated).CopyTo(NewPtr);
+        v.List.AsSpan(..(int)v.Allocated).CopyTo(NewPtr);
 
-        if (v->List is not null)
-            pool.Return(v->List);
-        v->List = NewPtr;
+        if (v.List is not null)
+            pool.Return(v.List);
+        v.List = NewPtr;
 
-        v->Allocated = size;
+        v.Allocated = size;
         return true;
     }
 
-    public static NamedColorList* cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
+    //public static NamedColorList? cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
+    //{
+    //    var pre = stackalloc byte[Prefix.Length + 1];
+    //    var suf = stackalloc byte[Suffix.Length + 1];
+
+    //    for (var i = 0; i <  Prefix.Length; i++)
+    //        pre[i] = Prefix[i];
+
+    //    for (var i = 0; i < Suffix.Length; i++)
+    //        suf[i] = Suffix[i];
+
+    //    return cmsAllocNamedColorList(ContextID, n, ColorantCount, pre, suf);
+    //}
+
+    public static NamedColorList? cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
     {
-        var pre = stackalloc byte[Prefix.Length + 1];
-        var suf = stackalloc byte[Suffix.Length + 1];
+        //var v = _cmsMallocZero<NamedColorList>(ContextID);
 
-        for (var i = 0; i <  Prefix.Length; i++)
-            pre[i] = Prefix[i];
+        //if (v is null) return null;
+        var v = new NamedColorList(ContextID)
+        {
+            List = null,
+            nColors = 0,
+            ContextID = ContextID
+        };
 
-        for (var i = 0; i < Suffix.Length; i++)
-            suf[i] = Suffix[i];
-
-        return cmsAllocNamedColorList(ContextID, n, ColorantCount, pre, suf);
-    }
-
-    private static NamedColorList* cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, in byte* Prefix, in byte* Suffix)
-    {
-        var v = _cmsMallocZero<NamedColorList>(ContextID);
-
-        if (v is null) return null;
-
-        v->List = null;
-        v->nColors = 0;
-        v->ContextID = ContextID;
-
-        while (v->Allocated < n)
+        while (v.Allocated < n)
         {
             if (!GrowNamedColorList(v))
             {
@@ -575,31 +577,30 @@ public static unsafe partial class Lcms2
             }
         }
 
-        strncpy(v->Prefix, Prefix, 32);
-        strncpy(v->Suffix, Suffix, 32);
-        v->Prefix[32] = v->Suffix[32] = 0;
+        strncpy(v.Prefix, Prefix, 32);
+        strncpy(v.Suffix, Suffix, 32);
+        v.Prefix[32] = v.Suffix[32] = 0;
 
-        v->ColorantCount = ColorantCount;
+        v.ColorantCount = ColorantCount;
 
         return v;
     }
 
-    public static void cmsFreeNamedColorList(NamedColorList* v)
-    {
-        if (v is not null && v->List is not null)
-            _cmsFree(v->ContextID, v->List);
-        _cmsFree(v->ContextID, v);
-    }
+    public static void cmsFreeNamedColorList(NamedColorList? v) =>
+        //if (v?.List is not null)
+        //    _cmsFree(v.ContextID, v.List);
+        //_cmsFree(v.ContextID, v);
+        v?.Dispose();
 
-    public static NamedColorList* cmsDupNamedColorList(in NamedColorList* v)
+    public static NamedColorList? cmsDupNamedColorList(NamedColorList? v)
     {
         if (v is null) return null;
 
-        var NewNC = cmsAllocNamedColorList(v->ContextID, v->nColors, v->ColorantCount, v->Prefix, v->Suffix);
+        var NewNC = cmsAllocNamedColorList(v.ContextID, v.nColors, v.ColorantCount, v.Prefix, v.Suffix);
         if (NewNC is null) return null;
 
         // For really large tables we need this
-        while (NewNC->Allocated < v->Allocated)
+        while (NewNC.Allocated < v.Allocated)
         {
             if (!GrowNamedColorList(NewNC))
             {
@@ -608,34 +609,34 @@ public static unsafe partial class Lcms2
             }
         }
 
-        memmove(NewNC->Prefix, v->Prefix, 33);
-        memmove(NewNC->Suffix, v->Suffix, 33);
-        NewNC->ColorantCount = v->ColorantCount;
+        memmove(NewNC.Prefix.AsSpan(), v.Prefix, 33);
+        memmove(NewNC.Suffix.AsSpan(), v.Suffix, 33);
+        NewNC.ColorantCount = v.ColorantCount;
         //memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
-        var bPool = Context.GetPool<byte>(v->ContextID);
-        var uPool = Context.GetPool<ushort>(v->ContextID);
-        for (var i = 0; i < v->nColors; i++)
+        var bPool = Context.GetPool<byte>(v.ContextID);
+        var uPool = Context.GetPool<ushort>(v.ContextID);
+        for (var i = 0; i < v.nColors; i++)
         {
             var name = bPool.Rent(cmsMAX_PATH - 1);
-            var deviceColorant = uPool.Rent((int)v->ColorantCount);
+            var deviceColorant = uPool.Rent((int)v.ColorantCount);
             var pcs = uPool.Rent(3);
 
-            for (var j = 0; j < v->ColorantCount; j++)
-                deviceColorant[j] = v->List[i].DeviceColorant[j];
+            for (var j = 0; j < v.ColorantCount; j++)
+                deviceColorant[j] = v.List![i].DeviceColorant[j];
 
             for (var j = 0; j < 3; j++)
-                pcs[j] = v->List[i].PCS[j];
+                pcs[j] = v.List![i].PCS[j];
 
-            v->List[i].Name.AsSpan(..(cmsMAX_PATH - 1)).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
+            v.List![i].Name.AsSpan(..(cmsMAX_PATH - 1)).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
 
-            NewNC->List[i] = new()
+            NewNC.List![i] = new()
             {
                 Name = name,
                 DeviceColorant = deviceColorant,
                 PCS = pcs,
             };
         }
-        NewNC->nColors = v->nColors;
+        NewNC.nColors = v.nColors;
         return NewNC;
     }
     //public static bool cmsAppendNamedColor(
@@ -653,22 +654,23 @@ public static unsafe partial class Lcms2
     //}
 
     public static bool cmsAppendNamedColor(
-        NamedColorList* NamedColorList,
+        NamedColorList? NamedColorList,
         ReadOnlySpan<byte> Name,
         ReadOnlySpan<ushort> PCS,
         ReadOnlySpan<ushort> Colorant)
     {
-        if (NamedColorList is null) return false;
-
-        if (NamedColorList->nColors + 1 > NamedColorList->Allocated && !GrowNamedColorList(NamedColorList))
+        if (NamedColorList is null)
             return false;
 
-        var bPool = Context.GetPool<byte>(NamedColorList->ContextID);
-        var uPool = Context.GetPool<ushort>(NamedColorList->ContextID);
+        if (NamedColorList.nColors + 1 > NamedColorList.Allocated && !GrowNamedColorList(NamedColorList))
+            return false;
 
-        var idx = NamedColorList->nColors;
-        var deviceColorant = uPool.Rent((int)NamedColorList->ColorantCount);
-        for (var i = 0; i < NamedColorList->ColorantCount; i++)
+        var bPool = Context.GetPool<byte>(NamedColorList.ContextID);
+        var uPool = Context.GetPool<ushort>(NamedColorList.ContextID);
+
+        var idx = NamedColorList.nColors;
+        var deviceColorant = uPool.Rent((int)NamedColorList.ColorantCount);
+        for (var i = 0; i < NamedColorList.ColorantCount; i++)
             deviceColorant[i] = Colorant.IsEmpty ? (ushort)0 : Colorant[i];
 
         var pcs = uPool.Rent(3);
@@ -687,44 +689,44 @@ public static unsafe partial class Lcms2
         {
             name[0] = 0;
         }
-        NamedColorList->List[idx] = new()
+        NamedColorList.List![idx] = new()
         {
             DeviceColorant = deviceColorant,
             Name = name,
             PCS = pcs
         };
 
-        NamedColorList->nColors++;
+        NamedColorList.nColors++;
         return true;
     }
 
-    public static uint cmsNamedColorCount(in NamedColorList* NamedColorList) =>
-        NamedColorList is not null
-            ? NamedColorList->nColors
-            : 0;
+    public static uint cmsNamedColorCount(NamedColorList? NamedColorList) =>
+        NamedColorList?.nColors ?? 0;
 
     public static bool cmsNamedColorInfo(
-        in NamedColorList* NamedColorList,
+        NamedColorList? NamedColorList,
         uint nColor,
         Span<byte> Name,
-        byte* Prefix,
-        byte* Suffix,
+        Span<byte> Prefix,
+        Span<byte> Suffix,
         Span<ushort> PCS,
         Span<ushort> Colorant)
     {
-        if (NamedColorList is null) return false;
+        if (NamedColorList is null)
+            return false;
 
-        if (nColor >= cmsNamedColorCount(NamedColorList)) return false;
+        if (nColor >= cmsNamedColorCount(NamedColorList))
+            return false;
 
         // strcpy instead of strncpy because many apps are using small buffers
-        if (!Name.IsEmpty) strcpy(Name, NamedColorList->List[nColor].Name);
-        if (Prefix is not null) strcpy(Prefix, NamedColorList->Prefix);
-        if (Suffix is not null) strcpy(Suffix, NamedColorList->Suffix);
+        if (!Name.IsEmpty) strcpy(Name, NamedColorList.List[nColor].Name);
+        if (!Prefix.IsEmpty) strcpy(Prefix, NamedColorList.Prefix);
+        if (!Suffix.IsEmpty) strcpy(Suffix, NamedColorList.Suffix);
         if (!PCS.IsEmpty)
-            for (var i = 0; i < 3; i++) PCS[i] = NamedColorList->List[nColor].PCS[i];
+            for (var i = 0; i < 3; i++) PCS[i] = NamedColorList.List[nColor].PCS[i];
         //memmove(PCS, NamedColorList->List[nColor].PCS, 3 * _sizeof<ushort>());
         if (!Colorant.IsEmpty)
-            for (var i = 0; i < NamedColorList->ColorantCount; i++) Colorant[i] = NamedColorList->List[nColor].DeviceColorant[i];
+            for (var i = 0; i < NamedColorList.ColorantCount; i++) Colorant[i] = NamedColorList.List[nColor].DeviceColorant[i];
         //memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * _sizeof<ushort>());
 
         return true;
@@ -738,85 +740,83 @@ public static unsafe partial class Lcms2
     //    return cmsNamedColorIndex(NamedColorList, buf);
     //}
 
-    public static int cmsNamedColorIndex(in NamedColorList* NamedColorList, ReadOnlySpan<byte> Name)
+    public static int cmsNamedColorIndex(NamedColorList? NamedColorList, ReadOnlySpan<byte> Name)
     {
-        if (NamedColorList is null) return -1;
+        if (NamedColorList is null)
+            return -1;
+
         var n = cmsNamedColorCount(NamedColorList);
         for (var i = 0; i < n; i++)
         {
-            if (cmsstrcasecmp(Name, NamedColorList->List[i].Name) == 0) return i;
+            if (cmsstrcasecmp(Name, NamedColorList.List[i].Name) == 0) return i;
         }
 
         return -1;
     }
 
-    private static void FreeNamedColorList(Stage mpe)
-    {
-        if (mpe.Data is BoxPtr<NamedColorList> list)
-            cmsFreeNamedColorList(list);
-    }
+    private static void FreeNamedColorList(Stage mpe) =>
+        cmsFreeNamedColorList(mpe.Data as NamedColorList);
 
     private static object? DupNamedColorList(Stage mpe) =>
-        (mpe.Data is BoxPtr<NamedColorList> list)
-            ? new BoxPtr<NamedColorList>(cmsDupNamedColorList(list))
-            : null;
+        cmsDupNamedColorList(mpe.Data as NamedColorList);
 
     private static void EvalNamedColorPCS(in float* In, float* Out, Stage mpe)
     {
-        if (mpe.Data is not BoxPtr<NamedColorList> NamedColorList)
+        if (mpe.Data is not NamedColorList NamedColorList)
             return;
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
-        if (index >= NamedColorList.Ptr->nColors)
+        if (index >= NamedColorList.nColors)
         {
-            cmsSignalError(NamedColorList.Ptr->ContextID, ErrorCode.Range, $"Color {index} out of range");
+            cmsSignalError(NamedColorList.ContextID, ErrorCode.Range, $"Color {index} out of range");
             Out[0] = Out[1] = Out[2] = 0f;
         }
         else
         {
             // Named color always uses Lab
-            Out[0] = (float)(NamedColorList.Ptr->List[index].PCS[0] / 65535.0);
-            Out[1] = (float)(NamedColorList.Ptr->List[index].PCS[1] / 65535.0);
-            Out[2] = (float)(NamedColorList.Ptr->List[index].PCS[2] / 65535.0);
+            Out[0] = (float)(NamedColorList.List[index].PCS[0] / 65535.0);
+            Out[1] = (float)(NamedColorList.List[index].PCS[1] / 65535.0);
+            Out[2] = (float)(NamedColorList.List[index].PCS[2] / 65535.0);
         }
     }
 
     private static void EvalNamedColor(in float* In, float* Out, Stage mpe)
     {
-        if (mpe.Data is not BoxPtr<NamedColorList> NamedColorList)
+        if (mpe.Data is not NamedColorList NamedColorList)
             return;
+
         var index = _cmsQuickSaturateWord(In[0] * 65535.0);
 
-        if (index >= NamedColorList.Ptr->nColors)
+        if (index >= NamedColorList.nColors)
         {
-            cmsSignalError(NamedColorList.Ptr->ContextID, ErrorCode.Range, $"Color {index} out of range");
-            for (var j = 0; j < NamedColorList.Ptr->ColorantCount; j++)
+            cmsSignalError(NamedColorList.ContextID, ErrorCode.Range, $"Color {index} out of range");
+            for (var j = 0; j < NamedColorList.ColorantCount; j++)
                 Out[j] = 0.0f;
         }
         else
         {
-            for (var j = 0; j < NamedColorList.Ptr->ColorantCount; j++)
-                Out[j] = (float)(NamedColorList.Ptr->List[index].DeviceColorant[j] / 65535.0);
+            for (var j = 0; j < NamedColorList.ColorantCount; j++)
+                Out[j] = (float)(NamedColorList.List[index].DeviceColorant[j] / 65535.0);
         }
     }
 
-    internal static Stage? _cmsStageAllocNamedColor(NamedColorList* NamedColorList, bool UsePCS) =>
+    internal static Stage? _cmsStageAllocNamedColor(NamedColorList NamedColorList, bool UsePCS) =>
         _cmsStageAllocPlaceholder(
-            NamedColorList->ContextID,
+            NamedColorList.ContextID,
             cmsSigNamedColorElemType,
             1,
-            UsePCS ? 3 : NamedColorList->ColorantCount,
+            UsePCS ? 3 : NamedColorList.ColorantCount,
             UsePCS ? EvalNamedColorPCS : EvalNamedColor,
             DupNamedColorList,
             FreeNamedColorList,
-            new BoxPtr<NamedColorList>(cmsDupNamedColorList(NamedColorList)));
+            cmsDupNamedColorList(NamedColorList));
 
-    public static BoxPtr<NamedColorList>? cmsGetNamedColorList(Transform* xform)
+    public static NamedColorList? cmsGetNamedColorList(Transform* xform)
     {
         var mpe = xform->Lut.Elements;
 
-        return (mpe is not null && mpe.Type == cmsSigNamedColorElemType)
-            ? mpe.Data as BoxPtr<NamedColorList>
+        return (mpe?.Type == cmsSigNamedColorElemType)
+            ? mpe.Data as NamedColorList
             : null;
     }
 

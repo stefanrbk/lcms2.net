@@ -179,7 +179,7 @@ internal static unsafe partial class Testbed
     // A lightweight test of named color structures.
     public static bool CheckNamedColorList()
     {
-        NamedColorList* nc = null, nc2;
+        NamedColorList? nc = null, nc2;
         int i, j;
         bool rc = true;
         var Name = stackalloc byte[cmsMAX_PATH];
@@ -229,13 +229,13 @@ internal static unsafe partial class Testbed
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "w");
         if (h == null) return false;
-        if (!cmsWriteTag(h, cmsSigNamedColor2Tag, new BoxPtr<NamedColorList>(nc))) return false;
+        if (!cmsWriteTag(h, cmsSigNamedColor2Tag, nc)) return false;
         cmsCloseProfile(h);
         cmsFreeNamedColorList(nc);
         nc = null;
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "r");
-        nc2 = (cmsReadTag(h, cmsSigNamedColor2Tag) is BoxPtr<NamedColorList> box) ? box : null;
+        nc2 = (cmsReadTag(h, cmsSigNamedColor2Tag) is NamedColorList box) ? box : null;
 
         if (cmsNamedColorCount(nc2) != 4096) { rc = Fail("Invalid count"); goto Error; }
 
@@ -280,7 +280,7 @@ internal static unsafe partial class Testbed
     public static bool CreateNamedColorProfile()
     {
         // Color list database
-        NamedColorList* colors = cmsAllocNamedColorList(null, 10, 4, "PANTONE"u8, "TCX"u8);
+        NamedColorList? colors = cmsAllocNamedColorList(null, 10, 4, "PANTONE"u8, "TCX"u8);
 
         // Containers for names
         Mlu? DescriptionMLU, CopyrightMLU;
@@ -327,7 +327,7 @@ internal static unsafe partial class Testbed
         cmsAppendNamedColor(colors, "Kale 18-0107"u8, new(PCS, 3), new(Colorant, cmsMAXCHANNELS));
 
         // Write the colors database
-        cmsWriteTag(hProfile, cmsSigNamedColor2Tag, new BoxPtr<NamedColorList>(colors));
+        cmsWriteTag(hProfile, cmsSigNamedColor2Tag, colors);
 
         // That will create the file
         cmsCloseProfile(hProfile);

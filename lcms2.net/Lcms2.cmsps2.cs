@@ -910,7 +910,7 @@ public static unsafe partial class Lcms2
         var NamedColorList = cmsGetNamedColorList(xform);
         if (NamedColorList is null) return false;
 
-        var pool = Context.GetPool<byte>(NamedColorList.Ptr->ContextID);
+        var pool = Context.GetPool<byte>(NamedColorList.ContextID);
         var ColorName = pool.Rent(cmsMAX_PATH);
 
         _cmsIOPrintf(m, "<<\n");

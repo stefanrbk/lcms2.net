@@ -29,16 +29,55 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct NamedColorList
+public class NamedColorList : IDisposable
 {
     public uint nColors;
     public uint Allocated;
     public uint ColorantCount;
 
-    public fixed byte Prefix[33];
-    public fixed byte Suffix[33];
+    public readonly byte[] Prefix;
+    public readonly byte[] Suffix;
 
     public NamedColor[] List;
 
     public Context? ContextID;
+    private bool disposedValue;
+
+    public NamedColorList(Context? contextID)
+    {
+        ContextID = contextID;
+
+        var pool = Context.GetPool<byte>(contextID);
+
+        Prefix = pool.Rent(33);
+        Suffix = pool.Rent(33);
+
+        List = null!;   // shhhh, it will get set by GrowNamedColorList()... for now...
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var bPool = Context.GetPool<byte>(ContextID);
+                var ncPool = Context.GetPool<NamedColor>(ContextID);
+
+                bPool.Return(Prefix);
+                bPool.Return(Suffix);
+
+                if (List is not null)
+                    ncPool.Return(List);
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

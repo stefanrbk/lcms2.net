@@ -792,7 +792,7 @@ public static unsafe partial class Lcms2
     {
         var v = xform;
         Profile? hICC = null;
-        BoxPtr<NamedColorList>? nc2 = null, Original = null;
+        NamedColorList? nc2 = null, Original = null;
 
         // Create an empty placeholder
         hICC = cmsCreateProfilePlaceholder(v->ContextID);
@@ -810,11 +810,11 @@ public static unsafe partial class Lcms2
         if (Original is null) goto Error;
 
         var nColors = cmsNamedColorCount(Original);
-        nc2 = new(cmsDupNamedColorList(Original));
+        nc2 = cmsDupNamedColorList(Original);
         if (nc2 is null) goto Error;
 
         // Colorant count now depends on the output space
-        nc2.Ptr->ColorantCount = cmsPipelineOutputChannels(v->Lut);
+        nc2.ColorantCount = cmsPipelineOutputChannels(v->Lut);
 
         // Make sure we have proper formatters
         cmsChangeBuffersFormat(xform, TYPE_NAMED_COLOR_INDEX,
@@ -823,8 +823,8 @@ public static unsafe partial class Lcms2
         // Apply the transform to colorants.
         for (var i = 0; i < nColors; i++)
         {
-            fixed (ushort* colorant = &nc2.Ptr->List[i].DeviceColorant[0])
-            cmsDoTransform(xform, &i, colorant, 1);
+            fixed (ushort* colorant = &nc2.List[i].DeviceColorant[0])
+                cmsDoTransform(xform, &i, colorant, 1);
         }
 
         if (!cmsWriteTag(hICC, cmsSigNamedColor2Tag, nc2)) goto Error;
@@ -1006,9 +1006,9 @@ public static unsafe partial class Lcms2
             goto Error;
 
         if ((xform->InputColorant is not null &&
-             !cmsWriteTag(Profile, cmsSigColorantTableTag, new BoxPtr<NamedColorList>(xform->InputColorant))) ||
+             !cmsWriteTag(Profile, cmsSigColorantTableTag, xform->InputColorant)) ||
             (xform->OutputColorant is not null &&
-             !cmsWriteTag(Profile, cmsSigColorantTableOutTag, new BoxPtr<NamedColorList>(xform->OutputColorant))) ||
+             !cmsWriteTag(Profile, cmsSigColorantTableOutTag, xform->OutputColorant)) ||
             (((uint)deviceClass is cmsSigLinkClass) &&
              (xform->Sequence is not null) && !_cmsWriteProfileSequence(Profile, xform->Sequence)))
         {

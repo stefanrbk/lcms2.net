@@ -1037,8 +1037,8 @@ public static unsafe partial class Lcms2
         supportedTagTypes[8] = new(new(cmsSigDateTimeType, Type_DateTime_Read, Type_DateTime_Write, Type_DateTime_Dup, Type_DateTime_Free, null, 0), &supportedTagTypes[9]);
         supportedTagTypes[9] = new(new(cmsSigLut8Type, Type_LUT8_Read, Type_LUT8_Write, Type_LUT8_Dup, Type_LUT8_Free, null, 0), &supportedTagTypes[10]);
         supportedTagTypes[10] = new(new(cmsSigLut16Type, Type_LUT16_Read, Type_LUT16_Write, Type_LUT16_Dup, Type_LUT16_Free, null, 0), &supportedTagTypes[11]);
-        supportedTagTypes[11] = new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, Type_ColorantTable_Dup, Type_ColorantTable_Free, null, 0), &supportedTagTypes[12]);
-        supportedTagTypes[12] = new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, Type_NamedColor_Dup, Type_NamedColor_Free, null, 0), &supportedTagTypes[13]);
+        supportedTagTypes[11] = new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, NamedColor_Dup, NamedColor_Free, null, 0), &supportedTagTypes[12]);
+        supportedTagTypes[12] = new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, NamedColor_Dup, NamedColor_Free, null, 0), &supportedTagTypes[13]);
         supportedTagTypes[13] = new(new(cmsSigMultiLocalizedUnicodeType, Type_MLU_Read, Type_MLU_Write, Type_MLU_Dup, Type_MLU_Free, null, 0), &supportedTagTypes[14]);
         supportedTagTypes[14] = new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Type_ProfileSequenceDesc_Dup, Type_ProfileSequenceDesc_Free, null, 0), &supportedTagTypes[15]);
         supportedTagTypes[15] = new(new(cmsSigSignatureType, Type_Signature_Read, Type_Signature_Write, Type_Signature_Dup, Type_Signature_Free, null, 0), &supportedTagTypes[16]);
@@ -1475,6 +1475,10 @@ public static unsafe partial class Lcms2
         NativeMemory.Fill(dst, size, (byte)val);
 
     [DebuggerStepThrough]
+    internal static void memmove<T>(Span<T> dst, ReadOnlySpan<T> src, uint size) =>
+        memcpy(dst, src, size);
+
+    [DebuggerStepThrough]
     internal static void memmove<T>(T* dst, in T* src) where T : struct =>
         memcpy(dst, src);
 
@@ -1485,6 +1489,10 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void memmove(void* dst, in void* src, nint size) =>
         memcpy(dst, src, size);
+
+    [DebuggerStepThrough]
+    internal static void memcpy<T>(Span<T> dst, ReadOnlySpan<T> src, uint size) =>
+        src[..(int)size].CopyTo(dst);
 
     [DebuggerStepThrough]
     internal static void memcpy(byte* dst, ReadOnlySpan<byte> src)
@@ -1586,6 +1594,25 @@ public static unsafe partial class Lcms2
             dest[i] = i < src.Length
                 ? (byte)src[i]
                 : (byte)0;
+        }
+
+        return dest;
+    }
+
+    internal static Span<byte> strncpy(Span<byte> dest, ReadOnlySpan<byte> src, nuint n)
+    {
+        if (dest.IsEmpty)
+            return dest;
+
+        if (n > (nuint)src.Length)
+            n = (nuint)src.Length;
+
+        for (var i = 0; (nuint)i < n; i++)
+        {
+            dest[i] = src[i];
+
+            if (src[i] is 0)
+                break;
         }
 
         return dest;

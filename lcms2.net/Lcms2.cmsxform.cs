@@ -965,7 +965,7 @@ public static unsafe partial class Lcms2
         if (cmsIsTag(Profiles[0], cmsSigColorantTableTag))
         {
             // Input table can only come in this way.
-            xform->InputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[0], cmsSigColorantTableTag));
+            xform->InputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[0], cmsSigColorantTableTag) as NamedColorList)!;
         }
 
         // Output is a little bit more complex.
@@ -975,13 +975,13 @@ public static unsafe partial class Lcms2
             if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag))
             {
                 // It may be null if error
-                xform->OutputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag));
+                xform->OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag) as NamedColorList)!;
             }
         }
         else
         {
             if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableTag))
-                xform->OutputColorant = cmsDupNamedColorList((BoxPtr<NamedColorList>)cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableTag));
+                xform->OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableTag) as NamedColorList)!;
         }
 
         // Store the sequence of profiles

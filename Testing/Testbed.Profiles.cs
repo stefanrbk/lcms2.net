@@ -746,7 +746,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckNamedColor(int Pass, Profile hProfile, Signature tag, int max_check, bool colorant_check)
     {
-        NamedColorList* nc;
+        NamedColorList? nc;
         int i, j;
         bool rc;
         Span<byte> Name = stackalloc byte[255];
@@ -774,13 +774,13 @@ internal static unsafe partial class Testbed
                     if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
                 }
 
-                rc = cmsWriteTag(hProfile, tag, new BoxPtr<NamedColorList>(nc));
+                rc = cmsWriteTag(hProfile, tag, nc);
                 cmsFreeNamedColorList(nc);
                 return rc;
 
             case 2:
 
-                nc = (cmsReadTag(hProfile, tag) is BoxPtr<NamedColorList> box) ? box : null;
+                nc = (cmsReadTag(hProfile, tag) is NamedColorList box) ? box : null;
                 if (nc == null) return false;
 
                 for (i = 0; i < max_check; i++)

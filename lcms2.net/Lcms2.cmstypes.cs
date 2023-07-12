@@ -2483,13 +2483,13 @@ public static unsafe partial class Lcms2
 
     #region ColorantTable
 
-    private static BoxPtr<NamedColorList>? Type_ColorantTable_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static NamedColorList? Type_ColorantTable_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         var Name = stackalloc byte[34];
         var PCS = stackalloc ushort[3];
-        NamedColorList* List = null;
+        NamedColorList? List = null;
         uint Count;
-        byte preSufix = 0;
+        Span<byte> preSufix = stackalloc byte[1] { 0 };
 
         *nItems = 0;
         if (!_cmsReadUInt32Number(io, &Count)) return null;
@@ -2500,7 +2500,7 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        List = cmsAllocNamedColorList(self->ContextID, Count, 0, &preSufix, &preSufix);
+        List = cmsAllocNamedColorList(self->ContextID, Count, 0, preSufix, preSufix);
         if (List is null) return null;
 
         for (var i = 0; i < Count; i++)
@@ -2510,12 +2510,12 @@ public static unsafe partial class Lcms2
 
             if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
 
-            if (!cmsAppendNamedColor(List, new Span<byte>(Name, 34), new Span<ushort>(PCS, 3), null)) goto Error;
+            if (!cmsAppendNamedColor(List, new(Name, 34), new(PCS, 3), null)) goto Error;
         }
 
         *nItems = 1;
 
-        return new(List);
+        return List;
 
     Error:
         cmsFreeNamedColorList(List);
@@ -2524,9 +2524,11 @@ public static unsafe partial class Lcms2
 
     private static bool Type_ColorantTable_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<NamedColorList> NamedColorList) return false;
         var root = stackalloc byte[cmsMAX_PATH];
         var PCS = stackalloc ushort[3];
+
+        if (Ptr is not NamedColorList NamedColorList)
+            return false;
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
@@ -2536,7 +2538,7 @@ public static unsafe partial class Lcms2
         {
             memset(root, 0, cmsMAX_PATH * _sizeof<byte>());
 
-            if (!cmsNamedColorInfo(NamedColorList, i, new Span<byte>(root, cmsMAX_PATH), null, null, new Span<ushort>(PCS, 3), null)) return false;
+            if (!cmsNamedColorInfo(NamedColorList, i, new(root, cmsMAX_PATH), null, null, new(PCS, 3), null)) return false;
             root[32] = 0;
 
             if (!io.Write(io, 32, root)) return false;
@@ -2546,29 +2548,18 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<NamedColorList>? Type_ColorantTable_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<NamedColorList> ncl
-            ? new(cmsDupNamedColorList(ncl))
-            : null;
-
-    private static void Type_ColorantTable_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<NamedColorList> ncl)
-            cmsFreeNamedColorList(ncl);
-    }
-
     #endregion ColorantTable
 
     #region NamedColor
 
-    private static BoxPtr<NamedColorList>? Type_NamedColor_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static NamedColorList? Type_NamedColor_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
     {
         uint vendorFlag;                      // Bottom 16 bits for ICC use
         uint count;                           // Count of named colors
         uint nDeviceCoords;                   // Num of device coordinates
         byte* prefix = stackalloc byte[32];   // Prefix for each color name
         byte* suffix = stackalloc byte[32];   // Suffix for each color name
-        NamedColorList* v = null;
+        NamedColorList? v = null;
         ushort* PCS = stackalloc ushort[3];
         ushort* Colorant = stackalloc ushort[cmsMAXCHANNELS];
         byte* Root = stackalloc byte[33];
@@ -2583,7 +2574,7 @@ public static unsafe partial class Lcms2
 
         prefix[31] = suffix[31] = 0;
 
-        v = cmsAllocNamedColorList(self->ContextID, count, nDeviceCoords, prefix, suffix);
+        v = cmsAllocNamedColorList(self->ContextID, count, nDeviceCoords, new(prefix, 32), new(suffix, 32));
         if (v is null)
         {
             cmsSignalError(self->ContextID, ErrorCode.Range, $"Too many named colors '{count}'");
@@ -2610,7 +2601,7 @@ public static unsafe partial class Lcms2
 
         *nItems = 1;
 
-        return new(v);
+        return v;
 
     Error:
         cmsFreeNamedColorList(v);
@@ -2619,21 +2610,23 @@ public static unsafe partial class Lcms2
 
     private static bool Type_NamedColor_Write(TagTypeHandler* _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<NamedColorList> NamedColorList) return false;
         var prefix = stackalloc byte[33];
         var suffix = stackalloc byte[33];
         var Root = stackalloc byte[cmsMAX_PATH];
         var PCS = stackalloc ushort[3];
         var Colorant = stackalloc ushort[cmsMAXCHANNELS];
 
+        if (Ptr is not NamedColorList NamedColorList)
+            return false;
+
         var nColors = cmsNamedColorCount(NamedColorList);
 
         if (!_cmsWriteUInt32Number(io, 0)) return false;
         if (!_cmsWriteUInt32Number(io, nColors)) return false;
-        if (!_cmsWriteUInt32Number(io, NamedColorList.Ptr->ColorantCount)) return false;
+        if (!_cmsWriteUInt32Number(io, NamedColorList.ColorantCount)) return false;
 
-        memcpy(prefix, NamedColorList.Ptr->Prefix, _sizeof<byte>() * 33);
-        memcpy(suffix, NamedColorList.Ptr->Suffix, _sizeof<byte>() * 33);
+        memcpy(new Span<byte>(prefix, 33), NamedColorList.Prefix, 33);
+        memcpy(new Span<byte>(suffix, 33), NamedColorList.Suffix, 33);
 
         suffix[32] = prefix[32] = 0;
 
@@ -2650,21 +2643,10 @@ public static unsafe partial class Lcms2
             Root[32] = 0;
             if (!io.Write(io, 32, Root)) return false;
             if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
-            if (!_cmsWriteUInt16Array(io, NamedColorList.Ptr->ColorantCount, Colorant)) return false;
+            if (!_cmsWriteUInt16Array(io, NamedColorList.ColorantCount, Colorant)) return false;
         }
 
         return true;
-    }
-
-    private static BoxPtr<NamedColorList>? Type_NamedColor_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<NamedColorList> list
-            ? new(cmsDupNamedColorList(list))
-            : null;
-
-    private static void Type_NamedColor_Free(TagTypeHandler* _, object? Ptr)
-    {
-        if (Ptr is BoxPtr<NamedColorList> list)
-            cmsFreeNamedColorList(list);
     }
 
     #endregion NamedColor
@@ -4044,6 +4026,16 @@ public static unsafe partial class Lcms2
         cmsFreeToneCurve(Ptr as ToneCurve);
 
     #endregion ToneCurve types
+
+    #region NamedColorList types
+
+    private static NamedColorList? NamedColor_Dup(TagTypeHandler* _1, object? Ptr, uint _2) =>
+        cmsDupNamedColorList(Ptr as NamedColorList);
+
+    private static void NamedColor_Free(TagTypeHandler* _, object? Ptr) =>
+        cmsFreeNamedColorList(Ptr as NamedColorList);
+
+    #endregion NamedColorList types
 
     #endregion Generic
 

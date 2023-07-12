@@ -289,7 +289,7 @@ public static unsafe partial class Lcms2
         // On named color, take the appropriate tag
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
         {
-            if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not BoxPtr<NamedColorList> nc)
+            if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not NamedColorList nc)
                 return null;
 
             var Lut = cmsPipelineAlloc(ContextID, 0, 0);
@@ -690,7 +690,7 @@ public static unsafe partial class Lcms2
         // On named color, take the appropriate tag
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)
         {
-            if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not BoxPtr<NamedColorList> nc) return null;
+            if (cmsReadTag(Profile, cmsSigNamedColor2Tag) is not NamedColorList nc) return null;
 
             Lut = cmsPipelineAlloc(ContextID, 0, 0);
             //if (Lut is null) goto Error;

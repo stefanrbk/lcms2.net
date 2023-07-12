@@ -48,8 +48,8 @@ public unsafe struct Transform
 
     public Pipeline? GamutCheck;
 
-    public NamedColorList* InputColorant;
-    public NamedColorList* OutputColorant;
+    public NamedColorList InputColorant;
+    public NamedColorList OutputColorant;
 
     public Signature EntryColorSpace;
     public Signature ExitColorSpace;
