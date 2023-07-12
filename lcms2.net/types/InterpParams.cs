@@ -29,15 +29,68 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct InterpParams
+public class InterpParams : ICloneable, IDisposable
 {
     public Context? ContextID;
     public uint dwFlags;
     public uint nInputs;
     public uint nOutputs;
-    public fixed uint nSamples[MAX_INPUT_DIMENSIONS];
-    public fixed uint Domain[MAX_INPUT_DIMENSIONS];
-    public fixed uint opta[MAX_INPUT_DIMENSIONS];
+    public uint[] nSamples;
+    public uint[] Domain;
+    public uint[] opta;
     public object? Table;
-    public InterpFunction Interpolation;
+    public InterpFunction? Interpolation;
+    private bool disposedValue;
+
+    public InterpParams(Context? context)
+    {
+        ContextID = context;
+
+        var pool = Context.GetPool<uint>(context);
+
+        nSamples = pool.Rent(MAX_INPUT_DIMENSIONS);
+        Domain = pool.Rent(MAX_INPUT_DIMENSIONS);
+        opta = pool.Rent(MAX_INPUT_DIMENSIONS);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var pool = Context.GetPool<uint>(ContextID);
+
+                pool.Return(nSamples); nSamples = null!;
+                pool.Return(Domain); Domain = null!;
+                pool.Return(opta); opta = null!;
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public object Clone()
+    {
+        var result = new InterpParams(ContextID)
+        {
+            dwFlags = dwFlags,
+            nInputs = nInputs,
+            nOutputs = nOutputs,
+            Table = Table,
+            Interpolation = Interpolation,
+        };
+
+        nSamples.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.nSamples);
+        Domain.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.Domain);
+        opta.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.opta);
+
+        return result;
+    }
 }

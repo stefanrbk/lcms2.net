@@ -389,7 +389,7 @@ public static unsafe partial class Lcms2
     public static double cmsDetectTAC(Profile Profile)
     {
         TACestimator bp;
-        var GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
         var ContextID = cmsGetProfileContextID(Profile);
 
         // TAC only works on output profiles

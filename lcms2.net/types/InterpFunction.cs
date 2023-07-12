@@ -24,16 +24,42 @@
 //
 //---------------------------------------------------------------------------------
 //
-using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace lcms2.types;
 
-[StructLayout(LayoutKind.Explicit)]
-public unsafe struct InterpFunction
+[DebuggerStepThrough]
+public class InterpFunction
 {
-    [FieldOffset(0)]
-    public InterpFn16? Lerp16;
+    private readonly object? _value;
 
-    [FieldOffset(0)]
-    public InterpFnFloat? LerpFloat;
+    public InterpFunction(InterpFn<float> fn) =>
+        _value = fn;
+
+    public InterpFunction(InterpFn<ushort> fn) =>
+        _value = fn;
+
+    public bool IsFloat =>
+        _value is InterpFn<float>;
+
+    public bool IsUshort =>
+        _value is InterpFn<ushort>;
+
+    public InterpFn<float>? LerpFloat =>
+        _value as InterpFn<float>;
+
+    public InterpFn<ushort>? Lerp16 =>
+        _value as InterpFn<ushort>;
+
+    public static implicit operator InterpFn<float>?(InterpFunction value) =>
+        value.LerpFloat;
+
+    public static implicit operator InterpFn<ushort>?(InterpFunction value) =>
+        value.Lerp16;
+
+    public static implicit operator InterpFunction(InterpFn<float> value) =>
+        new(value);
+
+    public static implicit operator InterpFunction(InterpFn<ushort> value) =>
+        new(value);
 }

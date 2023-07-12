@@ -571,7 +571,7 @@ public static unsafe partial class Lcms2
 
         // Dump table.
 
-        for (var i = 0u; i < sc.Ptr->Pipeline.Params->nOutputs; i++)
+        for (var i = 0u; i < sc.Ptr->Pipeline.Params.nOutputs; i++)
         {
             var wWordOut = Out[i];
 
@@ -613,8 +613,8 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, "[");
 
-        for (var i = 0u; i < sc.Pipeline.Params->nInputs; i++)
-            _cmsIOPrintf(m, " {0:d} ", sc.Pipeline.Params->nSamples[i]);
+        for (var i = 0u; i < sc.Pipeline.Params.nInputs; i++)
+            _cmsIOPrintf(m, " {0:d} ", sc.Pipeline.Params.nSamples[i]);
 
         _cmsIOPrintf(m, " [\n");
 

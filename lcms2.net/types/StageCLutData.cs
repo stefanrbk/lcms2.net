@@ -40,7 +40,7 @@ public unsafe class StageCLutData
 
     //public CmsTab Tab;
     public object? Tab;
-    public InterpParams* Params;
+    public InterpParams Params;
     public uint nEntries;
     public bool HasFloatValues;
 

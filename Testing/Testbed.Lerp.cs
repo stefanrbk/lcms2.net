@@ -71,7 +71,7 @@ internal static unsafe partial class Testbed
             @in = (ushort)i;
             @out = 0;
 
-            p->Interpolation.Lerp16(&@in, &@out, p);
+            p.Interpolation.Lerp16(&@in, &@out, p);
 
             if (down) @out = (ushort)(0xFFFF - @out);
 
@@ -283,7 +283,7 @@ internal static unsafe partial class Testbed
         {
             @in[0] = @in[1] = @in[2] = i / 65535f;
 
-            p->Interpolation.LerpFloat(@in, @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
 
             if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0])) goto Error;
             if (!IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f)) goto Error;
@@ -346,7 +346,7 @@ internal static unsafe partial class Testbed
         {
             @in[0] = @in[1] = @in[2] = i / 65535f;
 
-            p->Interpolation.LerpFloat(@in, @out, p);
+            p.Interpolation.LerpFloat(@in, @out, p);
 
             if (!IsGoodFixed15_16("Channel 1", @out[0], @in[0])) goto Error;
             if (!IsGoodFixed15_16("Channel 2", @out[1], @in[1] / 2f)) goto Error;
@@ -408,7 +408,7 @@ internal static unsafe partial class Testbed
         {
             @in[0] = @in[1] = @in[2] = (ushort)i;
 
-            p->Interpolation.Lerp16(@in, @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
 
             if (!IsGoodWord("Channel 1", @out[0], @in[0])) goto Error;
             if (!IsGoodWord("Channel 2", @out[1], @in[1])) goto Error;
@@ -470,7 +470,7 @@ internal static unsafe partial class Testbed
         {
             @in[0] = @in[1] = @in[2] = (ushort)i;
 
-            p->Interpolation.Lerp16(@in, @out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
 
             if (!IsGoodWord("Channel 1", @out[0], @in[0])) goto Error;
             if (!IsGoodWord("Channel 2", @out[1], @in[1])) goto Error;
@@ -486,7 +486,7 @@ internal static unsafe partial class Testbed
         return false;
     }
 
-    private static void Check3DInterpolationFloatTask(InterpParams* p, bool[,,] check, bool[,,] isGood, object? o)
+    private static void Check3DInterpolationFloatTask(InterpParams p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
         var @in = stackalloc float[3];
@@ -501,7 +501,7 @@ internal static unsafe partial class Testbed
                     @in[1] = g / 255f;
                     @in[2] = b / 255f;
 
-                    p->Interpolation.LerpFloat(@in, @out, p);
+                    p.Interpolation.LerpFloat(@in, @out, p);
 
                     isGood[r, g, b] = IsGoodFixed15_16($"({r},{g},{b}): Channel 1", @out[0], @in[0]) &&
                                       IsGoodFixed15_16($"({r},{g},{b}): Channel 2", @out[1], @in[1] / 2) &&
@@ -665,7 +665,7 @@ internal static unsafe partial class Testbed
         return Validate3DInterpolationValues(check, isGood);
     }
 
-    private static void Check3DInterpolation16Task(InterpParams* p, bool[,,] check, bool[,,] isGood, object? o)
+    private static void Check3DInterpolation16Task(InterpParams p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
         var @in = stackalloc ushort[3];
@@ -680,7 +680,7 @@ internal static unsafe partial class Testbed
                     @in[1] = (ushort)g;
                     @in[2] = (ushort)b;
 
-                    p->Interpolation.Lerp16(@in, @out, p);
+                    p.Interpolation.Lerp16(@in, @out, p);
 
                     isGood[r, g, b] = IsGoodWord("Channel 1", @out[0], @in[0]) &&
                                       IsGoodWord("Channel 2", @out[1], @in[1]) &&
@@ -1231,7 +1231,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check3DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 7, 8, 9 };
+        Span<uint> Dimensions = stackalloc uint[] { 7, 8, 9 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 3, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 3, 3, null);
@@ -1281,7 +1281,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check4DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 9, 8, 7, 6 };
+        Span<uint> Dimensions = stackalloc uint[] { 9, 8, 7, 6 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 4, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 4, 3, null);
@@ -1307,7 +1307,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check5DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 3, 2, 2, 2, 2 };
+        Span<uint> Dimensions = stackalloc uint[] { 3, 2, 2, 2, 2 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 5, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 5, 3, null);
@@ -1333,7 +1333,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check6DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 4, 3, 2, 2, 2, 2 };
+        Span<uint> Dimensions = stackalloc uint[] { 4, 3, 2, 2, 2, 2 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 6, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 6, 3, null);
@@ -1359,7 +1359,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check7DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 4, 3, 3, 2, 2, 2, 2 };
+        Span<uint> Dimensions = stackalloc uint[] { 4, 3, 3, 2, 2, 2, 2 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 7, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 7, 3, null);
@@ -1385,7 +1385,7 @@ internal static unsafe partial class Testbed
 
     public static bool Check8DinterpGranular()
     {
-        var Dimensions = stackalloc uint[] { 4, 3, 3, 2, 2, 2, 2, 2 };
+        Span<uint> Dimensions = stackalloc uint[] { 4, 3, 3, 2, 2, 2, 2, 2 };
 
         var lut = cmsPipelineAlloc(DbgThread(), 8, 3);
         var mpe = cmsStageAllocCLut16bitGranular(DbgThread(), Dimensions, 8, 3, null);

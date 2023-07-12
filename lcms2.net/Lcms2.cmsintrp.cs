@@ -70,27 +70,27 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsSetInterpolationRoutine(Context? ctx, InterpParams* p)
+    internal static bool _cmsSetInterpolationRoutine(Context? ctx, InterpParams p)
     {
         var ptr = _cmsGetContext(ctx).InterpPlugin;
 
-        p->Interpolation.Lerp16 = null;
+        p.Interpolation = null;
 
         // Invoke factory, possibly in the Plug-in
         if (ptr.Interpolators is not null)
-            p->Interpolation = ptr.Interpolators(p->nInputs, p->nOutputs, p->dwFlags);
+            p.Interpolation = ptr.Interpolators(p.nInputs, p.nOutputs, p.dwFlags);
 
         // If unsupported by the plug-in, go for the LittleCMS default.
         // If happens only if an extern plug-in is being used
-        if (p->Interpolation.Lerp16 is null)
-            p->Interpolation = DefaultInterpolatorsFactory(p->nInputs, p->nOutputs, (LerpFlag)p->dwFlags);
+        if (p.Interpolation is null)
+            p.Interpolation = DefaultInterpolatorsFactory(p.nInputs, p.nOutputs, (LerpFlag)p.dwFlags);
 
         // Check for valid interpolator (we just check one member of the union)
-        return p->Interpolation.Lerp16 is not null;
+        return p.Interpolation is not null;
     }
 
-    internal static InterpParams* _cmsComputeInterpParamsEx(
-        Context? ContextID, in uint* nSamples, uint InputChan, uint OutputChan, object? Table, LerpFlag flags)
+    internal static InterpParams? _cmsComputeInterpParamsEx(
+        Context? ContextID, ReadOnlySpan<uint> nSamples, uint InputChan, uint OutputChan, object? Table, LerpFlag flags)
     {
         var dwFlags = (uint)flags;
 
@@ -102,32 +102,40 @@ public static unsafe partial class Lcms2
         }
 
         // Creates an empty object
-        var p = _cmsMallocZero<InterpParams>(ContextID);
-        if (p is null) return null;
+        //var p = _cmsMallocZero<InterpParams>(ContextID);
+        //if (p is null) return null;
 
-        // Keep original parameters
-        p->dwFlags = dwFlags;
-        p->nInputs = InputChan;
-        p->nOutputs = OutputChan;
-        p->Table = Table;
-        p->ContextID = ContextID;
+        //p->dwFlags = dwFlags;
+        //p->nInputs = InputChan;
+        //p->nOutputs = OutputChan;
+        //p->Table = Table;
+        //p->ContextID = ContextID;
+
+        var p = new InterpParams(ContextID)
+        {
+            // Keep original parameters
+            nInputs = InputChan,
+            nOutputs = OutputChan,
+            Table = Table
+        };
 
         // Fill samples per input direction and domain (which is number of nodes minus one)
         for (var i = 0; i < InputChan; i++)
         {
-            p->nSamples[i] = nSamples[i];
-            p->Domain[i] = nSamples[i] - 1;
+            p.nSamples[i] = nSamples[i];
+            p.Domain[i] = nSamples[i] - 1;
         }
 
         // Compute factors to apply to each component to index the grid array
-        p->opta[0] = p->nOutputs;
+        p.opta[0] = p.nOutputs;
         for (var i = 1; i < InputChan; i++)
-            p->opta[i] = p->opta[i - 1] * nSamples[(int)InputChan - i];
+            p.opta[i] = p.opta[i - 1] * nSamples[(int)InputChan - i];
 
         if (!_cmsSetInterpolationRoutine(ContextID, p))
         {
             cmsSignalError(ContextID, ErrorCode.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
-            _cmsFree(ContextID, p);
+            //_cmsFree(ContextID, p);
+            p.Dispose();
             return null;
         }
 
@@ -135,10 +143,10 @@ public static unsafe partial class Lcms2
         return p;
     }
 
-    internal static InterpParams* _cmsComputeInterpParams(
+    internal static InterpParams? _cmsComputeInterpParams(
         Context? ContextID, uint nSamples, uint InputChan, uint OutputChan, object? Table, LerpFlag flags)
     {
-        var Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
         // Fill the auxiliary array
         for (var i = 0; i < MAX_INPUT_DIMENSIONS; i++)
@@ -148,10 +156,9 @@ public static unsafe partial class Lcms2
         return _cmsComputeInterpParamsEx(ContextID, Samples, InputChan, OutputChan, Table, flags);
     }
 
-    internal static void _cmsFreeInterpParams(InterpParams* p)
-    {
-        if (p is not null) _cmsFree(p->ContextID, p);
-    }
+    internal static void _cmsFreeInterpParams(InterpParams? p) =>
+        //if (p is not null) _cmsFree(p.ContextID, p);
+        p?.Dispose();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort LinearInterp(int a, int l, int h)
@@ -161,20 +168,20 @@ public static unsafe partial class Lcms2
         return (ushort)dif;
     }
 
-    private static void LinLerp1D(in ushort* Value, ushort* Output, in InterpParams* p)
+    private static void LinLerp1D(in ushort* Value, ushort* Output, InterpParams p)
     {
-        if (p->Table is not Memory<ushort> tab)
+        if (p.Table is not Memory<ushort> tab)
             return;
         var lutTable = tab.Span;
 
         // if last value or just one point
-        if (Value[0] == 0xFFFF || p->Domain[0] == 0)
+        if (Value[0] == 0xFFFF || p.Domain[0] == 0)
         {
-            Output[0] = lutTable[(int)p->Domain[0]];
+            Output[0] = lutTable[(int)p.Domain[0]];
         }
         else
         {
-            var val3 = (int)(p->Domain[0] * Value[0]);
+            var val3 = (int)(p.Domain[0] * Value[0]);
             val3 = _cmsToFixedDomain(val3);
 
             var cell0 = FIXED_TO_INT(val3);
@@ -193,22 +200,22 @@ public static unsafe partial class Lcms2
             ? 0.0f
             : (v > 1.0f ? 1.0f : v);
 
-    private static void LinLerp1Dfloat(in float* value, float* output, in InterpParams* p)
+    private static void LinLerp1Dfloat(in float* value, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var lutTable = tab.Span;
 
         var val2 = Fclamp(value[0]);
 
         // if last value...
-        if (val2 == 1.0 || p->Domain[0] == 0)
+        if (val2 == 1.0 || p.Domain[0] == 0)
         {
-            output[0] = lutTable[(int)p->Domain[0]];
+            output[0] = lutTable[(int)p.Domain[0]];
         }
         else
         {
-            val2 *= p->Domain[0];
+            val2 *= p.Domain[0];
 
             var cell0 = (int)MathF.Floor(val2);
             var cell1 = (int)MathF.Ceiling(val2);
@@ -223,23 +230,23 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void Eval1Input(in ushort* input, ushort* output, in InterpParams* p16)
+    private static void Eval1Input(in ushort* input, ushort* output, InterpParams p16)
     {
-        if (p16->Table is not Memory<ushort> tab)
+        if (p16.Table is not Memory<ushort> tab)
             return;
         var lutTable = tab.Span;
 
         // if last value...
-        if (input[0] == 0xFFFF || p16->Domain[0] == 0)
+        if (input[0] == 0xFFFF || p16.Domain[0] == 0)
         {
-            var y0 = p16->Domain[0] * p16->opta[0];
+            var y0 = p16.Domain[0] * p16.opta[0];
 
-            for (var outChan = 0; outChan < p16->nOutputs; outChan++)
+            for (var outChan = 0; outChan < p16.nOutputs; outChan++)
                 output[outChan] = lutTable[(int)y0 + outChan];
         }
         else
         {
-            var v = input[0] * (int)p16->Domain[0];
+            var v = input[0] * (int)p16.Domain[0];
             var fk = _cmsToFixedDomain(v);
 
             var k0 = FIXED_TO_INT(fk);
@@ -247,42 +254,42 @@ public static unsafe partial class Lcms2
 
             var k1 = k0 + (input[0] != 0xFFFF ? 1 : 0);
 
-            k0 *= (int)p16->opta[0];
-            k1 *= (int)p16->opta[0];
+            k0 *= (int)p16.opta[0];
+            k1 *= (int)p16.opta[0];
 
-            for (var outChan = 0; outChan < p16->nOutputs; outChan++)
+            for (var outChan = 0; outChan < p16.nOutputs; outChan++)
                 output[outChan] = LinearInterp(rk, lutTable[k0 + outChan], lutTable[k1 + outChan]);
         }
     }
 
-    private static void Eval1InputFloat(in float* value, float* output, in InterpParams* p)
+    private static void Eval1InputFloat(in float* value, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var lutTable = tab.Span;
 
         var val2 = Fclamp(value[0]);
 
-        if (val2 == 1.0 || p->Domain[0] == 0)
+        if (val2 == 1.0 || p.Domain[0] == 0)
         {
-            var start = p->Domain[0] * p->opta[0];
+            var start = p.Domain[0] * p.opta[0];
 
-            for (var outChan = 0; outChan < p->nOutputs; outChan++)
+            for (var outChan = 0; outChan < p.nOutputs; outChan++)
                 output[outChan] = lutTable[(int)start + outChan];
         }
         else
         {
-            val2 *= p->Domain[0];
+            val2 *= p.Domain[0];
 
             var cell0 = (int)MathF.Floor(val2);
             var cell1 = (int)MathF.Ceiling(val2);
 
             var rest = val2 - cell0;
 
-            cell0 *= (int)p->opta[0];
-            cell1 *= (int)p->opta[0];
+            cell0 *= (int)p.opta[0];
+            cell1 *= (int)p.opta[0];
 
-            for (var outChan = 0; outChan < p->nOutputs; outChan++)
+            for (var outChan = 0; outChan < p.nOutputs; outChan++)
             {
                 var y0 = lutTable[cell0 + outChan];
                 var y1 = lutTable[cell1 + outChan];
@@ -292,24 +299,24 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void BilinearInterpFloat(in float* input, float* output, in InterpParams* p)
+    private static void BilinearInterpFloat(in float* input, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var lutTable = tab.Span;
 
-        var totalOut = p->nOutputs;
-        var px = Fclamp(input[0]) * p->Domain[0];
-        var py = Fclamp(input[1]) * p->Domain[1];
+        var totalOut = p.nOutputs;
+        var px = Fclamp(input[0]) * p.Domain[0];
+        var py = Fclamp(input[1]) * p.Domain[1];
 
         var x0 = _cmsQuickFloor(px); var fx = px - x0;
         var y0 = _cmsQuickFloor(py); var fy = py - y0;
 
-        x0 *= (int)p->opta[1];
-        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[1]);
+        x0 *= (int)p.opta[1];
+        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[1]);
 
-        y0 *= (int)p->opta[0];
-        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p->opta[0]);
+        y0 *= (int)p.opta[0];
+        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p.opta[0]);
 
         for (var outChan = 0; outChan < totalOut; outChan++)
         {
@@ -325,27 +332,27 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void BilinearInterp16(in ushort* input, ushort* output, in InterpParams* p)
+    private static void BilinearInterp16(in ushort* input, ushort* output, InterpParams p)
     {
-        if (p->Table is not Memory<ushort> tab)
+        if (p.Table is not Memory<ushort> tab)
             return;
         var lutTable = tab.Span;
 
-        var totalOut = p->nOutputs;
+        var totalOut = p.nOutputs;
 
-        var fx = _cmsToFixedDomain(input[0] * (int)p->Domain[0]);
+        var fx = _cmsToFixedDomain(input[0] * (int)p.Domain[0]);
         var x0 = FIXED_TO_INT(fx);
         var rx = FIXED_REST_TO_INT(fx);
 
-        var fy = _cmsToFixedDomain(input[1] * (int)p->Domain[1]);
+        var fy = _cmsToFixedDomain(input[1] * (int)p.Domain[1]);
         var y0 = FIXED_TO_INT(fy);
         var ry = FIXED_REST_TO_INT(fy);
 
-        x0 *= (int)p->opta[1];
-        var x1 = x0 + (input[0] == 0xFFFF ? 0 : (int)p->opta[1]);
+        x0 *= (int)p.opta[1];
+        var x1 = x0 + (input[0] == 0xFFFF ? 0 : (int)p.opta[1]);
 
-        y0 *= (int)p->opta[0];
-        var y1 = y0 + (input[1] == 0xFFFF ? 0 : (int)p->opta[0]);
+        y0 *= (int)p.opta[0];
+        var y1 = y0 + (input[1] == 0xFFFF ? 0 : (int)p.opta[0]);
 
         for (var outChan = 0; outChan < totalOut; outChan++)
         {
@@ -361,31 +368,31 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TrilinearInterpFloat(in float* input, float* output, in InterpParams* p)
+    private static void TrilinearInterpFloat(in float* input, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var lutTable = tab.Span;
 
-        var totalOut = p->nOutputs;
+        var totalOut = p.nOutputs;
 
-        var px = Fclamp(input[0]) * p->Domain[0];
-        var py = Fclamp(input[1]) * p->Domain[1];
-        var pz = Fclamp(input[2]) * p->Domain[2];
+        var px = Fclamp(input[0]) * p.Domain[0];
+        var py = Fclamp(input[1]) * p.Domain[1];
+        var pz = Fclamp(input[2]) * p.Domain[2];
 
         // We need full floor functionality here
         var x0 = (int)MathF.Floor(px); var fx = px - x0;
         var y0 = (int)MathF.Floor(py); var fy = py - y0;
         var z0 = (int)MathF.Floor(pz); var fz = pz - z0;
 
-        x0 *= (int)p->opta[2];
-        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[2]);
+        x0 *= (int)p.opta[2];
+        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[2]);
 
-        y0 *= (int)p->opta[1];
-        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p->opta[1]);
+        y0 *= (int)p.opta[1];
+        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p.opta[1]);
 
-        z0 *= (int)p->opta[0];
-        var z1 = z0 + (Fclamp(input[2]) >= 1.0 ? 0 : (int)p->opta[0]);
+        z0 *= (int)p.opta[0];
+        var z1 = z0 + (Fclamp(input[2]) >= 1.0 ? 0 : (int)p.opta[0]);
 
         for (var outChan = 0; outChan < totalOut; outChan++)
         {
@@ -411,34 +418,34 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TrilinearInterp16(in ushort* input, ushort* output, in InterpParams* p)
+    private static void TrilinearInterp16(in ushort* input, ushort* output, InterpParams p)
     {
-        if (p->Table is not Memory<ushort> tab)
+        if (p.Table is not Memory<ushort> tab)
             return;
         var lutTable = tab.Span;
 
-        var totalOut = p->nOutputs;
+        var totalOut = p.nOutputs;
 
-        var fx = _cmsToFixedDomain(input[0]) * (int)p->Domain[0];
+        var fx = _cmsToFixedDomain(input[0]) * (int)p.Domain[0];
         var x0 = FIXED_TO_INT(fx);
         var rx = FIXED_REST_TO_INT(fx);
 
-        var fy = _cmsToFixedDomain(input[1]) * (int)p->Domain[1];
+        var fy = _cmsToFixedDomain(input[1]) * (int)p.Domain[1];
         var y0 = FIXED_TO_INT(fy);
         var ry = FIXED_REST_TO_INT(fy);
 
-        var fz = _cmsToFixedDomain(input[2]) * (int)p->Domain[2];
+        var fz = _cmsToFixedDomain(input[2]) * (int)p.Domain[2];
         var z0 = FIXED_TO_INT(fz);
         var rz = FIXED_REST_TO_INT(fz);
 
-        x0 *= (int)p->opta[2];
-        var x1 = x0 + (input[0] == 0xFFFF ? 0 : (int)p->opta[2]);
+        x0 *= (int)p.opta[2];
+        var x1 = x0 + (input[0] == 0xFFFF ? 0 : (int)p.opta[2]);
 
-        y0 *= (int)p->opta[1];
-        var y1 = y0 + (input[1] == 0xFFFF ? 0 : (int)p->opta[1]);
+        y0 *= (int)p.opta[1];
+        var y1 = y0 + (input[1] == 0xFFFF ? 0 : (int)p.opta[1]);
 
-        z0 *= (int)p->opta[0];
-        var z1 = z0 + (input[2] == 0xFFFF ? 0 : (int)p->opta[0]);
+        z0 *= (int)p.opta[0];
+        var z1 = z0 + (input[2] == 0xFFFF ? 0 : (int)p.opta[0]);
 
         for (var outChan = 0; outChan < totalOut; outChan++)
         {
@@ -465,33 +472,33 @@ public static unsafe partial class Lcms2
     }
 
     // Tetrahedral interpolation, using Sakamoto algorithm.
-    private static void TetrahedralInterpFloat(in float* input, float* output, in InterpParams* p)
+    private static void TetrahedralInterpFloat(in float* input, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var lutTable = tab.Span;
 
         float c1 = 0, c2 = 0, c3 = 0;
 
-        var totalOut = p->nOutputs;
+        var totalOut = p.nOutputs;
 
-        var px = Fclamp(input[0]) * p->Domain[0];
-        var py = Fclamp(input[1]) * p->Domain[1];
-        var pz = Fclamp(input[2]) * p->Domain[2];
+        var px = Fclamp(input[0]) * p.Domain[0];
+        var py = Fclamp(input[1]) * p.Domain[1];
+        var pz = Fclamp(input[2]) * p.Domain[2];
 
         // We need full floor functionality here
         var x0 = (int)MathF.Floor(px); var rx = px - x0;
         var y0 = (int)MathF.Floor(py); var ry = py - y0;
         var z0 = (int)MathF.Floor(pz); var rz = pz - z0;
 
-        x0 *= (int)p->opta[2];
-        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[2]);
+        x0 *= (int)p.opta[2];
+        var x1 = x0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[2]);
 
-        y0 *= (int)p->opta[1];
-        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p->opta[1]);
+        y0 *= (int)p.opta[1];
+        var y1 = y0 + (Fclamp(input[1]) >= 1.0 ? 0 : (int)p.opta[1]);
 
-        z0 *= (int)p->opta[0];
-        var z1 = z0 + (Fclamp(input[2]) >= 1.0 ? 0 : (int)p->opta[0]);
+        z0 *= (int)p.opta[0];
+        var z1 = z0 + (Fclamp(input[2]) >= 1.0 ? 0 : (int)p.opta[0]);
 
         for (var outChan = 0; outChan < totalOut; outChan++)
         {
@@ -542,17 +549,17 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TetrahedralInterp16(in ushort* input, ushort* output, in InterpParams* p)
+    private static void TetrahedralInterp16(in ushort* input, ushort* output, InterpParams p)
     {
-        if (p->Table is not Memory<ushort> tab)
+        if (p.Table is not Memory<ushort> tab)
             return;
         int rest, c0, c1 = 0, c2 = 0, c3 = 0;
 
-        var totalOut = p->nOutputs;
+        var totalOut = p.nOutputs;
 
-        var fx = _cmsToFixedDomain(input[0] * (int)p->Domain[0]);
-        var fy = _cmsToFixedDomain(input[1] * (int)p->Domain[1]);
-        var fz = _cmsToFixedDomain(input[2] * (int)p->Domain[2]);
+        var fx = _cmsToFixedDomain(input[0] * (int)p.Domain[0]);
+        var fy = _cmsToFixedDomain(input[1] * (int)p.Domain[1]);
+        var fz = _cmsToFixedDomain(input[2] * (int)p.Domain[2]);
 
         // We need full floor functionality here
         var x0 = FIXED_TO_INT(fx);
@@ -563,14 +570,14 @@ public static unsafe partial class Lcms2
         var ry = FIXED_REST_TO_INT(fy);
         var rz = FIXED_REST_TO_INT(fz);
 
-        x0 *= (int)p->opta[2];
-        var x1 = input[0] == 0xFFFF ? 0 : (int)p->opta[2];
+        x0 *= (int)p.opta[2];
+        var x1 = input[0] == 0xFFFF ? 0 : (int)p.opta[2];
 
-        y0 *= (int)p->opta[1];
-        var y1 = input[1] == 0xFFFF ? 0 : (int)p->opta[1];
+        y0 *= (int)p.opta[1];
+        var y1 = input[1] == 0xFFFF ? 0 : (int)p.opta[1];
 
-        z0 *= (int)p->opta[0];
-        var z1 = input[2] == 0xFFFF ? 0 : (int)p->opta[0];
+        z0 *= (int)p.opta[0];
+        var z1 = input[2] == 0xFFFF ? 0 : (int)p.opta[0];
 
         var lutTable = tab.Span[(x0 + y0 + z0)..];
         if (rx >= ry)
@@ -713,17 +720,17 @@ public static unsafe partial class Lcms2
     private static ushort Lerp(int a, ushort l, ushort h) =>
         (ushort)(l + ROUND_FIXED_TO_INT((h - l) * a));
 
-    private static void Eval4Inputs(in ushort* input, ushort* output, in InterpParams* p16)
+    private static void Eval4Inputs(in ushort* input, ushort* output, InterpParams p16)
     {
         var tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
         int c0, rest, c1 = 0, c2 = 0, c3 = 0;
 
-        var fk = _cmsToFixedDomain(input[0] * (int)p16->Domain[0]);
-        var fx = _cmsToFixedDomain(input[1] * (int)p16->Domain[1]);
-        var fy = _cmsToFixedDomain(input[2] * (int)p16->Domain[2]);
-        var fz = _cmsToFixedDomain(input[3] * (int)p16->Domain[3]);
+        var fk = _cmsToFixedDomain(input[0] * (int)p16.Domain[0]);
+        var fx = _cmsToFixedDomain(input[1] * (int)p16.Domain[1]);
+        var fy = _cmsToFixedDomain(input[2] * (int)p16.Domain[2]);
+        var fz = _cmsToFixedDomain(input[3] * (int)p16.Domain[3]);
 
         var k0 = FIXED_TO_INT(fk);
         var x0 = FIXED_TO_INT(fx);
@@ -735,23 +742,23 @@ public static unsafe partial class Lcms2
         var ry = FIXED_REST_TO_INT(fy);
         var rz = FIXED_REST_TO_INT(fz);
 
-        k0 *= (int)p16->opta[3];
-        var k1 = k0 + (input[0] == 0xFFFF ? 0 : (int)p16->opta[3]);
+        k0 *= (int)p16.opta[3];
+        var k1 = k0 + (input[0] == 0xFFFF ? 0 : (int)p16.opta[3]);
 
-        x0 *= (int)p16->opta[2];
-        var x1 = x0 + (input[1] == 0xFFFF ? 0 : (int)p16->opta[2]);
+        x0 *= (int)p16.opta[2];
+        var x1 = x0 + (input[1] == 0xFFFF ? 0 : (int)p16.opta[2]);
 
-        y0 *= (int)p16->opta[1];
-        var y1 = y0 + (input[2] == 0xFFFF ? 0 : (int)p16->opta[1]);
+        y0 *= (int)p16.opta[1];
+        var y1 = y0 + (input[2] == 0xFFFF ? 0 : (int)p16.opta[1]);
 
-        z0 *= (int)p16->opta[0];
-        var z1 = z0 + (input[3] == 0xFFFF ? 0 : (int)p16->opta[0]);
+        z0 *= (int)p16.opta[0];
+        var z1 = z0 + (input[3] == 0xFFFF ? 0 : (int)p16.opta[0]);
 
-        if (p16->Table is not Memory<ushort> tab)
+        if (p16.Table is not Memory<ushort> tab)
             return;
         var lutTable = tab.Span[k0..];
 
-        for (var outChan = 0; outChan < p16->nOutputs; outChan++)
+        for (var outChan = 0; outChan < p16.nOutputs; outChan++)
         {
             c0 = Dens(lutTable, x0, y0, z0, outChan);
 
@@ -802,7 +809,7 @@ public static unsafe partial class Lcms2
 
         lutTable = tab.Span[k1..];
 
-        for (var outChan = 0; outChan < p16->nOutputs; outChan++)
+        for (var outChan = 0; outChan < p16.nOutputs; outChan++)
         {
             c0 = Dens(lutTable, x0, y0, z0, outChan);
 
@@ -851,38 +858,40 @@ public static unsafe partial class Lcms2
             tmp2[outChan] = (ushort)(c0 + ROUND_FIXED_TO_INT(_cmsToFixedDomain(rest)));
         }
 
-        for (var i = 0; i < p16->nOutputs; i++)
+        for (var i = 0; i < p16.nOutputs; i++)
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }
 
-    private static void Eval4InputsFloat(in float* input, float* output, in InterpParams* p)
+    private static void Eval4InputsFloat(in float* input, float* output, InterpParams p)
     {
-        if (p->Table is not Memory<float> lutTable)
+        if (p.Table is not Memory<float> lutTable)
             return;
         var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
-        var pk = Fclamp(input[0]) * p->Domain[0];
+        var pk = Fclamp(input[0]) * p.Domain[0];
         var k0 = _cmsQuickFloor(pk);
         var rest = pk - k0;
 
-        k0 *= (int)p->opta[3];
-        var k1 = k0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[3]);
+        k0 *= (int)p.opta[3];
+        var k1 = k0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[3]);
 
-        var p1 = *p;
-        memcpy(&p1.Domain[0], &p->Domain[1], 3 * _sizeof<uint>());
+        //var p1 = *p;
+        //memcpy(&p1.Domain[0], &p.Domain[1], 3 * _sizeof<uint>());
+        var p1 = p.Clone() as InterpParams;
+        p.Domain.AsSpan(1..4).CopyTo(p1.Domain.AsSpan(0..3));
 
         var t = lutTable[k0..];
         p1.Table = t;
 
-        TetrahedralInterpFloat(input + 1, tmp1, &p1);
+        TetrahedralInterpFloat(input + 1, tmp1, p1);
 
         t = lutTable[k1..];
         p1.Table = t;
 
-        TetrahedralInterpFloat(input + 1, tmp2, &p1);
+        TetrahedralInterpFloat(input + 1, tmp2, p1);
 
-        for (var i = 0; i < p->nOutputs; i++)
+        for (var i = 0; i < p.nOutputs; i++)
         {
             var y0 = tmp1[i];
             var y1 = tmp2[i];
@@ -891,9 +900,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void EvalXInputs(int N, in ushort* input, ushort* output, in InterpParams* p16)
+    private static void EvalXInputs(int N, in ushort* input, ushort* output, InterpParams    p16)
     {
-        if (p16->Table is not Memory<ushort> lutTable)
+        if (p16.Table is not Memory<ushort> lutTable)
             return;
 
         var NM = N - 1;
@@ -901,72 +910,76 @@ public static unsafe partial class Lcms2
         var tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
-        var fk = _cmsToFixedDomain(input[0] * (int)p16->Domain[0]);
+        var fk = _cmsToFixedDomain(input[0] * (int)p16.Domain[0]);
         var k0 = FIXED_TO_INT(fk);
         var rk = FIXED_REST_TO_INT(fk);
 
-        var K0 = (int)p16->opta[NM] * k0;
-        var K1 = (int)p16->opta[NM] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
+        var K0 = (int)p16.opta[NM] * k0;
+        var K1 = (int)p16.opta[NM] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
-        var p1 = *p16;
-        Buffer.MemoryCopy(&p16->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        //var p1 = *p16;
+        //Buffer.MemoryCopy(&p16.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        var p1 = p16.Clone() as InterpParams;
+        p16.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4Inputs(input + 1, tmp1, &p1);
+            Eval4Inputs(input + 1, tmp1, p1);
         else
-            EvalXInputs(NM, input + 1, tmp1, &p1);
+            EvalXInputs(NM, input + 1, tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4Inputs(input + 1, tmp2, &p1);
+            Eval4Inputs(input + 1, tmp2, p1);
         else
-            EvalXInputs(NM, input + 1, tmp2, &p1);
+            EvalXInputs(NM, input + 1, tmp2, p1);
 
-        for (var j = 0; j < p16->nOutputs; j++)
+        for (var j = 0; j < p16.nOutputs; j++)
             output[j] = LinearInterp(rk, tmp1[j], tmp2[j]);
     }
 
-    private static void EvalXInputsFloat(int N, in float* input, float* output, in InterpParams* p)
+    private static void EvalXInputsFloat(int N, in float* input, float* output, InterpParams p)
     {
         var NM = N - 1;
 
-        if (p->Table is not Memory<float> lutTable)
+        if (p.Table is not Memory<float> lutTable)
             return;
         var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
         var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
-        var pk = Fclamp(input[0]) * p->Domain[0];
+        var pk = Fclamp(input[0]) * p.Domain[0];
         var k0 = _cmsQuickFloor(pk);
         var rest = pk - k0;
 
-        var K0 = (int)p->opta[NM] * k0;
-        var K1 = K0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p->opta[NM]);
+        var K0 = (int)p.opta[NM] * k0;
+        var K1 = K0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[NM]);
 
-        var p1 = *p;
-        Buffer.MemoryCopy(&p->Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        //var p1 = *p;
+        //Buffer.MemoryCopy(&p.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        var p1 = p.Clone() as InterpParams;
+        p.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4InputsFloat(input + 1, tmp1, &p1);
+            Eval4InputsFloat(input + 1, tmp1, p1);
         else
-            EvalXInputsFloat(NM, input + 1, tmp1, &p1);
+            EvalXInputsFloat(NM, input + 1, tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4InputsFloat(input + 1, tmp2, &p1);
+            Eval4InputsFloat(input + 1, tmp2, p1);
         else
-            EvalXInputsFloat(NM, input + 1, tmp2, &p1);
+            EvalXInputsFloat(NM, input + 1, tmp2, p1);
 
-        for (var j = 0; j < p->nOutputs; j++)
+        for (var j = 0; j < p.nOutputs; j++)
         {
             var y0 = tmp1[j];
             var y1 = tmp2[j];
@@ -975,240 +988,169 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void Eval5Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval5Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(5, input, output, p16);
 
-    private static void Eval6Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval6Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(6, input, output, p16);
 
-    private static void Eval7Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval7Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(7, input, output, p16);
 
-    private static void Eval8Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval8Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(8, input, output, p16);
 
-    private static void Eval9Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval9Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(9, input, output, p16);
 
-    private static void Eval10Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval10Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(10, input, output, p16);
 
-    private static void Eval11Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval11Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(11, input, output, p16);
 
-    private static void Eval12Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval12Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(12, input, output, p16);
 
-    private static void Eval13Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval13Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(13, input, output, p16);
 
-    private static void Eval14Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval14Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(14, input, output, p16);
 
-    private static void Eval15Inputs(in ushort* input, ushort* output, in InterpParams* p16) =>
+    private static void Eval15Inputs(in ushort* input, ushort* output, InterpParams p16) =>
         EvalXInputs(15, input, output, p16);
 
-    private static void Eval5InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval5InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(5, input, output, p);
 
-    private static void Eval6InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval6InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(6, input, output, p);
 
-    private static void Eval7InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval7InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(7, input, output, p);
 
-    private static void Eval8InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval8InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(8, input, output, p);
 
-    private static void Eval9InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval9InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(9, input, output, p);
 
-    private static void Eval10InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval10InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(10, input, output, p);
 
-    private static void Eval11InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval11InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(11, input, output, p);
 
-    private static void Eval12InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval12InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(12, input, output, p);
 
-    private static void Eval13InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval13InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(13, input, output, p);
 
-    private static void Eval14InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval14InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(14, input, output, p);
 
-    private static void Eval15InputsFloat(in float* input, float* output, in InterpParams* p) =>
+    private static void Eval15InputsFloat(in float* input, float* output, InterpParams p) =>
         EvalXInputsFloat(15, input, output, p);
 
-    private static InterpFunction DefaultInterpolatorsFactory(uint nInputChannels, uint nOutputChannels, LerpFlag dwFlags)
+    private static InterpFunction? DefaultInterpolatorsFactory(uint nInputChannels, uint nOutputChannels, LerpFlag dwFlags)
     {
-        InterpFunction interpolation = default;
         var isFloat = (dwFlags & LerpFlag.Float) != 0;
         var isTriliniar = (dwFlags & LerpFlag.Trilinear) != 0;
 
-        memset(&interpolation, 0, _sizeof<InterpFunction>());
+        //memset(&interpolation, 0, _sizeof<InterpFunction>());
 
         // Safety check
         if (nInputChannels >= 4 && nOutputChannels >= MAX_STAGE_CHANNELS)
-            return default;
+            return null;
 
-        switch (nInputChannels)
+        return nInputChannels switch
         {
-            case 1: // Gray Lut / linear
+            1 => // Gray Lut / linear
+                nOutputChannels is 1
+                    ? isFloat
+                        ? new(LinLerp1Dfloat)
+                        : new(LinLerp1D)
+                    : isFloat
+                        ? new(Eval1InputFloat)
+                        : new(Eval1Input),
 
-                if (nOutputChannels is 1)
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = LinLerp1Dfloat;
-                    else
-                        interpolation.Lerp16 = LinLerp1D;
-                }
-                else
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = Eval1InputFloat;
-                    else
-                        interpolation.Lerp16 = Eval1Input;
-                }
+            2 => // Duotone
+                isFloat
+                    ? new(BilinearInterpFloat)
+                    : new(BilinearInterp16),
 
-                break;
+            3 => // RGB et al
+                isTriliniar
+                    ? isFloat
+                        ? new(TrilinearInterpFloat)
+                        : new(TrilinearInterp16)
+                    : isFloat
+                        ? new(TetrahedralInterpFloat)
+                        : new(TetrahedralInterp16),
 
-            case 2: // Duotone
+            4 => // CMYK lut
+                isFloat
+                    ? new(Eval4InputsFloat)
+                    : new(Eval4Inputs),
 
-                if (isFloat)
-                    interpolation.LerpFloat = BilinearInterpFloat;
-                else
-                    interpolation.Lerp16 = BilinearInterp16;
+            5 =>
+                isFloat
+                    ? new(Eval5InputsFloat)
+                    : new(Eval5Inputs),
 
-                break;
+            6 =>
+                isFloat
+                    ? new(Eval6InputsFloat)
+                    : new(Eval6Inputs),
 
-            case 3: // RGB et al
+            7 =>
+                isFloat
+                    ? new(Eval7InputsFloat)
+                    : new(Eval7Inputs),
 
-                if (isTriliniar)
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = TrilinearInterpFloat;
-                    else
-                        interpolation.Lerp16 = TrilinearInterp16;
-                }
-                else
-                {
-                    if (isFloat)
-                        interpolation.LerpFloat = TetrahedralInterpFloat;
-                    else
-                        interpolation.Lerp16 = TetrahedralInterp16;
-                }
-                break;
+            8 =>
+                isFloat
+                    ? new(Eval8InputsFloat)
+                    : new(Eval8Inputs),
 
-            case 4: // CMYK lut
+            9 =>
+                isFloat
+                    ? new(Eval9InputsFloat)
+                    : new(Eval9Inputs),
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval4InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval4Inputs;
+            10 =>
+                isFloat
+                    ? new(Eval10InputsFloat)
+                    : new(Eval10Inputs),
 
-                break;
+            11 =>
+                isFloat
+                    ? new(Eval11InputsFloat)
+                    : new(Eval11Inputs),
 
-            case 5:
+            12 =>
+                isFloat
+                    ? new(Eval12InputsFloat)
+                    : new(Eval12Inputs),
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval5InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval5Inputs;
+            13 =>
+                isFloat
+                    ? new(Eval13InputsFloat)
+                    : new(Eval13Inputs),
 
-                break;
+            14 =>
+                isFloat
+                    ? new(Eval14InputsFloat)
+                    : new(Eval14Inputs),
 
-            case 6:
+            15 =>
+                isFloat
+                    ? new(Eval15InputsFloat)
+                    : new(Eval15Inputs),
 
-                if (isFloat)
-                    interpolation.LerpFloat = Eval6InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval6Inputs;
-
-                break;
-
-            case 7:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval7InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval7Inputs;
-
-                break;
-
-            case 8:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval8InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval8Inputs;
-
-                break;
-
-            case 9:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval9InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval9Inputs;
-
-                break;
-
-            case 10:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval10InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval10Inputs;
-
-                break;
-
-            case 11:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval11InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval11Inputs;
-
-                break;
-
-            case 12:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval12InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval12Inputs;
-
-                break;
-
-            case 13:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval13InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval13Inputs;
-
-                break;
-
-            case 14:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval14InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval14Inputs;
-
-                break;
-
-            case 15:
-
-                if (isFloat)
-                    interpolation.LerpFloat = Eval15InputsFloat;
-                else
-                    interpolation.Lerp16 = Eval15Inputs;
-
-                break;
-        }
-        return interpolation;
+            _ => null
+        };
     }
 }

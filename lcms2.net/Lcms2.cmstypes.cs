@@ -1622,10 +1622,7 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        var clutPoints =
-            clut is not null
-                ? clut.Params->nSamples[0]
-                : 0u;
+        var clutPoints = (clut?.Params.nSamples[0]) ?? 0u;
 
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
@@ -1846,10 +1843,7 @@ public static unsafe partial class Lcms2
         var InputChannels = cmsPipelineInputChannels(NewLut);
         var OutputChannels = cmsPipelineOutputChannels(NewLut);
 
-        var clutPoints =
-            clut is not null
-                ? clut.Params->nSamples[0]
-                : 0u;
+        var clutPoints = (clut?.Params.nSamples[0]) ?? 0u;
 
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
@@ -1952,7 +1946,7 @@ public static unsafe partial class Lcms2
     private static Stage? ReadCLUT(TagTypeHandler* self, IOHandler io, uint Offset, uint InputChannels, uint OutputChannels)
     {
         var gridPoints8 = stackalloc byte[cmsMAXCHANNELS];  // Number of grid points in each dimension
-        var GridPoints = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> GridPoints = stackalloc uint[cmsMAXCHANNELS];
         byte Precision;
 
         if (!io.Seek(io, Offset)) return null;
@@ -1971,9 +1965,8 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt8Number(io, null)) return null;
 
         var CLUT = cmsStageAllocCLut16bitGranular(self->ContextID, GridPoints, InputChannels, OutputChannels, null);
-        if (CLUT is null) return null;
-
-        var Data = (StageCLutData)CLUT.Data;
+        if (CLUT is null || CLUT.Data is not StageCLutData Data)
+            return null;
 
         // Predcision can be 1 or 2 bytes
         switch (Precision)
@@ -2135,7 +2128,8 @@ public static unsafe partial class Lcms2
     private static bool WriteMatrix(TagTypeHandler* _, IOHandler io, Stage mpe)
     {
         Span<double> zeros = stackalloc double[(int)mpe.OutputChannels];
-        var m = (StageMatrixData)mpe.Data;
+        if (mpe.Data is not StageMatrixData m)
+            return false;
 
         //memset(zeros, 0, (int)mpe.OutputChannels * sizeof(double));
         zeros.Clear();
@@ -2196,7 +2190,8 @@ public static unsafe partial class Lcms2
     private static bool WriteCLUT(TagTypeHandler* self, IOHandler io, byte Precision, Stage mpe)
     {
         var gridPoints = stackalloc byte[cmsMAXCHANNELS]; // Number of grid points in each dimension.
-        var CLUT = (StageCLutData)mpe.Data;
+        if (mpe.Data is not StageCLutData CLUT)
+            return false;
 
         if (CLUT.HasFloatValues)
         {
@@ -2205,8 +2200,8 @@ public static unsafe partial class Lcms2
         }
 
         memset(gridPoints, 0, _sizeof<byte>() * cmsMAXCHANNELS);
-        for (var i = 0; i < CLUT.Params->nInputs; i++)
-            gridPoints[i] = (byte)CLUT.Params->nSamples[i];
+        for (var i = 0; i < CLUT.Params.nInputs; i++)
+            gridPoints[i] = (byte)CLUT.Params.nSamples[i];
 
         if (!io.Write(io, (uint)(cmsMAXCHANNELS * _sizeof<byte>()), gridPoints)) return false;
 
@@ -4379,7 +4374,7 @@ public static unsafe partial class Lcms2
     {
         ushort InputChans, OutputChans;
         var Dimensions8 = stackalloc byte[16];
-        var GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
         Stage? mpe = null;
 
         *nItems = 0;
@@ -4439,7 +4434,7 @@ public static unsafe partial class Lcms2
         memset(Dimensions8, 0, _sizeof<byte>() * 16);
 
         for (var i = 0; i < mpe.InputChannels; i++)
-            Dimensions8[i] = (byte)clut.Params->nSamples[i];
+            Dimensions8[i] = (byte)clut.Params.nSamples[i];
 
         if (!io.Write(io, 16, Dimensions8)) return false;
 

@@ -483,7 +483,7 @@ public static unsafe partial class Lcms2
             {
                 var CLUT = (StageCLutData)Stage.Data!;
 
-                CLUT.Params->dwFlags |= (uint)LerpFlag.Trilinear;
+                CLUT.Params.dwFlags |= (uint)LerpFlag.Trilinear;
                 _cmsSetInterpolationRoutine(Lut?.ContextID, CLUT.Params);
             }
         }

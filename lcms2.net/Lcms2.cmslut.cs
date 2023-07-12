@@ -411,7 +411,7 @@ public static unsafe partial class Lcms2
         if (mpe.Data is not StageCLutData Data)
             return;
 
-        Data.Params->Interpolation.LerpFloat?.Invoke(In, Out, Data.Params);
+        Data.Params.Interpolation.LerpFloat?.Invoke(In, Out, Data.Params);
     }
 
     private static void EvaluateCLUTfloatIn16(in float* In, float* Out, Stage mpe)
@@ -426,11 +426,11 @@ public static unsafe partial class Lcms2
         _cmsAssert(mpe.OutputChannels <= MAX_STAGE_CHANNELS);
 
         FromFloatTo16(In, In16, mpe.InputChannels);
-        Data.Params->Interpolation.Lerp16?.Invoke(In16, Out16, Data.Params);
+        Data.Params.Interpolation.Lerp16?.Invoke(In16, Out16, Data.Params);
         From16ToFloat(Out16, Out, mpe.OutputChannels);
     }
 
-    private static uint CubeSize(in uint* Dims, uint b)
+    private static uint CubeSize(ReadOnlySpan<uint> Dims, uint b)
     {
         var rv = 0u;
 
@@ -438,7 +438,7 @@ public static unsafe partial class Lcms2
 
         for (rv = 1; b > 0; b--)
         {
-            var dim = Dims[b - 1];
+            var dim = Dims[(int)b - 1];
             if (dim == 0) return 0;  // Error
 
             rv *= dim;
@@ -486,14 +486,17 @@ public static unsafe partial class Lcms2
             }
         }
 
-        NewElem.Params = _cmsComputeInterpParamsEx(mpe.ContextID,
-                                                   Data.Params->nSamples,
-                                                   Data.Params->nInputs,
-                                                   Data.Params->nOutputs,
-                                                   NewElem.Tab,
-                                                   (LerpFlag)Data.Params->dwFlags);
-        if (NewElem.Params is not null)
+        var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
+                                                Data.Params.nSamples,
+                                                Data.Params.nInputs,
+                                                Data.Params.nOutputs,
+                                                NewElem.Tab,
+                                                (LerpFlag)Data.Params.dwFlags)!;
+        if (@params is not null)
+        {
+            NewElem.Params = @params;
             return NewElem;
+        }
 
         //Error:
         //if (NewElem.Tab.T is not null)
@@ -521,7 +524,7 @@ public static unsafe partial class Lcms2
 
     public static Stage? cmsStageAllocCLut16bitGranular(
         Context? ContextID,
-        in uint* clutPoints,
+        ReadOnlySpan<uint> clutPoints,
         uint inputChan,
         uint outputChan,
         in ushort* Table)
@@ -590,7 +593,7 @@ public static unsafe partial class Lcms2
         uint outputChan,
         in ushort* Table)
     {
-        var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
         // Our resulting LUT would be same gridpoints on all dimensions
         for (var i = 0; i < MAX_INPUT_DIMENSIONS; i++)
@@ -606,7 +609,7 @@ public static unsafe partial class Lcms2
         uint outputChan,
         in float* Table)
     {
-        var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
         // Our resulting LUT would be same gridpoints on all dimensions
         for (var i = 0; i < MAX_INPUT_DIMENSIONS; i++)
@@ -617,7 +620,7 @@ public static unsafe partial class Lcms2
 
     public static Stage? cmsStageAllocCLutFloatGranular(
         Context? ContextID,
-        in uint* clutPoints,
+        ReadOnlySpan<uint> clutPoints,
         uint inputChan,
         uint outputChan,
         in float* Table)
@@ -699,7 +702,7 @@ public static unsafe partial class Lcms2
 
     internal static Stage? _cmsStageAllocIdentityCLut(Context? ContextID, uint nChan)
     {
-        var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
         for (var i = 0; i < MAX_INPUT_DIMENSIONS; i++)
             Dimensions[i] = 2;
@@ -728,12 +731,12 @@ public static unsafe partial class Lcms2
         var In = stackalloc ushort[MAX_INPUT_DIMENSIONS + 1];
         var Out = stackalloc ushort[MAX_INPUT_DIMENSIONS];
 
-        if (mpe is null ||
-            mpe.Data is not StageCLutData clut) return false;
+        if (mpe?.Data is not StageCLutData clut)
+            return false;
 
-        var nSamples = clut.Params->nSamples;
-        var nInputs = clut.Params->nInputs;
-        var nOutputs = clut.Params->nOutputs;
+        var nSamples = clut.Params.nSamples;
+        var nInputs = clut.Params.nInputs;
+        var nOutputs = clut.Params.nOutputs;
 
         if (nInputs <= 0) return false;
         if (nOutputs <= 0) return false;
@@ -785,12 +788,12 @@ public static unsafe partial class Lcms2
         var In = stackalloc float[MAX_INPUT_DIMENSIONS + 1];
         var Out = stackalloc float[MAX_INPUT_DIMENSIONS];
 
-        if (mpe is null ||
-            mpe.Data is not StageCLutData clut) return false;
+        if (mpe?.Data is not StageCLutData clut)
+            return false;
 
-        var nSamples = clut.Params->nSamples;
-        var nInputs = clut.Params->nInputs;
-        var nOutputs = clut.Params->nOutputs;
+        var nSamples = clut.Params.nSamples;
+        var nInputs = clut.Params.nInputs;
+        var nOutputs = clut.Params.nOutputs;
 
         if (nInputs <= 0) return false;
         if (nOutputs <= 0) return false;
@@ -837,7 +840,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsSliceSpace16(uint nInputs, in uint* clutPoints, delegate*<in ushort*, ushort*, void*, bool> Sampler, void* Cargo)
+    public static bool cmsSliceSpace16(uint nInputs, ReadOnlySpan<uint> clutPoints, delegate*<in ushort*, ushort*, void*, bool> Sampler, void* Cargo)
     {
         var In = stackalloc ushort[cmsMAXCHANNELS];
 
@@ -863,7 +866,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsSliceSpaceFloat(uint nInputs, in uint* clutPoints, delegate*<in float*, float*, void*, bool> Sampler, void* Cargo)
+    public static bool cmsSliceSpaceFloat(uint nInputs, ReadOnlySpan<uint> clutPoints, delegate*<in float*, float*, void*, bool> Sampler, void* Cargo)
     {
         var In = stackalloc float[cmsMAXCHANNELS];
 

@@ -42,7 +42,7 @@ public static unsafe partial class Lcms2
     {
         public Context? ContextID;
 
-        public InterpParams* p;
+        public InterpParams p;
         public fixed ushort rx[256];
         public fixed ushort ry[256];
         public fixed ushort rz[256];
@@ -51,7 +51,7 @@ public static unsafe partial class Lcms2
         public fixed uint Z0[256];
     }
 
-    private struct Prelin16Data
+    private class Prelin16Data : IDisposable, ICloneable
     {
         public Context? ContextID;
 
@@ -61,21 +61,86 @@ public static unsafe partial class Lcms2
         public uint nOutputs;
 
         // The maximum number of input channels is known in advance
-        public InterpFn16[] EvalCurveIn16;
+        private readonly InterpFn<ushort>[] evalCurveIn16;
 
-        public InterpParams*[] ParamsCurveIn16;
+        private readonly InterpParams?[] paramsCurveIn16;
 
         // The evaluator for 3D grid
-        public InterpFn16 EvalCLUT;
+        public InterpFn<ushort> EvalCLUT;
 
         // (not-owned pointer)
-        public InterpParams* CLUTparams;
+        public InterpParams CLUTparams;
 
         // Points to an array of curve evaluators in 16 bits (not-owned pointer)
-        public InterpFn16* EvalCurveOut16;
+        private readonly InterpFn<ushort>[] evalCurveOut16;
 
         // Points to an array of references to interpolation params (not-owned pointer)
-        public InterpParams** ParamsCurveOut16;
+        private readonly InterpParams?[] paramsCurveOut16;
+        private bool disposedValue;
+
+        public Span<InterpFn<ushort>> EvalCurveIn16 => evalCurveIn16;
+        public Span<InterpParams?> ParamsCurveIn16 => paramsCurveIn16;
+        public Span<InterpFn<ushort>> EvalCurveOut16 => evalCurveOut16;
+        public Span<InterpParams?> ParamsCurveOut16 => paramsCurveOut16;
+
+        public Prelin16Data(Context? context, uint numInputs, uint numOutputs)
+        {
+            ContextID = context;
+            nInputs = numInputs;
+            nOutputs = numOutputs;
+
+            var ifPool = Context.GetPool<InterpFn<ushort>>(context);
+            var ipPool = Context.GetPool<InterpParams>(context);
+
+            evalCurveIn16 = ifPool.Rent((int)numInputs);
+            paramsCurveIn16 = ipPool.Rent((int)numInputs);
+
+            evalCurveOut16 = ifPool.Rent((int)numOutputs);
+            paramsCurveOut16 = ipPool.Rent((int)numOutputs);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
+                    var ipPool = Context.GetPool<InterpParams>(ContextID);
+
+                    ifPool.Return(evalCurveIn16);
+                    ipPool.Return(paramsCurveIn16);
+
+                    ifPool.Return(evalCurveOut16);
+                    ipPool.Return(paramsCurveOut16);
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        public object Clone()
+        {
+            var result = new Prelin16Data(ContextID, nInputs, nOutputs)
+            {
+                EvalCLUT = EvalCLUT,
+                CLUTparams = CLUTparams,
+                disposedValue = false
+            };
+
+            // EvalCurveIn16 and ParamsCurveIn16 excluded on purpose!!
+
+            EvalCurveOut16.CopyTo(result.EvalCurveOut16);
+            ParamsCurveOut16.CopyTo(result.ParamsCurveOut16);
+
+            return result;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -292,111 +357,114 @@ public static unsafe partial class Lcms2
         return AnyOpt;
     }
 
-    private static void Eval16nop1D(in ushort* Input, ushort* Output, in InterpParams* _)
+    private static void Eval16nop1D(in ushort* Input, ushort* Output, InterpParams _)
     {
         Output[0] = Input[0];
     }
 
     private static void PrelinEval16(in ushort* Input, ushort* Output, object? D)
     {
-        if (D is not BoxPtr<Prelin16Data> p16)
+        if (D is not Prelin16Data p16)
             return;
 
         var StageABC = stackalloc ushort[MAX_INPUT_DIMENSIONS];
         var StageDEF = stackalloc ushort[cmsMAXCHANNELS];
 
-        for (var i = 0; i < p16.Ptr->nInputs; i++)
-            p16.Ptr->EvalCurveIn16[i](&Input[i], &StageABC[i], p16.Ptr->ParamsCurveIn16[i]);
+        for (var i = 0; i < p16.nInputs; i++)
+            p16.EvalCurveIn16[i](&Input[i], &StageABC[i], p16.ParamsCurveIn16[i]);
 
-        p16.Ptr->EvalCLUT(StageABC, StageDEF, p16.Ptr->CLUTparams);
+        p16.EvalCLUT(StageABC, StageDEF, p16.CLUTparams);
 
-        for (var i = 0; i < p16.Ptr->nOutputs; i++)
-            p16.Ptr->EvalCurveIn16[i](&StageDEF[i], &Output[i], p16.Ptr->ParamsCurveOut16[i]);
+        for (var i = 0; i < p16.nOutputs; i++)
+            p16.EvalCurveIn16[i](&StageDEF[i], &Output[i], p16.ParamsCurveOut16[i]);
     }
 
     private static void PrelinOpt16free(Context? ContextID, object? ptr)
     {
-        if (ptr is not BoxPtr<Prelin16Data> p16)
+        if (ptr is not Prelin16Data p16)
             return;
 
-        _cmsFree(ContextID, p16.Ptr->EvalCurveOut16);
-        _cmsFree(ContextID, p16.Ptr->ParamsCurveOut16);
+        //_cmsFree(ContextID, p16.EvalCurveOut16);
+        //_cmsFree(ContextID, p16.ParamsCurveOut16);
 
-        _cmsFree(ContextID, p16);
+        //_cmsFree(ContextID, p16);
+
+        p16.Dispose();
     }
 
     private static object? Prelin16dup(Context? ContextID, object? ptr)
     {
-        if (ptr is not BoxPtr<Prelin16Data> p16)
+        if (ptr is not Prelin16Data p16)
             return null;
 
-        var Duped = _cmsDupMem<Prelin16Data>(ContextID, p16);
+        //var Duped = _cmsDupMem<Prelin16Data>(ContextID, p16);
+        //if (Duped is null) return null;
 
-        if (Duped is null) return null;
+        //Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16.Ptr->EvalCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
+        //Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16.Ptr->ParamsCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
 
-        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16.Ptr->EvalCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
-        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16.Ptr->ParamsCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
-
-        return new BoxPtr<Prelin16Data>(Duped);
+        return p16.Clone();
     }
 
-    private static Prelin16Data* PrelinOpt16alloc(
+    private static Prelin16Data? PrelinOpt16alloc(
         Context? ContextID,
-        in InterpParams* ColorMap,
+        InterpParams ColorMap,
         uint nInputs,
         ToneCurve** In,
         uint nOutputs,
         ToneCurve** Out)
     {
-        var p16 = _cmsMallocZero<Prelin16Data>(ContextID);
-        if (p16 is null) return null;
+        //var p16 = _cmsMallocZero<Prelin16Data>(ContextID);
+        //if (p16 is null) return null;
 
-        p16->nInputs = nInputs;
-        p16->nOutputs = nOutputs;
+        //p16->nInputs = nInputs;
+        //p16->nOutputs = nOutputs;
+
+        var p16 = new Prelin16Data(ContextID, nInputs, nOutputs);
 
         for (var i = 0; i < nInputs; i++)
         {
             if (In is null)
             {
-                p16->ParamsCurveIn16[i] = null;
-                p16->EvalCurveIn16[i] = Eval16nop1D;
+                p16.ParamsCurveIn16[i] = null;
+                p16.EvalCurveIn16[i] = Eval16nop1D;
             }
             else
             {
-                p16->ParamsCurveIn16[i] = In[i]->InterpParams;
-                p16->EvalCurveIn16[i] = p16->ParamsCurveIn16[i]->Interpolation.Lerp16;
+                p16.ParamsCurveIn16[i] = In[i]->InterpParams;
+                p16.EvalCurveIn16[i] = p16.ParamsCurveIn16[i].Interpolation.Lerp16;
             }
         }
 
-        p16->CLUTparams = ColorMap;
-        p16->EvalCLUT = ColorMap->Interpolation.Lerp16;
+        p16.CLUTparams = ColorMap;
+        p16.EvalCLUT = ColorMap.Interpolation.Lerp16;
 
-        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>());
-        if (p16->EvalCurveOut16 is null)
-        {
-            _cmsFree(ContextID, p16);
-            return null;
-        }
+        //p16.EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>());
+        //if (p16.EvalCurveOut16 is null)
+        //{
+        //    _cmsFree(ContextID, p16);
+        //    return null;
+        //}
 
-        p16->ParamsCurveOut16 = _cmsCalloc2<InterpParams>(ContextID, nOutputs);
-        if (p16->ParamsCurveOut16 is null)
-        {
-            _cmsFree(ContextID, p16->EvalCurveOut16);
-            _cmsFree(ContextID, p16);
-            return null;
-        }
+        //p16.ParamsCurveOut16 = _cmsCalloc2<InterpParams>(ContextID, nOutputs);
+        //if (p16.ParamsCurveOut16 is null)
+        //{
+        //    _cmsFree(ContextID, p16.EvalCurveOut16);
+        //    _cmsFree(ContextID, p16);
+        //    return null;
+        //}
 
         for (var i = 0; i < nOutputs; i++)
         {
             if (Out is null)
             {
-                p16->ParamsCurveOut16[i] = null;
-                p16->EvalCurveOut16[i] = Eval16nop1D;
+                p16.ParamsCurveOut16[i] = null;
+                p16.EvalCurveOut16[i] = Eval16nop1D;
             }
             else
             {
-                p16->ParamsCurveOut16[i] = Out[i]->InterpParams;
-                p16->EvalCurveOut16[i] = p16->ParamsCurveOut16[i]->Interpolation.Lerp16;
+                p16.ParamsCurveOut16[i] = Out[i]->InterpParams;
+                p16.EvalCurveOut16[i] = p16.ParamsCurveOut16[i].Interpolation;
             }
         }
 
@@ -467,10 +535,10 @@ public static unsafe partial class Lcms2
         {
             case 4:
                 {
-                    px = (double)At[0] * p16->Domain[0] / 65535.0;
-                    py = (double)At[1] * p16->Domain[1] / 65535.0;
-                    pz = (double)At[2] * p16->Domain[2] / 65535.0;
-                    pw = (double)At[3] * p16->Domain[3] / 65535.0;
+                    px = (double)At[0] * p16.Domain[0] / 65535.0;
+                    py = (double)At[1] * p16.Domain[1] / 65535.0;
+                    pz = (double)At[2] * p16.Domain[2] / 65535.0;
+                    pw = (double)At[3] * p16.Domain[3] / 65535.0;
 
                     x0 = (int)Math.Floor(px);
                     y0 = (int)Math.Floor(py);
@@ -485,18 +553,18 @@ public static unsafe partial class Lcms2
                         return false; // Not on exact node
                     }
 
-                    index = ((int)p16->opta[3] * x0) +
-                            ((int)p16->opta[2] * y0) +
-                            ((int)p16->opta[1] * z0) +
-                            ((int)p16->opta[0] * w0);
+                    index = ((int)p16.opta[3] * x0) +
+                            ((int)p16.opta[2] * y0) +
+                            ((int)p16.opta[1] * z0) +
+                            ((int)p16.opta[0] * w0);
                 }
                 break;
 
             case 3:
                 {
-                    px = (double)At[0] * p16->Domain[0] / 65535.0;
-                    py = (double)At[1] * p16->Domain[1] / 65535.0;
-                    pz = (double)At[2] * p16->Domain[2] / 65535.0;
+                    px = (double)At[0] * p16.Domain[0] / 65535.0;
+                    py = (double)At[1] * p16.Domain[1] / 65535.0;
+                    pz = (double)At[2] * p16.Domain[2] / 65535.0;
 
                     x0 = (int)Math.Floor(px);
                     y0 = (int)Math.Floor(py);
@@ -509,15 +577,15 @@ public static unsafe partial class Lcms2
                         return false; // Not on exact node
                     }
 
-                    index = ((int)p16->opta[2] * x0) +
-                            ((int)p16->opta[1] * y0) +
-                            ((int)p16->opta[0] * z0);
+                    index = ((int)p16.opta[2] * x0) +
+                            ((int)p16.opta[1] * y0) +
+                            ((int)p16.opta[0] * z0);
                 }
                 break;
 
             case 1:
                 {
-                    px = (double)At[0] * p16->Domain[0] / 65535.0;
+                    px = (double)At[0] * p16.Domain[0] / 65535.0;
 
                     x0 = (int)Math.Floor(px);
 
@@ -526,7 +594,7 @@ public static unsafe partial class Lcms2
                         return false; // Not on exact node
                     }
 
-                    index = (int)p16->opta[0] * x0;
+                    index = (int)p16.opta[0] * x0;
                 }
                 break;
 
@@ -559,7 +627,6 @@ public static unsafe partial class Lcms2
         var ObtainedOut = stackalloc ushort[cmsMAXCHANNELS];
         ushort* WhitePointIn, WhitePointOut;
         uint nOuts, nIns;
-        Stage? PreLin = null, CLUT = null, PostLin = null;
 
         if (!_cmsEndPointsBySpace(EntryColorSpace, &WhitePointIn, null, &nIns))
             return false;
@@ -577,7 +644,7 @@ public static unsafe partial class Lcms2
             return true;    // Whites already match
 
         // Check if the LUT comes as Prelin, CLUT or Postlin. We allow all combinations
-        if (!cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out PreLin, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out PostLin) &&
+        if (!cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out Stage? PreLin, cmsSigCLutElemType, out Stage? CLUT, cmsSigCurveSetElemType, out Stage? PostLin) &&
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out PreLin, cmsSigCLutElemType, out CLUT) &&
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out PostLin) &&
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCLutElemType, out CLUT))
@@ -742,10 +809,10 @@ public static unsafe partial class Lcms2
                 Dest,
                 (in ushort* i, ushort* o, object? p) =>
                 {
-                    if (p is not BoxPtr<InterpParams> ptr) return;
-                    DataCLUT.Params->Interpolation.Lerp16?.Invoke(i, o, ptr);
+                    if (p is not InterpParams ptr) return;
+                    DataCLUT.Params.Interpolation.Lerp16?.Invoke(i, o, ptr);
                 },
-                new BoxPtr<InterpParams>(DataCLUT.Params),
+                DataCLUT.Params,
                 null,
                 null);
         }
@@ -753,7 +820,7 @@ public static unsafe partial class Lcms2
         {
             var p16 = PrelinOpt16alloc(Dest.ContextID, DataCLUT.Params, Dest.InputChannels, DataSetIn, Dest.OutputChannels, DataSetOut);
 
-            _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, new BoxPtr<Prelin16Data>(p16), PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
         }
 
         // Don't fix white on absolute colorimentric
@@ -805,7 +872,7 @@ public static unsafe partial class Lcms2
             g->Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
     }
 
-    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, in InterpParams* p, ToneCurve** G)
+    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams p, ToneCurve** G)
     {
         var Input = stackalloc ushort[3];
 
@@ -832,14 +899,14 @@ public static unsafe partial class Lcms2
             }
 
             // Move to 0..1.0 in fixed domain
-            var v1 = _cmsToFixedDomain((int)(Input[0] * p->Domain[0]));
-            var v2 = _cmsToFixedDomain((int)(Input[1] * p->Domain[1]));
-            var v3 = _cmsToFixedDomain((int)(Input[2] * p->Domain[2]));
+            var v1 = _cmsToFixedDomain((int)(Input[0] * p.Domain[0]));
+            var v2 = _cmsToFixedDomain((int)(Input[1] * p.Domain[1]));
+            var v3 = _cmsToFixedDomain((int)(Input[2] * p.Domain[2]));
 
             // Store the precalculated table of nodes
-            p8->X0[i] = p->opta[0] * (uint)FIXED_TO_INT(v1);
-            p8->Y0[i] = p->opta[1] * (uint)FIXED_TO_INT(v2);
-            p8->Z0[i] = p->opta[2] * (uint)FIXED_TO_INT(v3);
+            p8->X0[i] = p.opta[0] * (uint)FIXED_TO_INT(v1);
+            p8->Y0[i] = p.opta[1] * (uint)FIXED_TO_INT(v2);
+            p8->Z0[i] = p.opta[2] * (uint)FIXED_TO_INT(v3);
 
             // Store the precalculated table of offsets
             p8->rx[i] = (ushort)FIXED_REST_TO_INT(v1);
@@ -854,7 +921,8 @@ public static unsafe partial class Lcms2
     }
 
     private static void Prelin8free(Context? ContextID, object? ptr) =>
-        _cmsFree(ContextID, ptr as BoxPtr<Prelin16Data>);
+        //_cmsFree(ContextID, ptr as BoxPtr<Prelin16Data>);
+        (ptr as Prelin16Data)?.Dispose();
 
     private static object? Prelin8dup(Context? ContextID, object? ptr) =>
         ptr is BoxPtr<Prelin8Data> p8
@@ -869,8 +937,8 @@ public static unsafe partial class Lcms2
             return;
 
         var p = p8.Ptr->p;
-        var TotalOut = (int)p->nOutputs;
-        if (p->Table is not Memory<ushort> tab)
+        var TotalOut = (int)p.nOutputs;
+        if (p.Table is not Memory<ushort> tab)
             return;
 
         var r = (byte)(Input[0] >> 8);
@@ -885,9 +953,9 @@ public static unsafe partial class Lcms2
         var ry = p8.Ptr->ry[g];
         var rz = p8.Ptr->rz[b];
 
-        var X1 = X0 + (int)((rx is 0) ? 0 : p->opta[2]);
-        var Y1 = Y0 + (int)((ry is 0) ? 0 : p->opta[1]);
-        var Z1 = Z0 + (int)((rz is 0) ? 0 : p->opta[0]);
+        var X1 = X0 + (int)((rx is 0) ? 0 : p.opta[2]);
+        var Y1 = Y0 + (int)((ry is 0) ? 0 : p.opta[1]);
+        var Z1 = Z0 + (int)((rz is 0) ? 0 : p.opta[0]);
 
         // These are the 6 Tetrahedrals
         for (var OutChan = 0; OutChan < TotalOut; OutChan++)
@@ -1116,7 +1184,7 @@ public static unsafe partial class Lcms2
             var p16 = PrelinOpt16alloc(OptimizedLUT.ContextID, OptimizedPrelinCLUT.Params, 3, OptimizedPrelinCurves, 3, null);
             if (p16 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, new BoxPtr<Prelin16Data>(p16), PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
         }
 
         // Don't fix white on absolute colorimetric

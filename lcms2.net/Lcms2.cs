@@ -823,6 +823,17 @@ public static unsafe partial class Lcms2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal static void _cmsAssert<T>(ReadOnlySpan<T> span) =>
+        Debug.Assert(!span.IsEmpty);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal static void _cmsAssert<T>(params ReadOnlyMemory<T>[] args)
+    {
+        foreach (var arg in args)
+            Debug.Assert(!arg.IsEmpty);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert(params void*[] args)
     {
         foreach (var arg in args)

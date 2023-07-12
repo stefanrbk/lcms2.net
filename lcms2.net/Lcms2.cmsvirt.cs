@@ -627,7 +627,7 @@ public static unsafe partial class Lcms2
         uint TempSrc,
         uint TempDest)
     {
-        var Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
+        Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
         BCHSWADJUSTS bchsw;
         CIExyY WhitePnt;
         Pipeline? Pipeline = null;

@@ -184,7 +184,8 @@ public static unsafe partial class Lcms2
         uint nSegments, ReadOnlySpan<CurveSegment> Segments,
         in ushort* Values)
     {
-        var pool = Context.GetPool<CurveSegment>(ContextID);
+        var csPool = Context.GetPool<CurveSegment>(ContextID);
+        var ipPool = Context.GetPool<InterpParams>(ContextID);
 
         // We allow huge tables, which are then restricted for smoothing operations
         if (nEntries > 65530)
@@ -213,7 +214,7 @@ public static unsafe partial class Lcms2
         {
             //p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             //if (p->Segments is null) goto Error;
-            p->Segments = pool.Rent((int)nSegments);
+            p->Segments = csPool.Rent((int)nSegments);
 
             p->Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
             if (p->Evals is null) goto Error;
@@ -249,7 +250,8 @@ public static unsafe partial class Lcms2
         // is placed in advance to maximize performance.
         if (!Segments.IsEmpty && (nSegments > 0))
         {
-            p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
+            //p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
+            p->SegInterp = ipPool.Rent((int)nSegments);
 
             for (var i = 0; i < nSegments; i++)
             {
@@ -274,7 +276,7 @@ public static unsafe partial class Lcms2
         if (p->InterpParams is not null)
             return p;
         Error:
-        if (p->SegInterp is not null) _cmsFree(ContextID, p->SegInterp);
+        if (p->SegInterp is not null) ipPool.Return(p->SegInterp!); //_cmsFree(ContextID, p->SegInterp);
         if (p->Segments is not null) _cmsFree(ContextID, p->Segments);
         if (p->Evals is not null) _cmsFree(ContextID, p->Evals);
         if (p->Table16 is not null) _cmsFree(ContextID, p->Table16);
@@ -647,9 +649,9 @@ public static unsafe partial class Lcms2
                     var R1 = (float)(R - g->Segments[i].x0) / (g->Segments[i].x1 - g->Segments[i].x0);
 
                     // Setup the table (TODO: clean that)
-                    g->SegInterp[i]->Table = g->Segments[i].SampledPoints;
+                    g->SegInterp[i].Table = g->Segments[i].SampledPoints;
 
-                    g->SegInterp[i]->Interpolation.LerpFloat(&R1, &Out32, g->SegInterp[i]);
+                    g->SegInterp[i].Interpolation.LerpFloat(&R1, &Out32, g->SegInterp[i]);
                     Out = Out32;
                 }
                 else
@@ -801,7 +803,7 @@ public static unsafe partial class Lcms2
     {
         if (Curve is null) return;
 
-        var ContextID = Curve->InterpParams->ContextID;
+        var ContextID = Curve->InterpParams.ContextID;
 
         _cmsFreeInterpParams(Curve->InterpParams);
 
@@ -845,7 +847,7 @@ public static unsafe partial class Lcms2
         if (In is null) return null;
 
         fixed (ushort* t = &In->Table16[0])
-            return AllocateToneCurveStruct(In->InterpParams->ContextID, In->nEntries, In->nSegments, In->Segments, t);
+            return AllocateToneCurveStruct(In->InterpParams.ContextID, In->nEntries, In->nSegments, In->Segments, t);
     }
 
     public static ToneCurve* cmsJoinToneCurve(Context? ContextID, in ToneCurve* X, in ToneCurve* Y, uint nResultingPoints)
@@ -882,16 +884,16 @@ public static unsafe partial class Lcms2
         return @out;
     }
 
-    private static int GetInterval(double In, in ushort* LutTable, in InterpParams* p)
+    private static int GetInterval(double In, in ushort* LutTable, InterpParams p)
     {
         // A 1 point table is not allowed
-        if (p->Domain[0] < 1) return -1;
+        if (p.Domain[0] < 1) return -1;
 
         // Let's see if ascending or descending.
-        if (LutTable[0] < LutTable[p->Domain[0]])
+        if (LutTable[0] < LutTable[p.Domain[0]])
         {
             // Table is overall ascending
-            for (var i = (int)p->Domain[0] - 1; i >= 0; --i)
+            for (var i = (int)p.Domain[0] - 1; i >= 0; --i)
             {
                 var y0 = LutTable[i];
                 var y1 = LutTable[i + 1];
@@ -910,7 +912,7 @@ public static unsafe partial class Lcms2
         else
         {
             // Table is overall descending
-            for (var i = 0; i < p->Domain[0]; i++)
+            for (var i = 0; i < p.Domain[0]; i++)
             {
                 var y0 = LutTable[i];
                 var y1 = LutTable[i + 1];
@@ -940,16 +942,16 @@ public static unsafe partial class Lcms2
 
         if (InCurve->nSegments is 1 && InCurve->Segments[0].Type > 0 &&
             /* InCurve->Segments[0].Type <= 5 */
-            GetParametricCurveByType(InCurve->InterpParams->ContextID, InCurve->Segments[0].Type, null) is not null)
+            GetParametricCurveByType(InCurve->InterpParams.ContextID, InCurve->Segments[0].Type, null) is not null)
         {
             fixed (double* p = &InCurve->Segments[0].Params[0])
-                return cmsBuildParametricToneCurve(InCurve->InterpParams->ContextID,
+                return cmsBuildParametricToneCurve(InCurve->InterpParams.ContextID,
                     -InCurve->Segments[0].Type,
                     p);
         }
 
         // Nope, reverse the table.
-        var @out = cmsBuildTabulatedToneCurve16(InCurve->InterpParams->ContextID, nResultingSamples, null);
+        var @out = cmsBuildTabulatedToneCurve16(InCurve->InterpParams.ContextID, nResultingSamples, null);
         if (@out is null) return null;
 
         // We want to know if this is an ascending or descending table
@@ -1072,7 +1074,7 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        var ContextID = Tab->InterpParams->ContextID;
+        var ContextID = Tab->InterpParams.ContextID;
 
         if (cmsIsToneCurveLinear(Tab)) // Only non-linear curves need smoothing
             return SuccessStatus;
@@ -1261,7 +1263,7 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(Curve);
 
-        Curve->InterpParams->Interpolation.Lerp16(&v, &@out, Curve->InterpParams);
+        Curve->InterpParams.Interpolation.Lerp16(&v, &@out, Curve->InterpParams);
         return @out;
     }
 

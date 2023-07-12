@@ -56,21 +56,21 @@ internal static unsafe partial class Testbed
     // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
     private static void Fake1Dfloat(in float* Value,
                                     float* Output,
-                                    in InterpParams* p)
+                                    InterpParams p)
     {
         float val2;
         int cell;
-        if (p->Table is not Memory<float> tab)
+        if (p.Table is not Memory<float> tab)
             return;
         var LutTable = tab.Span;
 
            // Clip upper values
            if (Value[0] >= 1.0) {
-               Output[0] = LutTable[(int)p->Domain[0]]; 
-               return; 
-           }
+               Output[0] = LutTable[(int)p.Domain[0]];
+            return;
+        }
 
-        val2 = p -> Domain[0] * Value[0];
+        val2 = p.Domain[0] * Value[0];
         cell = (int) Math.Floor(val2);
         Output[0] =  LutTable[cell] ;
     }
@@ -78,7 +78,7 @@ internal static unsafe partial class Testbed
     // This fake interpolation just uses scrambled negated indexes for output
     private static void Fake3D16(in ushort* Input,
                                  ushort* Output,
-                                 in InterpParams* _)
+                                 InterpParams _)
     {
         Output[0] = (ushort)(0xFFFF - Input[2]);
         Output[1] = (ushort)(0xFFFF - Input[1]);
@@ -86,32 +86,39 @@ internal static unsafe partial class Testbed
     }
 
     // The factory chooses interpolation routines on depending on certain conditions.
-    private static InterpFunction my_Interpolators_Factory(uint nInputChannels,
+    private static InterpFunction? my_Interpolators_Factory(uint nInputChannels,
                                                            uint nOutputChannels,
                                                            uint dwFlags)
     {
-        InterpFunction Interpolation;
+        //InterpFunction Interpolation;
         var IsFloat = (dwFlags & (uint)LerpFlag.Float) is not 0;
 
         // Initialize the return to zero as a non-supported mark
-        memset(&Interpolation, 0);
+        //memset(&Interpolation, 0);
 
         // For 1D to 1D and floating point
-        if (nInputChannels == 1 && nOutputChannels == 1 && IsFloat)
-        {
+        //if (nInputChannels == 1 && nOutputChannels == 1 && IsFloat)
+        //{
 
-            Interpolation.LerpFloat = Fake1Dfloat;
-        }
-        else
-        if (nInputChannels == 3 && nOutputChannels == 3 && !IsFloat)
-        {
+        //    Interpolation.LerpFloat = Fake1Dfloat;
+        //}
+        //else
+        //if (nInputChannels == 3 && nOutputChannels == 3 && !IsFloat)
+        //{
 
-            // For 3D to 3D and 16 bits
-            Interpolation.Lerp16 = Fake3D16;
-        }
+        //    // For 3D to 3D and 16 bits
+        //    Interpolation.Lerp16 = Fake3D16;
+        //}
 
         // Here is the interpolation 
-        return Interpolation;
+        //return Interpolation;
+
+        return (nInputChannels, nOutputChannels, IsFloat) switch
+        {
+            (1, 1, true) => new(Fake1Dfloat),
+            (3, 3, false) => new(Fake3D16),
+            _ => null
+        };
     }
 
 

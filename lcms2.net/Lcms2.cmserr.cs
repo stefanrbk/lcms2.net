@@ -313,7 +313,7 @@ public static unsafe partial class Lcms2
         (T*)_cmsRealloc(ContextID, Ptr, size);
 
     [DebuggerStepThrough]
-    internal static void _cmsFree<T>(Context? ContextID, T[]? array) where T : struct
+    internal static void _cmsFree<T>(Context? ContextID, T[]? array)
     {
         if (array is not null)
         {
