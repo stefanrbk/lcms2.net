@@ -30,12 +30,12 @@ namespace lcms2.state;
 
 internal unsafe class TransformPluginChunkType : IDup
 {
-    public TransformCollection* TransformCollection;
+    public TransformCollection? TransformCollection;
 
     public object? Dup(Context ctx)
     {
         TransformPluginChunkType head = this;
-        TransformCollection* Anterior = null, entry;
+        TransformCollection? Anterior = null, entry;
         TransformPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
@@ -44,22 +44,22 @@ internal unsafe class TransformPluginChunkType : IDup
         // Walk the list copying all nodes
         for (entry = head.TransformCollection;
              entry is not null;
-             entry = entry->Next)
+             entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
+            //var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
 
-            if (newEntry is null)
-                return null;
+            //if (newEntry is null)
+            //    return null;
+            var newEntry = (TransformCollection)entry.Clone();
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.TransformCollection is null)
-                newHead.TransformCollection = newEntry;
+            newHead.TransformCollection ??= newEntry;
         }
 
         return newHead;

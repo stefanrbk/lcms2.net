@@ -28,6 +28,8 @@
 using lcms2.state;
 using lcms2.types;
 
+using static lcms2.types.TagTypeHandler;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
@@ -118,59 +120,51 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
     }
 
-    public static void cmsDeleteTransform(HTRANSFORM hTransform)
+    public static void cmsDeleteTransform(Transform p)
     {
-        var p = (Transform*)hTransform;
         _cmsAssert(p);
 
-        if (p->GamutCheck is not null)
-            cmsPipelineFree(p->GamutCheck);
+        cmsPipelineFree(p.GamutCheck);
 
-        if (p->Lut is not null)
-            cmsPipelineFree(p->Lut);
+        cmsPipelineFree(p.Lut);
 
-        if (p->InputColorant is not null)
-            cmsFreeNamedColorList(p->InputColorant);
+        cmsFreeNamedColorList(p.InputColorant);
 
-        if (p->OutputColorant is not null)
-            cmsFreeNamedColorList(p->OutputColorant);
+        cmsFreeNamedColorList(p.OutputColorant);
 
-        if (p->Sequence is not null)
-            cmsFreeProfileSequenceDescription(p->Sequence);
+        cmsFreeProfileSequenceDescription(p.Sequence);
 
-        if (p->UserData is not null)
-            p->FreeUserData!(p->ContextID, p->UserData);
+        if (p.UserData is not null)
+            p.FreeUserData?.Invoke(p.ContextID, p.UserData);
 
-        _cmsFree(p->ContextID, p);
+        //_cmsFree(p.ContextID, p);
     }
 
     // PixelSize already defined in Lcms2.cmspack.cs
 
     public static void cmsDoTransform(
-        HTRANSFORM Transform,
+        Transform p,
         in void* InputBuffer,
         void* OutputBuffer,
         uint Size)
     {
-        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = 0;  // Not used
         stride.BytesPerLineOut = 0;
-        stride.BytesPerPlaneIn = Size * PixelSize(p->InputFormat);
-        stride.BytesPerPlaneOut = Size * PixelSize(p->OutputFormat);
+        stride.BytesPerPlaneIn = Size * PixelSize(p.InputFormat);
+        stride.BytesPerPlaneOut = Size * PixelSize(p.OutputFormat);
 
-        p->xform(p, InputBuffer, OutputBuffer, Size, 1, &stride);
+        p.xform(p, InputBuffer, OutputBuffer, Size, 1, &stride);
     }
 
     public static void cmsDoTransformStride(
-        HTRANSFORM Transform,
+        Transform p,
         in void* InputBuffer,
         void* OutputBuffer,
         uint Size,
         uint Stride)
     {
-        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = 0;  // Not used
@@ -178,11 +172,11 @@ public static unsafe partial class Lcms2
         stride.BytesPerPlaneIn = Stride;
         stride.BytesPerPlaneOut = Stride;
 
-        p->xform(p, InputBuffer, OutputBuffer, Size, 1, &stride);
+        p.xform(p, InputBuffer, OutputBuffer, Size, 1, &stride);
     }
 
     public static void cmsDoTransformLineStride(
-        HTRANSFORM Transform,
+        Transform p,
         in void* InputBuffer,
         void* OutputBuffer,
         uint PixelsPerLine,
@@ -192,7 +186,6 @@ public static unsafe partial class Lcms2
         uint BytesPerPlaneIn,
         uint BytesPerPlaneOut)
     {
-        var p = (Transform*)Transform;
         Stride stride;
 
         stride.BytesPerLineIn = BytesPerLineIn;
@@ -200,11 +193,11 @@ public static unsafe partial class Lcms2
         stride.BytesPerPlaneIn = BytesPerPlaneIn;
         stride.BytesPerPlaneOut = BytesPerPlaneOut;
 
-        p->xform(p, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, &stride);
+        p.xform(p, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, &stride);
     }
 
     private static void FloatXFORM(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -229,13 +222,13 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInputFloat(p, fIn, accum, Stride->BytesPerPlaneIn);
+                accum = p.FromInputFloat(p, fIn, accum, Stride->BytesPerPlaneIn);
 
                 // Any gamut check to do?
-                if (p->GamutCheck is not null)
+                if (p.GamutCheck is not null)
                 {
                     // Evaluate gamut marker.
-                    cmsPipelineEvalFloat(fIn, &OutOfGamut, p->GamutCheck);
+                    cmsPipelineEvalFloat(fIn, &OutOfGamut, p.GamutCheck);
 
                     // Is current color out of gamut?
                     if (OutOfGamut > 0.0)
@@ -247,16 +240,16 @@ public static unsafe partial class Lcms2
                     else
                     {
                         // No, proceed normally
-                        cmsPipelineEvalFloat(fIn, fOut, p->Lut);
+                        cmsPipelineEvalFloat(fIn, fOut, p.Lut);
                     }
                 }
                 else
                 {
                     // No gamut check at all
-                    cmsPipelineEvalFloat(fIn, fOut, p->Lut);
+                    cmsPipelineEvalFloat(fIn, fOut, p.Lut);
                 }
 
-                output = p->ToOutputFloat(p, fOut, output, Stride->BytesPerPlaneOut);
+                output = p.ToOutputFloat(p, fOut, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -265,7 +258,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void NullFloatXFORM(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -287,8 +280,8 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInputFloat(p, fIn, accum, Stride->BytesPerPlaneIn);
-                output = p->ToOutputFloat(p, fIn, output, Stride->BytesPerPlaneOut);
+                accum = p.FromInputFloat(p, fIn, accum, Stride->BytesPerPlaneIn);
+                output = p.ToOutputFloat(p, fIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -297,7 +290,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void NullXFORM(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -319,8 +312,8 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
-                output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
+                accum = p.FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
+                output = p.ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -329,7 +322,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void PrecalculatedXFORM(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -353,9 +346,9 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
-                p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
-                output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
+                accum = p.FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
+                p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
+                output = p.ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -363,26 +356,26 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TransformOnePixelWithGamutCheck(Transform* p, in ushort* wIn, ushort* wOut)
+    private static void TransformOnePixelWithGamutCheck(Transform p, in ushort* wIn, ushort* wOut)
     {
         ushort wOutOfGamut;
 
-        p->GamutCheck.Eval16Fn(wIn, &wOutOfGamut, p->GamutCheck.Data);
+        p.GamutCheck.Eval16Fn(wIn, &wOutOfGamut, p.GamutCheck.Data);
         if (wOutOfGamut >= 1)
         {
-            var ContextAlarmCodes = _cmsGetContext(p->ContextID).AlarmCodes;
+            var ContextAlarmCodes = _cmsGetContext(p.ContextID).AlarmCodes;
 
-            for (var i = 0; i < p->Lut.OutputChannels; i++)
+            for (var i = 0; i < p.Lut.OutputChannels; i++)
                 wOut[i] = ContextAlarmCodes.AlarmCodes[i];
         }
         else
         {
-            p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
+            p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
         }
     }
 
     private static void PrecalculatedXFORMGamutCheck(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -406,9 +399,9 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
+                accum = p.FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
                 TransformOnePixelWithGamutCheck(p, wIn, wOut);
-                output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
+                output = p.ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -417,7 +410,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void CachedXFORM(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -435,7 +428,8 @@ public static unsafe partial class Lcms2
         memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         // Get copy of zero cache
-        memcpy(&Cache, &p->Cache);
+        fixed (Cache* ptr = &p.Cache)
+            memcpy(&Cache, ptr);
 
         var strideIn = 0u;
         var strideOut = 0u;
@@ -447,7 +441,7 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
+                accum = p.FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
 
                 if (memcmp(wIn, Cache.CacheIn, _sizeof<ushort>() * cmsMAXCHANNELS) is 0)
                 {
@@ -455,13 +449,13 @@ public static unsafe partial class Lcms2
                 }
                 else
                 {
-                    p->Lut.Eval16Fn(wIn, wOut, p->Lut.Data);
+                    p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
 
                     memcpy(Cache.CacheIn, wIn, _sizeof<ushort>() * cmsMAXCHANNELS);
                     memcpy(Cache.CacheOut, wOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
 
-                output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
+                output = p.ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -470,7 +464,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void CachedXFORMGamutCheck(
-        Transform* p,
+        Transform p,
         in void* @in,
         void* @out,
         uint PixelsPerLine,
@@ -488,7 +482,8 @@ public static unsafe partial class Lcms2
         memset(wOut, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
         // Get copy of zero cache
-        memcpy(&Cache, &p->Cache);
+        fixed (Cache* ptr = &p.Cache)
+            memcpy(&Cache, ptr);
 
         var strideIn = 0u;
         var strideOut = 0u;
@@ -500,7 +495,7 @@ public static unsafe partial class Lcms2
 
             for (var j = 0; j < PixelsPerLine; j++)
             {
-                accum = p->FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
+                accum = p.FromInput(p, wIn, accum, Stride->BytesPerPlaneIn);
 
                 if (memcmp(wIn, Cache.CacheIn, _sizeof<ushort>() * cmsMAXCHANNELS) is 0)
                 {
@@ -514,7 +509,7 @@ public static unsafe partial class Lcms2
                     memcpy(Cache.CacheOut, wOut, _sizeof<ushort>() * cmsMAXCHANNELS);
                 }
 
-                output = p->ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
+                output = p.ToOutput(p, wIn, output, Stride->BytesPerPlaneOut);
             }
 
             strideIn += Stride->BytesPerLineIn;
@@ -525,7 +520,7 @@ public static unsafe partial class Lcms2
     internal static void DupPluginTransformList(Context ctx, in Context src)
     {
         TransformPluginChunkType head = src.TransformPlugin;
-        TransformCollection* Anterior = null, entry;
+        TransformCollection? Anterior = null, entry;
         TransformPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
@@ -534,22 +529,22 @@ public static unsafe partial class Lcms2
         // Walk the list copying all nodes
         for (entry = head.TransformCollection;
              entry is not null;
-             entry = entry->Next)
+             entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
+            //var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
 
-            if (newEntry is null)
-                return;
+            //if (newEntry is null)
+            //    return;
+            var newEntry = (TransformCollection)entry.Clone();
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.TransformCollection is null)
-                newHead.TransformCollection = newEntry;
+            newHead.TransformCollection ??= newEntry;
         }
 
         ctx.TransformPlugin = newHead;
@@ -565,14 +560,14 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(from);
 
-        ctx.TransformPlugin = (TransformPluginChunkType)from.Dup(ctx);
+        ctx.TransformPlugin = (TransformPluginChunkType)from.Dup(ctx)!;
 
         //fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
         //    AllocPluginChunk(ctx, src, DupPluginTransformList, Chunks.TransformPlugin, @default);
     }
 
     internal static void _cmsTransform2toTransformAdaptor(
-        Transform* CMMcargo,
+        Transform CMMcargo,
         in void* InputBuffer,
         void* OutputBuffer,
         uint PixelsPerLine,
@@ -589,7 +584,7 @@ public static unsafe partial class Lcms2
             void* accum = (byte*)InputBuffer + strideIn;
             void* output = (byte*)OutputBuffer + strideOut;
 
-            CMMcargo->OldXform!(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
+            CMMcargo.OldXform!(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
 
             strideIn += Stride->BytesPerLineIn;
             strideOut += Stride->BytesPerLineOut;
@@ -613,63 +608,66 @@ public static unsafe partial class Lcms2
         // Factory callback is required
         if (Plugin!.factories.xform is null) return false;
 
-        var fl = _cmsPluginMalloc<TransformCollection>(id);
-        if (fl is null) return false;
+        //var fl = _cmsPluginMalloc<TransformCollection>(id);
+        //if (fl is null) return false;
 
         // Check for full xform plug-ins previous to 2.8, we would need an adapter in that case
-        fl->OldXform = Plugin.ExpectedVersion < 2080;
+        //fl->OldXform = Plugin.ExpectedVersion < 2080;
 
         // Copy the parameters
-        fl->Factory = Plugin.factories.xform;
+        //fl->Factory = Plugin.factories.xform;
+        var fl = (Plugin.ExpectedVersion < 2080)
+            ? new TransformCollection(Plugin.factories.legacy_xform)
+            : new TransformCollection(Plugin.factories.xform);
 
         // Keep linked list
-        fl->Next = ctx.TransformCollection;
+        fl.Next = ctx.TransformCollection;
         ctx.TransformCollection = fl;
 
         // All is ok
         return true;
     }
 
-    internal static void _cmsSetTransformUserData(Transform* CMMcargo, void* ptr, FreeUserDataFn? FreePrivateDataFn)
+    internal static void _cmsSetTransformUserData(Transform CMMcargo, object? ptr, FreeManagedUserDataFn? FreePrivateDataFn)
     {
         _cmsAssert(CMMcargo);
-        CMMcargo->UserData = ptr;
-        CMMcargo->FreeUserData = FreePrivateDataFn;
+        CMMcargo.UserData = ptr;
+        CMMcargo.FreeUserData = FreePrivateDataFn;
     }
 
-    internal static void* _cmsGetTransformUserData(Transform* CMMcargo)
+    internal static object? _cmsGetTransformUserData(Transform CMMcargo)
     {
         _cmsAssert(CMMcargo);
-        return CMMcargo->UserData;
+        return CMMcargo.UserData;
     }
 
     internal static void _cmsGetTransformFormatters16(
-        Transform* CMMcargo,
+        Transform CMMcargo,
         Formatter16* FromInput,
         Formatter16* ToOutput)
     {
         _cmsAssert(CMMcargo);
-        if (FromInput is not null) *FromInput = CMMcargo->FromInput;
-        if (ToOutput is not null) *ToOutput = CMMcargo->ToOutput;
+        if (FromInput is not null) *FromInput = CMMcargo.FromInput;
+        if (ToOutput is not null) *ToOutput = CMMcargo.ToOutput;
     }
 
     internal static void _cmsGetTransformFormattersFloat(
-        Transform* CMMcargo,
+        Transform CMMcargo,
         FormatterFloat* FromInput,
         FormatterFloat* ToOutput)
     {
         _cmsAssert(CMMcargo);
-        if (FromInput is not null) *FromInput = CMMcargo->FromInputFloat;
-        if (ToOutput is not null) *ToOutput = CMMcargo->ToOutputFloat;
+        if (FromInput is not null) *FromInput = CMMcargo.FromInputFloat;
+        if (ToOutput is not null) *ToOutput = CMMcargo.ToOutputFloat;
     }
 
-    internal static uint _cmsGetTransformFlags(Transform* CMMcargo)
+    internal static uint _cmsGetTransformFlags(Transform CMMcargo)
     {
         _cmsAssert(CMMcargo);
-        return CMMcargo->dwOriginalFlags;
+        return CMMcargo.dwOriginalFlags;
     }
 
-    private static Transform* AllocEmptyTransform(
+    private static Transform? AllocEmptyTransform(
         Context? ContextID,
         Pipeline? lut,
         uint Intent,
@@ -680,73 +678,102 @@ public static unsafe partial class Lcms2
         var ctx = _cmsGetContext(ContextID).TransformPlugin;
 
         // Allocate needed memory
-        var p = _cmsMallocZero<Transform>(ContextID);
+        //var p = _cmsMallocZero<Transform>(ContextID);
+        //if (p is null)
+        //{
+        //    cmsPipelineFree(lut);
+        //    return null;
+        //}
 
         // Store the proposed pipeline
-        p->Lut = lut;
+        //p.Lut = lut;
+
+        var p = new Transform() { Lut = lut };
 
         // Let's see if any plug-in wants to do the transform by itself
-        if (p->Lut is not null)
+        if (p.Lut is not null)
         {
             if ((*dwFlags & cmsFLAGS_NOOPTIMIZE) is 0)
             {
                 for (var Plugin = ctx.TransformCollection;
                     Plugin is not null;
-                    Plugin = Plugin->Next)
+                    Plugin = Plugin.Next)
                 {
-                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData, ref p->Lut, InputFormat, OutputFormat, dwFlags))
+
+                    p.ContextID = ContextID;
+                    p.InputFormat = *InputFormat;
+                    p.OutputFormat = *OutputFormat;
+                    p.dwOriginalFlags = *dwFlags;
+
+                    p.FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+                    p.ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                    p.FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
+                    p.ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+
+                    if (Plugin.OldXform)
                     {
-                        // Last plugin in the declaration order takes control. We just keep
-                        // the original parameters as a logging.
-                        // Note that cmsFLAGS_CAN_CHANGE_FORMATTER is not set, so by default
-                        // an optimized transform is not reusable. The plug-in can, however, change
-                        // the flags and make it suitable.
-
-                        p->ContextID = ContextID;
-                        p->InputFormat = *InputFormat;
-                        p->OutputFormat = *OutputFormat;
-                        p->dwOriginalFlags = *dwFlags;
-
-                        // Fill the formatters just in case the optimized routine is interested.
-                        // No error is thrown if the formatter doesn't exist. It is up to the optimization
-                        // factory to decide what to do in those cases.
-                        p->FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
-                        p->ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
-                        p->FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
-                        p->ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
-
-                        // Save the day? (Ignore the warning)
-                        if (Plugin->OldXform)
+                        if (Plugin.OldFactory(out p.OldXform, out p.UserData, out p.FreeUserData, ref p.Lut, InputFormat, OutputFormat, dwFlags))
                         {
-                            p->OldXform = *(TransformFn*)&p->xform;
-                            p->xform = _cmsTransform2toTransformAdaptor;
+                            p.xform = _cmsTransform2toTransformAdaptor;
+                            return p;
                         }
+                    }
+                    else
+                    {
+                        if (Plugin.Factory(out p.xform, out p.UserData, out p.FreeUserData, ref p.Lut, InputFormat, OutputFormat, dwFlags))
+                        {
+                            // Last plugin in the declaration order takes control. We just keep
+                            // the original parameters as a logging.
+                            // Note that cmsFLAGS_CAN_CHANGE_FORMATTER is not set, so by default
+                            // an optimized transform is not reusable. The plug-in can, however, change
+                            // the flags and make it suitable.
 
-                        return p;
+                            //p.ContextID = ContextID;
+                            //p.InputFormat = *InputFormat;
+                            //p.OutputFormat = *OutputFormat;
+                            //p.dwOriginalFlags = *dwFlags;
+
+                            // Fill the formatters just in case the optimized routine is interested.
+                            // No error is thrown if the formatter doesn't exist. It is up to the optimization
+                            // factory to decide what to do in those cases.
+                            //p.FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+                            //p.ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                            //p.FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
+                            //p.ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+
+                            // Save the day? (Ignore the warning)
+                            //if (Plugin->OldXform)
+                            //{
+                            //    p.OldXform = *(TransformFn*)&p->xform;
+                            //    p.xform = _cmsTransform2toTransformAdaptor;
+                            //}
+
+                            return p;
+                        }
                     }
                 }
             }
 
             // Not suitable for the transform plug-in, let's check the pipeline plug-in
-            _cmsOptimizePipeline(ContextID, ref p->Lut, Intent, InputFormat, OutputFormat, dwFlags);
+            _cmsOptimizePipeline(ContextID, ref p.Lut, Intent, InputFormat, OutputFormat, dwFlags);
         }
 
         // Check whether this is a true floating point transform
         if (_cmsFormatterIsFloat(*OutputFormat))
         {
             // Get formatter function always return a valid union, but the context of this union may be null.
-            p->FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
-            p->ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+            p.FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
+            p.ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
             *dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
 
-            if (p->FromInputFloat is null || p->ToOutputFloat is null)
+            if (p.FromInputFloat is null || p.ToOutputFloat is null)
             {
                 cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
                 cmsDeleteTransform(p);
                 return null;
             }
 
-            p->xform = ((*dwFlags & cmsFLAGS_NULLTRANSFORM) is not 0)
+            p.xform = ((*dwFlags & cmsFLAGS_NULLTRANSFORM) is not 0)
                 ? NullFloatXFORM
                 // Float transforms don't use cache, always are non-null
                 : FloatXFORM;
@@ -755,27 +782,27 @@ public static unsafe partial class Lcms2
         {
             if (*InputFormat is 0 && *OutputFormat is 0)
             {
-                p->FromInput = p->ToOutput = null!;
+                p.FromInput = p.ToOutput = null!;
                 *dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
             }
             else
             {
-                p->FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
-                p->ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                p.FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+                p.ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
 
-                if (p->FromInput is null || p->ToOutput is null)
+                if (p.FromInput is null || p.ToOutput is null)
                 {
                     cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
                     cmsDeleteTransform(p);
                     return null;
                 }
 
-                var BytesPerPixelInput = T_BYTES(p->InputFormat);
+                var BytesPerPixelInput = T_BYTES(p.InputFormat);
                 if (BytesPerPixelInput is 0 or >= 2)
                     *dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
             }
 
-            p->xform = (*dwFlags & cmsFLAGS_NULLTRANSFORM, *dwFlags & cmsFLAGS_NOCACHE, *dwFlags & cmsFLAGS_GAMUTCHECK) switch
+            p.xform = (*dwFlags & cmsFLAGS_NULLTRANSFORM, *dwFlags & cmsFLAGS_NOCACHE, *dwFlags & cmsFLAGS_GAMUTCHECK) switch
             {
                 (not 0, _, _) => NullXFORM,
                 (_, not 0, not 0) => PrecalculatedXFORMGamutCheck,
@@ -785,11 +812,11 @@ public static unsafe partial class Lcms2
             };
         }
 
-        p->InputFormat = *InputFormat;
-        p->OutputFormat = *OutputFormat;
-        p->dwOriginalFlags = *dwFlags;
-        p->ContextID = ContextID;
-        p->UserData = null;
+        p.InputFormat = *InputFormat;
+        p.OutputFormat = *OutputFormat;
+        p.dwOriginalFlags = *dwFlags;
+        p.ContextID = ContextID;
+        p.UserData = null;
         return p;
     }
 
@@ -870,7 +897,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static Transform* cmsCreateExtendedTransform(
+    public static Transform? cmsCreateExtendedTransform(
         Context? ContextID,
         uint nProfiles,
         Profile[] Profiles,
@@ -949,23 +976,25 @@ public static unsafe partial class Lcms2
             goto Error;
 
         // Keep values
-        xform->EntryColorSpace = EntryColorSpace;
-        xform->ExitColorSpace = ExitColorSpace;
-        xform->RenderingIntent = Intents[nProfiles - 1];
+        xform.EntryColorSpace = EntryColorSpace;
+        xform.ExitColorSpace = ExitColorSpace;
+        xform.RenderingIntent = Intents[nProfiles - 1];
 
         // Take white points
-        SetWhitePoint(&xform->EntryWhitePoint, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[0], cmsSigMediaWhitePointTag));
-        SetWhitePoint(&xform->ExitWhitePoint, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[nProfiles - 1], cmsSigMediaWhitePointTag));
+        fixed (CIEXYZ* ptr = &xform.EntryWhitePoint)
+            SetWhitePoint(ptr, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[0], cmsSigMediaWhitePointTag));
+        fixed (CIEXYZ* ptr = &xform.ExitWhitePoint)
+            SetWhitePoint(ptr, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[nProfiles - 1], cmsSigMediaWhitePointTag));
 
         // Create a gamut check LUT if requested
         if (hGamutProfile is not null && ((dwFlags & cmsFLAGS_GAMUTCHECK) is not 0))
-            xform->GamutCheck = _cmsCreateGamutCheckPipeline(ContextID, Profiles, BPC, Intents, AdaptationStates, nGamutPCSposition, hGamutProfile);
+            xform.GamutCheck = _cmsCreateGamutCheckPipeline(ContextID, Profiles, BPC, Intents, AdaptationStates, nGamutPCSposition, hGamutProfile);
 
         // Try to read input and output colorant table
         if (cmsIsTag(Profiles[0], cmsSigColorantTableTag))
         {
             // Input table can only come in this way.
-            xform->InputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[0], cmsSigColorantTableTag) as NamedColorList)!;
+            xform.InputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[0], cmsSigColorantTableTag) as NamedColorList)!;
         }
 
         // Output is a little bit more complex.
@@ -975,32 +1004,35 @@ public static unsafe partial class Lcms2
             if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag))
             {
                 // It may be null if error
-                xform->OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag) as NamedColorList)!;
+                xform.OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableOutTag) as NamedColorList)!;
             }
         }
         else
         {
             if (cmsIsTag(Profiles[nProfiles - 1], cmsSigColorantTableTag))
-                xform->OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableTag) as NamedColorList)!;
+                xform.OutputColorant = cmsDupNamedColorList(cmsReadTag(Profiles[nProfiles - 1], cmsSigColorantTableTag) as NamedColorList)!;
         }
 
         // Store the sequence of profiles
-        xform->Sequence = ((dwFlags & cmsFLAGS_KEEP_SEQUENCE) is not 0)
+        xform.Sequence = ((dwFlags & cmsFLAGS_KEEP_SEQUENCE) is not 0)
             ? _cmsCompileProfileSequence(ContextID, nProfiles, Profiles)
             : null;
 
         // If this is a cached transform, init first value, which is zero (16 bits only)
         if ((dwFlags & cmsFLAGS_NOCACHE) is 0)
         {
-            memset(&xform->Cache.CacheIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
+            fixed (Cache* Cache = &xform.Cache)
+            {
+                memset(Cache->CacheIn, 0, _sizeof<ushort>() * cmsMAXCHANNELS);
 
-            if (xform->GamutCheck is not null)
-            {
-                TransformOnePixelWithGamutCheck(xform, xform->Cache.CacheIn, xform->Cache.CacheOut);
-            }
-            else
-            {
-                xform->Lut.Eval16Fn(xform->Cache.CacheIn, xform->Cache.CacheOut, xform->Lut.Data);
+                if (xform.GamutCheck is not null)
+                {
+                    TransformOnePixelWithGamutCheck(xform, Cache->CacheIn, Cache->CacheOut);
+                }
+                else
+                {
+                    xform.Lut.Eval16Fn(Cache->CacheIn, Cache->CacheOut, xform.Lut.Data);
+                }
             }
         }
 
@@ -1011,7 +1043,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Transform* cmsCreateMultiprofileTransformTHR(
+    public static Transform? cmsCreateMultiprofileTransformTHR(
         Context? ContextID,
         Profile[] Profiles,
         uint InputFormat,
@@ -1040,7 +1072,7 @@ public static unsafe partial class Lcms2
         return cmsCreateExtendedTransform(ContextID, nProfiles, Profiles, BPC, Intents, AdaptationStates, null, 0, InputFormat, OutputFormat, dwFlags);
     }
 
-    public static Transform* cmsCreateMultiprofileTransform(
+    public static Transform? cmsCreateMultiprofileTransform(
         Profile[] Profiles,
         uint InputFormat,
         uint OutputFormat,
@@ -1049,7 +1081,7 @@ public static unsafe partial class Lcms2
         uint dwFlags) =>
         cmsCreateMultiprofileTransformTHR(null, Profiles, InputFormat, OutputFormat, nProfiles, Intent, dwFlags);
 
-    public static Transform* cmsCreateTransformTHR(
+    public static Transform? cmsCreateTransformTHR(
         Context? ContextID,
         Profile Input,
         uint InputFormat,
@@ -1063,7 +1095,7 @@ public static unsafe partial class Lcms2
         return cmsCreateMultiprofileTransformTHR(ContextID, hArray, InputFormat, OutputFormat, Output is null ? 1u : 2u, Intent, dwFlags);
     }
 
-    public static Transform* cmsCreateTransform(
+    public static Transform? cmsCreateTransform(
         Profile Input,
         uint InputFormat,
         Profile Output,
@@ -1072,7 +1104,7 @@ public static unsafe partial class Lcms2
         uint dwFlags) =>
         cmsCreateTransformTHR(null, Input, InputFormat, Output, OutputFormat, Intent, dwFlags);
 
-    public static Transform* cmsCreateProofingTransformTHR(
+    public static Transform? cmsCreateProofingTransformTHR(
         Context? ContextID,
         Profile InputProfile,
         uint InputFormat,
@@ -1097,7 +1129,7 @@ public static unsafe partial class Lcms2
         return cmsCreateExtendedTransform(ContextID, 4, hArray, BPC, Intents, Adaptation, ProofingProfile, 1, InputFormat, OutputFormat, dwFlags);
     }
 
-    public static Transform* cmsCreateProofingTransform(
+    public static Transform? cmsCreateProofingTransform(
         Profile InputProfile,
         uint InputFormat,
         Profile OutputProfile,
@@ -1108,44 +1140,37 @@ public static unsafe partial class Lcms2
         uint dwFlags) =>
         cmsCreateProofingTransformTHR(null, InputProfile, InputFormat, OutputProfile, OutputFormat, ProofingProfile, nIntent, ProofingIntent, dwFlags);
 
-    public static Context? cmsGetTransformContextID(HTRANSFORM xform) =>
-        xform is not null
-            ? ((Transform*)xform)->ContextID
-            : null;
+    public static Context? cmsGetTransformContextID(Transform? xform) =>
+        xform?.ContextID;
 
-    public static uint cmsGetTransformInputFormat(HTRANSFORM xform) =>
-        xform is not null
-            ? ((Transform*)xform)->InputFormat
-            : 0;
+    public static uint cmsGetTransformInputFormat(Transform? xform) =>
+        xform?.InputFormat ?? 0;
 
-    public static uint cmsGetTransformOutputFormat(HTRANSFORM xform) =>
-        xform is not null
-            ? ((Transform*)xform)->OutputFormat
-            : 0;
+    public static uint cmsGetTransformOutputFormat(Transform? xform) =>
+        xform?.OutputFormat ?? 0;
 
-    public static bool cmsChangeBuffersFormat(HTRANSFORM hTransform, uint InputFormat, uint OutputFormat)
+    public static bool cmsChangeBuffersFormat(Transform? xform, uint InputFormat, uint OutputFormat)
     {
-        var xform = (Transform*)hTransform;
         // We only can afford to change formatters if previous transform is at least 16 bits
-        if ((xform->dwOriginalFlags & cmsFLAGS_CAN_CHANGE_FORMATTER) is 0)
+        if ((xform.dwOriginalFlags & cmsFLAGS_CAN_CHANGE_FORMATTER) is 0)
         {
-            cmsSignalError(xform->ContextID, cmsERROR_NOT_SUITABLE, "cmsChangeBuffersFormat works only on transforms created originally with at least 16 bits of precision");
+            cmsSignalError(xform.ContextID, cmsERROR_NOT_SUITABLE, "cmsChangeBuffersFormat works only on transforms created originally with at least 16 bits of precision");
             return false;
         }
 
-        var FromInput = _cmsGetFormatter(xform->ContextID, InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
-        var ToOutput = _cmsGetFormatter(xform->ContextID, OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+        var FromInput = _cmsGetFormatter(xform.ContextID, InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+        var ToOutput = _cmsGetFormatter(xform.ContextID, OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
 
         if (FromInput is null || ToOutput is null)
         {
-            cmsSignalError(xform->ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
+            cmsSignalError(xform.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
             return false;
         }
 
-        xform->InputFormat = InputFormat;
-        xform->OutputFormat = OutputFormat;
-        xform->FromInput = FromInput;
-        xform->ToOutput = ToOutput;
+        xform.InputFormat = InputFormat;
+        xform.OutputFormat = OutputFormat;
+        xform.FromInput = FromInput;
+        xform.ToOutput = ToOutput;
         return true;
     }
 }

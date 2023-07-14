@@ -40,7 +40,7 @@ public static unsafe partial class Lcms2
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmax<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a > b) ? a : b;
 
-    private static Transform* CreateRoundtripXForm(Profile Profile, uint nIntent)
+    private static Transform? CreateRoundtripXForm(Profile Profile, uint nIntent)
     {
         var ContextID = cmsGetProfileContextID(Profile);
         var hLab = cmsCreateLab4ProfileTHR(ContextID, null);
@@ -259,7 +259,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, Profile Profile, uint Intent, uint dwFlags)
     {
-        Transform* hRoundTrip = null;
+        Transform? hRoundTrip = null;
         CIELab InitialLab, destLab, Lab;
         var inRamp = stackalloc double[256];
         var outRamp = stackalloc double[256];

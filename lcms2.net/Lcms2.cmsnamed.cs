@@ -811,9 +811,9 @@ public static unsafe partial class Lcms2
             FreeNamedColorList,
             cmsDupNamedColorList(NamedColorList));
 
-    public static NamedColorList? cmsGetNamedColorList(Transform* xform)
+    public static NamedColorList? cmsGetNamedColorList(Transform? xform)
     {
-        var mpe = xform->Lut.Elements;
+        var mpe = xform?.Lut?.Elements;
 
         return (mpe?.Type == cmsSigNamedColorElemType)
             ? mpe.Data as NamedColorList
@@ -845,9 +845,12 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < n; i++)
         {
-            Seq.seq[i].Manufacturer = null;
-            Seq.seq[i].Model = null;
-            Seq.seq[i].Description = null;
+            Seq.seq[i] = new ProfileSequenceDescription()
+            {
+                Manufacturer = null,
+                Model = null,
+                Description = null,
+            };
         }
 
         return Seq;
@@ -891,6 +894,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < pseq.n; i++)
         {
+            NewSeq.seq[i] = new();
             //memmove(&NewSeq.seq[i].attributes, &pseq.seq[i].attributes);
             NewSeq.seq[i].attributes = pseq.seq[i].attributes;
 

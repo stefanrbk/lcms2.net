@@ -45,8 +45,8 @@ public static unsafe partial class Lcms2
     public delegate void InterpFn<T>(in T* Input, T* Output, InterpParams<T> p);
     public delegate InterpFunction? InterpFnFactory(uint nInputChannels, uint nOutputChannels, uint dwFlags);
     public delegate double ParametricCurveEvaluator(int Type, in double* Params, double R);
-    public delegate byte* Formatter16(Transform* CMMcargo, ushort* Values, byte* Buffer, uint Stride);
-    public delegate byte* FormatterFloat(Transform* CMMcargo, float* Values, byte* Buffer, uint Stride);
+    public delegate byte* Formatter16(Transform CMMcargo, ushort* Values, byte* Buffer, uint Stride);
+    public delegate byte* FormatterFloat(Transform CMMcargo, float* Values, byte* Buffer, uint Stride);
     public delegate Formatter FormatterFactory(uint Type, FormatterDirection Dir, uint dwFlags);
     public delegate Pipeline? IntentFn(Context? ContextID, uint nProfiles, uint* Intents, Profile[] Profiles, bool* BPC, double* AdaptationStates, uint dwFlags);
     public delegate void StageEvalFn(in float* In, float* Out, Stage mpe);
@@ -55,10 +55,10 @@ public static unsafe partial class Lcms2
     public delegate bool OPToptimizeFn(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
     public delegate void PipelineEval16Fn(in ushort* In, ushort* Out, object? Data);
     public delegate void PipelineEvalFloatFn(in float* In, float* Out, object? Data);
-    public delegate void TransformFn(Transform* CMMcargo, in void* InputBuffer, void* OutputBuffer, uint Size, uint Stride);
-    public delegate void Transform2Fn(Transform* CMMcargo, in void* InputBuffer, void* OutputBuffer, uint PixelsPerLine, uint LineCount, in Stride* Stride);
-    public delegate bool TransformFactory(out TransformFn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, ref Pipeline Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
-    public delegate bool Transform2Factory(out Transform2Fn xform, void** UserData, FreeUserDataFn? FreePrivateDataFn, ref Pipeline Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
+    public delegate void TransformFn(Transform CMMcargo, in void* InputBuffer, void* OutputBuffer, uint Size, uint Stride);
+    public delegate void Transform2Fn(Transform CMMcargo, in void* InputBuffer, void* OutputBuffer, uint PixelsPerLine, uint LineCount, in Stride* Stride);
+    public delegate bool TransformFactory(out TransformFn xform, out object? UserData, out FreeManagedUserDataFn? FreePrivateDataFn, ref Pipeline Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
+    public delegate bool Transform2Factory(out Transform2Fn xform, out object? UserData, out FreeManagedUserDataFn? FreePrivateDataFn, ref Pipeline Lut, uint* InputFormat, uint* OutputFormat, uint* dwFlags);
     public delegate object? CreateMutexFnPtrType(Context? ContextID);
     public delegate void DestroyMutexFnPtrType(Context? ContextID, object? mtx);
     public delegate bool LockMutexFnPtrType(Context? ContextID, object? mtx);

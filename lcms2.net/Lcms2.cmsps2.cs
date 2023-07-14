@@ -843,7 +843,7 @@ public static unsafe partial class Lcms2
                     var OutFrm = TYPE_Lab_16;
                     var v = xform;
 
-                    var DeviceLink = cmsPipelineDup(v->Lut);
+                    var DeviceLink = cmsPipelineDup(v.Lut);
                     if (DeviceLink is null) return false;
 
                     dwFlags |= cmsFLAGS_FORCE_CLUT;
@@ -1126,7 +1126,7 @@ public static unsafe partial class Lcms2
 
         // Get a copy of the internal devicelink
         var v = xform;
-        var DeviceLink = cmsPipelineDup(v->Lut);
+        var DeviceLink = cmsPipelineDup(v.Lut);
         if (DeviceLink is null) return false;
 
         // We need a CLUT

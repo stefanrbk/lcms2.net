@@ -271,7 +271,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void _cmsHandleExtraChannels(Transform* p, in void* @in, void* @out, uint PixelsPerLine, uint LineCount, Stride* Stride)
+    internal static void _cmsHandleExtraChannels(Transform p, in void* @in, void* @out, uint PixelsPerLine, uint LineCount, Stride* Stride)
     {
         var SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
         var SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
@@ -279,27 +279,27 @@ public static unsafe partial class Lcms2
         var DestIncrements = stackalloc uint[cmsMAXCHANNELS];
 
         // Make sure we need some copy
-        if ((p->dwOriginalFlags & cmsFLAGS_COPY_ALPHA) is 0)
+        if ((p.dwOriginalFlags & cmsFLAGS_COPY_ALPHA) is 0)
             return;
 
         // Exit early if in-place color-management is occurring - no need to copy extra channels to themselves.
-        if (p->InputFormat == p->OutputFormat && @in == @out)
+        if (p.InputFormat == p.OutputFormat && @in == @out)
             return;
 
         // Make sure we have same number of alpha channels. If not, just return as this should be checked at transform creation time.
-        var nExtra = T_EXTRA(p->InputFormat);
-        if (nExtra != T_EXTRA(p->OutputFormat))
+        var nExtra = T_EXTRA(p.InputFormat);
+        if (nExtra != T_EXTRA(p.OutputFormat))
             return;
 
         // Anything to do?
         if (nExtra is 0) return;
 
         // Compute the increments
-        ComputeComponentIncrements(p->InputFormat, Stride->BytesPerPlaneIn, SourceStartingOrder, SourceIncrements);
-        ComputeComponentIncrements(p->OutputFormat, Stride->BytesPerPlaneOut, DestStartingOrder, DestIncrements);
+        ComputeComponentIncrements(p.InputFormat, Stride->BytesPerPlaneIn, SourceStartingOrder, SourceIncrements);
+        ComputeComponentIncrements(p.OutputFormat, Stride->BytesPerPlaneOut, DestStartingOrder, DestIncrements);
 
         // Check for conversions 8, 16, half, float, double
-        var copyValueFn = _cmsGetFormatterAlpha(p->ContextID, p->InputFormat, p->OutputFormat);
+        var copyValueFn = _cmsGetFormatterAlpha(p.ContextID, p.InputFormat, p.OutputFormat);
         if (copyValueFn is null) return;
 
         if (nExtra is 1)    // Optivized routine for copying a single extra channel quickly

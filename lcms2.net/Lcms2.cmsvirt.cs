@@ -788,19 +788,19 @@ public static unsafe partial class Lcms2
         cmsSetPCS(Profile, pcs);
     }
 
-    private static Profile? CreateNamedColorDevicelink(Transform* xform)
+    private static Profile? CreateNamedColorDevicelink(Transform xform)
     {
         var v = xform;
         Profile? hICC = null;
         NamedColorList? nc2 = null, Original = null;
 
         // Create an empty placeholder
-        hICC = cmsCreateProfilePlaceholder(v->ContextID);
+        hICC = cmsCreateProfilePlaceholder(v.ContextID);
         if (hICC is null) return null;
 
         // Critical information
         cmsSetDeviceClass(hICC, cmsSigNamedColorClass);
-        cmsSetColorSpace(hICC, v->ExitColorSpace);
+        cmsSetColorSpace(hICC, v.ExitColorSpace);
         cmsSetPCS(hICC, cmsSigLabData);
 
         // Tag profile with information
@@ -814,11 +814,11 @@ public static unsafe partial class Lcms2
         if (nc2 is null) goto Error;
 
         // Colorant count now depends on the output space
-        nc2.ColorantCount = cmsPipelineOutputChannels(v->Lut);
+        nc2.ColorantCount = cmsPipelineOutputChannels(v.Lut);
 
         // Make sure we have proper formatters
         cmsChangeBuffersFormat(xform, TYPE_NAMED_COLOR_INDEX,
-            FLOAT_SH(0) | COLORSPACE_SH((uint)_cmsLCMScolorSpace(v->ExitColorSpace)) | BYTES_SH(2) | CHANNELS_SH(cmsChannelsOf(v->ExitColorSpace)));
+            FLOAT_SH(0) | COLORSPACE_SH((uint)_cmsLCMScolorSpace(v.ExitColorSpace)) | BYTES_SH(2) | CHANNELS_SH(cmsChannelsOf(v.ExitColorSpace)));
 
         // Apply the transform to colorants.
         for (var i = 0; i < nColors; i++)
@@ -891,7 +891,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsTransform2DeviceLink(Transform* hTransform, double Version, uint dwFlags)
+    public static Profile? cmsTransform2DeviceLink(Transform hTransform, double Version, uint dwFlags)
     {
         Profile? Profile = null;
         var xform = hTransform;
@@ -901,7 +901,7 @@ public static unsafe partial class Lcms2
         _cmsAssert(hTransform);
 
         // Get the first mpe to check for named color
-        var mpe = cmsPipelineGetPtrToFirstStage(xform->Lut);
+        var mpe = cmsPipelineGetPtrToFirstStage(xform.Lut);
 
         // Check if it is a named color transform
         if (mpe is not null)
@@ -911,18 +911,18 @@ public static unsafe partial class Lcms2
         }
 
         // First thing to do is to get a copy of the transformation
-        LUT = cmsPipelineDup(xform->Lut);
+        LUT = cmsPipelineDup(xform.Lut);
         if (LUT is null) return null;
 
         // Time to fix the Lab2/Lab4 issue.
-        if (((uint)xform->EntryColorSpace is cmsSigLabData) && (Version < 4.0))
+        if (((uint)xform.EntryColorSpace is cmsSigLabData) && (Version < 4.0))
         {
             if (!cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocLabV2ToV4curves(ContextID)))
                 goto Error;
         }
 
         // On the output side too. Note that due to V2/V4 PCS encoding on lab we cannot fix white misalignments
-        if (((uint)xform->ExitColorSpace) is cmsSigLabData && (Version < 4.0))
+        if (((uint)xform.ExitColorSpace) is cmsSigLabData && (Version < 4.0))
         {
             dwFlags |= cmsFLAGS_NOWHITEONWHITEFIXUP;
             if (!cmsPipelineInsertStage(LUT, StageLoc.AtEnd, _cmsStageAllocLabV4ToV2(ContextID)))
@@ -934,14 +934,14 @@ public static unsafe partial class Lcms2
 
         cmsSetProfileVersion(Profile, Version);
 
-        FixColorSpaces(Profile, xform->EntryColorSpace, xform->ExitColorSpace, dwFlags);
+        FixColorSpaces(Profile, xform.EntryColorSpace, xform.ExitColorSpace, dwFlags);
 
         // Optimize the LUT and precalculate a devicelink
-        var ChansIn = cmsChannelsOf(xform->EntryColorSpace);
-        var ChansOut = cmsChannelsOf(xform->ExitColorSpace);
+        var ChansIn = cmsChannelsOf(xform.EntryColorSpace);
+        var ChansOut = cmsChannelsOf(xform.ExitColorSpace);
 
-        var ColorSpaceBitsIn = _cmsLCMScolorSpace(xform->EntryColorSpace);
-        var ColorSpaceBitsOut = _cmsLCMScolorSpace(xform->ExitColorSpace);
+        var ColorSpaceBitsIn = _cmsLCMScolorSpace(xform.EntryColorSpace);
+        var ColorSpaceBitsOut = _cmsLCMScolorSpace(xform.ExitColorSpace);
 
         var FrmIn = COLORSPACE_SH((uint)ColorSpaceBitsIn) | CHANNELS_SH(ChansIn) | BYTES_SH(2);
         var FrmOut = COLORSPACE_SH((uint)ColorSpaceBitsOut) | CHANNELS_SH(ChansOut) | BYTES_SH(2);
@@ -960,7 +960,7 @@ public static unsafe partial class Lcms2
         if (AllowedLUT is null)
         {
             // Try to optimize
-            _cmsOptimizePipeline(ContextID, ref LUT, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
             AllowedLUT = FindCombination(LUT, Version >= 4.0, DestinationTag);
         }
 
@@ -968,7 +968,7 @@ public static unsafe partial class Lcms2
         if (AllowedLUT is null)
         {
             dwFlags |= cmsFLAGS_FORCE_CLUT;
-            _cmsOptimizePipeline(ContextID, ref LUT, xform->RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
 
             // Put identity curves if needed
             var FirstStage = cmsPipelineGetPtrToFirstStage(LUT);
@@ -1005,12 +1005,12 @@ public static unsafe partial class Lcms2
         if (!cmsWriteTag(Profile, DestinationTag, LUT))
             goto Error;
 
-        if ((xform->InputColorant is not null &&
-             !cmsWriteTag(Profile, cmsSigColorantTableTag, xform->InputColorant)) ||
-            (xform->OutputColorant is not null &&
-             !cmsWriteTag(Profile, cmsSigColorantTableOutTag, xform->OutputColorant)) ||
+        if ((xform.InputColorant is not null &&
+             !cmsWriteTag(Profile, cmsSigColorantTableTag, xform.InputColorant)) ||
+            (xform.OutputColorant is not null &&
+             !cmsWriteTag(Profile, cmsSigColorantTableOutTag, xform.OutputColorant)) ||
             (((uint)deviceClass is cmsSigLinkClass) &&
-             (xform->Sequence is not null) && !_cmsWriteProfileSequence(Profile, xform->Sequence)))
+             (xform.Sequence is not null) && !_cmsWriteProfileSequence(Profile, xform.Sequence)))
         {
             goto Error;
         }
@@ -1018,15 +1018,17 @@ public static unsafe partial class Lcms2
         // Set the white point
         if ((uint)deviceClass is cmsSigInputClass)
         {
-            if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(&xform->EntryWhitePoint))) goto Error;
+            fixed (CIEXYZ* wp = &xform.EntryWhitePoint)
+                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(wp))) goto Error;
         }
         else
         {
-            if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(&xform->ExitWhitePoint))) goto Error;
+            fixed (CIEXYZ* wp = &xform.ExitWhitePoint)
+                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(wp))) goto Error;
         }
 
         // Per 7.2.14 in spec 4.3
-        cmsSetHeaderRenderingIntent(Profile, xform->RenderingIntent);
+        cmsSetHeaderRenderingIntent(Profile, xform.RenderingIntent);
 
         cmsPipelineFree(LUT);
         return Profile;

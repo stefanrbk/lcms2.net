@@ -54,12 +54,15 @@ internal static unsafe partial class Testbed
     {
         var Values = stackalloc ushort[cmsMAXCHANNELS];
         var Buffer = stackalloc byte[1024];
-        Transform info;
 
         // Already failed?
         if (FormatterFailed) return;
-        memset(&info, 0, sizeof(Transform));
-        info.OutputFormat = info.InputFormat = Type;
+        //memset(&info, 0, sizeof(Transform));
+        var info = new Transform()
+        {
+            InputFormat = Type,
+            OutputFormat = Type
+        };
 
         // Go forth and back
         var f = _cmsGetFormatter(id, Type, FormatterDirection.Input, PackFlags.Ushort);
@@ -89,9 +92,9 @@ internal static unsafe partial class Testbed
                     Values[i] <<= 8;
             }
 
-            b.Fmt16(&info, Values, Buffer, 2);
+            b.Fmt16(info, Values, Buffer, 2);
             memset(Values, 0, sizeof(ushort) * cmsMAXCHANNELS);
-            f.Fmt16(&info, Values, Buffer, 2);
+            f.Fmt16(info, Values, Buffer, 2);
 
             for (var i = 0; i < nChannels; i++)
             {
@@ -111,8 +114,8 @@ internal static unsafe partial class Testbed
                         if (bytes is 1)
                             Values[i] <<= 8;
                     }
-                    b.Fmt16(&info, Values, Buffer, 1);
-                    f.Fmt16(&info, Values, Buffer, 1);
+                    b.Fmt16(info, Values, Buffer, 1);
+                    f.Fmt16(info, Values, Buffer, 1);
                     return;
                 }
             }
@@ -123,12 +126,15 @@ internal static unsafe partial class Testbed
     {
         var Values = stackalloc float[cmsMAXCHANNELS];
         var Buffer = stackalloc byte[1024];
-        Transform info;
 
         // Already failed?
         if (FormatterFailed) return;
-        memset(&info, 0, sizeof(Transform));
-        info.OutputFormat = info.InputFormat = Type;
+        //memset(&info, 0, sizeof(Transform));
+        var info = new Transform()
+        {
+            InputFormat = Type,
+            OutputFormat = Type
+        };
 
         // Go forth and back
         var f = _cmsGetFormatter(null, Type, FormatterDirection.Input, PackFlags.Float);
@@ -153,9 +159,9 @@ internal static unsafe partial class Testbed
             for (var i = 0; i < nChannels; i++)
                 Values[i] = i + j;
 
-            b.FmtFloat(&info, Values, Buffer, 2);
+            b.FmtFloat(info, Values, Buffer, 2);
             memset(Values, 0, sizeof(ushort) * cmsMAXCHANNELS);
-            f.FmtFloat(&info, Values, Buffer, 2);
+            f.FmtFloat(info, Values, Buffer, 2);
 
             for (var i = 0; i < nChannels; i++)
             {
@@ -170,8 +176,8 @@ internal static unsafe partial class Testbed
                     for (i = 0; i < nChannels; i++)
                         Values[i] = (ushort)(i + j);
 
-                    b.FmtFloat(&info, Values, Buffer, 1);
-                    f.FmtFloat(&info, Values, Buffer, 1);
+                    b.FmtFloat(info, Values, Buffer, 1);
+                    f.FmtFloat(info, Values, Buffer, 1);
                     return;
                 }
             }
@@ -415,7 +421,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool CheckOneRGB(Transform* xform, ushort R, ushort G, ushort B, ushort Ro, ushort Go, ushort Bo)
+    private static bool CheckOneRGB(Transform xform, ushort R, ushort G, ushort B, ushort Ro, ushort Go, ushort Bo)
     {
         var RGB = stackalloc ushort[3];
         var Out = stackalloc ushort[3];
@@ -431,7 +437,7 @@ internal static unsafe partial class Testbed
                IsGoodWord("B", Bo, Out[2]);
     }
 
-    private static bool CheckOneRGB_double(Transform* xform, double R, double G, double B, double Ro, double Go, double Bo)
+    private static bool CheckOneRGB_double(Transform xform, double R, double G, double B, double Ro, double Go, double Bo)
     {
         var RGB = stackalloc double[3];
         var Out = stackalloc double[3];

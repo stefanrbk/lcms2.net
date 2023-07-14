@@ -32,7 +32,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static Transform* _cmsChain2Lab(
+    internal static Transform? _cmsChain2Lab(
         Context? ContextID,
         uint nProfiles,
         uint InputFormat,
@@ -177,8 +177,8 @@ public static unsafe partial class Lcms2
 
     private struct GamutChain
     {
-        public Transform* hInput;
-        public Transform* hForward, hReverse;
+        public Transform? hInput;
+        public Transform? hForward, hReverse;
         public double Threshold;
     }
 
@@ -358,7 +358,7 @@ public static unsafe partial class Lcms2
     private struct TACestimator
     {
         public uint nOutputChans;
-        public Transform* hRoundTrip;
+        public Transform hRoundTrip;
         public float MaxTAC;
         public fixed float MaxInput[cmsMAXCHANNELS];
     }
@@ -412,7 +412,7 @@ public static unsafe partial class Lcms2
         if (hLab is null) return 0;
         // Setup a roundtrip on perceptual intent in output profile for TAC estimation
         bp.hRoundTrip = cmsCreateTransformTHR(
-            ContextID, hLab, TYPE_Lab_16, Profile, dwFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
+            ContextID, hLab, TYPE_Lab_16, Profile, dwFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE)!;
 
         cmsCloseProfile(hLab);
         if (bp.hRoundTrip is null) return 0;

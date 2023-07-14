@@ -118,9 +118,9 @@ internal static unsafe partial class Testbed
 
     private struct FakeCMYKParams
     {
-        public Transform* hLab2sRGB;
-        public Transform* sRGB2Lab;
-        public Transform* hIlimit;
+        public Transform hLab2sRGB;
+        public Transform sRGB2Lab;
+        public Transform hIlimit;
     }
 
     private static double Clip(double v) =>
@@ -308,7 +308,7 @@ internal static unsafe partial class Testbed
         // ----
 
         h = cmsCreateInkLimitingDeviceLinkTHR(DbgThread(), cmsSigCmykData, 150);
-        //if (!OneVirtual(h, "Ink-limiting profile", "limitlcms2.icc")) return false;
+        if (!OneVirtual(h, "Ink-limiting profile", "limitlcms2.icc")) return false;
 
         // ----
 

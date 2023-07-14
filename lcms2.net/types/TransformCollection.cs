@@ -25,14 +25,30 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
+using System.Diagnostics.CodeAnalysis;
 
 namespace lcms2.types;
 
-public unsafe struct TransformCollection
+public class TransformCollection : ICloneable
 {
-    public Transform2Factory Factory;
+    public Transform2Factory? Factory;
+    public TransformFactory? OldFactory;
 
-    public bool OldXform;
-    public TransformCollection* Next;
+    public TransformCollection? Next;
+
+    [MemberNotNullWhen(true, nameof(OldFactory))]
+    [MemberNotNullWhen(false, nameof(Factory))]
+    public bool OldXform =>
+        OldFactory is not null;
+
+    public TransformCollection(Transform2Factory factory) =>
+        Factory = factory;
+
+    public TransformCollection(TransformFactory factory) =>
+        OldFactory = factory;
+
+    public object Clone() =>
+        OldXform
+            ? new TransformCollection(OldFactory) { Next = Next }
+            : new TransformCollection(Factory) { Next = Next };
 }

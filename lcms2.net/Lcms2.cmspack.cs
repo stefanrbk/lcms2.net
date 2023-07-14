@@ -238,32 +238,18 @@ public static unsafe partial class Lcms2
                              ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackHalfFromFloat ),
 };
 
-    internal struct Formatters16
+    internal struct Formatters16(uint Type, uint Mask, Formatter16 Frm)
     {
-        public uint Type;
-        public uint Mask;
-        public Formatter16 Frm;
-
-        public Formatters16(uint Type, uint Mask, Formatter16 Frm)
-        {
-            this.Type = Type;
-            this.Mask = Mask;
-            this.Frm = Frm;
-        }
+        public uint Type = Type;
+        public uint Mask = Mask;
+        public Formatter16 Frm = Frm;
     }
 
-    internal struct FormattersFloat
+    internal struct FormattersFloat(uint Type, uint Mask, FormatterFloat Frm)
     {
-        public uint Type;
-        public uint Mask;
-        public FormatterFloat Frm;
-
-        public FormattersFloat(uint Type, uint Mask, FormatterFloat Frm)
-        {
-            this.Type = Type;
-            this.Mask = Mask;
-            this.Frm = Frm;
-        }
+        public uint Type = Type;
+        public uint Mask = Mask;
+        public FormatterFloat Frm = Frm;
     }
 
     private static uint ANYSPACE => COLORSPACE_SH(31);
@@ -324,14 +310,14 @@ public static unsafe partial class Lcms2
         wIn[nChan - 1] = tmp;
     }
 
-    private static byte* UnrollChunkyBytes(Transform* info, ushort* wIn, byte* accum, uint _)
+    private static byte* UnrollChunkyBytes(Transform info, ushort* wIn, byte* accum, uint _)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
-        var SwapFirst = T_SWAPFIRST(info->InputFormat) is not 0;
-        var Extra = T_EXTRA(info->InputFormat);
-        var Premul = T_PREMUL(info->InputFormat) is not 0;
+        var nChan = T_CHANNELS(info.InputFormat);
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
+        var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
+        var Extra = T_EXTRA(info.InputFormat);
+        var Premul = T_PREMUL(info.InputFormat) is not 0;
 
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 1u;
@@ -380,15 +366,15 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollPlanarBytes(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollPlanarBytes(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var SwapFirst = T_SWAPFIRST(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
+        var nChan = T_CHANNELS(info.InputFormat);
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var Extra = T_EXTRA(info->InputFormat);
-        var Premul = T_PREMUL(info->InputFormat) is not 0;
+        var Extra = T_EXTRA(info.InputFormat);
+        var Premul = T_PREMUL(info.InputFormat) is not 0;
         var Init = accum;
         var alpha_factor = 1u;
 
@@ -425,7 +411,7 @@ public static unsafe partial class Lcms2
         return Init + 1;
     }
 
-    private static byte* Unroll4Bytes(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FROM_8_TO_16(*accum); accum++; // C
         wIn[1] = FROM_8_TO_16(*accum); accum++; // M
@@ -435,7 +421,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4BytesReverse(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4BytesReverse(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // C
         wIn[1] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // M
@@ -445,7 +431,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4BytesSwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4BytesSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[3] = FROM_8_TO_16(*accum); accum++; // K
         wIn[0] = FROM_8_TO_16(*accum); accum++; // C
@@ -455,7 +441,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4BytesSwap(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4BytesSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[3] = FROM_8_TO_16(*accum); accum++; // K
         wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
@@ -465,7 +451,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4BytesSwapSwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4BytesSwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
         wIn[1] = FROM_8_TO_16(*accum); accum++; // M
@@ -475,7 +461,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3Bytes(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FROM_8_TO_16(*accum); accum++; // R
         wIn[1] = FROM_8_TO_16(*accum); accum++; // G
@@ -484,29 +470,29 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3BytesSkip1Swap(Transform* _1, ushort* wIn, byte* accum, uint _2)
-    {
-        accum++;                                // A
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
-
-        return accum;
-    }
-
-    private static byte* Unroll3BytesSkip1SwapSwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
-    {
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
-        accum++;                                // A
-
-        return accum;
-    }
-
-    private static byte* Unroll3BytesSkip1SwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3BytesSkip1Swap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         accum++;                                // A
+        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
+        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
+        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
+
+        return accum;
+    }
+
+    private static byte* Unroll3BytesSkip1SwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    {
+        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
+        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
+        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
+        accum++;                                // A
+
+        return accum;
+    }
+
+    private static byte* Unroll3BytesSkip1SwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    {
+        accum++;                                // A
         wIn[0] = FROM_8_TO_16(*accum); accum++; // R
         wIn[1] = FROM_8_TO_16(*accum); accum++; // G
         wIn[2] = FROM_8_TO_16(*accum); accum++; // B
@@ -514,7 +500,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3BytesSwap(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3BytesSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[2] = FROM_8_TO_16(*accum); accum++; // B
         wIn[1] = FROM_8_TO_16(*accum); accum++; // G
@@ -523,7 +509,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollLabV2_8(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* UnrollLabV2_8(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // L
         wIn[1] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // a
@@ -532,7 +518,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollALabV2_8(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* UnrollALabV2_8(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         accum++;                                // A
         wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // R
@@ -542,7 +528,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollLabV2_16(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* UnrollLabV2_16(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FomLabV2ToLabV4(*(ushort*)accum); accum += 2; // L
         wIn[1] = FomLabV2ToLabV4(*(ushort*)accum); accum += 2; // a
@@ -551,7 +537,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll2Bytes(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll2Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = FROM_8_TO_16(*accum); accum++; // ch1
         wIn[1] = FROM_8_TO_16(*accum); accum++; // ch2
@@ -559,14 +545,14 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll1Byte(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1Byte(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
 
         return accum;
     }
 
-    private static byte* Unroll1ByteSkip1(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1ByteSkip1(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
         accum++;
@@ -574,7 +560,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll1ByteSkip2(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1ByteSkip2(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
         accum += 2;
@@ -582,21 +568,21 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll1ByteReversed(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1ByteReversed(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(FROM_8_TO_16(*accum)); accum++; // L
 
         return accum;
     }
 
-    private static byte* UnrollAnyWords(Transform* info, ushort* wIn, byte* accum, uint _)
+    private static byte* UnrollAnyWords(Transform info, ushort* wIn, byte* accum, uint _)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var SwapEndian = T_ENDIAN16(info->InputFormat) is not 0;
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
-        var SwapFirst = T_SWAPFIRST(info->InputFormat) is not 0;
-        var Extra = T_EXTRA(info->InputFormat);
+        var nChan = T_CHANNELS(info.InputFormat);
+        var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
+        var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
+        var Extra = T_EXTRA(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
 
         if (ExtraFirst)
@@ -629,13 +615,13 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollAnyWordsPremul(Transform* info, ushort* wIn, byte* accum, uint _)
+    private static byte* UnrollAnyWordsPremul(Transform info, ushort* wIn, byte* accum, uint _)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var SwapEndian = T_ENDIAN16(info->InputFormat) is not 0;
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
-        var SwapFirst = T_SWAPFIRST(info->InputFormat) is not 0;
+        var nChan = T_CHANNELS(info.InputFormat);
+        var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
+        var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
         var ExtraFirst = DoSwap ^ SwapFirst;
 
         var alpha = (uint)(ExtraFirst ? accum[0] : accum[nChan - 1]);
@@ -666,13 +652,13 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollPlanarWords(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollPlanarWords(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var SwapEndian = T_ENDIAN16(info->InputFormat) is not 0;
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
-        var Extra = T_EXTRA(info->InputFormat);
+        var nChan = T_CHANNELS(info.InputFormat);
+        var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
+        var Extra = T_EXTRA(info.InputFormat);
         var Init = accum;
 
         if (DoSwap)
@@ -694,13 +680,13 @@ public static unsafe partial class Lcms2
         return Init + _sizeof<ushort>();
     }
 
-    private static byte* UnrollPlanarWordsPremul(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollPlanarWordsPremul(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var nChan = T_CHANNELS(info->InputFormat);
-        var SwapEndian = T_ENDIAN16(info->InputFormat) is not 0;
-        var DoSwap = T_DOSWAP(info->InputFormat) is not 0;
-        var Reverse = T_FLAVOR(info->InputFormat) is not 0;
-        var SwapFirst = T_SWAPFIRST(info->InputFormat) is not 0;
+        var nChan = T_CHANNELS(info.InputFormat);
+        var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
+        var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
+        var Reverse = T_FLAVOR(info.InputFormat) is not 0;
+        var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
         var ExtraFirst = DoSwap ^ SwapFirst;
         var Init = accum;
 
@@ -729,7 +715,7 @@ public static unsafe partial class Lcms2
         return Init + _sizeof<ushort>();
     }
 
-    private static byte* Unroll4Words(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4Words(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = *(ushort*)accum; accum += 2; // C
         wIn[1] = *(ushort*)accum; accum += 2; // M
@@ -739,7 +725,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4WordsReverse(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4WordsReverse(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // C
         wIn[1] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // M
@@ -749,7 +735,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4WordsSwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4WordsSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[3] = *(ushort*)accum; accum += 2; // K
         wIn[0] = *(ushort*)accum; accum += 2; // C
@@ -759,7 +745,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4WordsSwap(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4WordsSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[3] = *(ushort*)accum; accum += 2; // K
         wIn[2] = *(ushort*)accum; accum += 2; // Y
@@ -769,7 +755,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll4WordsSwapSwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll4WordsSwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[2] = *(ushort*)accum; accum += 2; // Y
         wIn[1] = *(ushort*)accum; accum += 2; // M
@@ -779,7 +765,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3Words(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3Words(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = *(ushort*)accum; accum += 2; // C R
         wIn[1] = *(ushort*)accum; accum += 2; // M G
@@ -788,7 +774,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3WordsSwap(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3WordsSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[2] = *(ushort*)accum; accum += 2; // Y B
         wIn[1] = *(ushort*)accum; accum += 2; // M G
@@ -797,7 +783,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3WordsSkip1Swap(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3WordsSkip1Swap(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         accum += 2;                           // A
         wIn[2] = *(ushort*)accum; accum += 2; // B
@@ -807,7 +793,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll3WordsSkip1SwapFirst(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll3WordsSkip1SwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         accum += 2;                           // A
         wIn[0] = *(ushort*)accum; accum += 2; // R
@@ -817,21 +803,21 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll1Word(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1Word(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = *(ushort*)accum; accum += 2; // L
 
         return accum;
     }
 
-    private static byte* Unroll1WordReversed(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1WordReversed(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // L
 
         return accum;
     }
 
-    private static byte* Unroll1WordSkip3(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll1WordSkip3(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = wIn[1] = wIn[2] = *(ushort*)accum;
 
@@ -840,7 +826,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* Unroll2Words(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* Unroll2Words(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         wIn[0] = *(ushort*)accum; accum += 2; // ch1
         wIn[1] = *(ushort*)accum; accum += 2; // ch2
@@ -848,9 +834,9 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollLabDoubleTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollLabDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
             CIELab Lab;
 
@@ -868,16 +854,16 @@ public static unsafe partial class Lcms2
         else
         {
             cmsFloat2LabEncoded(wIn, (CIELab*)accum);
-            accum += _sizeof<CIELab>() + (T_EXTRA(info->InputFormat) * _sizeof<double>());
+            accum += _sizeof<CIELab>() + (T_EXTRA(info.InputFormat) * _sizeof<double>());
             return accum;
         }
     }
 
-    private static byte* UnrollLabFloatTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollLabFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
         CIELab Lab;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
             var pos_L = accum;
             var pos_a = accum + Stride;
@@ -897,14 +883,14 @@ public static unsafe partial class Lcms2
             Lab.b = ((float*)accum)[2];
 
             cmsFloat2LabEncoded(wIn, &Lab);
-            accum += (3 + T_EXTRA(info->InputFormat)) * _sizeof<float>();
+            accum += (3 + T_EXTRA(info.InputFormat)) * _sizeof<float>();
             return accum;
         }
     }
 
-    private static byte* UnrollXYZDoubleTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollXYZDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
             CIEXYZ XYZ;
 
@@ -922,16 +908,16 @@ public static unsafe partial class Lcms2
         else
         {
             cmsFloat2XYZEncoded(wIn, (CIEXYZ*)accum);
-            accum += _sizeof<CIEXYZ>() + (T_EXTRA(info->InputFormat) * _sizeof<double>());
+            accum += _sizeof<CIEXYZ>() + (T_EXTRA(info.InputFormat) * _sizeof<double>());
             return accum;
         }
     }
 
-    private static byte* UnrollXYZFloatTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollXYZFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
         CIEXYZ XYZ;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
             var pos_X = accum;
             var pos_Y = accum + Stride;
@@ -952,7 +938,7 @@ public static unsafe partial class Lcms2
             XYZ.Y = pt[1];
             XYZ.Z = pt[2];
             cmsFloat2XYZEncoded(wIn, &XYZ);
-            accum += (3 + T_EXTRA(info->InputFormat)) * _sizeof<float>();
+            accum += (3 + T_EXTRA(info.InputFormat)) * _sizeof<float>();
             return accum;
         }
     }
@@ -989,14 +975,14 @@ public static unsafe partial class Lcms2
         return fmt_bytes;
     }
 
-    private static byte* UnrollDoubleTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 655.35 : 65535.0;
+        var maximum = IsInkSpace(info.InputFormat) ? 655.35 : 65535.0;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -1018,17 +1004,17 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
     }
 
-    private static byte* UnrollFloatTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 655.35 : 65535.0;
+        var maximum = IsInkSpace(info.InputFormat) ? 655.35 : 65535.0;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -1050,10 +1036,10 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
     }
 
-    private static byte* UnrollDouble1Chan(Transform* _1, ushort* wIn, byte* accum, uint _2)
+    private static byte* UnrollDouble1Chan(Transform _1, ushort* wIn, byte* accum, uint _2)
     {
         var Inks = (double*)accum;
 
@@ -1062,13 +1048,13 @@ public static unsafe partial class Lcms2
         return accum + _sizeof<double>();
     }
 
-    private static byte* Unroll8ToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* Unroll8ToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -1087,16 +1073,16 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<byte>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<byte>());
     }
 
-    private static byte* Unroll16ToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* Unroll16ToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -1115,19 +1101,19 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
-    private static byte* UnrollFloatsToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollFloatsToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 100.0F : 1.0F;
+        var maximum = IsInkSpace(info.InputFormat) ? 100.0F : 1.0F;
         var alpha_factor = 1.0F;
         var ptr = (float*)accum;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (Premul && Extra is not 0)
             alpha_factor = (ExtraFirst ? ptr[0] : ptr[nChan * (Planar ? Stride : 1)]) / maximum;
@@ -1150,19 +1136,19 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
     }
 
-    private static byte* UnrollDoublesToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollDoublesToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 100.0 : 1.0;
+        var maximum = IsInkSpace(info.InputFormat) ? 100.0 : 1.0;
         var alpha_factor = 1.0;
         var ptr = (double*)accum;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (Premul && Extra is not 0)
             alpha_factor = (ExtraFirst ? ptr[0] : ptr[nChan * (Planar ? Stride : 1)]) / maximum;
@@ -1185,16 +1171,16 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
     }
 
-    private static byte* UnrollLabDoubleToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollLabDoubleToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
         var Pt = (double*)accum;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
-            Stride /= PixelSize(info->InputFormat);
+            Stride /= PixelSize(info.InputFormat);
 
             wIn[0] = (float)(Pt[0] / 100.0);
             wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
@@ -1208,17 +1194,17 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[1] + 128) / 255.0);
             wIn[2] = (float)((Pt[2] + 128) / 255.0);
 
-            return accum + (_sizeof<double>() * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<double>() * (3 + T_EXTRA(info.InputFormat)));
         }
     }
 
-    private static byte* UnrollLabFloatToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollLabFloatToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
         var Pt = (float*)accum;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
-            Stride /= PixelSize(info->InputFormat);
+            Stride /= PixelSize(info.InputFormat);
 
             wIn[0] = (float)(Pt[0] / 100.0);
             wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
@@ -1232,17 +1218,17 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)((Pt[1] + 128) / 255.0);
             wIn[2] = (float)((Pt[2] + 128) / 255.0);
 
-            return accum + (_sizeof<float>() * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<float>() * (3 + T_EXTRA(info.InputFormat)));
         }
     }
 
-    private static byte* UnrollXYZDoubleToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollXYZDoubleToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
         var Pt = (double*)accum;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
-            Stride /= PixelSize(info->InputFormat);
+            Stride /= PixelSize(info.InputFormat);
 
             wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
             wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
@@ -1256,17 +1242,17 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (_sizeof<double>() * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<double>() * (3 + T_EXTRA(info.InputFormat)));
         }
     }
 
-    private static byte* UnrollXYZFloatToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollXYZFloatToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
         var Pt = (float*)accum;
 
-        if (T_PLANAR(info->InputFormat) is not 0)
+        if (T_PLANAR(info.InputFormat) is not 0)
         {
-            Stride /= PixelSize(info->InputFormat);
+            Stride /= PixelSize(info.InputFormat);
 
             wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
             wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
@@ -1280,7 +1266,7 @@ public static unsafe partial class Lcms2
             wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
             wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (_sizeof<float>() * (3 + T_EXTRA(info->InputFormat)));
+            return accum + (_sizeof<float>() * (3 + T_EXTRA(info.InputFormat)));
         }
     }
 
@@ -1296,7 +1282,7 @@ public static unsafe partial class Lcms2
         wIn[2] = (b + 128.0F) / 255.0F;
     }
 
-    private static byte* UnrollLabV2_8ToFloat(Transform* _1, float* wIn, byte* accum, uint _2)
+    private static byte* UnrollLabV2_8ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
     {
         var lab4 = stackalloc ushort[3];
 
@@ -1309,7 +1295,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollALabV2_8ToFloat(Transform* _1, float* wIn, byte* accum, uint _2)
+    private static byte* UnrollALabV2_8ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
     {
         var lab4 = stackalloc ushort[3];
 
@@ -1323,7 +1309,7 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* UnrollLabV2_16ToFloat(Transform* _1, float* wIn, byte* accum, uint _2)
+    private static byte* UnrollLabV2_16ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
     {
         var lab4 = stackalloc ushort[3];
 
@@ -1336,9 +1322,9 @@ public static unsafe partial class Lcms2
         return accum;
     }
 
-    private static byte* PackChunkyBytes(Transform* info, ushort* wOut, byte* output, uint _)
+    private static byte* PackChunkyBytes(Transform info, ushort* wOut, byte* output, uint _)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
 
@@ -1381,9 +1367,9 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackChunkyWords(Transform* info, ushort* wOut, byte* output, uint _)
+    private static byte* PackChunkyWords(Transform info, ushort* wOut, byte* output, uint _)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
 
@@ -1431,9 +1417,9 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackPlanarBytes(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackPlanarBytes(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
         var Init = output;
@@ -1471,9 +1457,9 @@ public static unsafe partial class Lcms2
         return Init + 1;
     }
 
-    private static byte* PackPlanarWords(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackPlanarWords(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
         var Init = output;
@@ -1514,7 +1500,7 @@ public static unsafe partial class Lcms2
         return Init + _sizeof<ushort>();
     }
 
-    private static byte* Pack6Bytes(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack6Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1526,7 +1512,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack6BytesSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack6BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[5]);
         *output++ = FROM_16_TO_8(wOut[4]);
@@ -1538,7 +1524,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack6Words(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack6Words(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1556,7 +1542,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack6WordsSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack6WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[5];
         output += 2;
@@ -1574,7 +1560,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4Bytes(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1584,7 +1570,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4BytesReverse(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4BytesReverse(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[0]));
         *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[1]));
@@ -1594,7 +1580,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4BytesSwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4BytesSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[3]);
         *output++ = FROM_16_TO_8(wOut[0]);
@@ -1604,7 +1590,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4BytesSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[3]);
         *output++ = FROM_16_TO_8(wOut[2]);
@@ -1614,7 +1600,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4BytesSwapSwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4BytesSwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[2]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1624,7 +1610,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4Words(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4Words(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1638,7 +1624,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4WordsReverse(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4WordsReverse(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = REVERSE_FLAVOR_16(wOut[0]);
         output += 2;
@@ -1652,7 +1638,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4WordsSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[3];
         output += 2;
@@ -1666,7 +1652,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack4WordsBigEndian(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack4WordsBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
         output += 2;
@@ -1680,7 +1666,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackLabV2_8(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* PackLabV2_8(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
         *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[1]));
@@ -1689,7 +1675,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackALabV2_8(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* PackALabV2_8(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
@@ -1699,7 +1685,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackLabV2_16(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* PackLabV2_16(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = FomLabV4ToLabV2(wOut[0]);
         output += 2;
@@ -1711,7 +1697,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3Bytes(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1720,7 +1706,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesOptimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = (byte)(wOut[0] & 0xFFu);
         *output++ = (byte)(wOut[1] & 0xFFu);
@@ -1729,7 +1715,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[2]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1738,7 +1724,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesSwapOptimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesSwapOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = (byte)(wOut[2] & 0xFFu);
         *output++ = (byte)(wOut[1] & 0xFFu);
@@ -1747,7 +1733,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3Words(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3Words(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1759,7 +1745,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsSwap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[2];
         output += 2;
@@ -1771,7 +1757,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsBigEndian(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
         output += 2;
@@ -1783,7 +1769,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1793,7 +1779,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1Optimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1Optimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = (byte)(wOut[0] & 0xFFu);
         *output++ = (byte)(wOut[1] & 0xFFu);
@@ -1803,7 +1789,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1SwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = FROM_16_TO_8(wOut[0]);
@@ -1813,7 +1799,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1SwapFirstOptimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1SwapFirstOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = (byte)(wOut[0] & 0xFFu);
@@ -1823,7 +1809,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1Swap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1Swap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = FROM_16_TO_8(wOut[2]);
@@ -1833,7 +1819,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1SwapOptimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1SwapOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = (byte)(wOut[2] & 0xFFu);
@@ -1843,7 +1829,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1SwapSwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1SwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[2]);
         *output++ = FROM_16_TO_8(wOut[1]);
@@ -1853,7 +1839,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = (byte)(wOut[2] & 0xFFu);
         *output++ = (byte)(wOut[1] & 0xFFu);
@@ -1863,7 +1849,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsAndSkip1(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsAndSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1876,7 +1862,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsAndSkip1Swap(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsAndSkip1Swap(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output += 2;
         *(ushort*)output = wOut[2];
@@ -1889,7 +1875,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsAndSkip1SwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsAndSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output += 2;
         *(ushort*)output = wOut[0];
@@ -1902,7 +1888,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack3WordsAndSkip1SwapSwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack3WordsAndSkip1SwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[2];
         output += 2;
@@ -1915,21 +1901,21 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1Byte(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1Byte(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
 
         return output;
     }
 
-    private static byte* Pack1ByteReversed(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1ByteReversed(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(REVERSE_FLAVOR_16(wOut[0]));
 
         return output;
     }
 
-    private static byte* Pack1ByteSkip1(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1ByteSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *output++ = FROM_16_TO_8(wOut[0]);
         output++;
@@ -1937,7 +1923,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1ByteSkip1SwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1ByteSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output++;
         *output++ = FROM_16_TO_8(wOut[0]);
@@ -1945,7 +1931,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1Word(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1Word(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1953,7 +1939,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1WordReversed(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1WordReversed(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = REVERSE_FLAVOR_16(wOut[0]);
         output += 2;
@@ -1961,7 +1947,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1WordBigEndian(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1WordBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
         output += 2;
@@ -1969,7 +1955,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1WordSkip1(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1WordSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         *(ushort*)output = wOut[0];
         output += 2;
@@ -1978,7 +1964,7 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* Pack1WordSkip1SwapFirst(Transform* _1, ushort* wOut, byte* output, uint _2)
+    private static byte* Pack1WordSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
     {
         output += 2;
         *(ushort*)output = wOut[0];
@@ -1987,9 +1973,9 @@ public static unsafe partial class Lcms2
         return output;
     }
 
-    private static byte* PackLabDoubleFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackLabDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
             CIELab Lab;
             var Out = (double*)output;
@@ -2004,18 +1990,18 @@ public static unsafe partial class Lcms2
         else
         {
             cmsLabEncoded2Float((CIELab*)output, wOut);
-            return output + (_sizeof<CIELab>() + (T_EXTRA(info->OutputFormat) * _sizeof<double>()));
+            return output + (_sizeof<CIELab>() + (T_EXTRA(info.OutputFormat) * _sizeof<double>()));
         }
     }
 
-    private static byte* PackLabFloatFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackLabFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
         CIELab Lab;
         cmsLabEncoded2Float(&Lab, wOut);
 
         var Out = (float*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Out[0] = (float)Lab.L;
             Out[Stride] = (float)Lab.a;
@@ -2029,13 +2015,13 @@ public static unsafe partial class Lcms2
             Out[1] = (float)Lab.a;
             Out[2] = (float)Lab.b;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
         }
     }
 
-    private static byte* PackXYZDoubleFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackXYZDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
             CIEXYZ XYZ;
             var Out = (double*)output;
@@ -2050,18 +2036,18 @@ public static unsafe partial class Lcms2
         else
         {
             cmsXYZEncoded2Float((CIEXYZ*)output, wOut);
-            return output + (_sizeof<CIEXYZ>() + (T_EXTRA(info->OutputFormat) * _sizeof<double>()));
+            return output + (_sizeof<CIEXYZ>() + (T_EXTRA(info.OutputFormat) * _sizeof<double>()));
         }
     }
 
-    private static byte* PackXYZFloatFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackXYZFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
         CIEXYZ XYZ;
         cmsXYZEncoded2Float(&XYZ, wOut);
 
         var Out = (float*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Out[0] = (float)XYZ.X;
             Out[Stride] = (float)XYZ.Y;
@@ -2075,19 +2061,19 @@ public static unsafe partial class Lcms2
             Out[1] = (float)XYZ.Y;
             Out[2] = (float)XYZ.Z;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
         }
     }
 
-    private static byte* PackDoubleFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 655.35 : 65535.0;
+        var maximum = IsInkSpace(info.OutputFormat) ? 655.35 : 65535.0;
         var swap1 = (double*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;
@@ -2109,15 +2095,15 @@ public static unsafe partial class Lcms2
         return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
     }
 
-    private static byte* PackFloatFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 655.35 : 65535.0;
+        var maximum = IsInkSpace(info.OutputFormat) ? 655.35 : 65535.0;
         var swap1 = (float*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;
@@ -2140,15 +2126,15 @@ public static unsafe partial class Lcms2
         return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
     }
 
-    private static byte* PackFloatsFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackFloatsFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 100.0 : 1.0;
+        var maximum = IsInkSpace(info.OutputFormat) ? 100.0 : 1.0;
         var swap1 = (float*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;
@@ -2171,15 +2157,15 @@ public static unsafe partial class Lcms2
         return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
     }
 
-    private static byte* PackDoublesFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackDoublesFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 100.0 : 1.0;
+        var maximum = IsInkSpace(info.OutputFormat) ? 100.0 : 1.0;
         var swap1 = (double*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;
@@ -2202,13 +2188,13 @@ public static unsafe partial class Lcms2
         return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
     }
 
-    private static byte* PackLabFloatFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackLabFloatFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
         var Out = (float*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            Stride /= PixelSize(info->OutputFormat);
+            Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = (float)(wOut[0] * 100.0);
             Out[Stride] = (float)((wOut[1] * 255.0) - 128.0);
@@ -2222,17 +2208,17 @@ public static unsafe partial class Lcms2
             Out[1] = (float)((wOut[1] * 255.0) - 128.0);
             Out[2] = (float)((wOut[2] * 255.0) - 128.0);
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
         }
     }
 
-    private static byte* PackLabDoubleFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackLabDoubleFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
         var Out = (double*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            Stride /= PixelSize(info->OutputFormat);
+            Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = wOut[0] * 100.0;
             Out[Stride] = (wOut[1] * 255.0) - 128.0;
@@ -2246,17 +2232,17 @@ public static unsafe partial class Lcms2
             Out[1] = (wOut[1] * 255.0) - 128.0;
             Out[2] = (wOut[2] * 255.0) - 128.0;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<double>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<double>());
         }
     }
 
-    private static byte* PackXYZFloatFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackXYZFloatFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
         var Out = (float*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            Stride /= PixelSize(info->OutputFormat);
+            Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = (float)(wOut[0] * MAX_ENCODEABLE_XYZ);
             Out[Stride] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
@@ -2270,17 +2256,17 @@ public static unsafe partial class Lcms2
             Out[1] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
             Out[2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<float>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
         }
     }
 
-    private static byte* PackXYZDoubleFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackXYZDoubleFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
         var Out = (double*)output;
 
-        if (T_PLANAR(info->OutputFormat) is not 0)
+        if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            Stride /= PixelSize(info->OutputFormat);
+            Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = wOut[0] * MAX_ENCODEABLE_XYZ;
             Out[Stride] = wOut[1] * MAX_ENCODEABLE_XYZ;
@@ -2294,18 +2280,18 @@ public static unsafe partial class Lcms2
             Out[1] = wOut[1] * MAX_ENCODEABLE_XYZ;
             Out[2] = wOut[2] * MAX_ENCODEABLE_XYZ;
 
-            return output + ((3 + T_EXTRA(info->OutputFormat)) * _sizeof<double>());
+            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<double>());
         }
     }
 
-    private static byte* UnrollHalfTo16(Transform* info, ushort* wIn, byte* accum, uint Stride)
+    private static byte* UnrollHalfTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 655.35F : 65535.0F;
+        var maximum = IsInkSpace(info.InputFormat) ? 655.35F : 65535.0F;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -2323,17 +2309,17 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
-    private static byte* UnrollHalfToFloat(Transform* info, float* wIn, byte* accum, uint Stride)
+    private static byte* UnrollHalfToFloat(Transform info, float* wIn, byte* accum, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->InputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var start = 0u;
-        var maximum = IsInkSpace(info->InputFormat) ? 100.0F : 1.0F;
+        var maximum = IsInkSpace(info.InputFormat) ? 100.0F : 1.0F;
 
-        Stride /= PixelSize(info->InputFormat);
+        Stride /= PixelSize(info.InputFormat);
 
         if (ExtraFirst) start = Extra;
 
@@ -2350,18 +2336,18 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info->InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
     }
 
-    private static byte* PackHalfFrom16(Transform* info, ushort* wOut, byte* output, uint Stride)
+    private static byte* PackHalfFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 655.35F : 65535.0F;
+        var maximum = IsInkSpace(info.OutputFormat) ? 655.35F : 65535.0F;
         var swap1 = (ushort*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;
@@ -2384,15 +2370,15 @@ public static unsafe partial class Lcms2
         return output + (_sizeof<ushort>() * (Planar ? 1 : (nChan + Extra)));
     }
 
-    private static byte* PackHalfFromFloat(Transform* info, float* wOut, byte* output, uint Stride)
+    private static byte* PackHalfFromFloat(Transform info, float* wOut, byte* output, uint Stride)
     {
-        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info->OutputFormat);
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var maximum = IsInkSpace(info->OutputFormat) ? 100.0F : 1.0F;
+        var maximum = IsInkSpace(info.OutputFormat) ? 100.0F : 1.0F;
         var swap1 = (float*)output;
         var start = 0u;
 
-        Stride /= PixelSize(info->OutputFormat);
+        Stride /= PixelSize(info.OutputFormat);
 
         if (ExtraFirst)
             start = Extra;

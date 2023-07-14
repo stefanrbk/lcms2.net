@@ -26,9 +26,11 @@
 //
 
 using System.Buffers;
+using System.Diagnostics;
 
 namespace lcms2.state;
 
+[DebuggerStepThrough]
 public class Context
 {
     internal Context? Next;

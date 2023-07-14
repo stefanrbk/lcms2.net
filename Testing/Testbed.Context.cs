@@ -546,7 +546,7 @@ public static bool CheckAllocContext()
 
     private readonly static uint TYPE_RGB_565 = (COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | (1 << 23));
 
-    private static byte* my_Unroll565(Transform* _1,
+    private static byte* my_Unroll565(Transform _1,
                                       ushort* wIn,
                                       byte* accum,
                                       uint _2)
@@ -564,7 +564,7 @@ public static bool CheckAllocContext()
         return accum + 2;
     }
 
-    private static byte* my_Pack565(Transform* _1,
+    private static byte* my_Pack565(Transform _1,
                                     ushort* wOut,
                                     byte* output,
                                     uint _2)
@@ -633,22 +633,19 @@ public static bool CheckAllocContext()
     public static bool CheckFormattersPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        Context? cpy;
-        Context? cpy2;
-        Transform* xform;
         var stream = stackalloc ushort[] { (ushort)0xffffU, (ushort)0x1234U, (ushort)0x0000U, (ushort)0x33ddU };
         var result = stackalloc ushort[4];
         int i;
 
         cmsPluginTHR(ctx, FormattersPluginSample);
 
-        cpy = DupContext(ctx, null);
+        var cpy = DupContext(ctx, null);
 
         cmsPluginTHR(cpy, FormattersPluginSample2);
 
-        cpy2 = DupContext(cpy, null);
+        var cpy2 = DupContext(cpy, null);
 
-        xform = cmsCreateTransformTHR(cpy2, null, TYPE_RGB_565, null, TYPE_RGB_565, INTENT_PERCEPTUAL, cmsFLAGS_NULLTRANSFORM);
+        var xform = cmsCreateTransformTHR(cpy2, null, TYPE_RGB_565, null, TYPE_RGB_565, INTENT_PERCEPTUAL, cmsFLAGS_NULLTRANSFORM);
 
         cmsDoTransform(xform, stream, result, 4);
 
@@ -1034,9 +1031,6 @@ public static bool CheckAllocContext()
     public static bool CheckOptimizationPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        Context? cpy;
-        Context? cpy2;
-        Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         var Linear = new ToneCurve[1];
@@ -1045,14 +1039,14 @@ public static bool CheckAllocContext()
 
         cmsPluginTHR(ctx, OptimizationPluginSample);
 
-        cpy = DupContext(ctx, null);
-        cpy2 = DupContext(cpy, null);
+        var cpy = DupContext(ctx, null);
+        var cpy2 = DupContext(cpy, null);
 
         Linear[0] = cmsBuildGamma(cpy2, 1.0);
         h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, Linear);
         cmsFreeToneCurve(Linear[0]);
 
-        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        var xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
         cmsCloseProfile(h);
 
         cmsDoTransform(xform, In, Out, 4);
@@ -1100,9 +1094,6 @@ public static bool CheckAllocContext()
     public static bool CheckIntentPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        Context? cpy;
-        Context? cpy2;
-        Transform* xform;
         Profile? h1, h2;
         ToneCurve Linear1;
         ToneCurve Linear2;
@@ -1112,8 +1103,8 @@ public static bool CheckAllocContext()
 
         cmsPluginTHR(ctx, IntentPluginSample);
 
-        cpy = DupContext(ctx, null);
-        cpy2 = DupContext(cpy, null);
+        var cpy = DupContext(ctx, null);
+        var cpy2 = DupContext(cpy, null);
 
         Linear1 = cmsBuildGamma(cpy2, 3.0)!;
         Linear2 = cmsBuildGamma(cpy2, 0.1)!;
@@ -1123,7 +1114,7 @@ public static bool CheckAllocContext()
         cmsFreeToneCurve(Linear1);
         cmsFreeToneCurve(Linear2);
 
-        xform = cmsCreateTransformTHR(cpy2, h1, TYPE_GRAY_8, h2, TYPE_GRAY_8, INTENT_DECEPTIVE, 0);
+        var xform = cmsCreateTransformTHR(cpy2, h1, TYPE_GRAY_8, h2, TYPE_GRAY_8, INTENT_DECEPTIVE, 0);
         cmsCloseProfile(h1); cmsCloseProfile(h2);
 
         cmsDoTransform(xform, In, Out, 4);
@@ -1140,7 +1131,7 @@ public static bool CheckAllocContext()
     }
 
     // This is a sample intent that only works for gray8 as output, and always returns '42'
-    private static void TrancendentalTransform(Transform* _1, in void* _2, void* OutputBuffer, uint Size, uint _3)
+    private static void TrancendentalTransform(Transform _1, in void* _2, void* OutputBuffer, uint Size, uint _3)
     {
         uint i;
 
@@ -1152,9 +1143,10 @@ public static bool CheckAllocContext()
     }
 
 
-    private static bool TransformFactory(out TransformFn xformPtr, void** _1, FreeUserDataFn? _2, ref Pipeline Lut, uint* _3, uint* OutputFormat, uint* _4)
+    private static bool TransformFactory(out TransformFn xformPtr, out object? _1, out FreeManagedUserDataFn? _2, ref Pipeline Lut, uint* _3, uint* OutputFormat, uint* _4)
 
     {
+        _1 = _2 = null;
         if (*OutputFormat == TYPE_GRAY_8)
         {
             // *Lut holds the pipeline to be applied
@@ -1176,9 +1168,6 @@ public static bool CheckAllocContext()
     public static bool CheckTransformPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        Context? cpy;
-        Context? cpy2;
-        Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         ToneCurve Linear;
@@ -1187,14 +1176,14 @@ public static bool CheckAllocContext()
 
         cmsPluginTHR(ctx, FullTransformPluginSample);
 
-        cpy = DupContext(ctx, null);
-        cpy2 = DupContext(cpy, null);
+        var cpy = DupContext(ctx, null);
+        var cpy2 = DupContext(cpy, null);
 
         Linear = cmsBuildGamma(cpy2, 1.0)!;
         h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear });
         cmsFreeToneCurve(Linear);
 
-        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        var xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
         cmsCloseProfile(h);
 
         cmsDoTransform(xform, In, Out, 4);
@@ -1266,9 +1255,6 @@ public static bool CheckAllocContext()
     public static bool CheckMutexPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        Context? cpy;
-        Context? cpy2;
-        Transform* xform;
         var In = stackalloc byte[] { 10, 20, 30, 40 };
         var Out = stackalloc byte[4];
         ToneCurve Linear;
@@ -1277,14 +1263,14 @@ public static bool CheckAllocContext()
 
         cmsPluginTHR(ctx, MutexPluginSample);
 
-        cpy = DupContext(ctx, null);
-        cpy2 = DupContext(cpy, null);
+        var cpy = DupContext(ctx, null);
+        var cpy2 = DupContext(cpy, null);
 
         Linear = cmsBuildGamma(cpy2, 1.0)!;
         h = cmsCreateLinearizationDeviceLinkTHR(cpy2, cmsSigGrayData, new ToneCurve[] { Linear });
         cmsFreeToneCurve(Linear);
 
-        xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
+        var xform = cmsCreateTransformTHR(cpy2, h, TYPE_GRAY_8, h, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0);
         cmsCloseProfile(h);
 
         cmsDoTransform(xform, In, Out, 4);

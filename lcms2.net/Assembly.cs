@@ -27,7 +27,6 @@
 global using static lcms2.Lcms2;
 
 global using unsafe HANDLE = void*;
-global using unsafe HTRANSFORM = void*;
 
 using System.Runtime.CompilerServices;
 

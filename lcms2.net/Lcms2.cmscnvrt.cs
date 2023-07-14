@@ -692,8 +692,8 @@ public static unsafe partial class Lcms2
     private struct PreserveKPlaneParams
     {
         public Pipeline? cmyk2cmyk;
-        public Transform* hProofOutput;
-        public Transform* cmyk2Lab;
+        public Transform? hProofOutput;
+        public Transform? cmyk2Lab;
         public ToneCurve KTone;
         public Pipeline? LabK2cmyk;
         public double MaxError;

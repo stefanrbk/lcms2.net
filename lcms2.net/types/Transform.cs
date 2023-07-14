@@ -26,11 +26,9 @@
 //
 using lcms2.state;
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace lcms2.types;
 
-public unsafe struct Transform
+public class Transform
 {
     public uint InputFormat, OutputFormat;
 
@@ -66,8 +64,8 @@ public unsafe struct Transform
 
     public Context? ContextID;
 
-    public void* UserData;
-    public FreeUserDataFn? FreeUserData;
+    public object? UserData;
+    public FreeManagedUserDataFn? FreeUserData;
 
     public TransformFn? OldXform;
 }
