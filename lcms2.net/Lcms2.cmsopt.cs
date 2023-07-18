@@ -33,7 +33,13 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly OptimizationCollection* DefaultOptimization;
+    internal static readonly OptimizationCollection[] DefaultOptimization = new OptimizationCollection[]
+    {
+        new() { OptimizePtr = OptimizeByJoiningCurves },
+        new() { OptimizePtr = OptimizeMatrixShaper },
+        new() { OptimizePtr = OptimizeByComputingLinearization },
+        new() { OptimizePtr = OptimizeByResampling },
+    };
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
     internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = new();
@@ -926,7 +932,7 @@ public static unsafe partial class Lcms2
 
     private static object? Prelin8dup(Context? ContextID, object? ptr) =>
         ptr is BoxPtr<Prelin8Data> p8
-            ? new BoxPtr<Prelin8Data>((Prelin8Data*)_cmsDupMem(ContextID, p8, _sizeof<Prelin8Data>()))
+            ? new BoxPtr<Prelin8Data>(_cmsDupMem<Prelin8Data>(ContextID, p8))
             : null;
 
     private static void PrelinEval8(in ushort* Input, ushort* Output, object? D)
@@ -1841,12 +1847,15 @@ public static unsafe partial class Lcms2
         }
 
         // Try built-in optimizations
-        for (var Opts = DefaultOptimization;
-             Opts is not null;
-             Opts = Opts->Next)
+        fixed (OptimizationCollection* list = &DefaultOptimization[0])
         {
-            if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
-                return true;
+            for (var Opts = list;
+                 Opts is not null;
+                 Opts = Opts->Next)
+            {
+                if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+                    return true;
+            }
         }
 
         // Only simple optimizations succeeded

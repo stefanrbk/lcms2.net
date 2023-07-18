@@ -33,16 +33,22 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static readonly CIEXYZ* D50XYZ;
-    private static readonly CIExyY* D50xyY;
+    private static readonly CIEXYZ D50XYZ = new() { X = cmsD50X, Y = cmsD50Y, Z = cmsD50Z };
+    private static readonly CIExyY D50xyY;
 
     [DebuggerStepThrough]
-    public static CIEXYZ* cmsD50_XYZ() =>
-        D50XYZ;
+    public static CIEXYZ* cmsD50_XYZ()
+    {
+        fixed (CIEXYZ* xyz = &D50XYZ)
+            return xyz;
+    }
 
     [DebuggerStepThrough]
-    public static CIExyY* cmsD50_xyY() =>
-        D50xyY;
+    public static CIExyY* cmsD50_xyY()
+    {
+        fixed (CIExyY* xyy = &D50xyY)
+            return xyy;
+    }
 
     public static bool cmsWhitePointFromTemp(CIExyY* WhitePoint, double TempK)
 

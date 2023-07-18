@@ -101,7 +101,7 @@ internal static unsafe partial class Testbed
         return new() { UserData = thread++ % 0xff0 };
     }
 
-    public static void* DebugMalloc(Context? ContextID, uint size)
+    public static void* DebugMalloc(Context? ContextID, uint size, Type type)
     {
         if (size <= 0)
             Die("malloc requested with zero bytes");
@@ -115,7 +115,7 @@ internal static unsafe partial class Testbed
 
         try
         {
-            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock));
+            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock), type);
 
             blk->KeepSize = size;
             blk->WhoAllocated = ContextID;
@@ -144,11 +144,20 @@ internal static unsafe partial class Testbed
             free(blk);
         }
         catch { }
+
+        GC.Collect();
     }
 
     public static void* DebugRealloc(Context? ContextID, void* Ptr, uint NewSize)
     {
-        var NewPtr = DebugMalloc(ContextID, NewSize);
+        var type = typeof(void);
+
+        lock (AllocList)
+        {
+            if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
+                type = item.type;
+        }
+        var NewPtr = DebugMalloc(ContextID, NewSize, type);
         if (Ptr is null) return NewPtr;
 
         var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
@@ -186,6 +195,7 @@ internal static unsafe partial class Testbed
             ConsoleWriteLine($"Ok, but {{red:{MemStr(TotalMemory)}}}, are left!");
         else if (ok)
             ConsoleWriteLine("{green:Ok.}");
+        CheckHeap();
     }
 
     public static Context WatchDogContext(object? usr)

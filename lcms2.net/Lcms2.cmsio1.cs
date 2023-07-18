@@ -32,15 +32,44 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly Signature* Device2PCS16;
-    internal static readonly Signature* Device2PCSFloat;
-    internal static readonly Signature* PCS2Device16;
-    internal static readonly Signature* PCS2DeviceFloat;
+    internal static readonly Signature[] Device2PCS16 = new Signature[4]
+    {
+        cmsSigAToB0Tag,     // Perceptual
+        cmsSigAToB1Tag,     // Relative colorimetric
+        cmsSigAToB2Tag,     // Saturation
+        cmsSigAToB1Tag,     // Absolute colorimetric
+    };
+    internal static readonly Signature[] Device2PCSFloat = new Signature[4]
+    {
+        cmsSigDToB0Tag,     // Perceptual
+        cmsSigDToB1Tag,     // Relative colorimetric
+        cmsSigDToB2Tag,     // Saturation
+        cmsSigDToB3Tag,     // Absolute colorimetric
+    };
+    internal static readonly Signature[] PCS2Device16 = new Signature[4]
+    {
+        cmsSigBToA0Tag,     // Perceptual
+        cmsSigBToA1Tag,     // Relative colorimetric
+        cmsSigBToA2Tag,     // Saturation
+        cmsSigBToA1Tag,     // Absolute colorimetric
+    };
+    internal static readonly Signature[] PCS2DeviceFloat = new Signature[4]
+    {
+        cmsSigBToD0Tag,     // Perceptual
+        cmsSigBToD1Tag,     // Relative colorimetric
+        cmsSigBToD2Tag,     // Saturation
+        cmsSigBToD3Tag,     // Absolute colorimetric
+    };
 
-    internal static readonly double[] GrayInputMatrix;
-    internal static readonly double[] OneToThreeInputMatrix;
-    internal static readonly double[] PickYMatrix;
-    internal static readonly double[] PickLstarMatrix;
+    internal static readonly double[] GrayInputMatrix = new double[3]
+    {
+        InpAdj * cmsD50X,
+        InpAdj * cmsD50Y,
+        InpAdj * cmsD50Z,
+    };
+    internal static readonly double[] OneToThreeInputMatrix = new double[3] { 1, 1, 1 };
+    internal static readonly double[] PickYMatrix = new double[3] { 0, OutpAdj * cmsD50Y, 0, };
+    internal static readonly double[] PickLstarMatrix = new double[3] { 1, 0, 0 };
 
     internal const double InpAdj = 1 / MAX_ENCODEABLE_XYZ;
     internal const double OutpAdj = MAX_ENCODEABLE_XYZ;
@@ -145,7 +174,6 @@ public static unsafe partial class Lcms2
 
             LabCurves[1] = EmptyTab;
             LabCurves[2] = EmptyTab;
-
             if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 1, OneToThreeInputMatrix, null)) ||
                 !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, LabCurves)))
             {
@@ -786,8 +814,8 @@ public static unsafe partial class Lcms2
 
         switch (UsedDirection)
         {
-            case LCMS_USED_AS_INPUT: TagTable = Device2PCS16; break;
-            case LCMS_USED_AS_OUTPUT: TagTable = PCS2Device16; break;
+            case LCMS_USED_AS_INPUT: fixed (Signature* table = &Device2PCS16[0]) TagTable = table; break;
+            case LCMS_USED_AS_OUTPUT: fixed (Signature* table = &PCS2Device16[0]) TagTable = table; break;
 
             // For proofing, we need rel. colorimetric in output. Let's do some recursion
             case LCMS_USED_AS_PROOF:

@@ -858,7 +858,20 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static readonly AllowedLUT* AllowedLUTTypes;
+    private static readonly AllowedLUT[] AllowedLUTTypes = new AllowedLUT[]
+        {
+            new(false, default, cmsSigLut16Type, cmsSigMatrixElemType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(false, default, cmsSigLut16Type, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(false, default, cmsSigLut16Type, cmsSigCurveSetElemType, cmsSigCLutElemType),
+            new(true, default, cmsSigLutAtoBType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+        };
 
     private const uint SIZE_OF_ALLOWED_LUT = 11;
 
@@ -880,12 +893,13 @@ public static unsafe partial class Lcms2
     {
         for (var n = 0u; n < SIZE_OF_ALLOWED_LUT; n++)
         {
-            var Tab = AllowedLUTTypes + n;
+            fixed (AllowedLUT* Tab = &AllowedLUTTypes[n])
+            {
+                if (IsV4 ^ Tab->IsV4) continue;
+                if (((uint)Tab->RequiredTag is not 0) && (Tab->RequiredTag != DestinationTag)) continue;
 
-            if (IsV4 ^ Tab->IsV4) continue;
-            if (((uint)Tab->RequiredTag is not 0) && (Tab->RequiredTag != DestinationTag)) continue;
-
-            if (CheckOne(Tab, Lut)) return Tab;
+                if (CheckOne(Tab, Lut)) return Tab;
+            }
         }
 
         return null;

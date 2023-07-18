@@ -277,72 +277,87 @@ internal static unsafe partial class Testbed
 
     internal static bool CreateTestProfiles()
     {
+        //StartAllocLogging();
         var h = cmsCreate_sRGBProfileTHR(DbgThread());
+        //EndAllocLogging();
         if (!OneVirtual(h, "sRGB profile", "sRGBlcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = Create_AboveRGB();
+        //EndAllocLogging();
         if (!OneVirtual(h, "aRGB profile", "aRGBlcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = Create_Gray22();
+        //EndAllocLogging();
         if (!OneVirtual(h, "Gray profile", "graylcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = Create_Gray30();
+        //EndAllocLogging();
         if (!OneVirtual(h, "Gray 3.0 profile", "gray3lcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = Create_GrayLab();
+        //EndAllocLogging();
         if (!OneVirtual(h, "Gray Lab profile", "glablcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = Create_CMYK_DeviceLink();
+        //EndAllocLogging();
         if (!OneVirtual(h, "Linearization profile", "linlcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateInkLimitingDeviceLinkTHR(DbgThread(), cmsSigCmykData, 150);
+        //EndAllocLogging();
         if (!OneVirtual(h, "Ink-limiting profile", "limitlcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateLab2ProfileTHR(DbgThread(), null);
+        //EndAllocLogging();
         if (!OneVirtual(h, "Lab 2 identity profile", "labv2lcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateLab4ProfileTHR(DbgThread(), null);
+        //EndAllocLogging();
         if (!OneVirtual(h, "Lab 4 identity profile", "labv4lcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateXYZProfileTHR(DbgThread());
+        //EndAllocLogging();
         if (!OneVirtual(h, "XYZ identity profile", "xyzlcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateNULLProfileTHR(DbgThread());
+        //EndAllocLogging();
         if (!OneVirtual(h, "null profile", "nulllcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateBCHSWabstractProfileTHR(DbgThread(), 17, 0, 0, 0, 0, 5000, 6000);
+        //EndAllocLogging();
         if (!OneVirtual(h, "BCHS profile", "bchslcms2.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = CreateFakeCMYK(300, false);
+        //EndAllocLogging();
         if (!OneVirtual(h, "Fake CMYK profile", "lcms2cmyk.icc")) return false;
 
         // ----
-
+        //StartAllocLogging();
         h = cmsCreateBCHSWabstractProfileTHR(DbgThread(), 17, 0, 1.2, 0, 3, 5000, 5000);
+        //EndAllocLogging();
         if (!OneVirtual(h, "Brightness", "brightness.icc")) return false;
 
         return true;

@@ -114,23 +114,16 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void* _cmsMallocDefaultFn(Context? _, uint size)
+    internal static void* _cmsMallocDefaultFn(Context? _, uint size, Type type)
     {
         if (size > MaxMemoryForAlloc) return null;
 
-        try
-        {
-            return alloc(size);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        return alloc(size, type);
     }
 
-    internal static void* _cmsMallocZeroDefaultFn(Context? ContextID, uint size)
+    internal static void* _cmsMallocZeroDefaultFn(Context? ContextID, uint size, Type type)
     {
-        var pt = _cmsMalloc(ContextID, size);
+        var pt = _cmsMalloc(ContextID, size, type);
         if (pt is null) return null;
 
         NativeMemory.Fill(pt, size, 0);
@@ -147,17 +140,10 @@ public static unsafe partial class Lcms2
     {
         if (size > MaxMemoryForAlloc) return null;
 
-        try
-        {
-            return NativeMemory.Realloc(Ptr, size);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        return realloc(Ptr, size);
     }
 
-    internal static void* _cmsCallocDefaultFn(Context? ContextID, uint num, uint size)
+    internal static void* _cmsCallocDefaultFn(Context? ContextID, uint num, uint size, Type type)
     {
         var Total = num * size;
 
@@ -172,14 +158,14 @@ public static unsafe partial class Lcms2
 
         if (Total > MaxMemoryForAlloc) return null;
 
-        return _cmsMallocZero(ContextID, Total);
+        return _cmsMallocZero(ContextID, Total, type);
     }
 
-    internal static void* _cmsDupDefaultFn(Context? ContextID, in void* Org, uint size)
+    internal static void* _cmsDupDefaultFn(Context? ContextID, in void* Org, uint size, Type type)
     {
         if (size > MaxMemoryForAlloc) return null;
 
-        var mem = _cmsMalloc(ContextID, size);
+        var mem = _cmsMalloc(ContextID, size, type);
         if (mem is not null && Org is not null)
             NativeMemory.Copy(Org, mem, size);
 
@@ -248,40 +234,39 @@ public static unsafe partial class Lcms2
     }
 
     [DebuggerStepThrough]
-    internal static void* _cmsMalloc(Context? ContextID, uint size)
+    internal static void* _cmsMalloc(Context? ContextID, uint size, Type type)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
-        return ptr.MallocPtr(ContextID, size);
+        return ptr.MallocPtr(ContextID, size, type);
     }
     [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context? ContextID, uint size) where T : struct =>
-        (T*)_cmsMalloc(ContextID, size);
+        (T*)_cmsMalloc(ContextID, size, typeof(T));
     [DebuggerStepThrough]
     internal static T* _cmsMalloc<T>(Context? ContextID) where T : struct =>
-        (T*)_cmsMalloc(ContextID, _sizeof<T>());
+        (T*)_cmsMalloc(ContextID, _sizeof<T>(), typeof(T));
     [DebuggerStepThrough]
     internal static T** _cmsMalloc2<T>(Context? ContextID) where T : struct =>
-        (T**)_cmsMalloc<nint>(ContextID);
+        (T**)_cmsMalloc(ContextID, _sizeof<nint>(), typeof(T*));
     [DebuggerStepThrough]
-    internal static void* _cmsMallocZero(Context? ContextID, uint size)
+    internal static void* _cmsMallocZero(Context? ContextID, uint size, Type type)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
-        return ptr.MallocZeroPtr(ContextID, size);
+        return ptr.MallocZeroPtr(ContextID, size, type);
     }
     [DebuggerStepThrough]
     internal static T* _cmsMallocZero<T>(Context? ContextID, uint count) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>());
+        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>(), typeof(T));
 
     [DebuggerStepThrough]
     internal static T* _cmsMallocZero<T>(Context? ContextID) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, _sizeof<T>());
+        (T*)_cmsMallocZero(ContextID, _sizeof<T>(), typeof(T));
 
     [DebuggerStepThrough]
     internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
-        (T**)_cmsMallocZero<nint>(ContextID);
-
+        (T**)_cmsMallocZero(ContextID, _sizeof<nint>(), typeof(T*));
     [DebuggerStepThrough]
-    internal static T[] _cmsCallocArray<T>(Context ContextID, uint num) where T : struct
+    internal static T[] _cmsCallocArray<T>(Context? ContextID, uint num) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
         var array = pool.Rent((int)num);
@@ -289,26 +274,22 @@ public static unsafe partial class Lcms2
 
         return array;
     }
-
     [DebuggerStepThrough]
-    internal static void* _cmsCalloc(Context? ContextID, uint num, uint size)
+    internal static void* _cmsCalloc(Context? ContextID, uint num, uint size, Type type)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
-        return ptr.CallocPtr(ContextID, num, size);
+        return ptr.CallocPtr(ContextID, num, size, type);
     }
 
     [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context? ContextID, uint num, uint size) where T : struct =>
-        (T*)_cmsCalloc(ContextID, num, size);
-
+        (T*)_cmsCalloc(ContextID, num, size, typeof(T));
     [DebuggerStepThrough]
     internal static T* _cmsCalloc<T>(Context? ContextID, uint num) where T : struct =>
-        (T*)_cmsCalloc(ContextID, num, _sizeof<T>());
-
+        (T*)_cmsCalloc(ContextID, num, _sizeof<T>(), typeof(T));
     [DebuggerStepThrough]
     internal static T** _cmsCalloc2<T>(Context? ContextID, uint num) =>
-        (T**)_cmsCalloc<nint>(ContextID, num);
-
+        (T**)_cmsCalloc(ContextID, num, _sizeof<nint>(), typeof(T*));
     [DebuggerStepThrough]
     internal static void* _cmsRealloc(Context? ContextID, void* Ptr, uint size)
     {
@@ -375,13 +356,13 @@ public static unsafe partial class Lcms2
     }
 
     [DebuggerStepThrough]
-    internal static void* _cmsDupMem(Context? ContextID, in void* Org, uint size)
+    internal static void* _cmsDupMem(Context? ContextID, in void* Org, uint size, Type type)
     {
         if (Org is null)
             return null;
 
         var ptr = _cmsGetContext(ContextID).MemPlugin;
-        return ptr.DupPtr(ContextID, Org, size);
+        return ptr.DupPtr(ContextID, Org, size, type);
     }
 
     [DebuggerStepThrough]
@@ -397,18 +378,18 @@ public static unsafe partial class Lcms2
 
     [DebuggerStepThrough]
     internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>());
+        (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>(), typeof(T));
 
     [DebuggerStepThrough]
-    internal static T* _cmsDupMem<T>(Context ContextID, in void* Org) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, _sizeof<T>());
+    internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org) where T : struct =>
+        (T*)_cmsDupMem(ContextID, Org, _sizeof<T>(), typeof(T));
 
     [DebuggerStepThrough]
-    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org, uint num) where T : struct =>
-        (T**)_cmsDupMem<nint>(ContextID, Org, num);
+    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
+        (T**)_cmsDupMem(ContextID, Org, num * _sizeof<nint>(), typeof(T*));
     [DebuggerStepThrough]
-    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : struct =>
-        (T**)_cmsDupMem<nint>(ContextID, Org);
+    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org) where T : struct =>
+        (T**)_cmsDupMem(ContextID, Org, _sizeof<nint>(), typeof(T*));
 
     internal static SubAllocator.Chunk? _cmsCreateSubAllocChunk(Context? ContextID, uint Initial)
     {
@@ -421,7 +402,7 @@ public static unsafe partial class Lcms2
         //if (chunk is null) return null;
 
         // Initialize values
-        chunk.Block = (byte*)_cmsMalloc(ContextID, Initial);
+        chunk.Block = (byte*)_cmsMalloc(ContextID, Initial, typeof(byte));
         if (chunk.Block is null)
         {
             // Something went wrong

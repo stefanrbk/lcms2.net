@@ -42,7 +42,12 @@ public static unsafe partial class Lcms2
     private static readonly object contextPoolHeadMutex = new();
     private static Context? contextPoolHead;
 
-    private static readonly Context globalContext;
+    private static readonly Context globalContext = new()
+    {
+        DefaultMemoryManager = default,
+        MemPool = null,
+        Next = null
+    };
 
     [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)

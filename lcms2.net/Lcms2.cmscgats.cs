@@ -681,7 +681,7 @@ public static unsafe partial class Lcms2
 
     private static void* AllocBigBlock(IT8* it8, uint size)
     {
-        var ptr = _cmsMallocZero(it8->ContextID, size);
+        var ptr = _cmsMallocZero(it8->ContextID, size, typeof(byte));
 
         if (ptr is not null)
         {

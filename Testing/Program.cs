@@ -48,6 +48,7 @@ if (exhaustive)
     ConsoleWriteLine("Running exhaustive tests (will take a while...)");
 }
 
+CheckHeap();
 ConsoleWrite("Installing debug memory plug-in ... ");
 cmsPlugin(DebugMemHandler);
 ConsoleWriteLine("{green:done.}");
