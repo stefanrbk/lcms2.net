@@ -967,7 +967,7 @@ public static unsafe partial class Lcms2
 
                     if (!FileOrig->IOHandler->Seek(FileOrig->IOHandler, TagOffset)) return false;
 
-                    Mem = _cmsMalloc(Icc->ContextID, TagSize);
+                    Mem = _cmsMalloc(Icc->ContextID, TagSize, typeof(byte));
                     if (Mem is null) return false;
 
                     if (FileOrig->IOHandler->Read(FileOrig->IOHandler, Mem, TagSize, 1) is not 1) goto Error;
@@ -1589,7 +1589,7 @@ public static unsafe partial class Lcms2
         Icc->TagLinked[i] = 0;
 
         // Keep a copy of the block
-        ((void**)Icc->TagPtrs)[i] = _cmsDupMem(Icc->ContextID, data, Size);
+        ((void**)Icc->TagPtrs)[i] = _cmsDupMem(Icc->ContextID, data, Size, typeof(byte));
         Icc->TagSizes[i] = Size;
 
         _cmsUnlockMutex(Icc->ContextID, Icc->UserMutex);

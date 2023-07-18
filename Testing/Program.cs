@@ -46,6 +46,8 @@ if (exhaustive)
     ConsoleWriteLine("Running exhaustive tests (will take a while...)");
 }
 
+CheckHeap();
+
 unsafe
 {
     ConsoleWrite("Installing debug memory plug-in ... ");

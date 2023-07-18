@@ -33,16 +33,16 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static readonly ushort* RGBblack;
-    private static readonly ushort* RGBwhite;
-    private static readonly ushort* CMYKblack;
-    private static readonly ushort* CMYKwhite;
-    private static readonly ushort* LABblack;
-    private static readonly ushort* LABwhite;
-    private static readonly ushort* CMYblack;
-    private static readonly ushort* CMYwhite;
-    private static readonly ushort* GrayBlack;
-    private static readonly ushort* GrayWhite;
+    private static readonly ushort[] RGBblack = new ushort[4];
+    private static readonly ushort[] RGBwhite = new ushort[4] { 0xFFFF, 0xFFFF, 0xFFFF, 0 };
+    private static readonly ushort[] CMYKblack = new ushort[4] { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+    private static readonly ushort[] CMYKwhite = new ushort[4];
+    private static readonly ushort[] LABblack = new ushort[4] { 0, 0x8080, 0x8080, 0 };
+    private static readonly ushort[] LABwhite = new ushort[4] { 0xFFFF, 0x8080, 0x8080, 0 };
+    private static readonly ushort[] CMYblack = new ushort[4] { 0xFFFF, 0xFFFF, 0xFFFF, 0 };
+    private static readonly ushort[] CMYwhite = new ushort[4];
+    private static readonly ushort[] GrayBlack = new ushort[4];
+    private static readonly ushort[] GrayWhite = new ushort[4] { 0xFFFF, 0, 0, 0 };
 
     public static void cmsXYZ2xyY(CIExyY* Dest, in CIEXYZ* Source)
     {
@@ -500,36 +500,36 @@ public static unsafe partial class Lcms2
         switch ((uint)Space)
         {
             case cmsSigGrayData:
-                if (White is not null) *White = GrayWhite;
-                if (Black is not null) *Black = GrayBlack;
+                if (White is not null) fixed (ushort* ptr = GrayWhite) *White = ptr;
+                if (Black is not null) fixed (ushort* ptr = GrayBlack) *Black = ptr;
                 if (nOutputs is not null) *nOutputs = 1;
 
                 return true;
 
             case cmsSigRgbData:
-                if (White is not null) *White = RGBwhite;
-                if (Black is not null) *Black = RGBblack;
+                if (White is not null) fixed (ushort* ptr = RGBwhite) *White = ptr;
+                if (Black is not null) fixed (ushort* ptr = RGBblack) *Black = ptr;
                 if (nOutputs is not null) *nOutputs = 3;
 
                 return true;
 
             case cmsSigLabData:
-                if (White is not null) *White = LABwhite;
-                if (Black is not null) *Black = LABblack;
+                if (White is not null) fixed (ushort* ptr = LABwhite) *White = ptr;
+                if (Black is not null) fixed (ushort* ptr = LABblack) *Black = ptr;
                 if (nOutputs is not null) *nOutputs = 3;
 
                 return true;
 
             case cmsSigCmykData:
-                if (White is not null) *White = CMYKwhite;
-                if (Black is not null) *Black = CMYKblack;
+                if (White is not null) fixed (ushort* ptr = CMYKwhite) *White = ptr;
+                if (Black is not null) fixed (ushort* ptr = CMYKblack) *Black = ptr;
                 if (nOutputs is not null) *nOutputs = 4;
 
                 return true;
 
             case cmsSigCmyData:
-                if (White is not null) *White = CMYwhite;
-                if (Black is not null) *Black = CMYblack;
+                if (White is not null) fixed (ushort* ptr = CMYwhite) *White = ptr;
+                if (Black is not null) fixed (ushort* ptr = CMYblack) *Black = ptr;
                 if (nOutputs is not null) *nOutputs = 3;
 
                 return true;

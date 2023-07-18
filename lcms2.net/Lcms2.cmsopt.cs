@@ -33,10 +33,16 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly OptimizationCollection* DefaultOptimization;
+    internal static readonly OptimizationCollection[] DefaultOptimization = new OptimizationCollection[]
+    {
+        new() { OptimizePtr = OptimizeByJoiningCurves },
+        new() { OptimizePtr = OptimizeMatrixShaper },
+        new() { OptimizePtr = OptimizeByComputingLinearization },
+        new() { OptimizePtr = OptimizeByResampling },
+    };
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
-    internal static readonly OptimizationPluginChunkType* globalOptimizationPluginChunk;
+    internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = new();
 
     private struct Prelin8Data
     {
@@ -325,8 +331,8 @@ public static unsafe partial class Lcms2
 
         if (Duped is null) return null;
 
-        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<nint>());
-        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<nint>());
+        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<nint>(), typeof(InterpFn16));
+        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<nint>(), typeof(InterpParams*));
 
         return Duped;
     }
@@ -362,7 +368,7 @@ public static unsafe partial class Lcms2
         p16->CLUTparams = ColorMap;
         p16->EvalCLUT = ColorMap->Interpolation.Lerp16;
 
-        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>());
+        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>(), typeof(InterpFn16));
         if (p16->EvalCurveOut16 is null)
         {
             _cmsFree(ContextID, p16);
@@ -835,7 +841,7 @@ public static unsafe partial class Lcms2
         _cmsFree(ContextID, ptr);
 
     private static void* Prelin8dup(Context ContextID, in void* ptr) =>
-        _cmsDupMem(ContextID, ptr, _sizeof<Prelin8Data>());
+        _cmsDupMem<Prelin8Data>(ContextID, ptr);
 
     private static void PrelinEval8(in ushort* Input, ushort* Output, in void* D)
     {
@@ -1695,12 +1701,15 @@ public static unsafe partial class Lcms2
         }
 
         // Try built-in optimizations
-        for (var Opts = DefaultOptimization;
-             Opts is not null;
-             Opts = Opts->Next)
+        fixed (OptimizationCollection* list = &DefaultOptimization[0])
         {
-            if (Opts->OptimizePtr(PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
-                return true;
+            for (var Opts = list;
+                 Opts is not null;
+                 Opts = Opts->Next)
+            {
+                if (Opts->OptimizePtr(PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+                    return true;
+            }
         }
 
         // Only simple optimizations succeeded

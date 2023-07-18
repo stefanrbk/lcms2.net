@@ -86,8 +86,14 @@ public static unsafe partial class Lcms2
 
         Seq->seq[0].technology = 0;
 
-        cmsMLUsetASCII(Seq->seq[0].Manufacturer, cmsNoLanguage, cmsNoCountry, nameBuffer);
-        cmsMLUsetASCII(Seq->seq[0].Model, cmsNoLanguage, cmsNoCountry, modelBuffer);
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+            {
+                cmsMLUsetASCII(Seq->seq[0].Manufacturer, noL, noC, nameBuffer);
+                cmsMLUsetASCII(Seq->seq[0].Model, noL, noC, modelBuffer);
+            }
+        }
 
         if (!_cmsWriteProfileSequence(hProfile, Seq))
             goto Error;
@@ -840,7 +846,20 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static readonly AllowedLUT* AllowedLUTTypes;
+    private static readonly AllowedLUT[] AllowedLUTTypes = new AllowedLUT[]
+        {
+            new(false, default, cmsSigLut16Type, cmsSigMatrixElemType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(false, default, cmsSigLut16Type, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(false, default, cmsSigLut16Type, cmsSigCurveSetElemType, cmsSigCLutElemType),
+            new(true, default, cmsSigLutAtoBType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigAToB0Tag, cmsSigLutAtoBType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+            new(true, cmsSigBToA0Tag, cmsSigLutBtoAType, cmsSigCurveSetElemType, cmsSigMatrixElemType, cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType),
+        };
 
     private const uint SIZE_OF_ALLOWED_LUT = 11;
 

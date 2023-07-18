@@ -38,23 +38,129 @@ public static unsafe partial class Lcms2
     private const uint cmsCorbisBrokenXYZtype = 0x17A505B8;
     private const uint cmsMonacoBrokenCurveType = 0x9478EE00;
 
-    internal static readonly TagTypeLinkedList* supportedMPEtypes;
+    internal static readonly TagTypeLinkedList[] supportedMPEtypes = new TagTypeLinkedList[]
+    {
+        new(new(cmsSigBAcsElemType, null, null, null, null, null, 0)),
+        new(new(cmsSigEAcsElemType, null, null, null, null, null, 0)),
+        new(new(cmsSigCurveSetElemType, Type_MPEcurve_Read, Type_MPEcurve_Write, GenericMPEdup, GenericMPEfree, null, 0)),
+        new(new(cmsSigMatrixElemType, Type_MPEmatrix_Read, Type_MPEmatrix_Write, GenericMPEdup, GenericMPEfree, null, 0)),
+        new(new(cmsSigCLutElemType, Type_MPEclut_Read, Type_MPEclut_Write, GenericMPEdup, GenericMPEfree, null, 0)),
+    };
 
     internal static readonly TagTypePluginChunkType MPETypePluginChunk = new();
 
-    internal static readonly TagTypePluginChunkType* globalMPETypePluginChunk;
+    internal static readonly TagTypePluginChunkType globalMPETypePluginChunk = new();
 
-    internal static readonly TagTypeLinkedList* supportedTagTypes;
+    internal static readonly TagTypeLinkedList[] supportedTagTypes = new TagTypeLinkedList[]
+    {
+        new(new(cmsSigChromaticityType, Type_Chromaticity_Read, Type_Chromaticity_Write, Type_Chromaticity_Dup, Type_Chromaticity_Free, null, 0)),
+        new(new(cmsSigColorantOrderType, Type_ColorantOrderType_Read, Type_ColorantOrderType_Write, Type_ColorantOrderType_Dup, Type_ColorantOrderType_Free, null, 0)),
+        new(new(cmsSigS15Fixed16ArrayType, Type_S15Fixed16_Read, Type_S15Fixed16_Write, Type_S15Fixed16_Dup, Type_S15Fixed16_Free, null, 0)),
+        new(new(cmsSigU16Fixed16ArrayType, Type_U16Fixed16_Read, Type_U16Fixed16_Write, Type_U16Fixed16_Dup, Type_U16Fixed16_Free, null, 0)),
+        new(new(cmsSigTextType, Type_Text_Read, Type_Text_Write, Type_Text_Dup, Type_Text_Free, null, 0)),
+        new(new(cmsSigTextDescriptionType, Type_Text_Description_Read, Type_Text_Description_Write, Type_Text_Description_Dup, Type_Text_Description_Free, null, 0)),
+        new(new(cmsSigCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0)),
+        new(new(cmsSigParametricCurveType, Type_ParametricCurve_Read, Type_ParametricCurve_Write, Type_ParametricCurve_Dup, Type_ParametricCurve_Free, null, 0)),
+        new(new(cmsSigDateTimeType, Type_DateTime_Read, Type_DateTime_Write, Type_DateTime_Dup, Type_DateTime_Free, null, 0)),
+        new(new(cmsSigLut8Type, Type_LUT8_Read, Type_LUT8_Write, Type_LUT8_Dup, Type_LUT8_Free, null, 0)),
+        new(new(cmsSigLut16Type, Type_LUT16_Read, Type_LUT16_Write, Type_LUT16_Dup, Type_LUT16_Free, null, 0)),
+        new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, Type_ColorantTable_Dup, Type_ColorantTable_Free, null, 0)),
+        new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, Type_NamedColor_Dup, Type_NamedColor_Free, null, 0)),
+        new(new(cmsSigMultiLocalizedUnicodeType, Type_MLU_Read, Type_MLU_Write, Type_MLU_Dup, Type_MLU_Free, null, 0)),
+        new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Type_ProfileSequenceDesc_Dup, Type_ProfileSequenceDesc_Free, null, 0)),
+        new(new(cmsSigSignatureType, Type_Signature_Read, Type_Signature_Write, Type_Signature_Dup, Type_Signature_Free, null, 0)),
+        new(new(cmsSigMeasurementType, Type_Measurement_Read, Type_Measurement_Write, Type_Measurement_Dup, Type_Measurement_Free, null, 0)),
+        new(new(cmsSigDataType, Type_Data_Read, Type_Data_Write, Type_Data_Dup, Type_Data_Free, null, 0)),
+        new(new(cmsSigLutAtoBType, Type_LUTA2B_Read, Type_LUTA2B_Write, Type_LUTA2B_Dup, Type_LUTA2B_Free, null, 0)),
+        new(new(cmsSigLutBtoAType, Type_LUTB2A_Read, Type_LUTB2A_Write, Type_LUTB2A_Dup, Type_LUTB2A_Free, null, 0)),
+        new(new(cmsSigUcrBgType, Type_UcrBg_Read, Type_UcrBg_Write, Type_UcrBg_Dup, Type_UcrBg_Free, null, 0)),
+        new(new(cmsSigCrdInfoType, Type_CrdInfo_Read, Type_CrdInfo_Write, Type_CrdInfo_Dup, Type_CrdInfo_Free, null, 0)),
+        new(new(cmsSigMultiProcessElementType, Type_MPE_Read, Type_MPE_Write, Type_MPE_Dup, Type_MPE_Free, null, 0)),
+        new(new(cmsSigScreeningType, Type_Screening_Read, Type_Screening_Write, Type_Screening_Dup, Type_Screening_Free, null, 0)),
+        new(new(cmsSigViewingConditionsType, Type_ViewingConditions_Read, Type_ViewingConditions_Write, Type_ViewingConditions_Dup, Type_ViewingConditions_Free, null, 0)),
+        new(new(cmsSigXYZType, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0)),
+        new(new(cmsCorbisBrokenXYZtype, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0)),
+        new(new(cmsMonacoBrokenCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0)),
+        new(new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Type_ProfileSequenceId_Dup, Type_ProfileSequenceId_Free, null, 0)),
+        new(new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0)),
+        new(new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0))
+    };
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
 
-    internal static readonly TagTypePluginChunkType* globalTagTypePluginChunk;
+    internal static readonly TagTypePluginChunkType globalTagTypePluginChunk = new();
 
-    internal static readonly TagLinkedList* supportedTags;
+    internal static readonly TagLinkedList[] supportedTags = new TagLinkedList[]
+    {
+        new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
+        new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
+        new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
+        new(cmsSigBToA0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigBToA1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigBToA2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigRedColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
+        new(cmsSigGreenColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
+        new(cmsSigBlueColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
+        new(cmsSigRedTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
+        new(cmsSigGreenTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
+        new(cmsSigBlueTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
+        new(cmsSigCalibrationDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null)),
+        new(cmsSigCharTargetTag, new(1, new Signature[] { cmsSigTextType, }, null)),
+        new(cmsSigChromaticAdaptationTag, new(9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null)),
+        new(cmsSigChromaticityTag, new(1, new Signature[] { cmsSigChromaticityType, }, null)),
+        new(cmsSigColorantOrderTag, new(1, new Signature[] { cmsSigColorantOrderType, }, null)),
+        new(cmsSigColorantTableTag, new(1, new Signature[] { cmsSigColorantTableType, }, null)),
+        new(cmsSigColorantTableOutTag, new(1, new Signature[] { cmsSigColorantTableType, }, null)),
+        new(cmsSigCopyrightTag, new(1, new Signature[] { cmsSigTextType, cmsSigMultiLocalizedUnicodeType, cmsSigTextDescriptionType, }, DecideTextType)),
+        new(cmsSigDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null)),
+        new(cmsSigDeviceMfgDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigDeviceModelDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigGamutTag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigGrayTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, }, DecideCurveType)),
+        new(cmsSigLuminanceTag, new(1, new Signature[] { cmsSigXYZType, }, null)),
+        new(cmsSigMediaBlackPointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null)),
+        new(cmsSigMediaWhitePointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null)),
+        new(cmsSigNamedColor2Tag, new(1, new Signature[] { cmsSigNamedColor2Type, }, null)),
+        new(cmsSigPreview0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigPreview1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigPreview2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
+        new(cmsSigProfileDescriptionTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigProfileSequenceDescTag, new(1, new Signature[] { cmsSigProfileSequenceDescType, }, null)),
+        new(cmsSigTechnologyTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
+        new(cmsSigColorimetricIntentImageStateTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
+        new(cmsSigPerceptualRenderingIntentGamutTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
+        new(cmsSigSaturationRenderingIntentGamutTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
+        new(cmsSigMeasurementTag, new(1, new Signature[] { cmsSigMeasurementType, }, null)),
+        new(cmsSigPs2CRD0Tag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigPs2CRD1Tag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigPs2CRD2Tag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigPs2CRD3Tag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigPs2CSATag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigPs2RenderingIntentTag, new(1, new Signature[] { cmsSigDataType, }, null)),
+        new(cmsSigViewingCondDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigUcrBgTag, new(1, new Signature[] { cmsSigUcrBgType, }, null)),
+        new(cmsSigCrdInfoTag, new(1, new Signature[] { cmsSigCrdInfoType, }, null)),
+        new(cmsSigDToB0Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigDToB1Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigDToB2Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigDToB3Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigBToD0Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigBToD1Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigBToD2Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigBToD3Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
+        new(cmsSigScreeningDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, }, null)),
+        new(cmsSigViewingConditionsTag, new(1, new Signature[] { cmsSigViewingConditionsType, }, null)),
+        new(cmsSigScreeningTag, new(1, new Signature[] { cmsSigScreeningType, }, null)),
+        new(cmsSigVcgtTag, new(1, new Signature[] { cmsSigVcgtType, }, null)),
+        new(cmsSigMetaTag, new(1, new Signature[] { cmsSigDictType, }, null)),
+        new(cmsSigProfileSequenceIdTag, new(1, new Signature[] { cmsSigProfileSequenceIdType, }, null)),
+        new(cmsSigProfileDescriptionMLTag, new(1, new Signature[] { cmsSigMultiLocalizedUnicodeType, }, null)),
+        new(cmsSigArgyllArtsTag, new(9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null)),
+    };
 
     internal static readonly TagPluginChunkType TagPluginChunk = new();
 
-    internal static readonly TagPluginChunkType* globalTagPluginChunk;
+    internal static readonly TagPluginChunkType globalTagPluginChunk = new();
 
     private static bool RegisterTypesPlugin(Context id, PluginBase* Data, Chunks pos)
     {
@@ -81,13 +187,15 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static TagTypeHandler* GetHandler(Signature sig, TagTypeLinkedList* PluginLinkedList, TagTypeLinkedList* DefaultLinkedList)
+    private static TagTypeHandler* GetHandler(Signature sig, TagTypeLinkedList* PluginLinkedList, TagTypeLinkedList[] DefaultLinkedList)
     {
         for (var pt = PluginLinkedList; pt is not null; pt = pt->Next)
             if (sig == pt->Handler.Signature) return &pt->Handler;
-
-        for (var pt = DefaultLinkedList; pt is not null; pt = pt->Next)
-            if (sig == pt->Handler.Signature) return &pt->Handler;
+        fixed (TagTypeLinkedList* list = &DefaultLinkedList[0])
+        {
+            for (var pt = list; pt is not null; pt = pt->Next)
+                if (sig == pt->Handler.Signature) return &pt->Handler;
+        }
 
         return null;
     }
@@ -456,7 +564,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void* Type_ColorantOrderType_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem(self->ContextID, Ptr, (uint)(cmsMAXCHANNELS * _sizeof<byte>()));
+        _cmsDupMem(self->ContextID, Ptr, (uint)(cmsMAXCHANNELS * _sizeof<byte>()), typeof(byte));
 
     private static void Type_ColorantOrderType_Free(TagTypeHandler* self, void* Ptr) =>
         _cmsFree(self->ContextID, Ptr);
@@ -498,7 +606,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void* Type_S15Fixed16_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<double>());
+        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<double>(), typeof(double));
 
     private static void Type_S15Fixed16_Free(TagTypeHandler* self, void* Ptr) =>
         _cmsFree(self->ContextID, Ptr);
@@ -547,7 +655,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void* Type_U16Fixed16_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<double>());
+        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<double>(), typeof(double));
 
     private static void Type_U16Fixed16_Free(TagTypeHandler* self, void* Ptr) =>
         _cmsFree(self->ContextID, Ptr);
@@ -576,7 +684,7 @@ public static unsafe partial class Lcms2
         _cmsWriteUInt32Number(io, *(Signature*)Ptr);
 
     private static void* Type_Signature_Dup(TagTypeHandler* self, in void* Ptr, uint n) =>
-        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<Signature>());
+        _cmsDupMem(self->ContextID, Ptr, n * _sizeof<Signature>(), typeof(Signature));
 
     private static void Type_Signature_Free(TagTypeHandler* self, void* Ptr) =>
         _cmsFree(self->ContextID, Ptr);
@@ -607,7 +715,13 @@ public static unsafe partial class Lcms2
         *nItems = 1;
 
         // Keep the result
-        if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text)) goto Error;
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+            {
+                if (!cmsMLUsetASCII(mlu, noL, noC, Text)) goto Error;
+            }
+        }
 
         _cmsFree(self->ContextID, Text);
         return mlu;
@@ -624,14 +738,24 @@ public static unsafe partial class Lcms2
         var mlu = (Mlu*)Ptr;
 
         // Get the size of the string. Note there is an extra "\0" at the end
-        var size = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null, 0);
+        uint size;
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+                size = cmsMLUgetASCII(mlu, noL, noC, null, 0);
+        }
+
         if (size is 0) return false;    // Cannot be zero!
 
         // Create memory
         var Text = _cmsMalloc<byte>(self->ContextID, size);
         if (Text is null) return false;
 
-        cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text, size);
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+                cmsMLUgetASCII(mlu, noL, noC, Text, size);
+        }
 
         // Write it, including separators
         var rc = io->Write(io, size, Text);
@@ -694,7 +818,7 @@ public static unsafe partial class Lcms2
     }
 
     private static void* Type_Data_Dup(TagTypeHandler* self, in void* Ptr, uint _) =>
-        _cmsDupMem(self->ContextID, Ptr, _sizeof<IccData>() + ((IccData*)Ptr)->len - 1);
+        _cmsDupMem(self->ContextID, Ptr, _sizeof<IccData>() + ((IccData*)Ptr)->len - 1, typeof(byte));
 
     private static void Type_Data_Free(TagTypeHandler* self, void* Ptr) =>
         _cmsFree(self->ContextID, Ptr);
@@ -739,7 +863,11 @@ public static unsafe partial class Lcms2
         Text[AsciiCount] = 0;
 
         // Set the MLU entry. From here we can be tolerant to wrong types
-        if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text)) goto Error;
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed(byte* noC = &cmsNoCountry[0])
+                if (!cmsMLUsetASCII(mlu, noL, noC, Text)) goto Error;
+        }
         _cmsFree(self->ContextID, Text);
         Text = null;
 
@@ -793,7 +921,11 @@ public static unsafe partial class Lcms2
         memset(Filler, 0, 68);
 
         // Get the len of string
-        len = cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, null, 0);
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+                len = cmsMLUgetASCII(mlu, noL, noC, null, 0);
+        }
 
         // Specification ICC.1:2001-04 (v2.4.0): It has been found that textDescriptionType can contain misaligned data
         //(see clause 4.1 for the definition of 'aligned'). Because the Unicode language
@@ -823,8 +955,14 @@ public static unsafe partial class Lcms2
             if (Wide is null) goto Error;
 
             // Get both representations.
-            cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text, len * _sizeof<byte>());
-            cmsMLUgetWide(mlu, cmsNoLanguage, cmsNoCountry, Wide, len * _sizeof<char>());
+            fixed (byte* noL = &cmsNoLanguage[0])
+            {
+                fixed (byte* noC = &cmsNoCountry[0])
+                {
+                    cmsMLUgetASCII(mlu, noL, noC, Text, len * _sizeof<byte>());
+                    cmsMLUgetWide(mlu, noL, noC, Wide, len * _sizeof<char>());
+                }
+            }
         }
 
         // Tell the real text len including the null terminator and padding
@@ -2815,7 +2953,11 @@ public static unsafe partial class Lcms2
         }
 
         ASCIIString[SignedSizeOfTag] = 0;
-        cmsMLUsetASCII(n->Desc, cmsNoLanguage, cmsNoCountry, ASCIIString);
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+                cmsMLUsetASCII(n->Desc, noL, noC, ASCIIString);
+        }
         _cmsFree(self->ContextID, ASCIIString);
 
         *nItems = 1;
@@ -2844,9 +2986,15 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Array(io, Value->Bg->nEntries, Value->Bg->Table16)) return false;
 
         // Now comes the text. The length is specified by the tag size
-        TextSize = cmsMLUgetASCII(Value->Desc, cmsNoLanguage, cmsNoCountry, null, 0);
-        Text = _cmsMalloc<byte>(self->ContextID, TextSize);
-        if (cmsMLUgetASCII(Value->Desc, cmsNoLanguage, cmsNoCountry, Text, TextSize) != TextSize) return false;
+        fixed (byte* noL = &cmsNoLanguage[0])
+        {
+            fixed (byte* noC = &cmsNoCountry[0])
+            {
+                TextSize = cmsMLUgetASCII(Value->Desc, noL, noC, null, 0);
+                Text = _cmsMalloc<byte>(self->ContextID, TextSize);
+                if (cmsMLUgetASCII(Value->Desc, noL, noC, Text, TextSize) != TextSize) return false;
+            }
+        }
 
         if (!io->Write(io, TextSize, Text)) return false;
         _cmsFree(self->ContextID, Text);
@@ -3290,7 +3438,7 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt32Number(io, &TagType)) return null;
 
         // Allocate space for the array
-        Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
+        Curves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>(), typeof(ToneCurve*));
         if (Curves is null) return null;
 
         // There are two possible flavors
@@ -3456,7 +3604,7 @@ public static unsafe partial class Lcms2
     {
         var OldCurves = (ToneCurve**)Ptr;
 
-        var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>());
+        var NewCurves = (ToneCurve**)_cmsCalloc(self->ContextID, 3, _sizeof<nint>(), typeof(ToneCurve*));
         if (NewCurves is null) return null;
 
         NewCurves[0] = cmsDupToneCurve(OldCurves[0]);
@@ -4001,7 +4149,7 @@ public static unsafe partial class Lcms2
 
         if (InputChans != OutputChans) return null;
 
-        var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>());
+        var GammaTables = (ToneCurve**)_cmsCalloc(self->ContextID, InputChans, _sizeof<nint>(), typeof(ToneCurve*));
         if (GammaTables is null) return null;
 
         var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, GammaTables, &ReadMPECurve)
@@ -4388,9 +4536,12 @@ public static unsafe partial class Lcms2
 
         for (var pt = TagPluginChunk->Tag; pt is not null; pt = pt->Next)
             if (sig == pt->Signature) return &pt->Descriptor;
-
-        for (var pt = supportedTags; pt is not null; pt = pt->Next)
-            if (sig == pt->Signature) return &pt->Descriptor;
+        
+        fixed (TagLinkedList* list = &supportedTags[0])
+        {
+            for (var pt = list; pt is not null; pt = pt->Next)
+                if (sig == pt->Signature) return &pt->Descriptor;
+        }
 
         return null;
     }

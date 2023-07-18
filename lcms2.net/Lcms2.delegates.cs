@@ -33,12 +33,12 @@ public static unsafe partial class Lcms2
 {
     public delegate void FreeUserDataFn(Context ContextID, void* Data);
     public delegate void* DupUserDataFn(Context ContextID, in void* Data);
-    public delegate void* MallocFnPtrType(Context ContextID, uint size);
+    public delegate void* MallocFnPtrType(Context ContextID, uint size, Type type);
     public delegate void FreeFnPtrType(Context ContextID, void* Ptr);
     public delegate void* ReallocFnPtrType(Context ContextID, void* Ptr, uint NewSize);
-    public delegate void* MallocZerocFnPtrType(Context ContextID, uint size);
-    public delegate void* CallocFnPtrType(Context ContextID, uint num, uint size);
-    public delegate void* DupFnPtrType(Context ContextID, in void* Org, uint size);
+    public delegate void* MallocZerocFnPtrType(Context ContextID, uint size, Type type);
+    public delegate void* CallocFnPtrType(Context ContextID, uint num, uint size, Type type);
+    public delegate void* DupFnPtrType(Context ContextID, in void* Org, uint size, Type type);
     public delegate void InterpFn16(in ushort* Input, ushort* Output, in InterpParams* p);
     public delegate void InterpFnFloat(in float* Input, float* Output, in InterpParams* p);
     public delegate InterpFunction InterpFnFactory(uint nInputChannels, uint nOutputChannels, uint dwFlags);

@@ -29,11 +29,11 @@ namespace lcms2.state;
 
 public unsafe struct Context_struct
 {
-    internal Context Next;
-    internal SubAllocator* MemPool;
-    internal MemPluginChunkType DefaultMemoryManager;
-    internal ContextChunks chunks;
-    private fixed long actualChunks[(int)Chunks.Max];
+    internal Context Next;                                  //   8 +   0 =   8
+    internal SubAllocator* MemPool;                         //   8 +   8 =  16
+    internal MemPluginChunkType DefaultMemoryManager;       //  48 +  16 =  64
+    internal ContextChunks chunks;                          //   8 +  64 =  72
+    private fixed long actualChunks[(int)Chunks.Max];       // 120 +  72 = 192
 
     public struct ContextChunks
     {

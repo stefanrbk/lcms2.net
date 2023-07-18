@@ -756,7 +756,7 @@ public static bool CheckAllocContext()
         }
 
 
-        data = (byte*)alloc(clen);
+        data = (byte*)alloc(clen, typeof(byte));
         if (data == null)
         {
             Fail("malloc failed ?!?");
@@ -932,7 +932,7 @@ public static bool CheckAllocContext()
         }
 
 
-        data = (byte*)alloc(clen);
+        data = (byte*)alloc(clen, typeof(byte));
         if (data == null)
         {
             Fail("malloc failed ?!?");

@@ -42,7 +42,12 @@ public static unsafe partial class Lcms2
     private static readonly object contextPoolHeadMutex = new();
     private static Context contextPoolHead;
 
-    private static readonly Context globalContext;
+    private static readonly Context_struct globalContext = new()
+    {
+        DefaultMemoryManager = default,
+        MemPool = null,
+        Next = null
+    };
 
     [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
@@ -534,14 +539,17 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static Context _cmsGetContext(Context ContextID)
     {
         Context id = ContextID;
 
         // On null, use global settings
         if (id is null)
-            return globalContext;
+        {
+            fixed (Context context = &globalContext)
+                return context;
+        }
 
         // Search
         lock (contextPoolHeadMutex)
@@ -554,10 +562,11 @@ public static unsafe partial class Lcms2
             }
         }
 
-        return globalContext;
+        fixed (Context context = &globalContext)
+            return context;
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* _cmsContextGetClientChunk(Context ContextID, Chunks mc)
     {
         if (mc is < 0 or >= Chunks.Max)
@@ -565,7 +574,7 @@ public static unsafe partial class Lcms2
             cmsSignalError(ContextID, ErrorCode.Internal, "Bad context client -- possible corruption");
             Debug.Fail("Bad context client -- possible corruption");
 
-            return globalContext->chunks[Chunks.UserPtr];
+            return globalContext.chunks[Chunks.UserPtr];
         }
 
         var ctx = _cmsGetContext(ContextID);
@@ -574,10 +583,10 @@ public static unsafe partial class Lcms2
         if (ptr is not null) return ptr;
 
         // A null ptr means no special settings for that context, and this reverts to globals
-        return globalContext->chunks[mc];
+        return globalContext.chunks[mc];
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static T* _cmsContextGetClientChunk<T>(Context ContextID, Chunks mc) where T : struct =>
         (T*)_cmsContextGetClientChunk(ContextID, mc);
 

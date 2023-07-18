@@ -269,7 +269,7 @@ public static unsafe partial class Lcms2
         else
         {
             // It is not empty
-            NewMlu->MemPool = _cmsMalloc(mlu->ContextID, mlu->PoolUsed);
+            NewMlu->MemPool = _cmsMalloc(mlu->ContextID, mlu->PoolUsed, typeof(byte));
             if (NewMlu->MemPool is null) goto Error;
         }
 

@@ -34,9 +34,9 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly FormattersPluginChunkType FormattersPluginChunk;
+    internal static readonly FormattersPluginChunkType FormattersPluginChunk = new();
 
-    internal static readonly FormattersPluginChunkType* globalFormattersPluginChunk;
+    internal static readonly FormattersPluginChunkType globalFormattersPluginChunk = new();
 
     internal static readonly Formatters16[] InputFormatters16 =
         {

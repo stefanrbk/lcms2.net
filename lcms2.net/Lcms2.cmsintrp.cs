@@ -34,7 +34,7 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     private static readonly InterpPluginChunkType InterpPluginChunk = new();
-    private static readonly InterpPluginChunkType* globalInterpPluginChunk;
+    private static readonly InterpPluginChunkType globalInterpPluginChunk = new();
 
     internal static void _cmsAllocInterpPluginChunk(Context ctx, in Context src)
     {

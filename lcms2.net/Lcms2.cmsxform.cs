@@ -36,15 +36,15 @@ public static unsafe partial class Lcms2
 
     private static readonly AdaptationStateChunkType AdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
 
-    private static readonly AdaptationStateChunkType* globalAdaptationStateChunk;
+    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
 
     private static readonly AlarmCodesChunkType AlarmCodesChunk = new();
 
-    private static readonly AlarmCodesChunkType* globalAlarmCodesChunk;
+    private static readonly AlarmCodesChunkType globalAlarmCodesChunk = new();
 
     internal static readonly TransformPluginChunkType TransformPluginChunk = new();
 
-    internal static readonly TransformPluginChunkType* globalTransformPluginChunk;
+    internal static readonly TransformPluginChunkType globalTransformPluginChunk = new();
 
     internal static void _cmsAllocAdaptationStateChunk(Context ctx, in Context src)
     {

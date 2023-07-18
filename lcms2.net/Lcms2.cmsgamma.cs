@@ -51,7 +51,7 @@ public static unsafe partial class Lcms2
 
     internal static readonly CurvesPluginChunkType CurvesPluginChunk = new();
 
-    internal static readonly CurvesPluginChunkType* globalCurvePluginChunk;
+    internal static readonly CurvesPluginChunkType globalCurvePluginChunk = new();
 
     /// <summary>
     ///     Duplicates the plug-in in the new context.
