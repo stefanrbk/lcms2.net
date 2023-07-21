@@ -1043,7 +1043,7 @@ public static unsafe partial class Lcms2
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
-            if (Tag.SaveAsRaw && Data is BoxPtr<byte> buffer)
+            if (Tag.SaveAsRaw && Data is BoxPtrVoid buffer)
             {
                 if (!io.Write(io, Tag.Size, buffer)) return false;
             }
@@ -1248,6 +1248,8 @@ public static unsafe partial class Lcms2
             }
             else
             {
+                if (tag.TagObject is BoxPtrVoid ptr)
+                    _cmsFree(Icc.ContextID, ptr);
                 //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
             }
         }

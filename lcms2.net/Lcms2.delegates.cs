@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
@@ -66,6 +67,7 @@ public static unsafe partial class Lcms2
     public delegate void LogErrorHandlerFunction(Context? ContextID, ErrorCode ErrorCode, string Text);
     public delegate bool SAMPLER16(in ushort* In, ushort* Out, object? Cargo);
     public delegate bool SAMPLERFLOAT(in float* In, float* Out, object? Cargo);
+    internal delegate bool PositionTableEntryFn(TagTypeHandler self, IOHandler io, object? Cargo, uint n, uint SizeOfTag);
 
     internal delegate void FormatterAlphaFn(void* dst, in void* src);
 }

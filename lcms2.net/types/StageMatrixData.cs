@@ -29,7 +29,7 @@ using System.Buffers;
 
 namespace lcms2.types;
 
-public unsafe class StageMatrixData : IDisposable
+public class StageMatrixData : IDisposable
 {
     private double[] @double;
     private double[]? offset;

@@ -188,6 +188,8 @@ public static unsafe partial class Lcms2
         var csPool = Context.GetPool<CurveSegment>(ContextID);
         var ipPool = Context.GetPool<InterpParams<float>>(ContextID);
         var pcePool = Context.GetPool<ParametricCurveEvaluator>(ContextID);
+        var dPool = Context.GetPool<double>(ContextID);
+        var fPool = Context.GetPool<float>(ContextID);
 
         // We allow huge tables, which are then restricted for smoothing operations
         if (nEntries > 65530)
@@ -218,10 +220,12 @@ public static unsafe partial class Lcms2
             //p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             //if (p->Segments is null) goto Error;
             p.Segments = csPool.Rent((int)nSegments);
+            Array.Clear(p.Segments);
 
             //p.Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
             //if (p.Evals is null) goto Error;
             p.Evals = pcePool.Rent((int)nSegments);
+            Array.Clear(p.Evals);
         }
 
         p.nSegments = nSegments;
@@ -237,6 +241,7 @@ public static unsafe partial class Lcms2
             //p->Table16 = _cmsCalloc<ushort>(ContextID, nEntries);
             //if (p->Table16 is null) goto Error;
             p.Table16 = Context.GetPool<ushort>(ContextID).Rent((int)nEntries);
+            Array.Clear(p.Table16);
         }
 
         p.nEntries = nEntries;
@@ -256,6 +261,7 @@ public static unsafe partial class Lcms2
         {
             //p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
             p.SegInterp = ipPool.Rent((int)nSegments);
+            Array.Clear(p.SegInterp);
 
             for (var i = 0; i < nSegments; i++)
             {
@@ -265,6 +271,9 @@ public static unsafe partial class Lcms2
 
                 //memcpy(&p->Segments[i], &Segments[i], _sizeof<CurveSegment>());
                 p.Segments[i] = Segments[i];
+
+                if (Segments[i].Params is not null)
+                    p.Segments[i].Params = _cmsDupMem<double>(ContextID, Segments[i].Params, 10);
 
                 p.Segments[i].SampledPoints = Segments[i].Type == 0 && Segments[i].SampledPoints is not null
                     ? _cmsDupMem<float>(ContextID, Segments[i].SampledPoints, Segments[i].nGridPoints)
@@ -786,12 +795,13 @@ public static unsafe partial class Lcms2
         }
 
         Seg0.Params = dPool.Rent(10);
+        Array.Clear(Seg0.Params);
         Seg0.x0 = MINUS_INF;
         Seg0.x1 = PLUS_INF;
         Seg0.Type = Type;
 
         var size = c.ParameterCount[Pos] * _sizeof<double>();
-        fixed (double* p = Seg0.Params)
+        fixed (void* p = Seg0.Params)
             memcpy(p, Params, size);
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 1, Seg);
@@ -820,6 +830,8 @@ public static unsafe partial class Lcms2
             {
                 if (Curve.Segments[i].SampledPoints is not null)
                     _cmsFree(ContextID, Curve.Segments[i].SampledPoints);
+
+                _cmsFree(ContextID, Curve.Segments[i].Params);
 
                 if (Curve.SegInterp[i] is not null)
                     _cmsFreeInterpParams(Curve.SegInterp[i]);

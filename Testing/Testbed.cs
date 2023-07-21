@@ -25,16 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.state;
-using lcms2.types;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace lcms2.testbed;
 
@@ -60,6 +58,8 @@ internal static unsafe partial class Testbed
 
     public static readonly ILoggerFactory factory = BuildDebugLogger();
     public static readonly ILogger logger = factory.CreateLogger<Program>();
+
+    internal static volatile int _emitAnsiColorCodes = -1;
 
     public static readonly PluginMemHandler DebugMemHandler = new()
     {
@@ -156,8 +156,6 @@ internal static unsafe partial class Testbed
             free(blk);
         }
         catch { }
-
-        GC.Collect();
     }
 
     public static void* DebugRealloc(Context? ContextID, void* Ptr, uint NewSize)
@@ -182,8 +180,12 @@ internal static unsafe partial class Testbed
 
     public static void DebugMemPrintTotals()
     {
-        logger.LogInformation(@"[Memory statistics]
-            Allocated = {TotalMemory} MaxAlloc = {MaxAllocated} Single block hit = {SingleHit}", TotalMemory, MaxAllocated, SingleHit);
+        using (logger.BeginScope("Memory statistics"))
+        {
+            logger.LogInformation("""
+{{"Allocated": {TotalMemory}, "MaxAlloc": {MaxAllocated}, "LargestAlloc": {SingleHit}}}
+""", TotalMemory, MaxAllocated, SingleHit);
+        }
     }
 
     public static void DebugMemDontCheckThis(void* Ptr)
@@ -205,6 +207,8 @@ internal static unsafe partial class Testbed
     {
         if (TotalMemory > 0)
             logger.LogWarning("Ok, but {TotalMemory}, are left!", MemStr(TotalMemory));
+        else
+            logger.LogInformation("Ok");
 
         CheckHeap();
     }
@@ -231,7 +235,7 @@ internal static unsafe partial class Testbed
                 .AddFilter("System", LogLevel.Warning)
                 .AddFilter("lcms2", LogLevel.Debug)
                 .SetMinimumLevel(LogLevel.Information)
-                .AddConsole(options => options.IncludeScopes = true));
+                .AddTestBedFormatter(options => { options.IncludeScopes = true; options.SingleLine = true; }));
     }
 
     public static ILoggerFactory BuildNullLogger()
@@ -253,8 +257,6 @@ internal static unsafe partial class Testbed
 
     public static void Check(string title, Func<bool> test)
     {
-        logger.LogInformation("Checking {title}", title);
-
         using (logger.BeginScope("Checking {title}", title))
         {
             ReasonToFailBuffer = String.Empty;
@@ -270,6 +272,7 @@ internal static unsafe partial class Testbed
             }
             else
             {
+                logger.LogError("Test failed");
                 TotalFail++;
             }
         }
@@ -419,4 +422,89 @@ internal static unsafe partial class Testbed
     //        }
     //    }
     //}
+
+    public static bool EmitAnsiColorCodes
+    {
+        get
+        {
+            int num = _emitAnsiColorCodes;
+            if (num != -1)
+            {
+                return Convert.ToBoolean(num);
+            }
+            bool flag;
+            if (!Console.IsOutputRedirected)
+            {
+                flag = Environment.GetEnvironmentVariable("NO_COLOR") == null;
+            }
+            else
+            {
+                var environmentVariable = Environment.GetEnvironmentVariable("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION");
+                flag = environmentVariable != null && (environmentVariable == "1" || environmentVariable.Equals("true", StringComparison.OrdinalIgnoreCase));
+            }
+            _emitAnsiColorCodes = Convert.ToInt32(flag);
+            return flag;
+        }
+    }
+
+    internal static void WriteColoredMessage(this TextWriter textWriter, string message, ConsoleColor? background, ConsoleColor? foreground)
+    {
+        if (background.HasValue)
+            textWriter.Write(GetBackgroundColorEscapeCode(background.Value));
+
+        if (foreground.HasValue)
+            textWriter.Write(GetForegroundColorEscapeCode(foreground.Value));
+
+        textWriter.Write(message);
+
+        if (foreground.HasValue)
+            textWriter.Write(DefaultForegroundColor);
+
+        if (background.HasValue)
+            textWriter.Write(DefaultBackgroundColor);
+    }
+
+    internal static string GetForegroundColorEscapeCode(ConsoleColor color) =>
+        color switch
+        {
+            ConsoleColor.Black => "\u001b[30m",
+            ConsoleColor.DarkRed => "\u001b[31m",
+            ConsoleColor.DarkGreen => "\u001b[32m",
+            ConsoleColor.DarkYellow => "\u001b[33m",
+            ConsoleColor.DarkBlue => "\u001b[34m",
+            ConsoleColor.DarkMagenta => "\u001b[35m",
+            ConsoleColor.DarkCyan => "\u001b[36m",
+            ConsoleColor.Gray => "\u001b[37m",
+            ConsoleColor.Red => "\u001b[1m\u001b[31m",
+            ConsoleColor.Green => "\u001b[1m\u001b[32m",
+            ConsoleColor.Yellow => "\u001b[1m\u001b[33m",
+            ConsoleColor.Blue => "\u001b[1m\u001b[34m",
+            ConsoleColor.Magenta => "\u001b[1m\u001b[35m",
+            ConsoleColor.Cyan => "\u001b[1m\u001b[36m",
+            ConsoleColor.White => "\u001b[1m\u001b[37m",
+            _ => "\u001b[39m\u001b[22m",
+        };
+
+    internal static string GetBackgroundColorEscapeCode(ConsoleColor color) =>
+        color switch
+        {
+            ConsoleColor.Black => "\u001b[40m",
+            ConsoleColor.DarkRed => "\u001b[41m",
+            ConsoleColor.DarkGreen => "\u001b[42m",
+            ConsoleColor.DarkYellow => "\u001b[43m",
+            ConsoleColor.DarkBlue => "\u001b[44m",
+            ConsoleColor.DarkMagenta => "\u001b[45m",
+            ConsoleColor.DarkCyan => "\u001b[46m",
+            ConsoleColor.Gray => "\u001b[47m",
+            _ => "\u001b[49m",
+        };
+
+    internal const string DefaultForegroundColor = "\u001b[39m\u001b[22m";
+    internal const string DefaultBackgroundColor = "\u001b[49m";
+
+    public static ILoggingBuilder AddTestBedFormatter(
+        this ILoggingBuilder builder,
+        Action<SimpleConsoleFormatterOptions> configure) =>
+        builder.AddConsole(options => options.FormatterName = "TestBed")
+               .AddConsoleFormatter<TestBedFormatter, SimpleConsoleFormatterOptions>(configure);
 }

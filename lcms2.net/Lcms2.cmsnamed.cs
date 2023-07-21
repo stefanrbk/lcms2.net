@@ -348,7 +348,10 @@ public static unsafe partial class Lcms2
                 if (Best is -1) Best = i;
 
                 if (v.Country == CountryCode)
+                {
+                    Best = i;
                     break;
+                }
                 //{
                 //    //if (UsedLanguageCode is not null) *UsedLanguageCode = v.Language;
                 //    //if (UsedCountryCode is not null) *UsedCountryCode = v.Country;
@@ -439,7 +442,8 @@ public static unsafe partial class Lcms2
         }
 
         // We put a termination "\0"
-        //Buffer[ASCIIlen] = 0;         // No we don't!!
+        if (Buffer.Length > (int)ASCIIlen)
+            Buffer[(int)ASCIIlen] = 0;
         //return ASCIIlen + 1;
         return ASCIIlen;
     }
@@ -916,38 +920,39 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static void* cmsDictAlloc(Context? ContextID)
+    public static Dictionary cmsDictAlloc(Context? ContextID) =>
+        //var dict = _cmsMallocZero<Dictionary>(ContextID);
+        //if (dict is null) return null;
+
+        new()
+        {
+            ContextID = ContextID
+        };
+
+    public static void cmsDictFree(Dictionary? dict)
     {
-        var dict = _cmsMallocZero<Dictionary>(ContextID);
-        if (dict is null) return null;
+        if (dict is null)
+            return;
 
-        dict->ContextID = ContextID;
-        return dict;
-    }
-
-    public static void cmsDictFree(void* hDict)
-    {
-        var dict = (Dictionary*)hDict;
-
-        _cmsAssert(dict);
+        //_cmsAssert(dict);
 
         // Walk the list freeing all nodes
-        var entry = dict->head;
+        var entry = dict.head;
         while (entry is not null)
         {
-            if (entry->DisplayName is not null) cmsMLUfree(entry->DisplayName);
-            if (entry->DisplayValue is not null) cmsMLUfree(entry->DisplayValue);
-            if (entry->Name is not null) _cmsFree(dict->ContextID, entry->Name);
-            if (entry->Value is not null) _cmsFree(dict->ContextID, entry->Value);
+            if (entry.DisplayName is not null) cmsMLUfree(entry.DisplayName);
+            if (entry.DisplayValue is not null) cmsMLUfree(entry.DisplayValue);
+            //if (entry.Name is not null) _cmsFree(dict.ContextID, entry.Name);
+            //if (entry.Value is not null) _cmsFree(dict.ContextID, entry.Value);
 
             // Don't fall in the habitual trap...
-            var next = entry->Next;
-            _cmsFree(dict->ContextID, entry);
+            var next = entry.Next;
+            //_cmsFree(dict.ContextID, entry);
 
             entry = next;
         }
 
-        _cmsFree(dict->ContextID, dict);
+        //_cmsFree(dict.ContextID, dict);
     }
 
     private static char* DupWcs(Context? ContextID, in char* ptr)
@@ -956,72 +961,57 @@ public static unsafe partial class Lcms2
         return _cmsDupMem<char>(ContextID, ptr, mywcslen(ptr) + 1);
     }
 
-    public static bool cmsDictAddEntry(void* hDict, ReadOnlySpan<char> Name, ReadOnlySpan<char> Value, Mlu DisplayName, Mlu DisplayValue)
+    public static bool cmsDictAddEntry(Dictionary dict, string Name, string Value, Mlu? DisplayName, Mlu? DisplayValue)
     {
-        var nameBuf = stackalloc char[Name.Length + 1];
-        var valueBuf = stackalloc char[Value.Length + 1];
-
-        for (var i = 0; i <  Name.Length; i++)
-            nameBuf[i] = Name[i];
-        for (var i = 0; i < Value.Length; i++)
-            valueBuf[i] = Value[i];
-
-        return cmsDictAddEntry(hDict, nameBuf, valueBuf, DisplayName, DisplayValue);
-    }
-
-    public static bool cmsDictAddEntry(void* hDict, in char* Name, in char* Value, Mlu DisplayName, Mlu DisplayValue)
-    {
-        var dict = (Dictionary*)hDict;
-
         _cmsAssert(dict);
         _cmsAssert(Name);
 
-        var entry = _cmsMallocZero<Dictionary.Entry>(dict->ContextID);
-        if (entry is null) return false;
+        //var entry = _cmsMallocZero<Dictionary.Entry>(dict->ContextID);
+        //if (entry is null) return false;
 
-        entry->DisplayName = cmsMLUdup(DisplayName);
-        entry->DisplayValue = cmsMLUdup(DisplayValue);
-        entry->Name = DupWcs(dict->ContextID, Name);
-        entry->Value = DupWcs(dict->ContextID, Value);
+        var entry = new Dictionary.Entry
+        {
+            DisplayName = cmsMLUdup(DisplayName),
+            DisplayValue = cmsMLUdup(DisplayValue),
+            Name = Name,
+            Value = Value,
 
-        entry->Next = dict->head;
-        dict->head = entry;
+            Next = dict.head
+        };
+        dict.head = entry;
 
         return true;
     }
 
-    public static void* cmsDictDup(in void* hDict)
+    public static Dictionary? cmsDictDup(in Dictionary? old_dict)
     {
-        var old_dict = (Dictionary*)hDict;
+        if (old_dict is null)
+            return null;
 
-        _cmsAssert(old_dict);
+        //_cmsAssert(old_dict);
 
-        var hNew = cmsDictAlloc(old_dict->ContextID);
-        if (hNew is null) return null;
+        var hNew = cmsDictAlloc(old_dict.ContextID);
+        //if (hNew is null) return null;
 
         // Walk the list
-        var entry = old_dict->head;
+        var entry = old_dict.head;
         while (entry is not null)
         {
-            if (!cmsDictAddEntry(hNew, entry->Name, entry->Value, entry->DisplayName, entry->DisplayValue))
+            if (!cmsDictAddEntry(hNew, entry.Name, entry.Value, entry.DisplayName, entry.DisplayValue))
             {
                 cmsDictFree(hNew);
                 return null;
             }
 
-            entry = entry->Next;
+            entry = entry.Next;
         }
 
         return hNew;
     }
 
-    public static Dictionary.Entry* cmsDictGetEntryList(void* hDict) =>
-        (Dictionary*)hDict is not null
-            ? ((Dictionary*)hDict)->head
-            : null;
+    public static Dictionary.Entry? cmsDictGetEntryList(Dictionary hDict) =>
+        hDict?.head;
 
-    public static Dictionary.Entry* cmsDictNextEntry(in Dictionary.Entry* e) =>
-        (e is not null)
-            ? e->Next
-            : null;
+    public static Dictionary.Entry? cmsDictNextEntry(in Dictionary.Entry? e) =>
+        e?.Next;
 }

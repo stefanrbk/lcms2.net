@@ -825,6 +825,10 @@ public static unsafe partial class Lcms2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal static void _cmsAssert(string str) =>
+        Debug.Assert(!String.IsNullOrEmpty(str));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert<T>(ReadOnlySpan<T> span) =>
         Debug.Assert(!span.IsEmpty);
 
@@ -1737,7 +1741,6 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void CheckHeap()
     {
-        GC.Collect();
         lock (AllocList)
         {
             foreach (var kvp in AllocList)

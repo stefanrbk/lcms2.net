@@ -30,17 +30,17 @@ using lcms2.types;
 
 namespace lcms2;
 
-public unsafe struct Dictionary
+public class Dictionary
 {
-    internal Entry* head;
+    internal Entry? head;
     internal Context? ContextID;
 
-    public struct Entry
+    public class Entry
     {
-        public Entry* Next;
+        public Entry? Next;
         public Mlu? DisplayName;
         public Mlu? DisplayValue;
-        public char* Name;
-        public char* Value;
+        public string Name;
+        public string Value;
     }
 }

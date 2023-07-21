@@ -742,7 +742,7 @@ public static unsafe partial class Lcms2
 
     internal static ushort _cmsQuantizeVal(double i, uint MaxSamples)
     {
-        var x = i * 65535.0 / (MaxSamples - 1);
+        var x = (i * 65535.0) / (MaxSamples - 1);
         return _cmsQuickSaturateWord(x);
     }
 

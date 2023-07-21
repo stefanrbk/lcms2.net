@@ -199,6 +199,17 @@ public static unsafe partial class Lcms2
 
     #region IO
 
+    internal static bool _cmsWriteWCharArray(IOHandler io, uint n, in string str)
+    {
+        _cmsAssert(io);
+        _cmsAssert(!(str is null && n > 0));
+
+        for (var i = 0; i < n; i++)
+            if (!_cmsWriteUInt16Number(io, str![i])) return false;
+
+        return true;
+    }
+
     internal static bool _cmsWriteWCharArray(IOHandler io, uint n, in char* Array)
     {
         _cmsAssert(io);
@@ -259,6 +270,16 @@ public static unsafe partial class Lcms2
         }
 
         return true;
+    }
+
+    internal static bool _cmsReadWCharArray(IOHandler io, uint n, out string str)
+    {
+        var buffer = stackalloc char[(int)n+1];
+        var rc = _cmsReadWCharArray(io, n, buffer);
+        buffer[(int)n] = '\0';
+        str = new string(buffer);
+
+        return rc;
     }
 
     internal static bool _cmsReadWCharArray(IOHandler io, uint n, char* Array)
@@ -344,7 +365,7 @@ public static unsafe partial class Lcms2
         uint Count,
         uint BaseOffset,
         object? Cargo,
-        delegate*<TagTypeHandler, IOHandler, object?, uint, uint, bool> ElementFn)
+        PositionTableEntryFn ElementFn)
     {
         uint* ElementOffsets = null, ElementSizes = null;
 
@@ -2950,7 +2971,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, Seq.n)) return false;
 
         // This is the position table and content
-        if (!WritePositionTable(self, io, 0, Seq.n, BaseOffset, Seq, &WriteSeqID)) return false;
+        if (!WritePositionTable(self, io, 0, Seq.n, BaseOffset, Seq, WriteSeqID)) return false;
 
         return true;
     }
@@ -3012,7 +3033,7 @@ public static unsafe partial class Lcms2
             _cmsFree(self.ContextID, ASCIIString);
             goto Error;
         }
-        new Span<byte>(tmpASCIIString, SignedSizeOfTag).CopyTo(ASCIIString[..SignedSizeOfTag]);
+        new Span<byte>(tmpASCIIString, SignedSizeOfTag).CopyTo(ASCIIString.AsSpan(..SignedSizeOfTag));
 
         //ASCIIString[SignedSizeOfTag] = 0;
         cmsMLUsetASCII(n.Desc, cmsNoLanguage, cmsNoCountry, ASCIIString);
@@ -3120,7 +3141,7 @@ public static unsafe partial class Lcms2
 
         //Text[Count] = 0;
 
-        cmsMLUsetASCII(mlu, ps, Section, Text);
+        cmsMLUsetASCII(mlu, ps, Section, Text[..(int)Count]);
         _cmsFree(self.ContextID, Text);
 
         *SizeOfTag -= Count + _sizeof<uint>();
@@ -3713,8 +3734,8 @@ public static unsafe partial class Lcms2
     private struct DICelem
     {
         public Context? ContextID;
-        public uint* Offsets;
-        public uint* Sizes;
+        public uint[] Offsets;
+        public uint[] Sizes;
     }
 
     private struct DICarray
@@ -3722,72 +3743,85 @@ public static unsafe partial class Lcms2
         public DICelem Name, Value, DisplayName, DisplayValue;
     }
 
-    private static bool AllocElem(Context? ContextID, DICelem* e, uint Count)
+    private static bool AllocElem(Context? ContextID, out DICelem e, uint Count)
     {
-        e->Offsets = _cmsCalloc<uint>(ContextID, Count);
-        if (e->Offsets is null) return false;
+        var pool = _cmsGetContext(ContextID).GetBufferPool<uint>();
 
-        e->Sizes = _cmsCalloc<uint>(ContextID, Count);
-        if (e->Sizes is null)
+        e = new DICelem
         {
-            _cmsFree(ContextID, e->Offsets);
-            return false;
-        }
+            ContextID = ContextID,
+            Offsets = pool.Rent((int)Count),
+            Sizes = pool.Rent((int)Count)
+        };
+        Array.Clear(e.Offsets);
+        Array.Clear(e.Sizes);
 
-        e->ContextID = ContextID;
+        //e.Offsets = _cmsCalloc<uint>(ContextID, Count);
+        //if (e->Offsets is null) return false;
+
+        //e->Sizes = _cmsCalloc<uint>(ContextID, Count);
+        //if (e->Sizes is null)
+        //{
+        //    _cmsFree(ContextID, e->Offsets);
+        //    return false;
+        //}
+
         return true;
     }
 
-    private static void FreeElem(DICelem* e)
+    private static void FreeElem(ref DICelem e)
     {
-        if (e->Offsets is not null) _cmsFree(e->ContextID, e->Offsets);
-        if (e->Sizes is not null) _cmsFree(e->ContextID, e->Sizes);
-        e->Offsets = e->Sizes = null;
+        if (e.Offsets is not null) _cmsFree(e.ContextID, e.Offsets);
+        if (e.Sizes is not null) _cmsFree(e.ContextID, e.Sizes);
+        e.Offsets = e.Sizes = null!;
     }
 
-    private static void FreeArray(DICarray* a)
+    private static void FreeArray(ref DICarray a)
     {
-        if (a->Name.Offsets is not null || a->Name.Sizes is not null) FreeElem(&a->Name);
-        if (a->Value.Offsets is not null || a->Value.Sizes is not null) FreeElem(&a->Value);
-        if (a->DisplayName.Offsets is not null || a->DisplayName.Sizes is not null) FreeElem(&a->DisplayName);
-        if (a->DisplayValue.Offsets is not null || a->DisplayValue.Sizes is not null) FreeElem(&a->DisplayValue);
+        if (a.Name.Offsets is not null || a.Name.Sizes is not null) FreeElem(ref a.Name);
+        if (a.Value.Offsets is not null || a.Value.Sizes is not null) FreeElem(ref a.Value);
+        if (a.DisplayName.Offsets is not null || a.DisplayName.Sizes is not null) FreeElem(ref a.DisplayName);
+        if (a.DisplayValue.Offsets is not null || a.DisplayValue.Sizes is not null) FreeElem(ref a.DisplayValue);
     }
 
-    private static bool AllocArray(Context? ContextID, DICarray* a, uint Count, uint Length)
+    private static bool AllocArray(Context? ContextID, out DICarray a, uint Count, uint Length)
     {
+        a = new();
         // Empty values
-        memset(a, 0, _sizeof<DICarray>());
+        //memset(a, 0, _sizeof<DICarray>());
 
         // Depending on record size, create column arrays
-        if (!AllocElem(ContextID, &a->Name, Count)) goto Error;
-        if (!AllocElem(ContextID, &a->Value, Count)) goto Error;
+        if (!AllocElem(ContextID, out a.Name, Count)) goto Error;
+        if (!AllocElem(ContextID, out a.Value, Count)) goto Error;
 
-        if (Length > 16)
-            if (!AllocElem(ContextID, &a->DisplayName, Count)) goto Error;
+        if (Length > 16 && !AllocElem(ContextID, out a.DisplayName, Count))
+            goto Error;
 
-        if (Length > 24)
-            if (!AllocElem(ContextID, &a->DisplayValue, Count)) goto Error;
+        if (Length > 24 && !AllocElem(ContextID, out a.DisplayValue, Count))
+            goto Error;
 
         return true;
 
     Error:
-        FreeArray(a);
+        FreeArray(ref a);
         return false;
     }
 
-    private static bool ReadOneElem(IOHandler io, DICelem* e, uint i, uint BaseOffset)
+    private static bool ReadOneElem(IOHandler io, ref DICelem e, uint i, uint BaseOffset)
     {
-        if (!_cmsReadUInt32Number(io, &e->Offsets[i])) return false;
-        if (!_cmsReadUInt32Number(io, &e->Sizes[i])) return false;
+        fixed (uint* ptr = &e.Offsets[i])
+            if (!_cmsReadUInt32Number(io, ptr)) return false;
+        fixed (uint* ptr = &e.Sizes[i])
+            if (!_cmsReadUInt32Number(io, ptr)) return false;
 
         // An offset of zero has special meaning and shall be preserved
-        if (e->Offsets[i] > 0)
-            e->Offsets[i] += BaseOffset;
+        if (e.Offsets[i] > 0)
+            e.Offsets[i] += BaseOffset;
 
         return true;
     }
 
-    private static bool ReadOffsetArray(IOHandler io, DICarray* a, uint Count, uint Length, uint BaseOffset, int* SignedSizeOfTagPtr)
+    private static bool ReadOffsetArray(IOHandler io, ref DICarray a, uint Count, uint Length, uint BaseOffset, int* SignedSizeOfTagPtr)
     {
         var SignedSizeOfTag = *SignedSizeOfTagPtr;
 
@@ -3797,15 +3831,15 @@ public static unsafe partial class Lcms2
             if (SignedSizeOfTag < 4 * _sizeof<uint>()) return false;
             SignedSizeOfTag -= 4 * _sizeof<uint>();
 
-            if (!ReadOneElem(io, &a->Name, i, BaseOffset)) return false;
-            if (!ReadOneElem(io, &a->Value, i, BaseOffset)) return false;
+            if (!ReadOneElem(io, ref a.Name, i, BaseOffset)) return false;
+            if (!ReadOneElem(io, ref a.Value, i, BaseOffset)) return false;
 
             if (Length > 16)
             {
                 if (SignedSizeOfTag < 2 * _sizeof<uint>()) return false;
                 SignedSizeOfTag -= 2 * _sizeof<uint>();
 
-                if (!ReadOneElem(io, &a->DisplayName, i, BaseOffset)) return false;
+                if (!ReadOneElem(io, ref a.DisplayName, i, BaseOffset)) return false;
             }
 
             if (Length > 24)
@@ -3813,7 +3847,7 @@ public static unsafe partial class Lcms2
                 if (SignedSizeOfTag < 2 * _sizeof<uint>()) return false;
                 SignedSizeOfTag -= 2 * _sizeof<uint>();
 
-                if (!ReadOneElem(io, &a->DisplayValue, i, BaseOffset)) return false;
+                if (!ReadOneElem(io, ref a.DisplayValue, i, BaseOffset)) return false;
             }
         }
 
@@ -3821,131 +3855,132 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WriteOneElem(IOHandler io, DICelem* e, uint i)
+    private static bool WriteOneElem(IOHandler io, ref DICelem e, uint i)
     {
-        if (!_cmsWriteUInt32Number(io, e->Offsets[i])) return false;
-        if (!_cmsWriteUInt32Number(io, e->Sizes[i])) return false;
+        if (!_cmsWriteUInt32Number(io, e.Offsets[i])) return false;
+        if (!_cmsWriteUInt32Number(io, e.Sizes[i])) return false;
 
         return true;
     }
 
-    private static bool WriteOffsetArray(IOHandler io, DICarray* a, uint Count, uint Length)
+    private static bool WriteOffsetArray(IOHandler io, ref DICarray a, uint Count, uint Length)
     {
         for (var i = 0u; i < Count; i++)
         {
-            if (!WriteOneElem(io, &a->Name, i)) return false;
-            if (!WriteOneElem(io, &a->Value, i)) return false;
+            if (!WriteOneElem(io, ref a.Name, i)) return false;
+            if (!WriteOneElem(io, ref a.Value, i)) return false;
 
             if (Length > 16)
-                if (!WriteOneElem(io, &a->DisplayName, i)) return false;
+                if (!WriteOneElem(io, ref a.DisplayName, i)) return false;
 
             if (Length > 24)
-                if (!WriteOneElem(io, &a->DisplayValue, i)) return false;
+                if (!WriteOneElem(io, ref a.DisplayValue, i)) return false;
         }
 
         return true;
     }
 
-    private static bool ReadOneWChar(IOHandler io, DICelem* e, uint i, char** wcstr)
+    private static bool ReadOneWChar(IOHandler io, ref DICelem e, uint i, out string? wcstr)
     {
+        wcstr = null;
+
         // Special case for undefined strings (see ICC Votable
         // Proposal Submission, Dictionary Type and Metadata TAG Definition)
-        if (e->Offsets[i] is 0)
-        {
-            *wcstr = null;
+        if (e.Offsets[i] is 0)
             return true;
-        }
 
-        if (!io.Seek(io, e->Offsets[i])) return false;
+        if (!io.Seek(io, e.Offsets[i]))
+            return false;
 
-        var nChars = e->Sizes[i] / _sizeof<ushort>();
+        var nChars = e.Sizes[i] / _sizeof<ushort>();
 
-        *wcstr = _cmsMallocZero<char>(e->ContextID, nChars + 1);
-        if (*wcstr is null) return false;
+        //wcstr = _cmsMallocZero<char>(e.ContextID, nChars + 1);
+        //if (*wcstr is null) return false;
 
-        if (!_cmsReadWCharArray(io, nChars, *wcstr))
+        if (!_cmsReadWCharArray(io, nChars, out wcstr))
         {
-            _cmsFree(e->ContextID, *wcstr);
+            //_cmsFree(e->ContextID, *wcstr);
             return false;
         }
 
         // End of string marker
-        (*wcstr)[nChars] = '\0';
+        //(*wcstr)[nChars] = '\0';
         return true;
     }
 
-    private static bool WriteOneWChar(IOHandler io, DICelem* e, uint i, in char* wcstr, uint BaseOffset)
+    private static bool WriteOneWChar(IOHandler io, ref DICelem e, uint i, in string? wcstr, uint BaseOffset)
     {
         var Before = io.Tell(io);
 
-        e->Offsets[i] = Before - BaseOffset;
+        e.Offsets[i] = Before - BaseOffset;
 
         if (wcstr is null)
         {
-            e->Sizes[i] = 0;
-            e->Offsets[i] = 0;
+            e.Sizes[i] = 0;
+            e.Offsets[i] = 0;
             return true;
         }
 
-        var n = mywcslen(wcstr);
+        //var n = mywcslen(wcstr);
+        var n = (uint)wcstr.Length;
         if (!_cmsWriteWCharArray(io, n, wcstr)) return false;
 
-        e->Sizes[i] = io.Tell(io) - Before;
+        e.Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
-    private static bool ReadOneMLUC(TagTypeHandler self, IOHandler io, DICelem* e, uint i, out Mlu? mlu)
+    private static bool ReadOneMLUC(TagTypeHandler self, IOHandler io, ref DICelem e, uint i, out Mlu? mlu)
     {
         var nItems = 0u;
 
         // A way to get nul MLUCs
-        if (e->Offsets[i] is 0 || e->Sizes[i] is 0)
+        if (e.Offsets[i] is 0 || e.Sizes[i] is 0)
         {
             mlu = null;
             return true;
         }
 
-        if (!io.Seek(io, e->Offsets[i]))
+        if (!io.Seek(io, e.Offsets[i]))
         {
             mlu = null;
             return false;
         }
 
-        mlu = Type_MLU_Read(self, io, &nItems, e->Sizes[i]);
+        mlu = Type_MLU_Read(self, io, &nItems, e.Sizes[i]);
         return mlu is not null;
     }
 
-    private static bool WriteOneMLUC(TagTypeHandler self, IOHandler io, DICelem* e, uint i, Mlu? mlu, uint BaseOffset)
+    private static bool WriteOneMLUC(TagTypeHandler self, IOHandler io, ref DICelem e, uint i, Mlu? mlu, uint BaseOffset)
     {
         // Special case for undefined strings (see ICC Votable
         // Proposal Submission, Dictionary Type and Metadata TAG Definition)
         if (mlu is null)
         {
-            e->Sizes[i] = 0;
-            e->Offsets[i] = 0;
+            e.Sizes[i] = 0;
+            e.Offsets[i] = 0;
             return true;
         }
 
         var Before = io.Tell(io);
-        e->Offsets[i] = Before - BaseOffset;
+        e.Offsets[i] = Before - BaseOffset;
 
         if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
-        e->Sizes[i] = io.Tell(io) - Before;
+        e.Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
-    private static BoxPtrVoid? Type_Dictionary_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Dictionary? Type_Dictionary_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        void* hDict = null;
-        char* NameWCS = null, ValueWCS = null;
+        Dictionary? hDict = null;
+        string? NameWCS = null, ValueWCS = null;
         Mlu? DisplayNameMLU = null, DisplayValueMLU = null;
-        DICarray a;
+        DICarray a = default;
         uint Count, Length;
         var SignedSizeOfTag = (int)SizeOfTag;
 
         *nItems = 0;
-        memset(&a, 0, _sizeof<DICarray>());
+        //memset(&a, 0, _sizeof<DICarray>());
 
         // Get actual position as a basis for element offsets
         var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
@@ -3972,24 +4007,24 @@ public static unsafe partial class Lcms2
         if (hDict is null) goto Error;
 
         // Depending on record size, create column arrays
-        if (!AllocArray(self.ContextID, &a, Count, Length)) goto Error;
+        if (!AllocArray(self.ContextID, out a, Count, Length)) goto Error;
 
         // Read column arrays
-        if (!ReadOffsetArray(io, &a, Count, Length, BaseOffset, &SignedSizeOfTag)) goto Error;
+        if (!ReadOffsetArray(io, ref a, Count, Length, BaseOffset, &SignedSizeOfTag)) goto Error;
 
         // Seek to each element and read it
         for (var i = 0u; i < Count; i++)
         {
             var rc = true;
 
-            if (!ReadOneWChar(io, &a.Name, i, &NameWCS)) goto Error;
-            if (!ReadOneWChar(io, &a.Value, i, &ValueWCS)) goto Error;
+            if (!ReadOneWChar(io, ref a.Name, i, out NameWCS)) goto Error;
+            if (!ReadOneWChar(io, ref a.Value, i, out ValueWCS)) goto Error;
 
             if (Length > 16)
-                if (!ReadOneMLUC(self, io, &a.DisplayName, i, out DisplayNameMLU)) goto Error;
+                if (!ReadOneMLUC(self, io, ref a.DisplayName, i, out DisplayNameMLU)) goto Error;
 
             if (Length > 24)
-                if (!ReadOneMLUC(self, io, &a.DisplayValue, i, out DisplayValueMLU)) goto Error;
+                if (!ReadOneMLUC(self, io, ref a.DisplayValue, i, out DisplayValueMLU)) goto Error;
 
             if (NameWCS is null || ValueWCS is null)
             {
@@ -4001,31 +4036,33 @@ public static unsafe partial class Lcms2
                 rc = cmsDictAddEntry(hDict, NameWCS, ValueWCS, DisplayNameMLU, DisplayValueMLU);
             }
 
-            if (NameWCS is not null) _cmsFree(self.ContextID, NameWCS);
-            if (ValueWCS is not null) _cmsFree(self.ContextID, ValueWCS);
+            //if (NameWCS is not null) _cmsFree(self.ContextID, NameWCS);
+            //if (ValueWCS is not null) _cmsFree(self.ContextID, ValueWCS);
             if (DisplayNameMLU is not null) cmsMLUfree(DisplayNameMLU);
             if (DisplayValueMLU is not null) cmsMLUfree(DisplayValueMLU);
 
             if (!rc) goto Error;
         }
 
-        FreeArray(&a);
+        FreeArray(ref a);
         *nItems = 1;
-        return new(hDict);
+        return hDict;
 
     Error:
-        FreeArray(&a);
+        FreeArray(ref a);
         if (hDict is not null) cmsDictFree(hDict);
         return null;
     }
 
     private static bool Type_Dictionary_Write(TagTypeHandler self, IOHandler io, object? Ptr, uint _)
     {
-        if (Ptr is not BoxPtrVoid hDict) return false;
-        Dictionary.Entry* p;
-        DICarray a;
+        if (Ptr is not Dictionary hDict)
+            return false;
 
-        if (hDict is null) return false;
+        Dictionary.Entry? p;
+
+        if (hDict is null)
+            return false;
 
         var BaseOffset = io.Tell(io) - _sizeof<TagBase>();
 
@@ -4033,8 +4070,8 @@ public static unsafe partial class Lcms2
         var Count = 0u; var AnyName = false; var AnyValue = false;
         for (p = cmsDictGetEntryList(hDict); p is not null; p = cmsDictNextEntry(p))
         {
-            if (p->DisplayName is not null) AnyName = true;
-            if (p->DisplayValue is not null) AnyValue = true;
+            if (p.DisplayName is not null) AnyName = true;
+            if (p.DisplayValue is not null) AnyValue = true;
             Count++;
         }
 
@@ -4049,23 +4086,23 @@ public static unsafe partial class Lcms2
         var DirectoryPos = io.Tell(io);
 
         // Allocate offsets array
-        if (!AllocArray(self.ContextID, &a, Count, Length)) goto Error;
+        if (!AllocArray(self.ContextID, out var a, Count, Length)) goto Error;
 
         // Write a fake directory to be filled later on
-        if (!WriteOffsetArray(io, &a, Count, Length)) goto Error;
+        if (!WriteOffsetArray(io, ref a, Count, Length)) goto Error;
 
         // Write each element. Keep track of the size as well.
         p = cmsDictGetEntryList(hDict);
         for (var i = 0u; i < Count; i++)
         {
-            if (!WriteOneWChar(io, &a.Name, i, p->Name, BaseOffset)) goto Error;
-            if (!WriteOneWChar(io, &a.Value, i, p->Value, BaseOffset)) goto Error;
+            if (!WriteOneWChar(io, ref a.Name, i, p.Name, BaseOffset)) goto Error;
+            if (!WriteOneWChar(io, ref a.Value, i, p.Value, BaseOffset)) goto Error;
 
-            if (p->DisplayName is not null)
-                if (!WriteOneMLUC(self, io, &a.DisplayName, i, p->DisplayName, BaseOffset)) goto Error;
+            if (p.DisplayName is not null)
+                if (!WriteOneMLUC(self, io, ref a.DisplayName, i, p.DisplayName, BaseOffset)) goto Error;
 
-            if (p->DisplayValue is not null)
-                if (!WriteOneMLUC(self, io, &a.DisplayValue, i, p->DisplayValue, BaseOffset)) goto Error;
+            if (p.DisplayValue is not null)
+                if (!WriteOneMLUC(self, io, ref a.DisplayValue, i, p.DisplayValue, BaseOffset)) goto Error;
 
             p = cmsDictNextEntry(p);
         }
@@ -4074,28 +4111,23 @@ public static unsafe partial class Lcms2
         var CurrentPos = io.Tell(io);
         if (!io.Seek(io, DirectoryPos)) goto Error;
 
-        if (!WriteOffsetArray(io, &a, Count, Length)) goto Error;
+        if (!WriteOffsetArray(io, ref a, Count, Length)) goto Error;
 
         if (!io.Seek(io, CurrentPos)) goto Error;
 
-        FreeArray(&a);
+        FreeArray(ref a);
         return true;
 
     Error:
-        FreeArray(&a);
+        FreeArray(ref a);
         return false;
     }
 
-    private static BoxPtrVoid? Type_Dictionary_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
-        Ptr is BoxPtrVoid dict
-            ? new(cmsDictDup(dict))
-            : null;
+    private static Dictionary? Type_Dictionary_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
+        cmsDictDup(Ptr as Dictionary);
 
-    private static void Type_Dictionary_Free(TagTypeHandler _, object? Ptr)
-    {
-        if (Ptr is BoxPtrVoid dict)
-            cmsDictFree(dict);
-    }
+    private static void Type_Dictionary_Free(TagTypeHandler _, object? Ptr) =>
+        cmsDictFree(Ptr as Dictionary);
 
     #endregion Dictionary
 
@@ -4173,14 +4205,15 @@ public static unsafe partial class Lcms2
         if (!_cmsReadUInt16Number(io, null)) return null;
 
         if (nSegments < 1) return null;
-        var Segments = _cmsCalloc<CurveSegment>(self.ContextID, nSegments);
+        var Segments = _cmsCallocArray<CurveSegment>(self.ContextID, nSegments);
         if (Segments is null) return null;
 
         // Read breakpoints
         for (var i = 0; i < nSegments - 1; i++)
         {
             Segments[i].x0 = PrevBreak;
-            if (!_cmsReadFloat32Number(io, &Segments[i].x1)) goto Error;
+            fixed (float* ptr = &Segments[i].x1)
+                if (!_cmsReadFloat32Number(io, ptr)) goto Error;
             PrevBreak = Segments[i].x1;
         }
 
@@ -4204,6 +4237,8 @@ public static unsafe partial class Lcms2
 
                         Segments[i].Type = Type + 6;
                         if (Type > 2) goto Error;
+
+                        Segments[i].Params = Context.GetPool<double>(self.ContextID).Rent(10);
 
                         for (var j = 0; j < ParamsByType[Type]; j++)
                         {
@@ -4242,7 +4277,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var Curve = cmsBuildSegmentedToneCurve(self.ContextID, nSegments, new ReadOnlySpan<CurveSegment>(Segments, (int)nSegments));
+        var Curve = cmsBuildSegmentedToneCurve(self.ContextID, nSegments, Segments);
 
         for (var i = 0; i < nSegments; i++)
             if (Segments[i].SampledPoints is not null) _cmsFree(self.ContextID, Segments[i].SampledPoints);
@@ -4374,7 +4409,7 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
         if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
 
-        if (!WritePositionTable(self, io, 0, mpe.InputChannels, BaseOffset, Curves, &WriteMPECurve)) return false;
+        if (!WritePositionTable(self, io, 0, mpe.InputChannels, BaseOffset, Curves, WriteMPECurve)) return false;
 
         return true;
     }

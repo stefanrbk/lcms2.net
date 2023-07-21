@@ -317,7 +317,7 @@ public static unsafe partial class Lcms2
     internal static T* _cmsRealloc<T>(Context? ContextID, void* Ptr, uint size) where T : struct =>
         (T*)_cmsRealloc(ContextID, Ptr, size);
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void _cmsFree<T>(Context? ContextID, T[]? array)
     {
         if (array is not null)
@@ -367,7 +367,7 @@ public static unsafe partial class Lcms2
         return ptr.DupPtr(ContextID, Org, size, type);
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static T[] _cmsDupMem<T>(Context? ContextID, ReadOnlySpan<T> Org, uint num) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
