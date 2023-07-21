@@ -393,124 +393,124 @@ public static unsafe partial class Lcms2
     internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org) where T : struct =>
         (T**)_cmsDupMem(ContextID, Org, _sizeof<nint>(), typeof(T*));
 
-    internal static SubAllocator.Chunk? _cmsCreateSubAllocChunk(Context? ContextID, uint Initial)
-    {
-        // 20K by default
-        if (Initial is 0)
-            Initial = 20 * 1024;
+    //internal static SubAllocator.Chunk? _cmsCreateSubAllocChunk(Context? ContextID, uint Initial)
+    //{
+    //    // 20K by default
+    //    if (Initial is 0)
+    //        Initial = 20 * 1024;
 
-        // Create the container
-        var chunk = new SubAllocator.Chunk();
-        //if (chunk is null) return null;
+    //    // Create the container
+    //    var chunk = new SubAllocator.Chunk();
+    //    //if (chunk is null) return null;
 
-        // Initialize values
-        chunk.Block = (byte*)_cmsMalloc(ContextID, Initial, typeof(byte));
-        if (chunk.Block is null)
-        {
-            // Something went wrong
-            //_cmsFree(ContextID, chunk);
-            return null;
-        }
+    //    // Initialize values
+    //    chunk.Block = (byte*)_cmsMalloc(ContextID, Initial, typeof(byte));
+    //    if (chunk.Block is null)
+    //    {
+    //        // Something went wrong
+    //        //_cmsFree(ContextID, chunk);
+    //        return null;
+    //    }
 
-        chunk.BlockSize = Initial;
-        chunk.Used = 0;
-        chunk.next = null;
+    //    chunk.BlockSize = Initial;
+    //    chunk.Used = 0;
+    //    chunk.next = null;
 
-        return chunk;
-    }
+    //    return chunk;
+    //}
 
-    internal static SubAllocator? _cmsCreateSubAlloc(Context? ContextID, uint Initial)
-    {
-        // Create the container
-        var sub = new SubAllocator();
-        if (sub is null) return null;
+    //internal static SubAllocator? _cmsCreateSubAlloc(Context? ContextID, uint Initial)
+    //{
+    //    // Create the container
+    //    var sub = new SubAllocator();
+    //    if (sub is null) return null;
 
-        sub.ContextID = ContextID;
+    //    sub.ContextID = ContextID;
 
-        sub.h = _cmsCreateSubAllocChunk(ContextID, Initial);
-        if (sub.h is null)
-        {
-            //_cmsFree(ContextID, sub);
-            return null;
-        }
+    //    sub.h = _cmsCreateSubAllocChunk(ContextID, Initial);
+    //    if (sub.h is null)
+    //    {
+    //        //_cmsFree(ContextID, sub);
+    //        return null;
+    //    }
 
-        return sub;
-    }
+    //    return sub;
+    //}
 
-    internal static void _cmsSubAllocDestroy(SubAllocator sub)
-    {
-        SubAllocator.Chunk? n;
+    //internal static void _cmsSubAllocDestroy(SubAllocator sub)
+    //{
+    //    SubAllocator.Chunk? n;
 
-        for (var chunk = sub.h; chunk is not null; chunk = n)
-        {
-            n = chunk.next;
-            if (chunk.Block is not null) _cmsFree(sub.ContextID, chunk.Block);
-            //_cmsFree(sub.ContextID, chunk);
-        }
+    //    for (var chunk = sub.h; chunk is not null; chunk = n)
+    //    {
+    //        n = chunk.next;
+    //        if (chunk.Block is not null) _cmsFree(sub.ContextID, chunk.Block);
+    //        //_cmsFree(sub.ContextID, chunk);
+    //    }
 
-        // Free the header
-        //_cmsFree(sub.ContextID, sub);
-    }
+    //    // Free the header
+    //    //_cmsFree(sub.ContextID, sub);
+    //}
 
-    internal static T* _cmsSubAlloc<T>(SubAllocator sub) where T : struct =>
-        (T*)_cmsSubAlloc(sub, _sizeof<T>());
+    //internal static T* _cmsSubAlloc<T>(SubAllocator sub) where T : struct =>
+    //    (T*)_cmsSubAlloc(sub, _sizeof<T>());
 
-    internal static T** _cmsSubAlloc2<T>(SubAllocator sub) =>
-        (T**)_cmsSubAlloc<nint>(sub);
+    //internal static T** _cmsSubAlloc2<T>(SubAllocator sub) =>
+    //    (T**)_cmsSubAlloc<nint>(sub);
 
-    internal static void* _cmsSubAlloc(SubAllocator sub, int size) =>
-        _cmsSubAlloc(sub, (uint)size);
+    //internal static void* _cmsSubAlloc(SubAllocator sub, int size) =>
+    //    _cmsSubAlloc(sub, (uint)size);
 
-    internal static void* _cmsSubAlloc(SubAllocator sub, uint size)
-    {
-        var Free = sub.h.BlockSize - sub.h.Used;
+    //internal static void* _cmsSubAlloc(SubAllocator sub, uint size)
+    //{
+    //    var Free = sub.h.BlockSize - sub.h.Used;
 
-        size = _cmsALIGNMEM(size);
+    //    size = _cmsALIGNMEM(size);
 
-        // Check for memory. If there is no room, allocate a new chunk of double memory size.
-        if (size > Free)
-        {
-            var newSize = sub.h.BlockSize * 2;
-            if (newSize < size) newSize = size;
+    //    // Check for memory. If there is no room, allocate a new chunk of double memory size.
+    //    if (size > Free)
+    //    {
+    //        var newSize = sub.h.BlockSize * 2;
+    //        if (newSize < size) newSize = size;
 
-            var chunk = _cmsCreateSubAllocChunk(sub.ContextID, newSize);
-            if (chunk is null) return null;
+    //        var chunk = _cmsCreateSubAllocChunk(sub.ContextID, newSize);
+    //        if (chunk is null) return null;
 
-            // Link list
-            chunk.next = sub.h;
-            sub.h = chunk;
-        }
+    //        // Link list
+    //        chunk.next = sub.h;
+    //        sub.h = chunk;
+    //    }
 
-        var ptr = sub.h.Block + sub.h.Used;
-        sub.h.Used += size;
+    //    var ptr = sub.h.Block + sub.h.Used;
+    //    sub.h.Used += size;
 
-        return ptr;
-    }
+    //    return ptr;
+    //}
 
-    internal static T* _cmsSubAllocDup<T>(SubAllocator s, in void* ptr) where T : struct =>
-        (T*)_cmsSubAllocDup(s, ptr, _sizeof<T>());
+    //internal static T* _cmsSubAllocDup<T>(SubAllocator s, in void* ptr) where T : struct =>
+    //    (T*)_cmsSubAllocDup(s, ptr, _sizeof<T>());
 
-    internal static T** _cmsSubAllocDup2<T>(SubAllocator s, in void* ptr) where T : struct =>
-        (T**)_cmsSubAllocDup<nint>(s, ptr);
+    //internal static T** _cmsSubAllocDup2<T>(SubAllocator s, in void* ptr) where T : struct =>
+    //    (T**)_cmsSubAllocDup<nint>(s, ptr);
 
-    internal static void* _cmsSubAllocDup(SubAllocator s, in void* ptr, int size) =>
-        _cmsSubAllocDup(s, ptr, (uint)size);
+    //internal static void* _cmsSubAllocDup(SubAllocator s, in void* ptr, int size) =>
+    //    _cmsSubAllocDup(s, ptr, (uint)size);
 
-    internal static void* _cmsSubAllocDup(SubAllocator s, in void* ptr, uint size)
-    {
-        // Dup of null pointer is also NULL
-        if (ptr is null)
-            return null;
+    //internal static void* _cmsSubAllocDup(SubAllocator s, in void* ptr, uint size)
+    //{
+    //    // Dup of null pointer is also NULL
+    //    if (ptr is null)
+    //        return null;
 
-        var NewPtr = _cmsSubAlloc(s, size);
+    //    var NewPtr = _cmsSubAlloc(s, size);
 
-        if (ptr is not null && NewPtr is not null)
-        {
-            memcpy(NewPtr, ptr, size);
-        }
+    //    if (ptr is not null && NewPtr is not null)
+    //    {
+    //        memcpy(NewPtr, ptr, size);
+    //    }
 
-        return NewPtr;
-    }
+    //    return NewPtr;
+    //}
 
     private static readonly LogErrorChunkType LogErrorChunk = new();
 

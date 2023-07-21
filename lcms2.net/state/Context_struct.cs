@@ -35,7 +35,6 @@ public class Context
 {
     internal Context? Next;
     private readonly List<object> BufferPools = new();
-    internal SubAllocator MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;
     internal LogErrorChunkType ErrorLogger;

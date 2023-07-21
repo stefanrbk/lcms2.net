@@ -433,29 +433,29 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static T* _cmsPluginMalloc<T>(Context? ContextID) where T : struct =>
-        (T*)_cmsPluginMalloc(ContextID, _sizeof<T>());
+    //internal static T* _cmsPluginMalloc<T>(Context? ContextID) where T : struct =>
+    //    (T*)_cmsPluginMalloc(ContextID, _sizeof<T>());
 
-    internal static void* _cmsPluginMalloc(Context? ContextID, uint size)
-    {
-        var ctx = _cmsGetContext(ContextID);
+    //internal static void* _cmsPluginMalloc(Context? ContextID, uint size)
+    //{
+    //    var ctx = _cmsGetContext(ContextID);
 
-        if (ctx.MemPool is null)
-        {
-            if (ContextID is null)
-            {
-                ctx.MemPool = _cmsCreateSubAlloc(null, 2 * 1024);
-                if (ctx.MemPool is null) return null;
-            }
-            else
-            {
-                cmsSignalError(ContextID, ErrorCode.CorruptionDetected, "NULL memory pool on context");
-                return null;
-            }
-        }
+    //    if (ctx.MemPool is null)
+    //    {
+    //        if (ContextID is null)
+    //        {
+    //            ctx.MemPool = _cmsCreateSubAlloc(null, 2 * 1024);
+    //            if (ctx.MemPool is null) return null;
+    //        }
+    //        else
+    //        {
+    //            cmsSignalError(ContextID, ErrorCode.CorruptionDetected, "NULL memory pool on context");
+    //            return null;
+    //        }
+    //    }
 
-        return _cmsSubAlloc(ctx.MemPool, size);
-    }
+    //    return _cmsSubAlloc(ctx.MemPool, size);
+    //}
 
     public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
@@ -710,12 +710,12 @@ public static unsafe partial class Lcms2
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
-        if (ctx.MemPool is null)
-        {
-            cmsDeleteContext(ctx);
-            return null;
-        }
+        //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
+        //if (ctx.MemPool is null)
+        //{
+        //    cmsDeleteContext(ctx);
+        //    return null;
+        //}
 
         AllocChunks(ctx, null);
 
@@ -783,12 +783,12 @@ public static unsafe partial class Lcms2
         ctx.UserData = userData;
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
-        if (ctx.MemPool is null)
-        {
-            cmsDeleteContext(ctx);
-            return null;
-        }
+        //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
+        //if (ctx.MemPool is null)
+        //{
+        //    cmsDeleteContext(ctx);
+        //    return null;
+        //}
 
         // Allocate all required chunks.
         AllocChunks(ctx, src, true);
@@ -839,9 +839,9 @@ public static unsafe partial class Lcms2
         cmsUnregisterPluginsTHR(ctx);
 
         // Since all memory is allocated in the private pool, all we need to do is destroy the pool
-        if (ctx.MemPool is not null)
-            _cmsSubAllocDestroy(ctx.MemPool);
-        ctx.MemPool = null;
+        //if (ctx.MemPool is not null)
+        //    _cmsSubAllocDestroy(ctx.MemPool);
+        //ctx.MemPool = null;
 
         // Maintain list
         lock (contextPoolHeadMutex)
