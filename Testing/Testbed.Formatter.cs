@@ -28,6 +28,8 @@
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
@@ -70,7 +72,7 @@ internal static unsafe partial class Testbed
 
         if (f.Fmt16 is null || b.Fmt16 is null)
         {
-            Fail($"no formatter for {Text}");
+            logger.LogWarning("no formatter for {Text}", Text);
             FormatterFailed = true;
 
             // Useful for debug
@@ -103,7 +105,7 @@ internal static unsafe partial class Testbed
 
                 if (Values[i] != i + j)
                 {
-                    Fail($"{Text} failed");
+                    logger.LogWarning("{Text} failed on channel {channel}. Expected {Expected} but found {Actual}", Text, i, i+j, Values[i]);
                     FormatterFailed = true;
 
                     // Useful for debug
@@ -142,7 +144,7 @@ internal static unsafe partial class Testbed
 
         if (f.Fmt16 is null || b.Fmt16 is null)
         {
-            Fail($"no formatter for {Text}");
+            logger.LogWarning("no formatter for {Text}", Text);
             FormatterFailed = true;
 
             // Useful for debug
@@ -169,7 +171,7 @@ internal static unsafe partial class Testbed
 
                 if (delta > 1e-9)
                 {
-                    Fail($"{Text} failed");
+                    logger.LogWarning("{Text} failed on channel {channel}. Expected {Expected} but found {Actual}, a difference of {Delta}", Text, i, (float)i+j, Values[i], delta);
                     FormatterFailed = true;
 
                     // Useful for debug
@@ -398,8 +400,10 @@ internal static unsafe partial class Testbed
         return !FormatterFailed;
     }
 
+#pragma warning disable CS1718 // Comparison made to same variable
     private static bool my_isfinite(float x) =>
         x != x;
+#pragma warning restore CS1718 // Comparison made to same variable
 
     public static bool CheckFormattersHalf()
     {
@@ -413,7 +417,7 @@ internal static unsafe partial class Testbed
 
                 if (i != j)
                 {
-                    Fail($"{i} != {j} in Half float support!\n");
+                    logger.LogWarning("{i} != {j} in Half float support!", i, j);
                     return false;
                 }
             }

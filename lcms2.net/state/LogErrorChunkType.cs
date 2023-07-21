@@ -25,16 +25,33 @@
 //---------------------------------------------------------------------------------
 //
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.state;
 
-internal class LogErrorChunkType : IDup
+internal class LogErrorChunkType(ILoggerFactory? factory = null) : IDup
 {
-    public LogErrorHandlerFunction LogErrorHandler;
+    private ILoggerFactory factory = factory ?? DefaultLogErrorHandlerFunction();
+
+    public ILoggerFactory Factory
+    {
+        get => factory; set
+        {
+            factory = value;
+            FactoryChanged?.Invoke(this, new(value));
+        }
+    }
+
+    internal event EventHandler<FactoryChangedEventArgs> FactoryChanged;
 
     public object? Dup(Context ctx)
     {
         _cmsAssert(ctx);
 
-        return new LogErrorChunkType() { LogErrorHandler = LogErrorHandler };
+        return new LogErrorChunkType() { Factory = Factory };
     }
+}
+internal class FactoryChangedEventArgs(ILoggerFactory factory)
+{
+    public ILoggerFactory Factory = factory;
 }

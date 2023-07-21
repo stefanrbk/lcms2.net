@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
@@ -56,13 +58,14 @@ internal static unsafe partial class Testbed
             _cmsQuickFloor(-1.234) is not -2 ||
             _cmsQuickFloor(-32767.1) is not -32768)
         {
-            Die("""
+            GetLogger(null).LogError("""
 
                 OOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!
 
                 Please use the "(No Fast Floor)" configuration toggles.
 
                 """);
+            Die();
             return false;
         }
         return true;
@@ -74,13 +77,14 @@ internal static unsafe partial class Testbed
         {
             if (_cmsQuickFloorWord(i + 0.1234) != i)
             {
-                Die("""
+                GetLogger(null).LogError("""
 
                     OOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!
 
                     Please use the "(No Fast Floor)" configuration toggles.
 
                     """);
+                Die();
                 return false;
             }
         }
@@ -147,7 +151,10 @@ internal static unsafe partial class Testbed
         var euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
 
         if (euc > 1E-5)
-            return Fail($"D50 roundtrip |err| > ({euc}) ");
+        {
+            logger.LogWarning("D50 roundtrip |err| > ({euc})", euc);
+            return false;
+        }
 
         xe = _cmsDoubleTo15Fixed16(d50x2);
         ye = _cmsDoubleTo15Fixed16(d50y2);
@@ -164,7 +171,10 @@ internal static unsafe partial class Testbed
         euc = Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
 
         if (euc > 1E-5)
-            return Fail($"D50 roundtrip |err| > ({euc}) ");
+        {
+            logger.LogWarning("D50 roundtrip |err| > ({euc})", euc);
+            return false;
+        }
 
         return true;
     }

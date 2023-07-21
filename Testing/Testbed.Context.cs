@@ -28,6 +28,9 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace lcms2.testbed;
@@ -141,6 +144,11 @@ public static bool CheckAllocContext()
         var c3 = DupContext(c1, null);
         var c4 = DupContext(c2, null);
 
+        cmsGetContextUserData(c1) = 1;
+        cmsGetContextUserData(c2) = 2;
+        cmsGetContextUserData(c3) = 3;
+        cmsGetContextUserData(c4) = 4;
+
         cmsDeleteContext(c1);   // Should be deleted by using normal malloc
         cmsDeleteContext(c2);   // Should be deleted by using debug malloc
         cmsDeleteContext(c3);   // Should be deleted by using normal malloc
@@ -174,7 +182,10 @@ public static bool CheckAllocContext()
         cmsDeleteContext(c3);
 
         if (!rc)
-            return Fail("Creation of user data failed");
+        {
+            logger.LogWarning("Creation of user data failed");
+            return false;
+        }
 
         // Back to create 3 levels of inheritance
         c1 = cmsCreateContext(null, a);
@@ -191,7 +202,10 @@ public static bool CheckAllocContext()
         cmsDeleteContext(c3);
 
         if (!rc)
-            return Fail("Modification of user data failed");
+        {
+            logger.LogWarning("Modification of user data failed");
+            return false;
+        }
 
         return true;
     }
@@ -215,7 +229,7 @@ public static bool CheckAllocContext()
         {
             if (values[i] != codes[i])
             {
-                Fail($"Bad alarm code #{i}: {values[i]} != {codes[i]}");
+                logger.LogWarning("Bad alarm code #{i}: {value} != {code}", i, values[i], codes[i]);
                 rc = false;
                 break;
             }
@@ -249,7 +263,10 @@ public static bool CheckAllocContext()
         var old2 = cmsSetAdaptationStateTHR(null, -1);
 
         if (old1 != old2)
-            return Fail("Adaptation state has changed");
+        {
+            logger.LogWarning("Adaptation state has changed");
+            return false;
+        }
 
         return rc;
     }
@@ -265,7 +282,7 @@ public static bool CheckAllocContext()
         Context? ctx = WatchDogContext(null);
         if (ctx == null)
         {
-            Fail("Cannot create context");
+            logger.LogWarning("Cannot create context");
             goto Error;
         }
 
@@ -274,14 +291,14 @@ public static bool CheckAllocContext()
         cpy = DupContext(ctx, null);
         if (cpy == null)
         {
-            Fail("Cannot create context (2)");
+            logger.LogWarning("Cannot create context (2)");
             goto Error;
         }
 
         Sampled1D = cmsBuildTabulatedToneCurveFloat(cpy, 11, tab);
         if (Sampled1D == null)
         {
-            Fail("Cannot create tone curve (1)");
+            logger.LogWarning("Cannot create tone curve (1)");
             goto Error;
         }
 
@@ -299,7 +316,7 @@ public static bool CheckAllocContext()
         Sampled1D = cmsBuildTabulatedToneCurveFloat(null, 11, tab);
         if (Sampled1D == null)
         {
-            Fail("Cannot create tone curve (2)");
+            logger.LogWarning("Cannot create tone curve (2)");
             goto Error;
         }
 
@@ -344,7 +361,7 @@ public static bool CheckAllocContext()
         ctx = WatchDogContext(null);
         if (ctx == null)
         {
-            Fail("Cannot create context");
+            logger.LogWarning("Cannot create context");
             return false;
         }
 
@@ -718,21 +735,21 @@ public static bool CheckAllocContext()
         h = cmsCreateProfilePlaceholder(cpy2);
         if (h == null)
         {
-            Fail("Create placeholder failed");
+            logger.LogWarning("Create placeholder failed");
             goto Error;
         }
 
 
         if (!cmsWriteTag(h, SigInt, new Box<uint>(myTag)))
         {
-            Fail("Plug-in failed");
+            logger.LogWarning("Plug-in failed");
             goto Error;
         }
 
         rc = cmsSaveProfileToMem(h, null, &clen);
         if (!rc)
         {
-            Fail("Fetch mem size failed");
+            logger.LogWarning("Fetch mem size failed");
             goto Error;
         }
 
@@ -748,17 +765,17 @@ public static bool CheckAllocContext()
         rc = cmsSaveProfileToMem(h, data, &clen);
         if (!rc)
         {
-            Fail("Save to mem failed");
+            logger.LogWarning("Save to mem failed");
             goto Error;
         }
 
         cmsCloseProfile(h);
 
-        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        cmsSetLogErrorHandler(BuildNullLogger());
         h = cmsOpenProfileFromMem(data, clen);
         if (h == null)
         {
-            Fail("Open profile failed");
+            logger.LogWarning("Open profile failed");
             goto Error;
         }
 
@@ -766,17 +783,17 @@ public static bool CheckAllocContext()
         if (ptr != null)
         {
 
-            Fail("read tag/context switching failed");
+            logger.LogWarning("read tag/context switching failed");
             goto Error;
         }
 
         cmsCloseProfile(h);
-        ResetFatalError();
+        cmsSetLogErrorHandler(BuildDebugLogger());
 
         h = cmsOpenProfileFromMemTHR(cpy2, data, clen);
         if (h == null)
         {
-            Fail("Open profile from mem failed");
+            logger.LogWarning("Open profile from mem failed");
             goto Error;
         }
 
@@ -786,7 +803,7 @@ public static bool CheckAllocContext()
         ptr = cmsReadTag(h, SigInt) as Box<uint>;
         if (ptr == null)
         {
-            Fail("Read tag/conext switching failed (2)");
+            logger.LogWarning("Read tag/conext switching failed (2)");
             return false;
         }
 
@@ -872,7 +889,7 @@ public static bool CheckAllocContext()
         h = cmsCreateProfilePlaceholder(cpy2);
         if (h == null)
         {
-            Fail("Create placeholder failed");
+            logger.LogWarning("Create placeholder failed");
             goto Error;
         }
 
@@ -889,13 +906,13 @@ public static bool CheckAllocContext()
 
         if (!rc)
         {
-            Fail("Pipeline failed");
+            logger.LogWarning("Pipeline failed");
             goto Error;
         }
 
         if (!cmsWriteTag(h, cmsSigDToB3Tag, pipe))
         {
-            Fail("Plug-in failed");
+            logger.LogWarning("Plug-in failed");
             goto Error;
         }
 
@@ -905,7 +922,7 @@ public static bool CheckAllocContext()
         rc = cmsSaveProfileToMem(h, null, &clen);
         if (!rc)
         {
-            Fail("Fetch mem size failed");
+            logger.LogWarning("Fetch mem size failed");
             goto Error;
         }
 
@@ -913,7 +930,7 @@ public static bool CheckAllocContext()
         data = new byte[(int)clen];
         if (data == null)
         {
-            Fail("malloc failed ?!?");
+            logger.LogWarning("malloc failed ?!?");
             goto Error;
         }
 
@@ -921,18 +938,17 @@ public static bool CheckAllocContext()
         rc = cmsSaveProfileToMem(h, data, &clen);
         if (!rc)
         {
-            Fail("Save to mem failed");
+            logger.LogWarning("Save to mem failed");
             goto Error;
         }
 
         cmsCloseProfile(h);
 
-
-        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        cmsSetLogErrorHandler(BuildNullLogger());
         h = cmsOpenProfileFromMem(data, clen);
         if (h == null)
         {
-            Fail("Open profile failed");
+            logger.LogWarning("Open profile failed");
             goto Error;
         }
 
@@ -941,18 +957,18 @@ public static bool CheckAllocContext()
         {
 
             // Unsupported stage, should fail
-            Fail("read tag/context switching failed");
+            logger.LogWarning("read tag/context switching failed");
             goto Error;
         }
 
         cmsCloseProfile(h);
 
-        ResetFatalError();
+        cmsSetLogErrorHandler(BuildDebugLogger());
 
         h = cmsOpenProfileFromMemTHR(cpy2, data, clen);
         if (h == null)
         {
-            Fail("Open profile from mem failed");
+            logger.LogWarning("Open profile from mem failed");
             goto Error;
         }
 
@@ -962,7 +978,7 @@ public static bool CheckAllocContext()
         pipe = cmsReadTag(h, cmsSigDToB3Tag) as Pipeline;
         if (pipe == null)
         {
-            Fail("Read tag/conext switching failed (2)");
+            logger.LogWarning("Read tag/conext switching failed (2)");
             return false;
         }
 
@@ -1219,7 +1235,10 @@ public static bool CheckAllocContext()
         var mtx_ = mtx as Box<MyMtx>;
 
         if (mtx_?.Value.nlocks != 0)
-            Die("Locks != 0 when setting free a mutex");
+        {
+            GetLogger(id).LogError("Locks != 0 when setting free a mutex");
+            Die();
+        }
 
         //_cmsFree(id, mtx);
 

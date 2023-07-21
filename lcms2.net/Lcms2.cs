@@ -29,6 +29,8 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -41,6 +43,7 @@ public static unsafe partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
     internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
+    internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = new();
 
     #region lcms2.h
 
@@ -1083,7 +1086,7 @@ public static unsafe partial class Lcms2
         return (ushort)sizeof(T);
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* alloc(nuint size, Type type)
     {
         lock (AllocList)
@@ -1706,6 +1709,8 @@ public static unsafe partial class Lcms2
                         if (ptr[i] is not 0x69)
                             throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
                     }
+
+                    NativeMemory.Free(ptr);
                 }
                 else
                 {
@@ -1715,12 +1720,22 @@ public static unsafe partial class Lcms2
                             throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
                     }
                 }
-
-                NativeMemory.Free(ptr);
             }
-            var tempList = AllocList.Where(kvp => kvp.Value.freed).ToArray();
-            foreach (var kvp in tempList)
+            foreach (var kvp in AllocList.Where(kvp => kvp.Value.freed).ToArray())
                 AllocList.Remove(kvp.Key);
         }
+    }
+
+    [DebuggerStepThrough]
+    internal static ILogger GetLogger(Context? context)
+    {
+        context = _cmsGetContext(context);
+
+        if (loggers.TryGetValue(context.ErrorLogger, out var logger))
+            return logger;
+
+        logger = context.ErrorLogger.Factory.CreateLogger("Lcms2");
+        loggers.Add(context.ErrorLogger, logger);
+        return logger;
     }
 }

@@ -28,6 +28,8 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -233,7 +235,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* _cmsMalloc(Context? ContextID, uint size, Type type)
     {
         var ptr = _cmsGetContext(ContextID).MemPlugin;
@@ -325,7 +327,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void _cmsFree(Context? ContextID, void* Ptr)
     {
         if (Ptr is not null)
@@ -510,12 +512,12 @@ public static unsafe partial class Lcms2
         return NewPtr;
     }
 
-    private static readonly LogErrorChunkType LogErrorChunk = new() { LogErrorHandler = DefaultLogErrorHandlerFunction };
+    private static readonly LogErrorChunkType LogErrorChunk = new();
 
     /// <summary>
     ///     Global context storage
     /// </summary>
-    private static readonly LogErrorChunkType globalLogErrorChunk = new() { LogErrorHandler = DefaultLogErrorHandlerFunction };
+    private static readonly LogErrorChunkType globalLogErrorChunk = new();
 
     /// <summary>
     ///     "Allocates" and inits error logger container for a given context.
@@ -538,31 +540,35 @@ public static unsafe partial class Lcms2
         //    AllocPluginChunk(ctx, src, Chunks.Logger, @default);
     }
 
-    private static void DefaultLogErrorHandlerFunction(Context? _, ErrorCode ErrorCode, string Text)
+    internal static ILoggerFactory DefaultLogErrorHandlerFunction()
     {
-#if DEBUG
-        Console.Error.WriteLine($"[lcms ErrorCode.{Enum.GetName(ErrorCode)}]: {Text}");
-#endif
+        return LoggerFactory.Create(builder =>
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("lcms2", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Error)
+                .AddConsole());
     }
 
     /// <summary>
     ///     Change error logger, context based
     /// </summary>
-    public static void cmsSetLogErrorHandlerTHR(Context? context, LogErrorHandlerFunction Fn)
+    public static void cmsSetLogErrorHandlerTHR(Context? context, ILoggerFactory? factory)
     {
         var lhg = _cmsGetContext(context)?.ErrorLogger;
 
         if (lhg is not null)
         {
-            lhg.LogErrorHandler = Fn ?? DefaultLogErrorHandlerFunction;
+            lhg.Factory = factory ?? DefaultLogErrorHandlerFunction();
         }
     }
 
     /// <summary>
     ///     Change error logger, legacy
     /// </summary>
-    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction? Fn) =>
-        cmsSetLogErrorHandlerTHR(null, Fn);
+    public static void cmsSetLogErrorHandler(ILoggerFactory? factory) =>
+        cmsSetLogErrorHandlerTHR(null, factory);
 
     /// <summary>
     ///     Log an error
@@ -571,12 +577,12 @@ public static unsafe partial class Lcms2
     public static void cmsSignalError(Context? ContextID, ErrorCode errorCode, string text, params object?[] args)
     {
         // Check for the context, if specified go there. If not, go for the global
-        var lhg = _cmsGetContext(ContextID).ErrorLogger;
+        var lhg = GetLogger(ContextID);
         text = String.Format(text, args);
         if (text.Length > MaxErrorMessageLen)
             text = text.Remove(MaxErrorMessageLen);
-        
-        lhg?.LogErrorHandler(ContextID, errorCode, text);
+
+        lhg.LogError("[lcms ErrorCode.{ErrorCode}]: {ErrorText}", Enum.GetName(errorCode), text);
     }
 
     /// <summary>

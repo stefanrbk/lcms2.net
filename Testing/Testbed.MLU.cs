@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Text;
 
 namespace lcms2.testbed;
@@ -67,21 +69,21 @@ internal static unsafe partial class Testbed
         cmsMLUgetASCII(mlu, enLang, us, Buffer);
         if (strcmp(Buffer[..Encoding.ASCII.GetByteCount(enHello)], Encoding.ASCII.GetBytes(enHello)) is not 0)
         {
-            Fail($"Unexpected string '{enHello}' but found '{Encoding.ASCII.GetString(Buffer)}'");
+            logger.LogWarning("Unexpected string '{Expected}' but found '{Actual}'", enHello, Encoding.ASCII.GetString(Buffer));
             rc = false;
         }
 
         cmsMLUgetASCII(mlu, esLang, es, Buffer);
         if (strcmp(Buffer[..Encoding.ASCII.GetByteCount(esHello)], Encoding.ASCII.GetBytes(esHello)) is not 0)
         {
-            Fail($"Unexpected string '{esHello}' but found '{Encoding.ASCII.GetString(Buffer)}'");
+            logger.LogWarning("Unexpected string '{Expected}' but found '{Actual}'", esHello, Encoding.ASCII.GetString(Buffer));
             rc = false;
         }
 
         cmsMLUgetASCII(mlu, frLang, fr, Buffer);
         if (strcmp(Buffer[..Encoding.ASCII.GetByteCount(frHello)], Encoding.ASCII.GetBytes(frHello)) is not 0)
         {
-            Fail($"Unexpected string '{frHello}' but found '{Encoding.ASCII.GetString(Buffer)}'");
+            logger.LogWarning("Unexpected string '{Expected}' but found '{Actual}'", frHello, Encoding.ASCII.GetString(Buffer));
             rc = false;
         }
 
@@ -130,7 +132,7 @@ internal static unsafe partial class Testbed
         }
 
         if (!rc)
-            Fail($"Unexpected string '{Encoding.ASCII.GetString(Buffer)}' but found '{Encoding.ASCII.GetString(Buffer2)}'");
+            logger.LogWarning("Unexpected string '{Expected}' but found '{Actual}'", Encoding.ASCII.GetString(Buffer), Encoding.ASCII.GetString(Buffer2));
 
         // Check profile IO
 
@@ -146,7 +148,7 @@ internal static unsafe partial class Testbed
 
         if (cmsReadTag(h, cmsSigProfileDescriptionTag) is not Mlu mlu3)
         {
-            Fail("Profile didn't get the MLU\n");
+            logger.LogWarning("Profile didn't get the MLU");
             rc = false;
             goto Error;
         }
@@ -166,7 +168,7 @@ internal static unsafe partial class Testbed
         }
 
         if (!rc)
-            Fail($"Unexpected string '{Encoding.ASCII.GetString(Buffer)}' but found '{Encoding.ASCII.GetString(Buffer2)}'");
+            logger.LogWarning("Unexpected string '{Expected}' but found '{Actual}'", Encoding.ASCII.GetString(Buffer), Encoding.ASCII.GetString(Buffer2));
 
         Error:
 
@@ -216,15 +218,15 @@ internal static unsafe partial class Testbed
 
             for (j = 0; j < 3; j++)
             {
-                if (CheckPCS[j] != PCS[j]) { rc = Fail("Invalid PCS"); goto Error; }
+                if (CheckPCS[j] != PCS[j]) { rc = false; logger.LogWarning("Invalid PCS"); goto Error; }
             }
 
             for (j = 0; j < 4; j++)
             {
-                if (CheckColorant[j] != Colorant[j]) { rc = Fail("Invalid Colorant"); goto Error; };
+                if (CheckColorant[j] != Colorant[j]) { rc = false;logger.LogWarning("Invalid Colorant"); goto Error; };
             }
 
-            if (strcmp(Name, CheckName) != 0) { rc = Fail("Invalid Name"); goto Error; };
+            if (strcmp(Name, CheckName) != 0) { rc = false;logger.LogWarning("Invalid Name"); goto Error; };
         }
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "w");
@@ -237,10 +239,10 @@ internal static unsafe partial class Testbed
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "r");
         nc2 = (cmsReadTag(h, cmsSigNamedColor2Tag) is NamedColorList box) ? box : null;
 
-        if (cmsNamedColorCount(nc2) != 4096) { rc = Fail("Invalid count"); goto Error; }
+        if (cmsNamedColorCount(nc2) != 4096) { rc = false;logger.LogWarning("Invalid count"); goto Error; }
 
         i = cmsNamedColorIndex(nc2, "#123"u8);
-        if (i != 123) { rc = Fail("Invalid index"); goto Error; }
+        if (i != 123) { rc = false;logger.LogWarning("Invalid index"); goto Error; }
 
 
         for (i = 0; i < 4096; i++)
@@ -255,15 +257,15 @@ internal static unsafe partial class Testbed
 
             for (j = 0; j < 3; j++)
             {
-                if (CheckPCS[j] != PCS[j]) { rc = Fail("Invalid PCS"); goto Error; }
+                if (CheckPCS[j] != PCS[j]) { rc = false;logger.LogWarning("Invalid PCS"); goto Error; }
             }
 
             for (j = 0; j < 4; j++)
             {
-                if (CheckColorant[j] != Colorant[j]) { rc = Fail("Invalid Colorant"); goto Error; };
+                if (CheckColorant[j] != Colorant[j]) { rc = false;logger.LogWarning("Invalid Colorant"); goto Error; };
             }
 
-            if (strcmp(Name, CheckName) != 0) { rc = Fail("Invalid Name"); goto Error; };
+            if (strcmp(Name, CheckName) != 0) { rc = false;logger.LogWarning("Invalid Name"); goto Error; };
         }
 
         cmsCloseProfile(h);

@@ -42,12 +42,7 @@ public static unsafe partial class Lcms2
     private static readonly object contextPoolHeadMutex = new();
     private static Context? contextPoolHead;
 
-    private static readonly Context globalContext = new()
-    {
-        DefaultMemoryManager = default,
-        MemPool = null,
-        Next = null
-    };
+    private static readonly Context globalContext;
 
     [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
@@ -731,7 +726,26 @@ public static unsafe partial class Lcms2
             return null;
         }
 
+        ctx.ErrorLogger.FactoryChanged += ErrorLogger_FactoryChanged;
+
         return ctx;
+    }
+
+    private static void ErrorLogger_FactoryChanged(object? sender, FactoryChangedEventArgs e)
+    {
+        if (sender is LogErrorChunkType logChunk)
+        {
+            if (loggers.TryGetValue(logChunk, out var logger))
+            {
+                loggers[logChunk] = logChunk.Factory.CreateLogger("Lcms2");
+            }
+            else
+            {
+                logger = logChunk.Factory.CreateLogger("Lcms2");
+                loggers.Add(logChunk, logger);
+
+            }
+        }
     }
 
     /// <summary>

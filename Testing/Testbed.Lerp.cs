@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Text;
 
 namespace lcms2.testbed;
@@ -77,7 +79,7 @@ internal static unsafe partial class Testbed
 
             if (Math.Abs(@out - @in) > maxErr)
             {
-                Fail($"({numNodesToCheck}): Must be {@in}, but was {@out} : ");
+                logger.LogWarning("({numNodesToCheck}): Must be {in}, but was {out}", numNodesToCheck, @in, @out);
                 _cmsFreeInterpParams(p);
                 //free(tab);
                 return false;
@@ -173,7 +175,7 @@ internal static unsafe partial class Testbed
 
             var errors = sb.ToString();
             if (!String.IsNullOrEmpty(errors))
-                ErrorWriteLine($"{{red:{errors}}}");
+                logger.LogWarning("{errors}", errors);
         }
         return rc;
     }
@@ -232,7 +234,7 @@ internal static unsafe partial class Testbed
 
             var errors = sb.ToString();
             if (!String.IsNullOrEmpty(errors))
-                ErrorWriteLine($"{{red:{errors}}}");
+                logger.LogWarning("{errors}", errors);
         }
         return rc;
     }
@@ -291,7 +293,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
 
         _cmsFreeInterpParams(p);
         return true;
@@ -354,7 +356,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -416,7 +418,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -478,7 +480,7 @@ internal static unsafe partial class Testbed
         }
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
         return true;
     Error:
@@ -548,7 +550,7 @@ internal static unsafe partial class Testbed
         var errors = sb.ToString();
         var rc = String.IsNullOrEmpty(errors);
         if (HasConsole && !rc)
-            ErrorWriteLine($"{{red:{errors}}}");
+            logger.LogWarning("{errors}", errors);
 
         return rc;
     }
@@ -603,7 +605,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
 
         return Validate3DInterpolationValues(check, isGood);
@@ -659,7 +661,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
 
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
@@ -743,7 +745,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
     }
@@ -795,7 +797,7 @@ internal static unsafe partial class Testbed
         Task.WaitAll(tasks.ToArray());
 
         if (MaxErr > 0)
-            ConsoleWrite($"|Err|<{MaxErr} ");
+            logger.LogInformation("|Err|<{MaxErr}", MaxErr);
         _cmsFreeInterpParams(p);
         return Validate3DInterpolationValues(check, isGood);
     }
@@ -847,7 +849,7 @@ internal static unsafe partial class Testbed
         cmsPipelineEvalReverseFloat(target, result, null, lut);
         if (result[0] is not 0 || result[1] is not 0 || result[2] is not 0)
         {
-            Fail("Reverse interpolation didn't find zero");
+            logger.LogWarning("Reverse interpolation didn't find zero");
             goto Error;
         }
 
@@ -945,52 +947,57 @@ internal static unsafe partial class Testbed
         cmsPipelineInsertStage(lut, StageLoc.AtBegin, clut);
 
         // Check if the LUT is behaving as expected
-        SubTest("4->3 feasibility");
-        for (var i = 0; i <= 100; i++)
+        using (logger.BeginScope("4->3 feasibility"))
         {
-            target[0] = i / 100f;
-            target[1] = target[0];
-            target[2] = 0;
-            target[3] = 12;
+            for (var i = 0; i <= 100; i++)
+            {
+                target[0] = i / 100f;
+                target[1] = target[0];
+                target[2] = 0;
+                target[3] = 12;
 
-            cmsPipelineEvalFloat(target, result, lut);
+                cmsPipelineEvalFloat(target, result, lut);
 
-            if (!IsGoodFixed15_16("0", target[0], result[0])) goto Error;
-            if (!IsGoodFixed15_16("1", target[1], result[1])) goto Error;
-            if (!IsGoodFixed15_16("2", target[2], result[2])) goto Error;
+                if (!IsGoodFixed15_16("0", target[0], result[0])) goto Error;
+                if (!IsGoodFixed15_16("1", target[1], result[1])) goto Error;
+                if (!IsGoodFixed15_16("2", target[2], result[2])) goto Error;
+            }
         }
 
-        SubTest("4->3 zero");
-        target[0] = target[1] = target[2] = 0;
-
-        // This one holds the fixed k
-        target[3] = 0;
-
-        // This is our hint (which is a big lie in this case)
-        hint[0] = hint[1] = hint[2] = 0.1f;
-
-        cmsPipelineEvalReverseFloat(target, result, hint, lut);
-
-        if (result[0] is not 0 || result[1] is not 0 || result[2] is not 0 || result[3] is not 0)
+        using (logger.BeginScope("4->3 zero"))
         {
-            Fail("Reverse interpolation didn't find zero");
-            goto Error;
-        }
+            target[0] = target[1] = target[2] = 0;
 
-        SubTest("4->3 find CMY");
+            // This one holds the fixed k
+            target[3] = 0;
 
-        var max = 0f;
-        for (var i = 0; i <= 100; i++)
-        {
-            var @in = i / 100f;
+            // This is our hint (which is a big lie in this case)
+            hint[0] = hint[1] = hint[2] = 0.1f;
 
-            target[0] = @in; target[1] = 0; target[2] = 0;
             cmsPipelineEvalReverseFloat(target, result, hint, lut);
 
-            var err = MathF.Abs(@in - result[0]);
-            if (err > max) max = err;
+            if (result[0] is not 0 || result[1] is not 0 || result[2] is not 0 || result[3] is not 0)
+            {
+                logger.LogWarning("Reverse interpolation didn't find zero");
+                goto Error;
+            }
+        }
 
-            memcpy(hint, result, sizeof(float) * 4);
+        var max = 0f;
+        using (logger.BeginScope("4->3 find CMY"))
+        {
+            for (var i = 0; i <= 100; i++)
+            {
+                var @in = i / 100f;
+
+                target[0] = @in; target[1] = 0; target[2] = 0;
+                cmsPipelineEvalReverseFloat(target, result, hint, lut);
+
+                var err = MathF.Abs(@in - result[0]);
+                if (err > max) max = err;
+
+                memcpy(hint, result, sizeof(float) * 4);
+            }
         }
 
         cmsPipelineFree(lut);

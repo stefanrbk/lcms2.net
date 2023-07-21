@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -262,17 +264,19 @@ internal static unsafe partial class Testbed
 
     private static bool OneVirtual(Profile h, string SubTestTxt, string FileName)
     {
-        SubTest(SubTestTxt);
-        if (h is null) return false;
+        using (logger.BeginScope(SubTestTxt))
+        {
+            if (h is null) return false;
 
-        if (!cmsSaveProfileToFile(h, FileName)) return false;
-        cmsCloseProfile(h);
+            if (!cmsSaveProfileToFile(h, FileName)) return false;
+            cmsCloseProfile(h);
 
-        h = cmsOpenProfileFromFile(FileName, "r");
-        if (h is null) return false;
+            h = cmsOpenProfileFromFile(FileName, "r");
+            if (h is null) return false;
 
-        cmsCloseProfile(h);
-        return true;
+            cmsCloseProfile(h);
+            return true;
+        }
     }
 
     internal static bool CreateTestProfiles()
@@ -394,140 +398,155 @@ internal static unsafe partial class Testbed
         if (h == null) return false;
 
         cmsSetProfileVersion(h, 4.3);
-        if (cmsGetTagCount(h) != 0) { Fail("Empty profile with nonzero number of tags"); goto Error; }
-        if (cmsIsTag(h, cmsSigAToB0Tag)) { Fail("Found a tag in an empty profile"); goto Error; }
+        if (cmsGetTagCount(h) != 0) { logger.LogWarning("Empty profile with nonzero number of tags"); goto Error; }
+        if (cmsIsTag(h, cmsSigAToB0Tag)) { logger.LogWarning("Found a tag in an empty profile"); goto Error; }
 
         cmsSetColorSpace(h, cmsSigRgbData);
-        if (cmsGetColorSpace(h) != cmsSigRgbData) { Fail("Unable to set colorspace"); goto Error; }
+        if (cmsGetColorSpace(h) != cmsSigRgbData) { logger.LogWarning("Unable to set colorspace"); goto Error; }
 
         cmsSetPCS(h, cmsSigLabData);
-        if (cmsGetPCS(h) != cmsSigLabData) { Fail("Unable to set colorspace"); goto Error; }
+        if (cmsGetPCS(h) != cmsSigLabData) { logger.LogWarning("Unable to set colorspace"); goto Error; }
 
         cmsSetDeviceClass(h, cmsSigDisplayClass);
-        if (cmsGetDeviceClass(h) != cmsSigDisplayClass) { Fail("Unable to set deviceclass"); goto Error; }
+        if (cmsGetDeviceClass(h) != cmsSigDisplayClass) { logger.LogWarning("Unable to set deviceclass"); goto Error; }
 
         cmsSetHeaderRenderingIntent(h, INTENT_SATURATION);
-        if (cmsGetHeaderRenderingIntent(h) != INTENT_SATURATION) { Fail("Unable to set rendering intent"); goto Error; }
+        if (cmsGetHeaderRenderingIntent(h) != INTENT_SATURATION) { logger.LogWarning("Unable to set rendering intent"); goto Error; }
 
         for (Pass = 1; Pass <= 2 /*1*/; Pass++)
         {
 
-            SubTest("Tags holding XYZ");
+            using (logger.BeginScope("Tags holding XYZ"))
+            {
+                if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag)) goto Error;
+                if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag)) goto Error;
+                if (!CheckXYZ(Pass, h, cmsSigRedColorantTag)) goto Error;
+                if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag)) goto Error;
+                if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag)) goto Error;
+                if (!CheckXYZ(Pass, h, cmsSigLuminanceTag)) goto Error;
+            }
 
-            if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag)) goto Error;
-            if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag)) goto Error;
-            if (!CheckXYZ(Pass, h, cmsSigRedColorantTag)) goto Error;
-            if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag)) goto Error;
-            if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag)) goto Error;
-            if (!CheckXYZ(Pass, h, cmsSigLuminanceTag)) goto Error;
+            using (logger.BeginScope("Tags holding curves"))
+            {
+                if (!CheckGamma(Pass, h, cmsSigBlueTRCTag)) goto Error;
+                if (!CheckGamma(Pass, h, cmsSigGrayTRCTag)) goto Error;
+                if (!CheckGamma(Pass, h, cmsSigGreenTRCTag)) goto Error;
+                if (!CheckGamma(Pass, h, cmsSigRedTRCTag)) goto Error;
+            }
 
-            SubTest("Tags holding curves");
+            using (logger.BeginScope("Tags holding text"))
+            {
+                if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag)) goto Error;
+                if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag)) goto Error;
 
-            if (!CheckGamma(Pass, h, cmsSigBlueTRCTag)) goto Error;
-            if (!CheckGamma(Pass, h, cmsSigGrayTRCTag)) goto Error;
-            if (!CheckGamma(Pass, h, cmsSigGreenTRCTag)) goto Error;
-            if (!CheckGamma(Pass, h, cmsSigRedTRCTag)) goto Error;
+                if (!CheckText(Pass, h, cmsSigCopyrightTag)) goto Error;
+                if (!CheckText(Pass, h, cmsSigProfileDescriptionTag)) goto Error;
+                if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag)) goto Error;
+                if (!CheckText(Pass, h, cmsSigDeviceModelDescTag)) goto Error;
+                if (!CheckText(Pass, h, cmsSigViewingCondDescTag)) goto Error;
+            }
 
-            SubTest("Tags holding text");
+            using (logger.BeginScope("Tags holding cmsICCData"))
+            {
+                if (!CheckData(Pass, h, cmsSigPs2CRD0Tag)) goto Error;
+                if (!CheckData(Pass, h, cmsSigPs2CRD1Tag)) goto Error;
+                if (!CheckData(Pass, h, cmsSigPs2CRD2Tag)) goto Error;
+                if (!CheckData(Pass, h, cmsSigPs2CRD3Tag)) goto Error;
+                if (!CheckData(Pass, h, cmsSigPs2CSATag)) goto Error;
+                if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag)) goto Error;
+            }
 
-            if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag)) goto Error;
-            if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag)) goto Error;
+            using (logger.BeginScope("Tags holding signatures"))
+            {
+                if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag)) goto Error;
+                if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag)) goto Error;
+                if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag)) goto Error;
+                if (!CheckSignature(Pass, h, cmsSigTechnologyTag)) goto Error;
+            }
 
-            if (!CheckText(Pass, h, cmsSigCopyrightTag)) goto Error;
-            if (!CheckText(Pass, h, cmsSigProfileDescriptionTag)) goto Error;
-            if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag)) goto Error;
-            if (!CheckText(Pass, h, cmsSigDeviceModelDescTag)) goto Error;
-            if (!CheckText(Pass, h, cmsSigViewingCondDescTag)) goto Error;
+            using (logger.BeginScope("Tags holding date_time"))
+            {
 
+                if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag)) goto Error;
+                if (!CheckDateTime(Pass, h, cmsSigDateTimeTag)) goto Error;
+            }
 
+            using (logger.BeginScope("Tags holding named color lists"))
+            {
 
-            SubTest("Tags holding cmsICCData");
+                if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false)) goto Error;
+                if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false)) goto Error;
+                if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true)) goto Error;
+            }
 
-            if (!CheckData(Pass, h, cmsSigPs2CRD0Tag)) goto Error;
-            if (!CheckData(Pass, h, cmsSigPs2CRD1Tag)) goto Error;
-            if (!CheckData(Pass, h, cmsSigPs2CRD2Tag)) goto Error;
-            if (!CheckData(Pass, h, cmsSigPs2CRD3Tag)) goto Error;
-            if (!CheckData(Pass, h, cmsSigPs2CSATag)) goto Error;
-            if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag)) goto Error;
+            using (logger.BeginScope("Tags holding LUTs"))
+            {
 
-            SubTest("Tags holding signatures");
+                if (!CheckLUT(Pass, h, cmsSigAToB0Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigAToB1Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigAToB2Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigBToA0Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigBToA1Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigBToA2Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigPreview0Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigPreview1Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigPreview2Tag)) goto Error;
+                if (!CheckLUT(Pass, h, cmsSigGamutTag)) goto Error;
+            }
 
-            if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag)) goto Error;
-            if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag)) goto Error;
-            if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag)) goto Error;
-            if (!CheckSignature(Pass, h, cmsSigTechnologyTag)) goto Error;
+            using (logger.BeginScope("Tags holding CHAD"))
+                if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag)) goto Error;
 
-            SubTest("Tags holding date_time");
+            using (logger.BeginScope("Tags holding Chromaticity"))
+                if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag)) goto Error;
 
-            if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag)) goto Error;
-            if (!CheckDateTime(Pass, h, cmsSigDateTimeTag)) goto Error;
+            using (logger.BeginScope("Tags holding colorant order"))
+                if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag)) goto Error;
 
-            SubTest("Tags holding named color lists");
+            using (logger.BeginScope("Tags holding measurement"))
+                if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag)) goto Error;
 
-            if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false)) goto Error;
-            if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false)) goto Error;
-            if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true)) goto Error;
+            using (logger.BeginScope("Tags holding CRD info"))
+                if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag)) goto Error;
 
-            SubTest("Tags holding LUTs");
+            using (logger.BeginScope("Tags holding UCR/BG"))
+                if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag)) goto Error;
 
-            if (!CheckLUT(Pass, h, cmsSigAToB0Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigAToB1Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigAToB2Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigBToA0Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigBToA1Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigBToA2Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigPreview0Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigPreview1Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigPreview2Tag)) goto Error;
-            if (!CheckLUT(Pass, h, cmsSigGamutTag)) goto Error;
+            using (logger.BeginScope("Tags holding MPE"))
+            {
+                if (!CheckMPE(Pass, h, cmsSigDToB0Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigDToB1Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigDToB2Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigDToB3Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigBToD0Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigBToD1Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigBToD2Tag)) goto Error;
+                if (!CheckMPE(Pass, h, cmsSigBToD3Tag)) goto Error;
+            }
 
-            SubTest("Tags holding CHAD");
-            if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag)) goto Error;
+            using (logger.BeginScope("Tags using screening"))
+                if (!CheckScreening(Pass, h, cmsSigScreeningTag)) goto Error;
 
-            SubTest("Tags holding Chromaticity");
-            if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag)) goto Error;
+            using (logger.BeginScope("Tags holding profile sequence description"))
+            {
+                if (!CheckProfileSequenceTag(Pass, h)) goto Error;
+                if (!CheckProfileSequenceIDTag(Pass, h)) goto Error;
+            }
 
-            SubTest("Tags holding colorant order");
-            if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag)) goto Error;
+            using (logger.BeginScope("Tags holding ICC viewing conditions"))
+                if (!CheckICCViewingConditions(Pass, h)) goto Error;
 
-            SubTest("Tags holding measurement");
-            if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag)) goto Error;
+            using (logger.BeginScope("VCGT tags"))
+                if (!CheckVCGT(Pass, h)) goto Error;
 
-            SubTest("Tags holding CRD info");
-            if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag)) goto Error;
+            using (logger.BeginScope("RAW tags"))
+                if (!CheckRAWtags(Pass, h)) goto Error;
 
-            SubTest("Tags holding UCR/BG");
-            if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag)) goto Error;
-
-            SubTest("Tags holding MPE");
-            if (!CheckMPE(Pass, h, cmsSigDToB0Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigDToB1Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigDToB2Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigDToB3Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigBToD0Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigBToD1Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigBToD2Tag)) goto Error;
-            if (!CheckMPE(Pass, h, cmsSigBToD3Tag)) goto Error;
-
-            SubTest("Tags using screening");
-            if (!CheckScreening(Pass, h, cmsSigScreeningTag)) goto Error;
-
-            SubTest("Tags holding profile sequence description");
-            if (!CheckProfileSequenceTag(Pass, h)) goto Error;
-            if (!CheckProfileSequenceIDTag(Pass, h)) goto Error;
-
-            SubTest("Tags holding ICC viewing conditions");
-            if (!CheckICCViewingConditions(Pass, h)) goto Error;
-
-            SubTest("VCGT tags");
-            if (!CheckVCGT(Pass, h)) goto Error;
-
-            SubTest("RAW tags");
-            if (!CheckRAWtags(Pass, h)) goto Error;
-
-            SubTest("Dictionary meta tags");
-            // if (!CheckDictionary16(Pass, h)) goto Error;
-            if (!CheckDictionary24(Pass, h)) goto Error;
+            using (logger.BeginScope("Dictionary meta tags"))
+            {
+                // if (!CheckDictionary16(Pass, h)) goto Error;
+                if (!CheckDictionary24(Pass, h)) goto Error;
+            }
 
             if (Pass == 1)
             {
@@ -786,7 +805,7 @@ internal static unsafe partial class Testbed
                     Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(max_check - i);
 
                     sprintf(Name, "#{0}", i);
-                    if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { Fail("Couldn't append named color"); return false; }
+                    if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { logger.LogWarning("Couldn't append named color"); return false; }
                 }
 
                 rc = cmsWriteTag(hProfile, tag, nc);
@@ -805,12 +824,12 @@ internal static unsafe partial class Testbed
                     CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(max_check - i);
 
                     sprintf(CheckName, "#{0}", i);
-                    if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { Fail("Invalid string"); return false; }
+                    if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { logger.LogWarning("Invalid string"); return false; }
 
 
                     for (j = 0; j < 3; j++)
                     {
-                        if (CheckPCS[j] != PCS[j]) { Fail("Invalid PCS"); return false; }
+                        if (CheckPCS[j] != PCS[j]) { logger.LogWarning("Invalid PCS"); return false; }
                     }
 
                     // This is only used on named color list
@@ -819,11 +838,11 @@ internal static unsafe partial class Testbed
 
                         for (j = 0; j < 4; j++)
                         {
-                            if (CheckColorant[j] != Colorant[j]) { Fail("Invalid Colorant"); return false; };
+                            if (CheckColorant[j] != Colorant[j]) { logger.LogWarning("Invalid Colorant"); return false; };
                         }
                     }
 
-                    if (strcmp(Name, CheckName) != 0) { Fail("Invalid Name"); return false; };
+                    if (strcmp(Name, CheckName) != 0) { logger.LogWarning("Invalid Name"); return false; };
                 }
                 return true;
 
@@ -1526,7 +1545,7 @@ internal static unsafe partial class Testbed
                 if (strcmp(Buffer, "Hola, mon"u8) != 0) rc = false;
 
                 if (!rc)
-                    Fail($"Unexpected string '{Encoding.ASCII.GetString(Buffer)}'");
+                    logger.LogWarning("Unexpected string '{str}'", Encoding.ASCII.GetString(Buffer));
                 return true;
         }
 

@@ -27,9 +27,12 @@
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -54,6 +57,9 @@ internal static unsafe partial class Testbed
     public static double AllowedErr = FIXED_PRECISION_15_16;
 
     public static readonly int SIZE_OF_MEM_HEADER = sizeof(MemoryBlock);
+
+    public static readonly ILoggerFactory factory = BuildDebugLogger();
+    public static readonly ILogger logger = factory.CreateLogger<Program>();
 
     public static readonly PluginMemHandler DebugMemHandler = new()
     {
@@ -88,12 +94,8 @@ internal static unsafe partial class Testbed
         (a < b) ? a : b;
 
     [DoesNotReturn]
-    public static void Die(string reason)
-    {
-        ErrorWriteLine();
-        ErrorWriteLine($"{{red:{reason}}}");
+    public static void Die() =>
         Environment.Exit(1);
-    }
 
     [DebuggerStepThrough]
     public static Context DbgThread()
@@ -104,7 +106,10 @@ internal static unsafe partial class Testbed
     public static void* DebugMalloc(Context? ContextID, uint size, Type type)
     {
         if (size <= 0)
-            Die("malloc requested with zero bytes");
+        {
+            GetLogger(ContextID).LogError("malloc requested with zero bytes");
+            Die();
+        }
 
         TotalMemory += size;
 
@@ -132,13 +137,20 @@ internal static unsafe partial class Testbed
     public static void DebugFree(Context? ContextID, void* Ptr)
     {
         if (Ptr is null)
-            Die("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
+        {
+            GetLogger(ContextID).LogError("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
+            Die();
+        }
 
         var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{blk->WhoAllocated!.GetHashCode():x8}\nFreed by Context at\t{ContextID!.GetHashCode():x8}");
+        {
+            GetLogger(ContextID).LogError("Trying to free memory allocated by a different thread\nAllocated by Context at\t0x{expected:x16}\nFreed by Context at\t0x{actual:x16}", blk->WhoAllocated!.GetHashCode(), ContextID!.GetHashCode());
+            Die();
+        }
+
         try
         {
             free(blk);
@@ -170,8 +182,8 @@ internal static unsafe partial class Testbed
 
     public static void DebugMemPrintTotals()
     {
-        ConsoleWriteLine("[Memory statistics]");
-        ConsoleWriteLine($"Allocated = {TotalMemory} MaxAlloc = {MaxAllocated} Single block hit = {SingleHit}");
+        logger.LogInformation(@"[Memory statistics]
+            Allocated = {TotalMemory} MaxAlloc = {MaxAllocated} Single block hit = {SingleHit}", TotalMemory, MaxAllocated, SingleHit);
     }
 
     public static void DebugMemDontCheckThis(void* Ptr)
@@ -192,9 +204,8 @@ internal static unsafe partial class Testbed
     public static void TestMemoryLeaks(bool ok)
     {
         if (TotalMemory > 0)
-            ConsoleWriteLine($"Ok, but {{red:{MemStr(TotalMemory)}}}, are left!");
-        else if (ok)
-            ConsoleWriteLine("{green:Ok.}");
+            logger.LogWarning("Ok, but {TotalMemory}, are left!", MemStr(TotalMemory));
+
         CheckHeap();
     }
 
@@ -203,93 +214,90 @@ internal static unsafe partial class Testbed
         var ctx = cmsCreateContext(DebugMemHandler, usr);
 
         if (ctx is null)
-            Die("Unable to create memory managed context");
+        {
+            GetLogger(null).LogError("Unable to create memory managed context");
+            Die();
+        }
 
         //DebugMemDontCheckThis(ctx);
         return ctx;
     }
 
-    public static void FatalErrorQuit(Context? _1, ErrorCode _2, string text) =>
-        Die(text);
-
-    public static void ResetFatalError() =>
-        cmsSetLogErrorHandler(FatalErrorQuit);
-
-    public static void Dot() =>
-        ConsoleWrite(".");
-
-    public static void Say(string str) =>
-        ConsoleWrite(str);
-
-    public static bool Fail(string text)
+    public static ILoggerFactory BuildDebugLogger()
     {
-        lock (ReasonToFailBuffer)
-            ReasonToFailBuffer = text;
-
-        return false;
+        return LoggerFactory.Create(builder =>
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("lcms2", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Information)
+                .AddConsole());
     }
 
-    public static void SubTest(string frm)
+    public static ILoggerFactory BuildNullLogger()
     {
-        Dot();
-        SubTestBuffer = frm;
+        return LoggerFactory.Create(builder =>
+            builder
+                .AddFilter("Microsoft", LogLevel.Warning)
+                .AddFilter("System", LogLevel.Warning)
+                .AddFilter("lcms2", LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Critical)
+                .AddConsole());
     }
+
+    //public static void FatalErrorQuit(Context? _1, ErrorCode _2, string text) =>
+    //    Die(text);
+
+    //public static void ResetFatalError() =>
+    //    cmsSetLogErrorHandler(FatalErrorQuit);
 
     public static void Check(string title, Func<bool> test)
     {
-        if (HasConsole)
-            ConsoleWrite($"Checking {title} ...");
-
-        ReasonToFailBuffer = String.Empty;
-        SubTestBuffer = String.Empty;
-        TrappedError = false;
-        SimultaneousErrors = 0;
-        TotalTests++;
-
-        if (test() && !TrappedError)
+        using (logger.BeginScope("Checking {title}", title))
         {
-            // It is a good place to check memory
-            TestMemoryLeaks(true);
-        }
-        else
-        {
-            ErrorWriteLine("{red:FAIL!}");
+            logger.LogInformation("Checking {title}", title);
 
-            if (!String.IsNullOrEmpty(SubTestBuffer))
-                ErrorWriteLine($"{title}: [{SubTestBuffer}]\n\t{ReasonToFailBuffer}");
+            ReasonToFailBuffer = String.Empty;
+            SubTestBuffer = String.Empty;
+            TrappedError = false;
+            SimultaneousErrors = 0;
+            TotalTests++;
+
+            if (test() && !TrappedError)
+            {
+                // It is a good place to check memory
+                TestMemoryLeaks(true);
+            }
             else
-                ErrorWriteLine($"{title}:\n\t{ReasonToFailBuffer}");
-
-            if (SimultaneousErrors > 1)
-                ErrorWriteLine($"\tMore than one ({{red:{SimultaneousErrors}}}) errors were reported");
-
-            TotalFail++;
+            {
+                TotalFail++;
+            }
         }
     }
 
     public static bool CheckExhaustive()
     {
-        ConsoleWrite("Run exhaustive tests? (y/N) (N in 5 sec) ");
+        Console.Write("Run exhaustive tests? (y/N) (N in 5 sec) ");
         var key = WaitForKey(5000);
         if (key.HasValue)
         {
             if (key.Value.Key is ConsoleKey.Enter or ConsoleKey.N)
             {
                 if (key.Value.Key is ConsoleKey.Enter)
-                    ConsoleWriteLine("N");
+                    Console.WriteLine("N");
                 else
-                    ConsoleWriteLine(key.Value.KeyChar.ToString());
+                    Console.WriteLine(key.Value.KeyChar.ToString());
                 return false;
             }
             else if (key.Value.Key is ConsoleKey.Y)
             {
-                ConsoleWrite(key.Value.KeyChar.ToString());
+                Console.Write(key.Value.KeyChar.ToString());
                 return true;
             }
         }
         else
         {
-            ConsoleWriteLine();
+            Console.WriteLine();
         }
 
         return false;
@@ -318,13 +326,13 @@ internal static unsafe partial class Testbed
         var descriptions = new string?[200];
         var intents = cmsGetSupportedIntents(200, codes, descriptions);
 
-        ConsoleWriteLine("Supported intents:");
+        var str = "Supported intents:";
         for (var i = 0; i < intents; i++)
         {
-            ConsoleWriteLine($"\t{codes[i]} - {descriptions[i]}");
+            str += $"\n\t{codes[i]} - {descriptions[i]}";
         }
 
-        ConsoleWriteLine();
+        logger.LogInformation(str);
     }
 
     public static bool IsGoodVal(string title, double @in, double @out, double max)
@@ -336,7 +344,7 @@ internal static unsafe partial class Testbed
 
         if (err > max)
         {
-            Fail($"({title}): Must be {@in}, but was {@out} ");
+            logger.LogWarning("({title}): Must be {in}, but was {out} ", title, @in, @out);
             return false;
         }
         return true;
@@ -355,60 +363,60 @@ internal static unsafe partial class Testbed
     {
         if (Math.Abs(@in - @out) > maxErr)
         {
-            Fail($"({title}): Must be {@in}, but was {@out} ");
+            logger.LogWarning("({title}): Must be {in}, but was {out} ", title, @in, @out);
             return false;
         }
 
         return true;
     }
 
-    internal static void ConsoleWrite(string str) =>
-        _write(str, Console.Out);
+    //internal static void ConsoleWrite(string str) =>
+    //    _write(str, Console.Out);
 
-    internal static void ConsoleWriteLine(string str = "") =>
-        _write(str + '\n', Console.Out);
+    //internal static void ConsoleWriteLine(string str = "") =>
+    //    _write(str + '\n', Console.Out);
 
-    internal static void ErrorWrite(string str) =>
-        _write(str, Console.Error);
+    //internal static void ErrorWrite(string str) =>
+    //    _write(str, Console.Error);
 
-    internal static void ErrorWriteLine(string str = "") =>
-        _write(str + '\n', Console.Error);
+    //internal static void ErrorWriteLine(string str = "") =>
+    //    _write(str + '\n', Console.Error);
 
-    private static void _write(string str, TextWriter w)
-    {
-        var value = new Queue<char>(str.AsSpan().ToArray());
-        var color = new StringBuilder();
+    //private static void _write(string str, TextWriter w)
+    //{
+    //    var value = new Queue<char>(str.AsSpan().ToArray());
+    //    var color = new StringBuilder();
 
-        while (value.Count > 0)
-        {
-            var ch = value.Dequeue();
-            if (ch is '{')
-            {
-                color.Clear();
-                do
-                {
-                    color.Append(value.Peek());
-                } while (value.Dequeue() is not ':');
+    //    while (value.Count > 0)
+    //    {
+    //        var ch = value.Dequeue();
+    //        if (ch is '{')
+    //        {
+    //            color.Clear();
+    //            do
+    //            {
+    //                color.Append(value.Peek());
+    //            } while (value.Dequeue() is not ':');
 
-                switch (color.ToString().ToLower())
-                {
-                    case "green:":
-                        Console.ForegroundColor = ConsoleColor.Green;
-                        break;
+    //            switch (color.ToString().ToLower())
+    //            {
+    //                case "green:":
+    //                    Console.ForegroundColor = ConsoleColor.Green;
+    //                    break;
 
-                    case "red:":
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        break;
-                }
-            }
-            else if (ch is '}')
-            {
-                Console.ResetColor();
-            }
-            else
-            {
-                w.Write(ch);
-            }
-        }
-    }
+    //                case "red:":
+    //                    Console.ForegroundColor = ConsoleColor.Red;
+    //                    break;
+    //            }
+    //        }
+    //        else if (ch is '}')
+    //        {
+    //            Console.ResetColor();
+    //        }
+    //        else
+    //        {
+    //            w.Write(ch);
+    //        }
+    //    }
+    //}
 }

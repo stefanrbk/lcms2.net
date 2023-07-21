@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
@@ -34,7 +36,6 @@ internal static unsafe partial class Testbed
     {
         var est = cmsEstimateGamma(c, 0.001);
 
-        SubTest("Gamma estimation");
         return Math.Abs(est - g) <= 0.001;
     }
 
@@ -48,13 +49,15 @@ internal static unsafe partial class Testbed
             var @out = cmsEvalToneCurve16(LinGamma, @in);
             if (@in != @out)
             {
-                Fail($"(lin gamma): Must be {@in}, but is {@out} : ");
+                logger.LogWarning("(lin gamma): Must be {in}, but is {out}", @in, @out);
                 cmsFreeToneCurve(LinGamma);
                 return false;
             }
         }
 
         var rc = CheckGammaEstimation(LinGamma, 1.0);
+        if (!rc)
+            logger.LogWarning("Gamma estimation failed");
 
         cmsFreeToneCurve(LinGamma);
         return rc;
@@ -70,7 +73,7 @@ internal static unsafe partial class Testbed
             var @out = cmsEvalToneCurveFloat(LinGamma, @in);
             if (MathF.Abs(@in - @out) > 1 / 65535f)
             {
-                Fail($"(lin gamma): Must be {@in}, but is {@out} : ");
+                logger.LogWarning("(lin gamma): Must be {in}, but is {out}", @in, @out);
                 cmsFreeToneCurve(LinGamma);
                 return false;
             }
@@ -97,7 +100,7 @@ internal static unsafe partial class Testbed
             if (Err > MaxErr) MaxErr = Err;
         }
 
-        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
+        if (MaxErr > 0) logger.LogInformation("|Err|<{Error}", MaxErr * 65535);
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);
@@ -136,7 +139,7 @@ internal static unsafe partial class Testbed
             if (err > MaxErr) MaxErr = err;
         }
 
-        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
+        if (MaxErr > 0) logger.LogInformation("|Err|<{Error}", MaxErr * 65535);
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);
@@ -175,7 +178,7 @@ internal static unsafe partial class Testbed
             if (err > MaxErr) MaxErr = err;
         }
 
-        if (MaxErr > 0) ConsoleWrite($"|Err|<{MaxErr * 65535} ");
+        if (MaxErr > 0) logger.LogInformation("|Err|<{Error}", MaxErr * 65535);
 
         var rc = CheckGammaEstimation(Curve, g);
         cmsFreeToneCurve(Curve);
@@ -203,7 +206,7 @@ internal static unsafe partial class Testbed
         var rc = cmsIsToneCurveLinear(Result);
         cmsFreeToneCurve(Result);
 
-        if (!rc) Fail("Joining same curve twice does not result in a linear ramp");
+        if (!rc) logger.LogWarning("Joining same curve twice does not result in a linear ramp");
 
         return rc;
     }

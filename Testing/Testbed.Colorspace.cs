@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static unsafe partial class Testbed
@@ -113,7 +115,8 @@ internal static unsafe partial class Testbed
                         Max = Math.Max(dist, Max);
                     if (Max > 1e-12)
                     {
-                        return Fail($"{Lab.L},{Lab.a},{Lab.b}\n{Lab2.L},{Lab2.a},{Lab2.b}");
+                        logger.LogWarning("{L},{a},{b}\t{L2},{a2},{b2}", Lab.L, Lab.a, Lab.b, Lab2.L, Lab2.a, Lab2.b);
+                        return false;
                     }
                 }
             }
