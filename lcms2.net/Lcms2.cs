@@ -1040,44 +1040,87 @@ public static unsafe partial class Lcms2
                 cmsXYZ2xyY(xyy, xyz);
         }
 
-        LinkArray(supportedTagTypes);
-        LinkArray(supportedTags);
-        LinkArray(supportedMPEtypes);
-        LinkArray(DefaultOptimization);
-        LinkArray(defaultIntents);
-    }
+        #region Optimization defaults
 
-    internal static void LinkArray(TagTypeLinkedList[] list)
-    {
-        fixed (TagTypeLinkedList* ptr = &list[0])
+        //DefaultOptimization = calloc<OptimizationCollection>(4);
+        //DefaultOptimization[0] = new() { OptimizePtr = OptimizeByJoiningCurves, Next = &DefaultOptimization[1] };
+        //DefaultOptimization[1] = new() { OptimizePtr = OptimizeMatrixShaper, Next = &DefaultOptimization[2] };
+        //DefaultOptimization[2] = new() { OptimizePtr = OptimizeByComputingLinearization, Next = &DefaultOptimization[3] };
+        //DefaultOptimization[3] = new() { OptimizePtr = OptimizeByResampling, Next = null };
+
+        #endregion Optimization defaults
+
+        #region Intents defaults
+
+        var defaultIntentsList = new List<IntentsList>(10)
         {
-            for (var i = 0; i < list.Length - 1; i++)
-                list[i].Next = &ptr[i + 1];
-        }
-    }
+            new()
+            {
+                Intent = INTENT_PERCEPTUAL,
+                Description = "Perceptual",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_SATURATION,
+                Description = "Saturation",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_ABSOLUTE_COLORIMETRIC,
+                Description = "Absolute colorimetric",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
+                Description = "Perceptual preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
+                Description = "Saturation preserving black ink",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
+                Description = "Perceptual preserving black plane",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
+                Description = "Relative colorimetric preserving black plane",
+                Link = DefaultICCintents
+            },
+            new()
+            {
+                Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
+                Description = "Saturation preserving black plane",
+                Link = DefaultICCintents
+            }
+        };
+        for (var i = 0; i < 9; i++)
+            defaultIntentsList[i].Next = defaultIntentsList[i + 1];
 
-    internal static void LinkArray(TagLinkedList[] list)
-    {
-        fixed (TagLinkedList* ptr = &list[0])
-        {
-            for (var i = 0; i < list.Length - 1; i++)
-                list[i].Next = &ptr[i + 1];
-        }
-    }
+        defaultIntents = defaultIntentsList[0];
 
-    internal static void LinkArray(IntentsList[] list)
-    {
-            for (var i = 0; i < list.Length - 1; i++)
-                list[i].Next = list[i + 1];
-    }
-
-    internal static void LinkArray(OptimizationCollection[] list)
-    {
-        fixed (OptimizationCollection* ptr = &list[0])
-        {
-            for (var i = 0; i < list.Length - 1; i++)
-                list[i].Next = &ptr[i + 1];
-        }
+        #endregion Intents defaults
     }
 
     [DebuggerStepThrough]

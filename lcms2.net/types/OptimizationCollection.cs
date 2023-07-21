@@ -24,13 +24,23 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.state;
-
 namespace lcms2.types;
 
-public unsafe struct OptimizationCollection
+public class OptimizationCollection(OPToptimizeFn optimizePtr, OptimizationCollection? next = null) : ICloneable
 {
-    public OPToptimizeFn OptimizePtr;
-    public OptimizationCollection* Next;
+    public OPToptimizeFn OptimizePtr = optimizePtr;
+    public OptimizationCollection? Next = next;
+
+    public object Clone() =>
+        new OptimizationCollection(OptimizePtr, Next);
+
+    public static OptimizationCollection Build(params OptimizationCollection[] ops)
+    {
+        for (var i = 1; i < ops.Length; i++)
+        {
+            ops[i-1].Next = ops[i];
+        }
+
+        return ops[0];
+    }
 }

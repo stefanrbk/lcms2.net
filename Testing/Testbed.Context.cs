@@ -680,7 +680,7 @@ public static bool CheckAllocContext()
     const uint SigIntType = 0x74747448;   //   'tttH'
     const uint SigInt = 0x74747448;       //   'tttH'
 
-    private static Box<uint>? Type_int_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Box<uint>? Type_int_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         uint Ptr;
         if (!_cmsReadUInt32Number(io, &Ptr)) return null;
@@ -688,20 +688,20 @@ public static bool CheckAllocContext()
         return new Box<uint>(Ptr);
     }
 
-    private static bool Type_int_Write(TagTypeHandler* _1, IOHandler io, object Ptr, uint _2) =>
+    private static bool Type_int_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2) =>
         _cmsWriteUInt32Number(io, ((Box<uint>)Ptr).Value);
 
-    private static object? Type_int_Dup(TagTypeHandler* self, object Ptr, uint n) =>
+    private static object? Type_int_Dup(TagTypeHandler self, object Ptr, uint n) =>
         new Box<uint>(((Box<uint>)Ptr).Value);
 
-    private static void Type_int_Free(TagTypeHandler* self, object? Ptr)
+    private static void Type_int_Free(TagTypeHandler self, object? Ptr)
     { }
 
 
     private readonly static PluginTag HiddenTagPluginSample = new() {
         Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagSig, Next = null,
         Signature = SigInt,
-        Descriptor = new () { ElemCount = 1, nSupportedTypes = 1, /*{ SigIntType },*/ DecideType = null }
+        Descriptor = new (1, new Signature[] { SigIntType }, null)
     };
 
     private readonly static PluginTagType TagTypePluginSample = new() {
@@ -842,17 +842,17 @@ public static bool CheckAllocContext()
                      null, null, null);
     }
 
-    private static Stage? Type_negate_Read(TagTypeHandler* self, IOHandler io, uint* nItems, uint _)
+    private static Stage? Type_negate_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         ushort Chans;
         if (!_cmsReadUInt16Number(io, &Chans)) return null;
         if (Chans != 3) return null;
 
         * nItems = 1;
-        return StageAllocNegate(self -> ContextID);
+        return StageAllocNegate(self.ContextID);
     }
 
-    private static bool Type_negate_Write(TagTypeHandler* _1, IOHandler io, object? _2, uint _3)
+    private static bool Type_negate_Write(TagTypeHandler _1, IOHandler io, object? _2, uint _3)
     {
         return _cmsWriteUInt16Number(io, 3);
     }

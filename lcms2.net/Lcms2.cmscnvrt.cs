@@ -32,79 +32,7 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly IntentsList[] defaultIntents = new IntentsList[]
-    {
-        new()
-        {
-            Intent = INTENT_PERCEPTUAL,
-            Description = "Perceptual",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_SATURATION,
-            Description = "Saturation",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_ABSOLUTE_COLORIMETRIC,
-            Description = "Absolute colorimetric",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
-            Description = "Perceptual preserving black ink",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black ink",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
-            Description = "Saturation preserving black ink",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
-            Description = "Perceptual preserving black plane",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black plane",
-            Link = DefaultICCintents,
-            Next = null
-        },
-        new()
-        {
-            Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
-            Description = "Saturation preserving black plane",
-            Link = DefaultICCintents,
-            Next = null
-        },
-    };
+    internal static readonly IntentsList defaultIntents;
 
     internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
 
@@ -157,7 +85,7 @@ public static unsafe partial class Lcms2
         for (var pt = ctx.Intents; pt is not null; pt = pt.Next)
             if (pt.Intent == Intent) return pt;
 
-        for (var pt = defaultIntents[0]; pt is not null; pt = pt.Next)
+        for (var pt = defaultIntents; pt is not null; pt = pt.Next)
             if (pt.Intent == Intent) return pt;
 
         return null;
@@ -1051,7 +979,7 @@ public static unsafe partial class Lcms2
 
                 nIntents++;
             }
-        for (pt = defaultIntents[0]; pt is not null; pt = pt.Next)
+        for (pt = defaultIntents; pt is not null; pt = pt.Next)
         {
             if (nIntents < nMax)
             {

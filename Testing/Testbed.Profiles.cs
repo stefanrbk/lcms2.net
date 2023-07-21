@@ -1034,7 +1034,7 @@ internal static unsafe partial class Testbed
                 m.Bg = cmsBuildGamma(DbgThread(), -2.2);
                 m.Desc = cmsMLUalloc(DbgThread(), 1);
                 cmsMLUsetASCII(m.Desc, cmsNoLanguage, cmsNoCountry, "test UCR/BG"u8);
-                rc = cmsWriteTag(hProfile, tag, new BoxPtr<UcrBg>(&m));
+                rc = cmsWriteTag(hProfile, tag, new Box<UcrBg>(m));
                 cmsMLUfree(m.Desc);
                 cmsFreeToneCurve(m.Bg);
                 cmsFreeToneCurve(m.Ucr);
@@ -1115,6 +1115,7 @@ internal static unsafe partial class Testbed
         var Sampled = new float[2] { 0, 1 };
 
         Seg[0].Type = 6;
+        Seg[0].Params = new double[10];
         Seg[0].Params[0] = 1;
         Seg[0].Params[1] = 0;
         Seg[0].Params[2] = 0;
@@ -1129,6 +1130,7 @@ internal static unsafe partial class Testbed
         Seg[1].x1 = 1;
 
         Seg[2].Type = 6;
+        Seg[2].Params = new double[10];
         Seg[2].Params[0] = 1;
         Seg[2].Params[1] = 0;
         Seg[2].Params[2] = 0;

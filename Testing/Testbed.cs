@@ -123,7 +123,7 @@ internal static unsafe partial class Testbed
             var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock), type);
 
             blk->KeepSize = size;
-            blk->WhoAllocated = ContextID;
+            blk->WhoAllocated = _cmsGetContext(ContextID).GetHashCode();
             blk->DontCheck = 0;
 
             return (byte*)blk + (uint)sizeof(MemoryBlock);
@@ -145,7 +145,7 @@ internal static unsafe partial class Testbed
         var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
         TotalMemory -= blk->KeepSize;
 
-        if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
+        if (blk->WhoAllocated != _cmsGetContext(ContextID).GetHashCode() && blk->DontCheck is 0)
         {
             GetLogger(ContextID).LogError("Trying to free memory allocated by a different thread\nAllocated by Context at\t0x{expected:x16}\nFreed by Context at\t0x{actual:x16}", blk->WhoAllocated!.GetHashCode(), ContextID!.GetHashCode());
             Die();
@@ -231,7 +231,7 @@ internal static unsafe partial class Testbed
                 .AddFilter("System", LogLevel.Warning)
                 .AddFilter("lcms2", LogLevel.Debug)
                 .SetMinimumLevel(LogLevel.Information)
-                .AddConsole());
+                .AddConsole(options => options.IncludeScopes = true));
     }
 
     public static ILoggerFactory BuildNullLogger()
@@ -253,10 +253,10 @@ internal static unsafe partial class Testbed
 
     public static void Check(string title, Func<bool> test)
     {
+        logger.LogInformation("Checking {title}", title);
+
         using (logger.BeginScope("Checking {title}", title))
         {
-            logger.LogInformation("Checking {title}", title);
-
             ReasonToFailBuffer = String.Empty;
             SubTestBuffer = String.Empty;
             TrappedError = false;

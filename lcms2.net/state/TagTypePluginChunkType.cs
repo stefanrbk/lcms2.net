@@ -31,12 +31,12 @@ namespace lcms2.state;
 
 internal unsafe class TagTypePluginChunkType : IDup
 {
-    public TagTypeLinkedList* TagTypes;
+    public TagTypeLinkedList? TagTypes;
 
     public object? Dup(Context ctx)
     {
         TagTypePluginChunkType head = this;
-        TagTypeLinkedList* Anterior = null, entry;
+        TagTypeLinkedList? Anterior = null, entry;
         TagTypePluginChunkType newHead = new();
 
         _cmsAssert(ctx);
@@ -44,22 +44,22 @@ internal unsafe class TagTypePluginChunkType : IDup
         // Walk the list copying all nodes
         for (entry = head.TagTypes;
              entry is not null;
-             entry = entry->Next)
+             entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx.MemPool, entry);
+            //var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx.MemPool, entry);
 
-            if (newEntry is null)
-                return null;
+            //if (newEntry is null)
+            //    return null;
+            var newEntry = (TagTypeLinkedList)entry.Clone();
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
-            if (newHead.TagTypes is null)
-                newHead.TagTypes = newEntry;
+            newHead.TagTypes ??= newEntry;
         }
         
         return newHead;

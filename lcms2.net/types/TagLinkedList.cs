@@ -24,21 +24,26 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.state;
+using static lcms2.types.TagDescriptor;
 
 namespace lcms2.types;
 
-public unsafe struct TagLinkedList
+public class TagLinkedList(Signature sig, TagDescriptor desc, TagLinkedList? next = null) : ICloneable
 {
-    public Signature Signature;
-    public TagDescriptor Descriptor;
-    public TagLinkedList* Next;
+    public Signature Signature = sig;
+    public TagDescriptor Descriptor = desc;
+    public TagLinkedList? Next = next;
 
-    public TagLinkedList(Signature sig, TagDescriptor desc, TagLinkedList* next = null)
+    public TagLinkedList(Signature sig, uint elemCount, ReadOnlySpan<Signature> supportedTypes, TagTypeDecider? decideType, TagLinkedList? next = null)
+        : this(sig, new(elemCount, supportedTypes, decideType), next) { }
+
+    public static TagLinkedList Build(params TagLinkedList[] tags)
     {
-        Descriptor = desc;
-        Signature = sig;
-        Next = next;
+        for (var i = 1; i < tags.Length; i++)
+            tags[i - 1].Next = tags[i];
+        return tags[0];
     }
+
+    public object Clone() =>
+        new TagLinkedList(Signature, Descriptor, Next);
 }

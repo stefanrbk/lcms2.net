@@ -837,7 +837,7 @@ public static unsafe partial class Lcms2
 
     public static void cmsFreeToneCurveTriple(ToneCurve?[] Curve)
     {
-        _cmsAssert(Curve);
+        _cmsAssert((object)Curve);
 
         if (Curve[0] is not null) cmsFreeToneCurve(Curve[0]);
         if (Curve[1] is not null) cmsFreeToneCurve(Curve[1]);

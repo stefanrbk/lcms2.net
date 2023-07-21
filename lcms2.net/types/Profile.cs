@@ -49,14 +49,15 @@ public unsafe class Profile : ICloneable
 
     public ProfileID ProfileID;
 
-    public uint TagCount;
-    public readonly Signature[] TagNames = new Signature[MAX_TABLE_TAG];
-    public readonly Signature[] TagLinked = new Signature[MAX_TABLE_TAG];
-    public readonly uint[] TagSizes = new uint[MAX_TABLE_TAG];
-    public readonly uint[] TagOffsets = new uint[MAX_TABLE_TAG];
-    public readonly bool[] TagSaveAsRaw = new bool[MAX_TABLE_TAG];
-    public readonly object?[] TagPtrs = new object?[MAX_TABLE_TAG];
-    public readonly TagTypeHandler*[] TagTypeHandlers = new TagTypeHandler*[MAX_TABLE_TAG];
+    //public uint TagCount;
+    //public readonly Signature[] TagNames = new Signature[MAX_TABLE_TAG];
+    //public readonly Signature[] TagLinked = new Signature[MAX_TABLE_TAG];
+    //public readonly uint[] TagSizes = new uint[MAX_TABLE_TAG];
+    //public readonly uint[] TagOffsets = new uint[MAX_TABLE_TAG];
+    //public readonly bool[] TagSaveAsRaw = new bool[MAX_TABLE_TAG];
+    //public readonly object?[] TagPtrs = new object?[MAX_TABLE_TAG];
+    //public readonly TagTypeHandler*[] TagTypeHandlers = new TagTypeHandler*[MAX_TABLE_TAG];
+    public readonly List<TagEntry> Tags = new();
 
     public bool IsWrite;
 
@@ -84,6 +85,17 @@ public unsafe class Profile : ICloneable
         public fixed sbyte reserved[28];
     }
 
+    public struct TagEntry
+    {
+        public Signature Name;
+        public Signature Linked;
+        public uint Size;
+        public uint Offset;
+        public bool SaveAsRaw;
+        public object? TagObject;
+        public TagTypeHandler? TypeHandler;
+    }
+
     public object Clone()
     {
         var result = new Profile()
@@ -103,16 +115,10 @@ public unsafe class Profile : ICloneable
             PCS = PCS,
             ProfileID = ProfileID,
             RenderingIntent = RenderingIntent,
-            TagCount = TagCount,
             Version = Version,
         };
-        TagNames.CopyTo(result.TagNames, 0);
-        TagLinked.CopyTo(result.TagLinked, 0);
-        TagSizes.CopyTo(result.TagSizes, 0);
-        TagOffsets.CopyTo(result.TagOffsets, 0);
-        TagSaveAsRaw.CopyTo(result.TagSaveAsRaw, 0);
-        TagPtrs.CopyTo(result.TagPtrs, 0);
-        TagTypeHandlers.CopyTo(result.TagTypeHandlers, 0);
+
+        result.Tags.AddRange(Tags);
 
         return result;
     }

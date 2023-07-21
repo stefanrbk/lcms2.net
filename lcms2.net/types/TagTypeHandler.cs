@@ -29,38 +29,30 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct TagTypeHandler
+public unsafe class TagTypeHandler(
+    Signature signature,
+    TagTypeHandler.ReadFn readPtr,
+    TagTypeHandler.WriteFn writePtr,
+    TagTypeHandler.DupFn dupPtr,
+    TagTypeHandler.FreeFn freePtr,
+    Context? contextID,
+    uint iCCVersion) : ICloneable
 {
-    public Signature Signature;
-    public Context? ContextID;
+    public Signature Signature = signature;
+    public Context? ContextID = contextID;
 
-    public delegate object? ReadFn(TagTypeHandler* self, IOHandler io, uint* nItems, uint SizeOfTag);
-    public delegate bool WriteFn(TagTypeHandler* self, IOHandler io, object? Ptr, uint nItems);
-    public delegate object? DupFn(TagTypeHandler* self, object? Ptr, uint nItems);
-    public delegate void FreeFn(TagTypeHandler* self, object? Ptr);
+    public delegate object? ReadFn(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag);
+    public delegate bool WriteFn(TagTypeHandler self, IOHandler io, object? Ptr, uint nItems);
+    public delegate object? DupFn(TagTypeHandler self, object? Ptr, uint nItems);
+    public delegate void FreeFn(TagTypeHandler self, object? Ptr);
 
-    public ReadFn ReadPtr;
-    public WriteFn WritePtr;
-    public DupFn DupPtr;
-    public FreeFn FreePtr;
+    public ReadFn ReadPtr = readPtr;
+    public WriteFn WritePtr = writePtr;
+    public DupFn DupPtr = dupPtr;
+    public FreeFn FreePtr = freePtr;
 
-    public uint ICCVersion;
+    public uint ICCVersion = iCCVersion;
 
-    public TagTypeHandler(
-        Signature signature,
-        ReadFn readPtr,
-        WriteFn writePtr,
-        DupFn dupPtr,
-        FreeFn freePtr,
-        Context? contextID,
-        uint iCCVersion)
-    {
-        Signature = signature;
-        ContextID = contextID;
-        ReadPtr = readPtr;
-        WritePtr = writePtr;
-        DupPtr = dupPtr;
-        FreePtr = freePtr;
-        ICCVersion = iCCVersion;
-    }
+    public object Clone() =>
+        new TagTypeHandler(Signature, ReadPtr, WritePtr, DupPtr, FreePtr, ContextID, ICCVersion);
 }

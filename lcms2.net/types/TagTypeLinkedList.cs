@@ -29,14 +29,30 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct TagTypeLinkedList
+public class TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next = null) : ICloneable
 {
-    public TagTypeHandler Handler;
-    public TagTypeLinkedList* Next;
+    public TagTypeHandler Handler = handler;
+    public TagTypeLinkedList? Next = next;
 
-    public TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList* next = null)
+    public TagTypeLinkedList(
+        Signature signature,
+        TagTypeHandler.ReadFn readPtr,
+        TagTypeHandler.WriteFn writePtr,
+        TagTypeHandler.DupFn dupPtr,
+        TagTypeHandler.FreeFn freePtr,
+        Context? contextID,
+        uint iCCVersion, TagTypeLinkedList? next = null)
+        : this(new(signature, readPtr, writePtr, dupPtr, freePtr, contextID, iCCVersion), next) { }
+
+    public static TagTypeLinkedList Build(params TagTypeLinkedList[] handlers)
     {
-        Handler = handler;
-        Next = next;
+        for (var i = 1; i < handlers.Length; i++)
+        {
+            handlers[i - 1].Next = handlers[i];
+        }
+        return handlers[0];
     }
+
+    public object Clone() =>
+        new TagTypeLinkedList(handler, next);
 }

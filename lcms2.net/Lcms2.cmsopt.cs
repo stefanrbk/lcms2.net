@@ -33,13 +33,12 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    internal static readonly OptimizationCollection[] DefaultOptimization = new OptimizationCollection[]
-    {
-        new() { OptimizePtr = OptimizeByJoiningCurves },
-        new() { OptimizePtr = OptimizeMatrixShaper },
-        new() { OptimizePtr = OptimizeByComputingLinearization },
-        new() { OptimizePtr = OptimizeByResampling },
-    };
+    internal static readonly OptimizationCollection DefaultOptimization = OptimizationCollection.Build(
+        new(OptimizeByJoiningCurves),
+        new(OptimizeMatrixShaper),
+        new(OptimizeByComputingLinearization),
+        new(OptimizeByResampling));
+
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
     internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = new();
@@ -1713,7 +1712,7 @@ public static unsafe partial class Lcms2
     internal static void DupPluginOptimizationList(Context ctx, in Context src)
     {
         OptimizationPluginChunkType head = src.OptimizationPlugin;
-        OptimizationCollection* Anterior = null, entry;
+        OptimizationCollection? Anterior = null, entry;
         OptimizationPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
@@ -1722,17 +1721,19 @@ public static unsafe partial class Lcms2
         // Walk the list copying all nodes
         for (entry = head.OptimizationCollection;
              entry is not null;
-             entry = entry->Next)
+             entry = entry.Next)
         {
-            var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
+            //var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
 
-            if (newEntry is null)
-                return;
+            //if (newEntry is null)
+            //    return;
+
+            var newEntry = (OptimizationCollection)entry.Clone();
 
             // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
+            newEntry.Next = null;
             if (Anterior is not null)
-                Anterior->Next = newEntry;
+                Anterior.Next = newEntry;
 
             Anterior = newEntry;
 
@@ -1773,14 +1774,16 @@ public static unsafe partial class Lcms2
         // Optimizer callback is required
         if (Plugin!.OptimizePtr is null) return false;
 
-        var fl = _cmsPluginMalloc<OptimizationCollection>(id);
-        if (fl is null) return false;
+        //var fl = _cmsPluginMalloc<OptimizationCollection>(id);
+        //if (fl is null) return false;
 
         // Copy the parameters
-        fl->OptimizePtr = Plugin.OptimizePtr;
+        //fl->OptimizePtr = Plugin.OptimizePtr;
 
         // Keep linked list
-        fl->Next = ctx.OptimizationCollection;
+        //fl->Next = ctx.OptimizationCollection;
+
+        var fl = new OptimizationCollection(Plugin.OptimizePtr, ctx.OptimizationCollection);
 
         // Set the head
         ctx.OptimizationCollection = fl;
@@ -1839,23 +1842,20 @@ public static unsafe partial class Lcms2
         // Try plug-in optimizations
         for (var Opts = ctx.OptimizationCollection;
              Opts is not null;
-             Opts = Opts->Next)
+             Opts = Opts.Next)
         {
             // If one schema succeeded, we are done
-            if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+            if (Opts.OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
                 return true;    // Optimized!
         }
 
         // Try built-in optimizations
-        fixed (OptimizationCollection* list = &DefaultOptimization[0])
+        for (var Opts = DefaultOptimization;
+             Opts is not null;
+             Opts = Opts.Next)
         {
-            for (var Opts = list;
-                 Opts is not null;
-                 Opts = Opts->Next)
-            {
-                if (Opts->OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
-                    return true;
-            }
+            if (Opts.OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+                return true;
         }
 
         // Only simple optimizations succeeded

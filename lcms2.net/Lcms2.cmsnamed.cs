@@ -682,7 +682,7 @@ public static unsafe partial class Lcms2
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
             //NamedColorList->List[idx].Name[cmsMAX_PATH - 1] = 0;
-            Name[..(cmsMAX_PATH - 1)].CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
+            Name.CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
             name[cmsMAX_PATH - 1] = 0;
         }
         else
