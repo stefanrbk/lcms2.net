@@ -44,6 +44,7 @@ public static unsafe partial class Lcms2
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
     internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
     internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = new();
+    internal static readonly bool debugAllocs = false;
 
     #region lcms2.h
 
@@ -1136,12 +1137,19 @@ public static unsafe partial class Lcms2
     //[DebuggerStepThrough]
     internal static void* alloc(nuint size, Type type)
     {
-        lock (AllocList)
+        if (debugAllocs)
         {
-            var result = NativeMemory.Alloc(size + 32);
-            AllocList.Add((nuint)result + 16, (type, size, false));
-            NativeMemory.Fill(result, size + 32, 0xAF);
-            return (byte*)result + 16;
+            lock (AllocList)
+            {
+                var result = NativeMemory.Alloc(size + 32);
+                AllocList.Add((nuint)result + 16, (type, size, false));
+                NativeMemory.Fill(result, size + 32, 0xAF);
+                return (byte*)result + 16;
+            }
+        }
+        else
+        {
+            return NativeMemory.Alloc(size);
         }
     }
 
@@ -1156,14 +1164,21 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void* allocZeroed(nuint size, Type type)
     {
-        lock (AllocList)
+        if (debugAllocs)
         {
-            var result = NativeMemory.Alloc(size + 32);
-            NativeMemory.Fill(result, size + 32, 0xAF);
-            result = (byte*)result + 16;
-            NativeMemory.Clear(result, size);
-            AllocList.Add((nuint)result, (type, size, false));
-            return result;
+            lock (AllocList)
+            {
+                var result = NativeMemory.Alloc(size + 32);
+                NativeMemory.Fill(result, size + 32, 0xAF);
+                result = (byte*)result + 16;
+                NativeMemory.Clear(result, size);
+                AllocList.Add((nuint)result, (type, size, false));
+                return result;
+            }
+        }
+        else
+        {
+            return NativeMemory.AllocZeroed(size);
         }
     }
 
@@ -1178,19 +1193,26 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void* realloc(in void* org, nuint newSize)
     {
-        Type type;
-        nuint size;
-        lock (AllocList)
+        if (debugAllocs)
         {
-            (type, size, _) = AllocList[(nuint)org];
+            Type type;
+            nuint size;
+            lock (AllocList)
+            {
+                (type, size, _) = AllocList[(nuint)org];
+            }
+            var result = alloc(newSize, type);
+            if (org is not null)
+            {
+                memmove(result, org, size);
+                free(org);
+            }
+            return result;
         }
-        var result = alloc(newSize, type);
-        if (org is not null)
+        else
         {
-            memmove(result, org, size);
-            free(org);
+            return NativeMemory.Realloc(org, newSize);
         }
-        return result;
     }
 
     [DebuggerStepThrough]
@@ -1305,18 +1327,25 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void free(void* ptr)
     {
-        lock (AllocList)
+        if (debugAllocs)
         {
-            var item = AllocList[(nuint)ptr];
-            ptr = (byte*)ptr - 16;
-            for (var i = 0; i < 16; i++)
+            lock (AllocList)
             {
-                if (((byte*)ptr)[i] is not 0xAF || ((byte*)ptr)[i + 16 + (int)item.size] is not 0xAF)
-                    throw new Exception($"{item.type} object of size {item.size} is corrupted. Object starts at 0x{(nuint)ptr + 16:X16}.");
+                var item = AllocList[(nuint)ptr];
+                ptr = (byte*)ptr - 16;
+                for (var i = 0; i < 16; i++)
+                {
+                    if (((byte*)ptr)[i] is not 0xAF || ((byte*)ptr)[i + 16 + (int)item.size] is not 0xAF)
+                        throw new Exception($"{item.type} object of size {item.size} is corrupted. Object starts at 0x{(nuint)ptr + 16:X16}.");
+                }
+                NativeMemory.Fill(ptr, item.size + 32, 0x69);
+                item.freed = true;
+                AllocList[(nuint)ptr + 16] = item;
             }
-            NativeMemory.Fill(ptr, item.size + 32, 0x69);
-            item.freed = true;
-            AllocList[(nuint)ptr + 16] = item;
+        }
+        else
+        {
+            NativeMemory.Free(ptr);
         }
     }
 
@@ -1741,6 +1770,9 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void CheckHeap()
     {
+        if (!debugAllocs)
+            return;
+
         lock (AllocList)
         {
             foreach (var kvp in AllocList)

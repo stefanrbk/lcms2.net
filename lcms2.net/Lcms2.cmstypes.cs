@@ -428,17 +428,17 @@ public static unsafe partial class Lcms2
 
     #region XYZ
 
-    private static BoxPtr<CIEXYZ>? Type_XYZ_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<CIEXYZ>? Type_XYZ_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
-        CIEXYZ* xyz;
+        CIEXYZ xyz = new();
 
         *nItems = 0;
-        xyz = _cmsMallocZero<CIEXYZ>(self.ContextID);
-        if (xyz is null) return null;
+        //xyz = _cmsMallocZero<CIEXYZ>(self.ContextID);
+        //if (xyz is null) return null;
 
-        if (!_cmsReadXYZNumber(io, xyz))
+        if (!_cmsReadXYZNumber(io, &xyz))
         {
-            _cmsFree(self.ContextID, xyz);
+            //_cmsFree(self.ContextID, xyz);
             return null;
         }
 
@@ -446,18 +446,24 @@ public static unsafe partial class Lcms2
         return new(xyz);
     }
 
-    private static bool Type_XYZ_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<CIEXYZ> xyz && _cmsWriteXYZNumber(io, xyz);
+    private static bool Type_XYZ_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
+    {
+        if (Ptr is not Box<CIEXYZ> xyz)
+            return false;
 
-    private static BoxPtr<CIEXYZ>? Type_XYZ_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<CIEXYZ> xyz
-            ? new(_cmsDupMem<CIEXYZ>(self.ContextID, xyz))
+        fixed (CIEXYZ* ptr = &xyz.Value)
+            return _cmsWriteXYZNumber(io, ptr);
+    }
+
+    private static Box<CIEXYZ>? Type_XYZ_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<CIEXYZ> xyz
+            ? new(xyz)
             : null;
 
     private static void Type_XYZ_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<CIEXYZ> xyz)
-            _cmsFree(self.ContextID, xyz);
+        //if (Ptr is BoxPtr<CIEXYZ> xyz)
+        //    _cmsFree(self.ContextID, xyz);
     }
 
     private static Signature DecideXYZtype(double _1, object? _2) =>
@@ -467,14 +473,14 @@ public static unsafe partial class Lcms2
 
     #region Chromaticity
 
-    private static BoxPtr<CIExyYTRIPLE>? Type_Chromaticity_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Box<CIExyYTRIPLE>? Type_Chromaticity_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        CIExyYTRIPLE* chrm;
+        CIExyYTRIPLE chrm = new();
         ushort nChans, Table;
 
         *nItems = 0;
-        chrm = _cmsMallocZero<CIExyYTRIPLE>(self.ContextID);
-        if (chrm is null) return null;
+        //chrm = _cmsMallocZero<CIExyYTRIPLE>(self.ContextID);
+        //if (chrm is null) return null;
 
         if (!_cmsReadUInt16Number(io, &nChans)) goto Error;
 
@@ -489,26 +495,26 @@ public static unsafe partial class Lcms2
 
         if (!_cmsReadUInt16Number(io, &Table)) goto Error;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm->Red.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm->Red.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Red.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Red.y)) goto Error;
 
-        chrm->Red.Y = 1.0;
+        chrm.Red.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm->Green.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm->Green.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Green.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Green.y)) goto Error;
 
-        chrm->Green.Y = 1.0;
+        chrm.Green.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm->Blue.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm->Blue.y)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Blue.x)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out chrm.Blue.y)) goto Error;
 
-        chrm->Blue.Y = 1.0;
+        chrm.Blue.Y = 1.0;
 
         *nItems = 1;
         return new(chrm);
 
     Error:
-        _cmsFree(self.ContextID, chrm);
+        //_cmsFree(self.ContextID, chrm);
         return null;
     }
 
@@ -522,62 +528,66 @@ public static unsafe partial class Lcms2
 
     private static bool Type_Chromaticity_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        var chrm = Ptr as BoxPtr<CIExyYTRIPLE>;
+        var chrm = Ptr as Box<CIExyYTRIPLE>;
         if (chrm is null) return false;
 
         if (!_cmsWriteUInt16Number(io, 3)) return false;    // nChannels
         if (!_cmsWriteUInt16Number(io, 0)) return false;    // Table
 
-        if (!SaveOneChromaticity(chrm.Ptr->Red.x, chrm.Ptr->Red.y, io)) return false;
-        if (!SaveOneChromaticity(chrm.Ptr->Green.x, chrm.Ptr->Green.y, io)) return false;
-        if (!SaveOneChromaticity(chrm.Ptr->Blue.x, chrm.Ptr->Blue.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Value.Red.x, chrm.Value.Red.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Value.Green.x, chrm.Value.Green.y, io)) return false;
+        if (!SaveOneChromaticity(chrm.Value.Blue.x, chrm.Value.Blue.y, io)) return false;
 
         return true;
     }
 
-    private static BoxPtr<CIExyYTRIPLE>? Type_Chromaticity_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<CIExyYTRIPLE> value
-            ? new(_cmsDupMem<CIExyYTRIPLE>(self.ContextID, value))
+    private static Box<CIExyYTRIPLE>? Type_Chromaticity_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<CIExyYTRIPLE> value
+            ? new(value)
             : null;
 
     private static void Type_Chromaticity_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<CIExyYTRIPLE> value)
-            _cmsFree(self.ContextID, value);
+        //if (Ptr is BoxPtr<CIExyYTRIPLE> value)
+        //    _cmsFree(self.ContextID, value);
     }
 
     #endregion Chromaticity
 
     #region ColorantOrder
 
-    private static BoxPtr<byte>? Type_ColorantOrderType_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static byte[]? Type_ColorantOrderType_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
-        byte* ColorantOrder;
+        byte[] ColorantOrder;
         uint Count;
 
         *nItems = 0;
         if (!_cmsReadUInt32Number(io, &Count)) return null;
         if (Count > cmsMAXCHANNELS) return null;
 
-        ColorantOrder = _cmsCalloc<byte>(self.ContextID, cmsMAXCHANNELS);
+        ColorantOrder = _cmsCallocArray<byte>(self.ContextID, cmsMAXCHANNELS);
         if (ColorantOrder is null) return null;
 
         // We use FF as end marker
-        memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * _sizeof<byte>());
+        //memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * _sizeof<byte>());
+        Array.Fill<byte>(ColorantOrder, 0xFF);
 
-        if (io.Read(io, ColorantOrder, _sizeof<byte>(), Count) != Count)
+        fixed (void* ptr = &ColorantOrder[0])
         {
-            _cmsFree(self.ContextID, ColorantOrder);
-            return null;
+            if (io.Read(io, ptr, _sizeof<byte>(), Count) != Count)
+            {
+                _cmsFree(self.ContextID, ColorantOrder);
+                return null;
+            }
         }
 
         *nItems = 1;
-        return new(ColorantOrder);
+        return ColorantOrder;
     }
 
     private static bool Type_ColorantOrderType_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<byte> ColorantOrder) return false;
+        if (Ptr is not byte[] ColorantOrder) return false;
         uint i, Count;
 
 
@@ -588,19 +598,20 @@ public static unsafe partial class Lcms2
         if (!_cmsWriteUInt32Number(io, Count)) return false;
 
         var sz = Count * _sizeof<byte>();
-        if (!io.Write(io, sz, ColorantOrder)) return false;
+        fixed (void* ptr = &ColorantOrder[0])
+            if (!io.Write(io, sz, ptr)) return false;
 
         return true;
     }
 
-    private static BoxPtr<byte>? Type_ColorantOrderType_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<byte> value
-            ? new(_cmsDupMem<byte>(self.ContextID, value, cmsMAXCHANNELS))
+    private static byte[]? Type_ColorantOrderType_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is byte[] value
+            ? _cmsDupMem<byte>(self.ContextID, value, cmsMAXCHANNELS)
             : null;
 
     private static void Type_ColorantOrderType_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<byte> value)
+        if (Ptr is byte[] value)
             _cmsFree(self.ContextID, value);
     }
 
@@ -608,14 +619,14 @@ public static unsafe partial class Lcms2
 
     #region S15Fixed16
 
-    private static BoxPtr<double>? Type_S15Fixed16_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static double[]? Type_S15Fixed16_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        double* array_double;
+        double[] array_double;
 
         *nItems = 0;
         var n = SizeOfTag / _sizeof<uint>();
-        array_double = _cmsCalloc<double>(self.ContextID, n);
-        if (array_double is null) return null;
+        array_double = _cmsCallocArray<double>(self.ContextID, n);
+        //if (array_double is null) return null;
 
         for (var i = 0; i < n; i++)
         {
@@ -627,12 +638,12 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = n;
-        return new(array_double);
+        return array_double;
     }
 
     private static bool Type_S15Fixed16_Write(TagTypeHandler _, IOHandler io, object? Ptr, uint nItems)
     {
-        if (Ptr is not BoxPtr<double> Value) return false;
+        if (Ptr is not double[] Value) return false;
 
         for (var i = 0; i < nItems; i++)
             if (!_cmsWrite15Fixed16Number(io, Value[i])) return false;
@@ -640,14 +651,14 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<double>? Type_S15Fixed16_Dup(TagTypeHandler self, object? Ptr, uint n) =>
-        Ptr is BoxPtr<double> Value
-            ? new(_cmsDupMem<double>(self.ContextID, Value, n))
+    private static double[]? Type_S15Fixed16_Dup(TagTypeHandler self, object? Ptr, uint n) =>
+        Ptr is double[] Value
+            ? _cmsDupMem<double>(self.ContextID, Value, n)
             : null;
 
     private static void Type_S15Fixed16_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<double> value)
+        if (Ptr is double[] value)
             _cmsFree(self.ContextID, value);
     }
 
@@ -655,15 +666,15 @@ public static unsafe partial class Lcms2
 
     #region U16Fixed16
 
-    private static BoxPtr<double>? Type_U16Fixed16_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static double[]? Type_U16Fixed16_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        double* array_double;
+        double[] array_double;
         uint v;
 
         *nItems = 0;
         var n = SizeOfTag / _sizeof<uint>();
-        array_double = _cmsCalloc<double>(self.ContextID, n);
-        if (array_double is null) return null;
+        array_double = _cmsCallocArray<double>(self.ContextID, n);
+        //if (array_double is null) return null;
 
         for (var i = 0; i < n; i++)
         {
@@ -678,12 +689,12 @@ public static unsafe partial class Lcms2
         }
 
         *nItems = n;
-        return new(array_double);
+        return array_double;
     }
 
     private static bool Type_U16Fixed16_Write(TagTypeHandler _, IOHandler io, object? Ptr, uint nItems)
     {
-        if (Ptr is not BoxPtr<double> Value) return false;
+        if (Ptr is not double[] Value) return false;
 
         for (var i = 0; i < nItems; i++)
         {
@@ -694,14 +705,14 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static BoxPtr<double>? Type_U16Fixed16_Dup(TagTypeHandler self, object? Ptr, uint n) =>
-        Ptr is BoxPtr<double> value
-            ? new(_cmsDupMem<double>(self.ContextID, value, n))
+    private static double[]? Type_U16Fixed16_Dup(TagTypeHandler self, object? Ptr, uint n) =>
+        Ptr is double[] value
+            ? _cmsDupMem<double>(self.ContextID, value, n)
             : null;
 
     private static void Type_U16Fixed16_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<double> value)
+        if (Ptr is double[] value)
             _cmsFree(self.ContextID, value);
     }
 
@@ -709,34 +720,34 @@ public static unsafe partial class Lcms2
 
     #region Signature
 
-    private static BoxPtr<Signature>? Type_Signature_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<Signature>? Type_Signature_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
-        var SigPtr = _cmsMalloc<Signature>(self.ContextID);
-        if (SigPtr is null) return null;
+        var SigPtr = new Signature();
+        //if (SigPtr is null) return null;
 
-        if (!_cmsReadUInt32Number(io, (uint*)SigPtr))
+        if (!_cmsReadUInt32Number(io, (uint*)&SigPtr))
         {
-            _cmsFree(self.ContextID, SigPtr);
+            //_cmsFree(self.ContextID, SigPtr);
             return null;
         }
 
         *nItems = 1;
-        return new BoxPtr<Signature>(SigPtr);
+        return new Box<Signature>(SigPtr);
     }
 
     private static bool Type_Signature_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2) =>
-        Ptr is BoxPtr<Signature> sig && _cmsWriteUInt32Number(io, *sig.Ptr);
+        Ptr is Box<Signature> sig && _cmsWriteUInt32Number(io, sig.Value);
 
-    private static BoxPtr<Signature>? Type_Signature_Dup(TagTypeHandler self, object? Ptr, uint n) =>
-        Ptr is BoxPtr<Signature> sig
-            ? new BoxPtr<Signature>(_cmsDupMem<Signature>(self.ContextID, sig, n))
+    private static Box<Signature>? Type_Signature_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<Signature> sig
+            ? new Box<Signature>(sig)
             : null;
 
     private static void Type_Signature_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<Signature> sig)
-            _cmsFree(self.ContextID, sig);
+        //if (Ptr is BoxPtr<Signature> sig)
+        //    _cmsFree(self.ContextID, sig);
     }
 
     #endregion Signature
@@ -820,9 +831,9 @@ public static unsafe partial class Lcms2
 
     #region Data
 
-    private static BoxPtr<IccData>? Type_Data_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
+    private static Box<IccData>? Type_Data_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag)
     {
-        IccData* BinData;
+        IccData BinData;
         uint LenOfData;
 
         *nItems = 0;
@@ -832,41 +843,53 @@ public static unsafe partial class Lcms2
         LenOfData = SizeOfTag - _sizeof<uint>();
         if (LenOfData > Int32.MaxValue) return null;
 
-        BinData = _cmsMalloc<IccData>(self.ContextID, _sizeof<IccData>() + LenOfData - 1);
-        if (BinData is null) return null;
+        //BinData = _cmsMalloc<IccData>(self.ContextID, _sizeof<IccData>() + LenOfData - 1);
+        //if (BinData is null) return null;
+        BinData = new();
+        BinData.data = Context.GetPool<byte>(self.ContextID).Rent((int)LenOfData);
 
-        BinData->len = LenOfData;
-        if (!_cmsReadUInt32Number(io, &BinData->flag)) goto Error;
+        BinData.len = LenOfData;
+        if (!_cmsReadUInt32Number(io, &BinData.flag)) goto Error;
 
-        if (io.Read(io, BinData->data, _sizeof<byte>(), LenOfData) != LenOfData) goto Error;
+        fixed (void* ptr = &BinData.data[0])
+        if (io.Read(io, ptr, _sizeof<byte>(), LenOfData) != LenOfData) goto Error;
 
         *nItems = 1;
 
         return new(BinData);
 
     Error:
-        _cmsFree(self.ContextID, BinData);
+        if (BinData.data is not null)
+            _cmsFree(self.ContextID, BinData.data);
+        //_cmsFree(self.ContextID, BinData);
         return null;
     }
 
     private static bool Type_Data_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<IccData> BinData) return false;
+        if (Ptr is not Box<IccData> BinData) return false;
 
-        if (!_cmsWriteUInt32Number(io, BinData.Ptr->flag)) return false;
+        if (!_cmsWriteUInt32Number(io, BinData.Value.flag)) return false;
 
-        return io.Write(io, BinData.Ptr->len, BinData.Ptr->data);
+        fixed (void* ptr = &BinData.Value.data[0])
+            return io.Write(io, BinData.Value.len, ptr);
     }
 
-    private static BoxPtr<IccData>? Type_Data_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<IccData> data
-            ? new((IccData*)_cmsDupMem(self.ContextID, data, _sizeof<IccData>() + data.Ptr->len - 1, typeof(IccData)))
-            : null;
+    private static Box<IccData>? Type_Data_Dup(TagTypeHandler self, object? Ptr, uint _)
+    {
+        if (Ptr is not Box<IccData> data)
+            return null;
+
+        var newData = data.Value;
+        newData.data = _cmsDupMem<byte>(self.ContextID, data.Value.data, data.Value.len);
+
+        return new(newData);
+    }
 
     private static void Type_Data_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<IccData> data)
-            _cmsFree(self.ContextID, data);
+        if (Ptr is Box<IccData> data)
+            _cmsFree(self.ContextID, data.Value.data);
     }
 
     #endregion Data

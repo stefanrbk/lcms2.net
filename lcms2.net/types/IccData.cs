@@ -27,9 +27,9 @@
 
 namespace lcms2.types;
 
-public unsafe struct IccData
+public struct IccData
 {
     public uint len;
     public uint flag;
-    public fixed byte data[1];
+    public byte[] data;
 }

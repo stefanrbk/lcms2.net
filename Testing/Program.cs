@@ -68,13 +68,12 @@ using (logger.BeginScope("Basic operations"))
     Check("Fixed point 8.8 representation", CheckFixedPoint8_8);
     Check("D50 roundtrip", CheckD50Roundtrip);
 }
-// Create utility profiles
-//if (doCheckTests || doSpeedTests)
-//{
-//    ConsoleWriteLine();
-//    ConsoleWriteLine("Profiles");
-//    Check("Creation of test profiles", CreateTestProfiles);
-//}
+//Create utility profiles
+if (doCheckTests || doSpeedTests)
+{
+    using (logger.BeginScope("Profiles"))
+        Check("Creation of test profiles", CreateTestProfiles);
+}
 
 if (doCheckTests)
 {
@@ -230,12 +229,12 @@ if (doPluginTests)
         Check("3D interpolation plugin", CheckInterp3DPlugin);
         Check("Parametric curve plugin", CheckParametricCurvePlugin);
         Check("Formatters plugin", CheckFormattersPlugin);
-        //Check("Tag type plugin", CheckTagTypePlugin);
-        //Check("MPE type plugin", CheckMPEPlugin);
-        //Check("Optimization plugin", CheckOptimizationPlugin);
-        //Check("Rendering intent plugin", CheckIntentPlugin);
-        //Check("Full transform plugin", CheckTransformPlugin);
-        //Check("Mutex plugin", CheckMutexPlugin);
+        Check("Tag type plugin", CheckTagTypePlugin);
+        Check("MPE type plugin", CheckMPEPlugin);
+        Check("Optimization plugin", CheckOptimizationPlugin);
+        Check("Rendering intent plugin", CheckIntentPlugin);
+        Check("Full transform plugin", CheckTransformPlugin);
+        Check("Mutex plugin", CheckMutexPlugin);
     }
 }
 

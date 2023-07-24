@@ -162,10 +162,13 @@ internal static unsafe partial class Testbed
     {
         var type = typeof(void);
 
-        lock (AllocList)
+        if (debugAllocs)
         {
-            if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
-                type = item.type;
+            lock (AllocList)
+            {
+                if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
+                    type = item.type;
+            }
         }
         var NewPtr = DebugMalloc(ContextID, NewSize, type);
         if (Ptr is null) return NewPtr;
@@ -242,11 +245,8 @@ internal static unsafe partial class Testbed
     {
         return LoggerFactory.Create(builder =>
             builder
-                .AddFilter("Microsoft", LogLevel.Warning)
-                .AddFilter("System", LogLevel.Warning)
-                .AddFilter("lcms2", LogLevel.Debug)
-                .SetMinimumLevel(LogLevel.Critical)
-                .AddConsole());
+                .ClearProviders()
+                .SetMinimumLevel(LogLevel.None));
     }
 
     //public static void FatalErrorQuit(Context? _1, ErrorCode _2, string text) =>
