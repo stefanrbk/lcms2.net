@@ -354,9 +354,9 @@ internal static unsafe partial class Testbed
 
         // ----
         //StartAllocLogging();
-        //h = CreateFakeCMYK(300, false);
+        h = CreateFakeCMYK(300, false);
         //EndAllocLogging();
-        //if (!OneVirtual(h, "Fake CMYK profile", "lcms2cmyk.icc")) return false;
+        if (!OneVirtual(h, "Fake CMYK profile", "lcms2cmyk.icc")) return false;
 
         // ----
         //StartAllocLogging();
