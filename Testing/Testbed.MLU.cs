@@ -313,7 +313,7 @@ internal static unsafe partial class Testbed
         cmsWriteTag(hProfile, cmsSigCopyrightTag, CopyrightMLU);
 
         // Set the media white point
-        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()));
+        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()));
 
 
         // Populate one value, Colorant = CMYK values in 16 bits, PCS[] = Encoded Lab values (in V2 format!!)

@@ -30,6 +30,7 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Text;
+using System.Xml.Linq;
 
 namespace lcms2;
 
@@ -269,7 +270,7 @@ public static unsafe partial class Lcms2
 
     */
 
-    private struct PsSamplerCargo
+    private class PsSamplerCargo
     {
         public StageCLutData<ushort> Pipeline;
         public IOHandler m;
@@ -277,14 +278,50 @@ public static unsafe partial class Lcms2
         public int FirstComponent;
         public int SecondComponent;
 
-        public byte* PreMaj;
-        public byte* PostMaj;
-        public byte* PreMin;
-        public byte* PostMin;
+        private readonly byte[] preMaj;
+        private readonly byte[] postMaj;
+        private readonly byte[] preMin;
+        private readonly byte[] postMin;
+
+        public Span<byte> PreMaj => preMaj.AsSpan(..Array.IndexOf<byte>(preMaj, 0));
+        public Span<byte> PostMaj => preMaj.AsSpan(..Array.IndexOf<byte>(postMaj, 0));
+        public Span<byte> PreMin => preMaj.AsSpan(..Array.IndexOf<byte>(preMin, 0));
+        public Span<byte> PostMin => preMaj.AsSpan(..Array.IndexOf<byte>(postMin, 0));
 
         public bool FixWhite;        // Force mapping of pure white
 
         public Signature ColorSpace;    // ColorSpace of profile
+
+        public PsSamplerCargo(
+            IOHandler m,
+            StageCLutData<ushort> pipeline,
+            int firstComponent,
+            int secondComponent,
+            ReadOnlySpan<byte> preMaj,
+            ReadOnlySpan<byte> postMaj,
+            ReadOnlySpan<byte> preMin,
+            ReadOnlySpan<byte> postMin,
+            bool fixWhite,
+            Signature colorSpace)
+        {
+            Pipeline = pipeline;
+            this.m = m;
+            FirstComponent = firstComponent;
+            SecondComponent = secondComponent;
+            FixWhite = fixWhite;
+            ColorSpace = colorSpace;
+
+            var pool = Context.GetPool<byte>(m.ContextID);
+            this.preMaj = pool.Rent(preMaj.Length);
+            this.postMaj = pool.Rent(postMaj.Length);
+            this.preMin = pool.Rent(preMin.Length);
+            this.postMin = pool.Rent(postMin.Length);
+
+            preMaj.CopyTo(this.preMaj);
+            postMaj.CopyTo(this.postMaj);
+            preMin.CopyTo(this.preMin);
+            postMin.CopyTo(this.postMin);
+        }
     }
 
     private static int _cmsPSActualColumn = 0;
@@ -324,7 +361,7 @@ public static unsafe partial class Lcms2
     private static string ctime(DateTime timer) =>
         timer.ToString("ddd MMM dd HH:mm:ss yyyy") + '\n';
 
-    private static void EmitHeader(IOHandler m, byte* Title, Profile Profile)
+    private static void EmitHeader(IOHandler m, ReadOnlySpan<byte> Title, Profile Profile)
     {
         Span<byte> DescASCII = stackalloc byte[256];
         Span<byte> CopyrightASCII =  stackalloc byte[256];
@@ -342,7 +379,7 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, "%!PS-Adobe-3.0\n");
         _cmsIOPrintf(m, "%\n");
-        _cmsIOPrintf(m, "% {0}\n", new string((sbyte*)Title));
+        _cmsIOPrintf(m, "% {0}\n", SpanToString(Title));
         _cmsIOPrintf(m, "% Source: {0}\n", Encoding.ASCII.GetString(RemoveCR(DescASCII)));
         _cmsIOPrintf(m, "%         {0}\n", Encoding.ASCII.GetString(RemoveCR(CopyrightASCII)));
         _cmsIOPrintf(m, "% Created: {0}", ctime(timer));    // ctime appends a \n!!!
@@ -389,16 +426,20 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "]\n");
     }
 
-    private static void EmitSafeGuardBegin(IOHandler m, byte* name)
+    private static void EmitSafeGuardBegin(IOHandler m, ReadOnlySpan<byte> name)
     {
-        var nameStr = new string((sbyte*)name);
+        Span<char> str = stackalloc char[name.Length];
+        for (var i = 0; i < name.Length; i++) str[i] = (char)name[i];
+        var nameStr = new string(str);
         _cmsIOPrintf(m, "%%LCMS2: Save previous definition of {0} on the operand stack\n", nameStr);
         _cmsIOPrintf(m, "currentdict /{0} known {{ /{0} load }} {{ null }} ifelse\n", nameStr);
     }
 
-    private static void EmitSafeGuardEnd(IOHandler m, byte* name, int depth)
+    private static void EmitSafeGuardEnd(IOHandler m, ReadOnlySpan<byte> name, int depth)
     {
-        var nameStr = new string((sbyte*)name);
+        Span<char> str = stackalloc char[name.Length];
+        for (var i = 0; i < name.Length; i++) str[i] = (char)name[i];
+        var nameStr = new string(str);
 
         _cmsIOPrintf(m, "%%LCMS2: Restore previous definition of {0}\n", nameStr);
         if (depth > 1)
@@ -409,8 +450,12 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "dup null eq {{ pop currentdict /{0} undef }} {{ /{0} exch def }} ifelse\n", nameStr);
     }
 
-    private static void Emit1Gamma(IOHandler m, ToneCurve Table, byte* name)
+    private static void Emit1Gamma(IOHandler m, ToneCurve Table, ReadOnlySpan<byte> name)
     {
+        Span<char> str = stackalloc char[name.Length];
+        for (var i = 0; i < name.Length; i++) str[i] = (char)name[i];
+        var nameStr = new string(str);
+
         if (Table is null ||        // Error
             Table.nEntries <= 0)   // Empty table
         {
@@ -424,11 +469,11 @@ public static unsafe partial class Lcms2
         var gamma = cmsEstimateGamma(Table, 0.001);
         if (gamma > 0)
         {
-            _cmsIOPrintf(m, "/{0} {{ {1:g} exp }} bind def\n", new string((sbyte*)name), gamma);
+            _cmsIOPrintf(m, "/{0} {{ {1:g} exp }} bind def\n", nameStr, gamma);
             return;
         }
 
-        var lcms2gammatable = "lcms2gammatable".ToBytePtr();
+        var lcms2gammatable = "lcms2gammatable"u8;
         EmitSafeGuardBegin(m, lcms2gammatable);
         _cmsIOPrintf(m, "/lcms2gammatable [");
 
@@ -446,7 +491,7 @@ public static unsafe partial class Lcms2
         // PostScript code                            Stack
         // ===============                            ========================
         // v
-        _cmsIOPrintf(m, "/{0} {{\n  ", new string((sbyte*)name));
+        _cmsIOPrintf(m, "/{0} {{\n  ", nameStr);
 
         // Bounds check
         EmitRangeCheck(m);
@@ -488,9 +533,13 @@ public static unsafe partial class Lcms2
             ? memcmp(g1, g2, (nint)(nG1 * _sizeof<ushort>())) == 0
             : false;
 
-    private static void EmitNGamma(IOHandler m, uint n, ReadOnlySpan<ToneCurve> g, byte* nameprefix)
+    private static void EmitNGamma(IOHandler m, uint n, ReadOnlySpan<ToneCurve> g, ReadOnlySpan<byte> nameprefix)
     {
-        var buffer = stackalloc byte[2048];
+        Span<byte> buffer = stackalloc byte[2048];
+
+        Span<char> str = stackalloc char[nameprefix.Length];
+        for (var j = 0; j < nameprefix.Length; j++) str[j] = (char)nameprefix[j];
+        var nameprefixStr = new string(str);
 
         for (var i = 0; i < n; i++)
         {
@@ -502,11 +551,11 @@ public static unsafe partial class Lcms2
                 {
                     if (i > 0 && GammaTableEquals(t1, t2, g[i-1].nEntries, g[i].nEntries))
                     {
-                        _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", new string((sbyte*)nameprefix), i, i - 1);
+                        _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", nameprefixStr, i, i - 1);
                     }
                     else
                     {
-                        snprintf(buffer, 2048, "{0}{1:d}".ToBytePtr(), new string((sbyte*)nameprefix), i);
+                        snprintf(buffer, 2048, "{0}{1:d}"u8, nameprefixStr, i);
                         buffer[2047] = 0;
                         Emit1Gamma(m, g[i], buffer);
                     }
@@ -517,10 +566,10 @@ public static unsafe partial class Lcms2
 
     private static bool OutputValueSampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        if (Cargo is not BoxPtr<PsSamplerCargo> sc)
+        if (Cargo is not PsSamplerCargo sc)
             return false;
 
-        if (sc.Ptr->FixWhite)
+        if (sc.FixWhite)
         {
             if (In[0] == 0xffff)    // Only in L* = 100, ab = [-8..8]
             {
@@ -531,7 +580,7 @@ public static unsafe partial class Lcms2
                     ushort* White;
                     uint nOutputs;
 
-                    if (!_cmsEndPointsBySpace(sc.Ptr->ColorSpace, &White, &Black, &nOutputs))
+                    if (!_cmsEndPointsBySpace(sc.ColorSpace, &White, &Black, &nOutputs))
                         return false;
 
                     for (var i = 0u; i < nOutputs; i++)
@@ -542,43 +591,43 @@ public static unsafe partial class Lcms2
 
         // Handle the parenthesis on rows
 
-        if (In[0] != sc.Ptr->FirstComponent)
+        if (In[0] != sc.FirstComponent)
         {
-            if (sc.Ptr->FirstComponent != -1)
+            if (sc.FirstComponent != -1)
             {
-                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMin));
-                sc.Ptr->SecondComponent = -1;
-                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMaj));
+                _cmsIOPrintf(sc.m, sc.PostMin);
+                sc.SecondComponent = -1;
+                _cmsIOPrintf(sc.m, sc.PostMaj);
             }
 
             // Begin block
             _cmsPSActualColumn = 0;
 
-            _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PreMaj));
-            sc.Ptr->FirstComponent = In[0];
+            _cmsIOPrintf(sc.m, sc.PreMaj);
+            sc.FirstComponent = In[0];
         }
 
-        if (In[1] != sc.Ptr->SecondComponent)
+        if (In[1] != sc.SecondComponent)
         {
-            if (sc.Ptr->SecondComponent != -1)
+            if (sc.SecondComponent != -1)
             {
-                _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PostMin));
+                _cmsIOPrintf(sc.m, sc.PostMin);
             }
 
-            _cmsIOPrintf(sc.Ptr->m, new string((sbyte*)sc.Ptr->PreMin));
-            sc.Ptr->SecondComponent = In[1];
+            _cmsIOPrintf(sc.m, sc.PreMin);
+            sc.SecondComponent = In[1];
         }
 
         // Dump table.
 
-        for (var i = 0u; i < sc.Ptr->Pipeline.Params.nOutputs; i++)
+        for (var i = 0u; i < sc.Pipeline.Params.nOutputs; i++)
         {
             var wWordOut = Out[i];
 
             // We always deal with Lab4;
 
             var wByteOut = Word2Byte(wWordOut);
-            WriteByte(sc.Ptr->m, wByteOut);
+            WriteByte(sc.m, wByteOut);
         }
 
         return true;
@@ -587,29 +636,17 @@ public static unsafe partial class Lcms2
     private static void WriteCLUT(
         IOHandler m,
         Stage mpe,
-        byte* PreMaj,
-        byte* PostMaj,
-        byte* PreMin,
-        byte* PostMin,
+        ReadOnlySpan<byte> PreMaj,
+        ReadOnlySpan<byte> PostMaj,
+        ReadOnlySpan<byte> PreMin,
+        ReadOnlySpan<byte> PostMin,
         bool FixWhite,
         Signature ColorSpace)
     {
-        PsSamplerCargo sc;
-
         if (mpe.Data is not StageCLutData<ushort> clut)
             return;
 
-        sc.FirstComponent = -1;
-        sc.SecondComponent = -1;
-        sc.Pipeline = clut;
-        sc.m = m;
-        sc.PreMaj = PreMaj;
-        sc.PostMaj = PostMaj;
-
-        sc.PreMin = PreMin;
-        sc.PostMin = PostMin;
-        sc.FixWhite = FixWhite;
-        sc.ColorSpace = ColorSpace;
+        var sc = new PsSamplerCargo(m, clut, -1, -1, PreMaj, PostMaj, PreMin, PostMin, FixWhite, ColorSpace);
 
         _cmsIOPrintf(m, "[");
 
@@ -618,16 +655,16 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, " [\n");
 
-        cmsStageSampleCLut16bit(mpe, OutputValueSampler, new BoxPtr<PsSamplerCargo>(&sc), SamplerFlag.Inspect);
+        cmsStageSampleCLut16bit(mpe, OutputValueSampler, sc, SamplerFlag.Inspect);
 
-        _cmsIOPrintf(m, new string((sbyte*)PostMin));
-        _cmsIOPrintf(m, new string((sbyte*)PostMaj));
+        _cmsIOPrintf(m, PostMin);
+        _cmsIOPrintf(m, PostMaj);
         _cmsIOPrintf(m, "] ");
     }
 
     private static bool EmitCIEBasedA(IOHandler m, ToneCurve Curve, CIEXYZ* BlackPoint)
     {
-        var lcms2gammaproc = "lcms2gammaproc".ToBytePtr();
+        var lcms2gammaproc = "lcms2gammaproc"u8;
 
         _cmsIOPrintf(m, "[ /CIEBasedA\n");
         _cmsIOPrintf(m, "  <<\n");
@@ -652,10 +689,10 @@ public static unsafe partial class Lcms2
 
     private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ReadOnlySpan<ToneCurve> CurveSet, CIEXYZ* BlackPoint)
     {
-        var lcms2gammaproc = "lcms2gammaproc".ToBytePtr();
-        var lcms2gammaproc0 = "lcms2gammaproc0".ToBytePtr();
-        var lcms2gammaproc1 = "lcms2gammaproc1".ToBytePtr();
-        var lcms2gammaproc2 = "lcms2gammaproc2".ToBytePtr();
+        var lcms2gammaproc = "lcms2gammaproc"u8;
+        var lcms2gammaproc0 = "lcms2gammaproc0"u8;
+        var lcms2gammaproc1 = "lcms2gammaproc1"u8;
+        var lcms2gammaproc2 = "lcms2gammaproc2"u8;
 
         _cmsIOPrintf(m, "[ /CIEBasedABC\n");
         _cmsIOPrintf(m, "<<\n");
@@ -699,10 +736,10 @@ public static unsafe partial class Lcms2
 
     private static bool EmitCIEBasedDEF(IOHandler m, Pipeline Pipeline, uint Intent, CIEXYZ* BlackPoint)
     {
-        byte* PreMaj;
-        byte* PostMaj;
-        byte* PreMin, PostMin;
-        var buffer = stackalloc byte[2048];
+        ReadOnlySpan<byte> PreMaj;
+        ReadOnlySpan<byte> PostMaj;
+        ReadOnlySpan<byte> PreMin, PostMin;
+        Span<byte> buffer = stackalloc byte[2048];
 
         var mpe = Pipeline.Elements;
 
@@ -710,16 +747,16 @@ public static unsafe partial class Lcms2
         {
             case 3:
                 _cmsIOPrintf(m, "[ /CIEBasedDEF\n");
-                PreMaj = "<".ToBytePtr();
-                PostMaj = ">\n".ToBytePtr();
-                PreMin = PostMin = "".ToBytePtr();
+                PreMaj = "<"u8;
+                PostMaj = ">\n"u8;
+                PreMin = PostMin = ""u8;
                 break;
             case 4:
                 _cmsIOPrintf(m, "[ /CIEBasedDEFG\n");
-                PreMaj = "[".ToBytePtr();
-                PostMaj = "]\n".ToBytePtr();
-                PreMin = "<".ToBytePtr();
-                PostMin = ">\n".ToBytePtr();
+                PreMaj = "["u8;
+                PostMaj = "]\n"u8;
+                PreMin = "<"u8;
+                PostMin = ">\n"u8;
                 break;
             default:
                 return false;
@@ -730,21 +767,21 @@ public static unsafe partial class Lcms2
         if ((uint)cmsStageType(mpe) is cmsSigCurveSetElemType)
         {
             var numchans = (int)cmsStageOutputChannels(mpe);
-            var format1 = "lcms2gammaproc{0:d}".ToBytePtr();
-            var format2 = "lcms2gammaproc{0:d} load\n".ToBytePtr();
+            var format1 = "lcms2gammaproc{0:d}"u8;
+            var format2 = "lcms2gammaproc{0:d} load\n"u8;
             for (var i = 0; i < numchans; i++)
             {
                 snprintf(buffer, 2048, format1, i);
                 buffer[2047] = 0;
                 EmitSafeGuardBegin(m, buffer);
             }
-            EmitNGamma(m, cmsStageOutputChannels(mpe), _cmsStageGetPtrToCurveSet(mpe), "lcms2gammaproc".ToBytePtr());
+            EmitNGamma(m, cmsStageOutputChannels(mpe), _cmsStageGetPtrToCurveSet(mpe), "lcms2gammaproc"u8);
             _cmsIOPrintf(m, "/DecodeDEF [\n");
             for (var i = 0; i < numchans; i++)
             {
                 snprintf(buffer, 2048, format2, i);
                 buffer[2047] = 0;
-                _cmsIOPrintf(m, new string((sbyte*)buffer));
+                _cmsIOPrintf(m, SpanToString(buffer));
             }
             _cmsIOPrintf(m, "]\n");
             for (var i = 0; i < numchans; i++)
@@ -1008,9 +1045,7 @@ public static unsafe partial class Lcms2
 
             // Relative encoding is obtained across XYZpcs*(D50/WhitePoint)
 
-            CIEXYZ White;
-
-            _cmsReadMediaWhitePoint(&White, Profile);
+            _cmsReadMediaWhitePoint(out var White, Profile);
 
             _cmsIOPrintf(m, "/MatrixPQR [1 0 0 0 1 0 0 0 1 ]\n");
             _cmsIOPrintf(m, "/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
@@ -1020,7 +1055,7 @@ public static unsafe partial class Lcms2
                       "{{0.9642 mul {0:g} div exch pop exch pop exch pop exch pop}} bind\n"+
                       "{{1.0000 mul {1:g} div exch pop exch pop exch pop exch pop}} bind\n"+
                       "{{0.8249 mul {2:g} div exch pop exch pop exch pop exch pop}} bind\n]\n",
-                      White.X, White.Y, White.Z);
+                      White.Value.X, White.Value.Y, White.Value.Z);
             return;
         }
 
@@ -1154,8 +1189,8 @@ public static unsafe partial class Lcms2
 
         _cmsIOPrintf(m, "/RenderTable ");
 
-        WriteCLUT(m, cmsPipelineGetPtrToFirstStage(DeviceLink), "<".ToBytePtr(), ">\n".ToBytePtr(), "".ToBytePtr(),
-                  "".ToBytePtr(), lFixWhite, ColorSpace);
+        WriteCLUT(m, cmsPipelineGetPtrToFirstStage(DeviceLink), "<"u8, ">\n"u8, ""u8,
+                  ""u8, lFixWhite, ColorSpace);
 
         _cmsIOPrintf(m, " {0:d} {{}} bind ", nChannels);
 
@@ -1179,20 +1214,20 @@ public static unsafe partial class Lcms2
 
     private static void BuildColorantList(byte* Colorant, uint nColorant, ushort* Out)
     {
-        var Buff = stackalloc byte[32];
+        Span<byte> Buff = stackalloc byte[32];
 
         Colorant[0] = 0;
         if (nColorant > cmsMAXCHANNELS)
             nColorant = cmsMAXCHANNELS;
 
-        var format = "{0:f3}".ToBytePtr();
+        var format = "{0:f3}"u8;
         for (var j = 0u; j < nColorant; j++)
         {
             snprintf(Buff, 31, format, Out[j] / 65535.0);
             Buff[31] = 0;
             strcat(Colorant, Buff);
             if (j < nColorant - 1)
-                strcat(Colorant, " ".ToBytePtr());
+                strcat(Colorant, " "u8);
         }
     }
 
@@ -1245,7 +1280,7 @@ public static unsafe partial class Lcms2
     private static uint GenerateCRD(Context? _, Profile Profile, uint Intent, uint dwFlags, IOHandler mem)
     {
         if ((dwFlags & cmsFLAGS_NODEFAULTRESOURCEDEF) is 0)
-            EmitHeader(mem, "Color Rendering Dictionary (CRD)".ToBytePtr(), Profile);
+            EmitHeader(mem, "Color Rendering Dictionary (CRD)"u8, Profile);
 
         // Is a named color profile?
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigNamedColorClass)

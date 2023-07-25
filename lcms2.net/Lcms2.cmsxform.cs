@@ -869,31 +869,31 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static void NormalizeXYZ(CIEXYZ* Dest)
+    private static void NormalizeXYZ(ref CIEXYZ Dest)
     {
-        while (Dest->X > 2 && Dest->Y > 2 && Dest->Z > 2)
+        while (Dest.X > 2 && Dest.Y > 2 && Dest.Z > 2)
         {
-            Dest->X /= 10;
-            Dest->Y /= 10;
-            Dest->Z /= 10;
+            Dest.X /= 10;
+            Dest.Y /= 10;
+            Dest.Z /= 10;
         }
     }
 
-    private static void SetWhitePoint(CIEXYZ* wtPt, in CIEXYZ* src)
+    private static void SetWhitePoint(out CIEXYZ wtPt, Box<CIEXYZ>? src)
     {
         if (src is null)
         {
-            wtPt->X = cmsD50X;
-            wtPt->Y = cmsD50Y;
-            wtPt->Z = cmsD50Z;
+            wtPt.X = cmsD50X;
+            wtPt.Y = cmsD50Y;
+            wtPt.Z = cmsD50Z;
         }
         else
         {
-            wtPt->X = src->X;
-            wtPt->Y = src->Y;
-            wtPt->Z = src->Z;
+            wtPt.X = src.Value.X;
+            wtPt.Y = src.Value.Y;
+            wtPt.Z = src.Value.Z;
 
-            NormalizeXYZ(wtPt);
+            NormalizeXYZ(ref wtPt);
         }
     }
 
@@ -981,10 +981,8 @@ public static unsafe partial class Lcms2
         xform.RenderingIntent = Intents[nProfiles - 1];
 
         // Take white points
-        fixed (CIEXYZ* ptr = &xform.EntryWhitePoint)
-            SetWhitePoint(ptr, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[0], cmsSigMediaWhitePointTag));
-        fixed (CIEXYZ* ptr = &xform.ExitWhitePoint)
-            SetWhitePoint(ptr, (BoxPtr<CIEXYZ>)cmsReadTag(Profiles[nProfiles - 1], cmsSigMediaWhitePointTag));
+        SetWhitePoint(out xform.EntryWhitePoint, cmsReadTag(Profiles[0], cmsSigMediaWhitePointTag) as Box<CIEXYZ>);
+        SetWhitePoint(out xform.ExitWhitePoint, cmsReadTag(Profiles[nProfiles - 1], cmsSigMediaWhitePointTag) as Box<CIEXYZ>);
 
         // Create a gamut check LUT if requested
         if (hGamutProfile is not null && ((dwFlags & cmsFLAGS_GAMUTCHECK) is not 0))

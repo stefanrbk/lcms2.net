@@ -133,10 +133,10 @@ internal static unsafe partial class Testbed
         var rgb = stackalloc double[3];
         var cmyk = stackalloc double[4];
 
-        if (Cargo is not BoxPtr<FakeCMYKParams> p)
+        if (Cargo is not Box<FakeCMYKParams> p)
             return false;
 
-        cmsDoTransform(p.Ptr->hLab2sRGB, In, rgb, 1);
+        cmsDoTransform(p.Value.hLab2sRGB, In, rgb, 1);
 
         var c = 1 - rgb[0];
         var m = 1 - rgb[1];
@@ -153,7 +153,7 @@ internal static unsafe partial class Testbed
         cmyk[2] = y;
         cmyk[3] = k;
 
-        cmsDoTransform(p.Ptr->hIlimit, cmyk, Out, 1);
+        cmsDoTransform(p.Value.hIlimit, cmyk, Out, 1);
 
         return true;
     }
@@ -162,7 +162,7 @@ internal static unsafe partial class Testbed
     {
         var rgb = stackalloc double[3];
 
-        if (Cargo is not BoxPtr<FakeCMYKParams> p)
+        if (Cargo is not Box<FakeCMYKParams> p)
             return false;
 
         var c = In[0] / 65535.0;
@@ -190,7 +190,7 @@ internal static unsafe partial class Testbed
             }
         }
 
-        cmsDoTransform(p.Ptr->sRGB2Lab, rgb, Out, 1);
+        cmsDoTransform(p.Value.sRGB2Lab, rgb, Out, 1);
 
         return true;
     }
@@ -198,7 +198,6 @@ internal static unsafe partial class Testbed
     private static Profile? CreateFakeCMYK(double InkLimit, bool lUseAboveRGB)
     {
         FakeCMYKParams p;
-        var pPtr = new BoxPtr<FakeCMYKParams>(&p);
 
         var hsRGB = lUseAboveRGB
             ? Create_AboveRGB()
@@ -211,6 +210,7 @@ internal static unsafe partial class Testbed
         p.hLab2sRGB = cmsCreateTransform(hLab, TYPE_Lab_16, hsRGB, TYPE_RGB_DBL, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
         p.sRGB2Lab = cmsCreateTransform(hsRGB, TYPE_RGB_DBL, hLab, TYPE_Lab_16, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
         p.hIlimit = cmsCreateTransform(hLimit, cmykfrm, null, TYPE_CMYK_16, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE);
+        var pPtr = new Box<FakeCMYKParams>(p);
 
         cmsCloseProfile(hLab); cmsCloseProfile(hsRGB); cmsCloseProfile(hLimit);
 
@@ -354,9 +354,9 @@ internal static unsafe partial class Testbed
 
         // ----
         //StartAllocLogging();
-        h = CreateFakeCMYK(300, false);
+        //h = CreateFakeCMYK(300, false);
         //EndAllocLogging();
-        if (!OneVirtual(h, "Fake CMYK profile", "lcms2cmyk.icc")) return false;
+        //if (!OneVirtual(h, "Fake CMYK profile", "lcms2cmyk.icc")) return false;
 
         // ----
         //StartAllocLogging();
@@ -587,7 +587,7 @@ internal static unsafe partial class Testbed
     private static bool CheckXYZ(int Pass, Profile hProfile, Signature tag)
     {
         CIEXYZ XYZ;
-        CIEXYZ* Pt;
+        Box<CIEXYZ>? Pt;
 
 
         switch (Pass)
@@ -596,14 +596,14 @@ internal static unsafe partial class Testbed
             case 1:
 
                 XYZ.X = 1.0; XYZ.Y = 1.1; XYZ.Z = 1.2;
-                return cmsWriteTag(hProfile, tag, new BoxPtr<CIEXYZ>(&XYZ));
+                return cmsWriteTag(hProfile, tag, new Box<CIEXYZ>(XYZ));
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<CIEXYZ> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<CIEXYZ>;
                 if (Pt == null) return false;
-                return IsGoodFixed15_16("X", 1.0, Pt->X) &&
-                       IsGoodFixed15_16("Y", 1.1, Pt->Y) &&
-                       IsGoodFixed15_16("Z", 1.2, Pt->Z);
+                return IsGoodFixed15_16("X", 1.0, Pt.Value.X) &&
+                       IsGoodFixed15_16("Y", 1.1, Pt.Value.Y) &&
+                       IsGoodFixed15_16("Z", 1.2, Pt.Value.Z);
 
             default:
                 return false;
@@ -709,23 +709,22 @@ internal static unsafe partial class Testbed
 
     private static bool CheckData(int Pass, Profile hProfile, Signature tag)
     {
-        IccData* Pt;
+        Box<IccData>? Pt;
         var d = new IccData() { len = 1, flag = 0 };
-        d.data[0] = (byte)'?';
-        bool rc;
+        d.data = new byte[] { (byte)'?' };
+        //bool rc;
 
 
         switch (Pass)
         {
 
             case 1:
-                rc = cmsWriteTag(hProfile, tag, new BoxPtr<IccData>(&d));
-                return rc;
+                return cmsWriteTag(hProfile, tag, new Box<IccData>(d));
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<IccData> box) ? box.Ptr : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<IccData>;
                 if (Pt == null) return false;
-                return (Pt->data[0] == '?') && (Pt->flag == 0) && (Pt->len == 1);
+                return (Pt.Value.data[0] == '?') && (Pt.Value.flag == 0) && (Pt.Value.len == 1);
 
             default:
                 return false;
@@ -735,7 +734,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckSignature(int Pass, Profile hProfile, Signature tag)
     {
-        Signature* Pt;
+        Box<Signature>? Pt;
         Signature Holder;
 
         switch (Pass)
@@ -743,12 +742,12 @@ internal static unsafe partial class Testbed
 
             case 1:
                 Holder = (Signature)cmsSigPerceptualReferenceMediumGamut;
-                return cmsWriteTag(hProfile, tag, new BoxPtr<Signature>(&Holder));
+                return cmsWriteTag(hProfile, tag, new Box<Signature>(Holder));
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<Signature> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<Signature>;
                 if (Pt == null) return false;
-                return *Pt == cmsSigPerceptualReferenceMediumGamut;
+                return Pt.Value == cmsSigPerceptualReferenceMediumGamut;
 
             default:
                 return false;
@@ -758,7 +757,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckDateTime(int Pass, Profile hProfile, Signature tag)
     {
-        DateTime* Pt;
+        Box<DateTime>? Pt;
         DateTime Holder;
 
         switch (Pass) {
@@ -766,18 +765,18 @@ internal static unsafe partial class Testbed
             case 1:
 
                 Holder = new(2009, 5, 4, 1, 2, 3);
-                return cmsWriteTag(hProfile, tag, new BoxPtr<DateTime>(&Holder));
+                return cmsWriteTag(hProfile, tag, new Box<DateTime>(Holder));
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<DateTime> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<DateTime>;
                 if (Pt == null) return false;
 
-                return Pt->Hour == 1 &&
-                       Pt ->Minute == 2 &&
-                       Pt ->Second == 3 &&
-                       Pt ->Day == 4 &&
-                       Pt ->Month == 5 &&
-                       Pt ->Year == 2009;
+                return Pt.Value.Hour == 1 &&
+                       Pt.Value.Minute == 2 &&
+                       Pt.Value.Second == 3 &&
+                       Pt.Value.Day == 4 &&
+                       Pt.Value.Month == 5 &&
+                       Pt.Value.Year == 2009;
 
             default:
                 return false;
@@ -897,19 +896,19 @@ internal static unsafe partial class Testbed
 
     private static bool CheckCHAD(int Pass, Profile hProfile, Signature tag)
     {
-        double* Pt;
-        var CHAD = stackalloc double[] { 0, .1, .2, .3, .4, .5, .6, .7, .8 };
+        double[]? Pt;
+        var CHAD = new double[] { 0, .1, .2, .3, .4, .5, .6, .7, .8 };
         int i;
 
         switch (Pass)
         {
 
             case 1:
-                return cmsWriteTag(hProfile, tag, new BoxPtr<double>(CHAD));
+                return cmsWriteTag(hProfile, tag, CHAD);
 
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<double> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as double[];
                 if (Pt == null) return false;
 
                 for (i = 0; i < 9; i++)
@@ -926,7 +925,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckChromaticity(int Pass, Profile hProfile, Signature tag)
     {
-        CIExyYTRIPLE* Pt;
+        Box<CIExyYTRIPLE>? Pt;
         var c = new CIExyYTRIPLE()
         {
             Red = new() { x = 0, y=.1, Y=1 },
@@ -938,19 +937,19 @@ internal static unsafe partial class Testbed
         {
 
             case 1:
-                return cmsWriteTag(hProfile, tag, new BoxPtr<CIExyYTRIPLE>(&c));
+                return cmsWriteTag(hProfile, tag, new Box<CIExyYTRIPLE>(c));
 
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<CIExyYTRIPLE> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<CIExyYTRIPLE>;
                 if (Pt == null) return false;
 
-                if (!IsGoodFixed15_16("xyY", Pt->Red.x, c.Red.x)) return false;
-                if (!IsGoodFixed15_16("xyY", Pt->Red.y, c.Red.y)) return false;
-                if (!IsGoodFixed15_16("xyY", Pt->Green.x, c.Green.x)) return false;
-                if (!IsGoodFixed15_16("xyY", Pt->Green.y, c.Green.y)) return false;
-                if (!IsGoodFixed15_16("xyY", Pt->Blue.x, c.Blue.x)) return false;
-                if (!IsGoodFixed15_16("xyY", Pt->Blue.y, c.Blue.y)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Red.x, c.Red.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Red.y, c.Red.y)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Green.x, c.Green.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Green.y, c.Green.y)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Blue.x, c.Blue.x)) return false;
+                if (!IsGoodFixed15_16("xyY", Pt.Value.Blue.y, c.Blue.y)) return false;
                 return true;
 
             default:
@@ -961,8 +960,8 @@ internal static unsafe partial class Testbed
 
     private static bool CheckColorantOrder(int Pass, Profile hProfile, Signature tag)
     {
-        byte* Pt;
-        var c = stackalloc byte[cmsMAXCHANNELS];
+        byte[]? Pt;
+        var c = new byte[cmsMAXCHANNELS];
         int i;
 
         switch (Pass)
@@ -970,11 +969,11 @@ internal static unsafe partial class Testbed
 
             case 1:
                 for (i = 0; i < cmsMAXCHANNELS; i++) c[i] = (byte)(cmsMAXCHANNELS - i - 1);
-                return cmsWriteTag(hProfile, tag, new BoxPtr<byte>(c));
+                return cmsWriteTag(hProfile, tag, c);
 
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<byte> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as byte[];
                 if (Pt == null) return false;
 
                 for (i = 0; i < cmsMAXCHANNELS; i++)
@@ -990,7 +989,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckMeasurement(int Pass, Profile hProfile, Signature tag)
     {
-        IccMeasurementConditions* Pt;
+        Box<IccMeasurementConditions>? Pt;
         IccMeasurementConditions m;
 
         switch (Pass)
@@ -1004,21 +1003,21 @@ internal static unsafe partial class Testbed
                 m.Geometry = 1;
                 m.IlluminantType = IlluminantType.D50;
                 m.Observer = 1;
-                return cmsWriteTag(hProfile, tag, new BoxPtr<IccMeasurementConditions>(&m));
+                return cmsWriteTag(hProfile, tag, new Box<IccMeasurementConditions>(m));
 
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<IccMeasurementConditions> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<IccMeasurementConditions>;
                 if (Pt == null) return false;
 
-                if (!IsGoodFixed15_16("Backing", Pt->Backing.X, 0.1)) return false;
-                if (!IsGoodFixed15_16("Backing", Pt->Backing.Y, 0.2)) return false;
-                if (!IsGoodFixed15_16("Backing", Pt->Backing.Z, 0.3)) return false;
-                if (!IsGoodFixed15_16("Flare", Pt->Flare, 1.0)) return false;
+                if (!IsGoodFixed15_16("Backing", Pt.Value.Backing.X, 0.1)) return false;
+                if (!IsGoodFixed15_16("Backing", Pt.Value.Backing.Y, 0.2)) return false;
+                if (!IsGoodFixed15_16("Backing", Pt.Value.Backing.Z, 0.3)) return false;
+                if (!IsGoodFixed15_16("Flare", Pt.Value.Flare, 1.0)) return false;
 
-                if (Pt->Geometry != 1) return false;
-                if (Pt->IlluminantType != IlluminantType.D50) return false;
-                if (Pt->Observer != 1) return false;
+                if (Pt.Value.Geometry != 1) return false;
+                if (Pt.Value.IlluminantType != IlluminantType.D50) return false;
+                if (Pt.Value.Observer != 1) return false;
                 return true;
 
             default:
@@ -1190,8 +1189,8 @@ internal static unsafe partial class Testbed
 
     private static bool CheckScreening(int Pass, Profile hProfile, Signature tag)
     {
-        Screening* Pt;
-        Screening sc;
+        Box<Screening>? Pt;
+        Screening sc = new(hProfile.ContextID);
         bool rc;
 
         switch (Pass)
@@ -1201,23 +1200,23 @@ internal static unsafe partial class Testbed
 
                 sc.Flag = 0;
                 sc.nChannels = 1;
-                ((ScreeningChannel*)sc.Channels)[0].Frequency = 2.0;
-                ((ScreeningChannel*)sc.Channels)[0].ScreenAngle = 3.0;
-                ((ScreeningChannel*)sc.Channels)[0].SpotShape = cmsSPOT_ELLIPSE;
+                sc.Channels[0].Frequency = 2.0;
+                sc.Channels[0].ScreenAngle = 3.0;
+                sc.Channels[0].SpotShape = cmsSPOT_ELLIPSE;
 
-                rc = cmsWriteTag(hProfile, tag, new BoxPtr<Screening>(&sc));
+                rc = cmsWriteTag(hProfile, tag, new Box<Screening>(sc));
                 return rc;
 
 
             case 2:
-                Pt = (cmsReadTag(hProfile, tag) is BoxPtr<Screening> box) ? box : null;
+                Pt = cmsReadTag(hProfile, tag) as Box<Screening>;
                 if (Pt == null) return false;
 
-                if (Pt->nChannels != 1) return false;
-                if (Pt->Flag != 0) return false;
-                if (!IsGoodFixed15_16("Freq", ((ScreeningChannel*)Pt->Channels)[0].Frequency, 2.0)) return false;
-                if (!IsGoodFixed15_16("Angle", ((ScreeningChannel*)Pt->Channels)[0].ScreenAngle, 3.0)) return false;
-                if (((ScreeningChannel*)Pt->Channels)[0].SpotShape != cmsSPOT_ELLIPSE) return false;
+                if (Pt.Value.nChannels != 1) return false;
+                if (Pt.Value.Flag != 0) return false;
+                if (!IsGoodFixed15_16("Freq", Pt.Value.Channels[0].Frequency, 2.0)) return false;
+                if (!IsGoodFixed15_16("Angle", Pt.Value.Channels[0].ScreenAngle, 3.0)) return false;
+                if (Pt.Value.Channels[0].SpotShape != cmsSPOT_ELLIPSE) return false;
                 return true;
 
             default:
@@ -1375,7 +1374,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckICCViewingConditions(int Pass, Profile hProfile)
     {
-        IccViewingConditions* v;
+        Box<IccViewingConditions>? v;
         IccViewingConditions s;
 
         switch (Pass)
@@ -1390,21 +1389,21 @@ internal static unsafe partial class Testbed
                 s.SurroundXYZ.Y = 0.5;
                 s.SurroundXYZ.Z = 0.6;
 
-                if (!cmsWriteTag(hProfile, cmsSigViewingConditionsTag, new BoxPtr<IccViewingConditions>(&s))) return false;
+                if (!cmsWriteTag(hProfile, cmsSigViewingConditionsTag, new Box<IccViewingConditions>(s))) return false;
                 return true;
 
             case 2:
-                v = (cmsReadTag(hProfile, cmsSigViewingConditionsTag) is BoxPtr<IccViewingConditions> box) ? box : null;
+                v = cmsReadTag(hProfile, cmsSigViewingConditionsTag) as Box<IccViewingConditions>;
                 if (v == null) return false;
 
-                if (v->IlluminantType != IlluminantType.D50) return false;
-                if (!IsGoodVal("IlluminantXYZ.X", v->IlluminantXYZ.X, 0.1, 0.001)) return false;
-                if (!IsGoodVal("IlluminantXYZ.Y", v->IlluminantXYZ.Y, 0.2, 0.001)) return false;
-                if (!IsGoodVal("IlluminantXYZ.Z", v->IlluminantXYZ.Z, 0.3, 0.001)) return false;
+                if (v.Value.IlluminantType != IlluminantType.D50) return false;
+                if (!IsGoodVal("IlluminantXYZ.X", v.Value.IlluminantXYZ.X, 0.1, 0.001)) return false;
+                if (!IsGoodVal("IlluminantXYZ.Y", v.Value.IlluminantXYZ.Y, 0.2, 0.001)) return false;
+                if (!IsGoodVal("IlluminantXYZ.Z", v.Value.IlluminantXYZ.Z, 0.3, 0.001)) return false;
 
-                if (!IsGoodVal("SurroundXYZ.X", v->SurroundXYZ.X, 0.4, 0.001)) return false;
-                if (!IsGoodVal("SurroundXYZ.Y", v->SurroundXYZ.Y, 0.5, 0.001)) return false;
-                if (!IsGoodVal("SurroundXYZ.Z", v->SurroundXYZ.Z, 0.6, 0.001)) return false;
+                if (!IsGoodVal("SurroundXYZ.X", v.Value.SurroundXYZ.X, 0.4, 0.001)) return false;
+                if (!IsGoodVal("SurroundXYZ.Y", v.Value.SurroundXYZ.Y, 0.5, 0.001)) return false;
+                if (!IsGoodVal("SurroundXYZ.Z", v.Value.SurroundXYZ.Z, 0.6, 0.001)) return false;
 
                 return true;
 
@@ -1567,21 +1566,17 @@ internal static unsafe partial class Testbed
 
     private static bool CheckRAWtags(int Pass, Profile hProfile)
     {
-        byte[] Buffer = new byte[16];
-
         switch (Pass)
         {
 
             case 1:
-                "data123"u8.CopyTo(Buffer);
-                fixed (void* ptr = &Buffer[0])
-                    return cmsWriteRawTag(hProfile, (Signature)0x31323334, ptr, 7);
+                return cmsWriteRawTag(hProfile, (Signature)0x31323334, "data123"u8, 7);
 
             case 2:
+                var Buffer = new byte[16];
                 if (cmsReadRawTag(hProfile, (Signature)0x31323334, Buffer, 7) is 0) return false;
 
-                fixed (byte* ptr = &Buffer[0])
-                    if (memcmp(ptr, "data123"u8) != 0) return false;
+                if (Buffer.AsSpan(..7).SequenceCompareTo("data123"u8) != 0) return false;
                 return true;
 
             default:

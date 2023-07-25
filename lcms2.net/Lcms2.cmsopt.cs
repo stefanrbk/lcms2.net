@@ -43,20 +43,73 @@ public static unsafe partial class Lcms2
 
     internal static readonly OptimizationPluginChunkType globalOptimizationPluginChunk = new();
 
-    private struct Prelin8Data
+    private sealed class Prelin8Data : IDisposable, ICloneable
     {
-        public Context? ContextID;
+        public readonly Context? ContextID;
 
         public InterpParams<ushort> p;
-        public fixed ushort rx[256];
-        public fixed ushort ry[256];
-        public fixed ushort rz[256];
-        public fixed uint X0[256];
-        public fixed uint Y0[256];
-        public fixed uint Z0[256];
+        private readonly ushort[] _rx;
+        private readonly ushort[] _ry;
+        private readonly ushort[] _rz;
+        private readonly uint[] _x0;
+        private readonly uint[] _y0;
+        private readonly uint[] _z0;
+
+        public Span<ushort> rx => _rx.AsSpan(..256);
+        public Span<ushort> ry => _ry.AsSpan(..256);
+        public Span<ushort> rz => _rz.AsSpan(..256);
+        public Span<uint> X0 => _x0.AsSpan(..256);
+        public Span<uint> Y0 => _y0.AsSpan(..256);
+        public Span<uint> Z0 => _z0.AsSpan(..256);
+
+        public Prelin8Data(Context? context, InterpParams<ushort> @params)
+        {
+            ContextID = context;
+            p = @params;
+
+            var usPool = Context.GetPool<ushort>(context);
+            var uiPool = Context.GetPool<uint>(context);
+
+            _rx = usPool.Rent(256);
+            _ry = usPool.Rent(256);
+            _rz = usPool.Rent(256);
+            _x0 = uiPool.Rent(256);
+            _y0 = uiPool.Rent(256);
+            _z0 = uiPool.Rent(256);
+        }
+
+        public void Dispose()
+        {
+            var usPool = Context.GetPool<ushort>(ContextID);
+            var uiPool = Context.GetPool<uint>(ContextID);
+
+            usPool.Return(_rx);
+            usPool.Return(_ry);
+            usPool.Return(_rz);
+            uiPool.Return(_x0);
+            uiPool.Return(_y0);
+            uiPool.Return(_z0);
+
+            GC.SuppressFinalize(this);
+        }
+
+        public object Clone()
+        {
+            var result = new Prelin8Data(ContextID, p);
+
+            _rx.CopyTo(result.rx);
+            _ry.CopyTo(result.ry);
+            _rz.CopyTo(result.rz);
+
+            _x0.CopyTo(result.X0);
+            _y0.CopyTo(result.Y0);
+            _z0.CopyTo(result.Z0);
+
+            return result;
+        }
     }
 
-    private class Prelin16Data : IDisposable, ICloneable
+    private sealed class Prelin16Data : IDisposable, ICloneable
     {
         public Context? ContextID;
 
@@ -81,7 +134,6 @@ public static unsafe partial class Lcms2
 
         // Points to an array of references to interpolation params (not-owned pointer)
         private readonly InterpParams<ushort>?[] paramsCurveOut16;
-        private bool disposedValue;
 
         public Span<InterpFn<ushort>> EvalCurveIn16 => evalCurveIn16;
         public Span<InterpParams<ushort>?> ParamsCurveIn16 => paramsCurveIn16;
@@ -104,29 +156,17 @@ public static unsafe partial class Lcms2
             paramsCurveOut16 = ipPool.Rent((int)numOutputs);
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
-                    var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
-
-                    ifPool.Return(evalCurveIn16);
-                    ipPool.Return(paramsCurveIn16);
-
-                    ifPool.Return(evalCurveOut16);
-                    ipPool.Return(paramsCurveOut16);
-                }
-
-                disposedValue = true;
-            }
-        }
-
         public void Dispose()
         {
-            Dispose(disposing: true);
+            var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
+            var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
+
+            ifPool.Return(evalCurveIn16);
+            ipPool.Return(paramsCurveIn16);
+
+            ifPool.Return(evalCurveOut16);
+            ipPool.Return(paramsCurveOut16);
+
             GC.SuppressFinalize(this);
         }
 
@@ -135,8 +175,7 @@ public static unsafe partial class Lcms2
             var result = new Prelin16Data(ContextID, nInputs, nOutputs)
             {
                 EvalCLUT = EvalCLUT,
-                CLUTparams = CLUTparams,
-                disposedValue = false
+                CLUTparams = CLUTparams
             };
 
             // EvalCurveIn16 and ParamsCurveIn16 excluded on purpose!!
@@ -152,40 +191,99 @@ public static unsafe partial class Lcms2
     private static int DOUBLE_TO_1FIXED14(double x) =>
         (int)Math.Floor((x * 16384.0) + 0.5);
 
-    private struct MatShaper8Data
+    private sealed class MatShaper8Data(Context? context) : IDisposable, ICloneable
     {
-        public Context? ContextID;
+        public readonly Context? ContextID = context;
 
         // from 0..255 to 1.14 (0.0...1.0)
-        public fixed int Shaper1R[256];
-
-        public fixed int Shaper1G[256];
-        public fixed int Shaper1B[256];
+        private readonly int[] shaper1R = Context.GetPool<int>(context).Rent(256);
+        private readonly int[] shaper1G = Context.GetPool<int>(context).Rent(256);
+        private readonly int[] shaper1B = Context.GetPool<int>(context).Rent(256);
 
         // n.14 to n.14 (needs a saturation after that)
-        public fixed int Mat[3 * 3];
+        private readonly int[] mat = Context.GetPool<int>(context).Rent(3 * 3);
 
-        public fixed int Off[3];
+        private readonly int[] off = Context.GetPool<int>(context).Rent(3);
 
         // 1.14 to 0..255
-        public fixed ushort Shaper2R[16385];
+        private readonly ushort[] shaper2R = Context.GetPool<ushort>(context).Rent(16385);
+        private readonly ushort[] shaper2G = Context.GetPool<ushort>(context).Rent(16385);
+        private readonly ushort[] shaper2B = Context.GetPool<ushort>(context).Rent(16385);
 
-        public fixed ushort Shaper2G[16385];
-        public fixed ushort Shaper2B[16385];
+        public Span<int> Shaper1R => shaper1R.AsSpan(..256);
+        public Span<int> Shaper1G => shaper1G.AsSpan(..256);
+        public Span<int> Shaper1B => shaper1B.AsSpan(..256);
+
+        public Span<int> Mat => mat.AsSpan(..(3 * 3));
+        public Span<int> Off => off.AsSpan(..3);
+
+        public Span<ushort> Shaper2R => shaper2R.AsSpan(..16385);
+        public Span<ushort> Shaper2G => shaper2G.AsSpan(..16385);
+        public Span<ushort> Shaper2B => shaper2B.AsSpan(..16385);
+
+        public object Clone()
+        {
+            var result = new MatShaper8Data(ContextID);
+
+            Shaper1R.CopyTo(result.Shaper1R);
+            Shaper1G.CopyTo(result.Shaper1G);
+            Shaper1B.CopyTo(result.Shaper1B);
+
+            Mat.CopyTo(result.Mat);
+            Off.CopyTo(result.Off);
+
+            Shaper2R.CopyTo(result.Shaper2R);
+            Shaper2G.CopyTo(result.Shaper2G);
+            Shaper2B.CopyTo(result.Shaper2B);
+
+            return result;
+        }
+
+        public void Dispose()
+        {
+            var iPool = Context.GetPool<int>(ContextID);
+            var usPool = Context.GetPool<ushort>(ContextID);
+
+            iPool.Return(shaper1R);
+            iPool.Return(shaper1G);
+            iPool.Return(shaper1B);
+
+            iPool.Return(mat);
+            iPool.Return(off);
+
+            usPool.Return(shaper2R);
+            usPool.Return(shaper2G);
+            usPool.Return(shaper2B);
+
+            GC.SuppressFinalize(this);
+        }
     }
 
-    private struct Curves16Data
+    private sealed class Curves16Data(Context? context, uint numCurves, uint numElements) : ICloneable
     {
-        public Context? ContextID;
+        public readonly Context? ContextID = context;
 
         // Number of curves
-        public uint nCurves;
+        public readonly uint nCurves = numCurves;
 
         // Elements in curves
-        public uint nElements;
+        public readonly uint nElements = numElements;
 
         // Points to a dynamically allocated array
-        public ushort** Curves;
+        public readonly ushort[,] Curves = new ushort[numCurves, numElements];
+
+        public object Clone()
+        {
+            var result = new Curves16Data(ContextID, nCurves, nElements);
+
+            for (var i = 0; i < nCurves; i++)
+            {
+                for (var j = 0; j < nElements; j++)
+                    result.Curves[i, j] = Curves[i, j];
+            }
+
+            return result;
+        }
     }
 
     private static void _RemoveElement(ref Stage? head)
@@ -384,32 +482,23 @@ public static unsafe partial class Lcms2
             p16.EvalCurveIn16[i](&StageDEF[i], &Output[i], p16.ParamsCurveOut16[i]);
     }
 
-    private static void PrelinOpt16free(Context? ContextID, object? ptr)
-    {
-        if (ptr is not Prelin16Data p16)
-            return;
+    private static void PrelinOpt16free(Context? ContextID, object? ptr) =>
 
         //_cmsFree(ContextID, p16.EvalCurveOut16);
         //_cmsFree(ContextID, p16.ParamsCurveOut16);
 
         //_cmsFree(ContextID, p16);
 
-        p16.Dispose();
-    }
+        (ptr as Prelin16Data)?.Dispose();
 
-    private static object? Prelin16dup(Context? ContextID, object? ptr)
-    {
-        if (ptr is not Prelin16Data p16)
-            return null;
-
+    private static object? Prelin16dup(Context? ContextID, object? ptr) =>
         //var Duped = _cmsDupMem<Prelin16Data>(ContextID, p16);
         //if (Duped is null) return null;
 
         //Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16.Ptr->EvalCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
         //Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16.Ptr->ParamsCurveOut16, p16.Ptr->nOutputs * _sizeof<nint>());
 
-        return p16.Clone();
-    }
+        (ptr as Prelin16Data)?.Clone();
 
     private static Prelin16Data? PrelinOpt16alloc(
         Context? ContextID,
@@ -877,12 +966,14 @@ public static unsafe partial class Lcms2
             g.Table16[i] = _cmsQuickSaturateWord((i * Slope) + beta);
     }
 
-    private static Prelin8Data* PrelinOpt8alloc(Context? ContextID, InterpParams<ushort> p, Span<ToneCurve> G)
+    private static Prelin8Data? PrelinOpt8alloc(Context? ContextID, InterpParams<ushort> p, Span<ToneCurve> G)
     {
         var Input = stackalloc ushort[3];
 
-        var p8 = _cmsMallocZero<Prelin8Data>(ContextID);
-        if (p8 is null) return null;
+        //var p8 = _cmsMallocZero<Prelin8Data>(ContextID);
+        //if (p8 is null) return null;
+
+        var p8 = new Prelin8Data(ContextID, p);
 
         // Since this only works for 8 bit input, values always come as x * 257,
         // we can safely take msb byte (x << 8 + x)
@@ -909,39 +1000,34 @@ public static unsafe partial class Lcms2
             var v3 = _cmsToFixedDomain((int)(Input[2] * p.Domain[2]));
 
             // Store the precalculated table of nodes
-            p8->X0[i] = p.opta[0] * (uint)FIXED_TO_INT(v1);
-            p8->Y0[i] = p.opta[1] * (uint)FIXED_TO_INT(v2);
-            p8->Z0[i] = p.opta[2] * (uint)FIXED_TO_INT(v3);
+            p8.X0[i] = p.opta[0] * (uint)FIXED_TO_INT(v1);
+            p8.Y0[i] = p.opta[1] * (uint)FIXED_TO_INT(v2);
+            p8.Z0[i] = p.opta[2] * (uint)FIXED_TO_INT(v3);
 
             // Store the precalculated table of offsets
-            p8->rx[i] = (ushort)FIXED_REST_TO_INT(v1);
-            p8->ry[i] = (ushort)FIXED_REST_TO_INT(v2);
-            p8->rz[i] = (ushort)FIXED_REST_TO_INT(v3);
+            p8.rx[i] = (ushort)FIXED_REST_TO_INT(v1);
+            p8.ry[i] = (ushort)FIXED_REST_TO_INT(v2);
+            p8.rz[i] = (ushort)FIXED_REST_TO_INT(v3);
         }
-
-        p8->ContextID = ContextID;
-        p8->p = p;
 
         return p8;
     }
 
     private static void Prelin8free(Context? ContextID, object? ptr) =>
         //_cmsFree(ContextID, ptr as BoxPtr<Prelin16Data>);
-        (ptr as Prelin16Data)?.Dispose();
+        (ptr as Prelin8Data)?.Dispose();
 
     private static object? Prelin8dup(Context? ContextID, object? ptr) =>
-        ptr is BoxPtr<Prelin8Data> p8
-            ? new BoxPtr<Prelin8Data>(_cmsDupMem<Prelin8Data>(ContextID, p8))
-            : null;
+        (ptr as Prelin8Data)?.Clone();
 
     private static void PrelinEval8(in ushort* Input, ushort* Output, object? D)
     {
         int c0, c1, c2, c3;
 
-        if (D is not BoxPtr<Prelin8Data> p8)
+        if (D is not Prelin8Data p8)
             return;
 
-        var p = p8.Ptr->p;
+        var p = p8.p;
         var TotalOut = (int)p.nOutputs;
         var tab = p.Table;
 
@@ -949,13 +1035,13 @@ public static unsafe partial class Lcms2
         var g = (byte)(Input[1] >> 8);
         var b = (byte)(Input[2] >> 8);
 
-        var X0 = (int)p8.Ptr->X0[r];
-        var Y0 = (int)p8.Ptr->Y0[g];
-        var Z0 = (int)p8.Ptr->Z0[b];
+        var X0 = (int)p8.X0[r];
+        var Y0 = (int)p8.Y0[g];
+        var Z0 = (int)p8.Z0[b];
 
-        var rx = p8.Ptr->rx[r];
-        var ry = p8.Ptr->ry[g];
-        var rz = p8.Ptr->rz[b];
+        var rx = p8.rx[r];
+        var ry = p8.ry[g];
+        var rz = p8.rz[b];
 
         var X1 = X0 + (int)((rx is 0) ? 0 : p.opta[2]);
         var Y1 = Y0 + (int)((ry is 0) ? 0 : p.opta[1]);
@@ -964,7 +1050,7 @@ public static unsafe partial class Lcms2
         // These are the 6 Tetrahedrals
         for (var OutChan = 0; OutChan < TotalOut; OutChan++)
         {
-            var DENS = (int i, int j, int k) =>
+            ushort DENS(int i, int j, int k) =>
                 tab.Span[i + j + k + OutChan];
 
             c0 = DENS(X0, Y0, Z0);
@@ -1182,7 +1268,7 @@ public static unsafe partial class Lcms2
             var p8 = PrelinOpt8alloc(OptimizedLUT.ContextID, OptimizedPrelinCLUT.Params, OptimizedPrelinCurves);
             if (p8 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, new BoxPtr<Prelin8Data>(p8), Prelin8free, Prelin8dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, p8, Prelin8free, Prelin8dup);
         }
         else
         {
@@ -1224,71 +1310,73 @@ public static unsafe partial class Lcms2
 
     private static void CurvesFree(Context? ContextID, object? ptr)
     {
-        if (ptr is not BoxPtr<Curves16Data> Data)
-            return;
+        //if (ptr is not Curves16Data Data)
+        //    return;
 
-        for (var i = 0; i < Data.Ptr->nCurves; i++)
-            _cmsFree(ContextID, Data.Ptr->Curves[i]);
+        //for (var i = 0; i < Data.Ptr->nCurves; i++)
+        //    _cmsFree(ContextID, Data.Ptr->Curves[i]);
 
-        _cmsFree(ContextID, Data.Ptr->Curves);
-        _cmsFree(ContextID, Data.Ptr);
+        //_cmsFree(ContextID, Data.Ptr->Curves);
+        //_cmsFree(ContextID, Data.Ptr);
     }
 
-    private static BoxPtr<Curves16Data>? CurvesDup(Context? ContextID, object? ptr)
-    {
-        if (ptr is not BoxPtr<Curves16Data> curves)
-            return null;
+    private static Curves16Data? CurvesDup(Context? ContextID, object? ptr) =>
+        //if (ptr is not Curves16Data curves)
+        //    return null;
 
-        var Data = _cmsDupMem<Curves16Data>(ContextID, curves);
+        //var Data = _cmsDupMem<Curves16Data>(ContextID, curves);
 
-        if (Data is null) return null;
+        //if (Data is null) return null;
 
-        Data->Curves = _cmsDupMem2<ushort>(ContextID, Data->Curves, Data->nCurves);
+        //Data->Curves = _cmsDupMem2<ushort>(ContextID, Data->Curves, Data->nCurves);
 
-        for (var i = 0; i < Data->nCurves; i++)
-            Data->Curves[i] = _cmsDupMem<ushort>(ContextID, Data->Curves[i], Data->nElements);
+        //for (var i = 0; i < Data->nCurves; i++)
+        //    Data->Curves[i] = _cmsDupMem<ushort>(ContextID, Data->Curves[i], Data->nElements);
 
-        return new(Data);
-    }
+        //return Data;
 
-    private static Curves16Data* CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve[] G)
+        (ptr as Curves16Data)?.Clone() as Curves16Data;
+
+    private static Curves16Data? CurvesAlloc(Context? ContextID, uint nCurves, uint nElements, ToneCurve[] G)
     {
         int i;
-        var c16 = _cmsMallocZero<Curves16Data>(ContextID);
-        if (c16 is null) return null;
+        //var c16 = _cmsMallocZero<Curves16Data>(ContextID);
+        //if (c16 is null) return null;
 
-        c16->nCurves = nCurves;
-        c16->nElements = nElements;
+        //c16->nCurves = nCurves;
+        //c16->nElements = nElements;
 
-        c16->Curves = _cmsCalloc2<ushort>(ContextID, nCurves);
-        if (c16 is null) /*goto Error1;*/
-        {
-            _cmsFree(ContextID, c16);
-            return null;
-        }
+        //c16->Curves = _cmsCalloc2<ushort>(ContextID, nCurves);
+        //if (c16 is null) /*goto Error1;*/
+        //{
+        //    _cmsFree(ContextID, c16);
+        //    return null;
+        //}
+
+        var c16 = new Curves16Data(ContextID, nCurves, nElements);
 
         for (i = 0; i < nCurves; i++)
         {
-            c16->Curves[i] = _cmsCalloc<ushort>(ContextID, nElements);
+            //c16->Curves[i] = _cmsCalloc<ushort>(ContextID, nElements);
 
-            if (c16->Curves[i] is null) /*goto Error2;*/
-            {
-                for (var j = 0; j < i; j++)
-                    _cmsFree(ContextID, c16->Curves[j]);
-                _cmsFree(ContextID, c16->Curves);
-                _cmsFree(ContextID, c16);
-                return null;
-            }
+            //if (c16->Curves[i] is null) /*goto Error2;*/
+            //{
+            //    for (var j = 0; j < i; j++)
+            //        _cmsFree(ContextID, c16->Curves[j]);
+            //    _cmsFree(ContextID, c16->Curves);
+            //    _cmsFree(ContextID, c16);
+            //    return null;
+            //}
 
             if (nElements is 256)
             {
                 for (var j = 0; j < nElements; j++)
-                    c16->Curves[i][j] = cmsEvalToneCurve16(G[i], FROM_8_TO_16((uint)j));
+                    c16.Curves[i, j] = cmsEvalToneCurve16(G[i], FROM_8_TO_16((uint)j));
             }
             else
             {
                 for (var j = 0; j < nElements; j++)
-                    c16->Curves[i][j] = cmsEvalToneCurve16(G[i], (ushort)j);
+                    c16.Curves[i, j] = cmsEvalToneCurve16(G[i], (ushort)j);
             }
         }
 
@@ -1305,23 +1393,23 @@ public static unsafe partial class Lcms2
 
     private static void FastEvaluateCurves8(in ushort* In, ushort* Out, object? D)
     {
-        if (D is not BoxPtr<Curves16Data> Data)
+        if (D is not Curves16Data Data)
             return;
 
-        for (var i = 0; i < Data.Ptr->nCurves; i++)
+        for (var i = 0; i < Data.nCurves; i++)
         {
             var x = In[i] >> 8;
-            Out[i] = Data.Ptr->Curves[i][x];
+            Out[i] = Data.Curves[i, x];
         }
     }
 
     private static void FastEvaluateCurves16(in ushort* In, ushort* Out, object? D)
     {
-        if (D is not BoxPtr<Curves16Data> Data)
+        if (D is not Curves16Data Data)
             return;
 
-        for (var i = 0; i < Data.Ptr->nCurves; i++)
-            Out[i] = Data.Ptr->Curves[i][In[i]];
+        for (var i = 0; i < Data.nCurves; i++)
+            Out[i] = Data.Curves[i, In[i]];
     }
 
     private static void FastIdentify16(in ushort* In, ushort* Out, object? D)
@@ -1413,14 +1501,14 @@ public static unsafe partial class Lcms2
 
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, new BoxPtr<Curves16Data>(c16), CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, c16, CurvesFree, CurvesDup);
             }
             else
             {
                 var c16 = CurvesAlloc(Dest.ContextID, Data.nCurves, 65536, Data.TheCurves);
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, new BoxPtr<Curves16Data>(c16), CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, c16, CurvesFree, CurvesDup);
             }
         }
         else
@@ -1457,46 +1545,45 @@ public static unsafe partial class Lcms2
     }
 
     private static void FreeMatShaper(Context? ContextID, object? Data) =>
-        _cmsFree(ContextID, Data as BoxPtr<MatShaper8Data>);
+        //_cmsFree(ContextID, Data as BoxPtr<MatShaper8Data>);
+        (Data as MatShaper8Data)?.Dispose();
 
-    private static BoxPtr<MatShaper8Data>? DupMatShaper(Context? ContextID, object? Data) =>
-        Data is BoxPtr<MatShaper8Data> mat
-            ? new(_cmsDupMem<MatShaper8Data>(ContextID, mat))
-            : null;
+    private static MatShaper8Data? DupMatShaper(Context? ContextID, object? Data) =>
+        (Data as MatShaper8Data)?.Clone() as MatShaper8Data;
 
     private static void MatShaperEval16(in ushort* In, ushort* Out, object? D)
     {
-        if (D is not BoxPtr<MatShaper8Data> p)
+        if (D is not MatShaper8Data p)
             return;
 
         // In this case (and only in this case!) we can use this simplification since
         // In[] is assured to come from an 8 bit number. (a << 8 | a)
-        var ri = In[0] & 0xFFu;
-        var gi = In[1] & 0xFFu;
-        var bi = In[2] & 0xFFu;
+        var ri = In[0] & 0xFF;
+        var gi = In[1] & 0xFF;
+        var bi = In[2] & 0xFF;
 
         // Across first shaper, which also converts to 1.14 fixed point
-        var r = p.Ptr->Shaper1R[ri];
-        var g = p.Ptr->Shaper1G[gi];
-        var b = p.Ptr->Shaper1B[bi];
+        var r = p.Shaper1R[ri];
+        var g = p.Shaper1G[gi];
+        var b = p.Shaper1B[bi];
 
         // Evaluate the matrix in 1.14 fixed point
-        var l1 = ((p.Ptr->Mat[(0 * 3) + 0] * r) + (p.Ptr->Mat[(0 * 3) + 1] * g) + (p.Ptr->Mat[(0 * 3) + 2] * b) + p.Ptr->Off[0] + 0x2000) >> 14;
-        var l2 = ((p.Ptr->Mat[(1 * 3) + 0] * r) + (p.Ptr->Mat[(1 * 3) + 1] * g) + (p.Ptr->Mat[(1 * 3) + 2] * b) + p.Ptr->Off[1] + 0x2000) >> 14;
-        var l3 = ((p.Ptr->Mat[(2 * 3) + 0] * r) + (p.Ptr->Mat[(2 * 3) + 1] * g) + (p.Ptr->Mat[(2 * 3) + 2] * b) + p.Ptr->Off[2] + 0x2000) >> 14;
+        var l1 = ((p.Mat[(0 * 3) + 0] * r) + (p.Mat[(0 * 3) + 1] * g) + (p.Mat[(0 * 3) + 2] * b) + p.Off[0] + 0x2000) >> 14;
+        var l2 = ((p.Mat[(1 * 3) + 0] * r) + (p.Mat[(1 * 3) + 1] * g) + (p.Mat[(1 * 3) + 2] * b) + p.Off[1] + 0x2000) >> 14;
+        var l3 = ((p.Mat[(2 * 3) + 0] * r) + (p.Mat[(2 * 3) + 1] * g) + (p.Mat[(2 * 3) + 2] * b) + p.Off[2] + 0x2000) >> 14;
 
         // Now we have to clip to 0..1.0 range
-        ri = (l1 < 0) ? 0 : ((l1 > 16384) ? 16384 : (uint)l1);
-        gi = (l2 < 0) ? 0 : ((l2 > 16384) ? 16384 : (uint)l2);
-        bi = (l3 < 0) ? 0 : ((l3 > 16384) ? 16384 : (uint)l3);
+        ri = (l1 < 0) ? 0 : ((l1 > 16384) ? 16384 : l1);
+        gi = (l2 < 0) ? 0 : ((l2 > 16384) ? 16384 : l2);
+        bi = (l3 < 0) ? 0 : ((l3 > 16384) ? 16384 : l3);
 
         // And across second shaper
-        Out[0] = p.Ptr->Shaper2R[ri];
-        Out[1] = p.Ptr->Shaper2G[gi];
-        Out[2] = p.Ptr->Shaper2B[bi];
+        Out[0] = p.Shaper2R[ri];
+        Out[1] = p.Shaper2G[gi];
+        Out[2] = p.Shaper2B[bi];
     }
 
-    private static void FillFirstShaper(int* Table, ToneCurve Curve)
+    private static void FillFirstShaper(Span<int> Table, ToneCurve Curve)
     {
         for (var i = 0; i < 256; i++)
         {
@@ -1509,7 +1596,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void FillSecondShaper(ushort* Table, ToneCurve Curve, bool Is8BitsOutput)
+    private static void FillSecondShaper(Span<ushort> Table, ToneCurve Curve, bool Is8BitsOutput)
     {
         for (var i = 0; i < 16385; i++)
         {
@@ -1529,7 +1616,10 @@ public static unsafe partial class Lcms2
 
                 Table[i] = FROM_8_TO_16(b);
             }
-            else Table[i] = _cmsQuickSaturateWord(Val * 65535.0);
+            else
+            {
+                Table[i] = _cmsQuickSaturateWord(Val * 65535.0);
+            }
         }
     }
 
@@ -1539,39 +1629,34 @@ public static unsafe partial class Lcms2
         bool Is8Bits = _cmsFormatterIs8bit(*OutputFormat);
 
         // Allocate a big chunk of memory to store precomputed tables
-        var p = _cmsMalloc<MatShaper8Data>(Dest.ContextID);
-        if (p is null) return false;
+        //var p = _cmsMalloc<MatShaper8Data>(Dest.ContextID);
+        //if (p is null) return false;
 
-        p->ContextID = Dest.ContextID;
+        //p->ContextID = Dest.ContextID;
+
+        var p = new MatShaper8Data(Dest.ContextID);
 
         // Precompute tables
-        FillFirstShaper(p->Shaper1R, Curve1[0]);
-        FillFirstShaper(p->Shaper1G, Curve1[1]);
-        FillFirstShaper(p->Shaper1B, Curve1[2]);
+        FillFirstShaper(p.Shaper1R, Curve1[0]);
+        FillFirstShaper(p.Shaper1G, Curve1[1]);
+        FillFirstShaper(p.Shaper1B, Curve1[2]);
 
-        FillSecondShaper(p->Shaper2R, Curve2[0], Is8Bits);
-        FillSecondShaper(p->Shaper2G, Curve2[1], Is8Bits);
-        FillSecondShaper(p->Shaper2B, Curve2[2], Is8Bits);
+        FillSecondShaper(p.Shaper2R, Curve2[0], Is8Bits);
+        FillSecondShaper(p.Shaper2G, Curve2[1], Is8Bits);
+        FillSecondShaper(p.Shaper2B, Curve2[2], Is8Bits);
 
         // Convert matrix to nFixed14
         for (var i = 0; i < 3; i++)
         {
             for (var j = 0; j < 3; j++)
             {
-                p->Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(((double*)Mat)[i * 3 + 1]);
+                p.Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(((double*)Mat)[(i * 3) + 1]);
             }
         }
 
         for (var i = 0; i < 3; i++)
         {
-            if (Off is null)
-            {
-                p->Off[i] = 0;
-            }
-            else
-            {
-                p->Off[i] = DOUBLE_TO_1FIXED14(Offn[i]);
-            }
+            p.Off[i] = Off is null ? 0 : DOUBLE_TO_1FIXED14(Offn[i]);
         }
 
         // Mark as optimized for faster formatter
@@ -1579,7 +1664,7 @@ public static unsafe partial class Lcms2
             *OutputFormat |= OPTIMIZED_SH(1);
 
         // Fill function pointers
-        _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, new BoxPtr<MatShaper8Data>(p), FreeMatShaper, DupMatShaper);
+        _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, p, FreeMatShaper, DupMatShaper);
         return true;
     }
 

@@ -1250,19 +1250,19 @@ public static unsafe partial class Lcms2
 
     #region DateTime
 
-    private static BoxPtr<DateTime>? Type_DateTime_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<DateTime>? Type_DateTime_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         DateTimeNumber timestamp;
-        DateTime* NewDateTime;
+        DateTime NewDateTime;
 
         *nItems = 0;
 
         if (io.Read(io, &timestamp, _sizeof<DateTimeNumber>(), 1) is not 1) return null;
 
-        NewDateTime = _cmsMalloc<DateTime>(self.ContextID);
-        if (NewDateTime is null) return null;
+        //NewDateTime = _cmsMalloc<DateTime>(self.ContextID);
+        //if (NewDateTime is null) return null;
 
-        _cmsDecodeDateTimeNumber(&timestamp, NewDateTime);
+        _cmsDecodeDateTimeNumber(timestamp, out NewDateTime);
 
         *nItems = 1;
         return new(NewDateTime);
@@ -1270,35 +1270,33 @@ public static unsafe partial class Lcms2
 
     private static bool Type_DateTime_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<DateTime> DateTime) return false;
-        DateTimeNumber timestamp;
+        if (Ptr is not Box<DateTime> DateTime) return false;
 
-        _cmsEncodeDateTimeNumber(&timestamp, DateTime);
-        if (!io.Write(io, _sizeof<DateTimeNumber>(), &timestamp)) return false;
-        return true;
+        _cmsEncodeDateTimeNumber(out var timestamp, DateTime);
+        return io.Write(io, _sizeof<DateTimeNumber>(), &timestamp);
     }
 
-    private static BoxPtr<DateTime>? Type_DateTime_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<DateTime> dt
-            ? new(_cmsDupMem<DateTime>(self.ContextID, dt))
+    private static Box<DateTime>? Type_DateTime_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<DateTime> dt
+            ? new(dt)
             : null;
 
     private static void Type_DateTime_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<DateTime> dt)
-            _cmsFree(self.ContextID, dt);
+        //if (Ptr is BoxPtr<DateTime> dt)
+        //    _cmsFree(self.ContextID, dt);
     }
 
     #endregion DateTime
 
     #region Measurement
 
-    private static BoxPtr<IccMeasurementConditions>? Type_Measurement_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<IccMeasurementConditions>? Type_Measurement_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
-        IccMeasurementConditions mc;
+        IccMeasurementConditions mc = new();
 
         *nItems = 0;
-        memset(&mc, 0, _sizeof<IccMeasurementConditions>());
+        //memset(&mc, 0, _sizeof<IccMeasurementConditions>());
 
         if (!_cmsReadUInt32Number(io, &mc.Observer)) return null;
         if (!_cmsReadXYZNumber(io, &mc.Backing)) return null;
@@ -1306,35 +1304,36 @@ public static unsafe partial class Lcms2
         if (!_cmsRead15Fixed16Number(io, out mc.Flare)) return null;
         if (!_cmsReadUInt32Number(io, (uint*)&mc.IlluminantType)) return null;
 
-        var result = _cmsDupMem<IccMeasurementConditions>(self.ContextID, &mc);
-        if (result is null) return null;
+        //var result = _cmsDupMem<IccMeasurementConditions>(self.ContextID, &mc);
+        //if (result is null) return null;
 
         *nItems = 1;
-        return new(result);
+        return new(mc);
     }
 
     private static bool Type_Measurement_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<IccMeasurementConditions> mc) return false;
+        if (Ptr is not Box<IccMeasurementConditions> mc) return false;
 
-        if (!_cmsWriteUInt32Number(io, mc.Ptr->Observer)) return false;
-        if (!_cmsWriteXYZNumber(io, &mc.Ptr->Backing)) return false;
-        if (!_cmsWriteUInt32Number(io, mc.Ptr->Geometry)) return false;
-        if (!_cmsWrite15Fixed16Number(io, mc.Ptr->Flare)) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)mc.Ptr->IlluminantType)) return false;
+        if (!_cmsWriteUInt32Number(io, mc.Value.Observer)) return false;
+        fixed (CIEXYZ* ptr = &mc.Value.Backing)
+            if (!_cmsWriteXYZNumber(io, ptr)) return false;
+        if (!_cmsWriteUInt32Number(io, mc.Value.Geometry)) return false;
+        if (!_cmsWrite15Fixed16Number(io, mc.Value.Flare)) return false;
+        if (!_cmsWriteUInt32Number(io, (uint)mc.Value.IlluminantType)) return false;
 
         return true;
     }
 
-    private static BoxPtr<IccMeasurementConditions>? Type_Measurement_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<IccMeasurementConditions> mc
-            ? new(_cmsDupMem<IccMeasurementConditions>(self.ContextID, mc))
+    private static Box<IccMeasurementConditions>? Type_Measurement_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<IccMeasurementConditions> mc
+            ? new(mc)
             : null;
 
     private static void Type_Measurement_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<IccMeasurementConditions> mc)
-            _cmsFree(self.ContextID, mc);
+        //if (Ptr is BoxPtr<IccMeasurementConditions> mc)
+        //    _cmsFree(self.ContextID, mc);
     }
 
     #endregion Measurement
@@ -3253,110 +3252,115 @@ public static unsafe partial class Lcms2
 
     #region Screening
 
-    private static BoxPtr<Screening>? Type_Screening_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<Screening>? Type_Screening_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
-        var sc = _cmsMallocZero<Screening>(self.ContextID);
-        if (sc is null) return null;
+        var sc = new Screening(self.ContextID); //var sc = _cmsMallocZero<Screening>(self.ContextID);
+        //if (sc is null) return null;
 
-        if (!_cmsReadUInt32Number(io, &sc->Flag)) goto Error;
-        if (!_cmsReadUInt32Number(io, &sc->nChannels)) goto Error;
+        if (!_cmsReadUInt32Number(io, &sc.Flag)) goto Error;
+        if (!_cmsReadUInt32Number(io, &sc.nChannels)) goto Error;
 
-        if (sc->nChannels > cmsMAXCHANNELS - 1)
-            sc->nChannels = cmsMAXCHANNELS - 1;
+        if (sc.nChannels > cmsMAXCHANNELS - 1)
+            sc.nChannels = cmsMAXCHANNELS - 1;
 
-        for (var i = 0; i < sc->nChannels; i++)
+        for (var i = 0; i < sc.nChannels; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, out ((ScreeningChannel*)sc->Channels)[i].Frequency)) goto Error;
-            if (!_cmsRead15Fixed16Number(io, out ((ScreeningChannel*)sc->Channels)[i].ScreenAngle)) goto Error;
-            if (!_cmsReadUInt32Number(io, &((ScreeningChannel*)sc->Channels)[i].SpotShape)) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out sc.Channels[i].Frequency)) goto Error;
+            if (!_cmsRead15Fixed16Number(io, out sc.Channels[i].ScreenAngle)) goto Error;
+            fixed (uint* ptr = &sc.Channels[i].SpotShape) if (!_cmsReadUInt32Number(io, ptr)) goto Error;
         }
 
         *nItems = 1;
         return new(sc);
 
     Error:
-        _cmsFree(self.ContextID, sc);
+        _cmsFree(self.ContextID, sc.channels); //_cmsFree(self.ContextID, sc);
 
         return null;
     }
 
     private static bool Type_Screening_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<Screening> sc) return false;
+        if (Ptr is not Box<Screening> sc) return false;
 
-        if (!_cmsWriteUInt32Number(io, sc.Ptr->Flag)) return false;
-        if (!_cmsWriteUInt32Number(io, sc.Ptr->nChannels)) return false;
+        if (!_cmsWriteUInt32Number(io, sc.Value.Flag)) return false;
+        if (!_cmsWriteUInt32Number(io, sc.Value.nChannels)) return false;
 
-        if (sc.Ptr->nChannels > cmsMAXCHANNELS - 1)
-            sc.Ptr->nChannels = cmsMAXCHANNELS - 1;
+        if (sc.Value.nChannels > cmsMAXCHANNELS - 1)
+            sc.Value.nChannels = cmsMAXCHANNELS - 1;
 
-        for (var i = 0; i < sc.Ptr->nChannels; i++)
+        for (var i = 0; i < sc.Value.nChannels; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].Frequency)) return false;
-            if (!_cmsWrite15Fixed16Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].ScreenAngle)) return false;
-            if (!_cmsWriteUInt32Number(io, ((ScreeningChannel*)sc.Ptr->Channels)[i].SpotShape)) return false;
+            if (!_cmsWrite15Fixed16Number(io, sc.Value.Channels[i].Frequency)) return false;
+            if (!_cmsWrite15Fixed16Number(io, sc.Value.Channels[i].ScreenAngle)) return false;
+            if (!_cmsWriteUInt32Number(io, sc.Value.Channels[i].SpotShape)) return false;
         }
 
         return true;
     }
 
-    private static BoxPtr<Screening>? Type_Screening_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<Screening> s
-            ? new(_cmsDupMem<Screening>(self.ContextID, s))
-            : null;
+    private static Box<Screening>? Type_Screening_Dup(TagTypeHandler self, object? Ptr, uint _)
+    {
+        if (Ptr is not Box<Screening> s)
+            return null;
+
+        var result = new Box<Screening>(s);
+        s.Value.Channels.CopyTo(result.Value.Channels);
+        return result;
+    }
 
     private static void Type_Screening_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<Screening> s)
-            _cmsFree(self.ContextID, s);
+        if (Ptr is Box<Screening> s)
+            _cmsFree(self.ContextID, s.Value.channels); //_cmsFree(self.ContextID, s);
     }
 
     #endregion Screening
 
     #region ViewingConditions
 
-    private static BoxPtr<IccViewingConditions>? Type_ViewingConditions_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<IccViewingConditions>? Type_ViewingConditions_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         *nItems = 0;
 
-        var vc = _cmsMallocZero<IccViewingConditions>(self.ContextID);
-        if (vc is null) return null;
+        var vc = new IccViewingConditions(); //var vc = _cmsMallocZero<IccViewingConditions>(self.ContextID);
+        //if (vc is null) return null;
 
-        if (!_cmsReadXYZNumber(io, &vc->IlluminantXYZ)) goto Error;
-        if (!_cmsReadXYZNumber(io, &vc->SurroundXYZ)) goto Error;
-        if (!_cmsReadUInt32Number(io, (uint*)(void*)&vc->IlluminantType)) goto Error;
+        if (!_cmsReadXYZNumber(io, &vc.IlluminantXYZ)) goto Error;
+        if (!_cmsReadXYZNumber(io, &vc.SurroundXYZ)) goto Error;
+        if (!_cmsReadUInt32Number(io, (uint*)(void*)&vc.IlluminantType)) goto Error;
 
         *nItems = 1;
         return new(vc);
 
     Error:
-        _cmsFree(self.ContextID, vc);
+        //_cmsFree(self.ContextID, vc);
 
         return null;
     }
 
     private static bool Type_ViewingConditions_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        if (Ptr is not BoxPtr<IccViewingConditions> sc) return false;
+        if (Ptr is not Box<IccViewingConditions> sc) return false;
 
-        if (!_cmsWriteXYZNumber(io, &sc.Ptr->IlluminantXYZ)) return false;
-        if (!_cmsWriteXYZNumber(io, &sc.Ptr->SurroundXYZ)) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)sc.Ptr->IlluminantType)) return false;
+        fixed (CIEXYZ* ptr = &sc.Value.IlluminantXYZ) if (!_cmsWriteXYZNumber(io, ptr)) return false;
+        fixed (CIEXYZ* ptr = &sc.Value.SurroundXYZ) if (!_cmsWriteXYZNumber(io, ptr)) return false;
+        if (!_cmsWriteUInt32Number(io, (uint)sc.Value.IlluminantType)) return false;
 
         return true;
     }
 
-    private static BoxPtr<IccViewingConditions>? Type_ViewingConditions_Dup(TagTypeHandler self, object? Ptr, uint _) =>
-        Ptr is BoxPtr<IccViewingConditions> sc
-            ? new(_cmsDupMem<IccViewingConditions>(self.ContextID, sc))
+    private static Box<IccViewingConditions>? Type_ViewingConditions_Dup(TagTypeHandler self, object? Ptr, uint _) =>
+        Ptr is Box<IccViewingConditions> sc
+            ? new(sc)
             : null;
 
     private static void Type_ViewingConditions_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is BoxPtr<IccViewingConditions> sc)
-            _cmsFree(self.ContextID, sc);
+        //if (Ptr is BoxPtr<IccViewingConditions> sc)
+        //    _cmsFree(self.ContextID, sc);
     }
 
     #endregion ViewingConditions

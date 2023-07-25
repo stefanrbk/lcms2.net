@@ -119,7 +119,9 @@ public static unsafe partial class Lcms2
         _cmsVEC3init(out *off, bx, by, bz);
     }
 
-    private static double CHAD2Temp(in MAT3* Chad)
+    private static double CHAD2Temp(in MAT3* Chad) =>
+        CHAD2Temp(*Chad);
+    private static double CHAD2Temp(MAT3 Chad)
     {
         // Convert D50 across inverse CHAD to get the absolute white point
         VEC3 d, s;
@@ -130,7 +132,7 @@ public static unsafe partial class Lcms2
         double TempK;
         MAT3 m1, m2;
 
-        m1 = *Chad;
+        m1 = Chad;
         if (!_cmsMAT3inverse(m1, out m2)) return -1.0;
 
         s.X = cmsD50_XYZ()->X;
@@ -163,10 +165,10 @@ public static unsafe partial class Lcms2
 
     private static bool ComputeAbsoluteIntent(
         double AdaptationState,
-        in CIEXYZ* WhitePointIn,
-        in MAT3* ChromaticAdaptationMatrixIn,
-        in CIEXYZ* WhitePointOut,
-        in MAT3* ChromaticAdaptationMatrixOut,
+        CIEXYZ WhitePointIn,
+        MAT3 ChromaticAdaptationMatrixIn,
+        CIEXYZ WhitePointOut,
+        MAT3 ChromaticAdaptationMatrixOut,
         MAT3* m)
     {
         MAT3 Scale, m1, m2, m3, m4;
@@ -174,9 +176,9 @@ public static unsafe partial class Lcms2
         // TODO: Follow Marc Mahy's recommendation to check if CHAD is same by using M1*M2 == M2*M1. If so, do nothing.
         // TODO: Add support for ArgyllArts tag
 
-        _cmsVEC3init(out Scale.X, WhitePointIn->X / WhitePointOut->X, 0, 0);
-        _cmsVEC3init(out Scale.Y, 0, WhitePointIn->Y / WhitePointOut->Y, 0);
-        _cmsVEC3init(out Scale.Z, 0, 0, WhitePointIn->Z / WhitePointOut->Z);
+        _cmsVEC3init(out Scale.X, WhitePointIn.X / WhitePointOut.X, 0, 0);
+        _cmsVEC3init(out Scale.Y, 0, WhitePointIn.Y / WhitePointOut.Y, 0);
+        _cmsVEC3init(out Scale.Z, 0, 0, WhitePointIn.Z / WhitePointOut.Z);
 
         // Adaptation state
         if (AdaptationState is 1.0)
@@ -187,14 +189,14 @@ public static unsafe partial class Lcms2
         }
         else if (AdaptationState is 0.0)
         {
-            m1 = *ChromaticAdaptationMatrixOut;
+            m1 = ChromaticAdaptationMatrixOut;
             _cmsMAT3per(out m2, m1, Scale);
             // m2 holds CHAD from output white to D50 times abs. col. scaling
 
             // Observer is not adapted, undo the chromatic adaptation
-            _cmsMAT3per(out *m, m2, *ChromaticAdaptationMatrixOut);
+            _cmsMAT3per(out *m, m2, ChromaticAdaptationMatrixOut);
 
-            m3 = *ChromaticAdaptationMatrixIn;
+            m3 = ChromaticAdaptationMatrixIn;
             if (!_cmsMAT3inverse(m3, out m4)) return false;
             _cmsMAT3per(out *m, m2, m4);
         }
@@ -203,7 +205,7 @@ public static unsafe partial class Lcms2
             MAT3 MixedCHAD;
             double TempSrc, TempDest, Temp;
 
-            m1 = *ChromaticAdaptationMatrixIn;
+            m1 = ChromaticAdaptationMatrixIn;
             if (!_cmsMAT3inverse(m1, out m2)) return false;
             _cmsMAT3per(out m3, m2, Scale);
             // m3 holds CHAD from input white to D50 times abs. col. scaling
@@ -267,16 +269,14 @@ public static unsafe partial class Lcms2
         // If intent is abs. colorimetric,
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
         {
-            CIEXYZ WhitePointIn, WhitePointOut;
-            MAT3 ChromaticAdaptationMatrixIn, ChromaticAdaptationMatrixOut;
 
-            _cmsReadMediaWhitePoint(&WhitePointIn, Profiles[i - 1]);
-            _cmsReadCHAD(&ChromaticAdaptationMatrixIn, Profiles[i - 1]);
+            _cmsReadMediaWhitePoint(out var WhitePointIn, Profiles[i - 1]);
+            _cmsReadCHAD(out var ChromaticAdaptationMatrixIn, Profiles[i - 1]);
 
-            _cmsReadMediaWhitePoint(&WhitePointOut, Profiles[i]);
-            _cmsReadCHAD(&ChromaticAdaptationMatrixOut, Profiles[i]);
+            _cmsReadMediaWhitePoint(out var WhitePointOut, Profiles[i]);
+            _cmsReadCHAD(out var ChromaticAdaptationMatrixOut, Profiles[i]);
 
-            if (!ComputeAbsoluteIntent(AdaptationState, &WhitePointIn, &ChromaticAdaptationMatrixIn, &WhitePointOut, &ChromaticAdaptationMatrixOut, m))
+            if (!ComputeAbsoluteIntent(AdaptationState, WhitePointIn, ChromaticAdaptationMatrixIn, WhitePointOut, ChromaticAdaptationMatrixOut, m))
                 return false;
         }
         else
@@ -568,7 +568,7 @@ public static unsafe partial class Lcms2
 
     private static bool BlackPreservingGrayOnlySampler(in ushort* In, ushort* Out, object? Cargo)
     {
-        if (Cargo is not BoxPtr<GrayOnlyParams> bp)
+        if (Cargo is not Box<GrayOnlyParams> bp)
             return false;
 
         // If going across black only, keep black only
@@ -576,12 +576,12 @@ public static unsafe partial class Lcms2
         {
             // TAC does not apply because it is black ink!
             Out[0] = Out[1] = Out[2] = 0;
-            Out[3] = cmsEvalToneCurve16(bp.Ptr->KTone, In[3]);
+            Out[3] = cmsEvalToneCurve16(bp.Value.KTone, In[3]);
             return true;
         }
 
         // Keep normal transform for other colors
-        bp.Ptr->cmyk2cmyk?.Eval16Fn(In, Out, bp.Ptr->cmyk2cmyk?.Data);
+        bp.Value.cmyk2cmyk?.Eval16Fn(In, Out, bp.Value.cmyk2cmyk?.Data);
         return true;
     }
 
@@ -658,7 +658,7 @@ public static unsafe partial class Lcms2
             goto Error2;
 
         // Sample it. We cannot afford pre/post linearization this time.
-        if (!cmsStageSampleCLut16bit(CLUT, BlackPreservingGrayOnlySampler, new BoxPtr<GrayOnlyParams>(&bp), 0))
+        if (!cmsStageSampleCLut16bit(CLUT, BlackPreservingGrayOnlySampler, new Box<GrayOnlyParams>(bp), 0))
             goto Error;
 
         // Insert possible devicelinks at the end
@@ -689,7 +689,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private struct PreserveKPlaneParams
+    private class PreserveKPlaneParams
     {
         public Pipeline? cmyk2cmyk;
         public Transform? hProofOutput;
@@ -698,7 +698,7 @@ public static unsafe partial class Lcms2
         public Pipeline? LabK2cmyk;
         public double MaxError;
 
-        public Transform* hRoundTrip;
+        //public Transform* hRoundTrip;
         public double MaxTAC;
     }
 
@@ -710,7 +710,7 @@ public static unsafe partial class Lcms2
         double SumCMY, SumCMYK, Error, Ratio;
         CIELab ColorimetricLab, BlackPreservingLab;
 
-        if (Cargo is not BoxPtr<PreserveKPlaneParams> bp)
+        if (Cargo is not PreserveKPlaneParams bp)
             return false;
 
         // Convert from 16 bits to floating point
@@ -718,7 +718,7 @@ public static unsafe partial class Lcms2
             Inf[i] = (float)(In[i] / 65535.0);
 
         // Get the K across Tone curve
-        LabK[3] = cmsEvalToneCurveFloat(bp.Ptr->KTone, Inf[3]);
+        LabK[3] = cmsEvalToneCurveFloat(bp.KTone, Inf[3]);
 
         // If going across black only, keep black only
         if (In[0] is 0 && In[1] is 0 && In[2] is 0)
@@ -729,7 +729,7 @@ public static unsafe partial class Lcms2
         }
 
         // Try the original transform.
-        cmsPipelineEvalFloat(Inf, Outf, bp.Ptr->cmyk2cmyk);
+        cmsPipelineEvalFloat(Inf, Outf, bp.cmyk2cmyk);
 
         // Store a copy of the floating point result into 16-bit
         for (var i = 0; i < 4; i++)
@@ -741,11 +741,11 @@ public static unsafe partial class Lcms2
 
         // K differs, measure and keep Lab measurement for further usage
         // this is done in relative colorimetric intent
-        cmsDoTransform(bp.Ptr->cmyk2Lab, Outf, LabK, 1);
+        cmsDoTransform(bp.cmyk2Lab, Outf, LabK, 1);
 
         // Obtain the corresponding CMY using reverse interpolation
         // (K is fixed in LabK[3])
-        if (!cmsPipelineEvalReverseFloat(LabK, Outf, Outf, bp.Ptr->LabK2cmyk))
+        if (!cmsPipelineEvalReverseFloat(LabK, Outf, Outf, bp.LabK2cmyk))
         {
             // Cannot find a suitable value, so use colorimetric xform
             // which is already stored in Out[]
@@ -759,9 +759,9 @@ public static unsafe partial class Lcms2
         SumCMY = Outf[0] + Outf[1] + Outf[2];
         SumCMYK = SumCMY + Outf[3];
 
-        if (SumCMYK > bp.Ptr->MaxTAC)
+        if (SumCMYK > bp.MaxTAC)
         {
-            Ratio = Math.Max(1 - ((SumCMYK - bp.Ptr->MaxTAC) / SumCMY), 0);
+            Ratio = Math.Max(1 - ((SumCMYK - bp.MaxTAC) / SumCMY), 0);
         }
         else
         {
@@ -774,10 +774,10 @@ public static unsafe partial class Lcms2
         Out[3] = _cmsQuickSaturateWord(Outf[3] * 65535.0);
 
         // Estimate the error (this goes 16 bits to Lab DBL)
-        cmsDoTransform(bp.Ptr->hProofOutput, Out, &BlackPreservingLab, 1);
+        cmsDoTransform(bp.hProofOutput, Out, &BlackPreservingLab, 1);
         Error = cmsDeltaE(&ColorimetricLab, &BlackPreservingLab);
-        if (Error > bp.Ptr->MaxError)
-            bp.Ptr->MaxError = Error;
+        if (Error > bp.MaxError)
+            bp.MaxError = Error;
 
         return true;
     }
@@ -791,7 +791,6 @@ public static unsafe partial class Lcms2
         double* AdaptationStates,
         uint dwFlags)
     {
-        PreserveKPlaneParams bp;
         Pipeline? Result = null;
         var ICCIntents = stackalloc uint[256];
         Stage? CLUT;
@@ -828,7 +827,8 @@ public static unsafe partial class Lcms2
         Result = cmsPipelineAlloc(ContextID, 4, 4);
         if (Result is null) return null;
 
-        memset(&bp, 0);
+        //memset(&bp, 0);
+        var bp = new PreserveKPlaneParams();
 
         // We need the input LUT of the last profile, assuming this one is responsible of
         // black generation. This LUT will be searched in inverse order.
@@ -844,7 +844,7 @@ public static unsafe partial class Lcms2
         if (bp.cmyk2cmyk is null) goto Cleanup;
 
         // Now the tone curve
-        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
+        bp.KTone = _cmsBuildKToneCurve(ContextID, 4096, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags)!;
         if (bp.KTone is null) goto Cleanup;
 
         // To measure the output, Last profile to Lab
@@ -883,7 +883,7 @@ public static unsafe partial class Lcms2
         if (!cmsPipelineInsertStage(Result, StageLoc.AtBegin, CLUT))
             goto Cleanup;
 
-        cmsStageSampleCLut16bit(CLUT, BlackPreservingSampler, new BoxPtr<PreserveKPlaneParams>(&bp), 0);
+        cmsStageSampleCLut16bit(CLUT, BlackPreservingSampler, bp, 0);
 
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)

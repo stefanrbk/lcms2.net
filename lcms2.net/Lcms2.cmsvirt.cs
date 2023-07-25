@@ -106,6 +106,8 @@ public static unsafe partial class Lcms2
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
+        var pool = Context.GetPool<double>(ContextID);
+        double[] chad;
 
         var hICC = cmsCreateProfilePlaceholder(ContextID);
         if (hICC is null)       // can't allocate
@@ -138,15 +140,17 @@ public static unsafe partial class Lcms2
 
         if (WhitePoint is not null)
         {
-            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ())))
+            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ())))
                 goto Error;
 
             cmsxyY2XYZ(&WhitePointXYZ, WhitePoint);
             _cmsAdaptationMatrix(&CHAD, null, &WhitePointXYZ, cmsD50_XYZ());
 
             // This is a V4 tag, but many CMM does read and understand it no matter which version
-            if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, new BoxPtr<double>((double*)&CHAD)))
-                goto Error;
+            chad = CHAD.AsArray(pool);
+            if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, chad))
+                goto Error2;
+            pool.Return(chad);
 
             if (Primaries is not null)
             {
@@ -173,9 +177,9 @@ public static unsafe partial class Lcms2
                 Colorants.Blue.Y = MColorants.Y.Z;
                 Colorants.Blue.Z = MColorants.Z.Z;
 
-                if (!cmsWriteTag(hICC, cmsSigRedColorantTag, new BoxPtr<CIEXYZ>(&Colorants.Red))) goto Error;
-                if (!cmsWriteTag(hICC, cmsSigBlueColorantTag, new BoxPtr<CIEXYZ>(&Colorants.Blue))) goto Error;
-                if (!cmsWriteTag(hICC, cmsSigGreenColorantTag, new BoxPtr<CIEXYZ>(&Colorants.Green))) goto Error;
+                if (!cmsWriteTag(hICC, cmsSigRedColorantTag, new Box<CIEXYZ>(Colorants.Red))) goto Error;
+                if (!cmsWriteTag(hICC, cmsSigBlueColorantTag, new Box<CIEXYZ>(Colorants.Blue))) goto Error;
+                if (!cmsWriteTag(hICC, cmsSigGreenColorantTag, new Box<CIEXYZ>(Colorants.Green))) goto Error;
             }
         }
 
@@ -204,11 +208,13 @@ public static unsafe partial class Lcms2
             }
         }
 
-        if (Primaries is not null && !cmsWriteTag(hICC, cmsSigChromaticityTag, new BoxPtr<CIExyYTRIPLE>(Primaries)))
+        if (Primaries is not null && !cmsWriteTag(hICC, cmsSigChromaticityTag, new Box<CIExyYTRIPLE>(*Primaries)))
             goto Error;
 
         return hICC;
 
+    Error2:
+        pool.Return(chad);
     Error:
         if (hICC is not null)
             cmsCloseProfile(hICC);
@@ -248,7 +254,7 @@ public static unsafe partial class Lcms2
         if (WhitePoint is not null)
         {
             cmsxyY2XYZ(&tmp, WhitePoint);
-            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(&tmp))) goto Error;
+            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(tmp))) goto Error;
         }
 
         if (TransferFunction is not null && !cmsWriteTag(hICC, cmsSigGrayTRCTag, TransferFunction)) goto Error;
@@ -595,7 +601,7 @@ public static unsafe partial class Lcms2
         CIELCh LChIn, LChOut;
         CIEXYZ XYZ;
 
-        if (Cargo is not BoxPtr<BCHSWADJUSTS> bchsw)
+        if (Cargo is not Box<BCHSWADJUSTS> bchsw)
             return false;
 
         cmsLabEncoded2Float(&LabIn, In);
@@ -604,17 +610,17 @@ public static unsafe partial class Lcms2
 
         // Do some adjusts on LCh
 
-        LChOut.L = (LChIn.L * bchsw.Ptr->Contrast) + bchsw.Ptr->Brightness;
-        LChOut.C = LChIn.C + bchsw.Ptr->Saturation;
-        LChOut.h = LChIn.h + bchsw.Ptr->Hue;
+        LChOut.L = (LChIn.L * bchsw.Value.Contrast) + bchsw.Value.Brightness;
+        LChOut.C = LChIn.C + bchsw.Value.Saturation;
+        LChOut.h = LChIn.h + bchsw.Value.Hue;
 
         cmsLCh2Lab(&LabOut, &LChOut);
 
         // Move white point in Lab
-        if (bchsw.Ptr->lAdjustWP)
+        if (bchsw.Value.lAdjustWP)
         {
-            cmsLab2XYZ(&bchsw.Ptr->WPsrc, &XYZ, &LabOut);
-            cmsXYZ2Lab(&bchsw.Ptr->WPdest, &LabOut, &XYZ);
+            fixed (CIEXYZ* ptr = &bchsw.Value.WPsrc) cmsLab2XYZ(ptr, &XYZ, &LabOut);
+            fixed (CIEXYZ* ptr = &bchsw.Value.WPdest) cmsXYZ2Lab(ptr, &LabOut, &XYZ);
         }
 
         // Back to encoded
@@ -633,7 +639,7 @@ public static unsafe partial class Lcms2
         uint TempDest)
     {
         Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
-        BCHSWADJUSTS bchsw;
+        BCHSWADJUSTS bchsw = new();
         CIExyY WhitePnt;
         Pipeline? Pipeline = null;
 
@@ -675,7 +681,7 @@ public static unsafe partial class Lcms2
         var CLUT = cmsStageAllocCLut16bitGranular(ContextID, Dimensions, 3, 3, null);
         if (CLUT is null) goto Error;
 
-        if (!cmsStageSampleCLut16bit(CLUT, bchswSampler, new BoxPtr<BCHSWADJUSTS>(&bchsw), SamplerFlag.None))
+        if (!cmsStageSampleCLut16bit(CLUT, bchswSampler, new Box<BCHSWADJUSTS>(bchsw), SamplerFlag.None))
             goto Error;
 
         if (!cmsPipelineInsertStage(Pipeline, StageLoc.AtEnd, CLUT))
@@ -684,7 +690,7 @@ public static unsafe partial class Lcms2
         // Create tags
         if (!SetTextTags(hICC, "BCHS build-in")) goto Error;
 
-        if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()))) goto Error;
+        if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()))) goto Error;
         if (!cmsWriteTag(hICC, cmsSigAToB0Tag, Pipeline)) goto Error;
 
         // Pipeline is already on virtual profile
@@ -750,7 +756,7 @@ public static unsafe partial class Lcms2
             goto Error;
 
         if (!cmsWriteTag(Profile, cmsSigBToA0Tag, LUT)) goto Error;
-        if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(cmsD50_XYZ()))) goto Error;
+        if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()))) goto Error;
 
         pool.Return(EmptyTab);
         cmsPipelineFree(LUT);
@@ -1033,12 +1039,12 @@ public static unsafe partial class Lcms2
         if ((uint)deviceClass is cmsSigInputClass)
         {
             fixed (CIEXYZ* wp = &xform.EntryWhitePoint)
-                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(wp))) goto Error;
+                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*wp))) goto Error;
         }
         else
         {
             fixed (CIEXYZ* wp = &xform.ExitWhitePoint)
-                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new BoxPtr<CIEXYZ>(wp))) goto Error;
+                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*wp))) goto Error;
         }
 
         // Per 7.2.14 in spec 4.3

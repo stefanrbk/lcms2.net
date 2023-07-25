@@ -74,14 +74,14 @@ public static unsafe partial class Lcms2
     internal const double InpAdj = 1 / MAX_ENCODEABLE_XYZ;
     internal const double OutpAdj = MAX_ENCODEABLE_XYZ;
 
-    internal static bool _cmsReadMediaWhitePoint(CIEXYZ* Dest, Profile Profile)
+    internal static bool _cmsReadMediaWhitePoint(out Box<CIEXYZ>? Dest, Profile Profile)
     {
-        _cmsAssert(Dest);
+        Dest = new(default);
 
         // If no wp, take D50
-        if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not BoxPtr<CIEXYZ> Tag)
+        if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not Box<CIEXYZ> Tag)
         {
-            *Dest = *cmsD50_XYZ();
+            Dest.Value = *cmsD50_XYZ();
             return true;
         }
 
@@ -90,60 +90,60 @@ public static unsafe partial class Lcms2
         {
             if (cmsGetDeviceClass(Profile) == cmsSigDisplayClass)
             {
-                *Dest = *cmsD50_XYZ();
+                Dest.Value = *cmsD50_XYZ();
                 return true;
             }
         }
 
         // All seems ok
-        *Dest = *Tag.Ptr;
+        Dest.Value = Tag;
         return true;
     }
 
-    internal static bool _cmsReadCHAD(MAT3* Dest, Profile Profile)
+    internal static bool _cmsReadCHAD(out Box<MAT3>? Dest, Profile Profile)
     {
-        _cmsAssert(Dest);
+        Dest = new(default);
 
-        if (cmsReadTag(Profile, cmsSigChromaticAdaptationTag) is BoxPtr<MAT3> Tag)
+        if (cmsReadTag(Profile, cmsSigChromaticAdaptationTag) is Box<MAT3> Tag)
         {
-            *Dest = *Tag.Ptr;
+            Dest = Tag;
             return true;
         }
 
         // No CHAD available, default it to identity
-        _cmsMAT3identity(out *Dest);
+        _cmsMAT3identity(out Dest.Value);
 
         // V2 display profiles should give D50
         if (cmsGetEncodedICCVersion(Profile) < 0x04000000)
         {
             if ((uint)cmsGetDeviceClass(Profile) is cmsSigDisplayClass)
             {
-                if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not BoxPtr<CIEXYZ> White)
+                if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not Box<CIEXYZ> White)
                 {
-                    _cmsMAT3identity(out *Dest);
+                    _cmsMAT3identity(out Dest.Value);
                     return true;
                 }
-                return _cmsAdaptationMatrix(Dest, null, White, cmsD50_XYZ());
+                fixed (MAT3* d = &Dest.Value) fixed(CIEXYZ* w = &White.Value) return _cmsAdaptationMatrix(d, null, w, cmsD50_XYZ());
             }
         }
 
         return true;
     }
 
-    private static bool ReadIccMatrixRGB2XYZ(MAT3* r, Profile Profile)
+    private static bool ReadIccMatrixRGB2XYZ(out Box<MAT3>? r, Profile Profile)
     {
-        _cmsAssert(r);
+        r = new(default);
 
-        if (cmsReadTag(Profile, cmsSigRedColorantTag) is not BoxPtr<CIEXYZ> PtrRed ||
-            cmsReadTag(Profile, cmsSigGreenColorantTag) is not BoxPtr<CIEXYZ> PtrGreen ||
-            cmsReadTag(Profile, cmsSigBlueColorantTag) is not BoxPtr<CIEXYZ> PtrBlue)
+        if (cmsReadTag(Profile, cmsSigRedColorantTag) is not Box<CIEXYZ> PtrRed ||
+            cmsReadTag(Profile, cmsSigGreenColorantTag) is not Box<CIEXYZ> PtrGreen ||
+            cmsReadTag(Profile, cmsSigBlueColorantTag) is not Box<CIEXYZ> PtrBlue)
         {
             return false;
         }
 
-        _cmsVEC3init(out r->X, PtrRed.Ptr->X, PtrGreen.Ptr->X, PtrBlue.Ptr->X);
-        _cmsVEC3init(out r->Y, PtrRed.Ptr->Y, PtrGreen.Ptr->Y, PtrBlue.Ptr->Y);
-        _cmsVEC3init(out r->Z, PtrRed.Ptr->Z, PtrGreen.Ptr->Z, PtrBlue.Ptr->Z);
+        _cmsVEC3init(out r.Value.X, PtrRed.Value.X, PtrGreen.Value.X, PtrBlue.Value.X);
+        _cmsVEC3init(out r.Value.Y, PtrRed.Value.Y, PtrGreen.Value.Y, PtrBlue.Value.Y);
+        _cmsVEC3init(out r.Value.Z, PtrRed.Value.Z, PtrGreen.Value.Z, PtrBlue.Value.Z);
 
         return true;
     }
@@ -206,7 +206,6 @@ public static unsafe partial class Lcms2
     private static Pipeline? BuildRGBInputMatrixShaper(Profile Profile)
     {
         //VEC3* Matv = &Mat.X;
-        MAT3 Mat;
         Pipeline? Lut = null;
         double[]? MatArray = null;
 
@@ -216,7 +215,7 @@ public static unsafe partial class Lcms2
 
         ToneCurve[] Shapes = tcPool.Rent(3);
 
-        if (!ReadIccMatrixRGB2XYZ(&Mat, Profile))
+        if (!ReadIccMatrixRGB2XYZ(out var Mat, Profile))
             goto Error;
 
         // XYZ PCS in encoded in 1.15 format, and the matrix output comes in 0..0xffff range, so
@@ -226,9 +225,9 @@ public static unsafe partial class Lcms2
         //for (var i = 0; i < 3; i++)
         //    for (var j = 0; j < 3; j++)
         //        (&Matv[i].X)[j] *= InpAdj;
-        Mat.X *= InpAdj;
-        Mat.Y *= InpAdj;
-        Mat.Z *= InpAdj;
+        Mat.Value.X *= InpAdj;
+        Mat.Value.Y *= InpAdj;
+        Mat.Value.Z *= InpAdj;
 
         Shapes[0] = (cmsReadTag(Profile, cmsSigRedTRCTag) as ToneCurve)!;
         Shapes[1] = (cmsReadTag(Profile, cmsSigGreenTRCTag) as ToneCurve)!;
@@ -241,7 +240,7 @@ public static unsafe partial class Lcms2
         if (Lut is null)
             goto Error;
 
-        MatArray = Mat.AsArray(dPool);
+        MatArray = Mat.Value.AsArray(dPool);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
         {
@@ -448,12 +447,11 @@ public static unsafe partial class Lcms2
     {
         var Shapes = new ToneCurve?[3];
         var InvShapes = new ToneCurve?[3];
-        MAT3 Mat;
         //VEC3* Invv = &Inv.X;
 
         var ContextID = cmsGetProfileContextID(Profile);
 
-        if (!ReadIccMatrixRGB2XYZ(&Mat, Profile))
+        if (!ReadIccMatrixRGB2XYZ(out var Mat, Profile))
             return null;
 
         if (!_cmsMAT3inverse(Mat, out MAT3 Inv))
@@ -903,10 +901,10 @@ public static unsafe partial class Lcms2
             ps.deviceMfg = cmsGetHeaderManufacturer(h);
             ps.deviceModel = cmsGetHeaderModel(h);
 
-            var techpt = cmsReadTag(h, cmsSigTechnologyTag) as BoxPtr<Signature>;
+            var techpt = cmsReadTag(h, cmsSigTechnologyTag) as Box<Signature>;
             ps.technology =
                 techpt is not null
-                    ? *techpt.Ptr
+                    ? techpt.Value
                     : 0;
 
             ps.Manufacturer = GetMLUFromProfile(h, cmsSigDeviceMfgDescTag);

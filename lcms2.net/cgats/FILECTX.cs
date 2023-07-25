@@ -27,8 +27,8 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct FILECTX
+internal struct FILECTX
 {
-    public fixed byte FileName[cmsMAX_PATH];
+    public byte[] FileName;
     public FileStream? Stream;
 }

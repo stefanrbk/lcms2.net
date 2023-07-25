@@ -53,18 +53,18 @@ internal unsafe struct IT8
     public @string* str;
 
     // Allowed keywords & datasets. They have visibility on whole stream
-    public KEYVALUE* ValidKeywords;
-    public KEYVALUE* ValidSampleID;
+    public KEYVALUE? ValidKeywords;
+    public KEYVALUE? ValidSampleID;
 
-    public byte* Source;
+    public Memory<byte> Source;
     public int lineno;
 
     public FILECTX** FileStack;
     public int IncludeSP;
 
-    public byte* MemoryBlock;
+    public byte[]? MemoryBlock;
 
-    public fixed byte DoubleFormatter[MAXID];
+    public byte[] DoubleFormatter;
 
     public Context? ContextID;
 }

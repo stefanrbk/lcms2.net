@@ -25,17 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
 namespace lcms2.types;
 
-/// <summary>
-/// Must allocate (sizeof(<see cref="Screening"/>) - 1) + (sizeof(<see cref="ScreeningChannel"/>) * cmsMAXCHANNELS)
-/// </summary>
-public unsafe struct Screening
+public struct Screening(Context? context)
 {
     public uint Flag;
     public uint nChannels;
-    /// <summary>
-    /// Must cast to <see cref="ScreeningChannel"/>*
-    /// </summary>
-    public fixed ulong Channels[cmsMAXCHANNELS * 4];
+    internal readonly ScreeningChannel[] channels = Context.GetPool<ScreeningChannel>(context).Rent(cmsMAXCHANNELS * 4);
+    public readonly Span<ScreeningChannel> Channels => channels.AsSpan(..(cmsMAXCHANNELS * 4));
 }

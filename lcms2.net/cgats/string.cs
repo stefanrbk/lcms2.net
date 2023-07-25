@@ -32,5 +32,5 @@ internal unsafe struct @string
     public IT8* it8;
     public int max;
     public int len;
-    public byte* begin;
+    public byte[] begin;
 }

@@ -33,8 +33,8 @@ internal unsafe struct SAVESTREAM
 {
     public FILE? stream;
 
-    public byte* Base;
-    public byte* Ptr;
+    public byte[] Base;
+    public Memory<byte> Ptr;
     public uint Used;
     public uint Max;
 }

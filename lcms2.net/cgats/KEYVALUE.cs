@@ -27,12 +27,12 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct KEYVALUE
+internal class KEYVALUE
 {
-    public KEYVALUE* Next;
-    public byte* Keyword;
-    public KEYVALUE* NextSubkey;
-    public byte* Subkey;
-    public byte* Value;
+    public KEYVALUE? Next;
+    public byte[] Keyword;
+    public KEYVALUE? NextSubkey;
+    public byte[]? Subkey;
+    public byte[]? Value;
     public WRITEMODE WriteAs;
 }

@@ -27,15 +27,15 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct TABLE
+internal struct TABLE
 {
-    public fixed byte SheetType[CGATS.MAXSTR];
+    public byte[] SheetType; //[CGATS.MAXSTR];
 
     public int nSamples, nPatches;
     public int SampleID;
 
-    public KEYVALUE* HeaderList;
+    public KEYVALUE? HeaderList;
 
-    public byte** DataFormat;
-    public byte** Data;
+    public byte[][] DataFormat;
+    public byte[][] Data;
 }

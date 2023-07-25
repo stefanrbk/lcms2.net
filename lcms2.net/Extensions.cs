@@ -48,23 +48,4 @@ public static class Extensions
 
     public static bool IsUnset(this SamplerFlag value, SamplerFlag flag) =>
         (value & flag) is 0;
-
-    public static unsafe byte* ToBytePtr(this string str, int? len = null)
-    {
-        if (allocedStrings.TryGetValue(str, out var intPtr))
-            return (byte*)intPtr;
-
-        len ??= str.Length;
-
-        var ptr = calloc<byte>((uint)len+1);
-        allocedStrings.Add(str, (nint)ptr);
-
-        for (var i = 0; i < len; i++)
-        {
-            ptr[i] = (byte)str[i];
-        }
-        ptr[(int)len] = 0;
-
-        return ptr;
-    }
 }

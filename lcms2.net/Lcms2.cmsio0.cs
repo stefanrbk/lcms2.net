@@ -637,8 +637,7 @@ public static unsafe partial class Lcms2
             HeaderSize = io.reportedSize;
 
         // Get creation date/time
-        fixed(DateTime* Created = &Icc.Created)
-            _cmsDecodeDateTimeNumber(&Header.date, Created);
+        _cmsDecodeDateTimeNumber(Header.date, out Icc.Created);
 
         // The profile ID are 32 raw bytes
         fixed(ProfileID* ProfileID = &Icc.ProfileID)
@@ -713,8 +712,7 @@ public static unsafe partial class Lcms2
         Header.pcs = new(_cmsAdjustEndianess32(Icc.PCS));
 
         // NOTE: in v4 Timestamp must be in UTC rather than in local time
-        fixed(DateTime* Created = &Icc.Created)
-            _cmsEncodeDateTimeNumber(&Header.date, Created);
+        _cmsEncodeDateTimeNumber(out Header.date, Icc.Created);
 
         Header.magic = new(_cmsAdjustEndianess32(cmsMagicNumber));
         Header.manufacturer = new(_cmsAdjustEndianess32(Environment.OSVersion.Platform is PlatformID.Win32NT ? cmsSigMicrosoft : cmsSigMacintosh));
@@ -1043,9 +1041,9 @@ public static unsafe partial class Lcms2
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
-            if (Tag.SaveAsRaw && Data is BoxPtrVoid buffer)
+            if (Tag.SaveAsRaw && Data is byte[] buffer)
             {
-                if (!io.Write(io, Tag.Size, buffer)) return false;
+                fixed (void* ptr = &buffer[0]) if (!io.Write(io, Tag.Size, ptr)) return false;
             }
             else
             {
@@ -1248,7 +1246,7 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                if (tag.TagObject is BoxPtrVoid ptr)
+                if (tag.TagObject is byte[] ptr)
                     _cmsFree(Icc.ContextID, ptr);
                 //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
             }
@@ -1583,7 +1581,7 @@ public static unsafe partial class Lcms2
                 if (BufferSize < TagSize)
                     TagSize = BufferSize;
 
-                new ReadOnlySpan<byte>((BoxPtrVoid)tag.TagObject, (int)TagSize).CopyTo(data.Span);
+                ((byte[])tag.TagObject).AsSpan(..(int)TagSize).CopyTo(data.Span);
                 //memmove(data, (BoxPtrVoid)Icc.TagPtrs[i], TagSize);
 
                 _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
@@ -1650,7 +1648,7 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    public static bool cmsWriteRawTag(Profile Profile, Signature sig, in void* data, uint Size)
+    public static bool cmsWriteRawTag(Profile Profile, Signature sig, ReadOnlySpan<byte> data, uint Size)
     {
         int i;
 
@@ -1672,7 +1670,7 @@ public static unsafe partial class Lcms2
         tag.Linked = 0;
 
         // Keep a copy of the block
-        tag.TagObject = new BoxPtrVoid(_cmsDupMem(Icc.ContextID, data, Size, typeof(byte)));
+        tag.TagObject = _cmsDupMem(Icc.ContextID, data, Size);
         tag.Size = Size;
 
         _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);

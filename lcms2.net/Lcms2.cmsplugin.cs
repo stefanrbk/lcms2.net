@@ -333,32 +333,27 @@ public static unsafe partial class Lcms2
     internal static S15Fixed16Number _cmsDoubleTo15Fixed16(double v) =>
         (S15Fixed16Number)Math.Floor((v * 65536.0) + 0.5);
 
-    internal static void _cmsDecodeDateTimeNumber(DateTimeNumber* Source, DateTime* Dest)
+    internal static void _cmsDecodeDateTimeNumber(DateTimeNumber Source, out DateTime Dest)
     {
-        _cmsAssert(Dest);
-        _cmsAssert(Source);
+        var sec = _cmsAdjustEndianess16(Source.Seconds);
+        var min = _cmsAdjustEndianess16(Source.Minutes);
+        var hour = _cmsAdjustEndianess16(Source.Hours);
+        var day = _cmsAdjustEndianess16(Source.Day);
+        var mon = _cmsAdjustEndianess16(Source.Month);
+        var year = _cmsAdjustEndianess16(Source.Year);
 
-        var sec = _cmsAdjustEndianess16(Source->Seconds);
-        var min = _cmsAdjustEndianess16(Source->Minutes);
-        var hour = _cmsAdjustEndianess16(Source->Hours);
-        var day = _cmsAdjustEndianess16(Source->Day);
-        var mon = _cmsAdjustEndianess16(Source->Month);
-        var year = _cmsAdjustEndianess16(Source->Year);
-
-        *Dest = new(year, mon, day, hour, min, sec);
+        Dest = new(year, mon, day, hour, min, sec);
     }
 
-    internal static void _cmsEncodeDateTimeNumber(DateTimeNumber* dest, DateTime* source)
+    internal static void _cmsEncodeDateTimeNumber(out DateTimeNumber dest, DateTime source)
     {
-        _cmsAssert(dest);
-        _cmsAssert(source);
-
-        dest->Seconds = _cmsAdjustEndianess16((ushort)source->Second);
-        dest->Minutes = _cmsAdjustEndianess16((ushort)source->Minute);
-        dest->Hours = _cmsAdjustEndianess16((ushort)source->Hour);
-        dest->Day = _cmsAdjustEndianess16((ushort)source->Day);
-        dest->Month = _cmsAdjustEndianess16((ushort)source->Month);
-        dest->Year = _cmsAdjustEndianess16((ushort)source->Year);
+        dest = new();
+        dest.Seconds = _cmsAdjustEndianess16((ushort)source.Second);
+        dest.Minutes = _cmsAdjustEndianess16((ushort)source.Minute);
+        dest.Hours = _cmsAdjustEndianess16((ushort)source.Hour);
+        dest.Day = _cmsAdjustEndianess16((ushort)source.Day);
+        dest.Month = _cmsAdjustEndianess16((ushort)source.Month);
+        dest.Year = _cmsAdjustEndianess16((ushort)source.Year);
     }
 
     internal static Signature _cmsReadTypeBase(IOHandler io)
@@ -416,6 +411,21 @@ public static unsafe partial class Lcms2
 
         return io.Write(io, BytesToNextAlignedPos, Buffer);
     }
+
+    internal static string SpanToString(ReadOnlySpan<byte> span)
+    {
+        Span<char> str = stackalloc char[span.Length];
+        var index = span.IndexOf<byte>(0);
+        if (index is not -1)
+            str = str[..index];
+        for (var i = 0; i < str.Length; i++)
+            str[i] = (char)span[i];
+
+        return new string(str);
+    }
+
+    internal static bool _cmsIOPrintf(IOHandler io, ReadOnlySpan<byte> frm, params object[] args) =>
+        _cmsIOPrintf(io, SpanToString(frm), args);
 
     internal static bool _cmsIOPrintf(IOHandler io, string frm, params object[] args)
     {

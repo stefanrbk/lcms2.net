@@ -200,7 +200,7 @@ if (doCheckTests)
     }
 
     using (logger.BeginScope("Change buffers format"))
-        Check("ChangeBuffersFormat", CheckChangeBufferFormats);
+        Check("Change Buffers Format", CheckChangeBufferFormats);
 
     using (logger.BeginScope("MLU and named color lists"))
     {

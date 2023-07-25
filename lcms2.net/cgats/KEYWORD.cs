@@ -29,6 +29,6 @@ namespace lcms2.cgats;
 
 internal unsafe struct KEYWORD
 {
-    public byte* id;
+    public byte[] id;
     public SYMBOL sy;
 }
