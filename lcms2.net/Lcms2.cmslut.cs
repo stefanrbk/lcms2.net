@@ -1214,6 +1214,8 @@ public static unsafe partial class Lcms2
 
     public static void cmsPipelineFree(Pipeline* lut)
     {
+        CheckHeap();
+
         Stage* Next;
 
         if (lut is null) return;

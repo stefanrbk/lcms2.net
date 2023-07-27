@@ -74,7 +74,9 @@ public static unsafe partial class Lcms2
         if (size < mlu->PoolSize) return false;
 
         // Reallocate the pool
-        var NewPtr = _cmsRealloc(mlu->ContextID, mlu->MemPool, size);
+        var NewPtr = mlu->MemPool is not null
+            ? _cmsRealloc(mlu->ContextID, mlu->MemPool, size)
+            : _cmsMalloc(mlu->ContextID, size, typeof(byte));
         if (NewPtr is null) return false;
 
         mlu->MemPool = NewPtr;

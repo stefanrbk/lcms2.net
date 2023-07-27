@@ -39,11 +39,11 @@ internal static unsafe partial class Testbed
     const ushort TYPE_TAN = 1020;
     const ushort TYPE_709 = 709;
 
-    private static Context DupContext(Context src, void* Data)
+    private static Context? DupContext(Context? src, void* Data)
     {
         var cpy = cmsDupContext(src, Data);
 
-        DebugMemDontCheckThis(cpy);
+        //DebugMemDontCheckThis(cpy);
 
         return cpy;
     }
@@ -119,18 +119,18 @@ public static bool CheckAllocContext()
         fixed (void* handler = &DebugMemHandler)
         {
             var c1 = cmsCreateContext(null, null);      // This creates a context by using the normal malloc
-            DebugMemDontCheckThis(c1);
+            //DebugMemDontCheckThis(c1);
             cmsDeleteContext(c1);
 
             var c2 = cmsCreateContext(handler, null); // This creates a context by using the debug malloc
-            DebugMemDontCheckThis(c2);
+            //DebugMemDontCheckThis(c2);
             cmsDeleteContext(c2);
 
             c1 = cmsCreateContext(null, null);
-            DebugMemDontCheckThis(c1);
+            //DebugMemDontCheckThis(c1);
 
             c2 = cmsCreateContext(handler, null);
-            DebugMemDontCheckThis(c2);
+            //DebugMemDontCheckThis(c2);
 
             cmsPluginTHR(c1, handler);    // Now the context has custom allocators
 
@@ -176,7 +176,7 @@ public static bool CheckAllocContext()
 
         // Back to create 3 levels of inheritance
         c1 = cmsCreateContext(null, &a);
-        DebugMemDontCheckThis(c1);
+        //DebugMemDontCheckThis(c1);
 
         c2 = DupContext(c1, null);
         c3 = DupContext(c2, &b);

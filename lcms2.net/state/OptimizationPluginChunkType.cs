@@ -28,7 +28,40 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class OptimizationPluginChunkType
+internal unsafe class OptimizationPluginChunkType : IDup
 {
     public OptimizationCollection* OptimizationCollection;
+
+    public object? Dup(Context ctx)
+    {
+        OptimizationPluginChunkType head = this;
+        OptimizationCollection* Anterior = null, entry;
+        OptimizationPluginChunkType newHead = new();
+
+        _cmsAssert(ctx);
+        _cmsAssert(head);
+
+        // Walk the list copying all nodes
+        for (entry = head.OptimizationCollection;
+             entry is not null;
+             entry = entry->Next)
+        {
+            var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
+
+            if (newEntry is null)
+                return null;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.OptimizationCollection is null)
+                newHead.OptimizationCollection = newEntry;
+        }
+
+        return newHead;
+    }
 }

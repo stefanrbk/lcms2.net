@@ -30,16 +30,20 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Diagnostics;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
-    internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
+    internal static readonly Dictionary<nuint, (bool isFreed, Type type, ulong size)> AllocList = new();
+    internal static readonly Dictionary<nuint, (bool isFreed, Type type, ulong size)> NewAllocList = new();
+    internal static readonly Dictionary<nuint, (Type type, ulong size, bool isNew)> FreeList = new();
 
     #region lcms2.h
 
@@ -793,7 +797,7 @@ public static unsafe partial class Lcms2
     internal static T _cmsALIGNLONG<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
         (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
 
-    internal static ushort CMS_PTR_ALIGNMENT = _sizeof<nint>();
+    internal static uint CMS_PTR_ALIGNMENT = _sizeof<nint>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNMEM<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
@@ -910,52 +914,22 @@ public static unsafe partial class Lcms2
         }
 
         // Global Context
-        fixed (Context global = &globalContext)
-            globalContext.chunks.parent = global;
 
-        globalContext.chunks[Chunks.UserPtr] = null;
-
-        fixed (void* global = &globalLogErrorChunk)
-            globalContext.chunks[Chunks.Logger] = global;
-
-        fixed (void* global = &globalAlarmCodesChunk)
-            globalContext.chunks[Chunks.AlarmCodesContext] = global;
-
-        fixed (void* global = &globalAdaptationStateChunk)
-            globalContext.chunks[Chunks.AdaptationStateContext] = global;
-
-        fixed (void* global = &globalMemPluginChunk)
-            globalContext.chunks[Chunks.MemPlugin] = global;
-
-        fixed (void* global = &globalInterpPluginChunk)
-            globalContext.chunks[Chunks.InterpPlugin] = global;
-
-        fixed (void* global = &globalCurvePluginChunk)
-            globalContext.chunks[Chunks.CurvesPlugin] = global;
-
-        fixed (void* global = &globalFormattersPluginChunk)
-            globalContext.chunks[Chunks.FormattersPlugin] = global;
-
-        fixed (void* global = &globalTagTypePluginChunk)
-            globalContext.chunks[Chunks.TagTypePlugin] = global;
-
-        fixed (void* global = &globalTagPluginChunk)
-            globalContext.chunks[Chunks.TagPlugin] = global;
-
-        fixed (void* global = &globalIntentsPluginChunk)
-            globalContext.chunks[Chunks.IntentPlugin] = global;
-
-        fixed (void* global = &globalMPETypePluginChunk)
-            globalContext.chunks[Chunks.MPEPlugin] = global;
-
-        fixed (void* global = &globalOptimizationPluginChunk)
-            globalContext.chunks[Chunks.OptimizationPlugin] = global;
-
-        fixed (void* global = &globalTransformPluginChunk)
-            globalContext.chunks[Chunks.TransformPlugin] = global;
-
-        fixed (void* global = &globalMutexPluginChunk)
-            globalContext.chunks[Chunks.MutexPlugin] = global;
+        globalContext.UserData = null;
+        globalContext.ErrorLogger = globalLogErrorChunk;
+        globalContext.AlarmCodes = globalAlarmCodesChunk;
+        globalContext.AdaptationState = globalAdaptationStateChunk;
+        globalContext.MemPlugin = globalMemPluginChunk;
+        globalContext.InterpPlugin = globalInterpPluginChunk;
+        globalContext.CurvesPlugin = globalCurvePluginChunk;
+        globalContext.FormattersPlugin = globalFormattersPluginChunk;
+        globalContext.TagTypePlugin = globalTagTypePluginChunk;
+        globalContext.TagPlugin = globalTagPluginChunk;
+        globalContext.IntentsPlugin = globalIntentsPluginChunk;
+        globalContext.MPEPlugin = globalMPETypePluginChunk;
+        globalContext.OptimizationPlugin = globalOptimizationPluginChunk;
+        globalContext.TransformPlugin = globalTransformPluginChunk;
+        globalContext.MutexPlugin = globalMutexPluginChunk;
 
         #endregion Context and plugins
 
@@ -1009,21 +983,21 @@ public static unsafe partial class Lcms2
     }
 
     [DebuggerStepThrough]
-    internal static ushort _sizeof<T>() where T : struct
+    internal static uint _sizeof<T>() where T : struct
     {
         if (typeof(T) == typeof(Screening))
-            return (ushort)(sizeof(Screening) - 1 + (sizeof(ScreeningChannel) * cmsMAXCHANNELS));
+            return (uint)(sizeof(Screening) - 1 + (sizeof(ScreeningChannel) * cmsMAXCHANNELS));
 
-        return (ushort)sizeof(T);
+        return (uint)sizeof(T);
     }
 
     //[DebuggerStepThrough]
     internal static void* alloc(nuint size, Type type)
     {
-        lock (AllocList)
+        lock (NewAllocList)
         {
             var result = NativeMemory.Alloc(size + 32);
-            AllocList.Add((nuint)result + 16, (type, size, false));
+            NewAllocList.Add((nuint)result + 16, (false, type, size));
             NativeMemory.Fill(result, size + 32, 0xAF);
             return (byte*)result + 16;
         }
@@ -1040,13 +1014,13 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static void* allocZeroed(nuint size, Type type)
     {
-        lock (AllocList)
+        lock (NewAllocList)
         {
             var result = NativeMemory.Alloc(size + 32);
             NativeMemory.Fill(result, size + 32, 0xAF);
             result = (byte*)result + 16;
             NativeMemory.Clear(result, size);
-            AllocList.Add((nuint)result, (type, size, false));
+            NewAllocList.Add((nuint)result, (false, type, size));
             return result;
         }
     }
@@ -1063,15 +1037,21 @@ public static unsafe partial class Lcms2
     internal static void* realloc(in void* org, nuint newSize)
     {
         Type type;
-        nuint size;
-        lock (AllocList)
+        ulong size;
+        lock (NewAllocList)
         {
-            (type, size, _) = AllocList[(nuint)org];
+            if (!NewAllocList.TryGetValue((nuint)org, out var value))
+            {
+                lock (AllocList)
+                    AllocList[(nuint)org] = value;
+            }
+            type = value.type;
+            size = value.size;
         }
         var result = alloc(newSize, type);
         if (org is not null)
         {
-            memmove(result, org, size);
+            memmove(result, org, (nuint)size);
             free(org);
         }
         return result;
@@ -1151,18 +1131,41 @@ public static unsafe partial class Lcms2
     //[DebuggerStepThrough]
     internal static void free(void* ptr)
     {
-        lock (AllocList)
+        Type type;
+        ulong size;
+        lock (NewAllocList)
         {
-            var item = AllocList[(nuint)ptr];
+            if (NewAllocList.TryGetValue((nuint)ptr, out var item))
+            {
+                type = item.type;
+                size = item.size;
+
+                NewAllocList[(nuint)ptr] = (true, type, size);
+
+                FreeList.Add((nuint)ptr, (type, size, true));
+            }
+            else
+            {
+                lock(AllocList)
+                {
+                    item = AllocList[(nuint)ptr];
+
+                    type = item.type;
+                    size = item.size;
+
+                    AllocList[(nuint)ptr] = (true, type, size);
+
+                    FreeList.Add((nuint)ptr, (type, size, false));
+                }
+            }
+
             ptr = (byte*)ptr - 16;
             for (var i = 0; i < 16; i++)
             {
                 if (((byte*)ptr)[i] is not 0xAF || ((byte*)ptr)[i + 16 + (int)item.size] is not 0xAF)
                     throw new Exception($"{item.type} object of size {item.size} is corrupted. Object starts at 0x{(nuint)ptr + 16:X16}.");
             }
-            NativeMemory.Fill(ptr, item.size + 32, 0x69);
-            item.freed = true;
-            AllocList[(nuint)ptr + 16] = item;
+            NativeMemory.Fill(ptr, (nuint)item.size + 32, 0x69);
         }
     }
 
@@ -1424,36 +1427,162 @@ public static unsafe partial class Lcms2
     //[DebuggerStepThrough]
     internal static void CheckHeap()
     {
-        GC.Collect();
+        var sb = new StringBuilder();
+        lock (NewAllocList)
+        {
+            if (NewAllocList.Count > 0)
+            {
+                Console.WriteLine();
+
+                lock (FreeList)
+                {
+                    var newList = FreeList.Where(e => e.Value.isNew);
+
+                    sb.Append("Summary of new allocs: Total ")
+                      .Append(NewAllocList.Count)
+                      .Append(", Freeing ")
+                      .Append(newList.Count())
+                      .Append(", ")
+                      .Append(NewAllocList.Count - newList.Count())
+                      .AppendLine(" remaining")
+                      .AppendLine("|            Type            |  alloc  |  freed  | remaining |");
+                    var list =
+                        NewAllocList.DistinctBy(e => e.Value.type)
+                                    .Select(e => (e.Value.type, count: NewAllocList.Count(kvp => kvp.Value.type == e.Value.type)))
+                                    .OrderBy(t => t.type.Name);
+                    foreach (var type in list)
+                    {
+                        var freeType = newList.Where(e => e.Value.type == type.type);
+
+                        sb.Append("| ")
+                          .AppendFormat("{0,-26}", type.type.Name)
+                          .Append(" | ")
+                          .AppendFormat("{0,7}", type.count)
+                          .Append(" | ");
+                        if (freeType.Any())
+                        {
+                            sb.AppendFormat("{0,7}", freeType.Count())
+                              .Append(" | ");
+                            if (type.count - freeType.Count() is 0)
+                                sb.Append(new string(' ', 9));
+                            else
+                                sb.AppendFormat("{0,9}", type.count - freeType.Count());
+                        }
+                        else
+                        {
+                            sb.Append("        | ")
+                              .AppendFormat("{0,9}", type.count);
+                        }
+                        sb.AppendLine(" |");
+                    }
+                }
+            }
+        }
         lock (AllocList)
         {
-            foreach (var kvp in AllocList)
+            if (AllocList.Count > 0)
+            {
+                if (NewAllocList.Count > 0)
+                    sb.AppendLine();
+                else
+                    Console.WriteLine();
+
+                lock (FreeList)
+                {
+                    var oldList = FreeList.Where(e => !e.Value.isNew);
+
+                    sb.Append("Summary of old allocs: Total ")
+                      .Append(AllocList.Count)
+                      .Append(", Freeing ")
+                      .Append(oldList.Count())
+                      .Append(", ")
+                      .Append(AllocList.Count - oldList.Count())
+                      .AppendLine(" remaining")
+                      .AppendLine("|            Type            |  alloc  |  freed  | remaining |");
+                    var list =
+                        AllocList.DistinctBy(e => e.Value.type)
+                                 .Select(e => (e.Value.type, count: AllocList.Count(kvp => kvp.Value.type == e.Value.type)))
+                                 .OrderBy(t => t.type.Name);
+                    foreach (var type in list)
+                    {
+                        var freeType = oldList.Where(e => e.Value.type == type.type);
+
+                        sb.Append("| ")
+                          .AppendFormat("{0,-26}", type.type.Name)
+                          .Append(" | ")
+                          .AppendFormat("{0,7}", type.count)
+                          .Append(" | ");
+                        if (freeType.Any())
+                        {
+                            sb.AppendFormat("{0,7}", freeType.Count())
+                              .Append(" | ");
+                            if (type.count - freeType.Count() is 0)
+                                sb.Append(new string(' ', 9));
+                            else
+                                sb.AppendFormat("{0,9}", type.count - freeType.Count());
+                        }
+                        else
+                        {
+                            sb.Append("        | ")
+                              .AppendFormat("{0,9}", type.count);
+                        }
+                        sb.AppendLine(" |");
+                    }
+                }
+            }
+            if (AllocList.Count > 0 || NewAllocList.Count > 0)
+                _DebugOut(sb.ToString());
+
+            lock (NewAllocList)
+            {
+                foreach (var kvp in NewAllocList)
+                    AllocList.Add(kvp.Key, kvp.Value);
+                NewAllocList.Clear();
+            }
+
+            foreach (var kvp in AllocList.Where(e => !e.Value.isFreed))
             {
                 var ptr = (byte*)kvp.Key - 16;
-                var (type, size, freed) = kvp.Value;
+                var (_, type, size) = kvp.Value;
 
-                if (freed)
+                for (var i = 0; i < 16; i++)
                 {
-                    for (var i = 0; i < (int)size + 32; i++)
-                    {
-                        if (ptr[i] is not 0x69)
-                            throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
-                    }
+                    if (ptr[i] is not 0xAF && ptr[i + (int)size + 16] is not 0xAF)
+                        throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
                 }
-                else
-                {
-                    for (var i = 0; i < 16; i++)
-                    {
-                        if (ptr[i] is not 0xAF || ptr[16 + (int)size + i] is not 0xAF)
-                            throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
-                    }
-                }
-
-                NativeMemory.Free(ptr);
             }
-            var tempList = AllocList.Where(kvp => kvp.Value.freed).ToArray();
-            foreach (var kvp in tempList)
-                AllocList.Remove(kvp.Key);
         }
+        lock (FreeList)
+        {
+            foreach (var kvp in FreeList)
+            {
+                var ptr = (byte*)kvp.Key - 16;
+                var (type, size, _) = kvp.Value;
+
+                for (var i = 0; i < (int)size + 32; i++)
+                {
+                    if (ptr[i] is not 0x69)
+                        throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
+                }
+            }
+
+            var freeList = FreeList.ToArray();
+            if (freeList.Length > 0)
+            {
+                foreach (var kvp in freeList)
+                {
+                    var ptr = (byte*)kvp.Key - 16;
+
+                    NativeMemory.Free(ptr);
+
+                    FreeList.Remove(kvp.Key);
+
+                    lock (AllocList)
+                        AllocList.Remove(kvp.Key);
+                }
+            }
+        }
+
+        GC.Collect();
     }
 }

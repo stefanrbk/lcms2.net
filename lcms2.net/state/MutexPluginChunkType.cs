@@ -27,10 +27,19 @@
 
 namespace lcms2.state;
 
-internal class MutexPluginChunkType
+internal class MutexPluginChunkType : IDup
 {
-    public CreateMutexFnPtrType CreateFn;
-    public DestroyMutexFnPtrType DestroyFn;
-    public LockMutexFnPtrType LockFn;
-    public UnlockMutexFnPtrType UnlockFn;
+    public CreateMutexFnPtrType? CreateFn;
+    public DestroyMutexFnPtrType? DestroyFn;
+    public LockMutexFnPtrType? LockFn;
+    public UnlockMutexFnPtrType? UnlockFn;
+
+    public object? Dup(Context _) =>
+        new MutexPluginChunkType()
+        {
+            CreateFn = CreateFn,
+            DestroyFn = DestroyFn,
+            LockFn = LockFn,
+            UnlockFn = UnlockFn,
+        };
 }

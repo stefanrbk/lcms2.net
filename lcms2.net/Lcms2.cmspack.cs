@@ -2494,43 +2494,17 @@ public static unsafe partial class Lcms2
         return default;
     }
 
-    private static void DupFormatterFactoryList(Context ctx, in Context src)
-    {
-        FormattersPluginChunkType newHead = default;
-        FormattersFactoryList* Anterior = null;
-        var head = (FormattersPluginChunkType*)src->chunks[Chunks.FormattersPlugin];
+    private static void DupFormatterFactoryList(Context ctx, in Context src) =>
+        // Moved to FormattersPluginChunkType.Dup
 
-        _cmsAssert(head);
-
-        // Walk the list copying all nodes
-        for (var entry = head->FactoryList; entry is not null; entry = entry->Next)
-        {
-            var newEntry = _cmsSubAllocDup<FormattersFactoryList>(ctx->MemPool, entry);
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order
-            newEntry->Next = null;
-            if (Anterior is not null)
-                Anterior->Next = newEntry;
-
-            Anterior = newEntry;
-
-            if (newHead.FactoryList is null)
-                newHead.FactoryList = newEntry;
-        }
-
-        ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, &newHead);
-    }
+        ctx.FormattersPlugin = (FormattersPluginChunkType)src.FormattersPlugin.Dup(ctx)!;
 
     internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context src)
     {
-        fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
-            AllocPluginChunk(ctx, src, Chunks.FormattersPlugin, @default);
+        AllocPluginChunk(ctx, ref ctx.FormattersPlugin, src.FormattersPlugin, FormattersPluginChunk);
     }
 
-    internal static bool _cmsRegisterFormattersPlugin(Context ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
         var Plugin = (PluginFormatters*)Data;
@@ -2538,7 +2512,7 @@ public static unsafe partial class Lcms2
         // Reset to build-in defaults
         if (Data is null)
         {
-            ctx->FactoryList = null;
+            ctx.FactoryList = null;
             return true;
         }
 
@@ -2547,17 +2521,17 @@ public static unsafe partial class Lcms2
 
         fl->Factory = Plugin->FormattersFactory;
 
-        fl->Next = ctx->FactoryList;
-        ctx->FactoryList = fl;
+        fl->Next = ctx.FactoryList;
+        ctx.FactoryList = fl;
 
         return true;
     }
 
-    internal static Formatter _cmsGetFormatter(Context ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
+    internal static Formatter _cmsGetFormatter(Context? ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
     {
-        var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
+        var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin)!;
 
-        for (var f = ctx->FactoryList; f is not null; f = f->Next)
+        for (var f = ctx.FactoryList; f is not null; f = f->Next)
         {
             var fn = f->Factory(Type, Dir, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
@@ -2567,7 +2541,7 @@ public static unsafe partial class Lcms2
         return Dir switch
         {
             FormatterDirection.Input => _cmsGetStockInputFormatter(Type, dwFlags),
-            FormatterDirection.Output => _cmsGetStockOutputFormatter(Type, dwFlags),
+            _ => _cmsGetStockOutputFormatter(Type, dwFlags),
         };
     }
 

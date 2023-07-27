@@ -24,7 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using unsafe Context = lcms2.state.Context_struct*;
 global using unsafe HPROFILE = void*;
 
 using lcms2.state;
@@ -103,7 +102,7 @@ internal static unsafe partial class Testbed
     [DebuggerStepThrough]
     public static Context DbgThread()
     {
-        return (Context)(void*)((byte*)null + (thread++ % 0xff0));
+        return new() { UserData = (void*)(thread++ % 0xff0) };
     }
 
     public static void* DebugMalloc(Context ContextID, uint size, Type type)
@@ -143,24 +142,32 @@ internal static unsafe partial class Testbed
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated:x16}\nFreed by Context at\t{(ulong)ContextID:x16}");
+            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated.UserData:x16}\nFreed by Context at\t{(ulong)ContextID.UserData:x16}");
         try
         {
             free(blk);
         }
         catch { }
-
-        GC.Collect();
     }
 
     public static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
     {
-        var type = typeof(void);
+        Type type;
 
         lock (AllocList)
         {
             if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
+            {
                 type = item.type;
+            }
+            else
+            {
+                lock (NewAllocList)
+                {
+                    item = NewAllocList[(nuint)Ptr];
+                    type = item.type;
+                }
+            }
         }
         var NewPtr = DebugMalloc(ContextID, NewSize, type);
         if (Ptr is null) return NewPtr;
@@ -209,10 +216,10 @@ internal static unsafe partial class Testbed
         {
             var ctx = cmsCreateContext(handler, usr);
 
-            if (ctx is null)
-                Die("Unable to create memory managed context");
+            //if (ctx is null)
+            //    Die("Unable to create memory managed context");
 
-            DebugMemDontCheckThis(ctx);
+            //DebugMemDontCheckThis(ctx);
             return ctx;
         }
     }

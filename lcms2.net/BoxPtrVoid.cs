@@ -25,17 +25,9 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.state;
+namespace lcms2;
 
-internal class AlarmCodesChunkType : IDup
+internal unsafe class BoxPtrVoid(void* ptr)
 {
-    public readonly ushort[] AlarmCodes = new ushort[cmsMAXCHANNELS];
-
-    public object? Dup(Context ctx)
-    {
-        var result = new AlarmCodesChunkType();
-        AlarmCodes.CopyTo(result.AlarmCodes.AsSpan());
-
-        return result;
-    }
+    public void* Ptr = ptr;
 }

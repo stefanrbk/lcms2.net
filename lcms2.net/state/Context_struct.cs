@@ -29,11 +29,12 @@ namespace lcms2.state;
 
 public unsafe class Context
 {
-    internal Context Next;
+    internal Context? Next;
     internal SubAllocator* MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
-    internal object UserData;
+    internal void* UserData;
     internal LogErrorChunkType ErrorLogger;
+    internal AdaptationStateChunkType AdaptationState;
     internal AlarmCodesChunkType AlarmCodes;
     internal MemPluginChunkType MemPlugin;
     internal InterpPluginChunkType InterpPlugin;

@@ -56,50 +56,22 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Duplicates the plug-in in the new context.
     /// </summary>
-    private static void DupPluginCurvesList(Context ctx, in Context src)
+    private static void DupPluginCurvesList(Context ctx, in Context src) =>
+        // Moved to CurvesPluginChunkType.Dup
+
+        ctx.CurvesPlugin = (CurvesPluginChunkType)src.CurvesPlugin.Dup(ctx)!;
+
+    internal static void _cmsAllocCurvesPluginChunk(Context ctx, in Context src) => 
+        AllocPluginChunk(ctx, ref ctx.CurvesPlugin, src.CurvesPlugin, CurvesPluginChunk);
+
+    internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase* Data)
     {
-        var newHead = new CurvesPluginChunkType();
-        var head = (CurvesPluginChunkType*)src->chunks[Chunks.CurvesPlugin];
-        ParametricCurvesCollection* Anterior = null;
-
-        // Walk the list copying all nodes
-        for (var entry = head->ParametricCurves;
-            entry is not null;
-            entry = entry->Next)
-        {
-            var newEntry = _cmsSubAllocDup<ParametricCurvesCollection>(ctx->MemPool, entry);
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry->Next = null;
-            if (Anterior is not null)
-                Anterior->Next = newEntry;
-
-            Anterior = newEntry;
-
-            if (newHead.ParametricCurves is null)
-                newHead.ParametricCurves = newEntry;
-        }
-
-        ctx->chunks[Chunks.CurvesPlugin] = _cmsSubAllocDup<CurvesPluginChunkType>(ctx->MemPool, &newHead);
-    }
-
-    internal static void _cmsAllocCurvesPluginChunk(Context ctx, in Context src)
-    {
-        fixed (CurvesPluginChunkType* @default = &CurvesPluginChunk)
-            AllocPluginChunk(ctx, src, DupPluginCurvesList, Chunks.CurvesPlugin, @default);
-    }
-
-    internal static bool _cmsRegisterParametricCurvesPlugin(Context ContextID, PluginBase* Data)
-    {
-        var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin);
+        var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin)!;
         var Plugin = (PluginParametricCurves*)Data;
 
         if (Data is null)
         {
-            ctx->ParametricCurves = null;
+            ctx.ParametricCurves = null;
             return true;
         }
 
@@ -121,8 +93,8 @@ public static unsafe partial class Lcms2
         memcpy(fl->ParameterCount, Plugin->ParameterCount, fl->nFunctions * _sizeof<uint>());
 
         // Keep linked list
-        fl->Next = ctx->ParametricCurves;
-        ctx->ParametricCurves = fl;
+        fl->Next = ctx.ParametricCurves;
+        ctx.ParametricCurves = fl;
 
         // All is ok
         return true;
@@ -136,12 +108,12 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static ParametricCurvesCollection* GetParametricCurveByType(Context ContextID, int Type, int* index)
+    private static ParametricCurvesCollection* GetParametricCurveByType(Context? ContextID, int Type, int* index)
     {
         int Position;
         var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin);
 
-        for (var c = ctx->ParametricCurves; c is not null; c = c->Next)
+        for (var c = ctx.ParametricCurves; c is not null; c = c->Next)
         {
             Position = IsInSet(Type, c);
 

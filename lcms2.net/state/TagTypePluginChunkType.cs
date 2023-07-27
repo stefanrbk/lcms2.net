@@ -29,7 +29,40 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class TagTypePluginChunkType
+internal unsafe class TagTypePluginChunkType : IDup
 {
     public TagTypeLinkedList* TagTypes;
+
+    public object? Dup(Context ctx)
+    {
+        var head = this;
+        TagTypeLinkedList* Anterior = null, entry;
+        TagTypePluginChunkType newHead = new();
+
+        _cmsAssert(ctx);
+        _cmsAssert(head);
+
+        // Walk the list copying all nodes
+        for (entry = head.TagTypes;
+             entry is not null;
+             entry = entry->Next)
+        {
+            var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx.MemPool, entry);
+
+            if (newEntry is null)
+                return null;
+
+            // We want to keep the linked list order, so this is a little bit tricky
+            newEntry->Next = null;
+            if (Anterior is not null)
+                Anterior->Next = newEntry;
+
+            Anterior = newEntry;
+
+            if (newHead.TagTypes is null)
+                newHead.TagTypes = newEntry;
+        }
+
+        return newHead;
+    }
 }

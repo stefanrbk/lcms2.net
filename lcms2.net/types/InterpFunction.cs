@@ -32,8 +32,8 @@ namespace lcms2.types;
 public unsafe struct InterpFunction
 {
     [FieldOffset(0)]
-    public InterpFn16 Lerp16;
+    public InterpFn16? Lerp16;
 
     [FieldOffset(0)]
-    public InterpFnFloat LerpFloat;
+    public InterpFnFloat? LerpFloat;
 }

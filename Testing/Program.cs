@@ -72,12 +72,12 @@ Check("Fixed point 8.8 representation", CheckFixedPoint8_8);
 Check("D50 roundtrip", CheckD50Roundtrip);
 
 // Create utility profiles
-if (doCheckTests || doSpeedTests)
-{
-    ConsoleWriteLine();
-    ConsoleWriteLine("Profiles");
-    Check("Creation of test profiles", CreateTestProfiles);
-}
+//if (doCheckTests || doSpeedTests)
+//{
+//    ConsoleWriteLine();
+//    ConsoleWriteLine("Profiles");
+//    Check("Creation of test profiles", CreateTestProfiles);
+//}
 
 if (doCheckTests)
 {

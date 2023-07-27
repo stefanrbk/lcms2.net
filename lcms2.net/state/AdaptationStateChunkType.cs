@@ -27,7 +27,10 @@
 
 namespace lcms2.state;
 
-internal struct AdaptationStateChunkType
+internal class AdaptationStateChunkType : IDup
 {
     public double AdaptationState;
+
+    public object? Dup(Context _) =>
+        new AdaptationStateChunkType() { AdaptationState = AdaptationState };
 }

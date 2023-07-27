@@ -50,7 +50,7 @@ internal static unsafe partial class Testbed
         CheckSingleFormatterFloat(value, a);
     }
 
-    private static void CheckSingleFormatter16(Context id, uint Type, string Text)
+    private static void CheckSingleFormatter16(Context? id, uint Type, string Text)
     {
         var Values = stackalloc ushort[cmsMAXCHANNELS];
         var Buffer = stackalloc byte[1024];

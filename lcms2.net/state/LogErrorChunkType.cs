@@ -27,7 +27,10 @@
 
 namespace lcms2.state;
 
-internal class LogErrorChunkType
+internal class LogErrorChunkType : IDup
 {
     public LogErrorHandlerFunction LogErrorHandler;
+
+    public object? Dup(Context _) =>
+        new LogErrorChunkType() { LogErrorHandler = LogErrorHandler };
 }
