@@ -315,8 +315,7 @@ public static unsafe partial class Lcms2
         object? Cargo,
         delegate*<TagTypeHandler, IOHandler, object?, uint, uint, bool> ElementFn)
     {
-        uint* ElementOffsets = null, ElementSizes = null;
-
+        var pool = Context.GetPool<uint>(self.ContextID);
         var currentPosition = io.Tell(io);
 
         // Verify there is enough space left to read at least two uint items for Count items
@@ -324,18 +323,26 @@ public static unsafe partial class Lcms2
             return false;
 
         // Let's take the offsets to each element
-        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementOffsets is null) goto Error;
+        //ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
+        //if (ElementOffsets is null) goto Error;
+        var ElementOffsets = pool.Rent((int)Count);
 
-        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementSizes is null) goto Error;
+        //ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
+        //if (ElementSizes is null) goto Error;
+        var ElementSizes = pool.Rent((int)Count);
 
-        for (var i = 0; i < Count; i++)
+        fixed (uint* offsets = &ElementOffsets[0])
         {
-            if (!_cmsReadUInt32Number(io, &ElementOffsets[i])) goto Error;
-            if (!_cmsReadUInt32Number(io, &ElementSizes[i])) goto Error;
+            fixed (uint* sizes = &ElementSizes[0])
+            {
+                for (var i = 0; i < Count; i++)
+                {
+                    if (!_cmsReadUInt32Number(io, &offsets[i])) goto Error;
+                    if (!_cmsReadUInt32Number(io, &sizes[i])) goto Error;
 
-            ElementOffsets[i] += BaseOffset;
+                    ElementOffsets[i] += BaseOffset;
+                }
+            }
         }
 
         // Seek to each element and read it
@@ -367,14 +374,16 @@ public static unsafe partial class Lcms2
         object? Cargo,
         PositionTableEntryFn ElementFn)
     {
-        uint* ElementOffsets = null, ElementSizes = null;
+        var pool = Context.GetPool<uint>(self.ContextID);
 
         // Create table
-        ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementOffsets is null) goto Error;
+        //ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
+        //if (ElementOffsets is null) goto Error;
+        var ElementOffsets = pool.Rent((int)Count);
 
-        ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
-        if (ElementSizes is null) goto Error;
+        //ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
+        //if (ElementSizes is null) goto Error;
+        var ElementSizes = pool.Rent((int)Count);
 
         // Keep starting position of curve offsets
         var DirectoryPos = io.Tell(io);
@@ -3455,7 +3464,6 @@ public static unsafe partial class Lcms2
             return false;
 
         var Elem = Lut.Elements;
-        uint* ElementOffsets = null, ElementSizes = null;
         var MPETypePluginChunk = _cmsGetContext(self.ContextID).MPEPlugin;
         var str = stackalloc byte[5];
 
@@ -3465,11 +3473,15 @@ public static unsafe partial class Lcms2
         var outputChan = cmsPipelineOutputChannels(Lut);
         var ElemCount = cmsPipelineStageCount(Lut);
 
-        ElementOffsets = _cmsCalloc<uint>(self.ContextID, ElemCount);
-        if (ElementOffsets is null) goto Error;
+        var pool = Context.GetPool<uint>(self.ContextID);
 
-        ElementSizes = _cmsCalloc<uint>(self.ContextID, ElemCount);
-        if (ElementSizes is null) goto Error;
+        //ElementOffsets = _cmsCalloc<uint>(self.ContextID, ElemCount);
+        //if (ElementOffsets is null) goto Error;
+        var ElementOffsets = pool.Rent((int)ElemCount);
+
+        //ElementSizes = _cmsCalloc<uint>(self.ContextID, ElemCount);
+        //if (ElementSizes is null) goto Error;
+        var ElementSizes = pool.Rent((int)ElemCount);
 
         // Write the head
         if (!_cmsWriteUInt16Number(io, (ushort)inputChan)) goto Error;

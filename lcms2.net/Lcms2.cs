@@ -1161,7 +1161,7 @@ public static unsafe partial class Lcms2
     internal static T* alloc<T>() where T : struct =>
         (T*)alloc(_sizeof<T>(), typeof(T));
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* allocZeroed(nuint size, Type type)
     {
         if (debugAllocs)
@@ -1190,7 +1190,7 @@ public static unsafe partial class Lcms2
     internal static T* allocZeroed<T>() where T : struct =>
         (T*)allocZeroed(_sizeof<T>(), typeof(T));
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* realloc(in void* org, nuint newSize)
     {
         if (debugAllocs)
@@ -1219,7 +1219,7 @@ public static unsafe partial class Lcms2
     internal static void* dup(in void* org, nint size, Type type) =>
         dup(org, (nuint)size, type);
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     internal static void* dup(in void* org, nuint size, Type type)
     {
         var value = alloc(size, type);
