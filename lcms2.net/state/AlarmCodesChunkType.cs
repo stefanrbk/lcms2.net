@@ -31,7 +31,7 @@ internal class AlarmCodesChunkType : IDup
 {
     public readonly ushort[] AlarmCodes = new ushort[cmsMAXCHANNELS];
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class _)
     {
         var result = new AlarmCodesChunkType();
         AlarmCodes.CopyTo(result.AlarmCodes.AsSpan());

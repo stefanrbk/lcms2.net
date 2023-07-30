@@ -39,7 +39,7 @@ internal static unsafe partial class Testbed
     const ushort TYPE_TAN = 1020;
     const ushort TYPE_709 = 709;
 
-    private static Context? DupContext(Context? src, void* Data)
+    private static Context DupContext(Context src, void* Data)
     {
         var cpy = cmsDupContext(src, Data);
 
@@ -51,7 +51,7 @@ internal static unsafe partial class Testbed
     private readonly static PluginInterpolation InterpPluginSample = new()
     {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginInterpolationSig, Next = null },
-        InterpolatorsFactory = my_Interpolators_Factory,
+        InterpolatorsFactory = &my_Interpolators_Factory,
     };
 
     // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
@@ -99,14 +99,14 @@ internal static unsafe partial class Testbed
         if (nInputChannels == 1 && nOutputChannels == 1 && IsFloat)
         {
 
-            Interpolation.LerpFloat = Fake1Dfloat;
+            Interpolation.LerpFloat = &Fake1Dfloat;
         }
         else
         if (nInputChannels == 3 && nOutputChannels == 3 && !IsFloat)
         {
 
             // For 3D to 3D and 16 bits
-            Interpolation.Lerp16 = Fake3D16;
+            Interpolation.Lerp16 = &Fake3D16;
         }
 
         // Here is the interpolation 
@@ -256,8 +256,8 @@ public static bool CheckAllocContext()
     public static bool CheckInterp1DPlugin()
     {
         ToneCurve* Sampled1D = null;
-        Context ctx = null;
-        Context cpy = null;
+        Context ctx = default;
+        Context cpy = default;
         var tab = stackalloc float[] { 0.0f, 0.10f, 0.20f, 0.30f, 0.40f, 0.50f, 0.60f, 0.70f, 0.80f, 0.90f, 1.00f };  // A straight line
 
         // 1st level context
@@ -445,7 +445,7 @@ public static bool CheckAllocContext()
         NumFunctions = 1,
         //{TYPE_709},
         //{5},
-        Evaluator = Rec709Math
+        Evaluator = &Rec709Math
     };
 
 
@@ -454,7 +454,7 @@ public static bool CheckAllocContext()
         NumFunctions = 2,
         //{ TYPE_SIN, TYPE_COS },
         //{ 1, 1 },
-        Evaluator = my_fns
+        Evaluator = &my_fns
     };
 
     private readonly static PluginParametricCurves CurvePluginSample2 = new()
@@ -463,7 +463,7 @@ public static bool CheckAllocContext()
         NumFunctions = 1,
         //{ TYPE_TAN },
         //{ 1 },
-        Evaluator = my_fns2
+        Evaluator = &my_fns2
     };
 
     // --------------------------------------------------------------------------------------------------
@@ -627,7 +627,7 @@ public static bool CheckAllocContext()
     private readonly static PluginFormatters FormattersPluginSample = new() 
     {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
-        FormattersFactory = my_FormatterFactory
+        FormattersFactory = &my_FormatterFactory
     };
 
 
@@ -635,7 +635,7 @@ public static bool CheckAllocContext()
     private readonly static PluginFormatters FormattersPluginSample2 = new() 
     {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null },
-        FormattersFactory = my_FormatterFactory2
+        FormattersFactory = &my_FormatterFactory2
     };
 
 
@@ -704,10 +704,10 @@ public static bool CheckAllocContext()
 
     private readonly static PluginTagType TagTypePluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagTypeSig, Next = /*(PluginBase*) &HiddenTagPluginSample*/ null },
-        Handler = new(SigIntType, Type_int_Read, Type_int_Write, Type_int_Dup, Type_int_Free, null, 0)
+        Handler = new(SigIntType, &Type_int_Read, &Type_int_Write, &Type_int_Dup, &Type_int_Free, null, 0)
     };
 
-
+    private static void NullLogErrorHandler(Context _1, ErrorCode _2, string _3) { }
     public static bool CheckTagTypePlugin()
     {
         Context ctx = null;
@@ -773,7 +773,7 @@ public static bool CheckAllocContext()
 
         cmsCloseProfile(h);
 
-        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        cmsSetLogErrorHandler(&NullLogErrorHandler);
         h = cmsOpenProfileFromMem(data, clen);
         if (h == null)
         {
@@ -842,7 +842,7 @@ public static bool CheckAllocContext()
     private static Stage* StageAllocNegate(Context ContextID)
     {
         return _cmsStageAllocPlaceholder(ContextID,
-                     SigNegateType, 3, 3, EvaluateNegate,
+                     SigNegateType, 3, 3, &EvaluateNegate,
                      null, null, null);
     }
 
@@ -863,7 +863,7 @@ public static bool CheckAllocContext()
 
     private readonly static PluginTagType MPEPluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMultiProcessElementSig, Next = null },
-        Handler = new(SigNegateType, Type_negate_Read, Type_negate_Write, null, null, null, 0)
+        Handler = new(SigNegateType, &Type_negate_Read, &Type_negate_Write, null, null, null, 0)
     };
 
 
@@ -950,7 +950,7 @@ public static bool CheckAllocContext()
         cmsCloseProfile(h);
 
 
-        cmsSetLogErrorHandler((_1, _2, _3) => { });
+        cmsSetLogErrorHandler(&NullLogErrorHandler);
         h = cmsOpenProfileFromMem(data, clen);
         if (h == null)
         {
@@ -1039,14 +1039,14 @@ public static bool CheckAllocContext()
         }
 
         *dwFlags |= cmsFLAGS_NOCACHE;
-        _cmsPipelineSetOptimizationParameters(*Lut, FastEvaluateCurves, null, null, null);
+        _cmsPipelineSetOptimizationParameters(*Lut, &FastEvaluateCurves, null, null, null);
 
         return true;
     }
 
     private readonly static PluginOptimization OptimizationPluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginOptimizationSig, Next = null },
-        OptimizePtr = MyOptimize
+        OptimizePtr = &MyOptimize
     };
 
 
@@ -1113,9 +1113,8 @@ public static bool CheckAllocContext()
     private readonly static PluginRenderingIntent IntentPluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginRenderingIntentSig, Next = null },
         Intent = INTENT_DECEPTIVE,
-        Link = MyNewIntent,
-        Description = "bypass gray to gray rendering intent"
-};
+        Link = &MyNewIntent
+    };
 
     public static bool CheckIntentPlugin()
     {
@@ -1172,14 +1171,14 @@ public static bool CheckAllocContext()
 
     }
 
-
-    private static bool TransformFactory(out TransformFn xformPtr, void** _1, FreeUserDataFn? _2, Pipeline** Lut, uint* _3, uint* OutputFormat, uint* _4)
+    //delegate*<out delegate*<Transform*, in void*, void*, uint, uint, void>, void**, FreeUserDataFn?, Pipeline**, uint*, uint*, uint*, bool>
+    private static bool TransformFactory(out delegate*<Transform*, in void*, void*, uint, uint, void> xformPtr, void** _1, FreeUserDataFn? _2, Pipeline** Lut, uint* _3, uint* OutputFormat, uint* _4)
 
     {
         if (*OutputFormat == TYPE_GRAY_8)
         {
             // *Lut holds the pipeline to be applied
-            xformPtr = TrancendentalTransform;
+            xformPtr = &TrancendentalTransform;
             return true;
         }
 
@@ -1191,7 +1190,7 @@ public static bool CheckAllocContext()
     // The Plug-in entry point
     private readonly static PluginTransform FullTransformPluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTransformSig, Next = null },
-        factories = new() { legacy_xform = TransformFactory }
+        factories = new() { legacy_xform = &TransformFactory }
     };
 
     public static bool CheckTransformPlugin()
@@ -1274,10 +1273,10 @@ public static bool CheckAllocContext()
 
     private readonly static PluginMutex MutexPluginSample = new() {
         @base = new() { Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMutexSig, Next = null },
-        CreateMutexPtr = MyMtxCreate,
-        DestroyMutexPtr = MyMtxDestroy,
-        LockMutexPtr = MyMtxLock,
-        UnlockMutexPtr = MyMtxUnlock
+        CreateMutexPtr = &MyMtxCreate,
+        DestroyMutexPtr = &MyMtxDestroy,
+        LockMutexPtr = &MyMtxLock,
+        UnlockMutexPtr = &MyMtxUnlock
     };
 
 

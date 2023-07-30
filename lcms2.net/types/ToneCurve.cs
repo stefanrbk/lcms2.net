@@ -34,7 +34,7 @@ public unsafe struct ToneCurve
     internal CurveSegment* Segments;
     internal InterpParams** SegInterp;
 
-    internal ParametricCurveEvaluator* Evals;
+    internal delegate*<int, in double*, double, double>* Evals;
     internal uint nEntries;
     internal ushort* Table16;
 }

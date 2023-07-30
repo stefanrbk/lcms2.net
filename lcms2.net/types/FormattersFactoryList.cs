@@ -31,6 +31,6 @@ namespace lcms2.types;
 
 internal unsafe struct FormattersFactoryList
 {
-    public FormatterFactory Factory;
+    public delegate*<uint, FormatterDirection, uint, Formatter> Factory;
     public FormattersFactoryList* Next;
 }

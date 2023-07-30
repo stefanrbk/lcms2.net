@@ -37,5 +37,5 @@ public unsafe struct PluginFormatters
     public PluginBase @base;
 
     [FieldOffset(24)]
-    public FormatterFactory FormattersFactory;
+    public delegate*<uint, FormatterDirection, uint, Formatter> FormattersFactory;
 }

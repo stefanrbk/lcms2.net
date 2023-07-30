@@ -37,5 +37,5 @@ public unsafe struct PluginOptimization
     public PluginBase @base;
 
     [FieldOffset(24)]
-    public OPToptimizeFn OptimizePtr;
+    public delegate*<Pipeline**, uint, uint*, uint*, uint*, bool> OptimizePtr;
 }

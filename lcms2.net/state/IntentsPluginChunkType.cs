@@ -31,17 +31,15 @@ internal unsafe class IntentsPluginChunkType : IDup
 {
     public IntentsList* Intents;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
-        IntentsPluginChunkType head = this;
         IntentsList* Anterior = null, entry;
         IntentsPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
-        _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head.Intents;
+        for (entry = Intents;
              entry is not null;
              entry = entry->Next)
         {

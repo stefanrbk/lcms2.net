@@ -29,38 +29,27 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct TagTypeHandler
+public unsafe struct TagTypeHandler(
+    Signature signature,
+    delegate*<TagTypeHandler*, IOHandler*, uint*, uint, void*> readPtr,
+    delegate*<TagTypeHandler*, IOHandler*, void*, uint, bool> writePtr,
+    delegate*<TagTypeHandler*, in void*, uint, void*> dupPtr,
+    delegate*<TagTypeHandler*, void*, void> freePtr,
+    Context contextID,
+    uint iCCVersion)
 {
-    public Signature Signature;
-    public Context ContextID;
+    public Signature Signature = signature;
+    public Context ContextID = contextID;
 
-    public delegate void* ReadFn(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag);
-    public delegate bool WriteFn(TagTypeHandler* self, IOHandler* io, void* Ptr, uint nItems);
-    public delegate void* DupFn(TagTypeHandler* self, in void* Ptr, uint nItems);
-    public delegate void FreeFn(TagTypeHandler* self, void* Ptr);
+    //public delegate void* ReadFn(TagTypeHandler* self, IOHandler* io, uint* nItems, uint SizeOfTag);
+    //public delegate bool WriteFn(TagTypeHandler* self, IOHandler* io, void* Ptr, uint nItems);
+    //public delegate void* DupFn(TagTypeHandler* self, in void* Ptr, uint nItems);
+    //public delegate void FreeFn(TagTypeHandler* self, void* Ptr);
 
-    public ReadFn ReadPtr;
-    public WriteFn WritePtr;
-    public DupFn DupPtr;
-    public FreeFn FreePtr;
+    public delegate*<TagTypeHandler*, IOHandler*, uint*, uint, void*> ReadPtr = readPtr;
+    public delegate*<TagTypeHandler*, IOHandler*, void*, uint, bool> WritePtr = writePtr;
+    public delegate*<TagTypeHandler*, in void*, uint, void*> DupPtr = dupPtr;
+    public delegate*<TagTypeHandler*, void*, void> FreePtr = freePtr;
 
-    public uint ICCVersion;
-
-    public TagTypeHandler(
-        Signature signature,
-        ReadFn readPtr,
-        WriteFn writePtr,
-        DupFn dupPtr,
-        FreeFn freePtr,
-        Context contextID,
-        uint iCCVersion)
-    {
-        Signature = signature;
-        ContextID = contextID;
-        ReadPtr = readPtr;
-        WritePtr = writePtr;
-        DupPtr = dupPtr;
-        FreePtr = freePtr;
-        ICCVersion = iCCVersion;
-    }
+    public uint ICCVersion = iCCVersion;
 }

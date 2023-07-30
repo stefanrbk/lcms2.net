@@ -2494,17 +2494,15 @@ public static unsafe partial class Lcms2
         return default;
     }
 
-    private static void DupFormatterFactoryList(Context ctx, in Context src) =>
+    private static void DupFormatterFactoryList(Context_class ctx, in Context_class src) =>
         // Moved to FormattersPluginChunkType.Dup
 
         ctx.FormattersPlugin = (FormattersPluginChunkType)src.FormattersPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context src)
-    {
-        AllocPluginChunk(ctx, ref ctx.FormattersPlugin, src.FormattersPlugin, FormattersPluginChunk);
-    }
+    internal static void _cmsAllocFormattersPluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.FormattersPlugin, src?.FormattersPlugin, FormattersPluginChunk);
 
-    internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterFormattersPlugin(Context ContextID, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin);
         var Plugin = (PluginFormatters*)Data;
@@ -2527,7 +2525,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static Formatter _cmsGetFormatter(Context? ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
+    internal static Formatter _cmsGetFormatter(Context ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
     {
         var ctx = _cmsContextGetClientChunk<FormattersPluginChunkType>(ContextID, Chunks.FormattersPlugin)!;
 

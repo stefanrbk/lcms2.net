@@ -35,10 +35,10 @@ public static unsafe partial class Lcms2
 {
     internal static readonly OptimizationCollection[] DefaultOptimization = new OptimizationCollection[]
     {
-        new() { OptimizePtr = OptimizeByJoiningCurves },
-        new() { OptimizePtr = OptimizeMatrixShaper },
-        new() { OptimizePtr = OptimizeByComputingLinearization },
-        new() { OptimizePtr = OptimizeByResampling },
+        new() { OptimizePtr = &OptimizeByJoiningCurves },
+        new() { OptimizePtr = &OptimizeMatrixShaper },
+        new() { OptimizePtr = &OptimizeByComputingLinearization },
+        new() { OptimizePtr = &OptimizeByResampling },
     };
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
@@ -67,18 +67,20 @@ public static unsafe partial class Lcms2
         public uint nOutputs;
 
         // The maximum number of input channels is known in advance
-        public InterpFn16[] EvalCurveIn16;
+        // delegate*<in ushort*, ushort*, in InterpParams*, void>
+        public fixed long EvalCurveIn16[MAX_INPUT_DIMENSIONS];
 
-        public InterpParams*[] ParamsCurveIn16;
+        // InterpParams*
+        public fixed long ParamsCurveIn16[MAX_INPUT_DIMENSIONS];
 
         // The evaluator for 3D grid
-        public InterpFn16 EvalCLUT;
+        public delegate*<in ushort*, ushort*, in InterpParams*, void> EvalCLUT;
 
         // (not-owned pointer)
         public InterpParams* CLUTparams;
 
         // Points to an array of curve evaluators in 16 bits (not-owned pointer)
-        public InterpFn16* EvalCurveOut16;
+        public delegate*<in ushort*, ushort*, in InterpParams*, void>* EvalCurveOut16;
 
         // Points to an array of references to interpolation params (not-owned pointer)
         public InterpParams** ParamsCurveOut16;
@@ -306,12 +308,12 @@ public static unsafe partial class Lcms2
         var StageDEF = stackalloc ushort[cmsMAXCHANNELS];
 
         for (var i = 0; i < p16->nInputs; i++)
-            p16->EvalCurveIn16[i](&Input[i], &StageABC[i], p16->ParamsCurveIn16[i]);
+            ((delegate*<in ushort*, ushort*, in InterpParams*, void>)p16->EvalCurveIn16[i])(&Input[i], &StageABC[i], (InterpParams*)p16->ParamsCurveIn16[i]);
 
         p16->EvalCLUT(StageABC, StageDEF, p16->CLUTparams);
 
         for (var i = 0; i < p16->nOutputs; i++)
-            p16->EvalCurveIn16[i](&StageDEF[i], &Output[i], p16->ParamsCurveOut16[i]);
+            ((delegate*<in ushort*, ushort*, in InterpParams*, void>)p16->EvalCurveIn16[i])(&StageDEF[i], &Output[i], p16->ParamsCurveOut16[i]);
     }
 
     private static void PrelinOpt16free(Context ContextID, void* ptr)
@@ -331,8 +333,8 @@ public static unsafe partial class Lcms2
 
         if (Duped is null) return null;
 
-        Duped->EvalCurveOut16 = (InterpFn16*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<nint>(), typeof(InterpFn16));
-        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<nint>(), typeof(InterpParams*));
+        Duped->EvalCurveOut16 = (delegate*<in ushort*, ushort*, in InterpParams*, void>*)_cmsDupMem(ContextID, p16->EvalCurveOut16, p16->nOutputs * _sizeof<long>(), typeof(InterpFn16));
+        Duped->ParamsCurveOut16 = (InterpParams**)_cmsDupMem(ContextID, p16->ParamsCurveOut16, p16->nOutputs * _sizeof<long>(), typeof(InterpParams*));
 
         return Duped;
     }
@@ -355,20 +357,20 @@ public static unsafe partial class Lcms2
         {
             if (In is null)
             {
-                p16->ParamsCurveIn16[i] = null;
-                p16->EvalCurveIn16[i] = Eval16nop1D;
+                ((InterpParams**)p16->ParamsCurveIn16)[i] = null;
+                ((delegate*<in ushort*, ushort*, in InterpParams *, void>*)p16->EvalCurveIn16)[i] = &Eval16nop1D;
             }
             else
             {
-                p16->ParamsCurveIn16[i] = In[i]->InterpParams;
-                p16->EvalCurveIn16[i] = p16->ParamsCurveIn16[i]->Interpolation.Lerp16;
+                ((InterpParams**)p16->ParamsCurveIn16)[i] = In[i]->InterpParams;
+                ((delegate*<in ushort*, ushort*, in InterpParams*, void>*)p16->EvalCurveIn16)[i] = ((InterpParams**)p16->ParamsCurveIn16)[i]->Interpolation.Lerp16;
             }
         }
 
         p16->CLUTparams = ColorMap;
         p16->EvalCLUT = ColorMap->Interpolation.Lerp16;
 
-        p16->EvalCurveOut16 = (InterpFn16*)_cmsCalloc(ContextID, nOutputs, _sizeof<nint>(), typeof(InterpFn16));
+        p16->EvalCurveOut16 = (delegate*<in ushort*, ushort*, in InterpParams*, void>*)_cmsCalloc(ContextID, nOutputs, _sizeof<long>(), typeof(InterpFn16));
         if (p16->EvalCurveOut16 is null)
         {
             _cmsFree(ContextID, p16);
@@ -388,7 +390,7 @@ public static unsafe partial class Lcms2
             if (Out is null)
             {
                 p16->ParamsCurveOut16[i] = null;
-                p16->EvalCurveOut16[i] = Eval16nop1D;
+                p16->EvalCurveOut16[i] = &Eval16nop1D;
             }
             else
             {
@@ -731,13 +733,13 @@ public static unsafe partial class Lcms2
         if (DataSetIn is null && DataSetOut is null)
         {
             _cmsPipelineSetOptimizationParameters(
-                Dest, *(PipelineEval16Fn*)&DataCLUT->Params->Interpolation.Lerp16, DataCLUT->Params, null, null);
+                Dest, (delegate*<in ushort *, ushort *, in void *, void >)DataCLUT->Params->Interpolation.Lerp16, DataCLUT->Params, null, null);
         }
         else
         {
             var p16 = PrelinOpt16alloc(Dest->ContextID, DataCLUT->Params, Dest->InputChannels, DataSetIn, Dest->OutputChannels, DataSetOut);
 
-            _cmsPipelineSetOptimizationParameters(Dest, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(Dest, &PrelinEval16, p16, &PrelinOpt16free, &Prelin16dup);
         }
 
         // Don't fix white on absolute colorimentric
@@ -1087,14 +1089,14 @@ public static unsafe partial class Lcms2
             var p8 = PrelinOpt8alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT->Params, OptimizedPrelinCurves);
             if (p8 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval8, p8, Prelin8free, Prelin8dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, &PrelinEval8, p8, &Prelin8free, &Prelin8dup);
         }
         else
         {
             var p16 = PrelinOpt16alloc(OptimizedLUT->ContextID, OptimizedPrelinCLUT->Params, 3, OptimizedPrelinCurves, 3, null);
             if (p16 is null) goto Error;
 
-            _cmsPipelineSetOptimizationParameters(OptimizedLUT, PrelinEval16, p16, PrelinOpt16free, Prelin16dup);
+            _cmsPipelineSetOptimizationParameters(OptimizedLUT, &PrelinEval16, p16, &PrelinOpt16free, &Prelin16dup);
         }
 
         // Don't fix white on absolute colorimetric
@@ -1290,14 +1292,14 @@ public static unsafe partial class Lcms2
 
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, c16, CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, &FastEvaluateCurves8, c16, &CurvesFree, &CurvesDup);
             }
             else
             {
                 var c16 = CurvesAlloc(Dest->ContextID, Data->nCurves, 65536, Data->TheCurves);
                 if (c16 is null) goto Error;
                 *dwFlags |= cmsFLAGS_NOCACHE;
-                _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, c16, CurvesFree, CurvesDup);
+                _cmsPipelineSetOptimizationParameters(Dest, &FastEvaluateCurves16, c16, &CurvesFree, &CurvesDup);
             }
         }
         else
@@ -1310,7 +1312,7 @@ public static unsafe partial class Lcms2
                 goto Error;
 
             *dwFlags |= cmsFLAGS_NOCACHE;
-            _cmsPipelineSetOptimizationParameters(Dest, FastIdentify16, Dest, null, null);
+            _cmsPipelineSetOptimizationParameters(Dest, &FastIdentify16, Dest, null, null);
         }
 
         // We are done.
@@ -1458,7 +1460,7 @@ public static unsafe partial class Lcms2
             *OutputFormat |= OPTIMIZED_SH(1);
 
         // Fill function pointers
-        _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, p, FreeMatShaper, DupMatShaper);
+        _cmsPipelineSetOptimizationParameters(Dest, &MatShaperEval16, p, &FreeMatShaper, &DupMatShaper);
         return true;
     }
 
@@ -1574,18 +1576,18 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    internal static void DupPluginOptimizationList(Context ctx, in Context src) =>
+    internal static void DupPluginOptimizationList(Context_class ctx, in Context_class src) =>
         // Moved to OptimizationPluginChunkType.Dup
 
         ctx.OptimizationPlugin = (OptimizationPluginChunkType)src.OptimizationPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocOptimizationPluginChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.OptimizationPlugin, src.OptimizationPlugin, OptimizationPluginChunk);
+    internal static void _cmsAllocOptimizationPluginChunk(Context_class ctx, in Context_class? src) => 
+        AllocPluginChunk(ctx, ref ctx.OptimizationPlugin, src?.OptimizationPlugin, OptimizationPluginChunk);
 
-    internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterOptimizationPlugin(Context id, PluginBase* Data)
     {
         var Plugin = (PluginOptimization*)Data;
-        var ctx = _cmsContextGetClientChunk<OptimizationPluginChunkType>(id, Chunks.OptimizationPlugin);
+        var ctx = _cmsContextGetClientChunk<OptimizationPluginChunkType>(id, Chunks.OptimizationPlugin)!;
 
         if (Data is null)
         {
@@ -1633,7 +1635,7 @@ public static unsafe partial class Lcms2
         // Anything to optimize?
         if ((*PtrLut)->Elements is null)
         {
-            _cmsPipelineSetOptimizationParameters(*PtrLut, FastIdentify16, *PtrLut, null, null);
+            _cmsPipelineSetOptimizationParameters(*PtrLut, &FastIdentify16, *PtrLut, null, null);
             return true;
         }
 
@@ -1651,7 +1653,7 @@ public static unsafe partial class Lcms2
         // After removal do we end with an identity?
         if ((*PtrLut)->Elements is null)
         {
-            _cmsPipelineSetOptimizationParameters(*PtrLut, FastIdentify16, *PtrLut, null, null);
+            _cmsPipelineSetOptimizationParameters(*PtrLut, &FastIdentify16, *PtrLut, null, null);
             return true;
         }
 

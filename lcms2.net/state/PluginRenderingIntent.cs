@@ -40,8 +40,8 @@ public unsafe struct PluginRenderingIntent
     public uint Intent;
 
     [FieldOffset(32)]
-    public IntentFn Link;
+    public delegate*<Context, uint, uint*, HPROFILE*, bool*, double*, uint, Pipeline*> Link;
 
     [FieldOffset(40)]
-    public string Description;
+    public fixed char Description[cmsMAX_PATH];
 }

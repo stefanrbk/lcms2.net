@@ -32,17 +32,15 @@ internal unsafe class OptimizationPluginChunkType : IDup
 {
     public OptimizationCollection* OptimizationCollection;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
-        OptimizationPluginChunkType head = this;
         OptimizationCollection* Anterior = null, entry;
         OptimizationPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
-        _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head.OptimizationCollection;
+        for (entry = OptimizationCollection;
              entry is not null;
              entry = entry->Next)
         {

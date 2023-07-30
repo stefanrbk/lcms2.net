@@ -3,5 +3,5 @@
 namespace lcms2;
 internal interface IDup
 {
-    object? Dup(Context ctx);
+    object? Dup(Context_class ctx);
 }

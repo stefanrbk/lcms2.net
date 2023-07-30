@@ -25,12 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 namespace lcms2.state;
 
-internal class LogErrorChunkType : IDup
+internal unsafe class LogErrorChunkType : IDup
 {
     public LogErrorHandlerFunction LogErrorHandler;
 
-    public object? Dup(Context _) =>
+    public object? Dup(Context_class _) =>
         new LogErrorChunkType() { LogErrorHandler = LogErrorHandler };
 }

@@ -37,71 +37,61 @@ public static unsafe partial class Lcms2
         new()
         {
             Intent = INTENT_PERCEPTUAL,
-            Description = "Perceptual",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_SATURATION,
-            Description = "Saturation",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_ABSOLUTE_COLORIMETRIC,
-            Description = "Absolute colorimetric",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_PERCEPTUAL,
-            Description = "Perceptual preserving black ink",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black ink",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_ONLY_SATURATION,
-            Description = "Saturation preserving black ink",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_PERCEPTUAL,
-            Description = "Perceptual preserving black plane",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC,
-            Description = "Relative colorimetric preserving black plane",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
         new()
         {
             Intent = INTENT_PRESERVE_K_PLANE_SATURATION,
-            Description = "Saturation preserving black plane",
-            Link = DefaultICCintents,
+            Link = &DefaultICCintents,
             Next = null
         },
     };
@@ -110,13 +100,13 @@ public static unsafe partial class Lcms2
 
     internal static readonly IntentsPluginChunkType globalIntentsPluginChunk = new();
 
-    internal static void DupPluginIntentsList(Context ctx, in Context src) =>
+    internal static void DupPluginIntentsList(Context_class ctx, in Context_class src) =>
         // Moved to IntentsPluginChunkType.Dup
 
         ctx.IntentsPlugin = (IntentsPluginChunkType)src.IntentsPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocIntentsPluginChunk(Context ctx, in Context src) =>
-        AllocPluginChunk(ctx, ref ctx.IntentsPlugin, src.IntentsPlugin, IntentsPluginChunk);
+    internal static void _cmsAllocIntentsPluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.IntentsPlugin, src?.IntentsPlugin, IntentsPluginChunk);
 
     private static IntentsList* SearchIntent(Context ContextID, uint Intent)
     {
@@ -1001,7 +991,7 @@ public static unsafe partial class Lcms2
                     Codes[nIntents] = pt->Intent;
 
                 if (nIntents < Descriptions?.Length)
-                    Descriptions[nIntents] = pt->Description;
+                    Descriptions[nIntents] = new string(pt->Description);
             }
 
             nIntents++;
@@ -1016,7 +1006,7 @@ public static unsafe partial class Lcms2
                         Codes[nIntents] = pt->Intent;
 
                     if (nIntents < Descriptions?.Length)
-                        Descriptions[nIntents] = pt->Description;
+                        Descriptions[nIntents] = new string(pt->Description);
                 }
 
                 nIntents++;
@@ -1029,7 +1019,7 @@ public static unsafe partial class Lcms2
     public static uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[]? Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
-    internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterRenderingIntentPlugin(Context id, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<IntentsPluginChunkType>(id, Chunks.IntentPlugin)!;
         var Plugin = (PluginRenderingIntent*)Data;
@@ -1045,7 +1035,7 @@ public static unsafe partial class Lcms2
         if (fl is null) return false;
 
         fl->Intent = Plugin->Intent;
-        fl->Description = Plugin->Description;
+        memcpy(fl->Description, Plugin->Description, _sizeof<char>() * cmsMAX_PATH);
 
         fl->Link = Plugin->Link;
 

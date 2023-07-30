@@ -36,14 +36,14 @@ public unsafe struct PluginMutex
     public PluginBase @base;
 
     [FieldOffset(24)]
-    public CreateMutexFnPtrType CreateMutexPtr;
+    public delegate*<Context, void*> CreateMutexPtr;
 
     [FieldOffset(32)]
-    public DestroyMutexFnPtrType DestroyMutexPtr;
+    public delegate*<Context, void*, void> DestroyMutexPtr;
 
     [FieldOffset(40)]
-    public LockMutexFnPtrType LockMutexPtr;
+    public delegate*<Context, void*, bool> LockMutexPtr;
 
     [FieldOffset(48)]
-    public UnlockMutexFnPtrType UnlockMutexPtr;
+    public delegate*<Context, void*, void> UnlockMutexPtr;
 }

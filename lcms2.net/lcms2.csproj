@@ -12,10 +12,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (No Fast Floor)|AnyCPU'">
     <Optimize>True</Optimize>
     <DefineConstants>$(DefineConstants)TRACE;DONT_USE_FAST_FLOOR</DefineConstants>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605;CS8500</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (No Fast Floor)|AnyCPU'">
     <DefineConstants>$(DefineConstants)TRACE;DONT_USE_FAST_FLOOR</DefineConstants>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605;CS8500</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605;CS8500</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605;CS8500</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

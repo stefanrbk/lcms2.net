@@ -36,9 +36,9 @@ public unsafe struct TagDescriptor
 
     public delegate Signature TagTypeDecider(double ICCVersion, in void* Data);
 
-    public TagTypeDecider DecideType;
+    public delegate*<double, in void*, Signature> DecideType;
 
-    public TagDescriptor(uint elemCount, Signature[] supportedTypes, TagTypeDecider decideType)
+    public TagDescriptor(uint elemCount, Signature[] supportedTypes, delegate*<double, in void*, Signature> decideType)
     {
         ElemCount = elemCount;
         nSupportedTypes = (uint)supportedTypes.Length;

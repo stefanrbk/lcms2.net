@@ -45,7 +45,7 @@ public static unsafe partial class Lcms2
 
     private static readonly ParametricCurvesCollection defaultCurves = new()
     {
-        Evaluator = DefaultEvalParametricFn,
+        Evaluator = &DefaultEvalParametricFn,
         nFunctions = 10,
     };
 
@@ -56,15 +56,15 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Duplicates the plug-in in the new context.
     /// </summary>
-    private static void DupPluginCurvesList(Context ctx, in Context src) =>
+    private static void DupPluginCurvesList(Context_class ctx, in Context_class src) =>
         // Moved to CurvesPluginChunkType.Dup
 
         ctx.CurvesPlugin = (CurvesPluginChunkType)src.CurvesPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocCurvesPluginChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.CurvesPlugin, src.CurvesPlugin, CurvesPluginChunk);
+    internal static void _cmsAllocCurvesPluginChunk(Context_class ctx, in Context_class? src) => 
+        AllocPluginChunk(ctx, ref ctx.CurvesPlugin, src?.CurvesPlugin, CurvesPluginChunk);
 
-    internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterParametricCurvesPlugin(Context ContextID, PluginBase* Data)
     {
         var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin)!;
         var Plugin = (PluginParametricCurves*)Data;
@@ -108,7 +108,7 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static ParametricCurvesCollection* GetParametricCurveByType(Context? ContextID, int Type, int* index)
+    private static ParametricCurvesCollection* GetParametricCurveByType(Context ContextID, int Type, int* index)
     {
         int Position;
         var ctx = _cmsContextGetClientChunk<CurvesPluginChunkType>(ContextID, Chunks.CurvesPlugin);
@@ -176,7 +176,7 @@ public static unsafe partial class Lcms2
             p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             if (p->Segments is null) goto Error;
 
-            p->Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
+            p->Evals = (delegate*<int, in double*, double, double>*)_cmsCalloc<nint>(ContextID, nSegments);
             if (p->Evals is null) goto Error;
         }
 

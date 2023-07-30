@@ -28,6 +28,5 @@ namespace lcms2.io;
 
 public struct FILE
 {
-    public string Filename;
-    public Stream Stream;
+    public int StreamID;
 }

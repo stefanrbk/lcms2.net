@@ -38,5 +38,5 @@ public unsafe struct PluginInterpolation
     public PluginBase @base;
 
     [FieldOffset(24)]
-    public InterpFnFactory InterpolatorsFactory;
+    public delegate*<uint, uint, uint, InterpFunction> InterpolatorsFactory;
 }

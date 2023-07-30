@@ -36,10 +36,10 @@ public unsafe struct Pipeline
 
     internal void* Data;
 
-    internal PipelineEval16Fn Eval16Fn;
-    internal PipelineEvalFloatFn EvalFloatFn;
-    internal FreeUserDataFn? FreeDataFn;
-    internal DupUserDataFn? DupDataFn;
+    internal delegate*<in ushort*, ushort*, in void*, void> Eval16Fn;
+    internal delegate*<in float*, float*, in void*, void> EvalFloatFn;
+    internal delegate*<Context, void*, void> FreeDataFn;
+    internal delegate*<Context, in void*, void*> DupDataFn;
 
     internal Context ContextID;
     internal bool SaveAs8Bits;

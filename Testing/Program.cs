@@ -56,7 +56,7 @@ unsafe
     ConsoleWriteLine("{green:done.}");
 
     ConsoleWrite("Installing error logger ... ");
-    cmsSetLogErrorHandler(FatalErrorQuit);
+    cmsSetLogErrorHandler(&FatalErrorQuit);
     ConsoleWriteLine("{green:done.}");
 }
 

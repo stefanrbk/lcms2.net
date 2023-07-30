@@ -33,17 +33,15 @@ internal unsafe class TagTypePluginChunkType : IDup
 {
     public TagTypeLinkedList* TagTypes;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
-        var head = this;
         TagTypeLinkedList* Anterior = null, entry;
         TagTypePluginChunkType newHead = new();
 
         _cmsAssert(ctx);
-        _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head.TagTypes;
+        for (entry = TagTypes;
              entry is not null;
              entry = entry->Next)
         {

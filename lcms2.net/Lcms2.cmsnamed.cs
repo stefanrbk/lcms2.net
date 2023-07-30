@@ -672,9 +672,9 @@ public static unsafe partial class Lcms2
             cmsSigNamedColorElemType,
             1,
             UsePCS ? 3 : NamedColorList->ColorantCount,
-            UsePCS ? EvalNamedColorPCS : EvalNamedColor,
-            DupNamedColorList,
-            FreeNamedColorList,
+            UsePCS ? &EvalNamedColorPCS : &EvalNamedColor,
+            &DupNamedColorList,
+            &FreeNamedColorList,
             cmsDupNamedColorList(NamedColorList));
 
     public static NamedColorList* cmsGetNamedColorList(Transform* xform)

@@ -31,6 +31,6 @@ internal class InterpPluginChunkType : IDup
 {
     public InterpFnFactory? Interpolators;
 
-    public object? Dup(Context _) =>
+    public object? Dup(Context_class _) =>
         new InterpPluginChunkType() { Interpolators = Interpolators };
 }

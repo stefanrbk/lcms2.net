@@ -27,9 +27,71 @@
 
 namespace lcms2.state;
 
-public unsafe class Context
+public readonly unsafe struct Context
 {
-    internal Context? Next;
+    private readonly static Dictionary<int, Context_class> repo = new();
+    internal readonly static Context_class global = new();
+    private Context(int? id) =>
+        this.id = id;
+
+    private readonly int? id;
+
+    internal Context_class Get
+    {
+        get
+        {
+            lock (repo)
+                return id.HasValue ? repo.TryGetValue(id.Value, out var value) ? value : global : global;
+        }
+    }
+
+    internal Context(Context_class ctx) : this(ctx.GetHashCode())
+    {
+        lock (repo)
+            repo.Add(id!.Value, ctx);
+    }
+
+    internal static void Remove(Context ctx)
+    {
+        if (ctx.id.HasValue)
+        {
+            lock (repo)
+                repo.Remove(ctx.id.Value);
+        }
+    }
+
+    public static implicit operator Context(int? id) =>
+        new(id);
+
+    public static bool operator !=(Context ctx, int? id) =>
+        ctx.id != id;
+
+    public static bool operator ==(Context ctx, int? id) =>
+        ctx.id == id;
+
+    public static bool operator !=(Context ctx1, Context ctx2) =>
+        ctx1.id != ctx2.id;
+
+    public static bool operator ==(Context ctx1, Context ctx2) =>
+        ctx1.id == ctx2.id;
+
+    public override bool Equals(object obj)
+    {
+        return obj switch
+        {
+            null => !id.HasValue,
+            int val => this == val,
+            Context ctx => this == ctx,
+            _ => false
+        };
+    }
+
+    public override int GetHashCode() =>
+        HashCode.Combine(id, 69);
+}
+
+internal unsafe class Context_class
+{
     internal SubAllocator* MemPool;
     internal MemPluginChunkType DefaultMemoryManager;
     internal void* UserData;

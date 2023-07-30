@@ -31,7 +31,7 @@ namespace lcms2.types;
 
 public unsafe struct TransformCollection
 {
-    public Transform2Factory Factory;
+    public delegate*<out delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void>, void**, FreeUserDataFn?, Pipeline**, uint*, uint*, uint*, bool> Factory;
 
     public bool OldXform;
     public TransformCollection* Next;

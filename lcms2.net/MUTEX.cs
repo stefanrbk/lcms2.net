@@ -27,7 +27,23 @@
 
 namespace lcms2;
 
-internal struct MUTEX
+internal readonly unsafe struct MUTEX
 {
-    public Mutex Mutex;
+    private readonly static Dictionary<int, Mutex> repo = new();
+    private MUTEX(int id) =>
+        this.id = id;
+
+    internal MUTEX(Mutex mutex)
+        : this(mutex.GetHashCode())
+    {
+        repo.Add(id, mutex);
+    }
+
+    private readonly int id;
+
+    public readonly Mutex Mutex =>
+        repo[id];
+
+    internal static void Remove(MUTEX* mutex) =>
+        repo.Remove(mutex->id);
 }

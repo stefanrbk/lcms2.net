@@ -32,7 +32,7 @@ namespace lcms2.state;
 public unsafe struct IntentsList
 {
     public uint Intent;
-    public string Description;
-    public IntentFn Link;
+    public fixed char Description[cmsMAX_PATH];
+    public delegate*<Context, uint, uint*, HPROFILE*, bool*, double*, uint, Pipeline*> Link;
     public IntentsList* Next;
 }

@@ -60,7 +60,6 @@ public unsafe struct Profile
 
     public bool IsWrite;
 
-    public object? UsrMutexManaged;
     public void* UserMutex;
 
     public struct Header

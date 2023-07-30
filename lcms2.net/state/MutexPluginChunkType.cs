@@ -34,7 +34,7 @@ internal class MutexPluginChunkType : IDup
     public LockMutexFnPtrType? LockFn;
     public UnlockMutexFnPtrType? UnlockFn;
 
-    public object? Dup(Context _) =>
+    public object? Dup(Context_class _) =>
         new MutexPluginChunkType()
         {
             CreateFn = CreateFn,

@@ -34,13 +34,13 @@ public unsafe struct Transform
 {
     public uint InputFormat, OutputFormat;
 
-    public Transform2Fn xform;
+    public delegate*<Transform*, in void*, void*, uint, uint, in Stride*, void> xform;
 
-    public Formatter16 FromInput;
-    public Formatter16 ToOutput;
+    public delegate*<Transform*, ushort*, byte*, uint, byte*> FromInput;
+    public delegate*<Transform*, ushort*, byte*, uint, byte*> ToOutput;
 
-    public FormatterFloat FromInputFloat;
-    public FormatterFloat ToOutputFloat;
+    public delegate*<Transform*, float*, byte*, uint, byte*> FromInputFloat;
+    public delegate*<Transform*, float*, byte*, uint, byte*> ToOutputFloat;
 
     public Cache Cache;
 
@@ -67,7 +67,7 @@ public unsafe struct Transform
     public Context ContextID;
 
     public void* UserData;
-    public FreeUserDataFn? FreeUserData;
+    public delegate*<Context, void*, void> FreeUserData;
 
-    public TransformFn? OldXform;
+    public delegate*<Transform*, in void*, void*, uint, uint, void> OldXform;
 }

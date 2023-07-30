@@ -42,9 +42,9 @@ public static unsafe partial class Lcms2
     {
         new(new(cmsSigBAcsElemType, null, null, null, null, null, 0)),
         new(new(cmsSigEAcsElemType, null, null, null, null, null, 0)),
-        new(new(cmsSigCurveSetElemType, Type_MPEcurve_Read, Type_MPEcurve_Write, GenericMPEdup, GenericMPEfree, null, 0)),
-        new(new(cmsSigMatrixElemType, Type_MPEmatrix_Read, Type_MPEmatrix_Write, GenericMPEdup, GenericMPEfree, null, 0)),
-        new(new(cmsSigCLutElemType, Type_MPEclut_Read, Type_MPEclut_Write, GenericMPEdup, GenericMPEfree, null, 0)),
+        new(new(cmsSigCurveSetElemType, &Type_MPEcurve_Read, &Type_MPEcurve_Write, &GenericMPEdup, &GenericMPEfree, null, 0)),
+        new(new(cmsSigMatrixElemType, &Type_MPEmatrix_Read, &Type_MPEmatrix_Write, &GenericMPEdup, &GenericMPEfree, null, 0)),
+        new(new(cmsSigCLutElemType, &Type_MPEclut_Read, &Type_MPEclut_Write, &GenericMPEdup, &GenericMPEfree, null, 0)),
     };
 
     internal static readonly TagTypePluginChunkType MPETypePluginChunk = new();
@@ -53,37 +53,37 @@ public static unsafe partial class Lcms2
 
     internal static readonly TagTypeLinkedList[] supportedTagTypes = new TagTypeLinkedList[]
     {
-        new(new(cmsSigChromaticityType, Type_Chromaticity_Read, Type_Chromaticity_Write, Type_Chromaticity_Dup, Type_Chromaticity_Free, null, 0)),
-        new(new(cmsSigColorantOrderType, Type_ColorantOrderType_Read, Type_ColorantOrderType_Write, Type_ColorantOrderType_Dup, Type_ColorantOrderType_Free, null, 0)),
-        new(new(cmsSigS15Fixed16ArrayType, Type_S15Fixed16_Read, Type_S15Fixed16_Write, Type_S15Fixed16_Dup, Type_S15Fixed16_Free, null, 0)),
-        new(new(cmsSigU16Fixed16ArrayType, Type_U16Fixed16_Read, Type_U16Fixed16_Write, Type_U16Fixed16_Dup, Type_U16Fixed16_Free, null, 0)),
-        new(new(cmsSigTextType, Type_Text_Read, Type_Text_Write, Type_Text_Dup, Type_Text_Free, null, 0)),
-        new(new(cmsSigTextDescriptionType, Type_Text_Description_Read, Type_Text_Description_Write, Type_Text_Description_Dup, Type_Text_Description_Free, null, 0)),
-        new(new(cmsSigCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0)),
-        new(new(cmsSigParametricCurveType, Type_ParametricCurve_Read, Type_ParametricCurve_Write, Type_ParametricCurve_Dup, Type_ParametricCurve_Free, null, 0)),
-        new(new(cmsSigDateTimeType, Type_DateTime_Read, Type_DateTime_Write, Type_DateTime_Dup, Type_DateTime_Free, null, 0)),
-        new(new(cmsSigLut8Type, Type_LUT8_Read, Type_LUT8_Write, Type_LUT8_Dup, Type_LUT8_Free, null, 0)),
-        new(new(cmsSigLut16Type, Type_LUT16_Read, Type_LUT16_Write, Type_LUT16_Dup, Type_LUT16_Free, null, 0)),
-        new(new(cmsSigColorantTableType, Type_ColorantTable_Read, Type_ColorantTable_Write, Type_ColorantTable_Dup, Type_ColorantTable_Free, null, 0)),
-        new(new(cmsSigNamedColor2Type, Type_NamedColor_Read, Type_NamedColor_Write, Type_NamedColor_Dup, Type_NamedColor_Free, null, 0)),
-        new(new(cmsSigMultiLocalizedUnicodeType, Type_MLU_Read, Type_MLU_Write, Type_MLU_Dup, Type_MLU_Free, null, 0)),
-        new(new(cmsSigProfileSequenceDescType, Type_ProfileSequenceDesc_Read, Type_ProfileSequenceDesc_Write, Type_ProfileSequenceDesc_Dup, Type_ProfileSequenceDesc_Free, null, 0)),
-        new(new(cmsSigSignatureType, Type_Signature_Read, Type_Signature_Write, Type_Signature_Dup, Type_Signature_Free, null, 0)),
-        new(new(cmsSigMeasurementType, Type_Measurement_Read, Type_Measurement_Write, Type_Measurement_Dup, Type_Measurement_Free, null, 0)),
-        new(new(cmsSigDataType, Type_Data_Read, Type_Data_Write, Type_Data_Dup, Type_Data_Free, null, 0)),
-        new(new(cmsSigLutAtoBType, Type_LUTA2B_Read, Type_LUTA2B_Write, Type_LUTA2B_Dup, Type_LUTA2B_Free, null, 0)),
-        new(new(cmsSigLutBtoAType, Type_LUTB2A_Read, Type_LUTB2A_Write, Type_LUTB2A_Dup, Type_LUTB2A_Free, null, 0)),
-        new(new(cmsSigUcrBgType, Type_UcrBg_Read, Type_UcrBg_Write, Type_UcrBg_Dup, Type_UcrBg_Free, null, 0)),
-        new(new(cmsSigCrdInfoType, Type_CrdInfo_Read, Type_CrdInfo_Write, Type_CrdInfo_Dup, Type_CrdInfo_Free, null, 0)),
-        new(new(cmsSigMultiProcessElementType, Type_MPE_Read, Type_MPE_Write, Type_MPE_Dup, Type_MPE_Free, null, 0)),
-        new(new(cmsSigScreeningType, Type_Screening_Read, Type_Screening_Write, Type_Screening_Dup, Type_Screening_Free, null, 0)),
-        new(new(cmsSigViewingConditionsType, Type_ViewingConditions_Read, Type_ViewingConditions_Write, Type_ViewingConditions_Dup, Type_ViewingConditions_Free, null, 0)),
-        new(new(cmsSigXYZType, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0)),
-        new(new(cmsCorbisBrokenXYZtype, Type_XYZ_Read, Type_XYZ_Write, Type_XYZ_Dup, Type_XYZ_Free, null, 0)),
-        new(new(cmsMonacoBrokenCurveType, Type_Curve_Read, Type_Curve_Write, Type_Curve_Dup, Type_Curve_Free, null, 0)),
-        new(new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Type_ProfileSequenceId_Dup, Type_ProfileSequenceId_Free, null, 0)),
-        new(new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0)),
-        new(new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0))
+        new(new(cmsSigChromaticityType, &Type_Chromaticity_Read, &Type_Chromaticity_Write, &Type_Chromaticity_Dup, &Type_Chromaticity_Free, null, 0)),
+        new(new(cmsSigColorantOrderType, &Type_ColorantOrderType_Read, &Type_ColorantOrderType_Write, &Type_ColorantOrderType_Dup, &Type_ColorantOrderType_Free, null, 0)),
+        new(new(cmsSigS15Fixed16ArrayType, &Type_S15Fixed16_Read, &Type_S15Fixed16_Write, &Type_S15Fixed16_Dup, &Type_S15Fixed16_Free, null, 0)),
+        new(new(cmsSigU16Fixed16ArrayType, &Type_U16Fixed16_Read, &Type_U16Fixed16_Write, &Type_U16Fixed16_Dup, &Type_U16Fixed16_Free, null, 0)),
+        new(new(cmsSigTextType, &Type_Text_Read, &Type_Text_Write, &Type_Text_Dup, &Type_Text_Free, null, 0)),
+        new(new(cmsSigTextDescriptionType, &Type_Text_Description_Read, &Type_Text_Description_Write, &Type_Text_Description_Dup, &Type_Text_Description_Free, null, 0)),
+        new(new(cmsSigCurveType, &Type_Curve_Read, &Type_Curve_Write, &Type_Curve_Dup, &Type_Curve_Free, null, 0)),
+        new(new(cmsSigParametricCurveType, &Type_ParametricCurve_Read, &Type_ParametricCurve_Write, &Type_ParametricCurve_Dup, &Type_ParametricCurve_Free, null, 0)),
+        new(new(cmsSigDateTimeType, &Type_DateTime_Read, &Type_DateTime_Write, &Type_DateTime_Dup, &Type_DateTime_Free, null, 0)),
+        new(new(cmsSigLut8Type, &Type_LUT8_Read, &Type_LUT8_Write, &Type_LUT8_Dup, &Type_LUT8_Free, null, 0)),
+        new(new(cmsSigLut16Type, &Type_LUT16_Read, &Type_LUT16_Write, &Type_LUT16_Dup, &Type_LUT16_Free, null, 0)),
+        new(new(cmsSigColorantTableType, &Type_ColorantTable_Read, &Type_ColorantTable_Write, &Type_ColorantTable_Dup, &Type_ColorantTable_Free, null, 0)),
+        new(new(cmsSigNamedColor2Type, &Type_NamedColor_Read, &Type_NamedColor_Write, &Type_NamedColor_Dup, &Type_NamedColor_Free, null, 0)),
+        new(new(cmsSigMultiLocalizedUnicodeType, &Type_MLU_Read, &Type_MLU_Write, &Type_MLU_Dup, &Type_MLU_Free, null, 0)),
+        new(new(cmsSigProfileSequenceDescType, &Type_ProfileSequenceDesc_Read, &Type_ProfileSequenceDesc_Write, &Type_ProfileSequenceDesc_Dup, &Type_ProfileSequenceDesc_Free, null, 0)),
+        new(new(cmsSigSignatureType, &Type_Signature_Read, &Type_Signature_Write, &Type_Signature_Dup, &Type_Signature_Free, null, 0)),
+        new(new(cmsSigMeasurementType, &Type_Measurement_Read, &Type_Measurement_Write, &Type_Measurement_Dup, &Type_Measurement_Free, null, 0)),
+        new(new(cmsSigDataType, &Type_Data_Read, &Type_Data_Write, &Type_Data_Dup, &Type_Data_Free, null, 0)),
+        new(new(cmsSigLutAtoBType, &Type_LUTA2B_Read, &Type_LUTA2B_Write, &Type_LUTA2B_Dup, &Type_LUTA2B_Free, null, 0)),
+        new(new(cmsSigLutBtoAType, &Type_LUTB2A_Read, &Type_LUTB2A_Write, &Type_LUTB2A_Dup, &Type_LUTB2A_Free, null, 0)),
+        new(new(cmsSigUcrBgType, &Type_UcrBg_Read, &Type_UcrBg_Write, &Type_UcrBg_Dup, &Type_UcrBg_Free, null, 0)),
+        new(new(cmsSigCrdInfoType, &Type_CrdInfo_Read, &Type_CrdInfo_Write, &Type_CrdInfo_Dup, &Type_CrdInfo_Free, null, 0)),
+        new(new(cmsSigMultiProcessElementType, &Type_MPE_Read, &Type_MPE_Write, &Type_MPE_Dup, &Type_MPE_Free, null, 0)),
+        new(new(cmsSigScreeningType, &Type_Screening_Read, &Type_Screening_Write, &Type_Screening_Dup, &Type_Screening_Free, null, 0)),
+        new(new(cmsSigViewingConditionsType, &Type_ViewingConditions_Read, &Type_ViewingConditions_Write, &Type_ViewingConditions_Dup, &Type_ViewingConditions_Free, null, 0)),
+        new(new(cmsSigXYZType, &Type_XYZ_Read, &Type_XYZ_Write, &Type_XYZ_Dup, &Type_XYZ_Free, null, 0)),
+        new(new(cmsCorbisBrokenXYZtype, &Type_XYZ_Read, &Type_XYZ_Write, &Type_XYZ_Dup, &Type_XYZ_Free, null, 0)),
+        new(new(cmsMonacoBrokenCurveType, &Type_Curve_Read, &Type_Curve_Write, &Type_Curve_Dup, &Type_Curve_Free, null, 0)),
+        new(new(cmsSigProfileSequenceIdType, &Type_ProfileSequenceId_Read, &Type_ProfileSequenceId_Write, &Type_ProfileSequenceId_Dup, &Type_ProfileSequenceId_Free, null, 0)),
+        new(new(cmsSigDictType, &Type_Dictionary_Read, &Type_Dictionary_Write, &Type_Dictionary_Dup, &Type_Dictionary_Free, null, 0)),
+        new(new(cmsSigVcgtType, &Type_vcgt_Read, &Type_vcgt_Write, &Type_vcgt_Dup, &Type_vcgt_Free, null, 0))
     };
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
@@ -92,18 +92,18 @@ public static unsafe partial class Lcms2
 
     internal static readonly TagLinkedList[] supportedTags = new TagLinkedList[]
     {
-        new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
-        new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
-        new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, DecideLUTtypeA2B)),
-        new(cmsSigBToA0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigBToA1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigBToA2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigRedColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
-        new(cmsSigGreenColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
-        new(cmsSigBlueColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, DecideXYZtype)),
-        new(cmsSigRedTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
-        new(cmsSigGreenTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
-        new(cmsSigBlueTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, DecideCurveType)),
+        new(cmsSigAToB0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B)),
+        new(cmsSigAToB1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B)),
+        new(cmsSigAToB2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutAtoBType, cmsSigLut8Type, }, &DecideLUTtypeA2B)),
+        new(cmsSigBToA0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigBToA1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigBToA2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigRedColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype)),
+        new(cmsSigGreenColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype)),
+        new(cmsSigBlueColorantTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, &DecideXYZtype)),
+        new(cmsSigRedTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType)),
+        new(cmsSigGreenTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType)),
+        new(cmsSigBlueTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, cmsMonacoBrokenCurveType, }, &DecideCurveType)),
         new(cmsSigCalibrationDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null)),
         new(cmsSigCharTargetTag, new(1, new Signature[] { cmsSigTextType, }, null)),
         new(cmsSigChromaticAdaptationTag, new(9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null)),
@@ -111,20 +111,20 @@ public static unsafe partial class Lcms2
         new(cmsSigColorantOrderTag, new(1, new Signature[] { cmsSigColorantOrderType, }, null)),
         new(cmsSigColorantTableTag, new(1, new Signature[] { cmsSigColorantTableType, }, null)),
         new(cmsSigColorantTableOutTag, new(1, new Signature[] { cmsSigColorantTableType, }, null)),
-        new(cmsSigCopyrightTag, new(1, new Signature[] { cmsSigTextType, cmsSigMultiLocalizedUnicodeType, cmsSigTextDescriptionType, }, DecideTextType)),
+        new(cmsSigCopyrightTag, new(1, new Signature[] { cmsSigTextType, cmsSigMultiLocalizedUnicodeType, cmsSigTextDescriptionType, }, &DecideTextType)),
         new(cmsSigDateTimeTag, new(1, new Signature[] { cmsSigDateTimeType, }, null)),
-        new(cmsSigDeviceMfgDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
-        new(cmsSigDeviceModelDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
-        new(cmsSigGamutTag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigGrayTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, }, DecideCurveType)),
+        new(cmsSigDeviceMfgDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType)),
+        new(cmsSigDeviceModelDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType)),
+        new(cmsSigGamutTag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigGrayTRCTag, new(1, new Signature[] { cmsSigCurveType, cmsSigParametricCurveType, }, &DecideCurveType)),
         new(cmsSigLuminanceTag, new(1, new Signature[] { cmsSigXYZType, }, null)),
         new(cmsSigMediaBlackPointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null)),
         new(cmsSigMediaWhitePointTag, new(1, new Signature[] { cmsSigXYZType, cmsCorbisBrokenXYZtype, }, null)),
         new(cmsSigNamedColor2Tag, new(1, new Signature[] { cmsSigNamedColor2Type, }, null)),
-        new(cmsSigPreview0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigPreview1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigPreview2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, DecideLUTtypeB2A)),
-        new(cmsSigProfileDescriptionTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigPreview0Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigPreview1Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigPreview2Tag, new(1, new Signature[] { cmsSigLut16Type, cmsSigLutBtoAType, cmsSigLut8Type, }, &DecideLUTtypeB2A)),
+        new(cmsSigProfileDescriptionTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType)),
         new(cmsSigProfileSequenceDescTag, new(1, new Signature[] { cmsSigProfileSequenceDescType, }, null)),
         new(cmsSigTechnologyTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
         new(cmsSigColorimetricIntentImageStateTag, new(1, new Signature[] { cmsSigSignatureType, }, null)),
@@ -137,7 +137,7 @@ public static unsafe partial class Lcms2
         new(cmsSigPs2CRD3Tag, new(1, new Signature[] { cmsSigDataType, }, null)),
         new(cmsSigPs2CSATag, new(1, new Signature[] { cmsSigDataType, }, null)),
         new(cmsSigPs2RenderingIntentTag, new(1, new Signature[] { cmsSigDataType, }, null)),
-        new(cmsSigViewingCondDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, DecideTextDescType)),
+        new(cmsSigViewingCondDescTag, new(1, new Signature[] { cmsSigTextDescriptionType, cmsSigMultiLocalizedUnicodeType, cmsSigTextType, }, &DecideTextDescType)),
         new(cmsSigUcrBgTag, new(1, new Signature[] { cmsSigUcrBgType, }, null)),
         new(cmsSigCrdInfoTag, new(1, new Signature[] { cmsSigCrdInfoType, }, null)),
         new(cmsSigDToB0Tag, new(1, new Signature[] { cmsSigMultiProcessElementType, }, null)),
@@ -162,7 +162,7 @@ public static unsafe partial class Lcms2
 
     internal static readonly TagPluginChunkType globalTagPluginChunk = new();
 
-    private static bool RegisterTypesPlugin(Context? id, PluginBase* Data, Chunks pos)
+    private static bool RegisterTypesPlugin(Context id, PluginBase* Data, Chunks pos)
     {
         var Plugin = (PluginTagType*)Data;
         var ctx = _cmsContextGetClientChunk<TagTypePluginChunkType>(id, pos)!;
@@ -4408,7 +4408,7 @@ public static unsafe partial class Lcms2
 
     #region Plugin
 
-    internal static void DupTagTypeList(Context ctx, in Context src, Chunks loc)
+    internal static void DupTagTypeList(Context_class ctx, in Context_class src, Chunks loc)
     {
         // Moved to TagTypePluginChunkType.Dup
 
@@ -4427,29 +4427,27 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void _cmsAllocTagTypePluginChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.TagTypePlugin, src.TagTypePlugin, TagTypePluginChunk);
+    internal static void _cmsAllocTagTypePluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.TagTypePlugin, src?.TagTypePlugin, TagTypePluginChunk);
 
-    internal static void _cmsAllocMPETypePluginChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.MPEPlugin, src.MPEPlugin, MPETypePluginChunk);
+    internal static void _cmsAllocMPETypePluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.MPEPlugin, src?.MPEPlugin, MPETypePluginChunk);
 
-    internal static bool _cmsRegisterTagTypePlugin(Context? id, PluginBase* Data) =>
+    internal static bool _cmsRegisterTagTypePlugin(Context id, PluginBase* Data) =>
         RegisterTypesPlugin(id, Data, Chunks.TagTypePlugin);
 
-    internal static bool _cmsRegisterMultiProcessElementPlugin(Context? id, PluginBase* Data) =>
+    internal static bool _cmsRegisterMultiProcessElementPlugin(Context id, PluginBase* Data) =>
         RegisterTypesPlugin(id, Data, Chunks.MPEPlugin);
 
-    internal static void DupTagList(Context ctx, in Context src) =>
+    internal static void DupTagList(Context_class ctx, in Context_class src) =>
         // Moved to TagPluginChunkType.Dup
 
         ctx.TagPlugin = (TagPluginChunkType)src.TagPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocTagPluginChunk(Context ctx, in Context src)
-    {
-        AllocPluginChunk(ctx, ref ctx.TagPlugin, src.TagPlugin, TagPluginChunk);
-    }
+    internal static void _cmsAllocTagPluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.TagPlugin, src?.TagPlugin, TagPluginChunk);
 
-    internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterTagPlugin(Context id, PluginBase* Data)
     {
         var Plugin = (PluginTag*)Data;
         var TagPluginChunk = _cmsContextGetClientChunk<TagPluginChunkType>(id, Chunks.TagPlugin)!;

@@ -90,13 +90,13 @@ public static unsafe partial class Lcms2
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
         iohandler->reportedSize = 0;
-        iohandler->physicalFile = String.Empty;
+        iohandler->physicalFile[0] = '\0';
 
-        iohandler->Read = NULLRead;
-        iohandler->Seek = NULLSeek;
-        iohandler->Close = NULLClose;
-        iohandler->Tell = NULLTell;
-        iohandler->Write = NULLWrite;
+        iohandler->Read = &NULLRead;
+        iohandler->Seek = &NULLSeek;
+        iohandler->Close = &NULLClose;
+        iohandler->Tell = &NULLTell;
+        iohandler->Write = &NULLWrite;
 
         return iohandler;
 
@@ -238,11 +238,11 @@ public static unsafe partial class Lcms2
         iohandler->stream = fm;
         iohandler->UsedSpace = 0;
 
-        iohandler->Read = MemoryRead;
-        iohandler->Seek = MemorySeek;
-        iohandler->Close = MemoryClose;
-        iohandler->Tell = MemoryTell;
-        iohandler->Write = MemoryWrite;
+        iohandler->Read = &MemoryRead;
+        iohandler->Seek = &MemorySeek;
+        iohandler->Close = &MemoryClose;
+        iohandler->Tell = &MemoryTell;
+        iohandler->Write = &MemoryWrite;
 
         return iohandler;
 
@@ -359,13 +359,13 @@ public static unsafe partial class Lcms2
         iohandler->UsedSpace = 0;
 
         // Keep track of the original file
-        iohandler->physicalFile = FileName;
+        StringToCharPtr(FileName, iohandler->physicalFile);
 
-        iohandler->Read = FileRead;
-        iohandler->Seek = FileSeek;
-        iohandler->Close = FileClose;
-        iohandler->Tell = FileTell;
-        iohandler->Write = FileWrite;
+        iohandler->Read = &FileRead;
+        iohandler->Seek = &FileSeek;
+        iohandler->Close = &FileClose;
+        iohandler->Tell = &FileTell;
+        iohandler->Write = &FileWrite;
 
         return iohandler;
     }
@@ -375,7 +375,7 @@ public static unsafe partial class Lcms2
         IOHandler* iohandler = null;
 
         var file = alloc<FILE>();
-        file->Stream = Stream;
+        file->StreamID = Stream.GetHashCode();
 
         var fileSize = cmsfilelength(file);
         if (fileSize < 0)
@@ -391,13 +391,13 @@ public static unsafe partial class Lcms2
         iohandler->stream = file;
         iohandler->UsedSpace = 0;
         iohandler->reportedSize = (uint)fileSize;
-        iohandler->physicalFile = String.Empty;
+        iohandler->physicalFile[0] = '\0';
 
-        iohandler->Read = FileRead;
-        iohandler->Seek = FileSeek;
-        iohandler->Close = FileClose;
-        iohandler->Tell = FileTell;
-        iohandler->Write = FileWrite;
+        iohandler->Read = &FileRead;
+        iohandler->Seek = &FileSeek;
+        iohandler->Close = &FileClose;
+        iohandler->Tell = &FileTell;
+        iohandler->Write = &FileWrite;
 
     Error:
         if (file is not null) free(file);
@@ -1196,7 +1196,7 @@ public static unsafe partial class Lcms2
         if (Icc->IsWrite)
         {
             Icc->IsWrite = false;   // Assure no further writing
-            rc &= cmsSaveProfileToFile(Icc, Icc->IOHandler->physicalFile);
+            rc &= cmsSaveProfileToFile(Icc, new string(Icc->IOHandler->physicalFile));
         }
 
         for (var i = 0u; i < Icc->TagCount; i++)

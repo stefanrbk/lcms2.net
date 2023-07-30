@@ -33,7 +33,7 @@ internal unsafe class FormattersPluginChunkType : IDup
 {
     public FormattersFactoryList* FactoryList;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
         var head = this;
         FormattersFactoryList* Anterior = null;

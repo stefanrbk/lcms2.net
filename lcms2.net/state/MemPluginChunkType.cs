@@ -36,7 +36,7 @@ internal class MemPluginChunkType : IDup
     public CallocFnPtrType CallocPtr;
     public DupFnPtrType DupPtr;
 
-    public object? Dup(Context _) =>
+    public object? Dup(Context_class _) =>
         new MemPluginChunkType()
         {
             MallocPtr = MallocPtr,

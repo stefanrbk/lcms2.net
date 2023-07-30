@@ -65,9 +65,9 @@ internal static unsafe partial class Testbed
             Magic = cmsPluginMagicNumber,
             Type = cmsPluginMemHandlerSig,
         },
-        MallocPtr = DebugMalloc,
-        FreePtr = DebugFree,
-        ReallocPtr = DebugRealloc,
+        MallocPtr = &DebugMalloc,
+        FreePtr = &DebugFree,
+        ReallocPtr = &DebugRealloc,
     };
     public static bool HasConsole = !Console.IsInputRedirected;
     private static uint thread = 1;
@@ -86,6 +86,9 @@ internal static unsafe partial class Testbed
         CurvePluginSample2.ParameterCount[0] = 1;
 
         HiddenTagPluginSample.Descriptor.SupportedTypes[0] = SigIntType;
+
+        fixed (char* ptr = IntentPluginSample.Description)
+            StringToCharPtr("bypass gray to gray rendering intent", ptr);
     }
 
     public static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> =>
@@ -102,10 +105,10 @@ internal static unsafe partial class Testbed
     [DebuggerStepThrough]
     public static Context DbgThread()
     {
-        return new() { UserData = (void*)(thread++ % 0xff0) };
+        return new(new() { UserData = (void*)(int)(thread++ % 0xff0) });
     }
 
-    public static void* DebugMalloc(Context ContextID, uint size, Type type)
+    public static void* DebugMalloc(Context ContextID, uint size, string type)
     {
         if (size <= 0)
             Die("malloc requested with zero bytes");
@@ -142,7 +145,8 @@ internal static unsafe partial class Testbed
         TotalMemory -= blk->KeepSize;
 
         if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated.UserData:x16}\nFreed by Context at\t{(ulong)ContextID.UserData:x16}");
+            Die($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{blk->WhoAllocated.Get.GetHashCode():x8}" +
+                $"\nFreed by Context at\t{ContextID.Get.GetHashCode():x8}");
         try
         {
             free(blk);
@@ -152,7 +156,7 @@ internal static unsafe partial class Testbed
 
     public static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
     {
-        Type type;
+        string type;
 
         lock (AllocList)
         {
@@ -228,7 +232,7 @@ internal static unsafe partial class Testbed
         Die(text);
 
     public static void ResetFatalError() =>
-        cmsSetLogErrorHandler(FatalErrorQuit);
+        cmsSetLogErrorHandler(&FatalErrorQuit);
 
     public static void Dot() =>
         ConsoleWrite(".");

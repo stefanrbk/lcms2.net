@@ -92,7 +92,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void* _cmsMallocDefaultFn(Context? _, uint size, Type type)
+    internal static void* _cmsMallocDefaultFn(Context _, uint size, string type)
     {
         if (size > MaxMemoryForAlloc) return null;
 
@@ -106,7 +106,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void* _cmsMallocZeroDefaultFn(Context? ContextID, uint size, Type type)
+    internal static void* _cmsMallocZeroDefaultFn(Context ContextID, uint size, string type)
     {
         var pt = _cmsMalloc(ContextID, size, type);
         if (pt is null) return null;
@@ -116,19 +116,19 @@ public static unsafe partial class Lcms2
         return pt;
     }
 
-    internal static void _cmsFreeDefaultFn(Context? _, void* Ptr)
+    internal static void _cmsFreeDefaultFn(Context _, void* Ptr)
     {
         if (Ptr is not null) free(Ptr);
     }
 
-    internal static void* _cmsReallocDefaultFn(Context? _, void* Ptr, uint size)
+    internal static void* _cmsReallocDefaultFn(Context _, void* Ptr, uint size)
     {
         if (size > MaxMemoryForAlloc) return null;
 
         return realloc(Ptr, size);
     }
 
-    internal static void* _cmsCallocDefaultFn(Context? ContextID, uint num, uint size, Type type)
+    internal static void* _cmsCallocDefaultFn(Context ContextID, uint num, uint size, string type)
     {
         var Total = num * size;
 
@@ -146,7 +146,7 @@ public static unsafe partial class Lcms2
         return _cmsMallocZero(ContextID, Total, type);
     }
 
-    internal static void* _cmsDupDefaultFn(Context? ContextID, in void* Org, uint size, Type type)
+    internal static void* _cmsDupDefaultFn(Context ContextID, in void* Org, uint size, string type)
     {
         if (size > MaxMemoryForAlloc) return null;
 
@@ -157,10 +157,8 @@ public static unsafe partial class Lcms2
         return mem;
     }
 
-    internal static void _cmsAllocMemPluginChunk(Context ctx, in Context? src)
-    {
+    internal static void _cmsAllocMemPluginChunk(Context_class ctx, in Context_class? src) =>
         AllocPluginChunk(ctx, ref ctx.MemPlugin, src?.MemPlugin, ctx.DefaultMemoryManager);
-    }
 
     internal static void _cmsInstallAllocFunctions(PluginMemHandler* Plugin, MemPluginChunkType ptr)
     {
@@ -175,32 +173,31 @@ public static unsafe partial class Lcms2
         }
         else
         {
-            ptr.MallocPtr = Plugin->MallocPtr;
-            ptr.FreePtr = Plugin->FreePtr;
-            ptr.ReallocPtr = Plugin->ReallocPtr;
+            ptr.MallocPtr = Marshal.GetDelegateForFunctionPointer<MallocFnPtrType>((nint)Plugin->MallocPtr);
+            ptr.FreePtr = Marshal.GetDelegateForFunctionPointer<FreeFnPtrType>((nint)Plugin->FreePtr);
+            ptr.ReallocPtr = Marshal.GetDelegateForFunctionPointer<ReallocFnPtrType>((nint)Plugin->ReallocPtr);
 
             // Make sure we revert to defaults
             ptr.MallocZeroPtr = _cmsMallocZeroDefaultFn;
             ptr.CallocPtr = _cmsCallocDefaultFn;
             ptr.DupPtr = _cmsDupDefaultFn;
 
-            if (Plugin->MallocZeroPtr is not null) ptr.MallocZeroPtr = Plugin->MallocZeroPtr;
-            if (Plugin->CallocPtr is not null) ptr.CallocPtr = Plugin->CallocPtr;
-            if (Plugin->DupPtr is not null) ptr.DupPtr = Plugin->DupPtr;
+            if (Plugin->MallocZeroPtr is not null) ptr.MallocZeroPtr = Marshal.GetDelegateForFunctionPointer<MallocZerocFnPtrType>((nint)Plugin->MallocZeroPtr);
+            if (Plugin->CallocPtr is not null) ptr.CallocPtr = Marshal.GetDelegateForFunctionPointer<CallocFnPtrType>((nint)Plugin->CallocPtr);
+            if (Plugin->DupPtr is not null) ptr.DupPtr = Marshal.GetDelegateForFunctionPointer<DupFnPtrType>((nint)Plugin->DupPtr);
         }
     }
 
-    internal static bool _cmsRegisterMemHandlerPlugin(Context? ContextID, PluginBase* Data)
+    internal static bool _cmsRegisterMemHandlerPlugin(Context context, PluginBase* Data)
     {
         var Plugin = (PluginMemHandler*)Data;
+        var ctx = _cmsGetContext(context);
 
         // NULL forces to reset to defaults. In this special case, the defaults are stored in the context structure.
         // Remaining plug-ins does NOT have any copy in the context structure, but this is somehow special as the
         // context internal data should be malloce'd by using those functions.
         if (Data is null)
         {
-            var ctx = ContextID;
-
             // Return to the default allocators
             if (ctx is not null)
                 ctx.MemPlugin = ctx.DefaultMemoryManager;
@@ -213,95 +210,127 @@ public static unsafe partial class Lcms2
             Plugin->ReallocPtr is null) return false;
 
         // Set replacement functions
-        var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
+        var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(context, Chunks.MemPlugin);
         if (ptr == null) return false;
 
         _cmsInstallAllocFunctions(Plugin, ptr);
         return true;
     }
-    //[DebuggerStepThrough]
-    internal static void* _cmsMalloc(Context? ContextID, uint size, Type type)
+
+    [DebuggerStepThrough]
+    internal static void* _cmsMalloc(Context ContextID, uint size, Type type) =>
+        _cmsMalloc(ContextID, size, GetTypeName(type));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsMalloc(Context ContextID, uint size, string type)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return (ptr is null) ? null : ptr.MallocPtr(ContextID, size, type);
     }
+
     [DebuggerStepThrough]
-    internal static T* _cmsMalloc<T>(Context? ContextID, uint size) where T : struct =>
-        (T*)_cmsMalloc(ContextID, size, typeof(T));
+    internal static T* _cmsMalloc<T>(Context ContextID, uint size) where T : unmanaged =>
+        (T*)_cmsMalloc(ContextID, size, GetTypeName(typeof(T)));
+
     [DebuggerStepThrough]
-    internal static T* _cmsMalloc<T>(Context? ContextID) where T : struct =>
-        (T*)_cmsMalloc(ContextID, _sizeof<T>(), typeof(T));
+    internal static T* _cmsMalloc<T>(Context ContextID) where T : unmanaged =>
+        (T*)_cmsMalloc(ContextID, _sizeof<T>(), GetTypeName(typeof(T)));
+
     [DebuggerStepThrough]
-    internal static T** _cmsMalloc2<T>(Context? ContextID) where T : struct =>
-        (T**)_cmsMalloc(ContextID, _sizeof<nint>(), typeof(T*));
-    //[DebuggerStepThrough]
-    internal static void* _cmsMallocZero(Context? ContextID, uint size, Type type)
+    internal static T** _cmsMalloc2<T>(Context ContextID) where T : unmanaged =>
+        (T**)_cmsMalloc(ContextID, _sizeof<nint>(), GetTypeName(typeof(T*)));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsMallocZero(Context ContextID, uint size, string type)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return (ptr is null) ? null : ptr.MallocZeroPtr(ContextID, size, type);
     }
+
     [DebuggerStepThrough]
-    internal static T* _cmsMallocZero<T>(Context? ContextID, uint count) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>(), typeof(T));
-    [DebuggerStepThrough]
-    internal static T* _cmsMallocZero<T>(Context? ContextID) where T : struct =>
-        (T*)_cmsMallocZero(ContextID, _sizeof<T>(), typeof(T));
-    [DebuggerStepThrough]
-    internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
-        (T**)_cmsMallocZero(ContextID, _sizeof<nint>(), typeof(T*));
+    internal static T* _cmsMallocZero<T>(Context ContextID, uint count) where T : unmanaged =>
+        (T*)_cmsMallocZero(ContextID, count * _sizeof<T>(), GetTypeName(typeof(T)));
+
     //[DebuggerStepThrough]
-    internal static void* _cmsCalloc(Context? ContextID, uint num, uint size, Type type)
+    internal static T* _cmsMallocZero<T>(Context ContextID) where T : unmanaged =>
+        (T*)_cmsMallocZero(ContextID, _sizeof<T>(), GetTypeName(typeof(T)));
+
+    [DebuggerStepThrough]
+    internal static T** _cmsMallocZero2<T>(Context ContextID) where T : unmanaged =>
+        (T**)_cmsMallocZero(ContextID, _sizeof<nint>(), GetTypeName(typeof(T*)));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsCalloc(Context ContextID, uint num, uint size, Type type) =>
+        _cmsCalloc(ContextID, num, size, GetTypeName(type));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsCalloc(Context ContextID, uint num, uint size, string type)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return (ptr is null) ? null : ptr.CallocPtr(ContextID, num, size, type);
     }
+
     [DebuggerStepThrough]
-    internal static T* _cmsCalloc<T>(Context? ContextID, uint num, uint size) where T : struct =>
-        (T*)_cmsCalloc(ContextID, num, size, typeof(T));
-    //[DebuggerStepThrough]
-    internal static T* _cmsCalloc<T>(Context? ContextID, uint num) where T : struct =>
-        (T*)_cmsCalloc(ContextID, num, _sizeof<T>(), typeof(T));
+    internal static T* _cmsCalloc<T>(Context ContextID, uint num, uint size) where T : unmanaged =>
+        (T*)_cmsCalloc(ContextID, num, size, GetTypeName(typeof(T)));
+
     [DebuggerStepThrough]
-    internal static T** _cmsCalloc2<T>(Context? ContextID, uint num) =>
-        (T**)_cmsCalloc(ContextID, num, _sizeof<nint>(), typeof(T*));
+    internal static T* _cmsCalloc<T>(Context ContextID, uint num) where T : unmanaged =>
+        (T*)_cmsCalloc(ContextID, num, _sizeof<T>(), GetTypeName(typeof(T)));
+
     [DebuggerStepThrough]
-    internal static void* _cmsRealloc(Context? ContextID, void* Ptr, uint size)
+    internal static T** _cmsCalloc2<T>(Context ContextID, uint num) where T : unmanaged =>
+        (T**)_cmsCalloc(ContextID, num, _sizeof<nint>(), GetTypeName(typeof(T*)));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsRealloc(Context ContextID, void* Ptr, uint size)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return (ptr is null) ? null : ptr.ReallocPtr(ContextID, Ptr, size);
     }
+
     [DebuggerStepThrough]
-    internal static T* _cmsRealloc<T>(Context? ContextID, void* Ptr, uint size) where T : struct =>
+    internal static T* _cmsRealloc<T>(Context ContextID, void* Ptr, uint size) where T : unmanaged =>
         (T*)_cmsRealloc(ContextID, Ptr, size);
-    //[DebuggerStepThrough]
-    internal static void _cmsFree(Context? ContextID, void* Ptr)
+
+    [DebuggerStepThrough]
+    internal static void _cmsFree(Context ContextID, void* Ptr)
     {
         if (Ptr is not null)
         {
-            var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
-            if (ptr is not null) ptr.FreePtr(ContextID, Ptr);
+            var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin)!;
+            ptr.FreePtr(ContextID, Ptr);
         }
     }
+
     [DebuggerStepThrough]
-    internal static void* _cmsDupMem(Context? ContextID, in void* Org, uint size, Type type)
+    internal static void* _cmsDupMem(Context ContextID, in void* Org, uint size, Type type) =>
+        _cmsDupMem(ContextID, Org, size, GetTypeName(type));
+
+    [DebuggerStepThrough]
+    internal static void* _cmsDupMem(Context ContextID, in void* Org, uint size, string type)
     {
         var ptr = _cmsContextGetClientChunk<MemPluginChunkType>(ContextID, Chunks.MemPlugin);
         return (ptr is null) ? null : ptr.DupPtr(ContextID, Org, size, type);
     }
-    [DebuggerStepThrough]
-    internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>(), typeof(T));
-    [DebuggerStepThrough]
-    internal static T* _cmsDupMem<T>(Context? ContextID, in void* Org) where T : struct =>
-        (T*)_cmsDupMem(ContextID, Org, _sizeof<T>(), typeof(T));
-    [DebuggerStepThrough]
-    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org, uint num) where T : struct =>
-        (T**)_cmsDupMem(ContextID, Org, num * _sizeof<nint>(), typeof(T*));
-    [DebuggerStepThrough]
-    internal static T** _cmsDupMem2<T>(Context? ContextID, in void* Org) where T : struct =>
-        (T**)_cmsDupMem(ContextID, Org, _sizeof<nint>(), typeof(T));
 
-    internal static SubAllocator.Chunk* _cmsCreateSubAllocChunk(Context? ContextID, uint Initial)
+    [DebuggerStepThrough]
+    internal static T* _cmsDupMem<T>(Context ContextID, in void* Org, uint num) where T : unmanaged =>
+        (T*)_cmsDupMem(ContextID, Org, num * _sizeof<T>(), GetTypeName(typeof(T)));
+
+    [DebuggerStepThrough]
+    internal static T* _cmsDupMem<T>(Context ContextID, in void* Org) where T : unmanaged =>
+        (T*)_cmsDupMem(ContextID, Org, _sizeof<T>(), GetTypeName(typeof(T)));
+
+    [DebuggerStepThrough]
+    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org, uint num) where T : unmanaged =>
+        (T**)_cmsDupMem(ContextID, Org, num * _sizeof<nint>(), GetTypeName(typeof(T*)));
+
+    [DebuggerStepThrough]
+    internal static T** _cmsDupMem2<T>(Context ContextID, in void* Org) where T : unmanaged =>
+        (T**)_cmsDupMem(ContextID, Org, _sizeof<nint>(), GetTypeName(typeof(T)));
+
+    internal static SubAllocator.Chunk* _cmsCreateSubAllocChunk(Context ContextID, uint Initial)
     {
         // 20K by default
         if (Initial is 0)
@@ -312,7 +341,7 @@ public static unsafe partial class Lcms2
         if (chunk is null) return null;
 
         // Initialize values
-        chunk->Block = (byte*)_cmsMalloc(ContextID, Initial, typeof(byte));
+        chunk->Block = (byte*)_cmsMalloc(ContextID, Initial, GetTypeName(typeof(byte)));
         if (chunk->Block is null)
         {
             // Something went wrong
@@ -327,7 +356,7 @@ public static unsafe partial class Lcms2
         return chunk;
     }
 
-    internal static SubAllocator* _cmsCreateSubAlloc(Context? ContextID, uint Initial)
+    internal static SubAllocator* _cmsCreateSubAlloc(Context ContextID, uint Initial)
     {
         // Create the container
         var sub = _cmsMallocZero<SubAllocator>(ContextID);
@@ -360,10 +389,10 @@ public static unsafe partial class Lcms2
         _cmsFree(sub->ContextID, sub);
     }
 
-    internal static T* _cmsSubAlloc<T>(SubAllocator* sub) where T : struct =>
+    internal static T* _cmsSubAlloc<T>(SubAllocator* sub) where T : unmanaged =>
         (T*)_cmsSubAlloc(sub, _sizeof<T>());
 
-    internal static T** _cmsSubAlloc2<T>(SubAllocator* sub) =>
+    internal static T** _cmsSubAlloc2<T>(SubAllocator* sub) where T : unmanaged =>
         (T**)_cmsSubAlloc<nint>(sub);
 
     internal static void* _cmsSubAlloc(SubAllocator* sub, int size) =>
@@ -395,10 +424,10 @@ public static unsafe partial class Lcms2
         return ptr;
     }
 
-    internal static T* _cmsSubAllocDup<T>(SubAllocator* s, in void* ptr) where T : struct =>
+    internal static T* _cmsSubAllocDup<T>(SubAllocator* s, in void* ptr) where T : unmanaged =>
         (T*)_cmsSubAllocDup(s, ptr, _sizeof<T>());
 
-    internal static T** _cmsSubAllocDup2<T>(SubAllocator* s, in void* ptr) where T : struct =>
+    internal static T** _cmsSubAllocDup2<T>(SubAllocator* s, in void* ptr) where T : unmanaged =>
         (T**)_cmsSubAllocDup<nint>(s, ptr);
 
     internal static void* _cmsSubAllocDup(SubAllocator* s, in void* ptr, int size) =>
@@ -434,12 +463,10 @@ public static unsafe partial class Lcms2
     ///     If src is null, only initiallizes to the default.
     ///     Otherwise, it duplicates the value from the other context.
     /// </remarks>
-    internal static void _cmsAllocLogErrorChunk(Context? ctx, in Context? src)
-    {
+    internal static void _cmsAllocLogErrorChunk(Context_class ctx, in Context_class? src) =>
         AllocPluginChunk(ctx, ref ctx.ErrorLogger, src?.ErrorLogger, LogErrorChunk);
-    }
 
-    private static void DefaultLogErrorHandlerFunction(Context? _, ErrorCode ErrorCode, string Text)
+    private static void DefaultLogErrorHandlerFunction(Context _, ErrorCode ErrorCode, string Text)
     {
 #if DEBUG
         Console.Error.WriteLine($"[lcms ErrorCode.{Enum.GetName(ErrorCode)}]: {Text}");
@@ -449,30 +476,29 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Change error logger, context based
     /// </summary>
-    public static void cmsSetLogErrorHandlerTHR(Context? context, LogErrorHandlerFunction? Fn)
+    public static void cmsSetLogErrorHandlerTHR(Context context, delegate*<Context, ErrorCode, string, void> Fn)
     {
         var lhg = _cmsContextGetClientChunk<LogErrorChunkType>(context, Chunks.Logger);
 
         if (lhg is not null)
         {
-            lhg.LogErrorHandler = Fn ?? DefaultLogErrorHandlerFunction;
+            lhg.LogErrorHandler = Fn is null ? DefaultLogErrorHandlerFunction : Marshal.GetDelegateForFunctionPointer<LogErrorHandlerFunction>((nint)Fn);
         }
     }
 
     /// <summary>
     ///     Change error logger, legacy
     /// </summary>
-    public static void cmsSetLogErrorHandler(LogErrorHandlerFunction? Fn) =>
+    public static void cmsSetLogErrorHandler(delegate*<Context, ErrorCode, string, void> Fn) =>
         cmsSetLogErrorHandlerTHR(null, Fn);
-
     /// <summary>
     ///     Log an error
     /// </summary>
     /// <param name="text">English description of the error in String.Format format</param>
-    public static void cmsSignalError(Context? ContextID, ErrorCode errorCode, string text, params object?[] args)
+    public static void cmsSignalError(Context ContextID, ErrorCode errorCode, string text, params object?[] args)
     {
         // Check for the context, if specified go there. If not, go for the global
-        var lhg = _cmsContextGetClientChunk< LogErrorChunkType>(ContextID, Chunks.Logger);
+        var lhg = _cmsContextGetClientChunk<LogErrorChunkType>(ContextID, Chunks.Logger);
         text = String.Format(text, args);
         if (text.Length > MaxErrorMessageLen)
             text = text.Remove(MaxErrorMessageLen);
@@ -505,24 +531,24 @@ public static unsafe partial class Lcms2
         str[4] = 0;
     }
 
-    private static void* defMtxCreate(Context? id)
+    private static void* defMtxCreate(Context id)
     {
         var ptr_mutex = _cmsMalloc<MUTEX>(id);
-        ptr_mutex->Mutex = new Mutex(false);
+        *ptr_mutex = new(new(false));
         return ptr_mutex;
     }
 
-    private static void defMtxDestroy(Context? id, void* mtx)
+    private static void defMtxDestroy(Context id, void* mtx)
     {
         ((MUTEX*)mtx)->Mutex.Dispose();
-        ((MUTEX*)mtx)->Mutex = null!;
+        MUTEX.Remove((MUTEX*)mtx);
         _cmsFree(id, mtx);
     }
 
-    private static bool defMtxLock(Context? _, void* mtx) =>
+    private static bool defMtxLock(Context _, void* mtx) =>
         ((MUTEX*)mtx)->Mutex.WaitOne();
 
-    private static void defMtxUnlock(Context? id, void* mtx) =>
+    private static void defMtxUnlock(Context id, void* mtx) =>
         ((MUTEX*)mtx)->Mutex.ReleaseMutex();
 
     private static readonly MutexPluginChunkType globalMutexPluginChunk = new();
@@ -542,15 +568,13 @@ public static unsafe partial class Lcms2
     ///     If src is null, only initiallizes to the default.
     ///     Otherwise, it duplicates the value from the other context.
     /// </remarks>
-    internal static void _cmsAllocMutexPluginChunk(Context ctx, in Context src)
-    {
-        AllocPluginChunk(ctx, ref ctx.MutexPlugin, src.MutexPlugin, MutexChunk);
-    }
+    internal static void _cmsAllocMutexPluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.MutexPlugin, src?.MutexPlugin, MutexChunk);
 
-    internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase* data)
+    internal static bool _cmsRegisterMutexPlugin(Context context, PluginBase* data)
     {
         var Plugin = (PluginMutex*)data;
-        var ctx = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
+        var ctx = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin)!;
 
         if (data is null)
         {
@@ -566,15 +590,15 @@ public static unsafe partial class Lcms2
         // Factory callback is required
         if (Plugin->CreateMutexPtr is null || Plugin->DestroyMutexPtr is null || Plugin->LockMutexPtr is null || Plugin->UnlockMutexPtr is null) return false;
 
-        ctx.CreateFn = Plugin->CreateMutexPtr;
-        ctx.DestroyFn = Plugin->DestroyMutexPtr;
-        ctx.LockFn = Plugin->LockMutexPtr;
-        ctx.UnlockFn = Plugin->UnlockMutexPtr;
+        ctx.CreateFn = Marshal.GetDelegateForFunctionPointer<CreateMutexFnPtrType>((nint)Plugin->CreateMutexPtr);
+        ctx.DestroyFn = Marshal.GetDelegateForFunctionPointer<DestroyMutexFnPtrType>((nint)Plugin->DestroyMutexPtr);
+        ctx.LockFn = Marshal.GetDelegateForFunctionPointer<LockMutexFnPtrType>((nint)Plugin->LockMutexPtr);
+        ctx.UnlockFn = Marshal.GetDelegateForFunctionPointer<UnlockMutexFnPtrType>((nint)Plugin->UnlockMutexPtr);
 
         return true;
     }
 
-    internal static void* _cmsCreateMutex(Context? context = null)
+    internal static void* _cmsCreateMutex(Context context = default)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 
@@ -583,21 +607,21 @@ public static unsafe partial class Lcms2
         return ptr.CreateFn(context);
     }
 
-    internal static void _cmsDestroyMutex(Context? context, void* mutex)
+    internal static void _cmsDestroyMutex(Context context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 
         ptr?.DestroyFn?.Invoke(context, mutex);
     }
 
-    internal static bool _cmsLockMutex(Context? context, void* mutex)
+    internal static bool _cmsLockMutex(Context context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
                 
         return ptr?.LockFn?.Invoke(context, mutex) ?? true;
     }
 
-    internal static void _cmsUnlockMutex(Context? context, void* mutex)
+    internal static void _cmsUnlockMutex(Context context, void* mutex)
     {
         var ptr = _cmsContextGetClientChunk<MutexPluginChunkType>(context, Chunks.MutexPlugin);
 

@@ -35,7 +35,7 @@ public unsafe struct IOHandler
     internal Context contextID;
     internal uint UsedSpace;
     internal uint reportedSize;
-    internal string physicalFile;
+    internal fixed char physicalFile[cmsMAX_PATH];
 
     internal delegate uint ReadFn(IOHandler* iohandler, void* buffer, uint size, uint count);
     internal delegate bool SeekFn(IOHandler* iohandler, uint offset);
@@ -43,9 +43,9 @@ public unsafe struct IOHandler
     internal delegate uint TellFn(IOHandler* iohandler);
     internal delegate bool WriteFn(IOHandler* iohandler, uint size, in void* buffer);
 
-    internal ReadFn Read;
-    internal SeekFn Seek;
-    internal CloseFn Close;
-    internal TellFn Tell;
-    internal WriteFn Write;
+    internal delegate*<IOHandler*, void*, uint, uint, uint> Read;
+    internal delegate*<IOHandler*, uint, bool> Seek;
+    internal delegate*<IOHandler*, bool> Close;
+    internal delegate*<IOHandler*, uint> Tell;
+    internal delegate*<IOHandler*, uint, in void*, bool> Write;
 }

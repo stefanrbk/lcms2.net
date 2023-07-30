@@ -32,17 +32,15 @@ internal unsafe class TransformPluginChunkType : IDup
 {
     public TransformCollection* TransformCollection;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
-        var head = this;
         TransformCollection* Anterior = null, entry;
         TransformPluginChunkType newHead = new();
 
         _cmsAssert(ctx);
-        _cmsAssert(head);
 
         // Walk the list copying all nodes
-        for (entry = head.TransformCollection;
+        for (entry = TransformCollection;
              entry is not null;
              entry = entry->Next)
         {

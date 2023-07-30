@@ -28,6 +28,8 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2;
 
 public static unsafe partial class Lcms2
@@ -46,10 +48,10 @@ public static unsafe partial class Lcms2
 
     internal static readonly TransformPluginChunkType globalTransformPluginChunk = new();
 
-    internal static void _cmsAllocAdaptationStateChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.AdaptationState, src.AdaptationState, AdaptationStateChunk);
+    internal static void _cmsAllocAdaptationStateChunk(Context_class ctx, in Context_class? src) => 
+        AllocPluginChunk(ctx, ref ctx.AdaptationState, src?.AdaptationState, AdaptationStateChunk);
 
-    public static double cmsSetAdaptationStateTHR(Context? context, double d)
+    public static double cmsSetAdaptationStateTHR(Context context, double d)
     {
         var ptr = _cmsContextGetClientChunk<AdaptationStateChunkType>(context, Chunks.AdaptationStateContext)!;
 
@@ -67,7 +69,7 @@ public static unsafe partial class Lcms2
     public static double cmsSetAdaptationState(double d) =>
         cmsSetAdaptationStateTHR(null, d);
 
-    public static void cmsSetAlarmCodesTHR(Context? context, in ushort* AlarmCodesP)
+    public static void cmsSetAlarmCodesTHR(Context context, in ushort* AlarmCodesP)
     {
         var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext)!;
         _cmsAssert(contextAlarmCodes); // Can't happen
@@ -75,7 +77,7 @@ public static unsafe partial class Lcms2
             memcpy(ptr, AlarmCodesP, _sizeof<ushort>() * cmsMAXCHANNELS);
     }
 
-    public static void cmsGetAlarmCodesTHR(Context? context, ushort* AlarmCodesP)
+    public static void cmsGetAlarmCodesTHR(Context context, ushort* AlarmCodesP)
     {
         var contextAlarmCodes = _cmsContextGetClientChunk<AlarmCodesChunkType>(context, Chunks.AlarmCodesContext)!;
         _cmsAssert(contextAlarmCodes); // Can't happen
@@ -89,8 +91,8 @@ public static unsafe partial class Lcms2
     public static void cmsGetAlarmCodes(ushort* AlarmCodes) =>
         cmsGetAlarmCodesTHR(null, AlarmCodes);
 
-    internal static void _cmsAllocAlarmCodesChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.AlarmCodes, src.AlarmCodes, AlarmCodesChunk);
+    internal static void _cmsAllocAlarmCodesChunk(Context_class ctx, in Context_class? src) => 
+        AllocPluginChunk(ctx, ref ctx.AlarmCodes, src?.AlarmCodes, AlarmCodesChunk);
 
     public static void cmsDeleteTransform(HTRANSFORM hTransform)
     {
@@ -113,7 +115,7 @@ public static unsafe partial class Lcms2
             cmsFreeProfileSequenceDescription(p->Sequence);
 
         if (p->UserData is not null)
-            p->FreeUserData!(p->ContextID, p->UserData);
+            p->FreeUserData(p->ContextID, p->UserData);
 
         _cmsFree(p->ContextID, p);
     }
@@ -496,13 +498,13 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void DupPluginTransformList(Context ctx, in Context src) =>
+    internal static void DupPluginTransformList(Context_class ctx, in Context_class src) =>
         // Moved to TransformPluginChunkType.Dup
 
         ctx.TransformPlugin = (TransformPluginChunkType)src.TransformPlugin.Dup(ctx)!;
 
-    internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context src) => 
-        AllocPluginChunk(ctx, ref ctx.TransformPlugin, src.TransformPlugin, TransformPluginChunk);
+    internal static void _cmsAllocTransformPluginChunk(Context_class ctx, in Context_class? src) =>
+        AllocPluginChunk(ctx, ref ctx.TransformPlugin, src?.TransformPlugin, TransformPluginChunk);
 
     internal static void _cmsTransform2toTransformAdaptor(
         Transform* CMMcargo,
@@ -522,14 +524,14 @@ public static unsafe partial class Lcms2
             void* accum = (byte*)InputBuffer + strideIn;
             void* output = (byte*)OutputBuffer + strideOut;
 
-            CMMcargo->OldXform!(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
+            CMMcargo->OldXform(CMMcargo, accum, output, PixelsPerLine, Stride->BytesPerPlaneIn);
 
             strideIn += Stride->BytesPerLineIn;
             strideOut += Stride->BytesPerLineOut;
         }
     }
 
-    internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase* Data)
+    internal static bool _cmsRegisterTransformPlugin(Context id, PluginBase* Data)
     {
         var Plugin = (PluginTransform*)Data;
         var ctx = _cmsContextGetClientChunk<TransformPluginChunkType>(id, Chunks.TransformPlugin)!;
@@ -565,7 +567,7 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(CMMcargo);
         CMMcargo->UserData = ptr;
-        CMMcargo->FreeUserData = FreePrivateDataFn;
+        CMMcargo->FreeUserData = FreePrivateDataFn is null ? null : (delegate*<Context, void *, void>)Marshal.GetFunctionPointerForDelegate(FreePrivateDataFn);
     }
 
     internal static void* _cmsGetTransformUserData(Transform* CMMcargo)
@@ -576,8 +578,8 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsGetTransformFormatters16(
         Transform* CMMcargo,
-        Formatter16* FromInput,
-        Formatter16* ToOutput)
+        delegate*<Transform*, ushort*, byte*, uint, byte*>* FromInput,
+        delegate*<Transform*, ushort*, byte*, uint, byte*>* ToOutput)
     {
         _cmsAssert(CMMcargo);
         if (FromInput is not null) *FromInput = CMMcargo->FromInput;
@@ -586,8 +588,8 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsGetTransformFormattersFloat(
         Transform* CMMcargo,
-        FormatterFloat* FromInput,
-        FormatterFloat* ToOutput)
+        delegate*<Transform*, float*, byte*, uint, byte*>* FromInput,
+        delegate*<Transform*, float*, byte*, uint, byte*>* ToOutput)
     {
         _cmsAssert(CMMcargo);
         if (FromInput is not null) *FromInput = CMMcargo->FromInputFloat;
@@ -625,7 +627,7 @@ public static unsafe partial class Lcms2
                     Plugin is not null;
                     Plugin = Plugin->Next)
                 {
-                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData, &p->Lut, InputFormat, OutputFormat, dwFlags))
+                    if (Plugin->Factory(out p->xform, &p->UserData, p->FreeUserData is not null ? Marshal.GetDelegateForFunctionPointer<FreeUserDataFn>((nint)p->FreeUserData) : null, &p->Lut, InputFormat, OutputFormat, dwFlags))
                     {
                         // Last plugin in the declaration order takes control. We just keep
                         // the original parameters as a logging.
@@ -641,16 +643,20 @@ public static unsafe partial class Lcms2
                         // Fill the formatters just in case the optimized routine is interested.
                         // No error is thrown if the formatter doesn't exist. It is up to the optimization
                         // factory to decide what to do in those cases.
-                        p->FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
-                        p->ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
-                        p->FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
-                        p->ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+                        var FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+                        var ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                        var FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
+                        var ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+                        p->FromInput = FromInput is null ? null : (delegate*< Transform *, ushort *, byte *, uint, byte *> )Marshal.GetFunctionPointerForDelegate(FromInput);
+                        p->ToOutput = ToOutput is null ? null : (delegate*< Transform *, ushort *, byte *, uint, byte *> )Marshal.GetFunctionPointerForDelegate(ToOutput);
+                        p->FromInputFloat = FromInputFloat is null ? null : (delegate*< Transform *, float *, byte *, uint, byte *> )Marshal.GetFunctionPointerForDelegate(FromInputFloat);
+                        p->ToOutputFloat = ToOutputFloat is null ? null : (delegate*<Transform*, float*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(ToOutputFloat);
 
                         // Save the day? (Ignore the warning)
                         if (Plugin->OldXform)
                         {
-                            p->OldXform = *(TransformFn*)&p->xform;
-                            p->xform = _cmsTransform2toTransformAdaptor;
+                            p->OldXform = (delegate*<Transform*, in void*, void*, uint, uint, void>)p->xform;
+                            p->xform = &_cmsTransform2toTransformAdaptor;
                         }
 
                         return p;
@@ -666,8 +672,10 @@ public static unsafe partial class Lcms2
         if (_cmsFormatterIsFloat(*OutputFormat))
         {
             // Get formatter function always return a valid union, but the context of this union may be null.
-            p->FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
-            p->ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+            var FromInputFloat = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat;
+            var ToOutputFloat = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat;
+            p->FromInputFloat = FromInputFloat is null ? null : (delegate*<Transform*, float*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(_cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Float).FmtFloat);
+            p->ToOutputFloat = ToOutputFloat is null ? null : (delegate*<Transform*, float*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(_cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Float).FmtFloat);
             *dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
 
             if (p->FromInputFloat is null || p->ToOutputFloat is null)
@@ -678,9 +686,9 @@ public static unsafe partial class Lcms2
             }
 
             p->xform = ((*dwFlags & cmsFLAGS_NULLTRANSFORM) is not 0)
-                ? NullFloatXFORM
+                ? &NullFloatXFORM
                 // Float transforms don't use cache, always are non-null
-                : FloatXFORM;
+                : &FloatXFORM;
         }
         else
         {
@@ -691,8 +699,10 @@ public static unsafe partial class Lcms2
             }
             else
             {
-                p->FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
-                p->ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                var FromInput = _cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16;
+                var ToOutput = _cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16;
+                p->FromInput = FromInput is null ? null : (delegate*<Transform*, ushort*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(_cmsGetFormatter(ContextID, *InputFormat, FormatterDirection.Input, PackFlags.Ushort).Fmt16);
+                p->ToOutput = ToOutput is null ? null : (delegate*<Transform*, ushort*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(_cmsGetFormatter(ContextID, *OutputFormat, FormatterDirection.Output, PackFlags.Ushort).Fmt16);
 
                 if (p->FromInput is null || p->ToOutput is null)
                 {
@@ -708,11 +718,11 @@ public static unsafe partial class Lcms2
 
             p->xform = (*dwFlags & cmsFLAGS_NULLTRANSFORM, *dwFlags & cmsFLAGS_NOCACHE, *dwFlags & cmsFLAGS_GAMUTCHECK) switch
             {
-                (not 0, _, _) => NullXFORM,
-                (_, not 0, not 0) => PrecalculatedXFORMGamutCheck,
-                (_, not 0, _) => PrecalculatedXFORM,
-                (_, _, not 0) => CachedXFORMGamutCheck,
-                _ => CachedXFORM,
+                (not 0, _, _) => &NullXFORM,
+                (_, not 0, not 0) => &PrecalculatedXFORMGamutCheck,
+                (_, not 0, _) => &PrecalculatedXFORM,
+                (_, _, not 0) => &CachedXFORMGamutCheck,
+                _ => &CachedXFORM,
             };
         }
 
@@ -1075,8 +1085,8 @@ public static unsafe partial class Lcms2
 
         xform->InputFormat = InputFormat;
         xform->OutputFormat = OutputFormat;
-        xform->FromInput = FromInput;
-        xform->ToOutput = ToOutput;
+        xform->FromInput = FromInput is null ? null : (delegate*<Transform*, ushort*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(FromInput);
+        xform->ToOutput = ToOutput is null ? null : (delegate*<Transform*, ushort*, byte*, uint, byte*>)Marshal.GetFunctionPointerForDelegate(ToOutput);
         return true;
     }
 }

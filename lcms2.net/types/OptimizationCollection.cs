@@ -31,6 +31,6 @@ namespace lcms2.types;
 
 public unsafe struct OptimizationCollection
 {
-    public OPToptimizeFn OptimizePtr;
+    public delegate*<Pipeline**, uint, uint*, uint*, uint*, bool> OptimizePtr;
     public OptimizationCollection* Next;
 }

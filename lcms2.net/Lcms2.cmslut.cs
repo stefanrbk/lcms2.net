@@ -37,9 +37,9 @@ public static unsafe partial class Lcms2
         Signature Type,
         uint InputChannels,
         uint OutputChannels,
-        StageEvalFn EvalPtr,
-        StageDupElemFn? DupElemPtr,
-        StageFreeElemFn? FreePtr,
+        delegate*<in float*, float*, in Stage*, void> EvalPtr,
+        delegate*<Stage*, void*> DupElemPtr,
+        delegate*<Stage*, void> FreePtr,
         void* Data)
     {
         var ph = _cmsMallocZero<Stage>(ContextID);
@@ -71,7 +71,7 @@ public static unsafe partial class Lcms2
             cmsSigIdentityElemType,
             nChannels,
             nChannels,
-            EvaluateIdentity,
+            &EvaluateIdentity,
             null,
             null,
             null);
@@ -227,7 +227,7 @@ public static unsafe partial class Lcms2
 
     public static Stage* cmsStageAllocToneCurves(Context ContextID, uint nChannels, in ToneCurve** Curves)
     {
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, EvaluateCurves, CurveSetDup, CurveSetElemTypeFree, null);
+        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, &EvaluateCurves, &CurveSetDup, &CurveSetElemTypeFree, null);
         if (NewMPE is null) return null;
 
         var NewElem = _cmsMallocZero<StageToneCurvesData>(ContextID);
@@ -332,7 +332,7 @@ public static unsafe partial class Lcms2
         if (n >= uint.MaxValue / Rows) return null;
         if (n < Rows || n < Cols) return null;
 
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigMatrixElemType, Cols, Rows, EvaluateMatrix, MatrixElemDup, MatrixElemTypeFree, null);
+        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigMatrixElemType, Cols, Rows, &EvaluateMatrix, &MatrixElemDup, &MatrixElemTypeFree, null);
         if (NewMPE is null) return null;
 
         var NewElem = _cmsMallocZero<StageMatrixData>(ContextID);
@@ -476,7 +476,7 @@ public static unsafe partial class Lcms2
             return null;
         }
 
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCLutElemType, inputChan, outputChan, EvaluateCLUTfloatIn16, CLUTElemDup, CLutElemTypeFree, null);
+        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCLutElemType, inputChan, outputChan, &EvaluateCLUTfloatIn16, &CLUTElemDup, &CLutElemTypeFree, null);
 
         if (NewMPE is null) return null;
 
@@ -575,9 +575,9 @@ public static unsafe partial class Lcms2
             cmsSigCLutElemType,
             inputChan,
             outputChan,
-            EvaluateCLUTfloat,
-            CLUTElemDup,
-            CLutElemTypeFree,
+            &EvaluateCLUTfloat,
+            &CLUTElemDup,
+            &CLutElemTypeFree,
             null);
         if (NewMPE is null) return null;
 
@@ -853,7 +853,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Stage* _cmsStageAllocLab2XYZ(Context ContextID) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigLab2XYZElemType, 3, 3, EvaluateLab2XYZ, null, null, null);
+        _cmsStageAllocPlaceholder(ContextID, cmsSigLab2XYZElemType, 3, 3, &EvaluateLab2XYZ, null, null, null);
 
     internal static Stage* _cmsStageAllocLabV2ToV4curves(Context ContextID)
     {
@@ -1001,7 +1001,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Stage* _cmsStageClipNegatives(Context ContextID, uint nChannels) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, Clipper, null, null, null);
+        _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, &Clipper, null, null, null);
 
     private static void EvaluateXYZ2Lab(in float* In, float* Out, in Stage* _)
     {
@@ -1023,7 +1023,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Stage* _cmsStageAllocXYZ2Lab(Context ContextID) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigXYZ2LabElemType, 3, 3, EvaluateXYZ2Lab, null, null, null);
+        _cmsStageAllocPlaceholder(ContextID, cmsSigXYZ2LabElemType, 3, 3, &EvaluateXYZ2Lab, null, null, null);
 
     internal static Stage* _cmsStageAllocLabPrelin(Context ContextID)
     {
@@ -1178,8 +1178,8 @@ public static unsafe partial class Lcms2
         NewLUT->InputChannels = InputChannels;
         NewLUT->OutputChannels = OutputChannels;
 
-        NewLUT->Eval16Fn = _LUTeval16;
-        NewLUT->EvalFloatFn = _LUTevalFloat;
+        NewLUT->Eval16Fn = &_LUTeval16;
+        NewLUT->EvalFloatFn = &_LUTevalFloat;
         NewLUT->DupDataFn = null;
         NewLUT->FreeDataFn = null;
         NewLUT->Data = NewLUT;
@@ -1229,7 +1229,7 @@ public static unsafe partial class Lcms2
         }
 
         if (lut->FreeDataFn is not null)
-            lut->FreeDataFn!(lut->ContextID, lut->Data);
+            lut->FreeDataFn(lut->ContextID, lut->Data);
 
         _cmsFree(lut->ContextID, lut);
     }
@@ -1289,7 +1289,7 @@ public static unsafe partial class Lcms2
         NewLUT->FreeDataFn = lut->FreeDataFn;
 
         if (NewLUT->DupDataFn is not null)
-            NewLUT->Data = NewLUT->DupDataFn!(lut->ContextID, lut->Data);
+            NewLUT->Data = NewLUT->DupDataFn(lut->ContextID, lut->Data);
 
         NewLUT->SaveAs8Bits = lut->SaveAs8Bits;
 
@@ -1457,10 +1457,10 @@ public static unsafe partial class Lcms2
     // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
     internal static void _cmsPipelineSetOptimizationParameters(
         Pipeline* Lut,
-        PipelineEval16Fn Eval16,
+        delegate*<in ushort*, ushort*, in void*, void> Eval16,
         void* PrivateData,
-        FreeUserDataFn? FreePrivateDataFn,
-        DupUserDataFn? DupPrivateDataFn)
+        delegate*<Context, void*, void> FreePrivateDataFn,
+        delegate*<Context, in void*, void*> DupPrivateDataFn)
     {
         Lut->Eval16Fn = Eval16;
         Lut->DupDataFn = DupPrivateDataFn;

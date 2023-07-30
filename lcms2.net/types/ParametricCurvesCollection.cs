@@ -34,7 +34,7 @@ internal unsafe struct ParametricCurvesCollection
     public uint nFunctions;
     public fixed int FunctionTypes[MAX_TYPES_IN_LCMS_PLUGIN];
     public fixed uint ParameterCount[MAX_TYPES_IN_LCMS_PLUGIN];
-    public ParametricCurveEvaluator Evaluator;
+    public delegate*<int, in double*, double, double> Evaluator;
 
     public ParametricCurvesCollection* Next;
 }

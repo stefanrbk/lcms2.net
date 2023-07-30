@@ -39,10 +39,8 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static readonly object contextPoolHeadMutex = new();
-    private static Context contextPoolHead;
-
-    private static readonly Context globalContext = new();
+    private static readonly Dictionary<int, Context_class> contextRepo = new();
+    private static readonly Context_class globalContext = new();
 
     [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
@@ -433,16 +431,16 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static T* _cmsPluginMalloc<T>(Context? ContextID) where T : struct =>
+    internal static T* _cmsPluginMalloc<T>(Context ContextID) where T : unmanaged =>
         (T*)_cmsPluginMalloc(ContextID, _sizeof<T>());
 
-    internal static void* _cmsPluginMalloc(Context? ContextID, uint size)
+    internal static void* _cmsPluginMalloc(Context ContextID, uint size)
     {
         var ctx = _cmsGetContext(ContextID);
 
         if (ctx.MemPool is null)
         {
-            if (ContextID is null)
+            if (ContextID == null)
             {
                 ctx.MemPool = _cmsCreateSubAlloc(null, 2 * 1024);
                 if (ctx.MemPool is null) return null;
@@ -460,7 +458,7 @@ public static unsafe partial class Lcms2
     public static bool cmsPlugin(void* plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, void* Plug_in)
+    public static bool cmsPluginTHR(Context id, void* Plug_in)
     {
         for (var Plugin = (PluginBase*)Plug_in;
              Plugin is not null;
@@ -535,69 +533,66 @@ public static unsafe partial class Lcms2
     }
 
     [DebuggerStepThrough]
-    internal static Context _cmsGetContext(Context? ContextID)
+    internal static Context_class _cmsGetContext(Context ContextID)
     {
-        var id = ContextID;
+        //var id = ContextID;
 
-        // On null, use global settings
-        if (id is null)
-            return globalContext;
+        //// On null, use global settings
+        //if (id == null)
+        //    return globalContext;
 
-        // Search
-        lock (contextPoolHeadMutex)
-        {
-            for (var ctx = contextPoolHead; ctx is not null; ctx = ctx.Next)
-            {
-                // Found it?
-                if (id == ctx)
-                    return ctx;
-            }
-        }
+        //// Search
+        //lock (contextRepo)
+        //{
+        //    if (contextRepo.TryGetValue(ContextID.id!.Value, out var ctx))
+        //        return ctx;
+        //}
 
-        return globalContext;
+        //return globalContext;
+        return ContextID.Get;
     }
 
-    [DebuggerStepThrough]
-    internal static object? _cmsContextGetClientChunk(Context? ContextID, Chunks mc)
+    //[DebuggerStepThrough]
+    internal static object _cmsContextGetClientChunk(Context context, Chunks mc)
     {
         if (mc is < 0 or >= Chunks.Max)
         {
-            cmsSignalError(ContextID, ErrorCode.Internal, "Bad context client -- possible corruption");
+            cmsSignalError(context, ErrorCode.Internal, "Bad context client -- possible corruption");
             Debug.Fail("Bad context client -- possible corruption");
 
             return null;
         }
-
-        var ctx = _cmsGetContext(ContextID);
 
         //if (ptr is not null) return ptr;
 
         // A null ptr means no special settings for that context, and this reverts to globals
         //return globalContext.chunks[mc];
 
+        var ctx = _cmsGetContext(context);
+
         return mc switch
         {
-            Chunks.AdaptationStateContext => ctx.AdaptationState,
-            Chunks.AlarmCodesContext => ctx.AlarmCodes,
-            Chunks.CurvesPlugin => ctx.CurvesPlugin,
-            Chunks.FormattersPlugin => ctx.FormattersPlugin,
-            Chunks.IntentPlugin => ctx.IntentsPlugin,
-            Chunks.InterpPlugin => ctx.InterpPlugin,
-            Chunks.Logger => ctx.ErrorLogger,
-            Chunks.MemPlugin => ctx.MemPlugin,
-            Chunks.MPEPlugin => ctx.MPEPlugin,
-            Chunks.MutexPlugin => ctx.MutexPlugin,
-            Chunks.OptimizationPlugin => ctx.OptimizationPlugin,
-            Chunks.TagPlugin => ctx.TagPlugin,
-            Chunks.TagTypePlugin => ctx.TagTypePlugin,
-            Chunks.TransformPlugin => ctx.TransformPlugin,
-            Chunks.UserPtr => new BoxPtrVoid(ctx.UserData),
-            _ => _cmsContextGetClientChunk(null, mc),
+            Chunks.AdaptationStateContext => ctx.AdaptationState ?? Context.global.AdaptationState,
+            Chunks.AlarmCodesContext => ctx.AlarmCodes ?? Context.global.AlarmCodes,
+            Chunks.CurvesPlugin => ctx.CurvesPlugin ?? Context.global.CurvesPlugin,
+            Chunks.FormattersPlugin => ctx.FormattersPlugin ?? Context.global.FormattersPlugin,
+            Chunks.IntentPlugin => ctx.IntentsPlugin ?? Context.global.IntentsPlugin,
+            Chunks.InterpPlugin => ctx.InterpPlugin ?? Context.global.InterpPlugin,
+            Chunks.Logger => ctx.ErrorLogger ?? Context.global.ErrorLogger,
+            Chunks.MemPlugin => ctx.MemPlugin ?? Context.global.MemPlugin,
+            Chunks.MPEPlugin => ctx.MPEPlugin ?? Context.global.MPEPlugin,
+            Chunks.MutexPlugin => ctx.MutexPlugin ?? Context.global.MutexPlugin,
+            Chunks.OptimizationPlugin => ctx.OptimizationPlugin ?? Context.global.OptimizationPlugin,
+            Chunks.TagPlugin => ctx.TagPlugin ?? Context.global.TagPlugin,
+            Chunks.TagTypePlugin => ctx.TagTypePlugin ?? Context.global.TagTypePlugin,
+            Chunks.TransformPlugin => ctx.TransformPlugin ?? Context.global.TransformPlugin,
+            Chunks.UserPtr => new BoxPtrVoid(ctx is not null ? ctx.UserData : Context.global.UserData),
+            _ => throw new ArgumentOutOfRangeException(nameof(mc)),
         };
     }
 
-    [DebuggerStepThrough]
-    internal static T? _cmsContextGetClientChunk<T>(Context? ContextID, Chunks mc) where T : class =>
+    //[DebuggerStepThrough]
+    internal static T? _cmsContextGetClientChunk<T>(Context ContextID, Chunks mc) where T : class =>
         _cmsContextGetClientChunk(ContextID, mc) as T;
 
     /// <summary>
@@ -621,7 +616,7 @@ public static unsafe partial class Lcms2
     ///     <see cref="cmsPluginTHR"/> may register many different plug-ins
     ///     simultaneously, then there is no way to identify which plug-in to unregister.
     /// </remarks>
-    public static void cmsUnregisterPluginsTHR(Context? context)
+    public static void cmsUnregisterPluginsTHR(Context context)
     {
         _cmsRegisterMemHandlerPlugin(context, null);
         _cmsRegisterInterpPlugin(context, null);
@@ -655,7 +650,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static void AllocChunks(Context ctx, Context? src)
+    private static void AllocChunks(Context_class ctx, Context_class? src)
     {
         _cmsAllocLogErrorChunk(ctx, src);
         _cmsAllocAlarmCodesChunk(ctx, src);
@@ -679,9 +674,9 @@ public static unsafe partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(void* Plugin, void* UserData)
+    public static Context cmsCreateContext(void* Plugin, void* UserData)
     {
-        Context fakeContext = new();
+        Context_class fakeContext = new();
 
         _cmsInstallAllocFunctions(_cmsFindMemoryPlugin(Plugin), fakeContext.DefaultMemoryManager);
 
@@ -689,7 +684,9 @@ public static unsafe partial class Lcms2
         fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
 
         // Create the context structure.
-        var ctx = new Context();
+        var ctx = new Context_class();
+        var ctxId = new Context(ctx);
+        if (ctxId == null) return null;
         //if (ctx is null) return null; // Something very wrong happened!
 
         // Init the structure and the memory manager
@@ -701,38 +698,33 @@ public static unsafe partial class Lcms2
         ctx.DefaultMemoryManager = fakeContext.DefaultMemoryManager;
 
         // Maintain the linked list (with proper locking)
-        lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
-            ctx.Next = contextPoolHead;
-            contextPoolHead = ctx;
-            //Console.WriteLine("\nAdded to the pool");
-            //for (var c = contextPoolHead; c is not null; c = c->Next)
-            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
-            //Console.WriteLine("\tend");
-        }
+        //lock (Context.repoLock)
+        //{
+            //ctx.Next = contextPoolHead;
+            //contextPoolHead = ctx;
+        //}
 
         ctx.UserData = UserData;
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
+        ctx.MemPool = _cmsCreateSubAlloc(ctxId, 22u * _sizeof<nint>()); // default size about 22 pointers
         if (ctx.MemPool is null)
         {
-            cmsDeleteContext(ctx);
+            cmsDeleteContext(ctxId);
             return null;
         }
 
         AllocChunks(ctx, null);
 
         // Setup the plug-ins
-        if (!cmsPluginTHR(ctx, Plugin))
+        if (!cmsPluginTHR(ctxId, Plugin))
         {
-            cmsDeleteContext(*&ctx);
+            cmsDeleteContext(ctxId);
             return null;
         }
 
-        return *&ctx;
+        return ctxId;
     }
 
     /// <summary>
@@ -742,7 +734,7 @@ public static unsafe partial class Lcms2
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger.<br/>
     ///     If <see langword="null"/>, the pointer to user-defined data of the original will be used.
     /// </param>
-    public static Context? cmsDupContext(Context? context, void* NewUserData)
+    public static Context cmsDupContext(Context context, void* NewUserData)
     {
         var src = _cmsGetContext(context);
 
@@ -752,30 +744,27 @@ public static unsafe partial class Lcms2
         //if (ctx is null)
         //    return null;    // Something very wrong happened
         //ctx->chunks.parent = ctx;
-        var ctx = new Context() { DefaultMemoryManager = src.DefaultMemoryManager };
+        var ctx = new Context_class();
+        var ctxId = new Context(ctx);
 
         // Setup default memory allocators
         //memcpy(&ctx->DefaultMemoryManager, &src->DefaultMemoryManager);
+        ctx.DefaultMemoryManager = src.DefaultMemoryManager;
 
         // Maintain the linked list
-        lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
-            ctx.Next = contextPoolHead;
-            contextPoolHead = ctx;
-            //Console.WriteLine("\nAdded to the pool");
-            //for (var c = contextPoolHead; c is not null; c = c->Next)
-            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
-            //Console.WriteLine("\tend");
-        }
+        //lock (contextPoolHeadMutex)
+        //{
+        //    ctx.Next = contextPoolHead;
+        //    contextPoolHead = ctx;
+        //}
 
         ctx.UserData = userData;
         ctx.MemPlugin = ctx.DefaultMemoryManager;
 
-        ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
+        ctx.MemPool = _cmsCreateSubAlloc(ctxId, 22u * _sizeof<nint>());
         if (ctx.MemPool is null)
         {
-            cmsDeleteContext(ctx);
+            cmsDeleteContext(ctxId);
             return null;
         }
 
@@ -791,22 +780,22 @@ public static unsafe partial class Lcms2
         //        return null;
         //    }
         //}
-        if (ctx.ErrorLogger is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.AdaptationState is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.AlarmCodes is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.MemPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.InterpPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.CurvesPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.FormattersPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.TagTypePlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.TagPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.IntentsPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.MPEPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.OptimizationPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.TransformPlugin is null) { cmsDeleteContext(ctx); return null; }
-        if (ctx.MutexPlugin is null) { cmsDeleteContext(ctx); return null; }
+        if (ctx.ErrorLogger is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.AdaptationState is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.AlarmCodes is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.MemPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.InterpPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.CurvesPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.FormattersPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.TagTypePlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.TagPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.IntentsPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.MPEPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.OptimizationPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.TransformPlugin is null) { cmsDeleteContext(ctxId); return null; }
+        if (ctx.MutexPlugin is null) { cmsDeleteContext(ctxId); return null; }
 
-        return ctx;
+        return ctxId;
     }
 
     /// <summary>
@@ -816,10 +805,12 @@ public static unsafe partial class Lcms2
     /// <remarks>
     ///     <paramref name="context"/> can no longer be used in any THR operation.
     /// </remarks>
-    public static void cmsDeleteContext(Context? ctx)
+    public static void cmsDeleteContext(Context context)
     {
-        if (ctx is null)
+        if (context == null)
             return;
+
+        var ctx = _cmsGetContext(context);
 
         //Context fakeContext = new();
 
@@ -830,7 +821,7 @@ public static unsafe partial class Lcms2
         //fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
 
         // Get rid of plugins
-        cmsUnregisterPluginsTHR(ctx);
+        cmsUnregisterPluginsTHR(context);
 
         // Since all memory is allocated in the private pool, all we need to do is destroy the pool
         if (ctx.MemPool is not null)
@@ -838,36 +829,33 @@ public static unsafe partial class Lcms2
         ctx.MemPool = null;
 
         // Maintain list
-        lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nRemoving Context {(ulong)ctx:x16}");
-            if (contextPoolHead == ctx)
-            {
-                contextPoolHead = ctx.Next;
-            }
-            else
-            {
-                // Search for previous
-                for (
-                    var prev = contextPoolHead;
-                    prev is not null;
-                    prev = prev.Next)
-                {
-                    if (prev.Next == ctx)
-                    {
-                        prev.Next = ctx.Next;
-                        break;
-                    }
-                }
-            }
-            //Console.WriteLine("\nRemoved from the pool");
-            //for (var c = contextPoolHead; c is not null; c = c->Next)
-            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
-            //Console.WriteLine("\tend");
-        }
+        //lock (contextPoolHeadMutex)
+        //{
+        //    if (contextPoolHead == ctx)
+        //    {
+        //        contextPoolHead = ctx.Next;
+        //    }
+        //    else
+        //    {
+        //        // Search for previous
+        //        for (
+        //            var prev = contextPoolHead;
+        //            prev is not null;
+        //            prev = prev.Next)
+        //        {
+        //            if (prev.Next == ctx)
+        //            {
+        //                prev.Next = ctx.Next;
+        //                break;
+        //            }
+        //        }
+        //    }
+        //}
 
         // free the memory block itself
         //_cmsFree(&fakeContext, ctx);
+
+        Context.Remove(context);
     }
 
     /// <summary>
@@ -893,7 +881,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void AllocPluginChunk<T>(Context ctx, ref T chunk, in T? src, T defaultChunk) where T : class, IDup
+    private static void AllocPluginChunk<T>(Context_class ctx, ref T chunk, in T? src, T defaultChunk) where T : class, IDup
     {
         _cmsAssert(ctx);
         _cmsAssert(chunk);

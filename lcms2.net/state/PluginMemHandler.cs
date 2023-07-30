@@ -36,16 +36,16 @@ public unsafe struct PluginMemHandler
     public PluginBase @base;
 
     [FieldOffset(24)]
-    public MallocFnPtrType MallocPtr;
+    public delegate*<Context, uint, string, void*> MallocPtr;
     [FieldOffset(32)]
-    public FreeFnPtrType FreePtr;
+    public delegate*<Context, void*, void> FreePtr;
     [FieldOffset(40)]
-    public ReallocFnPtrType ReallocPtr;
+    public delegate*<Context, void*, uint, void*> ReallocPtr;
 
     [FieldOffset(48)]
-    public MallocZerocFnPtrType MallocZeroPtr;
+    public delegate*<Context, uint, string, void*> MallocZeroPtr;
     [FieldOffset(56)]
-    public CallocFnPtrType CallocPtr;
+    public delegate*<Context, uint, uint, string, void*> CallocPtr;
     [FieldOffset(64)]
-    public DupFnPtrType DupPtr;
+    public delegate*<Context, in void*, uint, string, void*> DupPtr;
 }

@@ -33,14 +33,13 @@ internal unsafe class CurvesPluginChunkType : IDup
 {
     public ParametricCurvesCollection* ParametricCurves;
 
-    public object? Dup(Context ctx)
+    public object? Dup(Context_class ctx)
     {
-        var head = this;
         ParametricCurvesCollection* Anterior = null;
         var newHead = new CurvesPluginChunkType();
 
         // Walk the list copying all nodes
-        for (var entry = head.ParametricCurves;
+        for (var entry = ParametricCurves;
             entry is not null;
             entry = entry->Next)
         {
