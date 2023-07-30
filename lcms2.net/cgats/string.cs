@@ -29,7 +29,7 @@ namespace lcms2.cgats;
 
 internal unsafe struct @string
 {
-    public IT8* it8;
+    public IT8 it8;
     public int max;
     public int len;
     public byte[] begin;

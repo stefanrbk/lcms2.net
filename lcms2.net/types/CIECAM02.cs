@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe struct CIECAM02
+internal class CIECAM02
 {
     public CAM02COLOR adoptedWhite;
     public double LA, Yb;

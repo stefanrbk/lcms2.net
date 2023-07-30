@@ -1017,16 +1017,25 @@ public static unsafe partial class Lcms2
         return cmsReverseToneCurveEx(4096, InGamma);
     }
 
-    private static bool smooth2(Context? ContextID, float* w, float* y,
-                    float* z, float lambda, int m)
+    private static bool smooth2(Context? ContextID, ReadOnlySpan<float> w, ReadOnlySpan<float> y,
+                    Span<float> z, float lambda, int m)
     {
         int i, i1, i2;
-        float* c, d, e;
+        //float* c, d, e;
         bool st;
 
-        c = _cmsCalloc<float>(ContextID, maxNodesInCurve);
-        d = _cmsCalloc<float>(ContextID, maxNodesInCurve);
-        e = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        var pool = Context.GetPool<float>(ContextID);
+
+        //c = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        //d = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        //e = _cmsCalloc<float>(ContextID, maxNodesInCurve);
+        var c = pool.Rent(maxNodesInCurve);
+        var d = pool.Rent(maxNodesInCurve);
+        var e = pool.Rent(maxNodesInCurve);
+
+        Array.Clear(c);
+        Array.Clear(d);
+        Array.Clear(e);
 
         if (c is not null && d is not null && e is not null)
         {
@@ -1079,7 +1088,7 @@ public static unsafe partial class Lcms2
     public static bool cmsSmoothToneCurve(ToneCurve Tab, double lambda)
     {
         bool SuccessStatus = true, notCheck = false;
-        float* w, y, z;
+        //float* w, y, z;
         uint i, nItems, Zeros, Poles;
 
         if (Tab is null || Tab.InterpParams is null)
@@ -1089,6 +1098,8 @@ public static unsafe partial class Lcms2
         }
 
         var ContextID = Tab.InterpParams.ContextID;
+
+        var pool = Context.GetPool<float>(ContextID);
 
         if (cmsIsToneCurveLinear(Tab)) // Only non-linear curves need smoothing
             return SuccessStatus;
@@ -1101,19 +1112,26 @@ public static unsafe partial class Lcms2
         }
 
         // Allocate one more item than needed
-        w = _cmsCalloc<float>(ContextID, nItems + 1);
-        y = _cmsCalloc<float>(ContextID, nItems + 1);
-        z = _cmsCalloc<float>(ContextID, nItems + 1);
+        //w = _cmsCalloc<float>(ContextID, nItems + 1);
+        //y = _cmsCalloc<float>(ContextID, nItems + 1);
+        //z = _cmsCalloc<float>(ContextID, nItems + 1);
+        var w = pool.Rent((int)nItems + 1);
+        var y = pool.Rent((int)nItems + 1);
+        var z = pool.Rent((int)nItems + 1);
 
-        if (w is null || y is null || z is null) // Ensure no memory allocation failure
-        {
-            cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Could not allocate memory.");
-            return false;
-        }
+        Array.Clear(w);
+        Array.Clear(y);
+        Array.Clear(z);
 
-        memset(w, 0, (nItems + 1) * _sizeof<float>());
-        memset(y, 0, (nItems + 1) * _sizeof<float>());
-        memset(z, 0, (nItems + 1) * _sizeof<float>());
+        //if (w is null || y is null || z is null) // Ensure no memory allocation failure
+        //{
+        //    cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Could not allocate memory.");
+        //    return false;
+        //}
+
+        //memset(w, 0, (nItems + 1) * _sizeof<float>());
+        //memset(y, 0, (nItems + 1) * _sizeof<float>());
+        //memset(z, 0, (nItems + 1) * _sizeof<float>());
 
         for (i = 0; i < nItems; i++)
         {

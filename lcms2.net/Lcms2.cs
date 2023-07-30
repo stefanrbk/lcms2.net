@@ -42,9 +42,8 @@ namespace lcms2;
 public static unsafe partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
-    internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
+    //internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
     internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = new();
-    internal static readonly bool debugAllocs = false;
 
     #region lcms2.h
 
@@ -919,7 +918,7 @@ public static unsafe partial class Lcms2
 
     static Lcms2()
     {
-        AllocList = new();
+        //AllocList = new();
         globalContext = cmsCreateContext(null, null)!;
 
         defaultCurvesFunctionTypes.CopyTo(defaultCurves.FunctionTypes.AsSpan());
@@ -1135,107 +1134,107 @@ public static unsafe partial class Lcms2
     }
 
     //[DebuggerStepThrough]
-    internal static void* alloc(nuint size, Type type)
-    {
-        if (debugAllocs)
-        {
-            lock (AllocList)
-            {
-                var result = NativeMemory.Alloc(size + 32);
-                AllocList.Add((nuint)result + 16, (type, size, false));
-                NativeMemory.Fill(result, size + 32, 0xAF);
-                return (byte*)result + 16;
-            }
-        }
-        else
-        {
-            return NativeMemory.Alloc(size);
-        }
-    }
-
-    [DebuggerStepThrough]
-    internal static void* alloc(nint size, Type type) =>
-        alloc((nuint)size, type);
-
-    [DebuggerStepThrough]
-    internal static T* alloc<T>() where T : struct =>
-        (T*)alloc(_sizeof<T>(), typeof(T));
+    //internal static void* alloc(nuint size, Type type)
+    //{
+    //    if (debugAllocs)
+    //    {
+    //        lock (AllocList)
+    //        {
+    //            var result = NativeMemory.Alloc(size + 32);
+    //            AllocList.Add((nuint)result + 16, (type, size, false));
+    //            NativeMemory.Fill(result, size + 32, 0xAF);
+    //            return (byte*)result + 16;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        return NativeMemory.Alloc(size);
+    //    }
+    //}
 
     //[DebuggerStepThrough]
-    internal static void* allocZeroed(nuint size, Type type)
-    {
-        if (debugAllocs)
-        {
-            lock (AllocList)
-            {
-                var result = NativeMemory.Alloc(size + 32);
-                NativeMemory.Fill(result, size + 32, 0xAF);
-                result = (byte*)result + 16;
-                NativeMemory.Clear(result, size);
-                AllocList.Add((nuint)result, (type, size, false));
-                return result;
-            }
-        }
-        else
-        {
-            return NativeMemory.AllocZeroed(size);
-        }
-    }
-
-    [DebuggerStepThrough]
-    internal static void* allocZeroed(nint size, Type type) =>
-        allocZeroed((nuint)size, type);
-
-    [DebuggerStepThrough]
-    internal static T* allocZeroed<T>() where T : struct =>
-        (T*)allocZeroed(_sizeof<T>(), typeof(T));
+    //internal static void* alloc(nint size, Type type) =>
+    //    alloc((nuint)size, type);
 
     //[DebuggerStepThrough]
-    internal static void* realloc(in void* org, nuint newSize)
-    {
-        if (debugAllocs)
-        {
-            Type type;
-            nuint size;
-            lock (AllocList)
-            {
-                (type, size, _) = AllocList[(nuint)org];
-            }
-            var result = alloc(newSize, type);
-            if (org is not null)
-            {
-                memmove(result, org, size);
-                free(org);
-            }
-            return result;
-        }
-        else
-        {
-            return NativeMemory.Realloc(org, newSize);
-        }
-    }
-
-    [DebuggerStepThrough]
-    internal static void* dup(in void* org, nint size, Type type) =>
-        dup(org, (nuint)size, type);
+    //internal static T* alloc<T>() where T : struct =>
+    //    (T*)alloc(_sizeof<T>(), typeof(T));
 
     //[DebuggerStepThrough]
-    internal static void* dup(in void* org, nuint size, Type type)
-    {
-        var value = alloc(size, type);
-        memcpy(value, org, size);
+    //internal static void* allocZeroed(nuint size, Type type)
+    //{
+    //    if (debugAllocs)
+    //    {
+    //        lock (AllocList)
+    //        {
+    //            var result = NativeMemory.Alloc(size + 32);
+    //            NativeMemory.Fill(result, size + 32, 0xAF);
+    //            result = (byte*)result + 16;
+    //            NativeMemory.Clear(result, size);
+    //            AllocList.Add((nuint)result, (type, size, false));
+    //            return result;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        return NativeMemory.AllocZeroed(size);
+    //    }
+    //}
 
-        return value;
-    }
+    //[DebuggerStepThrough]
+    //internal static void* allocZeroed(nint size, Type type) =>
+    //    allocZeroed((nuint)size, type);
 
-    [DebuggerStepThrough]
-    internal static T* dup<T>(in T* org) where T : struct
-    {
-        var value = alloc<T>();
-        memcpy(value, org);
+    //[DebuggerStepThrough]
+    //internal static T* allocZeroed<T>() where T : struct =>
+    //    (T*)allocZeroed(_sizeof<T>(), typeof(T));
 
-        return value;
-    }
+    //[DebuggerStepThrough]
+    //internal static void* realloc(in void* org, nuint newSize)
+    //{
+    //    if (debugAllocs)
+    //    {
+    //        Type type;
+    //        nuint size;
+    //        lock (AllocList)
+    //        {
+    //            (type, size, _) = AllocList[(nuint)org];
+    //        }
+    //        var result = alloc(newSize, type);
+    //        if (org is not null)
+    //        {
+    //            memmove(result, org, size);
+    //            free(org);
+    //        }
+    //        return result;
+    //    }
+    //    else
+    //    {
+    //        return NativeMemory.Realloc(org, newSize);
+    //    }
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static void* dup(in void* org, nint size, Type type) =>
+    //    dup(org, (nuint)size, type);
+
+    //[DebuggerStepThrough]
+    //internal static void* dup(in void* org, nuint size, Type type)
+    //{
+    //    var value = alloc(size, type);
+    //    memcpy(value, org, size);
+
+    //    return value;
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static T* dup<T>(in T* org) where T : struct
+    //{
+    //    var value = alloc<T>();
+    //    memcpy(value, org);
+
+    //    return value;
+    //}
 
     [DebuggerStepThrough]
     internal static void memset<T>(T* dst, int val) where T : struct =>
@@ -1324,42 +1323,42 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    [DebuggerStepThrough]
-    internal static void free(void* ptr)
-    {
-        if (debugAllocs)
-        {
-            lock (AllocList)
-            {
-                var item = AllocList[(nuint)ptr];
-                ptr = (byte*)ptr - 16;
-                for (var i = 0; i < 16; i++)
-                {
-                    if (((byte*)ptr)[i] is not 0xAF || ((byte*)ptr)[i + 16 + (int)item.size] is not 0xAF)
-                        throw new Exception($"{item.type} object of size {item.size} is corrupted. Object starts at 0x{(nuint)ptr + 16:X16}.");
-                }
-                NativeMemory.Fill(ptr, item.size + 32, 0x69);
-                item.freed = true;
-                AllocList[(nuint)ptr + 16] = item;
-            }
-        }
-        else
-        {
-            NativeMemory.Free(ptr);
-        }
-    }
+    //[DebuggerStepThrough]
+    //internal static void free(void* ptr)
+    //{
+    //    if (debugAllocs)
+    //    {
+    //        lock (AllocList)
+    //        {
+    //            var item = AllocList[(nuint)ptr];
+    //            ptr = (byte*)ptr - 16;
+    //            for (var i = 0; i < 16; i++)
+    //            {
+    //                if (((byte*)ptr)[i] is not 0xAF || ((byte*)ptr)[i + 16 + (int)item.size] is not 0xAF)
+    //                    throw new Exception($"{item.type} object of size {item.size} is corrupted. Object starts at 0x{(nuint)ptr + 16:X16}.");
+    //            }
+    //            NativeMemory.Fill(ptr, item.size + 32, 0x69);
+    //            item.freed = true;
+    //            AllocList[(nuint)ptr + 16] = item;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        NativeMemory.Free(ptr);
+    //    }
+    //}
 
-    [DebuggerStepThrough]
-    internal static void* calloc(uint num, nuint size, Type type) =>
-        allocZeroed(num * size, type);
+    //[DebuggerStepThrough]
+    //internal static void* calloc(uint num, nuint size, Type type) =>
+    //    allocZeroed(num * size, type);
 
-    [DebuggerStepThrough]
-    internal static void* calloc(uint num, nint size, Type type) =>
-        calloc(num, (nuint)size, type);
+    //[DebuggerStepThrough]
+    //internal static void* calloc(uint num, nint size, Type type) =>
+    //    calloc(num, (nuint)size, type);
 
-    [DebuggerStepThrough]
-    internal static T* calloc<T>(uint num) where T : struct =>
-        (T*)calloc(num, _sizeof<T>(), typeof(T));
+    //[DebuggerStepThrough]
+    //internal static T* calloc<T>(uint num) where T : struct =>
+    //    (T*)calloc(num, _sizeof<T>(), typeof(T));
 
     internal static nint strlen(ReadOnlySpan<byte> str)
     {
@@ -1623,7 +1622,13 @@ public static unsafe partial class Lcms2
         Span<byte> fmt = stackalloc byte[format.Length];
         format.CopyTo(fmt);
 
-        return snprintf((byte*)Unsafe.AsPointer(ref buffer.GetPinnableReference()), count, (byte*)Unsafe.AsPointer(ref fmt.GetPinnableReference()), args);
+        fixed (byte* b = &buffer[0])
+        {
+            fixed (byte* f = &fmt[0])
+            {
+                return snprintf(b, count, f, args);
+            }
+        }
     }
 
     internal static int snprintf(byte* buffer, nuint count, byte* format, params object[] args)
@@ -1863,42 +1868,42 @@ public static unsafe partial class Lcms2
         return file;
     }
 
-    [DebuggerStepThrough]
-    internal static void CheckHeap()
-    {
-        if (!debugAllocs)
-            return;
+    //[DebuggerStepThrough]
+    //internal static void CheckHeap()
+    //{
+    //    if (!debugAllocs)
+    //        return;
 
-        lock (AllocList)
-        {
-            foreach (var kvp in AllocList)
-            {
-                var ptr = (byte*)kvp.Key - 16;
-                var (type, size, freed) = kvp.Value;
+    //    lock (AllocList)
+    //    {
+    //        foreach (var kvp in AllocList)
+    //        {
+    //            var ptr = (byte*)kvp.Key - 16;
+    //            var (type, size, freed) = kvp.Value;
 
-                if (freed)
-                {
-                    for (var i = 0; i < (int)size + 32; i++)
-                    {
-                        if (ptr[i] is not 0x69)
-                            throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
-                    }
+    //            if (freed)
+    //            {
+    //                for (var i = 0; i < (int)size + 32; i++)
+    //                {
+    //                    if (ptr[i] is not 0x69)
+    //                        throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
+    //                }
 
-                    NativeMemory.Free(ptr);
-                }
-                else
-                {
-                    for (var i = 0; i < 16; i++)
-                    {
-                        if (ptr[i] is not 0xAF || ptr[16 + (int)size + i] is not 0xAF)
-                            throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
-                    }
-                }
-            }
-            foreach (var kvp in AllocList.Where(kvp => kvp.Value.freed).ToArray())
-                AllocList.Remove(kvp.Key);
-        }
-    }
+    //                NativeMemory.Free(ptr);
+    //            }
+    //            else
+    //            {
+    //                for (var i = 0; i < 16; i++)
+    //                {
+    //                    if (ptr[i] is not 0xAF || ptr[16 + (int)size + i] is not 0xAF)
+    //                        throw new Exception($"{type.Name} object of size {size} is corrupted. Object starts at 0x{(nuint)ptr:X16}.");
+    //                }
+    //            }
+    //        }
+    //        foreach (var kvp in AllocList.Where(kvp => kvp.Value.freed).ToArray())
+    //            AllocList.Remove(kvp.Key);
+    //    }
+    //}
 
     [DebuggerStepThrough]
     internal static ILogger GetLogger(Context? context)

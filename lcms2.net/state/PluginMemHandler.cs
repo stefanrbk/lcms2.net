@@ -25,15 +25,15 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.state;
+//namespace lcms2.state;
 
-public class PluginMemHandler : PluginBase
-{
-    public MallocFnPtrType MallocPtr;
-    public FreeFnPtrType FreePtr;
-    public ReallocFnPtrType ReallocPtr;
+//public class PluginMemHandler : PluginBase
+//{
+//    public MallocFnPtrType MallocPtr;
+//    public FreeFnPtrType FreePtr;
+//    public ReallocFnPtrType ReallocPtr;
 
-    public MallocZerocFnPtrType? MallocZeroPtr;
-    public CallocFnPtrType? CallocPtr;
-    public DupFnPtrType? DupPtr;
-}
+//    public MallocZerocFnPtrType? MallocZeroPtr;
+//    public CallocFnPtrType? CallocPtr;
+//    public DupFnPtrType? DupPtr;
+//}

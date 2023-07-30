@@ -36,52 +36,52 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static @string* StringAlloc(IT8* it8, int max)
-    {
-        var s = AllocChunk<@string>(it8);
+    //private static @string StringAlloc(IT8 it8, int max)
+    //{
+    //    var s = AllocChunk<@string>(it8);
 
-        s->it8 = it8;
-        s->max = max;
-        s->len = 0;
-        s->begin = Context.GetPool<byte>(it8->ContextID).Rent(max); //(byte*)AllocChunk(it8, (uint)s->max);
+    //    s->it8 = it8;
+    //    s->max = max;
+    //    s->len = 0;
+    //    s->begin = Context.GetPool<byte>(it8.ContextID).Rent(max); //(byte*)AllocChunk(it8, (uint)s->max);
 
-        return s;
-    }
+    //    return s;
+    //}
 
-    private static void StringClear(@string* s) =>
-        s->len = 0;
+    //private static void StringClear(@string* s) =>
+    //    s->len = 0;
 
-    private static void StringAppend(@string* s, byte c)
-    {
-        if (s->len + 1 >= s->max)
-        {
-            byte[] new_ptr;
+    //private static void StringAppend(@string* s, byte c)
+    //{
+    //    if (s->len + 1 >= s->max)
+    //    {
+    //        byte[] new_ptr;
 
-            s->max *= 10;
-            if (s->max > s->begin.Length)
-            {
-                var pool = Context.GetPool<byte>(s->it8->ContextID);
-                new_ptr = pool.Rent(s->max); //new_ptr = (byte*)AllocChunk(s->it8, (uint)s->max);
-                s->begin.CopyTo(new_ptr.AsSpan()); //memcpy(new_ptr, s->begin, s->len);
-                pool.Return(s->begin);
-                s->begin = new_ptr;
-            }
-        }
+    //        s->max *= 10;
+    //        if (s->max > s->begin.Length)
+    //        {
+    //            var pool = Context.GetPool<byte>(s->it8->ContextID);
+    //            new_ptr = pool.Rent(s->max); //new_ptr = (byte*)AllocChunk(s->it8, (uint)s->max);
+    //            s->begin.CopyTo(new_ptr.AsSpan()); //memcpy(new_ptr, s->begin, s->len);
+    //            pool.Return(s->begin);
+    //            s->begin = new_ptr;
+    //        }
+    //    }
 
-        s->begin[s->len++] = c;
-    }
+    //    s->begin[s->len++] = c;
+    //}
 
-    private static Span<byte> StringPtr(@string* s) =>
-        s->begin.AsSpan(..s->len);
+    //private static Span<byte> StringPtr(@string* s) =>
+    //    s->begin.AsSpan(..s->len);
 
-    private static void StringCat(@string* s, ReadOnlySpan<byte> c)
-    {
-        var i = 0;
-        while (c[i] is not 0)
-        {
-            StringAppend(s, c[i++]);
-        }
-    }
+    //private static void StringCat(@string* s, ReadOnlySpan<byte> c)
+    //{
+    //    var i = 0;
+    //    while (c[i] is not 0)
+    //    {
+    //        StringAppend(s, c[i++]);
+    //    }
+    //}
 
     private static bool isseparator(int c) =>
         c is ' ' or '\t';
@@ -148,7 +148,7 @@ public static unsafe partial class Lcms2
         return str;
     }
 
-    private static bool SynError(IT8* it8, string Txt, params object[] args)
+    private static bool SynError(IT8 it8, string Txt, params object[] args)
     {
         Span<byte> str = stackalloc byte[Encoding.ASCII.GetByteCount(Txt)];
         Encoding.ASCII.GetBytes(Txt, str);
@@ -156,7 +156,7 @@ public static unsafe partial class Lcms2
         return SynError(it8, str, args);
     }
 
-    private static bool SynError(IT8* it8, ReadOnlySpan<byte> Txt, params object[] args)
+    private static bool SynError(IT8 it8, ReadOnlySpan<byte> Txt, params object[] args)
     {
         Span<byte> Buffer = stackalloc byte[256];
         Span<byte> ErrMsg = stackalloc byte[1024];
@@ -164,43 +164,46 @@ public static unsafe partial class Lcms2
         snprintf(Buffer, 255, Txt, args);
         Buffer[255] = 0;
 
-        snprintf(ErrMsg, 1023, "{0}: Line {1}, {2}"u8, SpanToString(it8->FileStack[it8->IncludeSP]->FileName), it8->lineno, SpanToString(Buffer));
+        snprintf(ErrMsg, 1023, "{0}: Line {1}, {2}"u8, SpanToString(it8.FileStack[it8.IncludeSP].FileName), it8.lineno, SpanToString(Buffer));
         ErrMsg[1023] = 0;
-        it8->sy = SYMBOL.SSYNERROR;
-        cmsSignalError(it8->ContextID, cmsERROR_CORRUPTION_DETECTED, SpanToString(ErrMsg));
+        it8.sy = SYMBOL.SSYNERROR;
+        cmsSignalError(it8.ContextID, cmsERROR_CORRUPTION_DETECTED, SpanToString(ErrMsg));
         return false;
     }
 
-    private static bool Check(IT8* it8, SYMBOL sy, string Err)
+    private static bool Check(IT8 it8, SYMBOL sy, string Err)
     {
         Span<byte> buf = stackalloc byte[Encoding.ASCII.GetByteCount(Err)];
         Encoding.ASCII.GetBytes(Err, buf);
-        if (it8->sy != sy)
+        if (it8.sy != sy)
             return SynError(it8, NoMeta(buf));
         return true;
     }
 
-    private static void NextCh(IT8* it8)
+    private static void NextCh(IT8 it8)
     {
-        if (it8->FileStack[it8->IncludeSP]->Stream is not null)
+        var stream = it8.FileStack[it8.IncludeSP].Stream;
+        if (stream is not null)
         {
-            it8->ch = it8->FileStack[it8->IncludeSP]->Stream!.ReadByte();
+            it8.ch = stream.ReadByte();
 
-            if (it8->ch is -1)
+            if (it8.ch is -1)
             {
-                if (it8->IncludeSP > 0)
+                if (it8.IncludeSP > 0)
                 {
-                    it8->FileStack[it8->IncludeSP]->Stream!.Close();
-                    it8->ch = ' ';      // Whitespace to be ignored
+                    stream.Close();
+                    it8.ch = ' ';      // Whitespace to be ignored
                 }
                 else
-                    it8->ch = '\0';
+                {
+                    it8.ch = '\0';
+                }
             }
         }
         else
         {
-            it8->ch = it8->Source.Span[0];
-            if (it8->ch is not 0) it8->Source = it8->Source.Length is not 1 ? it8->Source[1..] : default;
+            it8.ch = it8.Source.Span[0];
+            if (it8.ch is not 0) it8.Source = it8.Source.Length is not 1 ? it8.Source[1..] : default;
         }
     }
 
@@ -224,51 +227,51 @@ public static unsafe partial class Lcms2
     private static double xpow10(int n) =>
         Math.Pow(10, n);
 
-    private static void ReadReal(IT8* it8, int inum)
+    private static void ReadReal(IT8 it8, int inum)
     {
-        it8->dnum = inum;
+        it8.dnum = inum;
 
-        while (Char.IsDigit((char)it8->ch))
+        while (Char.IsDigit((char)it8.ch))
         {
-            it8->dnum = (it8->dnum * 10.0) + (it8->ch - '0');
+            it8.dnum = (it8.dnum * 10.0) + (it8.ch - '0');
             NextCh(it8);
         }
 
-        if (it8->ch is '.')     // Decimal point
+        if (it8.ch is '.')     // Decimal point
         {
             var frac = 0.0;     // fraction
             var prec = 0;         // precision
 
             NextCh(it8);
 
-            while (Char.IsDigit((char)it8->ch))
+            while (Char.IsDigit((char)it8.ch))
             {
-                frac = (frac * 10.0) + (it8->ch - '0');
+                frac = (frac * 10.0) + (it8.ch - '0');
                 prec++;
                 NextCh(it8);
             }
 
-            it8->dnum += frac / xpow10(prec);
+            it8.dnum += frac / xpow10(prec);
         }
 
         // Exponent, example 34.00E+20
-        if (Char.ToUpper((char)it8->ch) is 'E')
+        if (Char.ToUpper((char)it8.ch) is 'E')
         {
             NextCh(it8); var sgn = 1;
 
-            if (it8->ch is '-')
+            if (it8.ch is '-')
             {
                 sgn = -1; NextCh(it8);
             }
-            else if (it8->ch is '+')
+            else if (it8.ch is '+')
             {
                 sgn = +1; NextCh(it8);
             }
 
             var e = 0;
-            while (Char.IsDigit((char)it8->ch))
+            while (Char.IsDigit((char)it8.ch))
             {
-                var digit = it8->ch - '0';
+                var digit = it8.ch - '0';
 
                 if (e * 10.0 + digit < +2147483647.0)
                     e = e * 10 + digit;
@@ -277,7 +280,7 @@ public static unsafe partial class Lcms2
             }
 
             e *= sgn;
-            it8->dnum *= xpow10(e);
+            it8.dnum *= xpow10(e);
         }
     }
 
@@ -353,169 +356,170 @@ public static unsafe partial class Lcms2
         return sign * dnum;
     }
 
-    private static void InStringSymbol(IT8* it8)
+    private static void InStringSymbol(IT8 it8)
     {
-        while (isseparator(it8->ch))
+        while (isseparator(it8.ch))
             NextCh(it8);
 
-        if (it8->ch is '\'' or '\"')
+        if (it8.ch is '\'' or '\"')
         {
-            var sng = it8->ch;
-            StringClear(it8->str);
+            var sng = it8.ch;
+            //StringClear(it8->str);
+            it8.str.Clear();
 
             NextCh(it8);
 
-            while (it8->ch != sng)
+            while (it8.ch != sng)
             {
-                if (it8->ch is '\n' or '\r' or '\0') break;
+                if (it8.ch is '\n' or '\r' or '\0') break;
                 else
                 {
-                    StringAppend(it8->str, (byte)it8->ch);
+                    //StringAppend(it8->str, (byte)it8->ch);
+                    it8.str.Append((char)(byte)it8.ch);
                     NextCh(it8);
                 }
             }
 
-            it8->sy = SYMBOL.SSTRING;
+            it8.sy = SYMBOL.SSTRING;
             NextCh(it8);
         }
         else
             SynError(it8, "String expected"u8);
     }
 
-    private static void InSymbol(IT8* it8)
+    private static void InSymbol(IT8 it8)
     {
         Span<byte> buffer = stackalloc byte[127];
         SYMBOL key;
 
         do
         {
-            while (isseparator(it8->ch))
+            while (isseparator(it8.ch))
                 NextCh(it8);
 
-            if (isfirstidchar(it8->ch))
+            if (isfirstidchar(it8.ch))
             {
-                StringClear(it8->id);
+                //StringClear(it8->id);
+                it8.id.Clear();
 
                 do
                 {
-                    StringAppend(it8->id, (byte)it8->ch);
+                    //StringAppend(it8->id, (byte)it8->ch);
+                    it8.id.Append((char)(byte)it8.ch);
                     NextCh(it8);
-                } while (isidchar(it8->ch));
+                } while (isidchar(it8.ch));
 
-                key = BinSrchKey(StringPtr(it8->id));
-                if (key is SYMBOL.SUNDEFINED) it8->sy = SYMBOL.SIDENT;
-                else it8->sy = key;
+                key = BinSrchKey(Encoding.ASCII.GetBytes(it8.id.ToString()));
+                if (key is SYMBOL.SUNDEFINED) it8.sy = SYMBOL.SIDENT;
+                else it8.sy = key;
             }
-            else if (Char.IsDigit((char)it8->ch) || it8->ch is '.' or '-' or '+')
+            else if (Char.IsDigit((char)it8.ch) || it8.ch is '.' or '-' or '+')
             {
                 var sign = 1;
 
-                if (it8->ch is '-')
+                if (it8.ch is '-')
                 {
                     sign = -1;
                     NextCh(it8);
                 }
 
-                it8->inum = 0;
-                it8->sy = SYMBOL.SINUM;
+                it8.inum = 0;
+                it8.sy = SYMBOL.SINUM;
 
-                if (it8->ch is '0')     // 0xnnnn (Hexa) or 0bnnnn (Binary)
+                if (it8.ch is '0')     // 0xnnnn (Hexa) or 0bnnnn (Binary)
                 {
                     NextCh(it8);
-                    if (Char.ToUpper((char)it8->ch) is 'X')
+                    if (Char.ToUpper((char)it8.ch) is 'X')
                     {
                         NextCh(it8);
-                        while(Char.IsAsciiHexDigit((char)it8->ch))
+                        while(Char.IsAsciiHexDigit((char)it8.ch))
                         {
-                            it8->ch = Char.ToUpper((char)it8->ch);
-                            var j = (it8->ch is >= 'A' and <= 'F')
-                                ? it8->ch - 'A' + 10
-                                : it8->ch - '0';
+                            it8.ch = Char.ToUpper((char)it8.ch);
+                            var j = (it8.ch is >= 'A' and <= 'F')
+                                ? it8.ch - 'A' + 10
+                                : it8.ch - '0';
 
-                            if (it8->inum * 16.0 + j > +2147483647.0)
+                            if (it8.inum * 16.0 + j > +2147483647.0)
                             {
                                 SynError(it8, "Invalid hexadecimal number"u8);
                                 return;
                             }
 
-                            it8->inum = it8->inum * 16 + j;
+                            it8.inum = it8.inum * 16 + j;
                             NextCh(it8);
                         }
                         return;
                     }
-                    else if (Char.ToUpper((char)it8->ch) is 'B')
+                    else if (Char.ToUpper((char)it8.ch) is 'B')
                     {
                         NextCh(it8);
-                        while (it8->ch is '0' or '1')
+                        while (it8.ch is '0' or '1')
                         {
-                            var j = it8->ch - '0';
+                            var j = it8.ch - '0';
 
-                            if (it8->inum * 2.0 + j > +2147483647.0)
+                            if (it8.inum * 2.0 + j > +2147483647.0)
                             {
                                 SynError(it8, "Invalid binary number"u8);
                                 return;
                             }
 
-                            it8->inum = it8->inum * 2 + j;
+                            it8.inum = it8.inum * 2 + j;
                             NextCh(it8);
                         }
                         return;
                     }
                 }
 
-                while (Char.IsDigit((char)it8->ch))
+                while (Char.IsDigit((char)it8.ch))
                 {
-                    var digit = it8->ch - '0';
+                    var digit = it8.ch - '0';
 
-                    if (it8->inum * 10.0 + digit > +2147483647.0)
+                    if (it8.inum * 10.0 + digit > +2147483647.0)
                     {
-                        ReadReal(it8, it8->inum);
-                        it8->sy = SYMBOL.SDNUM;
-                        it8->dnum *= sign;
+                        ReadReal(it8, it8.inum);
+                        it8.sy = SYMBOL.SDNUM;
+                        it8.dnum *= sign;
                         return;
                     }
 
-                    it8->inum = it8->inum * 10 + digit;
+                    it8.inum = it8.inum * 10 + digit;
                     NextCh(it8);
                 }
 
-                if (it8->ch is '.')
+                if (it8.ch is '.')
                 {
-                    ReadReal(it8, it8->inum);
-                    it8->sy = SYMBOL.SDNUM;
-                    it8->dnum *= sign;
+                    ReadReal(it8, it8.inum);
+                    it8.sy = SYMBOL.SDNUM;
+                    it8.dnum *= sign;
                     return;
                 }
 
-                it8->dnum *= sign;
+                it8.dnum *= sign;
 
                 // Special case. Numbers followed by letters are taken as identifiers
-                if (isidchar(it8->ch))
+                if (isidchar(it8.ch))
                 {
-                    if (it8->sy is SYMBOL.SINUM)
-                    {
-                        snprintf(buffer, 127, DEFAULT_NUM_FORMAT, it8->inum);
-                    }
-                    else
-                    {
-                        snprintf(buffer, 127, it8->DoubleFormatter, it8->dnum);
-                    }
+                    var len = it8.sy is SYMBOL.SINUM
+                        ? snprintf(buffer, 127, DEFAULT_NUM_FORMAT, it8.inum)
+                        : snprintf(buffer, 127, it8.DoubleFormatter, it8.dnum);
 
-                    StringCat(it8->id, buffer);
+                    //StringCat(it8->id, buffer);
+                    it8.id.Append(Encoding.ASCII.GetString(buffer[..len]));
 
                     do
                     {
-                        StringAppend(it8->id, (byte)it8->ch);
+                        //StringAppend(it8->id, (byte)it8->ch);
+                        it8.id.Append((char)(byte)it8.ch);
                         NextCh(it8);
-                    } while (isidchar(it8->ch));
+                    } while (isidchar(it8.ch));
 
-                    it8->sy = SYMBOL.SIDENT;
+                    it8.sy = SYMBOL.SIDENT;
                 }
                 return;
             }
             else
             {
-                switch(it8->ch)
+                switch(it8.ch)
                 {
                     // EOF marker -- ignore it
                     case '\x1a':
@@ -525,31 +529,31 @@ public static unsafe partial class Lcms2
                     // Eof stream markers
                     case 0:
                     case -1:
-                        it8->sy = SYMBOL.SEOF;
+                        it8.sy = SYMBOL.SEOF;
                         break;
 
                     // Next line
                     case '\r':
                         NextCh(it8);
-                        if (it8->ch is '\n')
+                        if (it8.ch is '\n')
                             NextCh(it8);
-                        it8->sy = SYMBOL.SEOLN;
-                        it8->lineno++;
+                        it8.sy = SYMBOL.SEOLN;
+                        it8.lineno++;
                         break;
 
                     case '\n':
                         NextCh(it8);
-                        it8->sy = SYMBOL.SEOLN;
-                        it8->lineno++;
+                        it8.sy = SYMBOL.SEOLN;
+                        it8.lineno++;
                         break;
 
                     // Comment
                     case '#':
                         NextCh(it8);
-                        while (it8->ch is not '\0' and not '\n' and not '\r')
+                        while (it8.ch is not '\0' and not '\n' and not '\r')
                             NextCh(it8);
 
-                        it8->sy = SYMBOL.SCOMMENT;
+                        it8.sy = SYMBOL.SCOMMENT;
                         break;
 
                     // String
@@ -559,18 +563,18 @@ public static unsafe partial class Lcms2
                         break;
 
                     default:
-                        SynError(it8, "Unrecognized character: 0x{0:x}"u8, it8->ch);
+                        SynError(it8, "Unrecognized character: 0x{0:x}"u8, it8.ch);
                         return;
                 }
             }
 
-        } while (it8->sy is SYMBOL.SCOMMENT);
+        } while (it8.sy is SYMBOL.SCOMMENT);
 
         // Handle the include special token
 
-        if (it8->sy is SYMBOL.SINCLUDE)
+        if (it8.sy is SYMBOL.SINCLUDE)
         {
-            if (it8->IncludeSP >= MAXINCLUDE - 1)
+            if (it8.IncludeSP >= MAXINCLUDE - 1)
             {
                 SynError(it8, "Too many recursion levels"u8);
                 return;
@@ -579,14 +583,16 @@ public static unsafe partial class Lcms2
             InStringSymbol(it8);
             if (!Check(it8, SYMBOL.SSTRING, "Filename expected")) return;
 
-            var FileNest = it8->FileStack[it8->IncludeSP + 1];
+            var FileNest = it8.FileStack[it8.IncludeSP + 1];
             if (FileNest is null)
             {
-                FileNest = it8->FileStack[it8->IncludeSP + 1] = AllocChunk<FILECTX>(it8);
-                FileNest->FileName = Context.GetPool<byte>(it8->ContextID).Rent(cmsMAX_PATH);
+                //FileNest = it8.FileStack[it8.IncludeSP + 1] = AllocChunk<FILECTX>(it8);
+                FileNest = it8.FileStack[it8.IncludeSP + 1] = new();
+                FileNest.FileName = Context.GetPool<byte>(it8.ContextID).Rent(cmsMAX_PATH);
             }
 
-            if (BuildAbsolutePath(StringPtr(it8->str), it8->FileStack[it8->IncludeSP]->FileName, FileNest->FileName, cmsMAX_PATH - 1) is false)
+            //if (BuildAbsolutePath(StringPtr(it8->str), it8->FileStack[it8->IncludeSP]->FileName, FileNest->FileName, cmsMAX_PATH - 1) is false)
+            if (!BuildAbsolutePath(Encoding.ASCII.GetBytes(it8.str.ToString()), it8.FileStack[it8.IncludeSP].FileName, FileNest.FileName, cmsMAX_PATH - 1))
             {
                 SynError(it8, "File path too long"u8);
                 return;
@@ -594,63 +600,65 @@ public static unsafe partial class Lcms2
 
             try
             {
-                FileNest->Stream = File.Open(SpanToString(FileNest->FileName), FileMode.Open, FileAccess.Read);
+                FileNest.Stream = File.Open(SpanToString(FileNest.FileName), FileMode.Open, FileAccess.Read);
             }
             catch
             {
-                FileNest->Stream = null;
+                FileNest.Stream = null;
             }
-            if (FileNest->Stream is null)
+            if (FileNest.Stream is null)
             {
-                SynError(it8, "File {0} not found"u8, SpanToString(FileNest->FileName));
+                SynError(it8, "File {0} not found"u8, SpanToString(FileNest.FileName));
                 return;
             }
-            it8->IncludeSP++;
+            it8.IncludeSP++;
 
-            it8->ch = ' ';
+            it8.ch = ' ';
             InSymbol(it8);
         }
     }
 
-    private static bool CheckEOLN(IT8* it8)
+    private static bool CheckEOLN(IT8 it8)
     {
         if (!Check(it8, SYMBOL.SEOLN, "Expected separator")) return false;
-        while (it8->sy is SYMBOL.SEOLN)
+        while (it8.sy is SYMBOL.SEOLN)
             InSymbol(it8);
         return true;
     }
 
-    private static void Skip(IT8* it8, SYMBOL sy)
+    private static void Skip(IT8 it8, SYMBOL sy)
     {
-        if (it8->sy == sy && it8->sy is not SYMBOL.SEOF)
+        if (it8.sy == sy && it8.sy is not SYMBOL.SEOF)
             InSymbol(it8);
     }
 
-    private static void SkipEOLN(IT8* it8)
+    private static void SkipEOLN(IT8 it8)
     {
-        while (it8->sy is SYMBOL.SEOLN)
+        while (it8.sy is SYMBOL.SEOLN)
             InSymbol(it8);
     }
 
-    private static bool GetVal(IT8* it8, Span<byte> Buffer, uint max, string ErrorTitle)
+    private static bool GetVal(IT8 it8, Span<byte> Buffer, uint max, string ErrorTitle)
     {
-        switch (it8->sy)
+        switch (it8.sy)
         {
             case SYMBOL.SEOLN:
                 Buffer[0] = 0;
                 break;
             case SYMBOL.SIDENT:
-                strncpy(Buffer, StringPtr(it8->id), max);
+                //strncpy(Buffer, StringPtr(it8.id), max);
+                strncpy(Buffer, it8.id.ToString(), max);
                 Buffer[(int)max - 1] = 0;
                 break;
             case SYMBOL.SINUM:
-                snprintf(Buffer, max, DEFAULT_NUM_FORMAT, it8->inum);
+                snprintf(Buffer, max, DEFAULT_NUM_FORMAT, it8.inum);
                 break;
             case SYMBOL.SDNUM:
-                snprintf(Buffer, max, it8->DoubleFormatter, it8->dnum);
+                snprintf(Buffer, max, it8.DoubleFormatter, it8.dnum);
                 break;
             case SYMBOL.SSTRING:
-                strncpy(Buffer, StringPtr(it8->str), max);
+                //strncpy(Buffer, StringPtr(it8.str), max);
+                strncpy(Buffer, it8.str.ToString(), max);
                 Buffer[(int)max-1] = 0;
                 break;
             default:
@@ -661,100 +669,98 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static TABLE* GetTable(IT8* it8)
+    private static ref TABLE GetTable(IT8 it8)
     {
-        if (it8->nTable >= it8->TablesCount)
+        if (it8.nTable >= it8.TablesCount)
         {
-            SynError(it8, "Table {0} out of sequence"u8, it8->nTable);
-            return it8->Tab;
+            SynError(it8, "Table {0} out of sequence"u8, it8.nTable);
+            return ref it8.Tab[0];
         }
 
-        return it8->Tab + it8->nTable;
+        return ref it8.Tab[it8.nTable];
     }
 
-    public static void cmsIT8Free(HANDLE hIT8)
+    public static void cmsIT8Free(object? hIT8)
     {
-        var it8 = (IT8*)hIT8;
+        var it8 = hIT8 as IT8;
 
         if (it8 is null)
             return;
 
-        if (it8->MemorySink is not null)
+        if (it8.MemorySink is not null)
         {
-            for (OWNEDMEM* p = it8->MemorySink, n = null; p is not null; p = n)
-            {
-                n = p->Next;
-                if (p->Ptr is not null) _cmsFree(it8->ContextID, p->Ptr);
-                _cmsFree(it8->ContextID, p);
-            }
+            foreach (var p in it8.MemorySink)
+            //{
+            //    n = p->Next;
+            //    if (p->Ptr is not null) _cmsFree(it8->ContextID, p->Ptr);
+                _cmsFree(it8.ContextID, p);
+            //}
         }
 
-        if (it8->MemoryBlock is not null)
-            _cmsFree(it8->ContextID, it8->MemoryBlock);
+        if (it8.MemoryBlock is not null)
+            _cmsFree(it8.ContextID, it8.MemoryBlock);
 
-        _cmsFree(it8->ContextID, it8->DoubleFormatter);
+        _cmsFree(it8.ContextID, it8.DoubleFormatter);
 
-        _cmsFree(it8->ContextID, it8);
+        //_cmsFree(it8->ContextID, it8);
     }
 
-    private static void* AllocBigBlock(IT8* it8, uint size)
-    {
-        var ptr = _cmsMallocZero(it8->ContextID, size, typeof(byte));
+    //private static Span<byte> AllocBigBlock(IT8 it8, uint size)
+    //{
+    //    var ptr = _cmsMallocZero(it8->ContextID, size, typeof(byte));
+    //    var ptr = Context.GetPool<byte>(it8.ContextID).Rent((int)size);
 
-        if (ptr is not null)
-        {
-            var ptr1 = _cmsMallocZero<OWNEDMEM>(it8->ContextID);
+    //    var ptr1 = _cmsMallocZero<OWNEDMEM>(it8->ContextID);
 
-            if (ptr1 is null)
-            {
-                _cmsFree(it8->ContextID, ptr);
-                return null;
-            }
+    //    if (ptr1 is null)
+    //    {
+    //        _cmsFree(it8->ContextID, ptr);
+    //        return null;
+    //    }
 
-            ptr1->Ptr = ptr;
-            ptr1->Next = it8->MemorySink;
-            it8->MemorySink = ptr1;
-        }
+    //    ptr1.Ptr = ptr;
+    //    ptr1.Next = it8.MemorySink;
+    //    it8.MemorySink.Add(ptr);
 
-        return ptr;
-    }
+    //    return ptr.AsSpan(..(int)size);
+    //}
 
-    private static T** AllocChunk2<T>(IT8* it8, uint count) where T : struct =>
-        (T**)AllocChunk(it8, _sizeof<nint>() * count);
+    //private static T** AllocChunk2<T>(IT8 it8, uint count) where T : struct =>
+    //    (T**)AllocChunk(it8, _sizeof<nint>() * count);
 
-    private static T* AllocChunk<T>(IT8* it8) where T : struct =>
-        (T*)AllocChunk(it8, _sizeof<T>());
+    //private static T* AllocChunk<T>(IT8 it8) where T : struct =>
+    //    (T*)AllocChunk(it8, _sizeof<T>());
 
-    private static void* AllocChunk(IT8* it8, uint size)
-    {
-        var Free = it8->Allocator.BlockSize - it8->Allocator.Used;
+    //private static void* AllocChunk(IT8 it8, uint size)
+    //{
+    //    var Free = it8.Allocator.BlockSize - it8.Allocator.Used;
 
-        size = _cmsALIGNMEM(size);
+    //    size = _cmsALIGNMEM(size);
 
-        if (size > Free)
-        {
-            it8->Allocator.BlockSize = (it8->Allocator.BlockSize is 0)
-                ? 20 * 1024
-                : it8->Allocator.BlockSize * 2;
+    //    if (size > Free)
+    //    {
+    //        it8.Allocator.BlockSize = (it8.Allocator.BlockSize is 0)
+    //            ? 20 * 1024
+    //            : it8.Allocator.BlockSize * 2;
 
-            if (it8->Allocator.BlockSize < size)
-                it8->Allocator.BlockSize = size;
+    //        if (it8.Allocator.BlockSize < size)
+    //            it8.Allocator.BlockSize = size;
 
-            it8->Allocator.Used = 0;
-            it8->Allocator.Block = (byte*)AllocBigBlock(it8, it8->Allocator.BlockSize);
-        }
+    //        it8.Allocator.Used = 0;
+    //        it8.Allocator.Block = (byte*)AllocBigBlock(it8, it8.Allocator.BlockSize);
+    //    }
 
-        var ptr = it8->Allocator.Block + it8->Allocator.Used;
-        it8->Allocator.Used += size;
+    //    var ptr = it8.Allocator.Block + it8.Allocator.Used;
+    //    it8.Allocator.Used += size;
 
-        return ptr;
-    }
+    //    return ptr;
+    //}
 
-    private static byte[] AllocString(IT8* it8, ReadOnlySpan<byte> str)
+    private static byte[] AllocString(IT8 it8, ReadOnlySpan<byte> str)
     {
         var Size = strlen(str)/* + _sizeof<byte>()*/;
 
-        var ptr = Context.GetPool<byte>(it8->ContextID).Rent((int)Size); //(byte*)AllocChunk(it8, (uint)Size);
+        var ptr = Context.GetPool<byte>(it8.ContextID).Rent((int)Size); //(byte*)AllocChunk(it8, (uint)Size);
         str.CopyTo(ptr); //if (ptr is not null) memcpy(ptr, str, Size - (nint)_sizeof<byte>());
 
         return ptr;
@@ -794,7 +800,7 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static KEYVALUE? AddToList(IT8* it8, ref KEYVALUE? Head, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey, ReadOnlySpan<byte> xValue, WRITEMODE WriteAs)
+    private static KEYVALUE? AddToList(IT8 it8, ref KEYVALUE? Head, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey, ReadOnlySpan<byte> xValue, WRITEMODE WriteAs)
     {
         // Check if property is already in list
         if (IsAvailableOnList(Head, Key, Subkey, out var p))
@@ -854,30 +860,33 @@ public static unsafe partial class Lcms2
         return p;
     }
 
-    private static KEYVALUE? AddAvailableProperty(IT8* it8, ReadOnlySpan<byte> Key, WRITEMODE @as) =>
-        AddToList(it8, ref it8->ValidKeywords, Key, null, null, @as);
+    private static KEYVALUE? AddAvailableProperty(IT8 it8, ReadOnlySpan<byte> Key, WRITEMODE @as) =>
+        AddToList(it8, ref it8.ValidKeywords, Key, null, null, @as);
 
-    private static KEYVALUE? AddAvailableSampleID(IT8* it8, ReadOnlySpan<byte> Key) =>
-        AddToList(it8, ref it8->ValidSampleID, Key, null, null, WRITEMODE.WRITE_UNCOOKED);
+    private static KEYVALUE? AddAvailableSampleID(IT8 it8, ReadOnlySpan<byte> Key) =>
+        AddToList(it8, ref it8.ValidSampleID, Key, null, null, WRITEMODE.WRITE_UNCOOKED);
 
-    private static void AllocTable(IT8* it8)
+    private static void AllocTable(IT8 it8)
     {
-        var t = it8->Tab + it8->TablesCount;
+        var t = it8.Tab[it8.TablesCount];
 
-        t->HeaderList = null;
-        t->DataFormat = null;
-        t->Data = null;
+        t.HeaderList = null;
+        t.DataFormat = null!;
+        t.Data = null!;
 
-        it8->TablesCount++;
+        it8.Tab[it8.TablesCount] = t;
+
+        it8.TablesCount++;
     }
 
-    public static int cmsIT8SetTable(HANDLE IT8, uint nTable)
+    public static int cmsIT8SetTable(object? IT8, uint nTable)
     {
-        var it8 = (IT8*)IT8;
+        if (IT8 is not IT8 it8)
+            return -1;
 
-        if (nTable >= it8->TablesCount)
+        if (nTable >= it8.TablesCount)
         {
-            if (nTable == it8->TablesCount)
+            if (nTable == it8.TablesCount)
             {
                 AllocTable(it8);
             }
@@ -888,52 +897,56 @@ public static unsafe partial class Lcms2
             }
         }
 
-        it8->nTable = nTable;
+        it8.nTable = nTable;
 
         return (int)nTable;
     }
 
-    public static HANDLE cmsIT8Alloc(Context? ContextID)
+    public static object cmsIT8Alloc(Context? ContextID)
     {
-        var it8 = _cmsMallocZero<IT8>(ContextID);
-        if (it8 is null) return null;
+        //var it8 = _cmsMallocZero<IT8>(ContextID);
+        //if (it8 is null) return null;
+        var it8 = new IT8
+        {
+            //it8->Tab = _cmsCalloc<TABLE>(ContextID, MAXTABLES);
+            //if (it8->Tab is null) goto Error;
+            Tab = Context.GetPool<TABLE>(ContextID).Rent(MAXID),
 
-        it8->Tab = _cmsCalloc<TABLE>(ContextID, MAXTABLES);
-        if (it8->Tab is null) goto Error;
-
-        it8->FileStack = _cmsCalloc2<FILECTX>(ContextID, MAXINCLUDE);
-        if (it8->FileStack is null) goto Error;
+            //it8->FileStack = _cmsCalloc2<FILECTX>(ContextID, MAXINCLUDE);
+            //if (it8->FileStack is null) goto Error;
+            FileStack = Context.GetPool<FILECTX>(ContextID).Rent(MAXID)
+        };
 
         AllocTable(it8);
 
-        it8->MemoryBlock = null;
-        it8->MemorySink = null;
+        it8.MemoryBlock = null;
+        it8.MemorySink = null;
 
-        it8->nTable = 0;
+        it8.nTable = 0;
 
-        it8->ContextID = ContextID;
-        it8->Allocator.Used = 0;
-        it8->Allocator.Block = null;
-        it8->Allocator.BlockSize = 0;
+        it8.ContextID = ContextID;
+        it8.Allocator.Used = 0;
+        it8.Allocator.Block = null;
+        it8.Allocator.BlockSize = 0;
 
-        it8->ValidKeywords = null;
-        it8->ValidSampleID = null;
+        it8.ValidKeywords = null;
+        it8.ValidSampleID = null;
 
-        it8->sy = SYMBOL.SUNDEFINED;
-        it8->ch = ' ';
-        it8->Source = null;
-        it8->inum = 0;
-        it8->dnum = 0;
+        it8.sy = SYMBOL.SUNDEFINED;
+        it8.ch = ' ';
+        it8.Source = null;
+        it8.inum = 0;
+        it8.dnum = 0;
 
-        it8->FileStack[0] = AllocChunk<FILECTX>(it8);
-        it8->IncludeSP = 0;
-        it8->lineno = 1;
+        //it8.FileStack[0] = AllocChunk<FILECTX>(it8);
+        it8.IncludeSP = 0;
+        it8.lineno = 1;
 
-        it8->id = StringAlloc(it8, MAXSTR);
-        it8->str = StringAlloc(it8, MAXSTR);
+        //it8.id = StringAlloc(it8, MAXSTR);
+        //it8.str = StringAlloc(it8, MAXSTR);
 
-        it8->DoubleFormatter = Context.GetPool<byte>(ContextID).Rent(MAXID);
-        strcpy(it8->DoubleFormatter, DEFAULT_DBL_FORMAT);
+        it8.DoubleFormatter = Context.GetPool<byte>(ContextID).Rent(MAXID);
+        strcpy(it8.DoubleFormatter, DEFAULT_DBL_FORMAT);
         cmsIT8SetSheetType(it8, "CGATS.17");
 
         // Initialize predefined properties & data
@@ -946,93 +959,95 @@ public static unsafe partial class Lcms2
 
         return it8;
 
-    Error:
-        if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
-        if (it8 is not null) _cmsFree(ContextID, it8);
+    //Error:
+    //    if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
+    //    if (it8 is not null) _cmsFree(ContextID, it8);
 
-        return null;
+    //    return null;
     }
 
-    public static byte[] cmsIT8GetSheetType(HANDLE hIT8) =>
-        GetTable((IT8*)hIT8)->SheetType;
+    public static byte[]? cmsIT8GetSheetType(object? hIT8) =>
+        hIT8 is IT8 it8 ? GetTable(it8).SheetType : null;
 
-    public static bool cmsIT8SetSheetType(HANDLE hIT8, string Type)
+    public static bool cmsIT8SetSheetType(object? hIT8, string Type)
     {
-        var t = GetTable((IT8*)hIT8);
+        if (hIT8 is not IT8 it8)
+            return false;
 
-        strncpy(t->SheetType, Type, MAXSTR - 1);
-        t->SheetType[MAXSTR - 1] = 0;
+        var t = GetTable(it8);
+
+        strncpy(t.SheetType, Type, MAXSTR - 1);
+        t.SheetType[MAXSTR - 1] = 0;
         return true;
     }
 
-    public static bool cmsIT8SetComment(HANDLE hIT8, string Val)
+    public static bool cmsIT8SetComment(object? hIT8, string Val)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
 
         if (String.IsNullOrEmpty(Val)) return false;
 
         Span<byte> buf = stackalloc byte[Encoding.ASCII.GetByteCount(Val)];
         Encoding.ASCII.GetBytes(Val, buf);
 
-        return AddToList(it8, ref GetTable(it8)->HeaderList, COMMENT_DELIMITER, null, buf, WRITEMODE.WRITE_UNCOOKED) is not null;
+        return AddToList(it8, ref GetTable(it8).HeaderList, COMMENT_DELIMITER, null, buf, WRITEMODE.WRITE_UNCOOKED) is not null;
     }
 
-    public static bool cmsIT8SetPropertyStr(HANDLE hIT8, ReadOnlySpan<byte> Key, string Val)
+    public static bool cmsIT8SetPropertyStr(object? hIT8, ReadOnlySpan<byte> Key, string Val)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
 
         if (String.IsNullOrEmpty(Val)) return false;
 
         Span<byte> buf = stackalloc byte[Encoding.ASCII.GetByteCount(Val)];
         Encoding.ASCII.GetBytes(Val, buf);
 
-        return AddToList(it8, ref GetTable(it8)->HeaderList, Key, null, buf, WRITEMODE.WRITE_STRINGIFY) is not null;
+        return AddToList(it8, ref GetTable(it8).HeaderList, Key, null, buf, WRITEMODE.WRITE_STRINGIFY) is not null;
     }
 
-    public static bool cmsIT8SetPropertyDbl(HANDLE hIT8, ReadOnlySpan<byte> cProp, double Val)
+    public static bool cmsIT8SetPropertyDbl(object? hIT8, ReadOnlySpan<byte> cProp, double Val)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
+
         Span<byte> Buffer = stackalloc byte[1024];
 
-        snprintf(Buffer, 1023, it8->DoubleFormatter, Val);
+        snprintf(Buffer, 1023, it8.DoubleFormatter, Val);
 
-        return AddToList(it8, ref GetTable(it8)->HeaderList, cProp, null, Buffer, WRITEMODE.WRITE_UNCOOKED) is not null;
+        return AddToList(it8, ref GetTable(it8).HeaderList, cProp, null, Buffer, WRITEMODE.WRITE_UNCOOKED) is not null;
     }
 
-    public static bool cmsIT8SetPropertyHex(HANDLE hIT8, ReadOnlySpan<byte> cProp, uint Val)
+    public static bool cmsIT8SetPropertyHex(object? hIT8, ReadOnlySpan<byte> cProp, uint Val)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
+
         Span<byte> Buffer = stackalloc byte[1024];
 
         snprintf(Buffer, 1023, DEFAULT_HEX_FORMAT, Val);
 
-        return AddToList(it8, ref GetTable(it8)->HeaderList, cProp, null, Buffer, WRITEMODE.WRITE_HEXADECIMAL) is not null;
+        return AddToList(it8, ref GetTable(it8).HeaderList, cProp, null, Buffer, WRITEMODE.WRITE_HEXADECIMAL) is not null;
     }
 
-    public static bool cmsIT8SetPropertyUncooked(HANDLE hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Buffer)
+    public static bool cmsIT8SetPropertyUncooked(object? hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Buffer) =>
+        hIT8 is IT8 it8 && AddToList(it8, ref GetTable(it8).HeaderList, Key, null, Buffer, WRITEMODE.WRITE_UNCOOKED) is not null;
+
+    public static bool cmsIT8SetPropertyMulti(object? hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey, ReadOnlySpan<byte> Buffer) =>
+        hIT8 is IT8 it8 && AddToList(it8, ref GetTable(it8).HeaderList, Key, Subkey, Buffer, WRITEMODE.WRITE_PAIR) is not null;
+
+    public static byte[]? cmsIT8GetProperty(object? hIT8, ReadOnlySpan<byte> Key)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return null;
 
-        return AddToList(it8, ref GetTable(it8)->HeaderList, Key, null, Buffer, WRITEMODE.WRITE_UNCOOKED) is not null;
-    }
-
-    public static bool cmsIT8SetPropertyMulti(HANDLE hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey, ReadOnlySpan<byte> Buffer)
-    {
-        var it8 = (IT8*)hIT8;
-
-        return AddToList(it8, ref GetTable(it8)->HeaderList, Key, Subkey, Buffer, WRITEMODE.WRITE_PAIR) is not null;
-    }
-
-    public static byte[]? cmsIT8GetProperty(HANDLE hIT8, ReadOnlySpan<byte> Key)
-    {
-        var it8 = (IT8*)hIT8;
-
-        if (IsAvailableOnList(GetTable(it8)->HeaderList, Key, null, out var p))
+        if (IsAvailableOnList(GetTable(it8).HeaderList, Key, null, out var p))
             return p.Value;
         return null;
     }
 
-    public static double cmsIT8GetPropertyDbl(HANDLE hIT8, ReadOnlySpan<byte> cProp)
+    public static double cmsIT8GetPropertyDbl(object? hIT8, ReadOnlySpan<byte> cProp)
     {
         var v = cmsIT8GetProperty(hIT8, cProp);
 
@@ -1041,67 +1056,65 @@ public static unsafe partial class Lcms2
         return ParseFloatNumber(v);
     }
 
-    public static byte[]? cmsIT8GetPropertyMulti(HANDLE hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey)
+    public static byte[]? cmsIT8GetPropertyMulti(object? hIT8, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey)
     {
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return null;
 
-        if (IsAvailableOnList(GetTable(it8)->HeaderList, Key, Subkey, out var p))
+        if (IsAvailableOnList(GetTable(it8).HeaderList, Key, Subkey, out var p))
             return p.Value;
         return null;
     }
 
-    private static void AllocateDataFormat(IT8* it8)
+    private static void AllocateDataFormat(IT8 it8)
     {
         var t = GetTable(it8);
 
-        if (t->DataFormat is not null) return;  // Already allocated
+        if (t.DataFormat is not null) return;  // Already allocated
 
-        t->nSamples = (int)cmsIT8GetPropertyDbl(it8, "NUMBER_OF_FIELDS"u8);
+        t.nSamples = (int)cmsIT8GetPropertyDbl(it8, "NUMBER_OF_FIELDS"u8);
 
-        if (t->nSamples <= 0)
+        if (t.nSamples <= 0)
         {
             SynError(it8, "AllocateDataFormat: Unknown NUMBER_OF_FIELDS"u8);
-            t->nSamples = 10;
+            t.nSamples = 10;
         }
 
-        t->DataFormat = Context.GetPool<byte[]>(it8->ContextID).Rent(t->nSamples + 1); //t->DataFormat = AllocChunk2<byte>(it8, (uint)t->nSamples + 1);
-        if (t->DataFormat is null)
+        t.DataFormat = Context.GetPool<byte[]>(it8.ContextID).Rent(t.nSamples + 1); //t->DataFormat = AllocChunk2<byte>(it8, (uint)t->nSamples + 1);
+        if (t.DataFormat is null)
             SynError(it8, "AllocateDataFormat: Unable to allocate dataFormat array"u8);
     }
 
-    private static byte[]? GetDataFormat(IT8* it8, int n)
+    private static byte[]? GetDataFormat(IT8 it8, int n)
     {
         var t = GetTable(it8);
 
-        if (t->DataFormat is not null)
-            return t->DataFormat[n];
+        if (t.DataFormat is not null)
+            return t.DataFormat[n];
         return null;
     }
 
-    private static bool SetDataFormat(IT8* it8, int n, ReadOnlySpan<byte> label)
+    private static bool SetDataFormat(IT8 it8, int n, ReadOnlySpan<byte> label)
     {
         var t = GetTable(it8);
 
-        if (t->DataFormat is null)
+        if (t.DataFormat is null)
             AllocateDataFormat(it8);
 
-        if (n > t->nSamples)
+        if (n > t.nSamples)
         {
             SynError(it8, "More than NUMBER_OF_FIELDS fields"u8);
             return false;
         }
 
-        if (t->DataFormat is not null)
-            t->DataFormat[n] = AllocString(it8, label);
+        if (t.DataFormat is not null)
+            t.DataFormat[n] = AllocString(it8, label);
 
         return true;
     }
 
-    public static bool cmsIT8SetDataFormat(HANDLE h, int n, ReadOnlySpan<byte> Sample)
-    {
-        var it8 = (IT8*)h;
-        return SetDataFormat(it8, n, Sample);
-    }
+    public static bool cmsIT8SetDataFormat(object? h, int n, ReadOnlySpan<byte> Sample) =>
+        h is IT8 it8 && SetDataFormat(it8, n, Sample);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int atoi(ReadOnlySpan<byte> str) =>
@@ -1126,57 +1139,57 @@ public static unsafe partial class Lcms2
         return buf[s..];
     }
 
-    private static void AllocateDataSet(IT8* it8)
+    private static void AllocateDataSet(IT8 it8)
     {
         var t = GetTable(it8);
 
-        if (t->Data is not null) return;    // Already allocated
+        if (t.Data is not null) return;    // Already allocated
 
-        t->nSamples = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_FIELDS"u8));
-        t->nPatches = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_SETS"u8));
+        t.nSamples = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_FIELDS"u8));
+        t.nPatches = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_SETS"u8));
 
-        if (t->nSamples is <0 or > 0x7ffe || t->nPatches is <0 or > 0x7ffe)
+        if (t.nSamples is <0 or > 0x7ffe || t.nPatches is <0 or > 0x7ffe)
         {
             SynError(it8, "AllocateDataSet: too much data"u8);
         }
         else
         {
             //t->Data = AllocChunk2<byte>(it8, ((uint)t->nSamples + 1) * ((uint)t->nPatches + 1));
-            t->Data = Context.GetPool<byte[]>(it8->ContextID).Rent((t->nSamples + 1) * (t->nPatches + 1));
-            if (t->Data is null)
+            t.Data = Context.GetPool<byte[]>(it8.ContextID).Rent((t.nSamples + 1) * (t.nPatches + 1));
+            if (t.Data is null)
                 SynError(it8, "AllocateDataSet: Unable to allocate data array"u8);
         }
     }
 
-    private static byte[]? GetData(IT8* it8, int nSet, int nField)
+    private static byte[]? GetData(IT8 it8, int nSet, int nField)
     {
         var t = GetTable(it8);
-        var nSamples = t->nSamples;
-        var nPatches = t->nPatches;
+        var nSamples = t.nSamples;
+        var nPatches = t.nPatches;
 
         if (nSet >= nPatches || nField >= nSamples)
             return null;
 
-        if (t->Data is null) return null;
-        return t->Data[nSet * nSamples + nField];
+        if (t.Data is null) return null;
+        return t.Data[nSet * nSamples + nField];
     }
 
-    private static bool SetData(IT8* it8, int nSet, int nField, ReadOnlySpan<byte> Val)
+    private static bool SetData(IT8 it8, int nSet, int nField, ReadOnlySpan<byte> Val)
     {
         var t = GetTable(it8);
 
-        if (t->Data is null)
+        if (t.Data is null)
             AllocateDataSet(it8);
 
-        if (t->Data is null) return false;
+        if (t.Data is null) return false;
 
-        if (nSet > t->nPatches || nSet < 0)
-            return SynError(it8, "Patch {0} out of range, there are {1} patches"u8, nSet, t->nPatches);
+        if (nSet > t.nPatches || nSet < 0)
+            return SynError(it8, "Patch {0} out of range, there are {1} patches"u8, nSet, t.nPatches);
 
-        if (nField > t->nSamples || nField < 0)
-            return SynError(it8, "Sample {0} out of range, there are {1} samples"u8, nSet, t->nSamples);
+        if (nField > t.nSamples || nField < 0)
+            return SynError(it8, "Sample {0} out of range, there are {1} samples"u8, nSet, t.nSamples);
 
-        t->Data[nSet * t->nSamples + nField] = AllocString(it8, Val);
+        t.Data[nSet * t.nSamples + nField] = AllocString(it8, Val);
         return true;
     }
 
@@ -1223,15 +1236,15 @@ public static unsafe partial class Lcms2
         WriteStr(f, Buffer);
     }
 
-    private static void WriteHeader(IT8* it8, SAVESTREAM* fp)
+    private static void WriteHeader(IT8 it8, SAVESTREAM* fp)
     {
         var t = GetTable(it8);
 
         // Writes the type
-        WriteStr(fp, t->SheetType);
+        WriteStr(fp, t.SheetType);
         WriteStr(fp, "\n"u8);
 
-        for (var p = t->HeaderList; p is not null; p = p.Next)
+        for (var p = t.HeaderList; p is not null; p = p.Next)
         {
             if ((char)p.Keyword[0] is '#')
             {
@@ -1249,7 +1262,7 @@ public static unsafe partial class Lcms2
                 continue;
             }
 
-            if (!IsAvailableOnList(it8->ValidKeywords, p.Keyword, null, out _))
+            if (!IsAvailableOnList(it8.ValidKeywords, p.Keyword, null, out _))
             {
                 //WriteStr(fp, "KEYWORD\t\"".ToCharPtr());
                 //WriteStr(fp, p->Keyword);
@@ -1288,11 +1301,11 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void WriteDataFormat(SAVESTREAM* fp, IT8* it8)
+    private static void WriteDataFormat(SAVESTREAM* fp, IT8 it8)
     {
         var t = GetTable(it8);
 
-        if (t->DataFormat is null) return;
+        if (t.DataFormat is null) return;
 
         WriteStr(fp, "BEGIN_DATA_FORMAT\n"u8);
         WriteStr(fp, " "u8);
@@ -1300,30 +1313,30 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nSamples; i++)
         {
-            WriteStr(fp, t->DataFormat[i]);
+            WriteStr(fp, t.DataFormat[i]);
             WriteStr(fp, ((i == (nSamples - 1)) ? "\n"u8 : "\t"u8));
         }
 
         WriteStr(fp, "END_DATA_FORMAT\n"u8);
     }
 
-    private static void WriteData(SAVESTREAM* fp, IT8* it8)
+    private static void WriteData(SAVESTREAM* fp, IT8 it8)
     {
         var t = GetTable(it8);
 
-        if ( t->Data is null) return;
+        if ( t.Data is null) return;
 
         WriteStr(fp, "BEGIN_DATA\n"u8);
 
-        t->nPatches = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_SETS"u8));
+        t.nPatches = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_SETS"u8));
 
-        for (var i = 0; i < t->nPatches; i++)
+        for (var i = 0; i < t.nPatches; i++)
         {
             WriteStr(fp, " "u8);
 
-            for (var j = 0; j < t->nSamples; j++)
+            for (var j = 0; j < t.nSamples; j++)
             {
-                var ptr = t->Data[(i * t->nSamples) + j];
+                var ptr = t.Data[(i * t.nSamples) + j];
 
                 if (ptr is null) WriteStr(fp, "\"\""u8);
                 else
@@ -1340,24 +1353,25 @@ public static unsafe partial class Lcms2
                         WriteStr(fp, ptr);
                 }
 
-                WriteStr(fp, ((j == (t->nSamples - 1)) ? "\n"u8 : "\t"u8));
+                WriteStr(fp, ((j == (t.nSamples - 1)) ? "\n"u8 : "\t"u8));
             }
         }
 
         WriteStr(fp, "END_DATA\n"u8);
     }
 
-    public static bool cmsIT8SaveToFile(HANDLE hIT8, char* cFileName)
+    public static bool cmsIT8SaveToFile(object? hIT8, char* cFileName)
     {
         SAVESTREAM sd;
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
 
         memset(&sd, 0);
 
         sd.stream = fopen(new(cFileName), "wt");
         if (sd.stream is null) return false;
 
-        for (var i = 0u; i < it8->TablesCount; i++)
+        for (var i = 0u; i < it8.TablesCount; i++)
         {
             cmsIT8SetTable(hIT8, i);
             WriteHeader(it8, &sd);
@@ -1370,10 +1384,11 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsIT8SaveToMem(HANDLE hIT8, byte[] MemPtr, uint* BytesNeeded)
+    public static bool cmsIT8SaveToMem(object? hIT8, byte[] MemPtr, uint* BytesNeeded)
     {
         SAVESTREAM sd;
-        var it8 = (IT8*)hIT8;
+        if (hIT8 is not IT8 it8)
+            return false;
 
         memset(&sd, 0);
 
@@ -1387,7 +1402,7 @@ public static unsafe partial class Lcms2
             ? *BytesNeeded      // Write to memory?
             : 0;                // Just counting the needed bytes
 
-        for (var i = 0u; i < it8->TablesCount; i++)
+        for (var i = 0u; i < it8.TablesCount; i++)
         {
             cmsIT8SetTable(hIT8, i);
             WriteHeader(it8, &sd);
@@ -1405,7 +1420,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool DataFormatSection(IT8* it8)
+    private static bool DataFormatSection(IT8 it8)
     {
         var iField = 0;
         var t = GetTable(it8);
@@ -1413,15 +1428,16 @@ public static unsafe partial class Lcms2
         InSymbol(it8);      // Eats "BEGIN_DATA_FORMAT"
         CheckEOLN(it8);
 
-        while (it8->sy is not SYMBOL.SEND_DATA_FORMAT 
-                      and not SYMBOL.SEOLN 
-                      and not SYMBOL.SEOF 
-                      and not SYMBOL.SSYNERROR)
+        while (it8.sy is not SYMBOL.SEND_DATA_FORMAT 
+                     and not SYMBOL.SEOLN 
+                     and not SYMBOL.SEOF 
+                     and not SYMBOL.SSYNERROR)
         {
-            if (it8->sy is not SYMBOL.SIDENT)
+            if (it8.sy is not SYMBOL.SIDENT)
                 return SynError(it8, "Sample type expected"u8);
 
-            if (!SetDataFormat(it8, iField, StringPtr(it8->id))) return false;
+            //if (!SetDataFormat(it8, iField, StringPtr(it8->id))) return false;
+            if (!SetDataFormat(it8, iField, Encoding.ASCII.GetBytes(it8.id.ToString()))) return false;
             iField++;
 
             InSymbol(it8);
@@ -1432,13 +1448,13 @@ public static unsafe partial class Lcms2
         Skip(it8, SYMBOL.SEND_DATA_FORMAT);
         SkipEOLN(it8);
 
-        if (iField != t->nSamples)
-            SynError(it8, "Count mismatch. NUMBER_OF_FIELDS was {0}, found {1}\n"u8, t->nSamples, iField);
+        if (iField != t.nSamples)
+            SynError(it8, "Count mismatch. NUMBER_OF_FIELDS was {0}, found {1}\n"u8, t.nSamples, iField);
 
         return true;
     }
 
-    private static bool DataSection(IT8* it8)
+    private static bool DataSection(IT8 it8)
     {
         Span<byte> Buffer = stackalloc byte[256];
         var iField = 0;
@@ -1448,29 +1464,31 @@ public static unsafe partial class Lcms2
         InSymbol(it8);      // Eats "BEGIN_DATA"
         CheckEOLN(it8);
 
-        if (t->Data is null)
+        if (t.Data is null)
             AllocateDataSet(it8);
 
-        while (it8->sy is not SYMBOL.SEND_DATA and not SYMBOL.SEOF)
+        while (it8.sy is not SYMBOL.SEND_DATA and not SYMBOL.SEOF)
         {
-            if (iField >= t->nSamples)
+            if (iField >= t.nSamples)
             {
                 iField = 0;
                 iSet++;
             }
 
-            if (it8->sy is not SYMBOL.SEND_DATA and not SYMBOL.SEOF)
+            if (it8.sy is not SYMBOL.SEND_DATA and not SYMBOL.SEOF)
             {
-                switch (it8->sy)
+                switch (it8.sy)
                 {
                     // To keep very long data
                     case SYMBOL.SIDENT:
-                        if (!SetData(it8, iSet, iField, StringPtr(it8->id)))
+                        //if (!SetData(it8, iSet, iField, StringPtr(it8->id)))
+                        if (!SetData(it8, iSet, iField, Encoding.ASCII.GetBytes(it8.id.ToString())))
                             return false;
                         break;
                     case SYMBOL.SSTRING:
-                        if (!SetData(it8, iSet, iField, StringPtr(it8->str)))
-                            return false;
+                        //if (!SetData(it8, iSet, iField, StringPtr(it8->str)))
+                        if (!SetData(it8, iSet, iField, Encoding.ASCII.GetBytes(it8.str.ToString())))
+                                return false;
                         break;
                     default:
                         if (!GetVal(it8, Buffer, 255, "Sample data expected"))
@@ -1493,24 +1511,24 @@ public static unsafe partial class Lcms2
 
         // Check for data completion.
 
-        if ((iSet + 1) != t->nPatches)
-            return SynError(it8, "Count mismatch. NUMBER_OF_SETS was {0}, found {1}\n"u8, t->nPatches, iSet + 1);
+        if ((iSet + 1) != t.nPatches)
+            return SynError(it8, "Count mismatch. NUMBER_OF_SETS was {0}, found {1}\n"u8, t.nPatches, iSet + 1);
 
         return true;
     }
 
-    private static bool HeaderSection(IT8* it8)
+    private static bool HeaderSection(IT8 it8)
     {
         Span<byte> VarName = stackalloc byte[MAXID];
         Span<byte> Buffer = stackalloc byte[MAXSTR];
         KEYVALUE? Key;
 
-        while (it8->sy is not SYMBOL.SEOF 
+        while (it8.sy is not SYMBOL.SEOF 
                       and not SYMBOL.SSYNERROR 
                       and not SYMBOL.SBEGIN_DATA_FORMAT 
                       and not SYMBOL.SBEGIN_DATA)
         {
-            switch (it8->sy)
+            switch (it8.sy)
             {
                 case SYMBOL.SKEYWORD:
                     InSymbol(it8);
@@ -1527,10 +1545,11 @@ public static unsafe partial class Lcms2
                     break;
 
                 case SYMBOL.SIDENT:
-                    strncpy(VarName, StringPtr(it8->id), MAXID - 1);
+                    //strncpy(VarName, StringPtr(it8->id), MAXID - 1);
+                    strncpy(VarName, it8.id.ToString(), MAXID - 1);
                     VarName[MAXID - 1] = 0;
 
-                    if (!IsAvailableOnList(it8->ValidKeywords, VarName, null, out Key))
+                    if (!IsAvailableOnList(it8.ValidKeywords, VarName, null, out Key))
                     {
                         //return SynError(it8, "Undefined keyword '{0}'".ToCharPtr(), new string(VarName));
 
@@ -1543,14 +1562,14 @@ public static unsafe partial class Lcms2
 
                     if (Key?.WriteAs is not WRITEMODE.WRITE_PAIR)
                     {
-                        AddToList(it8, ref GetTable(it8)->HeaderList, VarName, null, Buffer, 
-                            (it8->sy is SYMBOL.SSTRING) ? WRITEMODE.WRITE_STRINGIFY : WRITEMODE.WRITE_UNCOOKED);
+                        AddToList(it8, ref GetTable(it8).HeaderList, VarName, null, Buffer, 
+                            (it8.sy is SYMBOL.SSTRING) ? WRITEMODE.WRITE_STRINGIFY : WRITEMODE.WRITE_UNCOOKED);
                     }
                     else
                     {
                         int Subkey, Nextkey = 0;
 
-                        if (it8->sy is not SYMBOL.SSTRING)
+                        if (it8.sy is not SYMBOL.SSTRING)
                             return SynError(it8, "Invalid value '{0}' for property '{1}'."u8, SpanToString(Buffer), SpanToString(VarName));
 
                         // chop the string as a list of "subkey, value" pairs, using ';' as a separator
@@ -1586,7 +1605,7 @@ public static unsafe partial class Lcms2
 
                             if (Buffer[Subkey] is 0 || Buffer[Value] is 0)
                                 return SynError(it8, "Invalid value for property '{0}'."u8, SpanToString(VarName));
-                            AddToList(it8, ref GetTable(it8)->HeaderList, VarName, Buffer[Subkey..], Buffer[Value..], WRITEMODE.WRITE_PAIR);
+                            AddToList(it8, ref GetTable(it8).HeaderList, VarName, Buffer[Subkey..], Buffer[Value..], WRITEMODE.WRITE_PAIR);
                         }
                     }
 
@@ -1605,28 +1624,28 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void ReadType(IT8* it8, Span<byte> SheetTypePtr)
+    private static void ReadType(IT8 it8, Span<byte> SheetTypePtr)
     {
         var cnt = 0;
 
         // First line is a very special case.
 
-        while (isseparator(it8->ch))
+        while (isseparator(it8.ch))
             NextCh(it8);
 
-        while (it8->ch is not '\r' and not '\n' and not '\t' and not '\0')
+        while (it8.ch is not '\r' and not '\n' and not '\t' and not '\0')
         {
             if (cnt < MAXSTR)
-                SheetTypePtr[cnt++] = (byte)it8->ch;
+                SheetTypePtr[cnt++] = (byte)it8.ch;
             NextCh(it8);
         }
 
         SheetTypePtr[cnt] = 0;
     }
 
-    private static bool ParseIT8(IT8* it8, bool nosheet)
+    private static bool ParseIT8(IT8 it8, bool nosheet)
     {
-        var SheetTypePtr = it8->Tab[0].SheetType;
+        var SheetTypePtr = it8.Tab[0].SheetType;
 
         if (!nosheet)
         {
@@ -1637,9 +1656,9 @@ public static unsafe partial class Lcms2
 
         SkipEOLN(it8);
 
-        while (it8->sy is not SYMBOL.SEOF and not SYMBOL.SSYNERROR)
+        while (it8.sy is not SYMBOL.SEOF and not SYMBOL.SSYNERROR)
         {
-            switch (it8->sy)
+            switch (it8.sy)
             {
                 case SYMBOL.SBEGIN_DATA_FORMAT:
                     if (!DataFormatSection(it8)) return false;
@@ -1648,27 +1667,28 @@ public static unsafe partial class Lcms2
                 case SYMBOL.SBEGIN_DATA:
                     if (!DataSection(it8)) return false;
 
-                    if (it8->sy is not SYMBOL.SEOF)
+                    if (it8.sy is not SYMBOL.SEOF)
                     {
                         AllocTable(it8);
-                        it8->nTable = it8->TablesCount - 1;
+                        it8.nTable = it8.TablesCount - 1;
 
                         // Read sheet type if present. We only support identifier and string
                         // <ident> <eoln> is a type string
                         // anything else, is not a type string
                         if (!nosheet)
                         {
-                            if (it8->sy is SYMBOL.SIDENT)
+                            if (it8.sy is SYMBOL.SIDENT)
                             {
                                 // May be a type sheet or may be a prop value statement. We cannot use insymbol in
                                 // this special case...
-                                while (isseparator(it8->ch))
+                                while (isseparator(it8.ch))
                                     NextCh(it8);
 
                                 // If a newline is found, then this is a type string
-                                if (it8->ch is '\n' or '\r')
+                                if (it8.ch is '\n' or '\r')
                                 {
-                                    cmsIT8SetSheetType(it8, SpanToString(StringPtr(it8->id)));
+                                    //cmsIT8SetSheetType(it8, SpanToString(StringPtr(it8->id)));
+                                    cmsIT8SetSheetType(it8, it8.id.ToString());
                                     InSymbol(it8);
                                 }
                                 else
@@ -1680,9 +1700,10 @@ public static unsafe partial class Lcms2
                             else
                             {
                                 // Validate quoted strings
-                                if (it8->sy is SYMBOL.SSTRING)
+                                if (it8.sy is SYMBOL.SSTRING)
                                 {
-                                    cmsIT8SetSheetType(it8, SpanToString(StringPtr(it8->str)));
+                                    //cmsIT8SetSheetType(it8, SpanToString(StringPtr(it8->str)));
+                                    cmsIT8SetSheetType(it8, it8.str.ToString());
                                     InSymbol(it8);
                                 }
                             }
@@ -1701,41 +1722,41 @@ public static unsafe partial class Lcms2
             }
         }
 
-        return it8->sy is not SYMBOL.SSYNERROR;
+        return it8.sy is not SYMBOL.SSYNERROR;
     }
 
-    private static void CookPointers(IT8* it8)
+    private static void CookPointers(IT8 it8)
     {
         Span<byte> Buffer = stackalloc byte[256];
 
-        var nOldTable = it8->nTable;
+        var nOldTable = it8.nTable;
 
-        for (var j = 0u; j < it8->TablesCount; j++)
+        for (var j = 0u; j < it8.TablesCount; j++)
         {
-            var t = it8->Tab + j;
+            var t = it8.Tab[j];
 
-            t->SampleID = 0;
-            it8->nTable = j;
+            t.SampleID = 0;
+            it8.nTable = j;
 
-            for (var idField = 0; idField < t->nSamples; idField++)
+            for (var idField = 0; idField < t.nSamples; idField++)
             {
-                if (t->DataFormat is null)
+                if (t.DataFormat is null)
                 {
                     SynError(it8, "Undefined DATA_FORMAT"u8);
                     return;
                 }
 
-                var Fld = t->DataFormat[idField];
+                var Fld = t.DataFormat[idField];
                 if (Fld == null) continue;
 
                 if (cmsstrcasecmp(Fld, "SAMPLE_ID"u8) is 0)
-                    t->SampleID = idField;
+                    t.SampleID = idField;
 
                 // "LABEL" is an extension. It keeps references to forward tables
                 if ((cmsstrcasecmp(Fld, "LABEL"u8) is 0) || Fld[0] == '$')
                 {
                     // Search for table references...
-                    for (var i = 0; i < t->nPatches; i++)
+                    for (var i = 0; i < t.nPatches; i++)
                     {
                         var Label = GetData(it8, i, idField);
 
@@ -1744,11 +1765,11 @@ public static unsafe partial class Lcms2
                             // This is the label, search for a table containing
                             // this property
 
-                            for (var k = 0u; k < it8->TablesCount; k++)
+                            for (var k = 0u; k < it8.TablesCount; k++)
                             {
-                                var Table = it8->Tab + k;
+                                var Table = it8.Tab[k];
 
-                                if (IsAvailableOnList(Table->HeaderList, Label, null, out var p))
+                                if (IsAvailableOnList(Table.HeaderList, Label, null, out var p))
                                 {
                                     // Available, keep type and table
                                     //memset(Buffer, 0, 256 * _sizeof<byte>());
@@ -1768,7 +1789,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        it8->nTable = nOldTable;
+        it8.nTable = nOldTable;
     }
 
     private static int IsMyBlock(ReadOnlySpan<byte> Buffer, uint n)
@@ -1827,7 +1848,7 @@ public static unsafe partial class Lcms2
         return IsMyBlock(Ptr, Size) is not 0;
     }
 
-    public static HANDLE cmsIT8LoadFromMem(Context? ContextID, Span<byte> Ptr, uint len)
+    public static object? cmsIT8LoadFromMem(Context? ContextID, Span<byte> Ptr, uint len)
     {
         //_cmsAssert(Ptr);
         _cmsAssert(len is not 0);
@@ -1836,21 +1857,21 @@ public static unsafe partial class Lcms2
         if (type is 0) return null;
 
         var hIT8 = cmsIT8Alloc(ContextID);
-        if (hIT8 is null) return null;
+        if (hIT8 is not IT8 it8) return null;
 
-        var it8 = (IT8*)hIT8;
-        it8->MemoryBlock = _cmsCallocArray<byte>(ContextID, len + 1);
-        if (it8->MemoryBlock is null)
-        {
-            cmsIT8Free(hIT8);
-            return null;
-        }
+        //var it8 = (IT8*)hIT8;
+        it8.MemoryBlock = _cmsCallocArray<byte>(ContextID, len + 1);
+        //if (it8.MemoryBlock is null)
+        //{
+        //    cmsIT8Free(hIT8);
+        //    return null;
+        //}
 
-        strncpy(it8->MemoryBlock, Ptr, len);
-        it8->MemoryBlock[len] = 0;
+        strncpy(it8.MemoryBlock, Ptr, len);
+        it8.MemoryBlock[len] = 0;
 
-        strncpy(it8->FileStack[0]->FileName, "", cmsMAX_PATH - 1);
-        it8->Source = it8->MemoryBlock;
+        strncpy(it8.FileStack[0].FileName, "", cmsMAX_PATH - 1);
+        it8.Source = it8.MemoryBlock;
 
         if (!ParseIT8(it8, type is not 0))
         {
@@ -1859,15 +1880,15 @@ public static unsafe partial class Lcms2
         }
 
         CookPointers(it8);
-        it8->nTable = 0;
+        it8.nTable = 0;
 
-        _cmsFree(ContextID, it8->MemoryBlock);
-        it8->MemoryBlock = null;
+        _cmsFree(ContextID, it8.MemoryBlock);
+        it8.MemoryBlock = null;
 
         return hIT8;
     }
 
-    public static HANDLE cmsIT8LoadFromFile(Context? ContextID, string cFileName)
+    public static object? cmsIT8LoadFromFile(Context? ContextID, string cFileName)
     {
         _cmsAssert(cFileName);
 
@@ -1875,9 +1896,9 @@ public static unsafe partial class Lcms2
         if (!type) return null;
 
         var hIT8 = cmsIT8Alloc(ContextID);
-        if (hIT8 is null) return null;
+        if (hIT8 is not IT8 it8) return null;
 
-        var it8 = (IT8*)hIT8;
+        //var it8 = (IT8*)hIT8;
         var file = fopen(cFileName, "rt");
 
         if (file is null)
@@ -1885,10 +1906,10 @@ public static unsafe partial class Lcms2
             cmsIT8Free(hIT8);
             return null;
         }
-        it8->FileStack[0]->Stream = (FileStream)file.Stream;
+        it8.FileStack[0].Stream = (FileStream)file.Stream;
 
-        strncpy(it8->FileStack[0]->FileName, cFileName, cmsMAX_PATH - 1);
-        it8->FileStack[0]->FileName[cmsMAX_PATH - 1] = 0;
+        strncpy(it8.FileStack[0].FileName, cFileName, cmsMAX_PATH - 1);
+        it8.FileStack[0].FileName[cmsMAX_PATH - 1] = 0;
 
         if (!ParseIT8(it8, !type))
         {
@@ -1898,7 +1919,7 @@ public static unsafe partial class Lcms2
         }
 
         CookPointers(it8);
-        it8->nTable = 0;
+        it8.nTable = 0;
 
         if (fclose(file) is not 0)
         {
@@ -1909,9 +1930,11 @@ public static unsafe partial class Lcms2
         return hIT8;
     }
 
-    public static int cmsIT8EnumDataFormat(HANDLE hIT8, out byte[][] SampleNames)
+    public static int cmsIT8EnumDataFormat(object? hIT8, out byte[][] SampleNames)
     {
-        var it8 = (IT8*)hIT8;
+        SampleNames = null!;
+        if (hIT8 is not IT8 it8)
+            return -1;
 
         _cmsAssert(hIT8);
 
@@ -1919,43 +1942,45 @@ public static unsafe partial class Lcms2
 
         //if (SampleNames is not null)
         //*SampleNames = t->DataFormat;
-        SampleNames = t->DataFormat;
-        return t->nSamples;
+        SampleNames = t.DataFormat;
+        return t.nSamples;
     }
 
-    public static uint cmsIT8EnumProperties(HANDLE hIT8, out byte[][] PropertyNames)
+    public static uint cmsIT8EnumProperties(object? hIT8, out byte[][] PropertyNames)
     {
-        var it8 = (IT8*)hIT8;
-        _cmsAssert(hIT8);
+        PropertyNames = null!;
+        if (hIT8 is not IT8 it8)
+            return uint.MaxValue;
 
         var t = GetTable(it8);
 
         // Pass#1 - count properties
 
         var n = 0u;
-        for (var p = t->HeaderList; p is not null; p = p.Next)
+        for (var p = t.HeaderList; p is not null; p = p.Next)
             n++;
 
         //var Props = AllocChunk2<byte>(it8, n);
-        var Props = Context.GetPool<byte[]>(it8->ContextID).Rent((int)n);
+        var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
 
         // Pass#2 - Fill pointers
         n = 0;
-        for (var p = t->HeaderList; p is not null; p = p.Next)
+        for (var p = t.HeaderList; p is not null; p = p.Next)
             Props[n++] = p.Keyword;
 
         PropertyNames = Props;
         return n;
     }
 
-    public static uint cmsIT8EnumPropertyMulti(HANDLE hIT8, ReadOnlySpan<byte> cProp, out byte[][] SubpropertyNames)
+    public static uint cmsIT8EnumPropertyMulti(object? hIT8, ReadOnlySpan<byte> cProp, out byte[][] SubpropertyNames)
     {
-        var it8 = (IT8*)hIT8;
-        _cmsAssert(hIT8);
+        SubpropertyNames = null!;
+        if (hIT8 is not IT8 it8)
+            return uint.MaxValue;
 
         var t = GetTable(it8);
 
-        if (!IsAvailableOnList(t->HeaderList, cProp, null, out var p))
+        if (!IsAvailableOnList(t.HeaderList, cProp, null, out var p))
         {
             SubpropertyNames = null!;
             return 0;
@@ -1971,7 +1996,7 @@ public static unsafe partial class Lcms2
         }
 
         //var Props = AllocChunk2<byte>(it8, n);
-        var Props = Context.GetPool<byte[]>(it8->ContextID).Rent((int)n);
+        var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
 
         // Pass#2 - Fill pointers
         n = 0;
@@ -1982,13 +2007,13 @@ public static unsafe partial class Lcms2
         return n;
     }
 
-    private static int LocatePatch(IT8* it8, ReadOnlySpan<byte> cPatch)
+    private static int LocatePatch(IT8 it8, ReadOnlySpan<byte> cPatch)
     {
         var t = GetTable(it8);
 
-        for (var i = 0; i < t->nPatches; i++)
+        for (var i = 0; i < t.nPatches; i++)
         {
-            var data = GetData(it8, i, t->SampleID);
+            var data = GetData(it8, i, t.SampleID);
 
             if (data is not null)
             {
@@ -2001,13 +2026,13 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static int LocateEmptyPatch(IT8* it8)
+    private static int LocateEmptyPatch(IT8 it8)
     {
         var t = GetTable(it8);
 
-        for (var i = 0; i < t->nPatches; i++)
+        for (var i = 0; i < t.nPatches; i++)
         {
-            var data = GetData(it8, i, t->SampleID);
+            var data = GetData(it8, i, t.SampleID);
 
             if (data is null)
                 return i;
@@ -2016,11 +2041,11 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static int LocateSample(IT8* it8, ReadOnlySpan<byte> cSample)
+    private static int LocateSample(IT8 it8, ReadOnlySpan<byte> cSample)
     {
         var t = GetTable(it8);
 
-        for (var i = 0; i < t->nSamples; i++)
+        for (var i = 0; i < t.nSamples; i++)
         {
             var fld = GetDataFormat(it8, i);
             if (fld is not null)
@@ -2033,25 +2058,13 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    public static int cmsIT8FindDataFormat(HANDLE hIT8, ReadOnlySpan<byte> cSample)
-    {
-        var it8 = (IT8*)hIT8;
+    public static int cmsIT8FindDataFormat(object? hIT8, ReadOnlySpan<byte> cSample) =>
+        hIT8 is IT8 it8 ? LocateSample(it8, cSample) : -1;
 
-        _cmsAssert(hIT8);
+    public static byte[]? cmsIT8GetDataRowCol(object? hIT8, int row, int col) =>
+        hIT8 is not IT8 it8 ? null : GetData(it8, row, col);
 
-        return LocateSample(it8, cSample);
-    }
-
-    public static byte[]? cmsIT8GetDataRowCol(HANDLE hIT8, int row, int col)
-    {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
-
-        return GetData(it8, row, col);
-    }
-
-    public static double cmsIT8GetDataRowColDbl(HANDLE hIT8, int row, int col)
+    public static double cmsIT8GetDataRowColDbl(object? hIT8, int row, int col)
     {
         var Buffer = cmsIT8GetDataRowCol(hIT8, row, col);
 
@@ -2060,32 +2073,25 @@ public static unsafe partial class Lcms2
         return ParseFloatNumber(Buffer);
     }
 
-    public static bool cmsIT8SetDataRowCol(HANDLE hIT8, int row, int col, ReadOnlySpan<byte> Val)
+    public static bool cmsIT8SetDataRowCol(object? hIT8, int row, int col, ReadOnlySpan<byte> Val) =>
+        hIT8 is IT8 it8 && SetData(it8, row, col, Val);
+
+    public static bool cmsIT8SetDataRowColDbl(object? hIT8, int row, int col, double Val)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
-
-        return SetData(it8, row, col, Val);
-    }
-
-    public static bool cmsIT8SetDataRowColDbl(HANDLE hIT8, int row, int col, double Val)
-    {
-        var it8 = (IT8*)hIT8;
         Span<byte> Buff = stackalloc byte[256];
 
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return false;
 
-        snprintf(Buff, 255, it8->DoubleFormatter, Val);
+        snprintf(Buff, 255, it8.DoubleFormatter, Val);
 
         return SetData(it8, row, col, Buff);
     }
 
-    public static byte[]? cmsIT8GetData(HANDLE hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample)
+    public static byte[]? cmsIT8GetData(object? hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return null;
 
         var iField = LocateSample(it8, cSample);
         if (iField < 0)
@@ -2098,14 +2104,13 @@ public static unsafe partial class Lcms2
         return GetData(it8, iSet, iField);
     }
 
-    public static double cmsIT8GetDataDbl(HANDLE hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample) =>
+    public static double cmsIT8GetDataDbl(object? hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample) =>
         ParseFloatNumber(cmsIT8GetData(hIT8, cPatch, cSample));
 
-    public static bool cmsIT8SetData(HANDLE hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample, ReadOnlySpan<byte> Val)
+    public static bool cmsIT8SetData(object? hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample, ReadOnlySpan<byte> Val)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return false;
 
         var t = GetTable(it8);
 
@@ -2113,7 +2118,7 @@ public static unsafe partial class Lcms2
         if (iField < 0)
             return false;
 
-        if (t->nPatches is 0)
+        if (t.nPatches is 0)
         {
             AllocateDataFormat(it8);
             AllocateDataSet(it8);
@@ -2127,7 +2132,7 @@ public static unsafe partial class Lcms2
             if (iSet < 0)
                 return SynError(it8, "Couldn't add more patches '{0}'\n"u8, SpanToString(cPatch));
 
-            iField = t->SampleID;
+            iField = t.SampleID;
         }
         else
         {
@@ -2139,25 +2144,24 @@ public static unsafe partial class Lcms2
         return SetData(it8, iSet, iField, Val);
     }
 
-    public static bool cmsIT8SetDataDbl(HANDLE hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample, double Val)
+    public static bool cmsIT8SetDataDbl(object? hIT8, ReadOnlySpan<byte> cPatch, ReadOnlySpan<byte> cSample, double Val)
     {
-        var it8 = (IT8*)hIT8;
         Span<byte> Buff = stackalloc byte[256];
 
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return false;
 
-        snprintf(Buff, 255, it8->DoubleFormatter, Val);
+        snprintf(Buff, 255, it8.DoubleFormatter, Val);
         return cmsIT8SetData(hIT8, cPatch, cSample, Buff);
     }
 
-    public static Span<byte> cmsIT8GetPatchName(HANDLE hIT8, int nPatch, Span<byte> buffer)
+    public static Span<byte> cmsIT8GetPatchName(object? hIT8, int nPatch, Span<byte> buffer)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return default;
 
         var t = GetTable(it8);
-        var Data = GetData(it8, nPatch, t->SampleID);
+        var Data = GetData(it8, nPatch, t.SampleID);
 
         if (Data is null) return null;
         if (buffer.IsEmpty) return Data;
@@ -2167,18 +2171,14 @@ public static unsafe partial class Lcms2
         return buffer;
     }
 
-    public static int cmsIT8GetPatchByName(HANDLE hIT8, ReadOnlySpan<byte> cPatch)
+    public static int cmsIT8GetPatchByName(object? hIT8, ReadOnlySpan<byte> cPatch)
     {
-        _cmsAssert(hIT8);
-
-        return LocatePatch((IT8*)hIT8, cPatch);
+        return hIT8 is not IT8 it8 ? -1 : LocatePatch(it8, cPatch);
     }
 
-    public static uint cmsIT8TableCount(HANDLE hIT8)
+    public static uint cmsIT8TableCount(object? hIT8)
     {
-        _cmsAssert(hIT8);
-
-        return ((IT8*)hIT8)->TablesCount;
+        return hIT8 is not IT8 it8 ? uint.MaxValue : it8.TablesCount;
     }
 
     private static int ParseLabel(ReadOnlySpan<byte> buffer, Span<byte> label, uint* tableNum, Span<byte> type)
@@ -2211,7 +2211,7 @@ public static unsafe partial class Lcms2
         return 3;
     }
 
-    public static int cmsIT8SetTableByLabel(HANDLE hIT8, ReadOnlySpan<byte> cSet, ReadOnlySpan<byte> cField, ReadOnlySpan<byte> ExpectedType)
+    public static int cmsIT8SetTableByLabel(object? hIT8, ReadOnlySpan<byte> cSet, ReadOnlySpan<byte> cField, ReadOnlySpan<byte> ExpectedType)
     {
         Span<byte> Type = stackalloc byte[256];
         Span<byte> Label = stackalloc byte[256];
@@ -2237,31 +2237,29 @@ public static unsafe partial class Lcms2
         return cmsIT8SetTable(hIT8, nTable);
     }
 
-    public static bool cmsIT8SetIndexColumn(HANDLE hIT8, ReadOnlySpan<byte> cSample)
+    public static bool cmsIT8SetIndexColumn(object? hIT8, ReadOnlySpan<byte> cSample)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return false;
 
         var pos = LocateSample(it8, cSample);
         if (pos is -1)
             return false;
 
-        it8->Tab[it8->nTable].SampleID = pos;
+        it8.Tab[it8.nTable].SampleID = pos;
         return true;
     }
 
-    public static void cmsIT8DefineDblFormat(HANDLE hIT8, ReadOnlySpan<byte> Formatter)
+    public static void cmsIT8DefineDblFormat(object? hIT8, ReadOnlySpan<byte> Formatter)
     {
-        var it8 = (IT8*)hIT8;
-
-        _cmsAssert(hIT8);
+        if (hIT8 is not IT8 it8)
+            return;
 
         if (Formatter.IsEmpty)
-            strcpy(it8->DoubleFormatter, DEFAULT_DBL_FORMAT);
+            strcpy(it8.DoubleFormatter, DEFAULT_DBL_FORMAT);
         else
-            strncpy(it8->DoubleFormatter, Formatter, MAXID);
+            strncpy(it8.DoubleFormatter, Formatter, MAXID);
 
-        it8->DoubleFormatter[MAXID - 1] = 0;
+        it8.DoubleFormatter[MAXID - 1] = 0;
     }
 }

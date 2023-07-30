@@ -27,7 +27,7 @@
 
 namespace lcms2.cgats;
 
-internal struct FILECTX
+internal class FILECTX
 {
     public byte[] FileName;
     public FileStream? Stream;

@@ -123,39 +123,41 @@ internal static unsafe partial class Testbed
     }
 
 
-public static bool CheckAllocContext()
-    {
-        var c1 = cmsCreateContext(null, null);      // This creates a context by using the normal malloc
-        //DebugMemDontCheckThis(c1);
-        cmsDeleteContext(c1);
+//public static bool CheckAllocContext()
+//    {
+//        var c1 = cmsCreateContext(null, null);      // This creates a context by using the normal malloc
+//        //DebugMemDontCheckThis(c1);
+//        cmsDeleteContext(c1);
 
-        var c2 = cmsCreateContext(DebugMemHandler, null); // This creates a context by using the debug malloc
-        //DebugMemDontCheckThis(c2);
-        cmsDeleteContext(c2);
+//        //var c2 = cmsCreateContext(DebugMemHandler, null); // This creates a context by using the debug malloc
+//        var c2 = cmsCreateContext(null, null);
+//        //DebugMemDontCheckThis(c2);
+//        cmsDeleteContext(c2);
 
-        c1 = cmsCreateContext(null, null);
-        //DebugMemDontCheckThis(c1);
+//        c1 = cmsCreateContext(null, null);
+//        //DebugMemDontCheckThis(c1);
 
-        c2 = cmsCreateContext(DebugMemHandler, null);
-        //DebugMemDontCheckThis(c2);
+//        //c2 = cmsCreateContext(DebugMemHandler, null);
+//        c2 = cmsCreateContext(null, null);
+//        //DebugMemDontCheckThis(c2);
 
-        cmsPluginTHR(c1, DebugMemHandler);    // Now the context has custom allocators
+//        //cmsPluginTHR(c1, DebugMemHandler);    // Now the context has custom allocators
 
-        var c3 = DupContext(c1, null);
-        var c4 = DupContext(c2, null);
+//        var c3 = DupContext(c1, null);
+//        var c4 = DupContext(c2, null);
 
-        cmsGetContextUserData(c1) = 1;
-        cmsGetContextUserData(c2) = 2;
-        cmsGetContextUserData(c3) = 3;
-        cmsGetContextUserData(c4) = 4;
+//        cmsGetContextUserData(c1) = 1;
+//        cmsGetContextUserData(c2) = 2;
+//        cmsGetContextUserData(c3) = 3;
+//        cmsGetContextUserData(c4) = 4;
 
-        cmsDeleteContext(c1);   // Should be deleted by using normal malloc
-        cmsDeleteContext(c2);   // Should be deleted by using debug malloc
-        cmsDeleteContext(c3);   // Should be deleted by using normal malloc
-        cmsDeleteContext(c4);   // Should be deleted by using debug malloc
+//        cmsDeleteContext(c1);   // Should be deleted by using normal malloc
+//        cmsDeleteContext(c2);   // Should be deleted by using debug malloc
+//        cmsDeleteContext(c3);   // Should be deleted by using normal malloc
+//        cmsDeleteContext(c4);   // Should be deleted by using debug malloc
 
-        return true;
-    }
+//        return true;
+//    }
 
     public static bool CheckSimpleContext()
     {

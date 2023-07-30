@@ -989,6 +989,8 @@ public static unsafe partial class Lcms2
 
     private static bool SaveTags(Profile Icc, Profile? FileOrig)
     {
+        var pool = Context.GetPool<byte>(Icc.ContextID);
+
         var io = Icc.IOHandler;
         if (io is null) return false;
 
@@ -1007,7 +1009,7 @@ public static unsafe partial class Lcms2
             var Data = Tag.TagObject;
             if (Data is null)
             {
-                void* Mem;
+                //void* Mem;
                 // Reach here if we are copying a tag from a disk-based ICC profile which has not been modified by user.
                 // In this case a blind copy of the block data is performed
                 if (FileOrig is not null &&
@@ -1019,11 +1021,15 @@ public static unsafe partial class Lcms2
 
                     if (!FileOrig.IOHandler.Seek(FileOrig.IOHandler, TagOffset)) return false;
 
-                    Mem = _cmsMalloc(Icc.ContextID, TagSize, typeof(byte));
-                    if (Mem is null) return false;
+                    //Mem = _cmsMalloc(Icc.ContextID, TagSize, typeof(byte));
+                    //if (Mem is null) return false;
+                    var Mem = pool.Rent((int)TagSize);
 
-                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1) goto Error;
-                    if (!io.Write(io, TagSize, Mem)) goto Error;
+                    fixed (byte* memPtr = Mem)
+                    {
+                        if (FileOrig.IOHandler.Read(FileOrig.IOHandler, memPtr, TagSize, 1) is not 1) goto Error;
+                        if (!io.Write(io, TagSize, memPtr)) goto Error;
+                    }
                     _cmsFree(Icc.ContextID, Mem);
 
                     Tag.Size = io.UsedSpace - Begin;
@@ -1031,13 +1037,14 @@ public static unsafe partial class Lcms2
                     // Align to 32 bit boundary.
                     if (!_cmsWriteAlignment(io))
                         return false;
+
+                Error:
+                    _cmsFree(Icc.ContextID, Mem);
+                    return false;
                 }
 
                 Icc.Tags[i] = Tag;
                 continue;
-            Error:
-                _cmsFree(Icc.ContextID, Mem);
-                return false;
             }
 
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)

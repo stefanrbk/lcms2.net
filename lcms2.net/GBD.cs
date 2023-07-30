@@ -24,47 +24,14 @@
 //
 //---------------------------------------------------------------------------------
 //
-
 using lcms2.state;
 
-using System.Text;
+namespace lcms2;
 
-namespace lcms2.cgats;
-
-internal unsafe class IT8
+public class GBD
 {
-    public uint TablesCount;
-    public uint nTable;
-
-    public TABLE[] Tab;
-
-    // Memory management
-    public List<byte[]> MemorySink = new();
-    public SUBALLOCATOR Allocator;
-
-    // Parser state machine
-    public SYMBOL sy;
-    public int ch;
-
-    public int inum;
-    public double dnum;
-
-    public StringBuilder id = new();
-    public StringBuilder str = new();
-
-    // Allowed keywords & datasets. They have visibility on whole stream
-    public KEYVALUE? ValidKeywords;
-    public KEYVALUE? ValidSampleID;
-
-    public Memory<byte> Source;
-    public int lineno;
-
-    public FILECTX[] FileStack;
-    public int IncludeSP;
-
-    public byte[]? MemoryBlock;
-
-    public byte[] DoubleFormatter;
-
-    public Context? ContextID;
+    internal Context? ContextID;
+    internal GBDPoint[] Gamut;
+    internal ref GBDPoint GamutPtr(int theta, int alpha) =>
+        ref Gamut[theta * SECTORS + alpha];
 }

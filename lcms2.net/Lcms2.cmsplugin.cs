@@ -490,9 +490,9 @@ public static unsafe partial class Lcms2
 
             switch ((uint)Plugin.Type)
             {
-                case cmsPluginMemHandlerSig:
-                    if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
-                    break;
+                //case cmsPluginMemHandlerSig:
+                //    if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
+                //    break;
 
                 case cmsPluginInterpolationSig:
                     if (!_cmsRegisterInterpPlugin(id, Plugin)) return false;
@@ -614,7 +614,7 @@ public static unsafe partial class Lcms2
     /// </remarks>
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
-        _cmsRegisterMemHandlerPlugin(context, null);
+        //_cmsRegisterMemHandlerPlugin(context, null);
         _cmsRegisterInterpPlugin(context, null);
         _cmsRegisterTagTypePlugin(context, null);
         _cmsRegisterTagPlugin(context, null);
@@ -627,31 +627,31 @@ public static unsafe partial class Lcms2
         _cmsRegisterMutexPlugin(context, null);
     }
 
-    internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase? PluginBundle)
-    {
-        for (var Plugin = PluginBundle;
-            Plugin is not null;
-            Plugin = Plugin.Next)
-        {
-            if ((uint)Plugin.Magic is cmsPluginMagicNumber &&
-                Plugin.ExpectedVersion <= LCMS_VERSION &&
-                (uint)Plugin.Type is cmsPluginMemHandlerSig)
-            {
-                // Found!
-                return (PluginMemHandler)Plugin;
-            }
-        }
+    //internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase? PluginBundle)
+    //{
+    //    for (var Plugin = PluginBundle;
+    //        Plugin is not null;
+    //        Plugin = Plugin.Next)
+    //    {
+    //        if ((uint)Plugin.Magic is cmsPluginMagicNumber &&
+    //            Plugin.ExpectedVersion <= LCMS_VERSION &&
+    //            (uint)Plugin.Type is cmsPluginMemHandlerSig)
+    //        {
+    //            // Found!
+    //            return (PluginMemHandler)Plugin;
+    //        }
+    //    }
 
-        // Nope, revert to defaults
-        return null;
-    }
+    //    // Nope, revert to defaults
+    //    return null;
+    //}
 
     private static void AllocChunks(Context ctx, Context? src, bool trace = false)
     {
         _cmsAllocLogErrorChunk(ctx, src);
         _cmsAllocAlarmCodesChunk(ctx, src);
         _cmsAllocAdaptationStateChunk(ctx, src);
-        _cmsAllocMemPluginChunk(ctx, src);
+        //_cmsAllocMemPluginChunk(ctx, src);
         _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocCurvesPluginChunk(ctx, src);
         _cmsAllocFormattersPluginChunk(ctx, src);
@@ -690,19 +690,19 @@ public static unsafe partial class Lcms2
     /// </param>
     public static Context? cmsCreateContext(PluginBase? Plugin, object? UserData)
     {
-        Context fakeContext = new();
+        //Context fakeContext = new();
 
-        _cmsInstallAllocFunctions(_cmsFindMemoryPlugin(Plugin), ref fakeContext.DefaultMemoryManager);
+        //_cmsInstallAllocFunctions(_cmsFindMemoryPlugin(Plugin), ref fakeContext.DefaultMemoryManager);
 
-        fakeContext.UserData = UserData;
-        fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
+        //fakeContext.UserData = UserData;
+        //fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
 
         // Create the context structure.
         var ctx = new Context();
         if (ctx is null) return null; // Something very wrong happened!
 
         // Keep memory manager
-        ctx.DefaultMemoryManager = (MemPluginChunkType)fakeContext.DefaultMemoryManager.Dup(ctx)!;
+        //ctx.DefaultMemoryManager = (MemPluginChunkType)fakeContext.DefaultMemoryManager.Dup(ctx)!;
 
         // Maintain the linked list (with proper locking)
         lock (contextPoolHeadMutex)
@@ -717,7 +717,7 @@ public static unsafe partial class Lcms2
         }
 
         ctx.UserData = UserData;
-        ctx.MemPlugin = ctx.DefaultMemoryManager;
+        //ctx.MemPlugin = ctx.DefaultMemoryManager;
 
         // Now we can allocate the pool by using default memory manager
         //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
@@ -776,7 +776,7 @@ public static unsafe partial class Lcms2
             return null;    // Something very wrong happened
 
         // Setup default memory allocators
-        ctx.DefaultMemoryManager = src.DefaultMemoryManager;
+        //ctx.DefaultMemoryManager = src.DefaultMemoryManager;
 
         // Maintain the linked list
         lock (contextPoolHeadMutex)
@@ -791,7 +791,7 @@ public static unsafe partial class Lcms2
         }
 
         ctx.UserData = userData;
-        ctx.MemPlugin = ctx.DefaultMemoryManager;
+        //ctx.MemPlugin = ctx.DefaultMemoryManager;
 
         //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
         //if (ctx.MemPool is null)
@@ -807,7 +807,7 @@ public static unsafe partial class Lcms2
         if (ctx.ErrorLogger is null ||
             ctx.AlarmCodes is null ||
             ctx.AdaptationState is null ||
-            ctx.MemPlugin is null ||
+            //ctx.MemPlugin is null ||
             ctx.InterpPlugin is null ||
             ctx.CurvesPlugin is null ||
             ctx.FormattersPlugin is null ||

@@ -36,26 +36,26 @@ namespace lcms2;
 
 public static unsafe partial class Lcms2
 {
-    private static double compute_n(CIECAM02* pMod) =>
-        pMod->Yb / pMod->adoptedWhite.XYZ[1];
+    private static double compute_n(CIECAM02 pMod) =>
+        pMod.Yb / pMod.adoptedWhite.XYZ[1];
 
-    private static double compute_z(CIECAM02* pMod) =>
-        1.48 + Pow(1.0 / pMod->n, 0.5);
+    private static double compute_z(CIECAM02 pMod) =>
+        1.48 + Pow(1.0 / pMod.n, 0.5);
 
-    private static double computeNbb(CIECAM02* pMod) =>
-        0.725 * Pow(1.0 / pMod->n, 0.2);
+    private static double computeNbb(CIECAM02 pMod) =>
+        0.725 * Pow(1.0 / pMod.n, 0.2);
 
-    private static double computeFL(CIECAM02* pMod)
+    private static double computeFL(CIECAM02 pMod)
     {
-        var k = 1.0 / ((5.0 * pMod->LA) + 1.0);
-        var FL = (0.2 * Pow(k, 4.0) * (5.0 * pMod->LA)) + 
-            (0.1 * Pow(1.0 - Pow(k, 4.0), 2.0) * Pow(5.0 * pMod->LA, 1.0 / 3.0));
+        var k = 1.0 / ((5.0 * pMod.LA) + 1.0);
+        var FL = (0.2 * Pow(k, 4.0) * (5.0 * pMod.LA)) + 
+            (0.1 * Pow(1.0 - Pow(k, 4.0), 2.0) * Pow(5.0 * pMod.LA, 1.0 / 3.0));
 
         return FL;
     }
 
-    private static double computeD(CIECAM02* pMod) =>
-        pMod->F - (1.0 / 3.6 * Exp((-pMod->LA - 42) / 92.0));
+    private static double computeD(CIECAM02 pMod) =>
+        pMod.F - (1.0 / 3.6 * Exp((-pMod.LA - 42) / 92.0));
 
     private static CAM02COLOR XYZtoCAT02(CAM02COLOR clr)
     {
@@ -66,13 +66,13 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    private static CAM02COLOR ChromaticAdaptation(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR ChromaticAdaptation(CAM02COLOR clr, CIECAM02 pMod)
     {
         for(var i = 0; i < 3; i++)
         {
-            clr.RGBc[i] = ((pMod->adoptedWhite.XYZ[1] *
-                (pMod->D / pMod->adoptedWhite.RGB[i])) +
-                (1.0 - pMod->D)) * clr.RGB[i];
+            clr.RGBc[i] = ((pMod.adoptedWhite.XYZ[1] *
+                (pMod.D / pMod.adoptedWhite.RGB[i])) +
+                (1.0 - pMod.D)) * clr.RGB[i];
         }
 
         return clr;
@@ -99,30 +99,30 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    private static CAM02COLOR NonlinearCompression(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR NonlinearCompression(CAM02COLOR clr, CIECAM02 pMod)
     {
         for(var i = 0; i < 3; i++)
         {
             if (clr.RGBp[i] < 0)
             {
 
-                var temp = Pow((-1.0 * pMod->FL * clr.RGBp[i] / 100.0), 0.42);
+                var temp = Pow((-1.0 * pMod.FL * clr.RGBp[i] / 100.0), 0.42);
                 clr.RGBpa[i] = (-1.0 * 400.0 * temp) / (temp + 27.13) + 0.1;
             }
             else
             {
-                var temp = Pow((pMod->FL * clr.RGBp[i] / 100.0), 0.42);
+                var temp = Pow(pMod.FL * clr.RGBp[i] / 100.0, 0.42);
                 clr.RGBpa[i] = (400.0 * temp) / (temp + 27.13) + 0.1;
             }
         }
 
         clr.A = (((2.0 * clr.RGBpa[0]) + clr.RGBpa[1] +
-            (clr.RGBpa[2] / 20.0)) - 0.305) * pMod->Nbb;
+            (clr.RGBpa[2] / 20.0)) - 0.305) * pMod.Nbb;
 
         return clr;
     }
 
-    private static CAM02COLOR ComputeCorrelates(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR ComputeCorrelates(CAM02COLOR clr, CIECAM02 pMod)
     {
         double a, b, temp, e, t, r2d, d2r;
 
@@ -150,7 +150,7 @@ public static unsafe partial class Lcms2
         }
 
         d2r = (3.141592654 / 180.0);
-        e = ((12500.0 / 13.0) * pMod->Nc * pMod->Ncb) *
+        e = ((12500.0 / 13.0) * pMod.Nc * pMod.Ncb) *
             (Cos((clr.h * d2r + 2.0)) + 3.8);
 
         if (clr.h < 20.14)
@@ -179,42 +179,42 @@ public static unsafe partial class Lcms2
             clr.H = 300 + ((100 * ((clr.h - 237.53) / 1.2)) / temp);
         }
 
-        clr.J = 100.0 * Pow((clr.A / pMod->adoptedWhite.A),
-            (pMod->c * pMod->z));
+        clr.J = 100.0 * Pow((clr.A / pMod.adoptedWhite.A),
+            (pMod.c * pMod.z));
 
-        clr.Q = (4.0 / pMod->c) * Pow((clr.J / 100.0), 0.5) *
-            (pMod->adoptedWhite.A + 4.0) * Pow(pMod->FL, 0.25);
+        clr.Q = (4.0 / pMod.c) * Pow((clr.J / 100.0), 0.5) *
+            (pMod.adoptedWhite.A + 4.0) * Pow(pMod.FL, 0.25);
 
         t = (e * Pow(((a * a) + (b * b)), 0.5)) /
             (clr.RGBpa[0] + clr.RGBpa[1] +
             ((21.0 / 20.0) * clr.RGBpa[2]));
 
         clr.C = Pow(t, 0.9) * Pow((clr.J / 100.0), 0.5) *
-            Pow((1.64 - Pow(0.29, pMod->n)), 0.73);
+            Pow((1.64 - Pow(0.29, pMod.n)), 0.73);
 
-        clr.M = clr.C * Pow(pMod->FL, 0.25);
+        clr.M = clr.C * Pow(pMod.FL, 0.25);
         clr.s = 100.0 * Pow((clr.M / clr.Q), 0.5);
 
         return clr;
     }
 
-    private static CAM02COLOR InverseCorrelates(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR InverseCorrelates(CAM02COLOR clr, CIECAM02 pMod)
     {
         double t, e, p1, p2, p3, p4, p5, hr, d2r;
         d2r = 3.141592654 / 180.0;
 
         t = Pow((clr.C / (Pow((clr.J / 100.0), 0.5) *
-            (Pow((1.64 - Pow(0.29, pMod->n)), 0.73)))),
+            (Pow((1.64 - Pow(0.29, pMod.n)), 0.73)))),
             (1.0 / 0.9));
-        e = ((12500.0 / 13.0) * pMod->Nc * pMod->Ncb) *
+        e = ((12500.0 / 13.0) * pMod.Nc * pMod.Ncb) *
             (Cos((clr.h * d2r + 2.0)) + 3.8);
 
-        clr.A = pMod->adoptedWhite.A * Pow(
+        clr.A = pMod.adoptedWhite.A * Pow(
                (clr.J / 100.0),
-               (1.0 / (pMod->c * pMod->z)));
+               (1.0 / (pMod.c * pMod.z)));
 
         p1 = e / t;
-        p2 = (clr.A / pMod->Nbb) + 0.305;
+        p2 = (clr.A / pMod.Nbb) + 0.305;
         p3 = 21.0 / 20.0;
 
         hr = clr.h * d2r;
@@ -251,12 +251,12 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    private static CAM02COLOR InverseNonlinearity(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR InverseNonlinearity(CAM02COLOR clr, CIECAM02 pMod)
     {
         for (var i = 0; i < 3; i++)
         {
             var c1 = (clr.RGBpa[i] - 0.1) < 0 ? -1 : 1;
-            clr.RGBp[i] = c1 * (100.0 / pMod->FL) *
+            clr.RGBp[i] = c1 * (100.0 / pMod.FL) *
                 Pow(((27.13 * Abs(clr.RGBpa[i] - 0.1)) /
                 (400.0 - Abs(clr.RGBpa[i] - 0.1))),
                 (1.0 / 0.42));
@@ -285,12 +285,12 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    private static CAM02COLOR InverseChromaticAdaptation(CAM02COLOR clr, CIECAM02* pMod)
+    private static CAM02COLOR InverseChromaticAdaptation(CAM02COLOR clr, CIECAM02 pMod)
     {
         for (var i = 0; i < 3; i++)
         {
             clr.RGB[i] = clr.RGBc[i] /
-                ((pMod->adoptedWhite.XYZ[1] * pMod->D / pMod->adoptedWhite.RGB[i]) + 1.0 - pMod->D);
+                ((pMod.adoptedWhite.XYZ[1] * pMod.D / pMod.adoptedWhite.RGB[i]) + 1.0 - pMod.D);
         }
 
         return clr;
@@ -305,88 +305,90 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    public static HANDLE cmsCIECAM02INIT(Context? ContextID, in ViewingConditions* pVC)
+    public static object cmsCIECAM02INIT(Context? ContextID, in ViewingConditions* pVC)
     {
-        CIECAM02* lpMod;
+        //CIECAM02* lpMod;
 
         _cmsAssert(pVC);
 
-        if ((lpMod = _cmsMallocZero<CIECAM02>(ContextID)) is null)
-            return null;
+        //if ((lpMod = _cmsMallocZero<CIECAM02>(ContextID)) is null)
+        //    return null;
+        var lpMod = new CIECAM02
+        {
+            ContextID = ContextID
+        };
 
-        lpMod->ContextID = ContextID;
+        lpMod.adoptedWhite.XYZ[0] = pVC->whitePoint.X;
+        lpMod.adoptedWhite.XYZ[1] = pVC->whitePoint.Y;
+        lpMod.adoptedWhite.XYZ[2] = pVC->whitePoint.Z;
 
-        lpMod->adoptedWhite.XYZ[0] = pVC->whitePoint.X;
-        lpMod->adoptedWhite.XYZ[1] = pVC->whitePoint.Y;
-        lpMod->adoptedWhite.XYZ[2] = pVC->whitePoint.Z;
+        lpMod.LA = pVC->La;
+        lpMod.Yb = pVC->Yb;
+        lpMod.D = pVC->D_value;
+        lpMod.surround = pVC->surround;
 
-        lpMod->LA = pVC->La;
-        lpMod->Yb = pVC->Yb;
-        lpMod->D = pVC->D_value;
-        lpMod->surround = pVC->surround;
-
-        switch (lpMod->surround)
+        switch (lpMod.surround)
         {
 
 
             case CUTSHEET_SURROUND:
-                lpMod->F = 0.8;
-                lpMod->c = 0.41;
-                lpMod->Nc = 0.8;
+                lpMod.F = 0.8;
+                lpMod.c = 0.41;
+                lpMod.Nc = 0.8;
                 break;
 
             case DARK_SURROUND:
-                lpMod->F = 0.8;
-                lpMod->c = 0.525;
-                lpMod->Nc = 0.8;
+                lpMod.F = 0.8;
+                lpMod.c = 0.525;
+                lpMod.Nc = 0.8;
                 break;
 
             case DIM_SURROUND:
-                lpMod->F = 0.9;
-                lpMod->c = 0.59;
-                lpMod->Nc = 0.95;
+                lpMod.F = 0.9;
+                lpMod.c = 0.59;
+                lpMod.Nc = 0.95;
                 break;
 
             default:
                 // Average surround
-                lpMod->F = 1.0;
-                lpMod->c = 0.69;
-                lpMod->Nc = 1.0;
+                lpMod.F = 1.0;
+                lpMod.c = 0.69;
+                lpMod.Nc = 1.0;
                 break;
         }
 
-        lpMod->n = compute_n(lpMod);
-        lpMod->z = compute_z(lpMod);
-        lpMod->Nbb = computeNbb(lpMod);
-        lpMod->FL = computeFL(lpMod);
+        lpMod.n = compute_n(lpMod);
+        lpMod.z = compute_z(lpMod);
+        lpMod.Nbb = computeNbb(lpMod);
+        lpMod.FL = computeFL(lpMod);
 
-        if (lpMod->D == D_CALCULATE)
+        if (lpMod.D == D_CALCULATE)
         {
-            lpMod->D = computeD(lpMod);
+            lpMod.D = computeD(lpMod);
         }
 
-        lpMod->Ncb = lpMod->Nbb;
+        lpMod.Ncb = lpMod.Nbb;
 
-        lpMod->adoptedWhite = XYZtoCAT02(lpMod->adoptedWhite);
-        lpMod->adoptedWhite = ChromaticAdaptation(lpMod->adoptedWhite, lpMod);
-        lpMod->adoptedWhite = CAT02toHPE(lpMod->adoptedWhite);
-        lpMod->adoptedWhite = NonlinearCompression(lpMod->adoptedWhite, lpMod);
+        lpMod.adoptedWhite = XYZtoCAT02(lpMod.adoptedWhite);
+        lpMod.adoptedWhite = ChromaticAdaptation(lpMod.adoptedWhite, lpMod);
+        lpMod.adoptedWhite = CAT02toHPE(lpMod.adoptedWhite);
+        lpMod.adoptedWhite = NonlinearCompression(lpMod.adoptedWhite, lpMod);
 
         return lpMod;
     }
 
-    public static void cmsCIECAM02Done(HANDLE hModel)
+    public static void cmsCIECAM02Done(object hModel)
     {
-        var lpMod = (CIECAM02*)hModel;
+        //var lpMod = (CIECAM02*)hModel;
 
-        if (lpMod is not null)
-            _cmsFree(lpMod->ContextID, lpMod);
+        //if (lpMod is not null)
+        //    _cmsFree(lpMod->ContextID, lpMod);
     }
 
-    public static void cmsCIECAM02Forward(HANDLE hModel, in CIEXYZ* pIn, JCh* pOut)
+    public static void cmsCIECAM02Forward(object hModel, in CIEXYZ* pIn, JCh* pOut)
     {
         CAM02COLOR clr;
-        CIECAM02* lpMod = (CIECAM02*)hModel;
+        CIECAM02 lpMod = (hModel as CIECAM02)!;
 
         _cmsAssert(lpMod);
         _cmsAssert(pIn);
@@ -409,10 +411,10 @@ public static unsafe partial class Lcms2
         pOut->h = clr.h;
     }
 
-    public static void cmsCIECAM02Reverse(HANDLE hModel, in JCh* pIn, CIEXYZ* pOut)
+    public static void cmsCIECAM02Reverse(object hModel, in JCh* pIn, CIEXYZ* pOut)
     {
         CAM02COLOR clr;
-        CIECAM02* lpMod = (CIECAM02*)hModel;
+        CIECAM02 lpMod = (hModel as CIECAM02)!;
 
         _cmsAssert(lpMod);
         _cmsAssert(pIn);

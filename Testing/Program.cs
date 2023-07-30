@@ -50,9 +50,8 @@ if (exhaustive)
     logger.LogInformation("Running exhaustive tests (will take a while...)");
 }
 
-CheckHeap();
-using (logger.BeginScope("Installing debug memory plug-in"))
-    cmsPlugin(DebugMemHandler);
+//using (logger.BeginScope("Installing debug memory plug-in"))
+//    cmsPlugin(DebugMemHandler);
 
 using (logger.BeginScope("Setting up error logger"))
     cmsSetLogErrorHandler(factory);
@@ -221,7 +220,7 @@ if (doPluginTests)
 {
     using (logger.BeginScope("Plugin tests"))
     {
-        Check("Context memory handling", CheckAllocContext);
+        //Check("Context memory handling", CheckAllocContext);
         Check("Simple context functionality", CheckSimpleContext);
         Check("Alarm codes context", CheckAlarmColorsContext);
         Check("Adaptation state context", CheckAdaptationStateContext);
@@ -238,7 +237,7 @@ if (doPluginTests)
     }
 }
 
-DebugMemPrintTotals();
+//DebugMemPrintTotals();
 
 cmsUnregisterPlugins();
 

@@ -27,13 +27,14 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Runtime.CompilerServices;
+
 using static System.Math;
 
 namespace lcms2;
-
 public static unsafe partial class Lcms2
 {
-    private const byte SECTORS = 16;
+    internal const byte SECTORS = 16;
 
     private readonly record struct _spiral(int AdvX, int AdvY);
     private static readonly _spiral[] Spiral = new _spiral[]
@@ -45,20 +46,13 @@ public static unsafe partial class Lcms2
     };
     private static readonly int NSTEPS = Spiral.Length;
 
-    private record struct Spherical(double r, double alpha, double theta);
-    private enum GDBPointType { Empty, Specified, Modeled }
-    private const GDBPointType GP_EMPTY = GDBPointType.Empty;
-    private const GDBPointType GP_SPECIFIED = GDBPointType.Specified;
-    private const GDBPointType GP_MODELED = GDBPointType.Modeled;
+    internal record struct Spherical(double r, double alpha, double theta);
+    internal enum GDBPointType { Empty, Specified, Modeled }
+    internal const GDBPointType GP_EMPTY = GDBPointType.Empty;
+    internal const GDBPointType GP_SPECIFIED = GDBPointType.Specified;
+    internal const GDBPointType GP_MODELED = GDBPointType.Modeled;
 
-    private record struct GDBPoint(GDBPointType Type, Spherical p);
-    private struct GDB
-    {
-        public Context? ContextID;
-        public GDBPoint* Gamut;
-        public GDBPoint* GamutPtr(int theta, int alpha) =>
-            &Gamut[theta * SECTORS + alpha];
-    }
+    internal record struct GBDPoint(GDBPointType Type, Spherical p);
     private record struct Line(VEC3 a, VEC3 u);
     private record struct Plane(VEC3 b, VEC3 v, VEC3 w);
 
@@ -224,34 +218,37 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static HANDLE cmsGBDAlloc(Context? ContextID)
+    public static GBD cmsGBDAlloc(Context? ContextID)
     {
-        var gbd = _cmsMallocZero<GDB>(ContextID);
-        if (gbd is null) return null;
-
-        gbd->ContextID = ContextID;
-        gbd->Gamut = _cmsCalloc<GDBPoint>(gbd->ContextID, SECTORS * SECTORS);
-        if (gbd->Gamut is null)
+        //var gbd = _cmsMallocZero<GBD>(ContextID);
+        //if (gbd is null) return null;
+        var pool = Context.GetPool<GBDPoint>(ContextID);
+        var gbd = new GBD
         {
-            _cmsFree(ContextID, gbd);
-            return null;
-        }
+            ContextID = ContextID,
+            Gamut = pool.Rent(SECTORS * SECTORS)
+        };
+        //gbd.Gamut = _cmsCalloc<GBDPoint>(gbd->ContextID, SECTORS * SECTORS);
+        //if (gbd.Gamut is null)
+        //{
+        //    _cmsFree(ContextID, gbd);
+        //    return null;
+        //}
 
         return gbd;
     }
 
-    public static void cmsGBDFree(HANDLE hGBD)
+    public static void cmsGBDFree(GBD? gbd)
     {
-        var gbd = (GDB*)hGBD;
-        if (hGBD is not null)
+        if (gbd is not null)
         {
-            if (gbd->Gamut is null)
-                _cmsFree(gbd->ContextID, gbd->Gamut);
-            _cmsFree(gbd->ContextID, hGBD);
+            if (gbd.Gamut is null)
+                _cmsFree(gbd.ContextID, gbd.Gamut);
+            //_cmsFree(gbd.ContextID, hGBD);
         }
     }
 
-    private static GDBPoint* GetPoint(GDB* gbd, in CIELab* Lab, Spherical* sp)
+    private static ref GBDPoint GetPoint(GBD gbd, in CIELab* Lab, Spherical* sp)
     {
         VEC3 v;
         int alpha, theta;
@@ -269,8 +266,9 @@ public static unsafe partial class Lcms2
 
         if (sp->r < 0 || sp->alpha < 0 || sp->theta < 0)
         {
-            cmsSignalError(gbd->ContextID, cmsERROR_RANGE, "spherical value out of range");
-            return null;
+            cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "spherical value out of range");
+            //return null;
+            return ref Unsafe.NullRef<GBDPoint>();
         }
 
         // On which sector it falls?
@@ -278,59 +276,58 @@ public static unsafe partial class Lcms2
 
         if (alpha is < 0 or >= SECTORS || theta is <0 or >= SECTORS)
         {
-            cmsSignalError(gbd->ContextID, cmsERROR_RANGE, "quadrant out of range");
-            return null;
+            cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "quadrant out of range");
+            //return null;
+            return ref Unsafe.NullRef<GBDPoint>();
         }
 
         // Get pointer to the sector
-        return gbd->GamutPtr(theta, alpha);
+        return ref gbd.GamutPtr(theta, alpha);
     }
 
-    public static bool cmsGDBAddPoint(HANDLE hGBD, in CIELab* Lab)
+    public static bool cmsGBDAddPoint(GBD gbd, in CIELab* Lab)
     {
-        var gbd = (GDB*)hGBD;
         Spherical sp;
 
         // Get pointer to the sector
-        var ptr = GetPoint(gbd, Lab, &sp);
-        if (ptr is null) return false;
+        ref var ptr = ref GetPoint(gbd, Lab, &sp);
+        if (Unsafe.AreSame(ref ptr, ref Unsafe.NullRef<GBDPoint>())) return false;
 
         // If no samples at this sector, add it
-        if (ptr->Type is GP_EMPTY)
+        if (ptr.Type is GP_EMPTY)
         {
-            ptr->Type = GP_SPECIFIED;
-            ptr->p = sp;
+            ptr.Type = GP_SPECIFIED;
+            ptr.p = sp;
         }
         else
         {
             // Substitute only if radius is greater
-            if (sp.r > ptr->p.r)
+            if (sp.r > ptr.p.r)
             {
-                ptr->Type = GP_SPECIFIED;
-                ptr->p = sp;
+                ptr.Type = GP_SPECIFIED;
+                ptr.p = sp;
             }
         }
 
         return true;
     }
 
-    public static bool cmsGDBCheckPoint(HANDLE hGBD, in CIELab* Lab)
+    public static bool cmsGBDCheckPoint(GBD gbd, in CIELab* Lab)
     {
-        var gbd = (GDB*)hGBD;
         Spherical sp;
 
         // Get pointer to the sector
-        var ptr = GetPoint(gbd, Lab, &sp);
-        if (ptr is null) return false;
+        ref var ptr = ref GetPoint(gbd, Lab, &sp);
+        if (Unsafe.AreSame(ref ptr, ref Unsafe.NullRef<GBDPoint>())) return false;
 
         // If no samples at this sector, return no data
-        if (ptr->Type is GP_EMPTY) return false;
+        if (ptr.Type is GP_EMPTY) return false;
 
         // In gamut only if radius is greater
-        return (sp.r <= ptr->p.r);
+        return (sp.r <= ptr.p.r);
     }
 
-    private static int FindNearSectors(GDB* gbd, int alpha, int theta, GDBPoint** Close)
+    private static int FindNearSectors(GBD gbd, int alpha, int theta, Span<GBDPoint> Close)
     {
         int nSectors = 0;
 
@@ -347,26 +344,29 @@ public static unsafe partial class Lcms2
             if (a < 0) a = SECTORS + a;
             if (t < 0) t = SECTORS + t;
 
-            var pt = gbd->GamutPtr(t, a);
+            ref var pt = ref gbd.GamutPtr(t, a);
+            if (Unsafe.AreSame(ref pt, ref Unsafe.NullRef<GBDPoint>())) continue;
 
-            if (pt->Type is not GP_EMPTY)
+            if (pt.Type is not GP_EMPTY)
                 Close[nSectors++] = pt;
         }
 
         return nSectors;
     }
 
-    private static bool InterpolateMissingSector(GDB* gbd, int alpha, int theta)
+    private static bool InterpolateMissingSector(GBD gbd, int alpha, int theta)
     {
         Spherical sp = new();
         VEC3 Lab;
         VEC3 Center;
         Line ray;
-        var Close = stackalloc GDBPoint*[NSTEPS + 1];
+        Span<GBDPoint> Close = stackalloc GBDPoint[NSTEPS + 1];
         Spherical closel = new();
 
         // Is that point already specified?
-        if (gbd->GamutPtr(theta, alpha)->Type is not GP_EMPTY) return true;
+        ref var ptr = ref gbd.GamutPtr(theta, alpha);
+        if (Unsafe.AreSame(ref ptr, ref Unsafe.NullRef<GBDPoint>())) return true;
+        if (ptr.Type is not GP_EMPTY) return true;
 
         // Fill close points
         var nCloseSectors = FindNearSectors(gbd, alpha, theta, Close);
@@ -396,8 +396,8 @@ public static unsafe partial class Lcms2
                 VEC3 temp, a1, a2;
                 Line edge;
 
-                var Closekp = Close[k]->p;
-                var Closemp = Close[m]->p;
+                var Closekp = Close[k].p;
+                var Closemp = Close[m].p;
 
                 // A line from sector to sector
                 ToCartesian(&a1, &Closekp);
@@ -422,22 +422,20 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var result = new GDBPoint
+        var result = new GBDPoint
         {
             p = closel,
             Type = GP_MODELED
         };
 
-        *gbd->GamutPtr(theta, alpha) = result;
+        gbd.GamutPtr(theta, alpha) = result;
 
         return true;
     }
 
-    public static bool cmsGDBCompute(HANDLE hGBD, uint _)
+    public static bool cmsGDBCompute(GBD gbd, uint _)
     {
-        var gbd = (GDB*)hGBD;
-
-        _cmsAssert(hGBD);
+        _cmsAssert(gbd);
 
         // Interpolate black
         for (var alpha = 0; alpha < SECTORS; alpha++)
@@ -459,10 +457,8 @@ public static unsafe partial class Lcms2
     }
 
 #if DEBUG
-    public static bool cmsGBDdumpVRML(HANDLE hGBD, string fname)
+    public static bool cmsGBDdumpVRML(GBD gbd, string fname)
     {
-        var gbd = (GDB*)hGBD;
-
         using var fp = new StreamWriter(File.OpenWrite(fname));
 
         fp.WriteLine("#VRML V2.0 utf8");
@@ -539,8 +535,9 @@ public static unsafe partial class Lcms2
             {
                 VEC3 v;
 
-                var pt = gbd->GamutPtr(i, j);
-                var ptp = pt->p;
+                ref var pt = ref gbd.GamutPtr(i, j);
+                if (Unsafe.AreSame(ref pt, ref Unsafe.NullRef<GBDPoint>())) pt = new();
+                var ptp = pt.p;
                 ToCartesian(&v, &ptp);
 
                 fp.Write("\t\t\t\t\t{0:g} {1:g} {2:g}", v.X + 50, v.Y, v.Z);
@@ -564,11 +561,12 @@ public static unsafe partial class Lcms2
             {
                 VEC3 v;
 
-                var pt = gbd->GamutPtr(i, j);
-                var ptp = pt->p;
+                ref var pt = ref gbd.GamutPtr(i, j);
+                if (Unsafe.AreSame(ref pt, ref Unsafe.NullRef<GBDPoint>())) pt = new();
+                var ptp = pt.p;
                 ToCartesian(&v, &ptp);
 
-                switch (pt->Type)
+                switch (pt.Type)
                 {
                     case GP_EMPTY: fp.Write("\t\t\t\t\t{0:g} {1:g} {2:g}", 0.0, 0.0, 0.0); break;
                     case GP_MODELED: fp.Write("\t\t\t\t\t{0:g} {1:g} {2:g}", 1.0, .5, .5); break;

@@ -61,16 +61,16 @@ internal static unsafe partial class Testbed
 
     internal static volatile int _emitAnsiColorCodes = -1;
 
-    public static readonly PluginMemHandler DebugMemHandler = new()
-    {
-        Next = null,
-        ExpectedVersion = 2060,
-        Magic = cmsPluginMagicNumber,
-        Type = cmsPluginMemHandlerSig,
-        MallocPtr = DebugMalloc,
-        FreePtr = DebugFree,
-        ReallocPtr = DebugRealloc,
-    };
+    //public static readonly PluginMemHandler DebugMemHandler = new()
+    //{
+    //    Next = null,
+    //    ExpectedVersion = 2060,
+    //    Magic = cmsPluginMagicNumber,
+    //    Type = cmsPluginMemHandlerSig,
+    //    MallocPtr = DebugMalloc,
+    //    FreePtr = DebugFree,
+    //    ReallocPtr = DebugRealloc,
+    //};
     public static bool HasConsole = !Console.IsInputRedirected;
     private static uint thread = 1;
 
@@ -103,100 +103,100 @@ internal static unsafe partial class Testbed
         return new() { UserData = thread++ % 0xff0 };
     }
 
-    public static void* DebugMalloc(Context? ContextID, uint size, Type type)
-    {
-        if (size <= 0)
-        {
-            GetLogger(ContextID).LogError("malloc requested with zero bytes");
-            Die();
-        }
+//    public static void* DebugMalloc(Context? ContextID, uint size, Type type)
+//    {
+//        if (size <= 0)
+//        {
+//            GetLogger(ContextID).LogError("malloc requested with zero bytes");
+//            Die();
+//        }
 
-        TotalMemory += size;
+//        TotalMemory += size;
 
-        if (TotalMemory > MaxAllocated)
-            MaxAllocated = TotalMemory;
+//        if (TotalMemory > MaxAllocated)
+//            MaxAllocated = TotalMemory;
 
-        if (size > SingleHit) SingleHit = size;
+//        if (size > SingleHit) SingleHit = size;
 
-        try
-        {
-            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock), type);
+//        try
+//        {
+//            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock), type);
 
-            blk->KeepSize = size;
-            blk->WhoAllocated = _cmsGetContext(ContextID).GetHashCode();
-            blk->DontCheck = 0;
+//            blk->KeepSize = size;
+//            blk->WhoAllocated = _cmsGetContext(ContextID).GetHashCode();
+//            blk->DontCheck = 0;
 
-            return (byte*)blk + (uint)sizeof(MemoryBlock);
-        }
-        catch
-        {
-            return null;
-        }
-    }
+//            return (byte*)blk + (uint)sizeof(MemoryBlock);
+//        }
+//        catch
+//        {
+//            return null;
+//        }
+//    }
 
-    public static void DebugFree(Context? ContextID, void* Ptr)
-    {
-        if (Ptr is null)
-        {
-            GetLogger(ContextID).LogError("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
-            Die();
-        }
+//    public static void DebugFree(Context? ContextID, void* Ptr)
+//    {
+//        if (Ptr is null)
+//        {
+//            GetLogger(ContextID).LogError("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
+//            Die();
+//        }
 
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
-        TotalMemory -= blk->KeepSize;
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//        TotalMemory -= blk->KeepSize;
 
-        if (blk->WhoAllocated != _cmsGetContext(ContextID).GetHashCode() && blk->DontCheck is 0)
-        {
-            GetLogger(ContextID).LogError("Trying to free memory allocated by a different thread\nAllocated by Context at\t0x{expected:x16}\nFreed by Context at\t0x{actual:x16}", blk->WhoAllocated!.GetHashCode(), ContextID!.GetHashCode());
-            Die();
-        }
+//        if (blk->WhoAllocated != _cmsGetContext(ContextID).GetHashCode() && blk->DontCheck is 0)
+//        {
+//            GetLogger(ContextID).LogError("Trying to free memory allocated by a different thread\nAllocated by Context at\t0x{expected:x16}\nFreed by Context at\t0x{actual:x16}", blk->WhoAllocated!.GetHashCode(), ContextID!.GetHashCode());
+//            Die();
+//        }
 
-        try
-        {
-            free(blk);
-        }
-        catch { }
-    }
+//        try
+//        {
+//            free(blk);
+//        }
+//        catch { }
+//    }
 
-    public static void* DebugRealloc(Context? ContextID, void* Ptr, uint NewSize)
-    {
-        var type = typeof(void);
+//    public static void* DebugRealloc(Context? ContextID, void* Ptr, uint NewSize)
+//    {
+//        var type = typeof(void);
 
-        if (debugAllocs)
-        {
-            lock (AllocList)
-            {
-                if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
-                    type = item.type;
-            }
-        }
-        var NewPtr = DebugMalloc(ContextID, NewSize, type);
-        if (Ptr is null) return NewPtr;
+//        if (debugAllocs)
+//        {
+//            lock (AllocList)
+//            {
+//                if (AllocList.TryGetValue((nuint)Ptr - _sizeof<MemoryBlock>(), out var item))
+//                    type = item.type;
+//            }
+//        }
+//        var NewPtr = DebugMalloc(ContextID, NewSize, type);
+//        if (Ptr is null) return NewPtr;
 
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
-        var max_sz = blk->KeepSize > NewSize ? NewSize : blk->KeepSize;
-        NativeMemory.Copy(Ptr, NewPtr, max_sz);
-        DebugFree(ContextID, Ptr);
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//        var max_sz = blk->KeepSize > NewSize ? NewSize : blk->KeepSize;
+//        NativeMemory.Copy(Ptr, NewPtr, max_sz);
+//        DebugFree(ContextID, Ptr);
 
-        return NewPtr;
-    }
+//        return NewPtr;
+//    }
 
-    public static void DebugMemPrintTotals()
-    {
-        using (logger.BeginScope("Memory statistics"))
-        {
-            logger.LogInformation("""
-{{"Allocated": {TotalMemory}, "MaxAlloc": {MaxAllocated}, "LargestAlloc": {SingleHit}}}
-""", TotalMemory, MaxAllocated, SingleHit);
-        }
-    }
+//    public static void DebugMemPrintTotals()
+//    {
+//        using (logger.BeginScope("Memory statistics"))
+//        {
+//            logger.LogInformation("""
+//{{"Allocated": {TotalMemory}, "MaxAlloc": {MaxAllocated}, "LargestAlloc": {SingleHit}}}
+//""", TotalMemory, MaxAllocated, SingleHit);
+//        }
+//    }
 
-    public static void DebugMemDontCheckThis(void* Ptr)
-    {
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//    public static void DebugMemDontCheckThis(void* Ptr)
+//    {
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
 
-        blk->DontCheck = 1;
-    }
+//        blk->DontCheck = 1;
+//    }
 
     public static string MemStr(uint size) =>
         size switch
@@ -206,19 +206,20 @@ internal static unsafe partial class Testbed
             _ => $"{size} bytes",
         };
 
-    public static void TestMemoryLeaks(bool ok)
-    {
-        if (TotalMemory > 0)
-            logger.LogWarning("Ok, but {TotalMemory}, are left!", MemStr(TotalMemory));
-        else
-            logger.LogInformation("Ok");
+    //public static void TestMemoryLeaks(bool ok)
+    //{
+    //    if (TotalMemory > 0)
+    //        logger.LogWarning("Ok, but {TotalMemory}, are left!", MemStr(TotalMemory));
+    //    else
+    //        logger.LogInformation("Ok");
 
-        CheckHeap();
-    }
+    //    CheckHeap();
+    //}
 
     public static Context WatchDogContext(object? usr)
     {
-        var ctx = cmsCreateContext(DebugMemHandler, usr);
+        //var ctx = cmsCreateContext(DebugMemHandler, usr);
+        var ctx = cmsCreateContext(null, usr);
 
         if (ctx is null)
         {
@@ -268,7 +269,8 @@ internal static unsafe partial class Testbed
             if (test() && !TrappedError)
             {
                 // It is a good place to check memory
-                TestMemoryLeaks(true);
+                //TestMemoryLeaks(true);
+                logger.LogInformation("Ok");
             }
             else
             {

@@ -25,10 +25,10 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.cgats;
+//namespace lcms2.cgats;
 
-internal unsafe struct OWNEDMEM
-{
-    public OWNEDMEM* Next;
-    public void* Ptr;
-}
+//internal unsafe struct OWNEDMEM
+//{
+//    public OWNEDMEM* Next;
+//    public byte[] Ptr;
+//}

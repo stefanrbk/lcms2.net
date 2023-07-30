@@ -229,6 +229,16 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
+    private static uint mywcslen(ReadOnlySpan<char> s)
+    {
+        for (var i = 0; i < s.Length; i++)
+        {
+            if (s[i] is '\0')
+                return (uint)--i;
+        }
+        return (uint)s.Length;
+    }
+
     private static uint mywcslen(in byte* s)
     {
         var p = s;
@@ -955,10 +965,10 @@ public static unsafe partial class Lcms2
         //_cmsFree(dict.ContextID, dict);
     }
 
-    private static char* DupWcs(Context? ContextID, in char* ptr)
+    private static char[]? DupWcs(Context? ContextID, ReadOnlySpan<char> ptr)
     {
-        if (ptr is null) return null;
-        return _cmsDupMem<char>(ContextID, ptr, mywcslen(ptr) + 1);
+        if (ptr == null) return null;
+        return _cmsDupMem(ContextID, ptr, mywcslen(ptr) + 1);
     }
 
     public static bool cmsDictAddEntry(Dictionary dict, string Name, string Value, Mlu? DisplayName, Mlu? DisplayValue)

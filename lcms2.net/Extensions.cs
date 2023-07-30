@@ -33,16 +33,16 @@ namespace lcms2;
 
 public static class Extensions
 {
-    private static readonly Dictionary<string, nint> allocedStrings = new();
-    private static readonly Destructor Finalize = new();
-    private unsafe sealed class Destructor
-    {
-        ~Destructor()
-        {
-            foreach (var ptr in allocedStrings)
-                free((void*)ptr.Value);
-        }
-    }
+    //private static readonly Dictionary<string, nint> allocedStrings = new();
+    //private static readonly Destructor Finalize = new();
+    //private unsafe sealed class Destructor
+    //{
+    //    ~Destructor()
+    //    {
+    //        foreach (var ptr in allocedStrings)
+    //            free((void*)ptr.Value);
+    //    }
+    //}
     public static bool IsSet(this SamplerFlag value, SamplerFlag flag) =>
         (value & flag) is not 0;
 

@@ -25,29 +25,29 @@
 //---------------------------------------------------------------------------------
 //
 
-namespace lcms2.state;
+//namespace lcms2.state;
 
-internal class MemPluginChunkType : IDup
-{
-    public MallocFnPtrType MallocPtr;
-    public MallocZerocFnPtrType MallocZeroPtr;
-    public FreeFnPtrType FreePtr;
-    public ReallocFnPtrType ReallocPtr;
-    public CallocFnPtrType CallocPtr;
-    public DupFnPtrType DupPtr;
+//internal class MemPluginChunkType : IDup
+//{
+//    public MallocFnPtrType MallocPtr;
+//    public MallocZerocFnPtrType MallocZeroPtr;
+//    public FreeFnPtrType FreePtr;
+//    public ReallocFnPtrType ReallocPtr;
+//    public CallocFnPtrType CallocPtr;
+//    public DupFnPtrType DupPtr;
 
-    public object? Dup(Context ctx)
-    {
-        _cmsAssert(ctx);
+//    public object? Dup(Context ctx)
+//    {
+//        _cmsAssert(ctx);
 
-        return new MemPluginChunkType()
-        {
-            MallocPtr = MallocPtr,
-            MallocZeroPtr = MallocZeroPtr,
-            FreePtr = FreePtr,
-            ReallocPtr = ReallocPtr,
-            CallocPtr = CallocPtr,
-            DupPtr = DupPtr,
-        };
-    }
-}
+//        return new MemPluginChunkType()
+//        {
+//            MallocPtr = MallocPtr,
+//            MallocZeroPtr = MallocZeroPtr,
+//            FreePtr = FreePtr,
+//            ReallocPtr = ReallocPtr,
+//            CallocPtr = CallocPtr,
+//            DupPtr = DupPtr,
+//        };
+//    }
+//}

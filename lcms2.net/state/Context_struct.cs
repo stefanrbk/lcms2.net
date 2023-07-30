@@ -35,12 +35,12 @@ public class Context
 {
     internal Context? Next;
     private readonly List<object> BufferPools = new();
-    internal MemPluginChunkType DefaultMemoryManager;
+    //internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;
     internal LogErrorChunkType ErrorLogger;
     internal AlarmCodesChunkType AlarmCodes;
     internal AdaptationStateChunkType AdaptationState;
-    internal MemPluginChunkType MemPlugin;
+    //internal MemPluginChunkType MemPlugin;
     internal InterpPluginChunkType InterpPlugin;
     internal CurvesPluginChunkType CurvesPlugin;
     internal FormattersPluginChunkType FormattersPlugin;

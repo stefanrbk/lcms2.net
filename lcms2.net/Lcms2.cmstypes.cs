@@ -1523,7 +1523,7 @@ public static unsafe partial class Lcms2
 
     private static bool Read8bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels)
     {
-        byte* Temp = null;
+        //byte* Temp = null;
 
         var pool = Context.GetPool<ToneCurve>(ContextID);
         ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
@@ -1532,8 +1532,9 @@ public static unsafe partial class Lcms2
 
         //memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
 
-        Temp = _cmsMalloc<byte>(ContextID, 256);
-        if (Temp is null) goto Error2;
+        //Temp = _cmsMalloc<byte>(ContextID, 256);
+        //if (Temp is null) goto Error2;
+        var Temp = Context.GetPool<byte>(ContextID).Rent(256);
 
         for (var i = 0; i < nChannels; i++)
         {
@@ -1541,12 +1542,15 @@ public static unsafe partial class Lcms2
             if (Tables[i] is null) goto Error;
         }
 
-        for (var i = 0; i < nChannels; i++)
+        fixed (byte* t = &Temp[0])
         {
-            if (io.Read(io, Temp, 256, 1) is not 1) goto Error;
+            for (var i = 0; i < nChannels; i++)
+            {
+                if (io.Read(io, t, 256, 1) is not 1) goto Error;
 
-            for (var j = 0; j < 256; j++)
-                if (Tables[i].Table16 is not null) Tables[i].Table16![j] = FROM_8_TO_16(Temp[j]);
+                for (var j = 0; j < 256; j++)
+                    if (Tables[i].Table16 is not null) Tables[i].Table16![j] = FROM_8_TO_16(Temp[j]);
+            }
         }
 
         _cmsFree(ContextID, Temp);
@@ -1631,7 +1635,6 @@ public static unsafe partial class Lcms2
     private static Pipeline? Type_LUT8_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
     {
         byte InputChannels, OutputChannels, CLUTpoints;
-        byte* Temp = null;
         Pipeline? NewLUT = null;
         Span<double> Matrix = stackalloc double[3 * 3];
 
@@ -1674,33 +1677,45 @@ public static unsafe partial class Lcms2
         if (nTabSize == unchecked((uint)-1)) goto Error;
         if (nTabSize > 0)
         {
-            var PtrW = _cmsCalloc<ushort>(self.ContextID, nTabSize);
-            var T = PtrW;
-            if (T is null) goto Error;
+            var bytePool = Context.GetPool<byte>(self.ContextID);
+            var usPool = Context.GetPool<ushort>(self.ContextID);
 
-            Temp = _cmsMalloc<byte>(self.ContextID, nTabSize);
-            if (Temp is null)
-            {
-                _cmsFree(self.ContextID, T);
-                goto Error;
-            }
+            //var PtrW = _cmsCalloc<ushort>(self.ContextID, nTabSize);
+            var T = usPool.Rent((int)nTabSize);
+            Array.Clear(T);
+            var PtrW = T.AsSpan();
+            //if (T is null) goto Error;
 
-            if (io.Read(io, Temp, nTabSize, 1) is not 1)
+            //Temp = _cmsMalloc<byte>(self.ContextID, nTabSize);
+            //if (Temp is null)
+            //{
+            //    _cmsFree(self.ContextID, T);
+            //    goto Error;
+            //}
+            var Temp = bytePool.Rent((int)nTabSize);
+
+            fixed (byte* t = &Temp[0])
             {
-                _cmsFree(self.ContextID, T);
-                _cmsFree(self.ContextID, Temp);
-                goto Error;
+                if (io.Read(io, t, nTabSize, 1) is not 1)
+                {
+                    _cmsFree(self.ContextID, T);
+                    _cmsFree(self.ContextID, Temp);
+                    goto Error;
+                }
             }
 
             for (var i = 0; i < nTabSize; i++)
-                *PtrW++ = FROM_8_TO_16(Temp[i]);
+                PtrW[i] = FROM_8_TO_16(Temp[i]);
             _cmsFree(self.ContextID, Temp);
             Temp = null;
 
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, T)))
+            fixed (ushort* t = &T[0])
             {
-                _cmsFree(self.ContextID, T);
-                goto Error;
+                if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, t)))
+                {
+                    _cmsFree(self.ContextID, T);
+                    goto Error;
+                }
             }
             _cmsFree(self.ContextID, T);
         }
@@ -1909,19 +1924,23 @@ public static unsafe partial class Lcms2
         if (nTabSize == unchecked((uint)-1)) goto Error;
         if (nTabSize > 0)
         {
-            var T = _cmsCalloc<ushort>(self.ContextID, nTabSize);
-            if (T is null) goto Error;
+            //var T = _cmsCalloc<ushort>(self.ContextID, nTabSize);
+            //if (T is null) goto Error;
+            var T = Context.GetPool<ushort>(self.ContextID).Rent((int)nTabSize);
 
-            if (!_cmsReadUInt16Array(io, nTabSize, T))
+            fixed (ushort* t = &T[0])
             {
-                _cmsFree(self.ContextID, T);
-                goto Error;
-            }
+                if (!_cmsReadUInt16Array(io, nTabSize, t))
+                {
+                    _cmsFree(self.ContextID, T);
+                    goto Error;
+                }
 
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, T)))
-            {
-                _cmsFree(self.ContextID, T);
-                goto Error;
+                if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, t)))
+                {
+                    _cmsFree(self.ContextID, T);
+                    goto Error;
+                }
             }
             _cmsFree(self.ContextID, T);
         }
