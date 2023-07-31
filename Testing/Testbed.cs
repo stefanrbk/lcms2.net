@@ -94,8 +94,11 @@ internal static unsafe partial class Testbed
         (a < b) ? a : b;
 
     [DoesNotReturn]
-    public static void Die() =>
+    public static void Die(string message, params object[] args)
+    {
+        logger.LogError(message, args);
         Environment.Exit(1);
+    }
 
     [DebuggerStepThrough]
     public static Context DbgThread()
@@ -223,8 +226,7 @@ internal static unsafe partial class Testbed
 
         if (ctx is null)
         {
-            GetLogger(null).LogError("Unable to create memory managed context");
-            Die();
+            Die("Unable to create memory managed context");
         }
 
         //DebugMemDontCheckThis(ctx);

@@ -576,11 +576,8 @@ public static unsafe partial class Lcms2
                 if ((In[1] is >= 0x7800 and <= 0x8800) &&
                     (In[2] is >= 0x7800 and <= 0x8800))
                 {
-                    ushort* Black;
-                    ushort* White;
-                    uint nOutputs;
 
-                    if (!_cmsEndPointsBySpace(sc.ColorSpace, &White, &Black, &nOutputs))
+                    if (!_cmsEndPointsBySpace(sc.ColorSpace, out var White, out var Black, out var nOutputs))
                         return false;
 
                     for (var i = 0u; i < nOutputs; i++)

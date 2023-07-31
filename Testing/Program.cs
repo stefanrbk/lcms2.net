@@ -45,6 +45,9 @@ var doZooTests = cliResult.Value.DoZoo;
 //if (args.Length is 0 && HasConsole)
 //    exhaustive = CheckExhaustive();
 
+doCheckTests = false;
+doSpeedTests = true;
+
 if (exhaustive)
 {
     logger.LogInformation("Running exhaustive tests (will take a while...)");
@@ -220,7 +223,6 @@ if (doPluginTests)
 {
     using (logger.BeginScope("Plugin tests"))
     {
-        //Check("Context memory handling", CheckAllocContext);
         Check("Simple context functionality", CheckSimpleContext);
         Check("Alarm codes context", CheckAlarmColorsContext);
         Check("Adaptation state context", CheckAdaptationStateContext);
@@ -235,6 +237,11 @@ if (doPluginTests)
         Check("Full transform plugin", CheckTransformPlugin);
         Check("Mutex plugin", CheckMutexPlugin);
     }
+}
+
+if (doSpeedTests)
+{
+    SpeedTest();
 }
 
 //DebugMemPrintTotals();

@@ -1238,8 +1238,7 @@ internal static unsafe partial class Testbed
 
         if (mtx_?.Value.nlocks != 0)
         {
-            GetLogger(id).LogError("Locks != 0 when setting free a mutex");
-            Die();
+            Die("Locks != 0 when setting free a mutex");
         }
 
         //_cmsFree(id, mtx);

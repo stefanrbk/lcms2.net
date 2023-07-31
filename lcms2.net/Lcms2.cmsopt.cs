@@ -719,23 +719,25 @@ public static unsafe partial class Lcms2
         var WhiteIn = stackalloc ushort[cmsMAXCHANNELS];
         var WhiteOut = stackalloc ushort[cmsMAXCHANNELS];
         var ObtainedOut = stackalloc ushort[cmsMAXCHANNELS];
-        ushort* WhitePointIn, WhitePointOut;
-        uint nOuts, nIns;
 
-        if (!_cmsEndPointsBySpace(EntryColorSpace, &WhitePointIn, null, &nIns))
+        if (!_cmsEndPointsBySpace(EntryColorSpace, out var WhitePointIn, out _, out var nIns))
             return false;
 
-        if (!_cmsEndPointsBySpace(ExitColorSpace, &WhitePointOut, null, &nOuts))
+        if (!_cmsEndPointsBySpace(ExitColorSpace, out var WhitePointOut, out _, out var nOuts))
             return false;
 
         // It needs to be fixed?
         if (Lut.InputChannels != nIns) return false;
         if (Lut.OutputChannels != nOuts) return false;
 
-        cmsPipelineEval16(WhitePointIn, ObtainedOut, Lut);
+        fixed (ushort* ptr = WhitePointIn)
+            cmsPipelineEval16(ptr, ObtainedOut, Lut);
 
-        if (WhitesAreEqual(nOuts, WhitePointOut, ObtainedOut))
-            return true;    // Whites already match
+        fixed (ushort* ptr = WhitePointOut)
+        {
+            if (WhitesAreEqual(nOuts, ptr, ObtainedOut))
+                return true;    // Whites already match
+        }
 
         // Check if the LUT comes as Prelin, CLUT or Postlin. We allow all combinations
         if (!cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out Stage? PreLin, cmsSigCLutElemType, out Stage? CLUT, cmsSigCurveSetElemType, out Stage? PostLin) &&
@@ -1780,7 +1782,7 @@ public static unsafe partial class Lcms2
             *dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routinds
-            var resOffset = new VEC3(Offset);
+            var resOffset = Offset is null ? default : new VEC3(Offset);
             SetMatShaper(Dest, mpeC1.TheCurves, &res, &resOffset, mpeC2.TheCurves, OutputFormat);
         }
 

@@ -58,10 +58,8 @@ public static unsafe partial class Lcms2
         return xform;
     }
 
-    private static bool BlackPointAsDarkerColorant(Profile hInput, uint Intent, CIEXYZ* BlackPoint, uint _)
+    private static bool BlackPointAsDarkerColorant(Profile hInput, uint Intent, CIEXYZ* BlackPoint, uint _1)
     {
-        ushort* Black;
-        uint nChannels;
         CIELab Lab;
         CIEXYZ BlackXYZ;
         var ContextID = cmsGetProfileContextID(hInput);
@@ -77,7 +75,7 @@ public static unsafe partial class Lcms2
         var Space = cmsGetColorSpace(hInput);
 
         // This function returns darker colorant in 16 bits for several spaces
-        if (!_cmsEndPointsBySpace(Space, null, &Black, &nChannels))
+        if (!_cmsEndPointsBySpace(Space, out _, out var Black, out var nChannels))
             goto Fail;
 
         if (nChannels != T_CHANNELS(dwFormat))
@@ -96,7 +94,8 @@ public static unsafe partial class Lcms2
             goto Fail;
 
         // Convert black to Lab
-        cmsDoTransform(xform, Black, &Lab, 1);
+        fixed (ushort* ptr = Black)
+            cmsDoTransform(xform, ptr, &Lab, 1);
 
         // Force it to be neutral, clip to max. L* of 50
         Lab.a = Lab.b = 0;

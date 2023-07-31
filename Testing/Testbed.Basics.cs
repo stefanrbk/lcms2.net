@@ -58,14 +58,13 @@ internal static unsafe partial class Testbed
             _cmsQuickFloor(-1.234) is not -2 ||
             _cmsQuickFloor(-32767.1) is not -32768)
         {
-            GetLogger(null).LogError("""
+            Die("""
 
                 OOOPPSS! Helpers.QuickFloor() does not work as expected in your machine!
 
                 Please use the "(No Fast Floor)" configuration toggles.
 
                 """);
-            Die();
             return false;
         }
         return true;
@@ -77,14 +76,13 @@ internal static unsafe partial class Testbed
         {
             if (_cmsQuickFloorWord(i + 0.1234) != i)
             {
-                GetLogger(null).LogError("""
+                Die("""
 
                     OOOPPSS! Helpers.QuickFloorWord() does not work as expected in your machine!
 
                     Please use the "(No Fast Floor)" configuration toggles.
 
                     """);
-                Die();
                 return false;
             }
         }

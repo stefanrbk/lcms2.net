@@ -494,46 +494,50 @@ public static unsafe partial class Lcms2
         };
     }
 
-    internal static bool _cmsEndPointsBySpace(Signature Space, ushort** White, ushort** Black, uint* nOutputs)
+    internal static bool _cmsEndPointsBySpace(Signature Space, out ushort[] White, out ushort[] Black, out uint nOutputs)
     {
         // Only most common spaces
         switch ((uint)Space)
         {
             case cmsSigGrayData:
-                if (White is not null) fixed (ushort* ptr = GrayWhite) *White = ptr;
-                if (Black is not null) fixed (ushort* ptr = GrayBlack) *Black = ptr;
-                if (nOutputs is not null) *nOutputs = 1;
+                White = GrayWhite;
+                Black = GrayBlack;
+                nOutputs = 1;
 
                 return true;
 
             case cmsSigRgbData:
-                if (White is not null) fixed (ushort* ptr = RGBwhite) *White = ptr;
-                if (Black is not null) fixed (ushort* ptr = RGBblack) *Black = ptr;
-                if (nOutputs is not null) *nOutputs = 3;
+                White = RGBwhite;
+                Black = RGBblack;
+                nOutputs = 3;
 
                 return true;
 
             case cmsSigLabData:
-                if (White is not null) fixed (ushort* ptr = LABwhite) *White = ptr;
-                if (Black is not null) fixed (ushort* ptr = LABblack) *Black = ptr;
-                if (nOutputs is not null) *nOutputs = 3;
+                White = LABwhite;
+                Black = LABblack;
+                nOutputs = 3;
 
                 return true;
 
             case cmsSigCmykData:
-                if (White is not null) fixed (ushort* ptr = CMYKwhite) *White = ptr;
-                if (Black is not null) fixed (ushort* ptr = CMYKblack) *Black = ptr;
-                if (nOutputs is not null) *nOutputs = 4;
+                White = CMYKwhite;
+                Black = CMYKblack;
+                nOutputs = 4;
 
                 return true;
 
             case cmsSigCmyData:
-                if (White is not null) fixed (ushort* ptr = CMYwhite) *White = ptr;
-                if (Black is not null) fixed (ushort* ptr = CMYblack) *Black = ptr;
-                if (nOutputs is not null) *nOutputs = 3;
+                White = CMYwhite;
+                Black = CMYblack;
+                nOutputs = 3;
 
                 return true;
         }
+
+        White = null!;
+        Black = null!;
+        nOutputs = 0;
 
         return false;
     }
