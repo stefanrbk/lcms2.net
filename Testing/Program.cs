@@ -45,8 +45,8 @@ var doZooTests = cliResult.Value.DoZoo;
 //if (args.Length is 0 && HasConsole)
 //    exhaustive = CheckExhaustive();
 
-doCheckTests = false;
-doSpeedTests = true;
+//doCheckTests = false;
+//doSpeedTests = true;
 
 if (exhaustive)
 {
@@ -217,6 +217,80 @@ if (doCheckTests)
         //Check("Header version", CheckVersionHeaderWriting);
         //Check("Multilocalized profile", CheckMultilocalizedProfile);
     }
+
+    using (logger.BeginScope("Error reporting"))
+    {
+        //Check("Error reporting on bad profiles", CheckErrReportingOnBadProfiles);
+        //Check("Error reporting on bad transforms", CheckErrReportingOnBadTransforms);
+    }
+
+    using (logger.BeginScope("Transforms"))
+    {
+        //Check("Curves only transforms", CheckCurvesOnlyTransforms);
+        //Check("Float Lab->Lab transforms", CheckFloatLabTransforms);
+        //Check("Encoded Lab->Lab transforms", CheckEncodedLabTransforms);
+        //Check("Stored identities", CheckStoredIdentities);
+
+        //Check("Matrix-shaper transform (float)",   CheckMatrixShaperXFORMFloat);
+        //Check("Matrix-shaper transform (16 bits)", CheckMatrixShaperXFORM16);
+        //Check("Matrix-shaper transform (8 bits)",  CheckMatrixShaperXFORM8);
+
+        //Check("Primaries of sRGB", CheckRGBPrimaries);
+    }
+
+    using (logger.BeginScope("Known values")) {
+        //Check("Known values across matrix-shaper", Chack_sRGB_Float);
+        //Check("Gray input profile", CheckInputGray);
+        //Check("Gray Lab input profile", CheckLabInputGray);
+        //Check("Gray output profile", CheckOutputGray);
+        //Check("Gray Lab output profile", CheckLabOutputGray);
+
+        //Check("Matrix-shaper proofing transform (float)",   CheckProofingXFORMFloat);
+        //Check("Matrix-shaper proofing transform (16 bits)",  CheckProofingXFORM16);
+
+        //Check("Gamut check", CheckGamutCheck);
+
+        //Check("CMYK roundtrip on perceptual transform",   CheckCMYKRoundtrip);
+
+        //Check("CMYK perceptual transform",   CheckCMYKPerceptual);
+        //Check("CMYK rel.col. transform",   CheckCMYKRelCol);
+
+        //Check("Black ink only preservation", CheckKOnlyBlackPreserving);
+        //Check("Black plane preservation", CheckKPlaneBlackPreserving);
+
+
+        //Check("Deciding curve types", CheckV4gamma);
+
+        //Check("Black point detection", CheckBlackPoint);
+        //Check("TAC detection", CheckTAC);
+
+        //Check("CGATS parser", CheckCGATS);
+        //Check("CGATS parser on junk", CheckCGATS2);
+        //Check("CGATS parser on overflow", CheckCGATS_Overflow);
+        //Check("PostScript generator", CheckPostScript);
+        //Check("Segment maxima GBD", CheckGBD);
+        //Check("MD5 digest", CheckMD5);
+        //Check("Linking", CheckLinking);
+        //Check("floating point tags on XYZ", CheckFloatXYZ);
+        //Check("RGB->Lab->RGB with alpha on FLT", ChecksRGB2LabFLT);
+        //Check("Parametric curve on Rec709", CheckParametricRec709);
+        //Check("Floating Point sampled curve with non-zero start", CheckFloatSamples);
+        //Check("Floating Point segmented curve with short sampled segment", CheckFloatSegments);
+        //Check("Read RAW portions", CheckReadRAW);
+        //Check("Check MetaTag", CheckMeta);
+        //Check("Null transform on floats", CheckFloatNULLxform);
+        //Check("Set free a tag", CheckRemoveTag);
+        //Check("Matrix simplification", CheckMatrixSimplify);
+        //Check("Planar 8 optimization", CheckPlanar8opt);
+        //Check("Swap endian feature", CheckSE);
+        //Check("Transform line stride RGB", CheckTransformLineStride);
+        //Check("Forged MPE profile", CheckForgedMPE);
+        //Check("Proofing intersection", CheckProofingIntersection);
+        //Check("Empty MLUC", CheckEmptyMLUC);
+        //Check("sRGB round-trips", Check_sRGB_Rountrips);
+        //Check("Gamma space detection", CheckGammaSpaceDetection);
+        //Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
+    }
 }
 
 if (doPluginTests)
@@ -242,6 +316,11 @@ if (doPluginTests)
 if (doSpeedTests)
 {
     SpeedTest();
+}
+
+if (doZooTests)
+{
+    // CheckProfileZOO();
 }
 
 //DebugMemPrintTotals();
