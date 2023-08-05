@@ -220,8 +220,8 @@ if (doCheckTests)
 
     using (logger.BeginScope("Error reporting"))
     {
-        //Check("Error reporting on bad profiles", CheckErrReportingOnBadProfiles);
-        //Check("Error reporting on bad transforms", CheckErrReportingOnBadTransforms);
+        Check("Error reporting on bad profiles", CheckErrReportingOnBadProfiles);
+        Check("Error reporting on bad transforms", CheckErrReportingOnBadTransforms);
     }
 
     using (logger.BeginScope("Transforms"))

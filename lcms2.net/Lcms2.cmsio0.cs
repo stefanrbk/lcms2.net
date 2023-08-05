@@ -349,7 +349,7 @@ public static partial class Lcms2
         FILE? fm = null;
         int fileLen;
 
-        _cmsAssert(FileName);
+        _cmsAssert((object)FileName);
         _cmsAssert(AccessMode);
 
         var iohandler = new IOHandler();
@@ -1052,6 +1052,10 @@ public static partial class Lcms2
         cmsCloseProfile(NewIcc);
         return null;
     }
+
+    [DebuggerStepThrough]
+    public static Profile? cmsOpenProfileFromMemTHR(Context? ContextID, Memory<byte> MemPtr) =>
+        cmsOpenProfileFromMemTHR(ContextID, MemPtr, (uint)MemPtr.Length);
 
     [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromMem(Memory<byte> MemPtr) =>
