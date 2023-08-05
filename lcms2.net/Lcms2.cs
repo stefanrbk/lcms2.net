@@ -1525,6 +1525,9 @@ public static partial class Lcms2
 
     internal static int strcmp(ReadOnlySpan<byte> sLeft, ReadOnlySpan<byte> sRight)
     {
+        sLeft = TrimAsciiBuffer(sLeft);
+        sRight = TrimAsciiBuffer(sRight);
+
         var end = cmsmin(sLeft.Length, sRight.Length);
 
         for (var i = 0; i < end; i++)

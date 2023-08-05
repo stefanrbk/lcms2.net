@@ -226,7 +226,12 @@ internal static partial class Testbed
                 if (CheckColorant[j] != Colorant[j]) { rc = false;logger.LogWarning("Invalid Colorant"); goto Error; };
             }
 
-            if (strcmp(Name, CheckName) != 0) { rc = false;logger.LogWarning("Invalid Name"); goto Error; };
+            if (strcmp(Name, CheckName) != 0)
+            {
+                rc = false;
+                logger.LogWarning("Invalid Name");
+                goto Error;
+            };
         }
 
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "w");

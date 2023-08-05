@@ -116,8 +116,8 @@ internal static partial class Testbed
                         if (bytes is 1)
                             Values[i] <<= 8;
                     }
-                    b.Fmt16(info, Values, Buffer, 1);
-                    f.Fmt16(info, Values, Buffer, 1);
+                    b.Fmt16(info, Values, Buffer, 2);
+                    f.Fmt16(info, Values, Buffer, 2);
                     return;
                 }
             }
@@ -161,6 +161,7 @@ internal static partial class Testbed
             for (var i = 0; i < nChannels; i++)
                 Values[i] = i + j;
 
+            Buffer.Clear();
             b.FmtFloat(info, Values, Buffer, 2);
             Values.Clear();
             f.FmtFloat(info, Values, Buffer, 2);
@@ -175,10 +176,13 @@ internal static partial class Testbed
                     FormatterFailed = true;
 
                     // Useful for debug
+                    Values.Clear();
                     for (i = 0; i < nChannels; i++)
-                        Values[i] = (ushort)(i + j);
+                        Values[i] = i + j;
 
+                    Buffer.Clear();
                     b.FmtFloat(info, Values, Buffer, 1);
+                    Values.Clear();
                     f.FmtFloat(info, Values, Buffer, 1);
                     return;
                 }

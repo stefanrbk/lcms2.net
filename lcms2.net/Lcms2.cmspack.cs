@@ -1454,7 +1454,7 @@ public static partial class Lcms2
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(acc[ptr]);
 
-            ptr += Extra * sizeof(ushort);
+            ptr += Extra;
         }
         else
         {
@@ -2377,6 +2377,7 @@ public static partial class Lcms2
         var maximum = IsInkSpace(info.InputFormat) ? 655.35F : 65535.0F;
 
         Stride /= PixelSize(info.InputFormat);
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
 
         if (ExtraFirst) start = Extra;
 
@@ -2384,7 +2385,8 @@ public static partial class Lcms2
         {
             var index = DoSwap ? (nChan - i - 1) : i;
 
-            var v = _cmsHalf2Float(BitConverter.ToUInt16(accum[((i + start) * (Planar ? (int)Stride : 1))..]));
+            var offset = (i + start) * (Planar ? (int)Stride : 1);
+            var v = _cmsHalf2Float(acc[offset]);
 
             if (Reverse)
                 v = maximum - v;
@@ -2463,7 +2465,7 @@ public static partial class Lcms2
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 100.0F : 1.0F;
-        var o = MemoryMarshal.Cast<byte, float>(output);
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
         var swap1 = o;
         var start = 0;
 

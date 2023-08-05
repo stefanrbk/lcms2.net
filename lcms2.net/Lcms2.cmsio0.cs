@@ -29,6 +29,7 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -464,6 +465,7 @@ public static partial class Lcms2
     //    return null;
     }
 
+    [DebuggerStepThrough]
     public static Context? cmsGetProfileContextID(Profile? Icc) =>
         Icc?.ContextID;
 
@@ -1214,8 +1216,6 @@ public static partial class Lcms2
 
     public static bool cmsSaveProfileToMem(Profile Profile, Memory<byte> MemPtr, out uint BytesNeeded)
     {
-        BytesNeeded = 0;
-
         var ContextID = cmsGetProfileContextID(Profile);
 
         //_cmsAssert(BytesNeeded);
@@ -1226,6 +1226,8 @@ public static partial class Lcms2
             BytesNeeded = cmsSaveProfileToIOhandler(Profile, null);
             return BytesNeeded is not 0;
         }
+
+        BytesNeeded = (uint)MemPtr.Length;
 
         // That is a read write operation
         var io = cmsOpenIOhandlerFromMem(ContextID, MemPtr, BytesNeeded, "w");

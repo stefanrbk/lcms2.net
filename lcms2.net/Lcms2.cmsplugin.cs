@@ -284,7 +284,7 @@ public static partial class Lcms2
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(BitConverter.SingleToUInt32Bits(_cmsDoubleTo15Fixed16(n))));
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n)));
 
         return io.Write(io, sizeof(uint), tmp);
     }

@@ -73,21 +73,24 @@ public static partial class Lcms2
 
     public static int cmsstrcasecmp(ReadOnlySpan<byte> s1, ReadOnlySpan<byte> s2)
     {
-        var index = 0;
+        s1 = TrimAsciiBuffer(s1);
+        s2 = TrimAsciiBuffer(s2);
 
-        var us1 = (char)s1[index];
-        var us2 = (char)s2[index];
+        var end = cmsmin(s1.Length, s2.Length);
 
-        while (Char.ToUpper(us1) == Char.ToUpper(us2))
+        for (var i = 0; i < end; i++)
         {
-            us1 = (char)s1[++index];
-            us2 = (char)s2[index];
+            var val = Char.ToUpper((char)s2[i]) - Char.ToUpper((char)s1[i]);
 
-            if (us1 is '\0')
-                return 0;
+            if (val is not 0)
+                return val;
         }
 
-        return Char.ToUpper(us1) - Char.ToUpper(us2);
+        if (s1.Length > s2.Length)
+            return -s1[end];
+        if (s1.Length < s2.Length)
+            return s2[end];
+        return 0;
     }
 
     public static long cmsfilelength(FILE f)
