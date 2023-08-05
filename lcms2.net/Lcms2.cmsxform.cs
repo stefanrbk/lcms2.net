@@ -29,6 +29,7 @@ using lcms2.state;
 using lcms2.types;
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using static lcms2.types.TagTypeHandler;
@@ -67,6 +68,7 @@ public static partial class Lcms2
         //    AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
     }
 
+    [DebuggerStepThrough]
     public static double cmsSetAdaptationStateTHR(Context? context, double d)
     {
         var ptr = _cmsGetContext(context).AdaptationState;
@@ -885,14 +887,14 @@ public static partial class Lcms2
         return p;
     }
 
-    private static bool GetXFormColorSpaces(uint nProfiles, Profile[] Profiles, out Signature Input, out Signature Output)
+    private static bool GetXFormColorSpaces(uint nProfiles, Profile?[] Profiles, out Signature Input, out Signature Output)
     {
         Input = Output = 0;
 
         if (nProfiles is 0) return false;
         if (Profiles[0] is null) return false;
 
-        var PostColorSpace = Input = cmsGetColorSpace(Profiles[0]);
+        var PostColorSpace = Input = cmsGetColorSpace(Profiles[0]!);
 
         for (var i = 0; i < nProfiles; i++)
         {
@@ -1147,12 +1149,12 @@ public static partial class Lcms2
         Context? ContextID,
         Profile Input,
         uint InputFormat,
-        Profile Output,
+        Profile? Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags)
     {
-        var hArray = new Profile[2] { Input, Output };
+        var hArray = new Profile[2] { Input, Output! };
 
         return cmsCreateMultiprofileTransformTHR(ContextID, hArray, InputFormat, OutputFormat, Output is null ? 1u : 2u, Intent, dwFlags);
     }
@@ -1160,7 +1162,7 @@ public static partial class Lcms2
     public static Transform? cmsCreateTransform(
         Profile Input,
         uint InputFormat,
-        Profile Output,
+        Profile? Output,
         uint OutputFormat,
         uint Intent,
         uint dwFlags) =>

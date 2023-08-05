@@ -24,6 +24,10 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.types;
+
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static partial class Testbed
@@ -167,6 +171,251 @@ internal static partial class Testbed
         cmsSetLogErrorHandler(BuildNullLogger());
         var rc = CheckBadTransforms();
         cmsSetLogErrorHandler(BuildDebugLogger());
+
+        return rc;
+    }
+
+    private static bool Check8linearXFORM(Transform xform, int nChan)
+    {
+        Span<byte> Inw = stackalloc byte[cmsMAXCHANNELS];
+        Span<byte> Outw = stackalloc byte[cmsMAXCHANNELS];
+
+        var n2 = 0;
+
+        for (var j = 0; j < 0xFF; j++)
+        {
+            Inw.Fill((byte)j);
+            cmsDoTransform(xform, Inw, Outw, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                var dif = Math.Abs(Outw[i] - j);
+                if (dif > n2) n2 = dif;
+            }
+        }
+
+        // We allow 2 instances of difference on 8 bits
+        if (n2 > 2)
+        {
+            logger.LogWarning("Differences too big ({dif})", n2);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool Check8bitXFORM(Transform xform1, Transform xform2, int nChan)
+    {
+        Span<byte> Inw = stackalloc byte[cmsMAXCHANNELS];
+        Span<byte> Outw1 = stackalloc byte[cmsMAXCHANNELS];
+        Span<byte> Outw2 = stackalloc byte[cmsMAXCHANNELS];
+
+        var n2 = 0;
+
+        for (var j = 0; j < 0xFF; j++)
+        {
+            Inw.Fill((byte)j);
+            cmsDoTransform(xform1, Inw, Outw1, 1);
+            cmsDoTransform(xform2, Inw, Outw2, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                var dif = Math.Abs(Outw2[i] - Outw1[i]);
+                if (dif > n2) n2 = dif;
+            }
+        }
+
+        // We allow 2 instances of difference on 8 bits
+        if (n2 > 2)
+        {
+            logger.LogWarning("Differences too big ({dif})", n2);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool Check16linearXFORM(Transform xform, int nChan)
+    {
+        Span<ushort> Inw = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> Outw = stackalloc ushort[cmsMAXCHANNELS];
+
+        var n2 = 0;
+
+        for (var j = 0; j < 0xFFFF; j++)
+        {
+            Inw.Fill((ushort)j);
+            cmsDoTransform(xform, Inw, Outw, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                var dif = Math.Abs(Outw[i] - j);
+                if (dif > n2) n2 = dif;
+            }
+        }
+
+        // We allow 2 instances of difference on 16 bits
+        if (n2 > 0x200)
+        {
+            logger.LogWarning("Differences too big ({dif})", n2);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool Check16bitXFORM(Transform xform1, Transform xform2, int nChan)
+    {
+        Span<ushort> Inw = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> Outw1 = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> Outw2 = stackalloc ushort[cmsMAXCHANNELS];
+
+        var n2 = 0;
+
+        for (var j = 0; j < 0xFFFF; j++)
+        {
+            Inw.Fill((ushort)j);
+            cmsDoTransform(xform1, Inw, Outw1, 1);
+            cmsDoTransform(xform2, Inw, Outw2, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                var dif = Math.Abs(Outw2[i] - Outw1[i]);
+                if (dif > n2) n2 = dif;
+            }
+        }
+
+        // We allow 2 instances of difference on 16 bits
+        if (n2 > 0x200)
+        {
+            logger.LogWarning("Differences too big ({dif})", n2);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool CheckFloatLinearXFORM(Transform xform, int nChan)
+    {
+        Span<float> In = stackalloc float[cmsMAXCHANNELS];
+        Span<float> Out = stackalloc float[cmsMAXCHANNELS];
+
+        for (var j = 0; j < 0xFFFF; j++)
+        {
+            In.Fill((float)(j / 65535.0));
+            cmsDoTransform(xform, In, Out, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                // We allow no difference in floating point
+                if (!IsGoodFixed15_16("linear xform float", Out[i], (float)(j / 65535.0)))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CheckFloatXFORM(Transform xform1, Transform xform2, int nChan)
+    {
+        Span<float> In = stackalloc float[cmsMAXCHANNELS];
+        Span<float> Out1 = stackalloc float[cmsMAXCHANNELS];
+        Span<float> Out2 = stackalloc float[cmsMAXCHANNELS];
+
+        for (var j = 0; j < 0xFFFF; j++)
+        {
+            In.Fill((float)(j / 65535.0));
+            cmsDoTransform(xform1, In, Out1, 1);
+            cmsDoTransform(xform2, In, Out2, 1);
+
+            for (var i = 0; i < nChan; i++)
+            {
+                // We allow no difference in floating point
+                if (!IsGoodFixed15_16("linear xform float", Out1[i], Out2[i]))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    internal static bool CheckCurvesOnlyTransforms()
+    {
+        var rc = true;
+
+        ToneCurve[] c1 = new ToneCurve[] { cmsBuildGamma(DbgThread(), 2.2)! };
+        ToneCurve[] c2 = new ToneCurve[] { cmsBuildGamma(DbgThread(), 1 / 2.2)! };
+        ToneCurve[] c3 = new ToneCurve[] { cmsBuildGamma(DbgThread(), 4.84)! };
+
+        var h1 = cmsCreateLinearizationDeviceLinkTHR(DbgThread(), cmsSigGrayData, c1)!;
+        var h2 = cmsCreateLinearizationDeviceLinkTHR(DbgThread(), cmsSigGrayData, c2)!;
+        var h3 = cmsCreateLinearizationDeviceLinkTHR(DbgThread(), cmsSigGrayData, c3)!;
+
+        using (logger.BeginScope("Gray float optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_FLT, h2, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0)!;
+            rc &= CheckFloatLinearXFORM(xform1, 1);
+            cmsDeleteTransform(xform1);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("Gray 16 optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_16, h2, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0)!;
+            rc &= Check16linearXFORM(xform1, 1);
+            cmsDeleteTransform(xform1);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("Gray 16 optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_16, h2, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0)!;
+            rc &= Check16linearXFORM(xform1, 1);
+            cmsDeleteTransform(xform1);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("Gray float non-optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_FLT, h1, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0)!;
+            var xform2 = cmsCreateTransform(h3, TYPE_GRAY_FLT, null, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0)!;
+
+            rc &= CheckFloatXFORM(xform1, xform2, 1);
+            cmsDeleteTransform(xform1);
+            cmsDeleteTransform(xform2);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("Gray 8 non-optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_8, h1, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0)!;
+            var xform2 = cmsCreateTransform(h3, TYPE_GRAY_8, null, TYPE_GRAY_8, INTENT_PERCEPTUAL, 0)!;
+
+            rc &= Check8bitXFORM(xform1, xform2, 1);
+            cmsDeleteTransform(xform1);
+            cmsDeleteTransform(xform2);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("Gray 16 non-optimizable transform"))
+        {
+            var xform1 = cmsCreateTransform(h1, TYPE_GRAY_16, h1, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0)!;
+            var xform2 = cmsCreateTransform(h3, TYPE_GRAY_16, null, TYPE_GRAY_16, INTENT_PERCEPTUAL, 0)!;
+
+            rc &= Check8bitXFORM(xform1, xform2, 1);
+            cmsDeleteTransform(xform1);
+            cmsDeleteTransform(xform2);
+            if (!rc) goto Error;
+        }
+
+    Error:
+        cmsCloseProfile(h1);
+        cmsCloseProfile(h2);
+        cmsCloseProfile(h3);
+
+        cmsFreeToneCurve(c1[0]);
+        cmsFreeToneCurve(c2[0]);
+        cmsFreeToneCurve(c3[0]);
 
         return rc;
     }
