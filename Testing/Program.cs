@@ -45,8 +45,8 @@ var doZooTests = cliResult.Value.DoZoo;
 //if (args.Length is 0 && HasConsole)
 //    exhaustive = CheckExhaustive();
 
-//doCheckTests = false;
-//doSpeedTests = true;
+doCheckTests = false;
+doSpeedTests = true;
 
 if (exhaustive)
 {

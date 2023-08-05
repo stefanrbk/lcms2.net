@@ -85,6 +85,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -129,6 +130,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -176,6 +178,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -220,6 +223,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -264,6 +268,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -308,6 +313,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -352,6 +358,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -394,6 +401,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
@@ -436,6 +444,7 @@ internal static partial class Testbed
                 }
             }
 
+            GC.Collect(2, GCCollectionMode.Aggressive, true, true);
             var atime = Stopwatch.StartNew();
 
             cmsDoTransform(lcmsxform, In, In, NumPixels);
