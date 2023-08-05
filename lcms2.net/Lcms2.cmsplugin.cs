@@ -84,6 +84,7 @@ public static partial class Lcms2
         return BitConverter.ToUInt64(pByte);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadUInt8Number(IOHandler io, out byte n)
     {
         n = 0;
@@ -98,6 +99,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadUInt16Number(IOHandler io, out ushort n)
     {
         n = 0;
@@ -112,6 +114,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadUInt16Array(IOHandler io, uint n, Span<ushort> array)
     {
         _cmsAssert(io);
@@ -124,6 +127,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadUInt32Number(IOHandler io, out uint n)
     {
         n = 0;
@@ -138,6 +142,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadFloat32Number(IOHandler io, out float n)
     {
         n = 0;
@@ -158,6 +163,7 @@ public static partial class Lcms2
         return Single.IsNormal(n) || n is 0;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadSignature(IOHandler io, out Signature sig)
     {
         sig = 0;
@@ -169,6 +175,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadUInt64Number(IOHandler io, out ulong n)
     {
         n = 0;
@@ -183,6 +190,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsRead15Fixed16Number(IOHandler io, out double n)
     {
         n = 0;
@@ -198,6 +206,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadXYZNumber(IOHandler io, out CIEXYZ XYZ)
     {
         XYZ = new CIEXYZ();
@@ -217,6 +226,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt8Number(IOHandler io, byte n)
     {
         _cmsAssert(io);
@@ -226,6 +236,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(byte), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
     {
         _cmsAssert(io);
@@ -236,6 +247,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(ushort), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, ReadOnlySpan<ushort> array)
     {
         _cmsAssert(io);
@@ -249,6 +261,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt32Number(IOHandler io, uint n)
     {
         _cmsAssert(io);
@@ -259,6 +272,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteFloat32Number(IOHandler io, float n)
     {
         _cmsAssert(io);
@@ -269,6 +283,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
     {
         _cmsAssert(io);
@@ -279,6 +294,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(ulong), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWrite15Fixed16Number(IOHandler io, double n)
     {
         _cmsAssert(io);
@@ -289,6 +305,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ XYZ)
     {
         Span<int> xyz = stackalloc int[3];
@@ -302,6 +319,7 @@ public static partial class Lcms2
         return io.Write(io, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
     }
 
+    [DebuggerStepThrough]
     internal static double _cms8Fixed8toDouble(ushort fixed8)
     {
         var lsb = (byte)(fixed8 & 0xff);
@@ -310,12 +328,14 @@ public static partial class Lcms2
         return msb + (lsb / 255.0);
     }
 
+    [DebuggerStepThrough]
     internal static ushort _cmsDoubleTo8Fixed8(double val)
     {
         var tmp = _cmsDoubleTo15Fixed16(val);
         return (ushort)((tmp >> 8) & 0xffff);
     }
 
+    [DebuggerStepThrough]
     internal static double _cms15Fixed16toDouble(S15Fixed16Number fix32)
     {
         var sign = fix32 < 0 ? -1 : 1;
@@ -330,9 +350,11 @@ public static partial class Lcms2
         return sign * floater;
     }
 
+    [DebuggerStepThrough]
     internal static S15Fixed16Number _cmsDoubleTo15Fixed16(double v) =>
         (S15Fixed16Number)Math.Floor((v * 65536.0) + 0.5);
 
+    [DebuggerStepThrough]
     internal static void _cmsDecodeDateTimeNumber(DateTimeNumber Source, out DateTime Dest)
     {
         var sec = _cmsAdjustEndianess16(Source.Seconds);
@@ -345,6 +367,7 @@ public static partial class Lcms2
         Dest = new(year, mon, day, hour, min, sec);
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsEncodeDateTimeNumber(out DateTimeNumber dest, DateTime source)
     {
         dest = new()
@@ -358,6 +381,7 @@ public static partial class Lcms2
         };
     }
 
+    [DebuggerStepThrough]
     internal static Signature _cmsReadTypeBase(IOHandler io)
     {
         Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
@@ -370,6 +394,7 @@ public static partial class Lcms2
         return new(_cmsAdjustEndianess32(BitConverter.ToUInt32(Base)));
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteTypeBase(IOHandler io, Signature sig)
     {
         Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
@@ -384,6 +409,7 @@ public static partial class Lcms2
     private static uint _cmsALIGNLONG(uint x) =>
         (x + (sizeof(uint) - 1u)) & ~(sizeof(uint) - 1u);
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadAlignment(IOHandler io)
     {
         Span<byte> Buffer = stackalloc byte[4];
@@ -399,6 +425,7 @@ public static partial class Lcms2
         return io.Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteAlignment(IOHandler io)
     {
         Span<byte> Buffer = stackalloc byte[4];
@@ -414,6 +441,7 @@ public static partial class Lcms2
         return io.Write(io, BytesToNextAlignedPos, Buffer);
     }
 
+    [DebuggerStepThrough]
     internal static string SpanToString(ReadOnlySpan<byte> span)
     {
         Span<char> str = stackalloc char[span.Length];
@@ -426,9 +454,11 @@ public static partial class Lcms2
         return new string(str);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsIOPrintf(IOHandler io, ReadOnlySpan<byte> frm, params object[] args) =>
         _cmsIOPrintf(io, SpanToString(frm), args);
 
+    [DebuggerStepThrough]
     internal static bool _cmsIOPrintf(IOHandler io, string frm, params object[] args)
     {
         _cmsAssert(io);
@@ -892,6 +922,8 @@ public static partial class Lcms2
     /// <remarks>
     ///     This can be used to change the user data if needed, but probably not thread safe!
     /// </remarks>
+    
+    [DebuggerStepThrough]
     public static ref object? cmsGetContextUserData(Context? context) =>
         ref _cmsGetContext(context).UserData;
 
@@ -902,6 +934,8 @@ public static partial class Lcms2
     ///     <see cref="DateTime.UtcNow"/> is already thread-safe.
     ///     Providing for completeness.
     /// </remarks>
+
+    [DebuggerStepThrough]
     internal static bool _cmsGetTime(out DateTime ptr_time)
     {
         ptr_time = DateTime.UtcNow;

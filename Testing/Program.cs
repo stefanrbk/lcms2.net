@@ -214,8 +214,8 @@ if (doCheckTests)
     using (logger.BeginScope("Profile I/O"))
     {
         Check("Profile creation", CheckProfileCreation);
-        //Check("Header version", CheckVersionHeaderWriting);
-        //Check("Multilocalized profile", CheckMultilocalizedProfile);
+        Check("Header version", CheckVersionHeaderWriting);
+        Check("Multilocalized profile", CheckMultilocalizedProfile);
     }
 
     using (logger.BeginScope("Error reporting"))

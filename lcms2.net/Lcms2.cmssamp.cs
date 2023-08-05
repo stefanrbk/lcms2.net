@@ -27,6 +27,7 @@
 
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -34,10 +35,10 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a < b) ? a : b;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmax<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a > b) ? a : b;
 
     private static Transform? CreateRoundtripXForm(Profile Profile, uint nIntent)

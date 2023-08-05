@@ -1401,7 +1401,7 @@ public static partial class Lcms2
         else
         {
             //Block = _cmsMalloc<char>(self.ContextID, SizeOfTag);
-            NumOfWchar = SizeOfTag /* / _sizeof<char>()*/;
+            NumOfWchar = SizeOfTag / sizeof(char);
             Block = GetArray<char>(self.ContextID, NumOfWchar);
             //if (Block is null) goto Error;
             //var tmpBlock = stackalloc char[(int)NumOfWchar];
@@ -1410,8 +1410,8 @@ public static partial class Lcms2
         }
 
         mlu.MemPool = Block;
-        mlu.PoolSize = SizeOfTag;
-        mlu.PoolUsed = SizeOfTag;
+        mlu.PoolSizeInBytes = SizeOfTag;
+        mlu.PoolUsedInBytes = SizeOfTag;
 
         nItems = 1;
         return mlu;
@@ -1441,8 +1441,8 @@ public static partial class Lcms2
 
         for (var i = 0; i < mlu.UsedEntries; i++)
         {
-            var Len = mlu.Entries[i].Len;
-            var Offset = mlu.Entries[i].StrWOffset;
+            var Len = mlu.Entries[i].LenInBytes;
+            var Offset = mlu.Entries[i].StrWOffsetInBytes;
 
             Offset += HeaderSize + 8;
 
@@ -1452,7 +1452,7 @@ public static partial class Lcms2
             if (!_cmsWriteUInt32Number(io, Offset)) return false;
         }
 
-        return _cmsWriteWCharArray(io, mlu.PoolUsed, mlu.MemPool.AsSpan()[..(int)mlu.PoolUsed]);
+        return _cmsWriteWCharArray(io, mlu.PoolUsedInBytes / sizeof(char), mlu.MemPool.AsSpan()[..(int)(mlu.PoolUsedInBytes / sizeof(char))]);
     }
 
     private static Mlu? Type_MLU_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>

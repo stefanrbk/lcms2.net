@@ -73,8 +73,8 @@ public static partial class Lcms2
 
     public static int cmsstrcasecmp(ReadOnlySpan<byte> s1, ReadOnlySpan<byte> s2)
     {
-        s1 = TrimAsciiBuffer(s1);
-        s2 = TrimAsciiBuffer(s2);
+        s1 = TrimBuffer(s1);
+        s2 = TrimBuffer(s2);
 
         var end = cmsmin(s1.Length, s2.Length);
 
@@ -533,6 +533,7 @@ public static partial class Lcms2
     /// <summary>
     ///     Change error logger, context based
     /// </summary>
+    [DebuggerStepThrough]
     public static void cmsSetLogErrorHandlerTHR(Context? context, ILoggerFactory? factory)
     {
         var lhg = _cmsGetContext(context)?.ErrorLogger;
@@ -546,6 +547,7 @@ public static partial class Lcms2
     /// <summary>
     ///     Change error logger, legacy
     /// </summary>
+    [DebuggerStepThrough]
     public static void cmsSetLogErrorHandler(ILoggerFactory? factory) =>
         cmsSetLogErrorHandlerTHR(null, factory);
 
@@ -553,6 +555,7 @@ public static partial class Lcms2
     ///     Log an error
     /// </summary>
     /// <param name="text">English description of the error in String.Format format</param>
+    [DebuggerStepThrough]
     public static void cmsSignalError(Context? ContextID, ErrorCode errorCode, string text, params object?[] args)
     {
         // Check for the context, if specified go there. If not, go for the global
@@ -567,6 +570,7 @@ public static partial class Lcms2
     /// <summary>
     ///     Utility function to print signatures
     /// </summary>
+    [DebuggerStepThrough]
     internal static string _cmsTagSignature2String(Signature sig)
     {
         Span<byte> buf = stackalloc byte[4];
@@ -588,15 +592,19 @@ public static partial class Lcms2
         return new(chars);
     }
 
+    [DebuggerStepThrough]
     private static object defMtxCreate(Context? id) =>
         new Mutex(false);
 
+    [DebuggerStepThrough]
     private static void defMtxDestroy(Context? id, object mtx) =>
         ((Mutex)mtx).Dispose();
 
+    [DebuggerStepThrough]
     private static bool defMtxLock(Context? _, object mtx) =>
         ((Mutex)mtx).WaitOne();
 
+    [DebuggerStepThrough]
     private static void defMtxUnlock(Context? id, object mtx) =>
         ((Mutex)mtx).ReleaseMutex();
 
@@ -664,6 +672,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static object? _cmsCreateMutex(Context? context)
     {
         var ptr = _cmsGetContext(context).MutexPlugin;
@@ -671,6 +680,7 @@ public static partial class Lcms2
         return ptr?.CreateFn?.Invoke(context);
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsDestroyMutex(Context? context, object? mutex)
     {
         var ptr = _cmsGetContext(context).MutexPlugin;
@@ -678,6 +688,7 @@ public static partial class Lcms2
         ptr?.DestroyFn?.Invoke(context, mutex);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsLockMutex(Context? context, object? mutex)
     {
         var ptr = _cmsGetContext(context).MutexPlugin;
@@ -685,6 +696,7 @@ public static partial class Lcms2
         return ptr?.LockFn?.Invoke(context, mutex) ?? false;
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsUnlockMutex(Context? context, object? mutex)
     {
         var ptr = _cmsGetContext(context).MutexPlugin;

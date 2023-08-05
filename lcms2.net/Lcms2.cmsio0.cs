@@ -30,13 +30,13 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
 
 public static partial class Lcms2
 {
+    [DebuggerStepThrough]
     private static uint NULLRead(IOHandler iohandler, Span<byte> _, uint size, uint count)
     {
         if (iohandler.stream is not FILENULL ResData)
@@ -47,6 +47,7 @@ public static partial class Lcms2
         return count;
     }
 
+    [DebuggerStepThrough]
     private static bool NULLSeek(IOHandler iohandler, uint offset)
     {
         if (iohandler.stream is not FILENULL ResData)
@@ -56,6 +57,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static uint NULLTell(IOHandler iohandler)
     {
         if (iohandler.stream is not FILENULL ResData)
@@ -64,6 +66,7 @@ public static partial class Lcms2
         return ResData.Pointer;
     }
 
+    [DebuggerStepThrough]
     private static bool NULLWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> _)
     {
         if (iohandler.stream is not FILENULL ResData)
@@ -76,6 +79,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static bool NULLClose(IOHandler iohandler)
     {
         if (iohandler.stream is not FILENULL ResData)
@@ -86,6 +90,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     public static IOHandler? cmsOpenIOhandlerFromNULL(Context? ContextID)
     {
         var iohandler = new IOHandler();
@@ -109,6 +114,7 @@ public static partial class Lcms2
         return iohandler;
     }
 
+    [DebuggerStepThrough]
     private static uint MemoryRead(IOHandler iohandler, Span<byte> Buffer, uint size, uint count)
     {
         if (iohandler.stream is not FILEMEM ResData)
@@ -131,6 +137,7 @@ public static partial class Lcms2
         return count;
     }
 
+    [DebuggerStepThrough]
     private static bool MemorySeek(IOHandler iohandler, uint offset)
     {
         if (iohandler.stream is not FILEMEM ResData)
@@ -146,6 +153,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static uint MemoryTell(IOHandler iohandler)
     {
         if (iohandler.stream is not FILEMEM ResData)
@@ -154,6 +162,7 @@ public static partial class Lcms2
         return ResData.Pointer;
     }
 
+    [DebuggerStepThrough]
     private static bool MemoryWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> Ptr)
     {
         if (iohandler.stream is not FILEMEM ResData)
@@ -175,6 +184,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static bool MemoryClose(IOHandler iohandler)
     {
         if (iohandler.stream is not FILEMEM ResData)
@@ -188,6 +198,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     public static IOHandler? cmsOpenIOhandlerFromMem(Context? ContextID, Memory<byte> Buffer, uint size, string AccessMode)
     {
         FILEMEM? fm = null;
@@ -264,6 +275,7 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     private static uint FileRead(IOHandler iohandler, Span<byte> Buffer, uint size, uint count)
     {
         if (iohandler.stream is not FILE file)
@@ -280,6 +292,7 @@ public static partial class Lcms2
         return nReaded;
     }
 
+    [DebuggerStepThrough]
     private static bool FileSeek(IOHandler iohandler, uint offset)
     {
         if (iohandler.stream is not FILE file)
@@ -294,6 +307,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static uint FileTell(IOHandler iohandler)
     {
         if (iohandler.stream is not FILE file)
@@ -309,6 +323,7 @@ public static partial class Lcms2
         return (uint)t;
     }
 
+    [DebuggerStepThrough]
     private static bool FileWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> Buffer)
     {
         if (size is 0) return true;     // We allow to write 0 bytes, but nothing is written
@@ -321,12 +336,14 @@ public static partial class Lcms2
         return fwrite(Buffer, size, 1, file) is 1;
     }
 
+    [DebuggerStepThrough]
     private static bool FileClose(IOHandler iohandler)
     {
         //_cmsFree(iohandler.ContextID, iohandler);
         return iohandler.stream is FILE file && fclose(file) is 0;
     }
 
+    [DebuggerStepThrough]
     public static IOHandler? cmsOpenIOhandlerFromFile(Context? ContextID, string FileName, string AccessMode)
     {
         FILE? fm = null;
@@ -394,6 +411,7 @@ public static partial class Lcms2
         return iohandler;
     }
 
+    [DebuggerStepThrough]
     public static IOHandler? cmsOpenIOhandlerFromStream(Context? ContextID, Stream Stream)
     {
         IOHandler? iohandler = null;
@@ -432,12 +450,15 @@ public static partial class Lcms2
         //return null;
     }
 
+    [DebuggerStepThrough]
     public static bool cmsCloseIOhandler(IOHandler io) =>
         io.Close(io);
 
+    [DebuggerStepThrough]
     public static IOHandler? cmsGetProfileIOhandler(Profile? Icc) =>
         Icc?.IOHandler;
 
+    [DebuggerStepThrough]
     public static Profile? cmsCreateProfilePlaceholder(Context? ContextID)
     {
         var Icc = new Profile();
@@ -469,9 +490,11 @@ public static partial class Lcms2
     public static Context? cmsGetProfileContextID(Profile? Icc) =>
         Icc?.ContextID;
 
+    [DebuggerStepThrough]
     public static int cmsGetTagCount(Profile? Icc) =>
         Icc?.Tags.Count ?? -1;
 
+    [DebuggerStepThrough]
     public static Signature cmsGetTagSignature(Profile Profile, uint n)
     {
         var Icc = Profile;
@@ -482,6 +505,7 @@ public static partial class Lcms2
         return Icc.Tags[(int)n].Name;
     }
 
+    [DebuggerStepThrough]
     private static int SearchOneTag(Profile Profile, Signature sig)
     {
         var i = -1;
@@ -495,6 +519,7 @@ public static partial class Lcms2
         return -1;
     }
 
+    [DebuggerStepThrough]
     internal static int _cmsSearchTag(Profile Icc, Signature sig, bool lFollowLinks)
     {
         int n;
@@ -520,6 +545,7 @@ public static partial class Lcms2
         return n;
     }
 
+    [DebuggerStepThrough]
     internal static void _cmsDeleteTagByPos(Profile Icc, int i)
     {
         _cmsAssert(Icc);
@@ -550,6 +576,7 @@ public static partial class Lcms2
         }
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsNewTag(Profile Icc, Signature sig, out int NewPos)
     {
         // Search for the tag
@@ -578,9 +605,11 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     public static bool cmsIsTag(Profile Icc, Signature sig) =>
         _cmsSearchTag(Icc, sig, false) >= 0;
 
+    [DebuggerStepThrough]
     private static uint _validatedVersion(uint DWord)
     {
         Span<byte> pByte = stackalloc byte[4];
@@ -598,6 +627,7 @@ public static partial class Lcms2
         return BitConverter.ToUInt32(pByte);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadHeader(Profile Icc)
     {
         Span<byte> buffer = stackalloc byte[128];
@@ -706,6 +736,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteHeader(Profile Icc, uint UsedSpace)
     {
         Span<byte> headerBuffer = stackalloc byte[128];
@@ -785,75 +816,98 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     public static uint cmsGetHeaderRenderingIntent(Profile Icc) =>
         Icc.RenderingIntent;
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderRenderingIntent(Profile Icc, uint RenderingIntent) =>
         Icc.RenderingIntent = RenderingIntent;
 
+    [DebuggerStepThrough]
     public static uint cmsGetHeaderFlags(Profile Icc) =>
         Icc.flags;
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderFlags(Profile Icc, uint Flags) =>
         Icc.flags = Flags;
 
+    [DebuggerStepThrough]
     public static uint cmsGetHeaderManufacturer(Profile Icc) =>
         Icc.manufacturer;
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderManufacturer(Profile Icc, uint manufacturer) =>
         Icc.manufacturer = manufacturer;
 
+    [DebuggerStepThrough]
     public static uint cmsGetHeaderCreator(Profile Icc) =>
         Icc.creator;
 
+    [DebuggerStepThrough]
     public static uint cmsGetHeaderModel(Profile Icc) =>
         Icc.model;
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderModel(Profile Icc, uint model) =>
         Icc.model = model;
 
+    [DebuggerStepThrough]
     public static ulong cmsGetHeaderAttributes(Profile Icc) =>
         Icc.attributes;
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderAttributes(Profile Icc, ulong Flags) =>
         Icc.attributes = Flags;
 
+    [DebuggerStepThrough]
     public static void cmsGetHeaderProfileID(Profile Icc, Span<byte> ProfileID) =>
         MemoryMarshal.Write(ProfileID, ref Icc.ProfileID);
 
+    [DebuggerStepThrough]
     public static void cmsSetHeaderProfileID(Profile Icc, ReadOnlySpan<byte> ProfileID) =>
         Icc.ProfileID = MemoryMarshal.Read<ProfileID>(ProfileID);
 
+    [DebuggerStepThrough]
     public static bool cmsGetHeaderCreationDateTime(Profile Icc, out DateTime Dest)
     {
         Dest = Icc.Created;
         return true;
     }
 
+    [DebuggerStepThrough]
     public static Signature cmsGetPCS(Profile Icc) =>
         Icc.PCS;
 
+    [DebuggerStepThrough]
     public static void cmsSetPCS(Profile Icc, Signature pcs) =>
         Icc.PCS = pcs;
 
+    [DebuggerStepThrough]
     public static Signature cmsGetColorSpace(Profile Icc) =>
         Icc.ColorSpace;
 
+    [DebuggerStepThrough]
     public static void cmsSetColorSpace(Profile Icc, Signature sig) =>
         Icc.ColorSpace = sig;
 
+    [DebuggerStepThrough]
     public static Signature cmsGetDeviceClass(Profile Icc) =>
         Icc.DeviceClass;
 
+    [DebuggerStepThrough]
     public static void cmsSetDeviceClass(Profile Icc, Signature sig) =>
         Icc.DeviceClass = sig;
 
+    [DebuggerStepThrough]
     public static uint cmsGetEncodedICCVersion(Profile Icc) =>
         Icc.Version;
 
+    [DebuggerStepThrough]
     public static void cmsSetEncodedICCVersion(Profile Icc, uint Version) =>
         Icc.Version = Version;
 
+    [DebuggerStepThrough]
     private static uint BaseToBase(uint @in, int BaseIn, int BaseOut)
     {
         Span<byte> Buff = stackalloc byte[100];
@@ -874,14 +928,17 @@ public static partial class Lcms2
         return @out;
     }
 
+    [DebuggerStepThrough]
     public static void cmsSetProfileVersion(Profile Icc, double Version) =>
         // 4.2 -> 0x04200000
         Icc.Version = BaseToBase((uint)Math.Floor((Version * 100.0) + 0.5), 10, 16) << 16;
 
+    [DebuggerStepThrough]
     public static double cmsGetProfileVersion(Profile Icc) =>
         // 0x04200000 -> 4.2
         BaseToBase(Icc.Version >> 16, 16, 10) / 100.0;
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromIOHandlerTHR(Context? ContextID, IOHandler io)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
@@ -897,6 +954,7 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromIOHandler2THR(Context? ContextID, IOHandler io, bool write)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
@@ -918,6 +976,7 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromFileTHR(Context? ContextID, string FileName, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
@@ -942,9 +1001,11 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromFile(string FileName, string Access) =>
         cmsOpenProfileFromFileTHR(null, FileName, Access);
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromStreamTHR(Context? ContextID, Stream ICCProfile, string Access)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
@@ -969,9 +1030,11 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromStream(Stream ICCProfile, string Access) =>
         cmsOpenProfileFromStreamTHR(null, ICCProfile, Access);
 
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromMemTHR(Context? ContextID, Memory<byte> MemPtr, uint Size)
     {
         var hEmpty = cmsCreateProfilePlaceholder(ContextID);
@@ -990,6 +1053,11 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
+    public static Profile? cmsOpenProfileFromMem(Memory<byte> MemPtr) =>
+        cmsOpenProfileFromMemTHR(null, MemPtr, (uint)MemPtr.Length);
+
+    [DebuggerStepThrough]
     public static Profile? cmsOpenProfileFromMem(Memory<byte> MemPtr, uint Size) =>
         cmsOpenProfileFromMemTHR(null, MemPtr, Size);
 
@@ -1239,6 +1307,7 @@ public static partial class Lcms2
         return rc;
     }
 
+    [DebuggerStepThrough]
     private static void freeOneTag(Profile Icc, uint i)
     {
         var tag = Icc.Tags[(int)i];
@@ -1292,6 +1361,7 @@ public static partial class Lcms2
         return rc;
     }
 
+    [DebuggerStepThrough]
     private static bool IsTypeSupported(TagDescriptor TagDescriptor, Signature Type)
     {
         var nMaxTypes = TagDescriptor.nSupportedTypes;
@@ -1412,6 +1482,7 @@ public static partial class Lcms2
         return null;
     }
 
+    [DebuggerStepThrough]
     internal static Signature _cmsGetTagTrueType(Profile Profile, Signature sig)
     {
         var Icc = Profile;
@@ -1703,6 +1774,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     public static Signature cmsTagLinkedTo(Profile Profile, Signature sig)
     {
         var Icc = Profile;

@@ -61,18 +61,19 @@ public static partial class Lcms2
         return mlu;
     }
 
+    [DebuggerStepThrough]
     private static bool GrowMLUpool(Mlu? mlu)
     {
         // Sanity check
         if (mlu is null) return false;
 
         var size =
-            mlu.PoolSize is 0
+            mlu.PoolSizeInBytes is 0
                 ? 256u
-                : mlu.PoolSize * 2;
+                : mlu.PoolSizeInBytes * 2;
 
         // Check for overflow
-        if (size < mlu.PoolSize) return false;
+        if (size < mlu.PoolSizeInBytes) return false;
 
         // Reallocate the pool
         var NewPtr = (mlu.MemPool is not null)
@@ -81,7 +82,7 @@ public static partial class Lcms2
         if (NewPtr is null) return false;
 
         mlu.MemPool = NewPtr;
-        mlu.PoolSize = size;
+        mlu.PoolSizeInBytes = size;
 
         return true;
     }
@@ -109,6 +110,7 @@ public static partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     private static int SearchMLUEntry(Mlu? mlu, ushort LanguageCode, ushort CountryCode)
     {
         // Sanity Check
@@ -125,39 +127,41 @@ public static partial class Lcms2
         return -1;
     }
 
-    private static bool AddMLUBlock(Mlu? mlu, uint size, ReadOnlySpan<char> Block, ushort LanguageCode, ushort CountryCode)
+    private static bool AddMLUBlock(Mlu? mlu, ReadOnlySpan<char> Block, ushort LanguageCode, ushort CountryCode)
     {
         // Sanity Check
         if (mlu is null) return false;
 
+        Block = TrimBuffer(Block);
+        var sizeInChars = (uint)Block.Length;
+
         // Is there any room available?
-        if (mlu.UsedEntries >= mlu.AllocatedEntries)
-        {
-            if (!GrowMLUtable(mlu)) return false;
-        }
+        if (mlu.UsedEntries >= mlu.AllocatedEntries && !GrowMLUtable(mlu))
+            return false;
 
         // Only one ASCII string
         if (SearchMLUEntry(mlu, LanguageCode, CountryCode) >= 0) return false;
 
         // Check for size
-        while ((mlu.PoolSize - mlu.PoolUsed) < size)
+        while ((mlu.PoolSizeInBytes - mlu.PoolUsedInBytes) < ((sizeInChars + 1) * sizeof(char)))
             if (!GrowMLUpool(mlu)) return false;
 
-        var Offset = mlu.PoolUsed;
+        var OffsetInChars = mlu.PoolUsedInBytes / sizeof(char);
 
-        var Ptr = mlu.MemPool.AsSpan();
+        var Ptr = mlu.MemPool.AsSpan((int)OffsetInChars..);
         //if (Ptr is null) return false;
 
         // Set the entry
         //memmove(Ptr + Offset, Block, size);
-        Block[..(int)size].CopyTo(Ptr[(int)Offset..][..(int)size]);
-        mlu.PoolUsed += size;
+        Block[..(int)sizeInChars].CopyTo(Ptr[..(int)sizeInChars]);  // Add an extra char for a '\0'
+        Ptr[(int)sizeInChars] = '\0';
+        mlu.PoolUsedInBytes += sizeInChars * sizeof(char);
 
         mlu.Entries.Add(new(
             LanguageCode,
             CountryCode,
-            Offset,
-            size));
+            OffsetInChars * sizeof(char),
+            sizeInChars * sizeof(char)));
         //mlu->Entries[mlu->UsedEntries].StrW = Offset;
         //mlu->Entries[mlu->UsedEntries].Len = size;
         //mlu->Entries[mlu->UsedEntries].Country = CountryCode;
@@ -177,7 +181,7 @@ public static partial class Lcms2
 
     [DebuggerStepThrough]
     private static ushort strTo16(ReadOnlySpan<byte> str) =>
-        BitConverter.ToUInt16(str);
+        _cmsAdjustEndianess16(BitConverter.ToUInt16(str));
 
     //[DebuggerStepThrough]
     //private static void strFrom16(byte* str, ushort n)
@@ -203,14 +207,14 @@ public static partial class Lcms2
         if (len is 0)
             len = 1;
 
-        var WStr = GetArray<char>(mlu.ContextID, (uint)len);
+        var WStr = GetArray<char>(mlu.ContextID, (uint)len + 1);
         //if (WStr is null) return false;
 
         //for (var i = 0; i < len; i++)
             //WStr[i] = (char)ASCIIString[i];
         Ascii.ToUtf16(ASCIIString, WStr, out len);
 
-        var rc = AddMLUBlock(mlu, (uint)len, WStr, Lang, Cntry);
+        var rc = AddMLUBlock(mlu, WStr, Lang, Cntry);
 
         ReturnArray(mlu.ContextID, WStr);
         return rc;
@@ -258,7 +262,7 @@ public static partial class Lcms2
         if (len is 0)
             len = 1;
 
-        return AddMLUBlock(mlu, len, WideString, Lang, Cntry);
+        return AddMLUBlock(mlu, WideString, Lang, Cntry);
     }
 
     public static Mlu? cmsMLUdup(Mlu? mlu)
@@ -281,23 +285,24 @@ public static partial class Lcms2
             NewMlu.Entries.Add((MluEntry)entry.Clone());
 
         // The MLU may be empty
-        if (mlu.PoolUsed is 0)
+        if (mlu.PoolUsedInBytes is 0)
             NewMlu.MemPool = null;
         else
         {
             // It is not empty
             //NewMlu.MemPool = _cmsMalloc(mlu.ContextID, mlu.PoolUsedInBytes);
-            NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsed);
+            NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
             if (NewMlu.MemPool is null) goto Error;
         }
 
-        NewMlu.PoolSize = mlu.PoolSize;
+        NewMlu.PoolSizeInBytes = mlu.PoolSizeInBytes;
 
         if (NewMlu.MemPool is null || mlu.MemPool is null) goto Error;
 
         //memmove(NewMlu->MemPool, mlu->MemPool, mlu->PoolUsedInBytes);
-        Array.Copy(mlu.MemPool, NewMlu.MemPool, (int)mlu.PoolUsed);
-        NewMlu.PoolUsed = mlu.PoolUsed;
+        mlu.MemPool.AsSpan(..(int)(mlu.PoolUsedInBytes / sizeof(char)))
+                   .CopyTo(NewMlu.MemPool);
+        NewMlu.PoolUsedInBytes = mlu.PoolUsedInBytes;
 
         return NewMlu;
 
@@ -377,7 +382,9 @@ public static partial class Lcms2
         //if (len is not null) *len = v->Len;
 
         //return (char*)((byte*)mlu->MemPool + v->StrWCharOffset);
-        return mlu.MemPool.AsSpan()[(int)v.StrWOffset..][..(int)v.Len];
+        var result = mlu.MemPool.AsSpan();
+
+        return TrimBuffer(mlu.MemPool.AsSpan()[((int)v.StrWOffsetInBytes / sizeof(char))..][..((int)v.LenInBytes / sizeof(char))]);
     }
 
     public static uint cmsMLUgetASCII(
@@ -413,16 +420,9 @@ public static partial class Lcms2
             ASCIIlen = BufferSize;
 
         // Process each character
-        for (var i = 0; i < ASCIIlen; i++)
-        {
-            //Buffer[i] =
-            //    Wide[i] is (char)0
-            //        ? (byte)0
-            //        : (byte)Wide[i];
-            Ascii.FromUtf16(Wide[i..][..1], Buffer[i..][..1], out _);
-        }
+        Encoding.ASCII.GetBytes(Wide, Buffer);
 
-        // We put a termination "\0"
+        // We put a termination "\0" but don't include it in the result
         if (Buffer.Length > (int)ASCIIlen)
             Buffer[(int)ASCIIlen] = 0;
         //return ASCIIlen + 1;
@@ -458,9 +458,13 @@ public static partial class Lcms2
 
         // Some clipping may be required
         //if (BufferSize < WideLen + 1)
-        //    WideLen = BufferSize - 1;            // No more trailing zeros!
+        //    WideLen = BufferSize - 1;
         if (BufferSize < WideLen)
             WideLen = BufferSize;
+
+        // We put a termination "\0" but don't include it in the result
+        if (Buffer.Length > (int)WideLen)
+            Buffer[(int)WideLen] = '\0';
 
         // Process each character
         //memmove(Buffer, Wide, StrLen);
@@ -667,7 +671,7 @@ public static partial class Lcms2
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
             //NamedColorList->List[idx].Name[cmsMAX_PATH - 1] = 0;
-            TrimAsciiBuffer(Name).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
+            TrimBuffer(Name).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
             name[cmsMAX_PATH - 1] = 0;
         }
         else

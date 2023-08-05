@@ -24,15 +24,18 @@
 //
 //---------------------------------------------------------------------------------
 //
+using System.Diagnostics;
+
 namespace lcms2.types;
 
+[DebuggerStepThrough]
 public class MluEntry(ushort Language, ushort Country, uint StringOffset, uint StringLength) : ICloneable
 {
     public ushort Country = Country;
     public ushort Language = Language;
-    public uint StrWOffset = StringOffset;
-    public uint Len = StringLength;
+    public uint StrWOffsetInBytes = StringOffset;
+    public uint LenInBytes = StringLength;
 
     public object Clone() =>
-        new MluEntry(Language, Country, StrWOffset, Len);
+        new MluEntry(Language, Country, StrWOffsetInBytes, LenInBytes);
 }

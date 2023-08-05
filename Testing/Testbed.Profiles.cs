@@ -445,196 +445,385 @@ internal static partial class Testbed
                 using (logger.BeginScope("Tags holding XYZ"))
                 {
                     if (!CheckXYZ(Pass, h, cmsSigBlueColorantTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBlueColorantTag");
                         goto Error;
+                    }
                     if (!CheckXYZ(Pass, h, cmsSigGreenColorantTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigGreenColorantTag");
                         goto Error;
+                    }
                     if (!CheckXYZ(Pass, h, cmsSigRedColorantTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigRedColorantTag");
                         goto Error;
+                    }
                     if (!CheckXYZ(Pass, h, cmsSigMediaBlackPointTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigMediaBlackPointTag");
                         goto Error;
+                    }
                     if (!CheckXYZ(Pass, h, cmsSigMediaWhitePointTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigMediaWhitePointTag");
                         goto Error;
+                    }
                     if (!CheckXYZ(Pass, h, cmsSigLuminanceTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigLuminanceTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding curves"))
                 {
                     if (!CheckGamma(Pass, h, cmsSigBlueTRCTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBlueTRCTag");
                         goto Error;
+                    }
                     if (!CheckGamma(Pass, h, cmsSigGrayTRCTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigGrayTRCTag");
                         goto Error;
+                    }
                     if (!CheckGamma(Pass, h, cmsSigGreenTRCTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigGreenTRCTag");
                         goto Error;
+                    }
                     if (!CheckGamma(Pass, h, cmsSigRedTRCTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigRedTRCTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding text"))
                 {
                     if (!CheckTextSingle(Pass, h, cmsSigCharTargetTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigCharTargetTag");
                         goto Error;
+                    }
                     if (!CheckTextSingle(Pass, h, cmsSigScreeningDescTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigScreeningDescTag");
                         goto Error;
+                    }
 
                     if (!CheckText(Pass, h, cmsSigCopyrightTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigCopyrightTag");
                         goto Error;
+                    }
                     if (!CheckText(Pass, h, cmsSigProfileDescriptionTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigProfileDescriptionTag");
                         goto Error;
+                    }
                     if (!CheckText(Pass, h, cmsSigDeviceMfgDescTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDeviceMfgDescTag");
                         goto Error;
+                    }
                     if (!CheckText(Pass, h, cmsSigDeviceModelDescTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDeviceModelDescTag");
                         goto Error;
+                    }
                     if (!CheckText(Pass, h, cmsSigViewingCondDescTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigViewingCondDescTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding cmsICCData"))
                 {
                     if (!CheckData(Pass, h, cmsSigPs2CRD0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2CRD0Tag");
                         goto Error;
+                    }
                     if (!CheckData(Pass, h, cmsSigPs2CRD1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2CRD1Tag");
                         goto Error;
+                    }
                     if (!CheckData(Pass, h, cmsSigPs2CRD2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2CRD2Tag");
                         goto Error;
+                    }
                     if (!CheckData(Pass, h, cmsSigPs2CRD3Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2CRD3Tag");
                         goto Error;
+                    }
                     if (!CheckData(Pass, h, cmsSigPs2CSATag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2CSATag");
                         goto Error;
+                    }
                     if (!CheckData(Pass, h, cmsSigPs2RenderingIntentTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPs2RenderingIntentTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding signatures"))
                 {
                     if (!CheckSignature(Pass, h, cmsSigColorimetricIntentImageStateTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigColorimetricIntentImageStateTag");
                         goto Error;
+                    }
                     if (!CheckSignature(Pass, h, cmsSigPerceptualRenderingIntentGamutTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPerceptualRenderingIntentGamutTag");
                         goto Error;
+                    }
                     if (!CheckSignature(Pass, h, cmsSigSaturationRenderingIntentGamutTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigSaturationRenderingIntentGamutTag");
                         goto Error;
+                    }
                     if (!CheckSignature(Pass, h, cmsSigTechnologyTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigTechnologyTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding date_time"))
                 {
 
                     if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigCalibrationDateTimeTag");
                         goto Error;
+                    }
                     if (!CheckDateTime(Pass, h, cmsSigDateTimeTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDateTimeTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding named color lists"))
                 {
 
                     if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigColorantTableTag");
                         goto Error;
+                    }
                     if (!CheckNamedColor(Pass, h, cmsSigColorantTableOutTag, 15, false))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigColorantTableOutTag");
                         goto Error;
+                    }
                     if (!CheckNamedColor(Pass, h, cmsSigNamedColor2Tag, 4096, true))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigNamedColor2Tag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding LUTs"))
                 {
 
                     if (!CheckLUT(Pass, h, cmsSigAToB0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigAToB0Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigAToB1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigAToB1Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigAToB2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigAToB2Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigBToA0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToA0Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigBToA1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToA1Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigBToA2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToA2Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigPreview0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPreview0Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigPreview1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPreview1Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigPreview2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigPreview2Tag");
                         goto Error;
+                    }
                     if (!CheckLUT(Pass, h, cmsSigGamutTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigGamutTag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding CHAD"))
                     if (!CheckCHAD(Pass, h, cmsSigChromaticAdaptationTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigChromaticAdaptationTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding Chromaticity"))
                     if (!CheckChromaticity(Pass, h, cmsSigChromaticityTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigChromaticityTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding colorant order"))
                     if (!CheckColorantOrder(Pass, h, cmsSigColorantOrderTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigColorantOrderTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding measurement"))
                     if (!CheckMeasurement(Pass, h, cmsSigMeasurementTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigMeasurementTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding CRD info"))
                     if (!CheckCRDinfo(Pass, h, cmsSigCrdInfoTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigCrdInfoTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding UCR/BG"))
                     if (!CheckUcrBg(Pass, h, cmsSigUcrBgTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigUcrBgTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding MPE"))
                 {
                     if (!CheckMPE(Pass, h, cmsSigDToB0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDToB0Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigDToB1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDToB1Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigDToB2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDToB2Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigDToB3Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigDToB3Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigBToD0Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToD0Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigBToD1Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToD1Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigBToD2Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToD2Tag");
                         goto Error;
+                    }
                     if (!CheckMPE(Pass, h, cmsSigBToD3Tag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigBToD3Tag");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags using screening"))
                     if (!CheckScreening(Pass, h, cmsSigScreeningTag))
+                    {
+                        logger.LogWarning("{tag} failed", "cmsSigScreeningTag");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Tags holding profile sequence description"))
                 {
                     if (!CheckProfileSequenceTag(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
                     if (!CheckProfileSequenceIDTag(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
                 }
 
                 using (logger.BeginScope("Tags holding ICC viewing conditions"))
                     if (!CheckICCViewingConditions(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("VCGT tags"))
                     if (!CheckVCGT(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("RAW tags"))
                     if (!CheckRAWtags(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
 
                 using (logger.BeginScope("Dictionary meta tags"))
                 {
                     // if (!CheckDictionary16(Pass, h)) goto Error;
                     if (!CheckDictionary24(Pass, h))
+                    {
+                        logger.LogWarning("Oops");
                         goto Error;
+                    }
                 }
             }
 
@@ -1665,6 +1854,62 @@ internal static partial class Testbed
             default:
                 return false;
         }
+    }
+
+    internal static bool CheckVersionHeaderWriting()
+    {
+        Span<float> test_versions = stackalloc float[]
+        {
+            2.3f,
+            4.08f,
+            4.09f,
+            4.3f
+        };
+
+        for (var index = 0;  index < test_versions.Length; index++)
+        {
+            var h = cmsCreateProfilePlaceholder(DbgThread());
+            if (h is null)
+                return false;
+
+            cmsSetProfileVersion(h, test_versions[index]);
+
+            cmsSaveProfileToFile(h, "versions.icc");
+            cmsCloseProfile(h);
+
+            h = cmsOpenProfileFromFileTHR(DbgThread(), "versions.icc", "r");
+
+            // Only the first 3 digits are significant
+            if (Math.Abs(cmsGetProfileVersion(h) - test_versions[index]) > 0.005)
+            {
+                logger.LogError("Version failed to round-trip: wrote {expected:f2}, read {actual:f2}", test_versions[index], cmsGetProfileVersion(h));
+
+                return false;
+            }
+
+            cmsCloseProfile(h);
+            File.Delete("versions.icc");
+        }
+
+        return true;
+    }
+
+    internal static bool CheckMultilocalizedProfile()
+    {
+        Span<byte> Buffer = stackalloc byte[256];
+        var hProfile = cmsOpenProfileFromMem(TestProfiles.crayons)!;
+
+        var Pt = (Mlu)cmsReadTag(hProfile, cmsSigProfileDescriptionTag)!;
+        cmsMLUgetASCII(Pt, "en"u8, "GB"u8, Buffer);
+        if (strcmp(Buffer, "Crayon Colours"u8) is not 0)
+            return false;
+        cmsMLUgetASCII(Pt, "en"u8, "US"u8, Buffer);
+        if (strcmp(Buffer, "Crayon Colors"u8) is not 0)
+            return false;
+
+        cmsCloseProfile(hProfile);
+
+        return true;
     }
 
 }

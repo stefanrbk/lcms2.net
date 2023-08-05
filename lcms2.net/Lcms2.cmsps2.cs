@@ -957,7 +957,7 @@ public static partial class Lcms2
                 continue;
 
             cmsDoTransform(xform, In, Lab, 1);
-            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Lab[0].L, Lab[0].a, Lab[0].b);
+            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Lab[0].L, Lab[0].a, Lab[0].b);
         }
 
         _cmsIOPrintf(m, ">>\n");
@@ -1252,7 +1252,7 @@ public static partial class Lcms2
 
             cmsDoTransform(xform, In, Out, 1);
             BuildColorantList(Colorant, nColorant, Out);
-            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Encoding.ASCII.GetString(TrimAsciiBuffer(Colorant)));
+            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Encoding.ASCII.GetString(TrimBuffer(Colorant)));
         }
 
         _cmsIOPrintf(m, "   >>");

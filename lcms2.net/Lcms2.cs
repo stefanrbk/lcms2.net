@@ -1525,8 +1525,8 @@ public static partial class Lcms2
 
     internal static int strcmp(ReadOnlySpan<byte> sLeft, ReadOnlySpan<byte> sRight)
     {
-        sLeft = TrimAsciiBuffer(sLeft);
-        sRight = TrimAsciiBuffer(sRight);
+        sLeft = TrimBuffer(sLeft);
+        sRight = TrimBuffer(sRight);
 
         var end = cmsmin(sLeft.Length, sRight.Length);
 
@@ -1604,10 +1604,24 @@ public static partial class Lcms2
         return last;
     }
 
-    internal static ReadOnlySpan<byte> TrimAsciiBuffer(ReadOnlySpan<byte> str)
+    [DebuggerStepThrough]
+    internal static Span<T> TrimBuffer<T>(T[] str) where T : IUnaryNegationOperators<T, T>, IEqualityOperators<T, T, bool> =>
+        TrimBuffer(str.AsSpan());
+
+    [DebuggerStepThrough]
+    internal static Span<T> TrimBuffer<T>(Span<T> str) where T : IUnaryNegationOperators<T, T>, IEqualityOperators<T, T, bool>
     {
         for (var i = 0; i < str.Length; i++)
-            if (str[i] is 0) return str[..i];
+            if (str[i] == -str[i]) return str[..i];
+
+        return str;
+    }
+
+    [DebuggerStepThrough]
+    internal static ReadOnlySpan<T> TrimBuffer<T>(ReadOnlySpan<T> str) where T : IUnaryNegationOperators<T, T>, IEqualityOperators<T, T, bool>
+    {
+        for (var i = 0; i < str.Length; i++)
+            if (str[i] == -str[i]) return str[..i];
 
         return str;
     }
