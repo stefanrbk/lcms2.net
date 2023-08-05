@@ -30,23 +30,23 @@ using lcms2.types;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static Transform? _cmsChain2Lab(
         Context? ContextID,
         uint nProfiles,
         uint InputFormat,
         uint OutputFormat,
-        in uint* Intents,
+        ReadOnlySpan<uint> Intents,
         in Profile[] Profiles,
-        in bool* BPC,
-        in double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
         var ProfileList = new Profile[256];
-        var BPCList = stackalloc bool[256];
-        var AdaptationList = stackalloc double[256];
-        var IntentList = stackalloc uint[256];
+        Span<bool> BPCList = stackalloc bool[256];
+        Span<double> AdaptationList = stackalloc double[256];
+        Span<uint> IntentList = stackalloc uint[256];
 
         // This is a rather big number and there is no need of dynamic memory
         // since we are adding a profile, 254 + 1 = 255 and this is the limit
@@ -67,9 +67,9 @@ public static unsafe partial class Lcms2
 
         // Place Lab identity at chain's end.
         ProfileList[nProfiles] = hLab;
-        BPCList[nProfiles] = false;
-        AdaptationList[nProfiles] = 1.0;
-        IntentList[nProfiles] = INTENT_RELATIVE_COLORIMETRIC;
+        BPCList[(int)nProfiles] = false;
+        AdaptationList[(int)nProfiles] = 1.0;
+        IntentList[(int)nProfiles] = INTENT_RELATIVE_COLORIMETRIC;
 
         // Create the transform
         var xform = cmsCreateExtendedTransform(
@@ -83,14 +83,14 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nPoints,
         uint nProfiles,
-        in uint* Intents,
+        ReadOnlySpan<uint> Intents,
         in Profile[] Profiles,
-        in bool* BPC,
-        in double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
-        var cmyk = stackalloc float[4];
-        CIELab Lab;
+        Span<float> cmyk = stackalloc float[4];
+        Span<CIELab> Lab = stackalloc CIELab[1];
 
         ToneCurve? @out = null;
 
@@ -108,15 +108,15 @@ public static unsafe partial class Lcms2
             cmyk[2] = 0;
             cmyk[3] = (float)((i * 100.0) / (nPoints - 1));
 
-            cmsDoTransform(xform, cmyk, &Lab, 1);
-            SampledPoints[i] = (float)(1.0 - (Lab.L / 100.0));  // Negate K for easier operation
+            cmsDoTransform<float, CIELab>(xform, cmyk, Lab, 1);
+            SampledPoints[i] = (float)(1.0 - (Lab[0].L / 100.0));  // Negate K for easier operation
         }
 
         @out = cmsBuildTabulatedToneCurveFloat(ContextID, nPoints, SampledPoints);
 
     Error:
         cmsDeleteTransform(xform);
-        if (SampledPoints is not null) _cmsFree(ContextID, SampledPoints);
+        if (SampledPoints is not null) ReturnArray(ContextID, SampledPoints);
 
         return @out;
     }
@@ -125,10 +125,10 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         uint nPoints,
         uint nProfiles,
-        in uint* Intents,
+        ReadOnlySpan<uint> Intents,
         in Profile[] Profiles,
-        in bool* BPC,
-        in double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
         // Make sure CMYK -> CMYK
@@ -147,7 +147,7 @@ public static unsafe partial class Lcms2
         if (@in is null) return null;
 
         var @out = ComputeKToLstar(
-            ContextID, nPoints, 1, Intents + (nProfiles - 1), Profiles[((int)nProfiles - 1)..], BPC + (nProfiles - 1), AdaptationStates + (nProfiles - 1), dwFlags);
+            ContextID, nPoints, 1, Intents[(int)(nProfiles - 1)..], Profiles[((int)nProfiles - 1)..], BPC[(int)(nProfiles - 1)..], AdaptationStates[(int)(nProfiles - 1)..], dwFlags);
 
         if (@out is null)
         {
@@ -184,12 +184,12 @@ public static unsafe partial class Lcms2
 
     private const double ERR_THRESHOLD = 5;
 
-    private static bool GamutSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool GamutSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
-        CIELab LabIn1, LabOut1;
-        CIELab LabIn2, LabOut2;
-        var Proof = stackalloc ushort[cmsMAXCHANNELS];
-        var Proof2 = stackalloc ushort[cmsMAXCHANNELS];
+        Span<CIELab> LabIn = stackalloc CIELab[2];
+        Span<CIELab> LabOut = stackalloc CIELab[2];
+        Span<ushort> Proof = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> Proof2 = stackalloc ushort[cmsMAXCHANNELS];
 
         if (Cargo is not Box<GamutChain> t)
             return false;
@@ -198,26 +198,26 @@ public static unsafe partial class Lcms2
         var ErrorRatio = 1.0;
 
         // Convert input to Lab
-        cmsDoTransform(t.Value.hInput, In, &LabIn1, 1);
+        cmsDoTransform(t.Value.hInput, In, LabIn, 1);
 
         // converts from PCS to colorant. This always
         // does return in-gamut values
-        cmsDoTransform(t.Value.hForward, &LabIn1, Proof, 1);
+        cmsDoTransform(t.Value.hForward, LabIn, Proof, 1);
 
         // Now, do the inverse, from colorant to PCS.
-        cmsDoTransform(t.Value.hReverse, Proof, &LabOut1, 1);
+        cmsDoTransform(t.Value.hReverse, Proof, LabOut, 1);
 
-        memmove(&LabIn2, &LabOut1);
+        LabIn[1] = LabOut[0];
 
         // Try again, but this time taking Check as input
-        cmsDoTransform(t.Value.hForward, &LabOut1, Proof2, 1);
-        cmsDoTransform(t.Value.hReverse, Proof2, &LabOut2, 1);
+        cmsDoTransform(t.Value.hForward, LabOut, Proof2, 1);
+        cmsDoTransform(t.Value.hReverse, Proof2, LabOut[1..], 1);
 
         // Take difference of direct value
-        var dE1 = cmsDeltaE(&LabIn1, &LabOut1);
+        var dE1 = cmsDeltaE(LabIn[0], LabOut[0]);
 
         // Take difference of converted value
-        var dE2 = cmsDeltaE(&LabIn2, &LabOut2);
+        var dE2 = cmsDeltaE(LabIn[1], LabOut[1]);
 
         // if dE1 is small and dE2 is small, value is likely to be in gamut
         if (dE1 < t.Value.Threshold && dE2 < t.Value.Threshold)
@@ -255,20 +255,20 @@ public static unsafe partial class Lcms2
     internal static Pipeline? _cmsCreateGamutCheckPipeline(
         Context? ContextID,
         Profile[] Profiles,
-        bool* BPC,
-        uint* Intents,
-        double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<uint> Intents,
+        ReadOnlySpan<double> AdaptationStates,
         uint nGamutPCSposition,
         Profile hGamut)
     {
         var ProfileList = new Profile[256];
-        var BPCList = stackalloc bool[256];
-        var AdaptationList = stackalloc double[256];
-        var IntentList = stackalloc uint[256];
-        GamutChain Chain;
+        Span<bool> BPCList = stackalloc bool[256];
+        Span<double> AdaptationList = stackalloc double[256];
+        Span<uint> IntentList = stackalloc uint[256];
+        GamutChain Chain = new();
         Pipeline? Gamut;
 
-        memset(&Chain, 0);
+        //memset(&Chain, 0);
 
         if (nGamutPCSposition is <= 0 or > 255)
         {
@@ -296,9 +296,9 @@ public static unsafe partial class Lcms2
 
         // Fill Lab identity
         ProfileList[nGamutPCSposition] = hLab;
-        BPCList[nGamutPCSposition] = false;
-        AdaptationList[nGamutPCSposition] = 1.0;
-        IntentList[nGamutPCSposition] = INTENT_RELATIVE_COLORIMETRIC;
+        BPCList[(int)nGamutPCSposition] = false;
+        AdaptationList[(int)nGamutPCSposition] = 1.0;
+        IntentList[(int)nGamutPCSposition] = INTENT_RELATIVE_COLORIMETRIC;
 
         var ColorSpace = cmsGetColorSpace(hGamut);
 
@@ -360,30 +360,32 @@ public static unsafe partial class Lcms2
         public uint nOutputChans;
         public Transform hRoundTrip;
         public float MaxTAC;
-        public fixed float MaxInput[cmsMAXCHANNELS];
+        public float[] MaxInput;
     }
 
-    private static bool EstimateTAC(in ushort* In, ushort* _, void* Cargo)
+    private static bool EstimateTAC(ReadOnlySpan<ushort> In, Span<ushort> _, object? Cargo)
     {
-        var bp = (TACestimator*)Cargo;
-        var RoundTrip = stackalloc float[cmsMAXCHANNELS];
+        if (Cargo is not Box<TACestimator> bp)
+            return false;
+
+        Span<float> RoundTrip = stackalloc float[cmsMAXCHANNELS];
         uint i;
         float Sum;
 
         // Evalutate the xform
-        cmsDoTransform(bp->hRoundTrip, In, RoundTrip, 1);
+        cmsDoTransform<ushort, float>(bp.Value.hRoundTrip, In, RoundTrip, 1);
 
         // All all amounts of ink
-        for (Sum = 0, i = 0; i < bp->nOutputChans; i++)
-            Sum += RoundTrip[i];
+        for (Sum = 0, i = 0; i < bp.Value.nOutputChans; i++)
+            Sum += RoundTrip[(int)i];
 
         // If abouve maximum, keep track of input values
-        if (Sum > bp->MaxTAC)
+        if (Sum > bp.Value.MaxTAC)
         {
-            bp->MaxTAC = Sum;
+            bp.Value.MaxTAC = Sum;
 
-            for (i = 0; i < bp->nOutputChans; i++)
-                bp->MaxInput[i] = In[i];
+            for (i = 0; i < bp.Value.nOutputChans; i++)
+                bp.Value.MaxInput[i] = In[(int)i];
         }
 
         return true;
@@ -391,7 +393,11 @@ public static unsafe partial class Lcms2
 
     public static double cmsDetectTAC(Profile Profile)
     {
-        TACestimator bp;
+        var pool = Context.GetPool<float>(Profile.ContextID);
+        TACestimator bp = new()
+        {
+            MaxInput = pool.Rent(cmsMAXCHANNELS)
+        };
         Span<uint> GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
         var ContextID = cmsGetProfileContextID(Profile);
 
@@ -402,7 +408,7 @@ public static unsafe partial class Lcms2
         // Create a fake formatter for result
         var dwFormatter = cmsFormatterForColorspaceOfProfile(Profile, 4, true);
 
-        bp.nOutputChans = T_CHANNELS(dwFormatter);
+        bp.nOutputChans = (uint)T_CHANNELS(dwFormatter);
         bp.MaxTAC = 0;  // Initial TAC is 0
 
         // for safety
@@ -422,22 +428,23 @@ public static unsafe partial class Lcms2
         GridPoints[1] = 74;
         GridPoints[2] = 74;
 
-        if (!cmsSliceSpace16(3, GridPoints, &EstimateTAC, &bp))
+        if (!cmsSliceSpace16(3, GridPoints, EstimateTAC, new Box<TACestimator>(bp)))
             bp.MaxTAC = 0;
 
         cmsDeleteTransform(bp.hRoundTrip);
+        pool.Return(bp.MaxInput);
 
         // Results in %
         return bp.MaxTAC;
     }
 
-    public static bool cmsDesaturateLab(CIELab* Lab, double amax, double amin, double bmax, double bmin)
+    public static bool cmsDesaturateLab(ref CIELab Lab, double amax, double amin, double bmax, double bmin)
     {
         // White Luma surface to zero
 
-        if (Lab->L < 0)
+        if (Lab.L < 0)
         {
-            Lab->L = Lab->a = Lab->b = 0;
+            Lab.L = Lab.a = Lab.b = 0;
             return false;
         }
 
@@ -445,32 +452,32 @@ public static unsafe partial class Lcms2
         // in such way because icc spec doesn't allow the
         // use of L>100 as a highlight means.
 
-        Lab->L = Math.Min(Lab->L, 100);
+        Lab.L = Math.Min(Lab.L, 100);
 
         // Check out gamut prism, on a, b faces
 
-        if (Lab->a < amin || Lab->a > amax ||
-            Lab->b < bmin || Lab->b > bmax)
+        if (Lab.a < amin || Lab.a > amax ||
+            Lab.b < bmin || Lab.b > bmax)
         {
             CIELCh LCh;
 
             // Falls outside a, b limits. Transports to LCh space,
             // and then do the clipping
 
-            if (Lab->a is 0)    // Is hue exactly 90?
+            if (Lab.a is 0)    // Is hue exactly 90?
             {
                 // atan will not work, so clamp here
-                Lab->b = Lab->b < 0 ? bmin : bmax;
+                Lab.b = Lab.b < 0 ? bmin : bmax;
                 return true;
             }
 
-            cmsLab2LCh(&LCh, Lab);
+            LCh = cmsLab2LCh(Lab);
 
-            var slope = Lab->b / Lab->a;
+            var slope = Lab.b / Lab.a;
             var h = LCh.h;
 
             // There are 4 zones;
-            (Lab->a, Lab->b) = h switch
+            (Lab.a, Lab.b) = h switch
             {
                 (>= 0 and < 45) or (>= 315 and <= 360) =>
                     // clip by amax
@@ -488,7 +495,7 @@ public static unsafe partial class Lcms2
                     (double.NaN, double.NaN),
             };
 
-            if (double.IsNaN(Lab->a))
+            if (double.IsNaN(Lab.a))
             {
                 cmsSignalError(null, cmsERROR_RANGE, "Invalid angle");
                 return false;
@@ -508,8 +515,8 @@ public static unsafe partial class Lcms2
     public static double cmsDetectRGBProfileGamma(Profile Profile, double threshold)
 
     {
-        var rgb = stackalloc Rgb<ushort>[256];
-        var XYZ = stackalloc CIEXYZ[256];
+        Span<Rgb<ushort>> rgb = stackalloc Rgb<ushort>[256];
+        Span<CIEXYZ> XYZ = stackalloc CIEXYZ[256];
         //var Y_normalized = stackalloc float[256];
         var pool = Context.GetPool<float>(Profile.ContextID);
 
@@ -533,7 +540,7 @@ public static unsafe partial class Lcms2
         for (var i = 0; i < 256; i++)
             rgb[i].R = rgb[i].G = rgb[i].B = FROM_8_TO_16((uint)i);
 
-        cmsDoTransform(xform, rgb, XYZ, 256);
+        cmsDoTransform<Rgb<ushort>, CIEXYZ>(xform, rgb, XYZ, 256);
 
         cmsDeleteTransform(xform);
         cmsCloseProfile(hXYZ);

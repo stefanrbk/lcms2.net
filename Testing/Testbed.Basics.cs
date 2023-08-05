@@ -28,9 +28,11 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
+using System.Runtime.CompilerServices;
+
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     public static bool CheckBaseTypes()
     {
@@ -45,7 +47,7 @@ internal static unsafe partial class Testbed
         if (sizeof(long) is not 8) return false;
         if (sizeof(float) is not 4) return false;
         if (sizeof(double) is not 8) return false;
-        if (sizeof(Signature) is not 4) return false;
+        if (Unsafe.SizeOf<Signature>() is not 4) return false;
 #pragma warning restore CS8519 // The given expression never matches the provided pattern.
 
         return true;

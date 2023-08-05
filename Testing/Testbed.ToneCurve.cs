@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     private static bool CheckGammaEstimation(ToneCurve c, double g)
     {
@@ -157,7 +157,7 @@ internal static unsafe partial class Testbed
 
     private static bool CheckGammaWordTable(double g)
     {
-        var Values = stackalloc ushort[1025];
+        Span<ushort> Values = stackalloc ushort[1025];
 
         for (var i = 0; i <= 1024; i++)
         {
@@ -254,7 +254,7 @@ internal static unsafe partial class Testbed
 
     public static bool CheckReverseDegenerated()
     {
-        var Tab = stackalloc ushort[16];
+        Span<ushort> Tab = stackalloc ushort[16];
 
         Tab[0] = 0;
         Tab[1] = 0;
@@ -295,7 +295,7 @@ internal static unsafe partial class Testbed
 
     private static ToneCurve Build_sRGBGamma()
     {
-        var Parameters = stackalloc double[5]
+        Span<double> Parameters = stackalloc double[5]
         {
             2.4,
             1 / 1.055,
@@ -309,7 +309,7 @@ internal static unsafe partial class Testbed
 
     private static ToneCurve CombineGammaFloat(ToneCurve g1, ToneCurve g2)
     {
-        var Tab = stackalloc ushort[256];
+        Span<ushort> Tab = stackalloc ushort[256];
 
         for (var i = 0; i < 256; i++)
         {
@@ -324,7 +324,7 @@ internal static unsafe partial class Testbed
 
     private static ToneCurve CombineGamma16(ToneCurve g1, ToneCurve g2)
     {
-        var Tab = stackalloc ushort[256];
+        Span<ushort> Tab = stackalloc ushort[256];
 
         for (var i = 0; i < 256; i++)
         {
@@ -362,8 +362,8 @@ internal static unsafe partial class Testbed
 
     public static bool CheckJointCurvesSShaped()
     {
-        var p = 3.2;
-        var Forward = cmsBuildParametricToneCurve(DbgThread(), 108, &p);
+        Span<double> p = stackalloc double[1] { 3.2 };
+        var Forward = cmsBuildParametricToneCurve(DbgThread(), 108, p);
         var Reverse = cmsReverseToneCurve(Forward);
         var Result = cmsJoinToneCurve(DbgThread(), Forward, Forward, 4096);
         cmsFreeToneCurve(Forward); cmsFreeToneCurve(Reverse);
@@ -373,10 +373,10 @@ internal static unsafe partial class Testbed
         return rc;
     }
 
-    private static float Gamma(float x, in double* Params) =>
+    private static float Gamma(float x, ReadOnlySpan<double> Params) =>
         (float)Math.Pow(x, Params[0]);
 
-    private static float CIE122(float x, in double* Params)
+    private static float CIE122(float x, ReadOnlySpan<double> Params)
     {
         double Val;
 
@@ -397,7 +397,7 @@ internal static unsafe partial class Testbed
         return (float)Val;
     }
 
-    private static float IEC61966_3(float x, in double* Params)
+    private static float IEC61966_3(float x, ReadOnlySpan<double> Params)
     {
         double Val;
 
@@ -418,7 +418,7 @@ internal static unsafe partial class Testbed
         return (float)Val;
     }
 
-    private static float IEC61966_21(float x, in double* Params)
+    private static float IEC61966_21(float x, ReadOnlySpan<double> Params)
     {
         double Val;
 
@@ -439,7 +439,7 @@ internal static unsafe partial class Testbed
         return (float)Val;
     }
 
-    private static float param_5(float x, in double* Params)
+    private static float param_5(float x, ReadOnlySpan<double> Params)
     {
         double Val;
         // Y = (aX + b)^Gamma + e | X >= d
@@ -460,7 +460,7 @@ internal static unsafe partial class Testbed
         return (float)Val;
     }
 
-    private static float param_6(float x, in double* Params)
+    private static float param_6(float x, ReadOnlySpan<double> Params)
     {
         double Val;
 
@@ -473,16 +473,17 @@ internal static unsafe partial class Testbed
         return (float)Val;
     }
 
-    private static float param_7(float x, in double* Params) =>
+    private static float param_7(float x, ReadOnlySpan<double> Params) =>
         (float)((Params[1] * Math.Log10((Params[2] * Math.Pow(x, Params[0])) + Params[3])) + Params[4]);
 
-    private static float param_8(float x, in double* Params) =>
+    private static float param_8(float x, ReadOnlySpan<double> Params) =>
         (float)((Params[0] * Math.Pow(Params[1], (Params[2] * x) + Params[3])) + Params[4]);
 
-    private static float sigmoidal(float x, in double* Params) =>
+    private static float sigmoidal(float x, ReadOnlySpan<double> Params) =>
         (float)Math.Pow(1.0 - Math.Pow(1 - x, 1 / Params[0]), 1 / Params[0]);
 
-    private static bool CheckSingleParametric(string Name, delegate*<float, in double*, float> fn, int Type, in double* Params)
+    private delegate float func(float x, ReadOnlySpan<double> Params);
+    private static bool CheckSingleParametric(string Name, func fn, int Type, ReadOnlySpan<double> Params)
     {
         var tc = cmsBuildParametricToneCurve(DbgThread(), Type, Params);
         var tc_1 = cmsBuildParametricToneCurve(DbgThread(), -Type, Params);
@@ -514,13 +515,13 @@ internal static unsafe partial class Testbed
 
     public static bool CheckParametricToneCurves()
     {
-        var Params = stackalloc double[10];
+        Span<double> Params = stackalloc double[10];
 
         // 1) X = Y ^ Gamma
 
         Params[0] = 2.2;
 
-        if (!CheckSingleParametric("Gamma", &Gamma, 1, Params)) return false;
+        if (!CheckSingleParametric("Gamma", Gamma, 1, Params)) return false;
 
         // 2) CIE 122-1966
         // Y = (aX + b)^Gamma  | X >= -b/a
@@ -530,7 +531,7 @@ internal static unsafe partial class Testbed
         Params[1] = 1.5;
         Params[2] = -0.5;
 
-        if (!CheckSingleParametric("CIE122-1966", &CIE122, 2, Params)) return false;
+        if (!CheckSingleParametric("CIE122-1966", CIE122, 2, Params)) return false;
 
         // 3) IEC 61966-3
         // Y = (aX + b)^Gamma | X <= -b/a
@@ -541,7 +542,7 @@ internal static unsafe partial class Testbed
         Params[2] = -0.5;
         Params[3] = 0.3;
 
-        if (!CheckSingleParametric("IEC 61966-3", &IEC61966_3, 3, Params)) return false;
+        if (!CheckSingleParametric("IEC 61966-3", IEC61966_3, 3, Params)) return false;
 
         // 4) IEC 61966-2.1 (sRGB)
         // Y = (aX + b)^Gamma | X >= d
@@ -553,7 +554,7 @@ internal static unsafe partial class Testbed
         Params[3] = 1 / 12.92;
         Params[4] = 0.04045;
 
-        if (!CheckSingleParametric("IEC 61966-2.1", &IEC61966_21, 4, Params)) return false;
+        if (!CheckSingleParametric("IEC 61966-2.1", IEC61966_21, 4, Params)) return false;
 
         // 5) Y = (aX + b)^Gamma + e | X >= d
         // Y = cX + f             | else
@@ -566,7 +567,7 @@ internal static unsafe partial class Testbed
         Params[5] = 0.5;
         Params[6] = 0.2;
 
-        if (!CheckSingleParametric("param_5", &param_5, 5, Params)) return false;
+        if (!CheckSingleParametric("param_5", param_5, 5, Params)) return false;
 
         // 6) Y = (aX + b) ^ Gamma + c
 
@@ -575,7 +576,7 @@ internal static unsafe partial class Testbed
         Params[2] = 0.2;
         Params[3] = 0.3;
 
-        if (!CheckSingleParametric("param_6", &param_6, 6, Params)) return false;
+        if (!CheckSingleParametric("param_6", param_6, 6, Params)) return false;
 
         // 7) Y = a * log (b * X^Gamma + c) + d
 
@@ -585,7 +586,7 @@ internal static unsafe partial class Testbed
         Params[3] = 0.02;
         Params[4] = 0.1;
 
-        if (!CheckSingleParametric("param_7", &param_7, 7, Params)) return false;
+        if (!CheckSingleParametric("param_7", param_7, 7, Params)) return false;
 
         // 8) Y = a * b ^ (c*X+d) + e
 
@@ -595,12 +596,12 @@ internal static unsafe partial class Testbed
         Params[3] = 0.1;
         Params[4] = 0.2;
 
-        if (!CheckSingleParametric("param_8", &param_8, 8, Params)) return false;
+        if (!CheckSingleParametric("param_8", param_8, 8, Params)) return false;
 
         // 108: S-Shaped: (1 - (1-x)^1/g)^1/g
 
         Params[0] = 1.9;
-        if (!CheckSingleParametric("sigmoidal", &sigmoidal, 108, Params)) return false;
+        if (!CheckSingleParametric("sigmoidal", sigmoidal, 108, Params)) return false;
 
         // All OK
 

@@ -24,44 +24,14 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.types;
 
-namespace lcms2.state;
+namespace lcms2.types;
 
-internal class TagPluginChunkType : IDup
+internal class FormattersFactoryOutList : ICloneable
 {
-    public TagLinkedList? Tag;
+    public FormatterFactoryOut Factory;
+    public FormattersFactoryOutList? Next;
 
-    public object? Dup(Context ctx)
-    {
-        TagPluginChunkType head = this;
-        TagLinkedList? Anterior = null, entry;
-        TagPluginChunkType newHead = new();
-
-        _cmsAssert(ctx);
-
-        // Walk the list copying all nodes
-        for (entry = head.Tag;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<TagLinkedList>(ctx.MemPool, entry);
-
-            //if (newEntry is null)
-            //    return null;
-
-            var newEntry = (TagLinkedList)entry.Clone();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.Tag ??= newEntry;
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new FormattersFactoryOutList() { Factory = Factory, Next = null };
 }

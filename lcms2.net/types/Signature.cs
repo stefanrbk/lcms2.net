@@ -29,7 +29,7 @@ using System.Diagnostics;
 
 namespace lcms2.types;
 
-public readonly unsafe partial struct Signature : ICloneable
+public readonly partial struct Signature : ICloneable
 {
     #region Fields
 
@@ -48,12 +48,11 @@ public readonly unsafe partial struct Signature : ICloneable
 
     public Signature(ReadOnlySpan<byte> value)
     {
-        var bytes = stackalloc byte[] { 0x20, 0x20, 0x20, 0x20 };
-        fixed (byte* s = value)
-        {
-            Buffer.MemoryCopy(s, bytes, 4, value.Length);
-        }
-        _value = *(uint*)bytes;
+        Span<byte> bytes = stackalloc byte[] { 0x20, 0x20, 0x20, 0x20 };
+        if (value.Length > 4)
+            value = value[..4];
+        value.CopyTo(bytes);
+        _value = BitConverter.ToUInt32(bytes);
     }
 
     #endregion Public Constructors
@@ -71,9 +70,8 @@ public readonly unsafe partial struct Signature : ICloneable
 
     public override string ToString()
     {
-        var buf = stackalloc byte[5];
-        _cmsTagSignature2String(buf, this);
-        return new((sbyte*)buf);
+        _cmsTagSignature2String(this);
+        return _cmsTagSignature2String(this);
     }
 
     #endregion Public Methods

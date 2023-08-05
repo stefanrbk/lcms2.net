@@ -29,34 +29,56 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class FormattersPluginChunkType : IDup
+internal class FormattersPluginChunkType : IDup
 {
-    public FormattersFactoryList? FactoryList;
+    public FormattersFactoryInList? FactoryInList;
+    public FormattersFactoryOutList? FactoryOutList;
 
     public object? Dup(Context ctx)
     {
-        var head = this;
-        FormattersFactoryList? Anterior = null;
         FormattersPluginChunkType newHead = new();
 
-        _cmsAssert(head);
-
-        // Walk the list copying all nodes
-        for (var entry = head.FactoryList; entry is not null; entry = entry.Next)
         {
-            var newEntry = (FormattersFactoryList?)entry.Clone();
+            FormattersFactoryInList? Anterior = null;
 
-            if (newEntry is null)
-                return null;
+            // Walk the list copying all nodes
+            for (var entry = FactoryInList; entry is not null; entry = entry.Next)
+            {
+                var newEntry = (FormattersFactoryInList?)entry.Clone();
 
-            // We want to keep the linked list order
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
+                if (newEntry is null)
+                    return null;
 
-            Anterior = newEntry;
+                // We want to keep the linked list order
+                newEntry.Next = null;
+                if (Anterior is not null)
+                    Anterior.Next = newEntry;
 
-            newHead.FactoryList ??= newEntry;
+                Anterior = newEntry;
+
+                newHead.FactoryInList ??= newEntry;
+            }
+        }
+        {
+            FormattersFactoryOutList? Anterior = null;
+
+            // Walk the list copying all nodes
+            for (var entry = FactoryOutList; entry is not null; entry = entry.Next)
+            {
+                var newEntry = (FormattersFactoryOutList?)entry.Clone();
+
+                if (newEntry is null)
+                    return null;
+
+                // We want to keep the linked list order
+                newEntry.Next = null;
+                if (Anterior is not null)
+                    Anterior.Next = newEntry;
+
+                Anterior = newEntry;
+
+                newHead.FactoryOutList ??= newEntry;
+            }
         }
 
         return newHead;

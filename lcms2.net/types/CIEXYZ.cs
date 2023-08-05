@@ -27,9 +27,18 @@
 
 namespace lcms2.types;
 
-public struct CIEXYZ
+public struct CIEXYZ(double x, double y, double z)
 {
-    public double X;
-    public double Y;
-    public double Z;
+    public double X = x;
+    public double Y = y;
+    public double Z = z;
+
+    public readonly VEC3 AsVec =>
+        new(X, Y, Z);
+
+    public static CIEXYZ NaN =>
+        VEC3.NaN.AsXYZ;
+
+    public readonly bool IsNaN =>
+        AsVec.IsNaN;
 }

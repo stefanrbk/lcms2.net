@@ -28,14 +28,11 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     const ushort TYPE_SIN = 1000;
     const ushort TYPE_COS = 1010;
@@ -57,8 +54,8 @@ internal static unsafe partial class Testbed
     };
 
     // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
-    private static void Fake1Dfloat(in float* Value,
-                                    float* Output,
+    private static void Fake1Dfloat(ReadOnlySpan<float> Value,
+                                    Span<float> Output,
                                     InterpParams<float> p)
     {
         float val2;
@@ -77,8 +74,8 @@ internal static unsafe partial class Testbed
     }
 
     // This fake interpolation just uses scrambled negated indexes for output
-    private static void Fake3D16(in ushort* Input,
-                                 ushort* Output,
+    private static void Fake3D16(ReadOnlySpan<ushort> Input,
+                                 Span<ushort> Output,
                                  InterpParams<ushort> _)
     {
         Output[0] = (ushort)(0xFFFF - Input[2]);
@@ -214,8 +211,8 @@ internal static unsafe partial class Testbed
 
     public static bool CheckAlarmColorsContext()
     {
-        var codes = stackalloc ushort[16] { 0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888, 0x9999, 0xaaaa, 0xbbbb, 0xcccc, 0xdddd, 0xeeee, 0xffff };
-        var values = stackalloc ushort[16];
+        Span<ushort> codes = stackalloc ushort[16] { 0x0000, 0x1111, 0x2222, 0x3333, 0x4444, 0x5555, 0x6666, 0x7777, 0x8888, 0x9999, 0xaaaa, 0xbbbb, 0xcccc, 0xdddd, 0xeeee, 0xffff };
+        Span<ushort> values = stackalloc ushort[16];
 
         var c1 = WatchDogContext(null);
 
@@ -346,9 +343,9 @@ internal static unsafe partial class Testbed
         Pipeline p;
         Stage clut;
         Context ctx;
-        var In = stackalloc ushort[3];
-        var Out = stackalloc ushort[3];
-        var identity = stackalloc ushort[] {
+        Span<ushort> In = stackalloc ushort[3];
+        Span<ushort> Out = stackalloc ushort[3];
+        Span<ushort> identity = stackalloc ushort[] {
             0,       0,       0,
             0,       0,       0xffff,
             0,       0xffff,  0,
@@ -422,7 +419,7 @@ internal static unsafe partial class Testbed
 
     }
     private static double my_fns(int Type,
-                                 in double* Params,
+                                 ReadOnlySpan<double> Params,
                                  double R) =>
         Type switch
         {
@@ -433,7 +430,7 @@ internal static unsafe partial class Testbed
             _ => -1.0
         };
 
-    private static double my_fns2(int Type, in double* Params, double R) =>
+    private static double my_fns2(int Type, ReadOnlySpan<double> Params, double R) =>
         Type switch
         {
             TYPE_TAN => Params[0] * Math.Tan(R * M_PI),
@@ -441,7 +438,7 @@ internal static unsafe partial class Testbed
             _ => -1.0
         };
 
-    private static double Rec709Math(int Type, in double* Params, double R) =>
+    private static double Rec709Math(int Type, ReadOnlySpan<double> Params, double R) =>
         Type switch
         {
             709 =>
@@ -494,7 +491,7 @@ internal static unsafe partial class Testbed
         ToneCurve tangent;
         ToneCurve reverse_sinus;
         ToneCurve reverse_cosinus;
-        var scale = 1.0;
+        Span<double> scale = stackalloc double[] { 1.0 };
 
 
         Context? ctx = WatchDogContext(null);
@@ -508,9 +505,9 @@ internal static unsafe partial class Testbed
         cmsPluginTHR(cpy2, Rec709Plugin);
 
 
-        sinus = cmsBuildParametricToneCurve(cpy, TYPE_SIN, &scale);
-        cosinus = cmsBuildParametricToneCurve(cpy, TYPE_COS, &scale);
-        tangent = cmsBuildParametricToneCurve(cpy, TYPE_TAN, &scale);
+        sinus = cmsBuildParametricToneCurve(cpy, TYPE_SIN, scale);
+        cosinus = cmsBuildParametricToneCurve(cpy, TYPE_COS, scale);
+        tangent = cmsBuildParametricToneCurve(cpy, TYPE_TAN, scale);
         reverse_sinus = cmsReverseToneCurve(sinus);
         reverse_cosinus = cmsReverseToneCurve(cosinus);
 
@@ -565,12 +562,12 @@ internal static unsafe partial class Testbed
 
     private readonly static uint TYPE_RGB_565 = (COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | (1 << 23));
 
-    private static byte* my_Unroll565(Transform _1,
-                                      ushort* wIn,
-                                      byte* accum,
-                                      uint _2)
+    private static ReadOnlySpan<byte> my_Unroll565(Transform _1,
+                                                   Span<ushort> wIn,
+                                                   ReadOnlySpan<byte> accum,
+                                                   uint _2)
     {
-        var pixel = *(ushort*)accum;  // Take whole pixel
+        var pixel = BitConverter.ToUInt16(accum);  // Take whole pixel
 
         double r = Math.Floor(((pixel & 31) * 65535.0) / 31.0 + 0.5);
         double g = Math.Floor((((pixel >> 5) & 63) * 65535.0) / 63.0 + 0.5);
@@ -580,13 +577,13 @@ internal static unsafe partial class Testbed
         wIn[1] = (ushort) g;
         wIn[0] = (ushort) b;
     
-        return accum + 2;
+        return accum.Length <= 2 ? default : accum[2..];
     }
 
-    private static byte* my_Pack565(Transform _1,
-                                    ushort* wOut,
-                                    byte* output,
-                                    uint _2)
+    private static Span<byte> my_Pack565(Transform _1,
+                                         ReadOnlySpan<ushort> wOut,
+                                         Span<byte> output,
+                                         uint _2)
     {
 
         ushort pixel;
@@ -600,34 +597,28 @@ internal static unsafe partial class Testbed
         pixel = (ushort)((r & 31) | ((g & 63) << 5) | ((b & 31) << 11));
 
 
-        *(ushort*)output = pixel;
-        return output + 2;
+        BitConverter.TryWriteBytes(output, pixel);
+        return output.Length <= 2 ? default : output[2..];
     }
 
-    private static Formatter my_FormatterFactory(uint Type,
-                                                 FormatterDirection Dir,
-                                                 uint dwFlags)
+    private static FormatterIn my_FormatterFactory(uint Type, uint dwFlags)
     {
-        Formatter Result = default;
+        FormatterIn Result = default;
 
         if ((Type == TYPE_RGB_565) &&
-            (dwFlags & (uint)PackFlags.Float) is 0 &&
-            (Dir == FormatterDirection.Input))
+            (dwFlags & (uint)PackFlags.Float) is 0)
         {
             Result.Fmt16 = my_Unroll565;
         }
         return Result;
     }
 
-    private static Formatter my_FormatterFactory2(uint Type,
-                                                  FormatterDirection Dir,
-                                                  uint dwFlags)
+    private static FormatterOut my_FormatterFactory2(uint Type, uint dwFlags)
     {
-        Formatter Result = default;
+        FormatterOut Result = default;
 
         if ((Type == TYPE_RGB_565) &&
-            (dwFlags & (uint)PackFlags.Float) is 0 &&
-            (Dir == FormatterDirection.Output))
+            (dwFlags & (uint)PackFlags.Float) is 0)
         {
             Result.Fmt16 = my_Pack565;
         }
@@ -637,7 +628,7 @@ internal static unsafe partial class Testbed
     private readonly static PluginFormatters FormattersPluginSample = new() 
     {
         Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
-        FormattersFactory = my_FormatterFactory
+        FormattersFactoryIn = my_FormatterFactory
     };
 
 
@@ -645,15 +636,15 @@ internal static unsafe partial class Testbed
     private readonly static PluginFormatters FormattersPluginSample2 = new() 
     {
         Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
-        FormattersFactory = my_FormatterFactory2
+        FormattersFactoryOut = my_FormatterFactory2
     };
 
 
     public static bool CheckFormattersPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        var stream = stackalloc ushort[] { (ushort)0xffffU, (ushort)0x1234U, (ushort)0x0000U, (ushort)0x33ddU };
-        var result = stackalloc ushort[4];
+        Span<ushort> stream = stackalloc ushort[] { (ushort)0xffffU, (ushort)0x1234U, (ushort)0x0000U, (ushort)0x33ddU };
+        Span<ushort> result = stackalloc ushort[4];
         int i;
 
         cmsPluginTHR(ctx, FormattersPluginSample);
@@ -666,7 +657,7 @@ internal static unsafe partial class Testbed
 
         var xform = cmsCreateTransformTHR(cpy2, null, TYPE_RGB_565, null, TYPE_RGB_565, INTENT_PERCEPTUAL, cmsFLAGS_NULLTRANSFORM);
 
-        cmsDoTransform(xform, stream, result, 4);
+        cmsDoTransform<ushort, ushort>(xform, stream, result, 4);
 
         cmsDeleteTransform(xform);
         cmsDeleteContext(ctx);
@@ -682,12 +673,12 @@ internal static unsafe partial class Testbed
     const uint SigIntType = 0x74747448;   //   'tttH'
     const uint SigInt = 0x74747448;       //   'tttH'
 
-    private static Box<uint>? Type_int_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Box<uint>? Type_int_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _)
     {
-        uint Ptr;
-        if (!_cmsReadUInt32Number(io, &Ptr)) return null;
-        *nItems = 1;
-        return new Box<uint>(Ptr);
+        nItems = 0;
+        if (!_cmsReadUInt32Number(io, out var value)) return null;
+        nItems = 1;
+        return new(value);
     }
 
     private static bool Type_int_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2) =>
@@ -722,7 +713,6 @@ internal static unsafe partial class Testbed
         bool rc = false;
         byte[]? data = null;
         Box<uint>? ptr = null;
-        uint clen = 0;
 
 
         ctx = WatchDogContext(null);
@@ -748,7 +738,7 @@ internal static unsafe partial class Testbed
             goto Error;
         }
 
-        rc = cmsSaveProfileToMem(h, null, &clen);
+        rc = cmsSaveProfileToMem(h, null, out var clen);
         if (!rc)
         {
             logger.LogWarning("Fetch mem size failed");
@@ -764,7 +754,7 @@ internal static unsafe partial class Testbed
         //}
 
 
-        rc = cmsSaveProfileToMem(h, data, &clen);
+        rc = cmsSaveProfileToMem(h, data, out clen);
         if (!rc)
         {
             logger.LogWarning("Save to mem failed");
@@ -830,7 +820,7 @@ internal static unsafe partial class Testbed
 
     private const uint SigNegateType = 0x6E202020;
 
-    private static void EvaluateNegate(in float* In, float* Out, Stage _)
+    private static void EvaluateNegate(ReadOnlySpan<float> In, Span<float> Out, Stage _)
     {
         Out[0] = 1.0f - In[0];
         Out[1] = 1.0f - In[1];
@@ -844,13 +834,13 @@ internal static unsafe partial class Testbed
                      null, null, null);
     }
 
-    private static Stage? Type_negate_Read(TagTypeHandler self, IOHandler io, uint* nItems, uint _)
+    private static Stage? Type_negate_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _)
     {
-        ushort Chans;
-        if (!_cmsReadUInt16Number(io, &Chans)) return null;
+        nItems = 0;
+        if (!_cmsReadUInt16Number(io, out var Chans)) return null;
         if (Chans != 3) return null;
 
-        * nItems = 1;
+        nItems = 1;
         return StageAllocNegate(self.ContextID);
     }
 
@@ -874,9 +864,8 @@ internal static unsafe partial class Testbed
         const uint myTag = 1234;
         bool rc = false;
         byte[]? data = null;
-        uint clen = 0;
-        var In = stackalloc float[3];
-        var Out = stackalloc float[3];
+        Span<float> In = stackalloc float[3];
+        Span<float> Out = stackalloc float[3];
         Pipeline? pipe;
 
         ctx = WatchDogContext(null);
@@ -921,7 +910,7 @@ internal static unsafe partial class Testbed
         // This cleans the stage as well
         cmsPipelineFree(pipe);
 
-        rc = cmsSaveProfileToMem(h, null, &clen);
+        rc = cmsSaveProfileToMem(h, null, out var clen);
         if (!rc)
         {
             logger.LogWarning("Fetch mem size failed");
@@ -937,7 +926,7 @@ internal static unsafe partial class Testbed
         }
 
 
-        rc = cmsSaveProfileToMem(h, data, &clen);
+        rc = cmsSaveProfileToMem(h, data, out clen);
         if (!rc)
         {
             logger.LogWarning("Save to mem failed");
@@ -1009,12 +998,12 @@ internal static unsafe partial class Testbed
         return false;
     }
 
-    private static void FastEvaluateCurves(in ushort* In, ushort* Out, object? _)
+    private static void FastEvaluateCurves(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = In[0];
     }
 
-    private static bool MyOptimize(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool MyOptimize(ref Pipeline Lut, uint Intent, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags)
     {
         Stage? mpe;
         StageToneCurvesData? Data;
@@ -1034,7 +1023,7 @@ internal static unsafe partial class Testbed
 
         }
 
-        *dwFlags |= cmsFLAGS_NOCACHE;
+        dwFlags |= cmsFLAGS_NOCACHE;
         _cmsPipelineSetOptimizationParameters(Lut, FastEvaluateCurves, null, null, null);
 
         return true;
@@ -1049,8 +1038,8 @@ internal static unsafe partial class Testbed
     public static bool CheckOptimizationPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        var In = stackalloc byte[] { 10, 20, 30, 40 };
-        var Out = stackalloc byte[4];
+        Span<byte> In = stackalloc byte[] { 10, 20, 30, 40 };
+        Span<byte> Out = stackalloc byte[4];
         var Linear = new ToneCurve[1];
         Profile? h;
         int i;
@@ -1082,13 +1071,12 @@ internal static unsafe partial class Testbed
 
     private const uint INTENT_DECEPTIVE = 300;
 
-    private static Pipeline? MyNewIntent(Context ContextID, uint nProfiles, uint* TheIntents, Profile[] hProfiles, bool* BPC, double* AdaptationStates, uint dwFlags)
+    private static Pipeline? MyNewIntent(Context ContextID, uint nProfiles, ReadOnlySpan<uint> TheIntents, Profile[] hProfiles, ReadOnlySpan<bool> BPC, ReadOnlySpan<double> AdaptationStates, uint dwFlags)
     {
         Pipeline? Result;
-        var ICCIntents = stackalloc uint[256];
-        uint i;
+        Span<uint> ICCIntents = stackalloc uint[256];
 
-        for (i = 0; i < nProfiles; i++)
+        for (var i = 0; i < nProfiles; i++)
             ICCIntents[i] = (TheIntents[i] == INTENT_DECEPTIVE) ? INTENT_PERCEPTUAL : TheIntents[i];
 
         if (cmsGetColorSpace(hProfiles[0]) != cmsSigGrayData || cmsGetColorSpace(hProfiles[(int)nProfiles - 1]) != cmsSigGrayData)
@@ -1115,8 +1103,8 @@ internal static unsafe partial class Testbed
         Profile? h1, h2;
         ToneCurve Linear1;
         ToneCurve Linear2;
-        var In = stackalloc byte[] { 10, 20, 30, 40 };
-        var Out = stackalloc byte[4];
+        Span<byte> In = stackalloc byte[] { 10, 20, 30, 40 };
+        Span<byte> Out = stackalloc byte[4];
         int i;
 
         cmsPluginTHR(ctx, IntentPluginSample);
@@ -1149,23 +1137,19 @@ internal static unsafe partial class Testbed
     }
 
     // This is a sample intent that only works for gray8 as output, and always returns '42'
-    private static void TrancendentalTransform(Transform _1, in void* _2, void* OutputBuffer, uint Size, uint _3)
+    private static void TrancendentalTransform(Transform _1, ReadOnlySpan<byte> _2, Span<byte> OutputBuffer, uint Size, uint _3)
     {
-        uint i;
-
-        for (i=0; i<Size; i++)
-        {
-            ((byte*) OutputBuffer)[i] = 0x42;
-        }
+        for (var i=0; i < Size; i++)
+            OutputBuffer[i] = 0x42;
 
     }
 
 
-    private static bool TransformFactory(out TransformFn xformPtr, out object? _1, out FreeManagedUserDataFn? _2, ref Pipeline Lut, uint* _3, uint* OutputFormat, uint* _4)
+    private static bool TransformFactory(out TransformFn xformPtr, out object? _1, out FreeManagedUserDataFn? _2, ref Pipeline Lut, ref uint _3, ref uint OutputFormat, ref uint _4)
 
     {
         _1 = _2 = null;
-        if (*OutputFormat == TYPE_GRAY_8)
+        if (OutputFormat == TYPE_GRAY_8)
         {
             // *Lut holds the pipeline to be applied
             xformPtr = TrancendentalTransform;
@@ -1186,8 +1170,8 @@ internal static unsafe partial class Testbed
     public static bool CheckTransformPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        var In = stackalloc byte[] { 10, 20, 30, 40 };
-        var Out = stackalloc byte[4];
+        Span<byte> In = stackalloc byte[] { 10, 20, 30, 40 };
+        Span<byte> Out = stackalloc byte[4];
         ToneCurve Linear;
         Profile? h;
         int i;
@@ -1275,8 +1259,8 @@ internal static unsafe partial class Testbed
     public static bool CheckMutexPlugin()
     {
         Context? ctx = WatchDogContext(null);
-        var In = stackalloc byte[] { 10, 20, 30, 40 };
-        var Out = stackalloc byte[4];
+        Span<byte> In = stackalloc byte[] { 10, 20, 30, 40 };
+        Span<byte> Out = stackalloc byte[4];
         ToneCurve Linear;
         Profile? h;
         int i;

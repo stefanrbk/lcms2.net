@@ -29,7 +29,7 @@ using lcms2.state;
 using lcms2.types;
 
 namespace lcms2;
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     // Moved to MD5.Transform
 
@@ -196,7 +196,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static void cmsMD5finish(ProfileID* ProfileID, object Handle)
+    public static ProfileID cmsMD5finish(object Handle)
     {
         // Moved to MD5.Finish
 
@@ -232,8 +232,9 @@ public static unsafe partial class Lcms2
         //memmove(ProfileID->id8, ctx->buf, 16);
 
         //_cmsFree(ctx->ContextID, ctx);
-        if (Handle is MD5 md5)
-            md5.Finish(ProfileID);
+        return (Handle is MD5 md5)
+            ? md5.Finish()
+            : default;
     }
 
     public static bool cmsMD5computeID(Profile Profile)
@@ -251,15 +252,13 @@ public static unsafe partial class Lcms2
         //memmove(&Keep, Icc);
 
         // Set RI, attributes and ID
-        fixed(ulong* attributes = &Icc.attributes)
-            memset(attributes, 0);
+        Icc.attributes = 0;
         Icc.RenderingIntent = 0;
-        fixed(ProfileID* ProfileID = &Icc.ProfileID)
-            memset(ProfileID, 0);
+        Icc.ProfileID = default;
 
         // Compute needed storage
         uint BytesNeeded;
-        if (!cmsSaveProfileToMem(Profile, null, &BytesNeeded)) goto Error;
+        if (!cmsSaveProfileToMem(Profile, null, out BytesNeeded)) goto Error;
 
         // Allocate memory
         var pool = _cmsGetContext(ContextID).GetBufferPool<byte>();
@@ -267,7 +266,7 @@ public static unsafe partial class Lcms2
         //if (Mem is null) goto Error;
 
         // Save to temporary storage
-        if (!cmsSaveProfileToMem(Profile, Mem, &BytesNeeded)) goto Error;
+        if (!cmsSaveProfileToMem(Profile, Mem, out BytesNeeded)) goto Error;
 
         // Create MD5 object
         var MD5 = cmsMD5alloc(ContextID);
@@ -277,20 +276,20 @@ public static unsafe partial class Lcms2
         cmsMD5add(ref MD5, Mem, BytesNeeded);
 
         // Temp storage is no longer needed
-        _cmsFree(ContextID, Mem);
+        ReturnArray(ContextID, Mem);
 
         // Restore header
         //memmove(Icc, &Keep);
 
         // And store the ID
-        fixed (ProfileID* ProfileID = &Icc.ProfileID)
-            cmsMD5finish(ProfileID, MD5);
+        Icc.ProfileID = cmsMD5finish(MD5);
+            
         return true;
 
     Error:
         // Free resources as something went wrong
         // "MD5" cannot be other than null here, so no need to free it
-        if (Mem is not null) _cmsFree(ContextID, Mem);
+        if (Mem is not null) ReturnArray(ContextID, Mem);
         //memmove(Icc, &Keep);
         return false;
     }

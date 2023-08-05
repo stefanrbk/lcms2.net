@@ -28,7 +28,7 @@ using lcms2.io;
 
 namespace lcms2.types;
 
-public unsafe interface ITag : ICloneable, IDisposable
+public interface ITag : ICloneable, IDisposable
 {
     bool WriteRaw(IOHandler io);
 

@@ -24,16 +24,16 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.state;
+using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-internal class FormattersFactoryList : ICloneable
+[StructLayout(LayoutKind.Explicit)]
+public struct FormatterOut
 {
-    public FormatterFactory Factory;
-    public FormattersFactoryList? Next;
+    [FieldOffset(0)]
+    public Formatter16Out Fmt16;
 
-    public object Clone() =>
-        new FormattersFactoryList() { Factory = Factory, Next = null };
+    [FieldOffset(0)]
+    public FormatterFloatOut FmtFloat;
 }

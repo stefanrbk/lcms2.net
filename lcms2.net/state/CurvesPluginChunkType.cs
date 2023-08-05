@@ -29,7 +29,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class CurvesPluginChunkType : IDup
+internal class CurvesPluginChunkType : IDup
 {
     public ParametricCurvesCollection? ParametricCurves;
 

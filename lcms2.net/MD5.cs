@@ -28,19 +28,31 @@
 using lcms2.state;
 using lcms2.types;
 
-using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-internal unsafe struct MD5
+internal readonly struct MD5 : IDisposable
 {
-    public fixed uint buf[4];
-    public fixed uint bits[2];
-    public fixed byte @in[64];
-    public Context? ContextID;
+    private readonly uint[] _buf;
+    private readonly uint[] _bits;
+    private readonly byte[] _in;
+
+    public readonly Span<uint> buf => _buf.AsSpan(..4);
+    public readonly Span<uint> bits => _bits.AsSpan(..2);
+    public readonly Span<byte> @in => _in.AsSpan(..64);
+
+    public readonly Context? ContextID;
 
     public MD5(Context? context)
     {
+        var uiPool = Context.GetPool<uint>(context);
+        var bPool = Context.GetPool<byte>(context);
+
+        _buf = uiPool.Rent(4);
+        _bits = uiPool.Rent(2);
+        _in = bPool.Rent(64);
+
         ContextID = context;
 
         buf[0] = 0x67452301;
@@ -52,7 +64,7 @@ internal unsafe struct MD5
         bits[1] = 0;
     }
 
-    public void Add(Span<byte> buf, uint len)
+    public readonly void Add(Span<byte> buf, uint len)
     {
         var t = bits[0];
         if ((bits[0] = t + (len << 3)) < t)
@@ -62,44 +74,39 @@ internal unsafe struct MD5
 
         t = (t >> 3) & 0x3f;
 
-        fixed (byte* i = @in)
+        if (t is not 0)
         {
-            if (t is not 0)
+            var p = @in[(int)t..];
+
+            t = 64 - t;
+            if (len < t)
             {
-                var p = i + t;
-
-                t = 64 - t;
-                if (len < t)
-                {
-                    memcpy(p, buf[..(int)len]);
-                    return;
-                }
-
-                memcpy(p, buf[..(int)t]);
-                // byteReverse(ctx->@in, 16);
-
-                fixed (byte* b = &buf[0])
-                    Transform((uint*)b, (uint*)i);
-                buf = buf[(int)t..];
-                len -= t;
+                memcpy(p, buf[..(int)len]);
+                return;
             }
 
-            while (len >= 64)
-            {
-                memcpy(i, buf[..64]);
-                // byteReverse(ctx->@in, 16);
+            memcpy(p, buf[..(int)t]);
+            // byteReverse(ctx->@in, 16);
 
-                fixed (byte* b = &buf[0])
-                    Transform((uint*)b, (uint*)i);
-                buf = buf[64..];
-                len -= 64;
-            }
-
-            memcpy(i, buf[..(int)len]);
+            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(@in));
+            buf = buf[(int)t..];
+            len -= t;
         }
+
+        while (len >= 64)
+        {
+            memcpy(@in, buf[..64]);
+            // byteReverse(ctx->@in, 16);
+
+            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(@in));
+            buf = buf[64..];
+            len -= 64;
+        }
+
+        memcpy(@in, buf[..(int)len]);
     }
 
-    private static void Transform(uint* buf, uint* @in)
+    private static void Transform(Span<uint> buf, ReadOnlySpan<uint> @in)
     {
         void STEP(Func<uint, uint, uint, uint> f, ref uint w, uint x, uint y, uint z, uint data, byte s)
         {
@@ -193,43 +200,51 @@ internal unsafe struct MD5
         buf[3] += d;
     }
 
-    public void Finish(ProfileID* ProfileID)
+    public ProfileID Finish()
     {
         var count = (bits[0] >> 3) & 0x3f;
 
-        fixed (byte* i = @in)
+        var i = 0;
+
+        var p = @in[(int)count..];
+        p[i++] = 0x80;
+
+        count = 64 - 1 - count;
+
+        if (count < 8)
         {
-            var p = i + count;
-            *p++ = 0x80;
+            p[..(int)count].Clear();
+            // byteReverse(ctx->@in, 16);
+            Transform(buf, MemoryMarshal.Cast<byte, uint>(@in));
 
-            count = 64 - 1 - count;
-
-            if (count < 8)
-            {
-                memset(p, 0, count);
-                // byteReverse(ctx->@in, 16);
-                fixed (uint* b = buf)
-                    Transform(b, (uint*)i);
-
-                memset(i, 0, 56);
-            }
-            else
-            {
-                memset(p, 0, count - 8);
-            }
-            // byteReverse(ctx->@in, 14);
-
-            ((uint*)i)[14] = bits[0];
-            ((uint*)i)[15] = bits[1];
-
-            fixed (uint* b = buf)
-                Transform(b, (uint*)i);
+            @in[..56].Clear();
         }
+        else
+        {
+            p[..((int)count - 8)].Clear();
+        }
+        // byteReverse(ctx->@in, 14);
+        var _in = MemoryMarshal.Cast<byte, uint>(@in);
+        _in[14] = bits[0];
+        _in[15] = bits[1];
+
+        Transform(buf, _in);
 
         // byteReverse(ctx->buf, 4);
-        fixed (uint* b = buf)
-            memmove(ProfileID->id8, b, 16);
+        return ProfileID.Set(MemoryMarshal.Cast<uint, byte>(buf));
 
         //_cmsFree(ctx->ContextID, ctx);
+    }
+
+    public readonly void Dispose()
+    {
+        var uiPool = Context.GetPool<uint>(ContextID);
+        var bPool = Context.GetPool<byte>(ContextID);
+
+        uiPool.Return(_buf);
+        uiPool.Return(_bits);
+        bPool.Return(_in);
+
+        GC.SuppressFinalize(this);
     }
 }

@@ -30,14 +30,16 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using S15Fixed16Number = System.Int32;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static readonly object contextPoolHeadMutex = new();
     private static Context? contextPoolHead;
@@ -47,175 +49,170 @@ public static unsafe partial class Lcms2
     [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
     {
-        var pByte = (byte*)&Word;
+        Span<byte> pByte = stackalloc byte[2];
+        BitConverter.TryWriteBytes(pByte, Word);
 
-        var tmp = *pByte;
-        *pByte = *++pByte;
-        *pByte = tmp;
-
-        return Word;
+        (pByte[1], pByte[0]) = (pByte[0], pByte[1]);
+        return BitConverter.ToUInt16(pByte);
     }
 
     [DebuggerStepThrough]
     internal static uint _cmsAdjustEndianess32(uint DWord)
     {
-        var pByte = (byte*)&DWord;
+        Span<byte> pByte = stackalloc byte[4];
+        BitConverter.TryWriteBytes(pByte, DWord);
 
-        var temp1 = *pByte++;
-        var temp2 = *pByte++;
-        *(pByte - 1) = *pByte;
-        *pByte++ = temp2;
-        *(pByte - 3) = *pByte;
-        *pByte++ = temp1;
-
-        return DWord;
+        (pByte[3], pByte[2], pByte[1], pByte[0]) = (pByte[0], pByte[1], pByte[2], pByte[3]);
+        return BitConverter.ToUInt32(pByte);
     }
 
     [DebuggerStepThrough]
-    internal static void _cmsAdjustEndianess64(ulong* Result, ulong* QWord)
+    internal static ulong _cmsAdjustEndianess64(ulong QWord)
     {
-        var pIn = (byte*)QWord;
-        var pOut = (byte*)Result;
+        Span<byte> pByte = stackalloc byte[8];
+        BitConverter.TryWriteBytes(pByte, QWord);
 
-        _cmsAssert(Result);
+        (pByte[7], pByte[0]) = (pByte[0], pByte[7]);
+        (pByte[6], pByte[1]) = (pByte[1], pByte[6]);
+        (pByte[5], pByte[2]) = (pByte[2], pByte[5]);
+        (pByte[4], pByte[3]) = (pByte[3], pByte[4]);
+        (pByte[3], pByte[4]) = (pByte[4], pByte[3]);
+        (pByte[2], pByte[5]) = (pByte[5], pByte[2]);
+        (pByte[1], pByte[6]) = (pByte[6], pByte[1]);
+        (pByte[0], pByte[7]) = (pByte[7], pByte[0]);
 
-        pOut[7] = pIn[0];
-        pOut[6] = pIn[1];
-        pOut[5] = pIn[2];
-        pOut[4] = pIn[3];
-        pOut[3] = pIn[4];
-        pOut[2] = pIn[5];
-        pOut[1] = pIn[6];
-        pOut[0] = pIn[7];
+        return BitConverter.ToUInt64(pByte);
     }
 
-    internal static bool _cmsReadUInt8Number(IOHandler io, byte* n)
+    internal static bool _cmsReadUInt8Number(IOHandler io, out byte n)
     {
-        byte tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[1];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &tmp, _sizeof<byte>(), 1) != 1)
+        if (io.Read(io, tmp, sizeof(byte), 1) != 1)
             return false;
 
-        if (n is not null) *n = tmp;
+        n = tmp[0];
         return true;
     }
 
-    internal static bool _cmsReadUInt16Number(IOHandler io, ushort* n)
+    internal static bool _cmsReadUInt16Number(IOHandler io, out ushort n)
     {
-        ushort tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[2];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &tmp, _sizeof<ushort>(), 1) != 1)
+        if (io.Read(io, tmp, sizeof(ushort), 1) != 1)
             return false;
 
-        if (n is not null) *n = _cmsAdjustEndianess16(tmp);
+        n = _cmsAdjustEndianess16(BitConverter.ToUInt16(tmp));
         return true;
     }
 
-    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, ushort* array)
+    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, Span<ushort> array)
     {
         _cmsAssert(io);
 
         for (var i = 0; i < n; i++)
         {
-            if (array is not null)
-            {
-                if (!_cmsReadUInt16Number(io, array + i))
-                    return false;
-            }
-            else
-            {
-                if (!_cmsReadUInt16Number(io, null))
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    internal static bool _cmsReadUInt32Number(IOHandler io, uint* n)
-    {
-        uint tmp;
-
-        _cmsAssert(io);
-
-        if (io.Read(io, &tmp, _sizeof<uint>(), 1) != 1)
-            return false;
-
-        if (n is not null) *n = _cmsAdjustEndianess32(tmp);
-        return true;
-    }
-
-    internal static bool _cmsReadFloat32Number(IOHandler io, float* n)
-    {
-        uint tmp;
-
-        _cmsAssert(io);
-
-        if (io.Read(io, &tmp, _sizeof<uint>(), 1) != 1)
-            return false;
-
-        if (n is not null)
-        {
-            tmp = _cmsAdjustEndianess32(tmp);
-            *n = *(float*)(void*)&tmp;
-
-            // Safeguard which covers against absurd values
-            if (*n is > 1E+20f or < -1E+20f)
+            if (!_cmsReadUInt16Number(io, out array[i]))
                 return false;
-
-            // I guess we don't deal with subnormal values!
-            return Single.IsNormal(*n) || *n is 0;
         }
-
         return true;
     }
 
-    internal static bool _cmsReadUInt64Number(IOHandler io, ulong* n)
+    internal static bool _cmsReadUInt32Number(IOHandler io, out uint n)
     {
-        ulong tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &tmp, _sizeof<ulong>(), 1) != 1)
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        if (n is not null) _cmsAdjustEndianess64(n, &tmp);
+        n = _cmsAdjustEndianess32(BitConverter.ToUInt32(tmp));
+        return true;
+    }
+
+    internal static bool _cmsReadFloat32Number(IOHandler io, out float n)
+    {
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
+
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
+            return false;
+
+        n = BitConverter.UInt32BitsToSingle(_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
+
+        // Safeguard which covers against absurd values
+        if (n is > 1E+20f or < -1E+20f)
+            return false;
+
+        // I guess we don't deal with subnormal values!
+        return Single.IsNormal(n) || n is 0;
+    }
+
+    internal static bool _cmsReadSignature(IOHandler io, out Signature sig)
+    {
+        sig = 0;
+
+        if (!_cmsReadUInt32Number(io, out var value))
+            return false;
+
+        sig = value;
+        return true;
+    }
+
+    internal static bool _cmsReadUInt64Number(IOHandler io, out ulong n)
+    {
+        n = 0;
+        Span<byte> tmp = stackalloc byte[8];
+
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(ulong), 1) != 1)
+            return false;
+
+        n = _cmsAdjustEndianess64(BitConverter.ToUInt64(tmp));
         return true;
     }
 
     internal static bool _cmsRead15Fixed16Number(IOHandler io, out double n)
     {
-        n = default;
-        uint tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &tmp, _sizeof<uint>(), 1) != 1)
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(tmp));
+        n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
 
         return true;
     }
 
-    internal static bool _cmsReadXYZNumber(IOHandler io, CIEXYZ* XYZ)
+    internal static bool _cmsReadXYZNumber(IOHandler io, out CIEXYZ XYZ)
     {
-        EncodedXYZNumber xyz;
+        XYZ = new CIEXYZ();
+        Span<byte> xyz = stackalloc byte[(sizeof(uint) * 3)];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &xyz, _sizeof<EncodedXYZNumber>(), 1) != 1)
+        if (io.Read(io, xyz, (sizeof(uint) * 3), 1) != 1)
             return false;
 
-        if (XYZ is not null)
-        {
-            XYZ->X = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.X));
-            XYZ->Y = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.Y));
-            XYZ->Z = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.Z));
-        }
+        var ints = MemoryMarshal.Cast<byte, uint>(xyz);
+
+        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[0]));
+        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[1]));
+        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[2]));
 
         return true;
     }
@@ -224,19 +221,22 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(io);
 
-        return io.Write(io, _sizeof<byte>(), &n);
+        Span<byte> tmp = stackalloc byte[1] { n };
+
+        return io.Write(io, sizeof(byte), tmp);
     }
 
     internal static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
     {
         _cmsAssert(io);
 
-        var tmp = _cmsAdjustEndianess16(n);
+        Span<byte> tmp = stackalloc byte[2];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess16(n));
 
-        return io.Write(io, _sizeof<ushort>(), &tmp);
+        return io.Write(io, sizeof(ushort), tmp);
     }
 
-    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, in ushort* array)
+    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, ReadOnlySpan<ushort> array)
     {
         _cmsAssert(io);
         _cmsAssert(array);
@@ -253,53 +253,53 @@ public static unsafe partial class Lcms2
     {
         _cmsAssert(io);
 
-        var tmp = _cmsAdjustEndianess32(n);
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(n));
 
-        return io.Write(io, _sizeof<uint>(), &tmp);
+        return io.Write(io, sizeof(uint), tmp);
     }
 
     internal static bool _cmsWriteFloat32Number(IOHandler io, float n)
     {
         _cmsAssert(io);
 
-        var tmp = *(uint*)(void*)&n;
-        tmp = _cmsAdjustEndianess32(tmp);
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(BitConverter.SingleToUInt32Bits(n)));
 
-        return io.Write(io, _sizeof<uint>(), &tmp);
+        return io.Write(io, sizeof(uint), tmp);
     }
 
     internal static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
     {
-        ulong tmp;
-
         _cmsAssert(io);
 
-        _cmsAdjustEndianess64(&tmp, &n);
+        Span<byte> tmp = stackalloc byte[8];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess64(n));
 
-        return io.Write(io, _sizeof<ulong>(), &tmp);
+        return io.Write(io, sizeof(ulong), tmp);
     }
 
     internal static bool _cmsWrite15Fixed16Number(IOHandler io, double n)
     {
         _cmsAssert(io);
 
-        var tmp = _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n));
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(BitConverter.SingleToUInt32Bits(_cmsDoubleTo15Fixed16(n))));
 
-        return io.Write(io, _sizeof<uint>(), &tmp);
+        return io.Write(io, sizeof(uint), tmp);
     }
 
-    internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ* XYZ)
+    internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ XYZ)
     {
-        EncodedXYZNumber xyz;
+        Span<int> xyz = stackalloc int[3];
 
         _cmsAssert(io);
-        _cmsAssert(XYZ);
 
-        xyz.X = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->X));
-        xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Y));
-        xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ->Z));
+        xyz[0] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.X));
+        xyz[1] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
+        xyz[2] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
 
-        return io.Write(io, _sizeof<EncodedXYZNumber>(), &xyz);
+        return io.Write(io, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
     }
 
     internal static double _cms8Fixed8toDouble(ushort fixed8)
@@ -347,44 +347,46 @@ public static unsafe partial class Lcms2
 
     internal static void _cmsEncodeDateTimeNumber(out DateTimeNumber dest, DateTime source)
     {
-        dest = new();
-        dest.Seconds = _cmsAdjustEndianess16((ushort)source.Second);
-        dest.Minutes = _cmsAdjustEndianess16((ushort)source.Minute);
-        dest.Hours = _cmsAdjustEndianess16((ushort)source.Hour);
-        dest.Day = _cmsAdjustEndianess16((ushort)source.Day);
-        dest.Month = _cmsAdjustEndianess16((ushort)source.Month);
-        dest.Year = _cmsAdjustEndianess16((ushort)source.Year);
+        dest = new()
+        {
+            Seconds = _cmsAdjustEndianess16((ushort)source.Second),
+            Minutes = _cmsAdjustEndianess16((ushort)source.Minute),
+            Hours = _cmsAdjustEndianess16((ushort)source.Hour),
+            Day = _cmsAdjustEndianess16((ushort)source.Day),
+            Month = _cmsAdjustEndianess16((ushort)source.Month),
+            Year = _cmsAdjustEndianess16((ushort)source.Year)
+        };
     }
 
     internal static Signature _cmsReadTypeBase(IOHandler io)
     {
-        TagBase Base;
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
 
         _cmsAssert(io);
 
-        if (io.Read(io, &Base, _sizeof<TagBase>(), 1) != 1)
+        if (io.Read(io, Base, (sizeof(uint) * 2), 1) != 1)
             return default;
 
-        return new(_cmsAdjustEndianess32(Base.Signature));
+        return new(_cmsAdjustEndianess32(BitConverter.ToUInt32(Base)));
     }
 
     internal static bool _cmsWriteTypeBase(IOHandler io, Signature sig)
     {
-        TagBase Base;
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
 
         _cmsAssert(io);
 
-        Base.Signature = new(_cmsAdjustEndianess32(sig));
-        return io.Write(io, _sizeof<TagBase>(), &Base);
+        BitConverter.TryWriteBytes(Base, _cmsAdjustEndianess32(sig));
+        return io.Write(io, (sizeof(uint) * 2), Base);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint _cmsALIGNLONG(uint x) =>
-        (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
+        (x + (sizeof(uint) - 1u)) & ~(sizeof(uint) - 1u);
 
     internal static bool _cmsReadAlignment(IOHandler io)
     {
-        var Buffer = stackalloc byte[4];
+        Span<byte> Buffer = stackalloc byte[4];
 
         _cmsAssert(io);
 
@@ -399,7 +401,7 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsWriteAlignment(IOHandler io)
     {
-        var Buffer = stackalloc byte[4];
+        Span<byte> Buffer = stackalloc byte[4];
 
         _cmsAssert(io);
 
@@ -437,10 +439,7 @@ public static unsafe partial class Lcms2
         if (str.Length > 2047) return false;
         var buffer = Encoding.UTF8.GetBytes(str.ToString());
 
-        fixed (byte* ptr = buffer)
-        {
-            return io.Write(io, (uint)str.Length, ptr);
-        }
+        return io.Write(io, (uint)str.Length, buffer);
     }
 
     //internal static T* _cmsPluginMalloc<T>(Context? ContextID) where T : struct =>
@@ -470,7 +469,7 @@ public static unsafe partial class Lcms2
     public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, PluginBase Plug_in)
+    public static bool cmsPluginTHR(Context? id, PluginBase? Plug_in)
     {
         for (var Plugin = Plug_in;
                 Plugin is not null;
@@ -903,9 +902,9 @@ public static unsafe partial class Lcms2
     ///     <see cref="DateTime.UtcNow"/> is already thread-safe.
     ///     Providing for completeness.
     /// </remarks>
-    internal static bool _cmsGetTime(DateTime* ptr_time)
+    internal static bool _cmsGetTime(out DateTime ptr_time)
     {
-        *ptr_time = DateTime.UtcNow;
+        ptr_time = DateTime.UtcNow;
         return true;
     }
 

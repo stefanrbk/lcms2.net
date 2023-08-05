@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     public static bool CheckLUTcreation()
     {
@@ -52,14 +52,14 @@ internal static unsafe partial class Testbed
 
     private static void AddIdentityCLUTfloat(Pipeline? lut)
     {
-        var Table = stackalloc float[] { 0, 0, 0, 0, 0, 1.0f, 0, 1.0f, 0, 0, 1.0f, 1.0f, 1.0f, 0, 0, 1.0f, 0, 1.0f, 1.0f, 1.0f, 0, 1.0f, 1.0f, 1.0f };
+        ReadOnlySpan<float> Table = stackalloc float[] { 0, 0, 0, 0, 0, 1.0f, 0, 1.0f, 0, 0, 1.0f, 1.0f, 1.0f, 0, 0, 1.0f, 0, 1.0f, 1.0f, 1.0f, 0, 1.0f, 1.0f, 1.0f };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocCLutFloat(DbgThread(), 2, 3, 3, Table));
     }
 
     private static void AddIdentityCLUT16(Pipeline? lut)
     {
-        var Table = stackalloc ushort[] { 0, 0, 0, 0, 0, 0xffff, 0, 0xffff, 0, 0, 0xffff, 0xffff, 0xffff, 0, 0, 0xffff, 0, 0xffff, 0xffff, 0xffff, 0, 0xffff, 0xffff, 0xffff };
+        ReadOnlySpan<ushort> Table = stackalloc ushort[] { 0, 0, 0, 0, 0, 0xffff, 0, 0xffff, 0, 0, 0xffff, 0xffff, 0xffff, 0, 0, 0xffff, 0, 0xffff, 0xffff, 0xffff, 0, 0xffff, 0xffff, 0xffff };
 
         cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocCLut16bit(DbgThread(), 2, 3, 3, Table));
     }
@@ -76,9 +76,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckFloatLUT(Pipeline lut)
     {
-        var Inf = stackalloc float[3];
-        var Outf = stackalloc float[3];
-        var af = stackalloc int[3];
+        Span<float> Inf = stackalloc float[3];
+        Span<float> Outf = stackalloc float[3];
+        Span<int> af = stackalloc int[3];
 
         var n1 = 0;
 
@@ -103,9 +103,9 @@ internal static unsafe partial class Testbed
 
     private static bool Check16LUT(Pipeline lut)
     {
-        var Inf = stackalloc ushort[3];
-        var Outf = stackalloc ushort[3];
-        var af = stackalloc int[3];
+        Span<ushort> Inf = stackalloc ushort[3];
+        Span<ushort> Outf = stackalloc ushort[3];
+        Span<int> af = stackalloc int[3];
 
         var n2 = 0;
 
@@ -323,8 +323,8 @@ internal static unsafe partial class Testbed
         Span<ushort> PCS = stackalloc ushort[3];
         Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
         Span<byte> Name = stackalloc byte[255];
-        var Inw = stackalloc ushort[3];
-        var Outw = stackalloc ushort[3];
+        Span<ushort> Inw = stackalloc ushort[3];
+        Span<ushort> Outw = stackalloc ushort[3];
         var pre = "pre"u8;
         var post = "post"u8;
 

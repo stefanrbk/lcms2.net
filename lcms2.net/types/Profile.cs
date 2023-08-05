@@ -27,9 +27,11 @@
 using lcms2.io;
 using lcms2.state;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.types;
 
-public unsafe class Profile : ICloneable
+public class Profile : ICloneable
 {
     public IOHandler? IOHandler;
     public Context? ContextID;
@@ -63,26 +65,26 @@ public unsafe class Profile : ICloneable
 
     public object? UserMutex;
 
+    [StructLayout(LayoutKind.Explicit, Size = 128)]
     public struct Header
     {
-        public uint size;
-        public Signature cmmId;
-        public uint version;
-        public Signature deviceClass;
-        public Signature colorSpace;
-        public Signature pcs;
-        public DateTimeNumber date;
-        public Signature magic;
-        public Signature platform;
-        public uint flags;
-        public Signature manufacturer;
-        public uint model;
-        public ulong attributes;
-        public uint renderingIntent;
-        public EncodedXYZNumber illuminant;
-        public Signature creator;
-        public ProfileID profileID;
-        public fixed sbyte reserved[28];
+        [FieldOffset(0)] public uint size;
+        [FieldOffset(4)] public Signature cmmId;
+        [FieldOffset(8)] public uint version;
+        [FieldOffset(12)] public Signature deviceClass;
+        [FieldOffset(16)] public Signature colorSpace;
+        [FieldOffset(20)] public Signature pcs;
+        [FieldOffset(24)] public DateTimeNumber date;
+        [FieldOffset(36)] public Signature magic;
+        [FieldOffset(40)] public Signature platform;
+        [FieldOffset(44)] public uint flags;
+        [FieldOffset(48)] public Signature manufacturer;
+        [FieldOffset(52)] public uint model;
+        [FieldOffset(56)] public ulong attributes;
+        [FieldOffset(64)] public uint renderingIntent;
+        [FieldOffset(68)] public EncodedXYZNumber illuminant;
+        [FieldOffset(80)] public Signature creator;
+        [FieldOffset(84)] public ProfileID profileID;
     }
 
     public struct TagEntry

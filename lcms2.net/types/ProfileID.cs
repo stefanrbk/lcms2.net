@@ -54,15 +54,17 @@ using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-[StructLayout(LayoutKind.Explicit)]
-public unsafe struct ProfileID
+[StructLayout(LayoutKind.Auto, Size = 16)]
+public struct ProfileID
 {
-    [FieldOffset(0)]
-    internal fixed byte id8[16];
+    private readonly uint _1;
+    private readonly uint _2;
+    private readonly uint _3;
+    private readonly uint _4;
 
-    [FieldOffset(0)]
-    internal fixed ushort id16[8];
+    internal void Get(Span<byte> buffer) =>
+        MemoryMarshal.Write(buffer, ref this);
 
-    [FieldOffset(0)]
-    internal fixed uint id32[4];
+    internal static ProfileID Set(ReadOnlySpan<byte> buffer) =>
+        MemoryMarshal.Read<ProfileID>(buffer);
 }

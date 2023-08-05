@@ -32,7 +32,7 @@ using System.Runtime.CompilerServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static T cmsmin<T>(T a, T b) where T : IComparisonOperators<T, T, bool> => (a < b) ? a : b;
@@ -44,10 +44,10 @@ public static unsafe partial class Lcms2
     {
         var ContextID = cmsGetProfileContextID(Profile);
         var hLab = cmsCreateLab4ProfileTHR(ContextID, null);
-        var BPC = stackalloc bool[4] { false, false, false, false };
-        var States = stackalloc double[4] { 1, 1, 1, 1 };
+        Span<bool> BPC = stackalloc bool[4] { false, false, false, false };
+        Span<double> States = stackalloc double[4] { 1, 1, 1, 1 };
         var Profiles = new Profile[4] { hLab, Profile, Profile, hLab };
-        var Intents = stackalloc uint[4];
+        Span<uint> Intents = stackalloc uint[4];
 
         Intents[0] = Intents[2] = Intents[3] = INTENT_RELATIVE_COLORIMETRIC; Intents[1] = nIntent;
 
@@ -58,9 +58,9 @@ public static unsafe partial class Lcms2
         return xform;
     }
 
-    private static bool BlackPointAsDarkerColorant(Profile hInput, uint Intent, CIEXYZ* BlackPoint, uint _1)
+    private static CIEXYZ BlackPointAsDarkerColorant(Profile hInput, uint Intent)
     {
-        CIELab Lab;
+        Span<CIELab> Lab = stackalloc CIELab[1];
         CIEXYZ BlackXYZ;
         var ContextID = cmsGetProfileContextID(hInput);
 
@@ -94,33 +94,28 @@ public static unsafe partial class Lcms2
             goto Fail;
 
         // Convert black to Lab
-        fixed (ushort* ptr = Black)
-            cmsDoTransform(xform, ptr, &Lab, 1);
+        cmsDoTransform(xform, Black, Lab, 1);
 
         // Force it to be neutral, clip to max. L* of 50
-        Lab.a = Lab.b = 0;
-        Lab.L = cmsmin(Lab.L, 50);
+        Lab[0].a = Lab[0].b = 0;
+        Lab[0].L = cmsmin(Lab[0].L, 50);
 
         // Free the resources
         cmsDeleteTransform(xform);
 
         // Convert from Lab (which is now clipped) to XYZ
-        cmsLab2XYZ(null, &BlackXYZ, &Lab);
+        cmsLab2XYZ(null, out BlackXYZ, Lab[0]);
 
-        if (BlackPoint is not null)
-            *BlackPoint = BlackXYZ;
-
-        return true;
+        return BlackXYZ;
 
     Fail:
-        if (BlackPoint is not null)
-            BlackPoint->X = BlackPoint->Y = BlackPoint->Z = 0;
-        return false;
+        return new(0, 0, 0);
     }
 
-    private static bool BlackPointUsingPerceptualBlack(CIEXYZ* BlackPoint, Profile Profile)
+    private static CIEXYZ BlackPointUsingPerceptualBlack(Profile Profile)
     {
-        CIELab LabIn, LabOut;
+        Span<CIELab> LabIn = stackalloc CIELab[1];
+        Span<CIELab> LabOut = stackalloc CIELab[1];
         CIEXYZ BlackXYZ;
 
         // Is the intent supported by the profile?
@@ -131,30 +126,25 @@ public static unsafe partial class Lcms2
         if (hRoundTrip is null)
             goto Fail;
 
-        LabIn.L = LabIn.a = LabIn.b = 0;
-        cmsDoTransform(hRoundTrip, &LabIn, &LabOut, 1);
+        LabIn[0].L = LabIn[0].a = LabIn[0].b = 0;
+        cmsDoTransform(hRoundTrip, LabIn, LabOut, 1);
 
         // Clip Lab to reasonable limits
-        LabOut.L = cmsmin(LabOut.L, 50);
-        LabOut.a = LabOut.b = 0;
+        LabOut[0].L = cmsmin(LabOut[0].L, 50);
+        LabOut[0].a = LabOut[0].b = 0;
 
         cmsDeleteTransform(hRoundTrip);
 
         // Convert it to XYZ
-        cmsLab2XYZ(null, &BlackXYZ, &LabOut);
+        cmsLab2XYZ(null, out BlackXYZ, LabOut[0]);
 
-        if (BlackPoint is not null)
-            *BlackPoint = BlackXYZ;
+        return BlackXYZ;
 
-        return true;
-
-    Fail:
-        if (BlackPoint is not null)
-            BlackPoint->X = BlackPoint->Y = BlackPoint->Z = 0;
-        return false;
+    Fail:        
+        return CIEXYZ.NaN;
     }
 
-    public static bool cmsDetectBlackPoint(CIEXYZ* BlackPoint, Profile Profile, uint Intent, uint dwFlags)
+    public static CIEXYZ cmsDetectBlackPoint(Profile Profile, uint Intent, uint dwFlags)
     {
         // Make sure the device class is adequate
         var devClass = cmsGetDeviceClass(Profile);
@@ -172,41 +162,32 @@ public static unsafe partial class Lcms2
         {
             // Matrix shaper share MRC + perceptual intents
             if (cmsIsMatrixShaper(Profile))
-                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
+                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC);
 
             // Get Perceptual black out of v4 profiles. That is fixed for perceptual & saturation intents
-            if (BlackPoint is not null)
-            {
-                BlackPoint->X = cmsPERCEPTUAL_BLACK_X;
-                BlackPoint->Y = cmsPERCEPTUAL_BLACK_Y;
-                BlackPoint->Z = cmsPERCEPTUAL_BLACK_Z;
-            }
-
-            return true;
+            return new(
+                x: cmsPERCEPTUAL_BLACK_X,
+                y: cmsPERCEPTUAL_BLACK_Y,
+                z: cmsPERCEPTUAL_BLACK_Z);
         }
 
         // If output profile, discount ink-limiting and that's all
         if (Intent is INTENT_RELATIVE_COLORIMETRIC &&
             ((uint)cmsGetDeviceClass(Profile) is cmsSigOutputClass) &&
             ((uint)cmsGetColorSpace(Profile) is cmsSigCmykData))
-        { return BlackPointUsingPerceptualBlack(BlackPoint, Profile); }
+        { return BlackPointUsingPerceptualBlack(Profile); }
 
         // Nope, compute BP using current intent.
-        return BlackPointAsDarkerColorant(Profile, Intent, BlackPoint, dwFlags);
+        return BlackPointAsDarkerColorant(Profile, Intent);
 
     Fail:
-        if (BlackPoint is not null)
-            BlackPoint->X = BlackPoint->Y = BlackPoint->Z = 0;
-        return false;
+        return CIEXYZ.NaN;
     }
 
-    private static double RootOfLeastSquaresFitQuadraticCurve(int n, double* x, double* y)
+    private static double RootOfLeastSquaresFitQuadraticCurve(int n, ReadOnlySpan<double> x, ReadOnlySpan<double> y)
     {
         double sum_x = 0, sum_x2 = 0, sum_x3 = 0, sum_x4 = 0;
         double sum_y = 0, sum_yx = 0, sum_yx2 = 0;
-        MAT3 m;
-        VEC3 v, res;
-        double* resn = &res.X;
 
         if (n < 4) return 0;
 
@@ -225,17 +206,20 @@ public static unsafe partial class Lcms2
             sum_yx2 += yn * xn * xn;
         }
 
-        _cmsVEC3init(out m.X, n, sum_x, sum_x2);
-        _cmsVEC3init(out m.Y, sum_x, sum_x2, sum_x3);
-        _cmsVEC3init(out m.Z, sum_x2, sum_x3, sum_x4);
+        var m = new MAT3(
+            x: new(n, sum_x, sum_x2),
+            y: new(sum_x, sum_x2, sum_x3),
+            z: new(sum_x2, sum_x3, sum_x4));
 
-        _cmsVEC3init(out v, sum_y, sum_yx, sum_yx2);
+        var v = new VEC3(sum_y, sum_yx, sum_yx2);
 
-        if (!_cmsMAT3solve(out res, m, v)) return 0;
+        var res = m.Solve(v);
+        if (res.IsNaN)
+            return 0;
 
-        var a = resn[2];
-        var b = resn[1];
-        var c = resn[0];
+        var a = res[2];
+        var b = res[1];
+        var c = res[0];
 
         if (Math.Abs(a) < 1e-10)
         {
@@ -256,15 +240,17 @@ public static unsafe partial class Lcms2
         }
     }
 
-    public static bool cmsDetectDestinationBlackPoint(CIEXYZ* BlackPoint, Profile Profile, uint Intent, uint dwFlags)
+    public static CIEXYZ cmsDetectDestinationBlackPoint(Profile Profile, uint Intent, uint dwFlags)
     {
         Transform? hRoundTrip = null;
-        CIELab InitialLab, destLab, Lab;
-        var inRamp = stackalloc double[256];
-        var outRamp = stackalloc double[256];
-        var yRamp = stackalloc double[256];
-        var x = stackalloc double[256];
-        var y = stackalloc double[256];
+        CIELab InitialLab;
+        Span<CIELab> destLab = stackalloc CIELab[1];
+        Span<CIELab> Lab = stackalloc CIELab[1];
+        Span<double> inRamp = stackalloc double[256];
+        Span<double> outRamp = stackalloc double[256];
+        Span<double> yRamp = stackalloc double[256];
+        Span<double> x = stackalloc double[256];
+        Span<double> y = stackalloc double[256];
         var NearlyStraightMidrange = true;
 
         // Make sure the device class is adequate
@@ -283,16 +269,13 @@ public static unsafe partial class Lcms2
         {
             // Matrix shaper share MRC & perceptual intents
             if (cmsIsMatrixShaper(Profile))
-                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC, BlackPoint, 0);
+                return BlackPointAsDarkerColorant(Profile, INTENT_RELATIVE_COLORIMETRIC);
 
             // Get Perceptual black out of v4 profiles. That is fixed for perceptual & saturation intents
-            if (BlackPoint is not null)
-            {
-                BlackPoint->X = cmsPERCEPTUAL_BLACK_X;
-                BlackPoint->Y = cmsPERCEPTUAL_BLACK_Y;
-                BlackPoint->Z = cmsPERCEPTUAL_BLACK_Z;
-            }
-            return true;
+            return new(
+                x: cmsPERCEPTUAL_BLACK_X,
+                y: cmsPERCEPTUAL_BLACK_Y,
+                z: cmsPERCEPTUAL_BLACK_Z);
         }
 
         // Check if the profile is lut based and gray, rgb, or cmyk (7.2 in Adobe's document)
@@ -301,7 +284,7 @@ public static unsafe partial class Lcms2
             ((uint)ColorSpace is not cmsSigGrayData and not cmsSigRgbData and not cmsSigCmykData))
         {
             // In this case, handle as input case
-            return cmsDetectBlackPoint(BlackPoint, Profile, Intent, dwFlags);
+            return cmsDetectBlackPoint(Profile, Intent, dwFlags);
         }
 
         // It is one of the valid cases! Use Adobe algorithm
@@ -312,11 +295,12 @@ public static unsafe partial class Lcms2
             CIEXYZ IniXYZ;
 
             // calculate initial Lab as source black point
-            if (!cmsDetectBlackPoint(&IniXYZ, Profile, Intent, dwFlags))
-                return false;
+            IniXYZ = cmsDetectBlackPoint(Profile, Intent, dwFlags);
+            if (IniXYZ.IsNaN)
+                return CIEXYZ.NaN;
 
             // convert the XYZ to Lab
-            cmsXYZ2Lab(null, &InitialLab, &IniXYZ);
+            cmsXYZ2Lab(null, out InitialLab, IniXYZ);
         }
         else
         {
@@ -334,14 +318,14 @@ public static unsafe partial class Lcms2
         // Compute ramps
         for (var l = 0; l < 256; l++)
         {
-            Lab.L = l * 100.0 / 255.0;
-            Lab.a = cmsmin(50, cmsmax(-50, InitialLab.a));
-            Lab.b = cmsmin(50, cmsmax(-50, InitialLab.b));
+            Lab[0].L = l * 100.0 / 255.0;
+            Lab[0].a = cmsmin(50, cmsmax(-50, InitialLab.a));
+            Lab[0].b = cmsmin(50, cmsmax(-50, InitialLab.b));
 
-            cmsDoTransform(hRoundTrip, &Lab, &destLab, 1);
+            cmsDoTransform(hRoundTrip, Lab, destLab, 1);
 
-            inRamp[l] = Lab.L;
-            outRamp[l] = destLab.L;
+            inRamp[l] = Lab[0].L;
+            outRamp[l] = destLab[0].L;
         }
 
         // Make monotonic
@@ -374,9 +358,9 @@ public static unsafe partial class Lcms2
             // using curve fitting.
             if (NearlyStraightMidrange)
             {
-                cmsLab2XYZ(null, BlackPoint, &InitialLab);
+                cmsLab2XYZ(null, out var bp, InitialLab);
                 cmsDeleteTransform(hRoundTrip);
-                return true;
+                return bp;
             }
         }
 
@@ -413,18 +397,16 @@ public static unsafe partial class Lcms2
         }
 
         // fit and get the vertex of quadratic curve
-        Lab.L = cmsmax(0, RootOfLeastSquaresFitQuadraticCurve(n, x, y));
-        Lab.a = InitialLab.a;
-        Lab.b = InitialLab.b;
+        Lab[0].L = cmsmax(0, RootOfLeastSquaresFitQuadraticCurve(n, x, y));
+        Lab[0].a = InitialLab.a;
+        Lab[0].b = InitialLab.b;
 
-        cmsLab2XYZ(null, BlackPoint, &Lab);
+        cmsLab2XYZ(null, out var BlackPoint, Lab[0]);
 
         cmsDeleteTransform(hRoundTrip);
-        return true;
+        return BlackPoint;
 
     Fail:
-        if (BlackPoint is not null)
-            BlackPoint->X = BlackPoint->Y = BlackPoint->Z = 0;
-        return false;
+        return CIEXYZ.NaN;
     }
 }

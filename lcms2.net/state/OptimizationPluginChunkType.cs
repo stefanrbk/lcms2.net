@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class OptimizationPluginChunkType : IDup
+internal class OptimizationPluginChunkType : IDup
 {
     public OptimizationCollection OptimizationCollection;
 

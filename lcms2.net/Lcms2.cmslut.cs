@@ -32,7 +32,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static Stage _cmsStageAllocPlaceholder(
         Context? ContextID,
@@ -62,9 +62,9 @@ public static unsafe partial class Lcms2
         return ph;
     }
 
-    private static void EvaluateIdentity(in float* @in, float* @out, Stage mpe)
+    private static void EvaluateIdentity(ReadOnlySpan<float> @in, Span<float> @out, Stage mpe)
     {
-        memcpy(@out, @in, mpe.InputChannels * _sizeof<float>());
+        memcpy(@out, @in, mpe.InputChannels * sizeof(float));
     }
 
     public static Stage? cmsStageAllocIdentity(Context? ContextID, uint nChannels) =>
@@ -78,7 +78,7 @@ public static unsafe partial class Lcms2
             null,
             null);
 
-    private static void FromFloatTo16(in float* In, ushort* Out, uint n)
+    private static void FromFloatTo16(ReadOnlySpan<float> In, Span<ushort> Out, uint n)
     {
         for (var i = 0; i < n; i++)
         {
@@ -86,7 +86,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void From16ToFloat(in ushort* In, float* Out, uint n)
+    private static void From16ToFloat(ReadOnlySpan<ushort> In, Span<float> Out, uint n)
     {
         for (var i = 0; i < n; i++)
         {
@@ -199,10 +199,7 @@ public static unsafe partial class Lcms2
                 : null
             : null;
 
-    private static void EvaluateCurves(
-        in float* In,
-        float* Out,
-        Stage mpe)
+    private static void EvaluateCurves( ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not StageToneCurvesData Data || Data.TheCurves is null)
             return;
@@ -232,7 +229,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        _cmsFree(ContextID, Data.TheCurves);
+        ReturnArray(ContextID, Data.TheCurves);
     }
 
     private static object? CurveSetDup(Stage mpe)
@@ -308,7 +305,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    private static void EvaluateMatrix(in float* In, float* Out, Stage mpe)
+    private static void EvaluateMatrix(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not StageMatrixData Data)
             return;
@@ -405,7 +402,7 @@ public static unsafe partial class Lcms2
     //    return null;
     }
 
-    private static void EvaluateCLUTfloat(in float* In, float* Out, Stage mpe)
+    private static void EvaluateCLUTfloat(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not StageCLutData<float> Data)
             return;
@@ -413,13 +410,13 @@ public static unsafe partial class Lcms2
         Data.Params.Interpolation.LerpFloat?.Invoke(In, Out, Data.Params);
     }
 
-    private static void EvaluateCLUTfloatIn16(in float* In, float* Out, Stage mpe)
+    private static void EvaluateCLUTfloatIn16(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not StageCLutData<ushort> Data)
             return;
 
-        var In16 = stackalloc ushort[MAX_STAGE_CHANNELS];
-        var Out16 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> In16 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> Out16 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
         _cmsAssert(mpe.InputChannels <= MAX_STAGE_CHANNELS);
         _cmsAssert(mpe.OutputChannels <= MAX_STAGE_CHANNELS);
@@ -529,7 +526,7 @@ public static unsafe partial class Lcms2
 
         if (mpe.Data is StageCLutData<float> DataF)
         {
-            _cmsFree(mpe.ContextID, DataF.Tab);
+            ReturnArray(mpe.ContextID, DataF.Tab);
             DataF.Tab = null;
 
             _cmsFreeInterpParams(DataF.Params);
@@ -537,7 +534,7 @@ public static unsafe partial class Lcms2
 
         if (mpe.Data is StageCLutData<ushort> DataU)
         {
-            _cmsFree(mpe.ContextID, DataU.Tab);
+            ReturnArray(mpe.ContextID, DataU.Tab);
             DataU.Tab = null;
 
             _cmsFreeInterpParams(DataU.Params);
@@ -549,7 +546,7 @@ public static unsafe partial class Lcms2
         ReadOnlySpan<uint> clutPoints,
         uint inputChan,
         uint outputChan,
-        in ushort* Table)
+        ReadOnlySpan<ushort> Table)
     {
         _cmsAssert(clutPoints);
 
@@ -589,7 +586,7 @@ public static unsafe partial class Lcms2
         //    return null;
         //}
 
-        if (Table is not null)
+        if (!Table.IsEmpty)
         {
             for (var i = 0; i < n; i++)
             {
@@ -612,7 +609,7 @@ public static unsafe partial class Lcms2
         uint nGridPoints,
         uint inputChan,
         uint outputChan,
-        in ushort* Table)
+        ReadOnlySpan<ushort> Table)
     {
         Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
@@ -628,7 +625,7 @@ public static unsafe partial class Lcms2
         uint nGridPoints,
         uint inputChan,
         uint outputChan,
-        in float* Table)
+        ReadOnlySpan<float> Table)
     {
         Span<uint> Dimensions = stackalloc uint[MAX_INPUT_DIMENSIONS];
 
@@ -644,7 +641,7 @@ public static unsafe partial class Lcms2
         ReadOnlySpan<uint> clutPoints,
         uint inputChan,
         uint outputChan,
-        in float* Table)
+        ReadOnlySpan<float> Table)
     {
         _cmsAssert(clutPoints);
 
@@ -662,7 +659,7 @@ public static unsafe partial class Lcms2
             EvaluateCLUTfloat,
             CLUTElemDup,
             CLutElemTypeFree,
-            null!);
+            null);
         if (NewMPE is null) return null;
 
         var NewElem = new StageCLutData<float>();
@@ -691,7 +688,7 @@ public static unsafe partial class Lcms2
         //}
         NewElem.Tab = Context.GetPool<float>(ContextID).Rent((int)n);
 
-        if (Table is not null)
+        if (!Table.IsEmpty)
         {
             for (var i = 0; i < n; i++)
             {
@@ -709,7 +706,7 @@ public static unsafe partial class Lcms2
         return NewMPE;
     }
 
-    private static bool IdentitySampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool IdentitySampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         if (Cargo is not Box<int> nChan)
             return false;
@@ -748,8 +745,8 @@ public static unsafe partial class Lcms2
 
     public static bool cmsStageSampleCLut16bit(Stage? mpe, SAMPLER16 Sampler, object? Cargo, SamplerFlag dwFlags)
     {
-        var In = stackalloc ushort[MAX_INPUT_DIMENSIONS + 1];
-        var Out = stackalloc ushort[MAX_INPUT_DIMENSIONS];
+        Span<ushort> In = stackalloc ushort[MAX_INPUT_DIMENSIONS + 1];
+        Span<ushort> Out = stackalloc ushort[MAX_INPUT_DIMENSIONS];
 
         if (mpe?.Data is not StageCLutData<ushort> clut)
             return false;
@@ -803,10 +800,10 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsStageSampleCLutFloat(Stage? mpe, delegate*<in float*, float*, void*, bool> Sampler, void* Cargo, SamplerFlag dwFlags)
+    public static bool cmsStageSampleCLutFloat(Stage? mpe, SAMPLERFLOAT Sampler, object? Cargo, SamplerFlag dwFlags)
     {
-        var In = stackalloc float[MAX_INPUT_DIMENSIONS + 1];
-        var Out = stackalloc float[MAX_INPUT_DIMENSIONS];
+        Span<float> In = stackalloc float[MAX_INPUT_DIMENSIONS + 1];
+        Span<float> Out = stackalloc float[MAX_INPUT_DIMENSIONS];
 
         if (mpe?.Data is not StageCLutData<float> clut)
             return false;
@@ -860,9 +857,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsSliceSpace16(uint nInputs, ReadOnlySpan<uint> clutPoints, delegate*<in ushort*, ushort*, void*, bool> Sampler, void* Cargo)
+    public static bool cmsSliceSpace16(uint nInputs, ReadOnlySpan<uint> clutPoints, SAMPLER16 Sampler, object? Cargo)
     {
-        var In = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> In = stackalloc ushort[cmsMAXCHANNELS];
 
         if (nInputs >= cmsMAXCHANNELS) return false;
 
@@ -886,9 +883,9 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsSliceSpaceFloat(uint nInputs, ReadOnlySpan<uint> clutPoints, delegate*<in float*, float*, void*, bool> Sampler, void* Cargo)
+    public static bool cmsSliceSpaceFloat(uint nInputs, ReadOnlySpan<uint> clutPoints, SAMPLERFLOAT Sampler, object? Cargo)
     {
-        var In = stackalloc float[cmsMAXCHANNELS];
+        Span<float> In = stackalloc float[cmsMAXCHANNELS];
 
         if (nInputs >= cmsMAXCHANNELS) return false;
 
@@ -912,7 +909,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void EvaluateLab2XYZ(in float* In, float* Out, Stage _)
+    private static void EvaluateLab2XYZ(ReadOnlySpan<float> In, Span<float> Out, Stage _)
     {
         CIELab Lab;
         CIEXYZ XYZ;
@@ -923,7 +920,7 @@ public static unsafe partial class Lcms2
         Lab.a = (In[1] * 255.0) - 128.0;
         Lab.b = (In[2] * 255.0) - 128.0;
 
-        cmsLab2XYZ(null, &XYZ, &Lab);
+        cmsLab2XYZ(null, out XYZ, Lab);
 
         // From XYZ, range 0..19997 to 0..1.0, note that 1.99997 comes from 0xffff
         // encoded as 1.15 fixed point, so 1 + (32767.0 / 32768.0)
@@ -1075,7 +1072,7 @@ public static unsafe partial class Lcms2
         return mpe;
     }
 
-    private static void Clipper(in float* In, float* Out, Stage mpe)
+    private static void Clipper(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         for (var i = 0; i < mpe.InputChannels; i++)
         {
@@ -1087,7 +1084,7 @@ public static unsafe partial class Lcms2
     internal static Stage? _cmsStageClipNegatives(Context? ContextID, uint nChannels) =>
         _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, Clipper, null, null, null);
 
-    private static void EvaluateXYZ2Lab(in float* In, float* Out, Stage _)
+    private static void EvaluateXYZ2Lab(ReadOnlySpan<float> In, Span<float> Out, Stage _)
     {
         CIELab Lab;
         CIEXYZ XYZ;
@@ -1098,7 +1095,7 @@ public static unsafe partial class Lcms2
         XYZ.Y = In[1] * XYZadj;
         XYZ.Z = In[2] * XYZadj;
 
-        cmsXYZ2Lab(null, &Lab, &XYZ);
+        cmsXYZ2Lab(null, out Lab, XYZ);
 
         // From V4 Lab to 0..1.0
         Out[0] = (float)(Lab.L / 100);
@@ -1113,7 +1110,7 @@ public static unsafe partial class Lcms2
     {
         var pool = Context.GetPool<ToneCurve>(ContextID);
         ToneCurve?[] LabTable = pool.Rent(3);
-        var Params = stackalloc double[1] { 2.4 };
+        Span<double> Params = stackalloc double[1] { 2.4 };
 
         LabTable[0] = cmsBuildGamma(ContextID, 1.0);
         LabTable[1] = cmsBuildParametricToneCurve(ContextID, 108, Params);
@@ -1208,44 +1205,44 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    internal static void _LUTeval16(in ushort* In, ushort* Out, object? D)
+    internal static void _LUTeval16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
     {
         if (D is not Pipeline lut) return;
-        var Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
+        Span<float> Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
         var Phase = 0;
 
-        From16ToFloat(In, &Storage[Phase * MAX_STAGE_CHANNELS], lut.InputChannels);
+        From16ToFloat(In, Storage[(Phase * MAX_STAGE_CHANNELS)..], lut.InputChannels);
 
         for (var mpe = lut.Elements;
             mpe is not null;
             mpe = mpe.Next)
         {
             var NextPhase = Phase ^ 1;
-            mpe.EvalPtr(&Storage[Phase * MAX_STAGE_CHANNELS], &Storage[NextPhase * MAX_STAGE_CHANNELS], mpe);
+            mpe.EvalPtr(Storage[(Phase * MAX_STAGE_CHANNELS)..], Storage[(NextPhase * MAX_STAGE_CHANNELS)..], mpe);
             Phase = NextPhase;
         }
 
-        FromFloatTo16(&Storage[Phase * MAX_STAGE_CHANNELS], Out, lut.OutputChannels);
+        FromFloatTo16(Storage[(Phase * MAX_STAGE_CHANNELS)..], Out, lut.OutputChannels);
     }
 
-    internal static void _LUTevalFloat(in float* In, float* Out, object? D)
+    internal static void _LUTevalFloat(ReadOnlySpan<float> In, Span<float> Out, object? D)
     {
         if (D is not Pipeline lut) return;
-        var Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
+        Span<float> Storage = stackalloc float[2 * MAX_STAGE_CHANNELS];
         var Phase = 0;
 
-        memmove(&Storage[Phase * MAX_STAGE_CHANNELS], In, lut.InputChannels * _sizeof<float>());
+        memmove(Storage[(Phase * MAX_STAGE_CHANNELS)..], In, lut.InputChannels);
 
         for (var mpe = lut.Elements;
             mpe is not null;
             mpe = mpe.Next)
         {
             var NextPhase = Phase ^ 1;
-            mpe.EvalPtr(&Storage[Phase * MAX_STAGE_CHANNELS], &Storage[NextPhase * MAX_STAGE_CHANNELS], mpe);
+            mpe.EvalPtr(Storage[(Phase * MAX_STAGE_CHANNELS)..], Storage[(NextPhase * MAX_STAGE_CHANNELS)..], mpe);
             Phase = NextPhase;
         }
 
-        memmove(Out, &Storage[Phase * MAX_STAGE_CHANNELS], lut.InputChannels * _sizeof<float>());
+        memmove(Out, Storage[(Phase * MAX_STAGE_CHANNELS)..], lut.InputChannels);
     }
 
     public static Pipeline? cmsPipelineAlloc(Context? ContextID, uint InputChannels, uint OutputChannels)
@@ -1313,13 +1310,13 @@ public static unsafe partial class Lcms2
         //_cmsFree(lut.ContextID, lut);
     }
 
-    public static void cmsPipelineEval16(in ushort* In, ushort* Out, Pipeline lut)
+    public static void cmsPipelineEval16(ReadOnlySpan<ushort> In, Span<ushort> Out, Pipeline lut)
     {
         _cmsAssert(lut);
         lut.Eval16Fn(In, Out, lut.Data);
     }
 
-    public static void cmsPipelineEvalFloat(in float* In, float* Out, Pipeline lut)
+    public static void cmsPipelineEvalFloat(ReadOnlySpan<float> In, Span<float> Out, Pipeline lut)
     {
         _cmsAssert(lut);
         lut.EvalFloatFn(In, Out, lut.Data);
@@ -1570,17 +1567,15 @@ public static unsafe partial class Lcms2
     private const byte INVERSION_MAX_ITERATIONS = 30;
 
     // Increment with reflexion on boundary
-    private static void IncDelta(float* Val)
+    private static void IncDelta(ref float Val)
     {
-        if (*Val < (1.0 - JACOBIAN_EPSILON))
-
-            *Val += JACOBIAN_EPSILON;
-        else
-            *Val -= JACOBIAN_EPSILON;
+        Val += Val < (1.0 - JACOBIAN_EPSILON)
+            ? JACOBIAN_EPSILON
+            : -JACOBIAN_EPSILON;
     }
 
     // Euclidean distance between two vectors of n elements each one
-    private static float EuclideanDistance(float* a, float* b, int n)
+    private static float EuclideanDistance(ReadOnlySpan<float> a, ReadOnlySpan<float> b, int n)
     {
         var sum = 0f;
         int i;
@@ -1604,29 +1599,26 @@ public static unsafe partial class Lcms2
     // Hint:   Location where begin the search
 
     public static bool cmsPipelineEvalReverseFloat(
-        float* Target,
-        float* Result,
-        float* Hint,
+        ReadOnlySpan<float> Target,
+        Span<float> Result,
+        ReadOnlySpan<float> Hint,
         Pipeline lut)
     {
-        uint i, j;
+        int i, j;
         double error, LastError = 1E20;
-        var fx = stackalloc float[4];
-        var x = stackalloc float[4];
-        var xd = stackalloc float[4];
-        var fxd = stackalloc float[4];
-        VEC3 tmp, tmp2;
-        double* tmpn = &tmp.X;
-        double* tmp2n = &tmp2.X;
-        MAT3 Jacobian;
-        var Jacobianv = (VEC3*)&Jacobian;
+        Span<float> fx = stackalloc float[4];
+        Span<float> x = stackalloc float[4];
+        Span<float> xd = stackalloc float[4];
+        Span<float> fxd = stackalloc float[4];
+        VEC3 tmp2;
+        MAT3 Jacobian = new();
 
         // Only 3->3 and 4->3 are supported
         if (lut.InputChannels is not 3 and not 4) return false;
         if (lut.OutputChannels is not 3) return false;
 
         // Take the hint as starting point if specified
-        if (Hint is null)
+        if (Hint.IsEmpty)
         {
             // Begin at any point, we choose 1/3 of CMY axis
             x[0] = x[1] = x[2] = 0.3f;
@@ -1666,34 +1658,23 @@ public static unsafe partial class Lcms2
                 break;
 
             // Obtain slope (the Jacobian)
-            for (j = 0; j < 3; j++)
-            {
-                xd[0] = x[0];
-                xd[1] = x[1];
-                xd[2] = x[2];
-                xd[3] = x[3];  // Keep fixed channel
-
-                IncDelta(&xd[j]);
-
-                cmsPipelineEvalFloat(xd, fxd, lut);
-
-                (&Jacobianv[0].X)[j] = (fxd[0] - fx[0]) / JACOBIAN_EPSILON;
-                (&Jacobianv[1].X)[j] = (fxd[1] - fx[1]) / JACOBIAN_EPSILON;
-                (&Jacobianv[2].X)[j] = (fxd[2] - fx[2]) / JACOBIAN_EPSILON;
-            }
+            Slope(lut, fx, x, xd, fxd, 0, ref Jacobian.X.X, ref Jacobian.Y.X, ref Jacobian.Z.X);
+            Slope(lut, fx, x, xd, fxd, 1, ref Jacobian.X.Y, ref Jacobian.Y.Y, ref Jacobian.Z.Y);
+            Slope(lut, fx, x, xd, fxd, 2, ref Jacobian.X.Z, ref Jacobian.Y.Z, ref Jacobian.Z.Z);
 
             // Solve system
             tmp2.X = fx[0] - Target[0];
             tmp2.Y = fx[1] - Target[1];
             tmp2.Z = fx[2] - Target[2];
 
-            if (!_cmsMAT3solve(out tmp, Jacobian, tmp2))
+            var tmp = Jacobian.Solve(tmp2);
+            if (tmp.IsNaN)
                 return false;
 
             // Move our guess
-            x[0] -= (float)tmpn[0];
-            x[1] -= (float)tmpn[1];
-            x[2] -= (float)tmpn[2];
+            x[0] -= (float)tmp.X;
+            x[1] -= (float)tmp.Y;
+            x[2] -= (float)tmp.Z;
 
             // Some clipping....
             for (j = 0; j < 3; j++)
@@ -1705,5 +1686,21 @@ public static unsafe partial class Lcms2
         }
 
         return true;
+
+        static void Slope(Pipeline lut, Span<float> fx, Span<float> x, Span<float> xd, Span<float> fxd, int j, ref double j0, ref double j1, ref double j2)
+        {
+            xd[0] = x[0];
+            xd[1] = x[1];
+            xd[2] = x[2];
+            xd[3] = x[3];  // Keep fixed channel
+
+            IncDelta(ref xd[j]);
+
+            cmsPipelineEvalFloat(xd, fxd, lut);
+
+            j0 = (fxd[0] - fx[0]) / JACOBIAN_EPSILON;
+            j1 = (fxd[1] - fx[1]) / JACOBIAN_EPSILON;
+            j2 = (fxd[2] - fx[2]) / JACOBIAN_EPSILON;
+        }
     }
 }

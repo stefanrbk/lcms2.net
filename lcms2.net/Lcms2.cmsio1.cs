@@ -28,9 +28,11 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static readonly Signature[] Device2PCS16 = new Signature[4]
     {
@@ -81,7 +83,7 @@ public static unsafe partial class Lcms2
         // If no wp, take D50
         if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not Box<CIEXYZ> Tag)
         {
-            Dest.Value = *cmsD50_XYZ();
+            Dest.Value = D50XYZ;
             return true;
         }
 
@@ -90,7 +92,7 @@ public static unsafe partial class Lcms2
         {
             if (cmsGetDeviceClass(Profile) == cmsSigDisplayClass)
             {
-                Dest.Value = *cmsD50_XYZ();
+                Dest.Value = D50XYZ;
                 return true;
             }
         }
@@ -111,7 +113,7 @@ public static unsafe partial class Lcms2
         }
 
         // No CHAD available, default it to identity
-        _cmsMAT3identity(out Dest.Value);
+        Dest.Value = MAT3.Identity;
 
         // V2 display profiles should give D50
         if (cmsGetEncodedICCVersion(Profile) < 0x04000000)
@@ -120,17 +122,17 @@ public static unsafe partial class Lcms2
             {
                 if (cmsReadTag(Profile, cmsSigMediaWhitePointTag) is not Box<CIEXYZ> White)
                 {
-                    _cmsMAT3identity(out Dest.Value);
+                    Dest.Value = MAT3.Identity;
                     return true;
                 }
-                fixed (MAT3* d = &Dest.Value) fixed(CIEXYZ* w = &White.Value) return _cmsAdaptationMatrix(d, null, w, cmsD50_XYZ());
+                return !_cmsAdaptationMatrix(null, White.Value, D50XYZ).IsNaN;
             }
         }
 
         return true;
     }
 
-    private static bool ReadIccMatrixRGB2XYZ(out Box<MAT3>? r, Profile Profile)
+    private static bool ReadIccMatrixRGB2XYZ([NotNullWhen(true)] out Box<MAT3>? r, Profile Profile)
     {
         r = new(default);
 
@@ -141,9 +143,9 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        _cmsVEC3init(out r.Value.X, PtrRed.Value.X, PtrGreen.Value.X, PtrBlue.Value.X);
-        _cmsVEC3init(out r.Value.Y, PtrRed.Value.Y, PtrGreen.Value.Y, PtrBlue.Value.Y);
-        _cmsVEC3init(out r.Value.Z, PtrRed.Value.Z, PtrGreen.Value.Z, PtrBlue.Value.Z);
+        r.Value.X = new(PtrRed.Value.X, PtrGreen.Value.X, PtrBlue.Value.X);
+        r.Value.Y = new(PtrRed.Value.Y, PtrGreen.Value.Y, PtrBlue.Value.Y);
+        r.Value.Z = new(PtrRed.Value.Z, PtrGreen.Value.Z, PtrBlue.Value.Z);
 
         return true;
     }
@@ -166,7 +168,7 @@ public static unsafe partial class Lcms2
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
         {
             // In this case we implement the profile as an identity matrix plus 3 tone curves
-            var Zero = stackalloc ushort[] { 0x8080, 0x8080 };
+            Span<ushort> Zero = stackalloc ushort[] { 0x8080, 0x8080 };
 
             var EmptyTab = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero);
 
@@ -454,7 +456,8 @@ public static unsafe partial class Lcms2
         if (!ReadIccMatrixRGB2XYZ(out var Mat, Profile))
             return null;
 
-        if (!_cmsMAT3inverse(Mat, out MAT3 Inv))
+        var Inv = Mat.Value.Inverse;
+        if (Inv.IsNaN)
             return null;
 
         // XYZ PCS in encoded in 1.15 format, and the matrix input should come in 0..0xffff range, so
@@ -804,7 +807,7 @@ public static unsafe partial class Lcms2
 
     public static bool cmsIsCLUT(Profile Profile, uint Intent, uint UsedDirection)
     {
-        Signature* TagTable;
+        Signature[] TagTable;
 
         // For devicelinks, the supported intent is that one stated in the header
         if ((uint)cmsGetDeviceClass(Profile) is cmsSigLinkClass)
@@ -812,8 +815,8 @@ public static unsafe partial class Lcms2
 
         switch (UsedDirection)
         {
-            case LCMS_USED_AS_INPUT: fixed (Signature* table = &Device2PCS16[0]) TagTable = table; break;
-            case LCMS_USED_AS_OUTPUT: fixed (Signature* table = &PCS2Device16[0]) TagTable = table; break;
+            case LCMS_USED_AS_INPUT: TagTable = Device2PCS16; break;
+            case LCMS_USED_AS_OUTPUT: TagTable = PCS2Device16; break;
 
             // For proofing, we need rel. colorimetric in output. Let's do some recursion
             case LCMS_USED_AS_PROOF:
@@ -886,6 +889,7 @@ public static unsafe partial class Lcms2
     internal static Sequence? _cmsCompileProfileSequence(Context? ContextID, uint nProfiles, Profile[] Profiles)
     {
         var seq = cmsAllocProfileSequenceDescription(ContextID, nProfiles);
+        Span<byte> pID = stackalloc byte[16];
 
         if (seq is null) return null;
 
@@ -894,10 +898,9 @@ public static unsafe partial class Lcms2
             var ps = seq.seq[i];
             var h = Profiles[i];
 
-            fixed (ulong* ptr = &ps.attributes)
-                cmsGetHeaderAttributes(h, ptr);
-            fixed (byte* id8 = ps.ProfileID.id8)
-                cmsGetHeaderProfileID(h, id8);
+            ps.attributes = cmsGetHeaderAttributes(h);
+            cmsGetHeaderProfileID(h, pID);
+            ps.ProfileID = ProfileID.Set(pID);
             ps.deviceMfg = cmsGetHeaderManufacturer(h);
             ps.deviceModel = cmsGetHeaderModel(h);
 

@@ -30,11 +30,10 @@ using Microsoft.Extensions.Logging;
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Text;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     private record struct Scanline_rgba8(byte r, byte g, byte b, byte a);
     private record struct Scanline_rgba16(ushort r, ushort g, ushort b, ushort a);
@@ -66,7 +65,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_RGBA_FLT, lcmsProfileOut, TYPE_RGBA_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 / Interval * 256 / Interval * 256 / Interval;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgba32>();
+            var Mb = (uint)NumPixels * 16;
             var In = ArrayPool<Scanline_rgba32>.Shared.Rent(NumPixels);
 
             var j = 0;
@@ -86,20 +85,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgba32* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgba32>.Shared.Return(In);
+            ArrayPool<Scanline_rgba32>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgba32>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 16, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -113,7 +109,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_RGB_16, lcmsProfileOut, TYPE_RGB_16, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgb16>();
+            var Mb = (uint)NumPixels * 6;
 
             var In = ArrayPool<Scanline_rgb16>.Shared.Rent(NumPixels);
 
@@ -133,20 +129,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgb16* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgb16>.Shared.Return(In);
+            ArrayPool<Scanline_rgb16>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgb16>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 6, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -162,7 +155,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_CMYK_FLT, lcmsProfileOut, TYPE_CMYK_FLT, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 / Interval * 256 / Interval * 256 / Interval;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgb32>();
+            var Mb = (uint)NumPixels * 16;
 
             var In = ArrayPool<Scanline_rgba32>.Shared.Rent(NumPixels);
 
@@ -183,20 +176,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgba32* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgba32>.Shared.Return(In);
+            ArrayPool<Scanline_rgba32>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgba32>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 16, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -210,7 +200,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_CMYK_16, lcmsProfileOut, TYPE_CMYK_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgba16>();
+            var Mb = (uint)NumPixels * 8;
 
             var In = ArrayPool<Scanline_rgba16>.Shared.Rent(NumPixels);
 
@@ -230,20 +220,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgba16* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgba16>.Shared.Return(In);
+            ArrayPool<Scanline_rgba16>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgba16>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 8, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -257,7 +244,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_RGB_8, lcmsProfileOut, TYPE_RGB_8, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgb8>();
+            var Mb = (uint)NumPixels * 3;
 
             var In = ArrayPool<Scanline_rgb8>.Shared.Rent(NumPixels);
 
@@ -277,20 +264,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgb8* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgb8>.Shared.Return(In);
+            ArrayPool<Scanline_rgb8>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgb8>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 3, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -304,7 +288,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_CMYK_8, lcmsProfileOut, TYPE_CMYK_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<Scanline_rgba8>();
+            var Mb = (uint)NumPixels * 4;
 
             var In = ArrayPool<Scanline_rgba8>.Shared.Rent(NumPixels);
 
@@ -324,20 +308,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (Scanline_rgba8* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<Scanline_rgba8>.Shared.Return(In);
+            ArrayPool<Scanline_rgba8>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<Scanline_rgba8>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, 4, diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -353,7 +334,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_GRAY_FLT, lcmsProfileOut, TYPE_GRAY_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 / Interval * 256 / Interval * 256 / Interval;
-            var Mb = (uint)NumPixels * _sizeof<float>();
+            var Mb = (uint)NumPixels * sizeof(float);
 
             var In = ArrayPool<float>.Shared.Rent(NumPixels);
 
@@ -371,20 +352,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (float* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<float>.Shared.Return(In);
+            ArrayPool<float>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<float>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, sizeof(float), diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -398,7 +376,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_GRAY_16, lcmsProfileOut, TYPE_GRAY_16, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<ushort>();
+            var Mb = (uint)NumPixels * sizeof(ushort);
 
             var In = ArrayPool<ushort>.Shared.Rent(NumPixels);
 
@@ -416,20 +394,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (ushort* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<ushort>.Shared.Return(In);
+            ArrayPool<ushort>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<ushort>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, sizeof(ushort), diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 
@@ -443,7 +418,7 @@ internal static unsafe partial class Testbed
             var lcmsxform = cmsCreateTransformTHR(DbgThread(), lcmsProfileIn, TYPE_GRAY_8, lcmsProfileOut, TYPE_GRAY_8, (uint)Intent, cmsFLAGS_NOCACHE);
 
             const int NumPixels = 256 * 256 * 256;
-            var Mb = (uint)NumPixels * _sizeof<byte>();
+            var Mb = (uint)NumPixels * sizeof(byte);
 
             var In = ArrayPool<byte>.Shared.Rent(NumPixels);
 
@@ -461,20 +436,17 @@ internal static unsafe partial class Testbed
                 }
             }
 
-            fixed (byte* ptr = In)
-            {
-                var atime = Stopwatch.StartNew();
+            var atime = Stopwatch.StartNew();
 
-                cmsDoTransform(lcmsxform, ptr, ptr, NumPixels);
+            cmsDoTransform(lcmsxform, In, In, NumPixels);
 
-                atime.Stop();
-                var diff = atime.ElapsedMilliseconds;
+            atime.Stop();
+            var diff = atime.ElapsedMilliseconds;
 
-                ArrayPool<byte>.Shared.Return(In);
+            ArrayPool<byte>.Shared.Return(In);
 
-                PrintPerformance(Mb, _sizeof<byte>(), diff);
-                cmsDeleteTransform(lcmsxform);
-            }
+            PrintPerformance(Mb, sizeof(byte), diff);
+            cmsDeleteTransform(lcmsxform);
         }
     }
 

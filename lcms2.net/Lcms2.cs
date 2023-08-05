@@ -34,12 +34,11 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
     //internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
@@ -352,40 +351,40 @@ public static unsafe partial class Lcms2
     internal static uint BYTES_SH(uint m) => m << 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_PREMUL(uint m) => (m >> 23) & 1;
+    internal static int T_PREMUL(uint m) => (int)(m >> 23) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_FLOAT(uint m) => (m >> 22) & 1;
+    internal static int T_FLOAT(uint m) => (int)(m >> 22) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_OPTIMIZED(uint m) => (m >> 21) & 1;
+    internal static int T_OPTIMIZED(uint m) => (int)(m >> 21) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_COLORSPACE(uint m) => (m >> 16) & 31;
+    internal static int T_COLORSPACE(uint m) => (int)(m >> 16) & 31;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_SWAPFIRST(uint m) => (m >> 14) & 1;
+    internal static int T_SWAPFIRST(uint m) => (int)(m >> 14) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_FLAVOR(uint m) => (m >> 13) & 1;
+    internal static int T_FLAVOR(uint m) => (int)(m >> 13) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_PLANAR(uint m) => (m >> 12) & 1;
+    internal static int T_PLANAR(uint m) => (int)(m >> 12) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_ENDIAN16(uint m) => (m >> 11) & 1;
+    internal static int T_ENDIAN16(uint m) => (int)(m >> 11) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_DOSWAP(uint m) => (m >> 10) & 1;
+    internal static int T_DOSWAP(uint m) => (int)(m >> 10) & 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_EXTRA(uint m) => (m >> 7) & 7;
+    internal static int T_EXTRA(uint m) => (int)(m >> 7) & 7;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_CHANNELS(uint m) => (m >> 3) & 15;
+    internal static int T_CHANNELS(uint m) => (int)(m >> 3) & 15;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint T_BYTES(uint m) => (m >> 0) & 7;
+    internal static int T_BYTES(uint m) => (int)(m >> 0) & 7;
 
     internal const ushort PT_ANY = 0;
     internal const ushort PT_GRAY = 3;
@@ -795,9 +794,9 @@ public static unsafe partial class Lcms2
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNLONG<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
-        (x + (_sizeof<uint>() - 1u)) & ~(_sizeof<uint>() - 1u);
+        (x + (sizeof(uint) - 1u)) & ~(sizeof(uint) - 1u);
 
-    internal static ushort CMS_PTR_ALIGNMENT = _sizeof<nint>();
+    internal static ushort CMS_PTR_ALIGNMENT = (ushort)nint.Size;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T _cmsALIGNMEM<T>(T x) where T : IBitwiseOperators<T, uint, T>, IAdditionOperators<T, uint, T> =>
@@ -829,6 +828,10 @@ public static unsafe partial class Lcms2
         Debug.Assert(!String.IsNullOrEmpty(str));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal static void _cmsAssert<T>(T[] array) =>
+        Debug.Assert(array.Length is 0);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static void _cmsAssert<T>(ReadOnlySpan<T> span) =>
         Debug.Assert(!span.IsEmpty);
 
@@ -837,13 +840,6 @@ public static unsafe partial class Lcms2
     {
         foreach (var arg in args)
             Debug.Assert(!arg.IsEmpty);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    internal static void _cmsAssert(params void*[] args)
-    {
-        foreach (var arg in args)
-            Debug.Assert(arg is not null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -870,27 +866,17 @@ public static unsafe partial class Lcms2
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int _cmsFromFixedDomain(int a) => a - ((a + 0x7fff) >> 16);
 
-    [StructLayout(LayoutKind.Explicit)]
-    internal struct _temp
-    {
-        [FieldOffset(0)]
-        public double val;
-
-        [FieldOffset(0)]
-        public fixed int halves[2];
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static int _cmsQuickFloor(double val)
     {
+        Span<byte> buffer = stackalloc byte[8];
 #if CMS_DONT_USE_FAST_FLOOR
         (int)Math.Floor(val);
 #else
         const double _lcms_double2fixmagic = 68719476736.0 * 1.5;
-        _temp temp;
-        temp.val = val + _lcms_double2fixmagic;
+        BitConverter.TryWriteBytes(buffer, val + _lcms_double2fixmagic);
 
-        return temp.halves[0] >> 16;
+        return BitConverter.ToInt32(buffer) >> 16;
 #endif
     }
 
@@ -914,7 +900,7 @@ public static unsafe partial class Lcms2
 
     internal const uint cmsFLAGS_CAN_CHANGE_FORMATTER = 0x02000000;
 
-    #endregion lcms2_internal.h
+#endregion lcms2_internal.h
 
     static Lcms2()
     {
@@ -1038,12 +1024,6 @@ public static unsafe partial class Lcms2
 
         #endregion Context and plugins
 
-        fixed (CIEXYZ* xyz = &D50XYZ)
-        {
-            fixed (CIExyY* xyy = &D50xyY)
-                cmsXYZ2xyY(xyy, xyz);
-        }
-
         #region Optimization defaults
 
         //DefaultOptimization = calloc<OptimizationCollection>(4);
@@ -1125,12 +1105,6 @@ public static unsafe partial class Lcms2
         defaultIntents = defaultIntentsList[0];
 
         #endregion Intents defaults
-    }
-
-    [DebuggerStepThrough]
-    internal static ushort _sizeof<T>() where T : struct
-    {
-        return (ushort)sizeof(T);
     }
 
     //[DebuggerStepThrough]
@@ -1236,92 +1210,121 @@ public static unsafe partial class Lcms2
     //    return value;
     //}
 
-    [DebuggerStepThrough]
-    internal static void memset<T>(T* dst, int val) where T : struct =>
-        memset(dst, val, _sizeof<T>());
+    //[DebuggerStepThrough]
+    //internal static void memset<T>(T* dst, int val) where T : struct =>
+    //    memset(dst, val, _sizeof<T>());
+
+    //[DebuggerStepThrough]
+    //internal static void memset(void* dst, int val, nint size) =>
+    //    NativeMemory.Fill(dst, (uint)size, (byte)val);
+
+    //[DebuggerStepThrough]
+    //internal static void memset(void* dst, int val, nuint size) =>
+    //    NativeMemory.Fill(dst, size, (byte)val);
 
     [DebuggerStepThrough]
-    internal static void memset(void* dst, int val, nint size) =>
-        NativeMemory.Fill(dst, (uint)size, (byte)val);
+    internal static void memmove<T>(Span<T> dst, ReadOnlySpan<T> src, uint count) =>
+        memcpy(dst, src, count);
+
+    //[DebuggerStepThrough]
+    //internal static void memmove<T>(T* dst, in T* src) where T : struct =>
+    //    memcpy(dst, src);
+
+    //[DebuggerStepThrough]
+    //internal static void memmove(void* dst, in void* src, nuint size) =>
+    //    memcpy(dst, src, size);
+
+    //[DebuggerStepThrough]
+    //internal static void memmove(void* dst, in void* src, nint size) =>
+    //    memcpy(dst, src, size);
 
     [DebuggerStepThrough]
-    internal static void memset(void* dst, int val, nuint size) =>
-        NativeMemory.Fill(dst, size, (byte)val);
+    internal static void memcpy<T>(T[] dst, T[] src) =>
+        memcpy((Span<T>)dst, (ReadOnlySpan<T>)src);
 
     [DebuggerStepThrough]
-    internal static void memmove<T>(Span<T> dst, ReadOnlySpan<T> src, uint size) =>
-        memcpy(dst, src, size);
+    internal static void memcpy<T>(Span<T> dst, ReadOnlySpan<T> src) =>
+        src.CopyTo(dst);
 
     [DebuggerStepThrough]
-    internal static void memmove<T>(T* dst, in T* src) where T : struct =>
-        memcpy(dst, src);
+    internal static void memcpy<T>(Span<T> dst, ReadOnlySpan<T> src, uint count) =>
+        src[..(int)count].CopyTo(dst);
+
+    //[DebuggerStepThrough]
+    //internal static void memcpy(byte* dst, ReadOnlySpan<byte> src)
+    //{
+    //    var buf = stackalloc byte[src.Length];
+    //    for (var i = 0; i < src.Length; i++)
+    //        buf[i] = src[i];
+
+    //    memcpy(dst, buf, src.Length);
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static void memcpy<T>(T* dst, in T* src) where T : struct =>
+    //    memcpy(dst, src, _sizeof<T>());
+
+    //[DebuggerStepThrough]
+    //internal static void memcpy(void* dst, in void* src, nuint size) =>
+    //    NativeMemory.Copy(src, dst, size);
+
+    //[DebuggerStepThrough]
+    //internal static void memcpy(void* dst, in void* src, nint size) =>
+    //    NativeMemory.Copy(src, dst, (nuint)size);
 
     [DebuggerStepThrough]
-    internal static void memmove(void* dst, in void* src, nuint size) =>
-        memcpy(dst, src, size);
+    internal static T memcmp<T>(T[] buf1, T[] buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp((ReadOnlySpan<T>)buf1, (ReadOnlySpan<T>)buf2);
 
     [DebuggerStepThrough]
-    internal static void memmove(void* dst, in void* src, nint size) =>
-        memcpy(dst, src, size);
-
-    [DebuggerStepThrough]
-    internal static void memcpy<T>(Span<T> dst, ReadOnlySpan<T> src, uint size) =>
-        src[..(int)size].CopyTo(dst);
-
-    [DebuggerStepThrough]
-    internal static void memcpy(byte* dst, ReadOnlySpan<byte> src)
-    {
-        var buf = stackalloc byte[src.Length];
-        for (var i = 0; i < src.Length; i++)
-            buf[i] = src[i];
-
-        memcpy(dst, buf, src.Length);
-    }
-
-    [DebuggerStepThrough]
-    internal static void memcpy<T>(T* dst, in T* src) where T : struct =>
-        memcpy(dst, src, _sizeof<T>());
-
-    [DebuggerStepThrough]
-    internal static void memcpy(void* dst, in void* src, nuint size) =>
-        NativeMemory.Copy(src, dst, size);
-
-    [DebuggerStepThrough]
-    internal static void memcpy(void* dst, in void* src, nint size) =>
-        NativeMemory.Copy(src, dst, (nuint)size);
-
-    [DebuggerStepThrough]
-    internal static int memcmp(in char* buf1, ReadOnlySpan<char> buf2)
-    {
-        var buf = stackalloc char[buf2.Length];
-        for (var i = 0; i < buf2.Length; i++)
-            buf[i] = buf2[i];
-
-        return memcmp(buf1, buf, buf2.Length * _sizeof<char>());
-    }
-
-    [DebuggerStepThrough]
-    internal static int memcmp(in byte* buf1, ReadOnlySpan<byte> buf2)
-    {
-        var buf = stackalloc byte[buf2.Length];
-        for (var i = 0; i < buf2.Length; i++)
-            buf[i] = buf2[i];
-
-        return memcmp(buf1, buf, buf2.Length);
-    }
-
-    [DebuggerStepThrough]
-    internal static int memcmp(in void* buf1, in void* buf2, nint count)
+    internal static T memcmp<T>(ReadOnlySpan<T> buf1, ReadOnlySpan<T> buf2) where T : unmanaged, ISubtractionOperators<T, T, T>
     {
         nint counter = 0;
-        while (counter < count)
+        while (counter < buf2.Length && counter < buf1.Length)
         {
-            var val = ((byte*)buf1)[counter] - ((byte*)buf2)[counter++];
+            var val = buf1[(int)counter] - buf2[(int)counter++];
             if (val is not 0)
                 return val;
         }
-        return 0;
+        if (buf1.Length > buf2.Length)
+            return buf1[(int)counter];
+        if (buf1.Length < buf2.Length)
+            return default(T) - buf2[(int)counter];
+        return default;
     }
+
+    //[DebuggerStepThrough]
+    //internal static int memcmp(in char* buf1, ReadOnlySpan<char> buf2)
+    //{
+    //    var buf = stackalloc char[buf2.Length];
+    //    for (var i = 0; i < buf2.Length; i++)
+    //        buf[i] = buf2[i];
+
+    //    return memcmp(buf1, buf, buf2.Length * _sizeof<char>());
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static int memcmp(in byte* buf1, ReadOnlySpan<byte> buf2)
+    //{
+    //    var buf = stackalloc byte[buf2.Length];
+    //    for (var i = 0; i < buf2.Length; i++)
+    //        buf[i] = buf2[i];
+
+    //    return memcmp(buf1, buf, buf2.Length);
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static int memcmp(in void* buf1, in void* buf2, nint count)
+    //{
+    //    nint counter = 0;
+    //    while (counter < count)
+    //    {
+    //        var val = ((byte*)buf1)[counter] - ((byte*)buf2)[counter++];
+    //        if (val is not 0)
+    //            return val;
+    //    }
+    //    return 0;
+    //}
 
     //[DebuggerStepThrough]
     //internal static void free(void* ptr)
@@ -1369,27 +1372,27 @@ public static unsafe partial class Lcms2
 
         return result;
     }
-    internal static nint strlen(in byte* str)
-    {
-        var ptr = str;
+    //internal static nint strlen(in byte* str)
+    //{
+    //    var ptr = str;
 
-        while (*ptr is not 0)
-            ptr++;
+    //    while (*ptr is not 0)
+    //        ptr++;
 
-        return (nint)(ptr - str);
-    }
+    //    return (nint)(ptr - str);
+    //}
 
-    internal static byte* strncpy(byte* dest, in string src, nuint n)
-    {
-        for(var i = 0; (nuint)i < n; i++)
-        {
-            dest[i] = i < src.Length
-                ? (byte)src[i]
-                : (byte)0;
-        }
+    //internal static byte* strncpy(byte* dest, in string src, nuint n)
+    //{
+    //    for(var i = 0; (nuint)i < n; i++)
+    //    {
+    //        dest[i] = i < src.Length
+    //            ? (byte)src[i]
+    //            : (byte)0;
+    //    }
 
-        return dest;
-    }
+    //    return dest;
+    //}
 
     internal static Span<byte> strncpy(Span<byte> dest, ReadOnlySpan<char> src, nuint n)
     {
@@ -1426,80 +1429,99 @@ public static unsafe partial class Lcms2
         return dest;
     }
 
-    internal static byte* strncpy(byte* dest, in byte* src, nuint n)
+    //internal static byte* strncpy(byte* dest, in byte* src, nuint n)
+    //{
+    //    var srcEnd = false;
+    //    for (var i = 0; (nuint)i < n; i++)
+    //    {
+    //        if (src[i] == 0)
+    //            srcEnd = true;
+    //        dest[i] = !srcEnd
+    //            ? src[i]
+    //            : (byte)0;
+    //    }
+
+    //    return dest;
+    //}
+
+    internal static Span<byte> strcat(Span<byte> strDestination, ReadOnlySpan<byte> strSource)
     {
-        var srcEnd = false;
-        for (var i = 0; (nuint)i < n; i++)
-        {
-            if (src[i] == 0)
-                srcEnd = true;
-            dest[i] = !srcEnd
-                ? src[i]
-                : (byte)0;
-        }
+        var i1 = 0;
+        var i2 = 0;
 
-        return dest;
-    }
-
-    internal static byte* strcat(byte* strDestination, ReadOnlySpan<byte> strSource)
-    {
-        var dst = strDestination;
-
-        while (*dst is not 0)
-            dst++;
-
-        for (var i = 0; i < strSource.Length; i++)
-            *dst++ = strSource[i];
-
-        *dst = 0;
-
-        return strDestination;
-    }
-
-    internal static byte* strcat(byte* strDestination, in byte* strSource)
-    {
-        var src = strSource;
-        var dst = strDestination;
-
-        while (*dst is not 0)
-            dst++;
+        while (strDestination[i1] is not 0)
+            i1++;
 
         do
-        {
-            *dst = *src;
-        } while (*src++ is not 0);
+            strDestination[i1] = strSource[i2];
+        while (strSource[i2] is not 0 && ++i1 < strDestination.Length && ++i2 < strSource.Length);
+
+        if (i1 >= strDestination.Length)
+            i1 = strDestination.Length - 1;
+
+        strDestination[i1] = 0;
 
         return strDestination;
     }
+
+    //internal static byte* strcat(byte* strDestination, ReadOnlySpan<byte> strSource)
+    //{
+    //    var dst = strDestination;
+
+    //    while (*dst is not 0)
+    //        dst++;
+
+    //    for (var i = 0; i < strSource.Length; i++)
+    //        *dst++ = strSource[i];
+
+    //    *dst = 0;
+
+    //    return strDestination;
+    //}
+
+    //internal static byte* strcat(byte* strDestination, in byte* strSource)
+    //{
+    //    var src = strSource;
+    //    var dst = strDestination;
+
+    //    while (*dst is not 0)
+    //        dst++;
+
+    //    do
+    //    {
+    //        *dst = *src;
+    //    } while (*src++ is not 0);
+
+    //    return strDestination;
+    //}
 
     internal static Span<byte> strcpy(Span<byte> dest, ReadOnlySpan<byte> src)
     {
-        if (dest.IsEmpty)
-            return dest;
+        var i = 0;
 
-        for (var i = 0; i < src.Length; i++)
-        {
-            dest[i] = src[i];
+        while (i < dest.Length && i < src.Length && src[i] is not 0)
+            dest[i] = src[i++];
 
-            if (src[i] is 0)
-                break;
-        }
+        if (i >= dest.Length)
+            i = dest.Length - 1;
 
-        return dest;
-    }
-
-    internal static byte* strcpy(byte* dest, in byte* src)
-    {
-        var strSrc = src;
-        var strDest = dest;
-
-        do
-        {
-            *strDest++ = *strSrc;
-        } while (*strSrc++ is not 0);
+        dest[i] = 0;
 
         return dest;
     }
+
+    //internal static byte* strcpy(byte* dest, in byte* src)
+    //{
+    //    var strSrc = src;
+    //    var strDest = dest;
+
+    //    do
+    //    {
+    //        *strDest++ = *strSrc;
+    //    } while (*strSrc++ is not 0);
+
+    //    return dest;
+    //}
 
     internal static int strcmp(ReadOnlySpan<byte> sLeft, ReadOnlySpan<byte> sRight)
     {
@@ -1520,16 +1542,16 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    internal static int strcmp(byte* sLeft, byte* sRight)
-    {
-        int val;
-        do
-        {
-            val = *sLeft - *sRight;
-        } while (val is 0 && *sLeft++ is not 0 && *sRight++ is not 0);
+    //internal static int strcmp(byte* sLeft, byte* sRight)
+    //{
+    //    int val;
+    //    do
+    //    {
+    //        val = *sLeft - *sRight;
+    //    } while (val is 0 && *sLeft++ is not 0 && *sRight++ is not 0);
 
-        return val;
-    }
+    //    return val;
+    //}
 
     internal static ReadOnlySpan<byte> strchr(ReadOnlySpan<byte> str, int c)
     {
@@ -1581,9 +1603,6 @@ public static unsafe partial class Lcms2
 
     internal static ReadOnlySpan<byte> TrimAsciiBuffer(ReadOnlySpan<byte> str)
     {
-        if (str.IsEmpty)
-            return str;
-
         for (var i = 0; i < str.Length; i++)
             if (str[i] is 0) return str[..i];
 
@@ -1599,73 +1618,66 @@ public static unsafe partial class Lcms2
         return len;
     }
 
-    internal static int sprintf(byte* buffer, string format, params object[] args)
-    {
-        var str = String.Format(format, args).AsSpan();
-        var result = str.Length;
+    //internal static int sprintf(byte* buffer, string format, params object[] args)
+    //{
+    //    var str = String.Format(format, args).AsSpan();
+    //    var result = str.Length;
 
-        while (str.Length > 0)
-        {
-            *buffer++ = (byte)str[0];
-            str = str[1..];
-        }
-        *buffer = 0;
+    //    while (str.Length > 0)
+    //    {
+    //        *buffer++ = (byte)str[0];
+    //        str = str[1..];
+    //    }
+    //    *buffer = 0;
 
-        return result;
-    }
+    //    return result;
+    //}
 
-    internal static int vsnprintf(byte* buffer, nuint count, byte* format, params object[] args) =>
-        snprintf(buffer, count, format, args);
+    //internal static int vsnprintf(byte* buffer, nuint count, byte* format, params object[] args) =>
+    //    snprintf(buffer, count, format, args);
 
     internal static int snprintf(Span<byte> buffer, nuint count, ReadOnlySpan<byte> format, params object[] args)
     {
-        Span<byte> fmt = stackalloc byte[format.Length];
-        format.CopyTo(fmt);
-
-        fixed (byte* b = &buffer[0])
-        {
-            fixed (byte* f = &fmt[0])
-            {
-                return snprintf(b, count, f, args);
-            }
-        }
+        buffer = buffer[..(int)count];
+        var str = string.Format(Encoding.ASCII.GetString(format), args);
+        return Encoding.ASCII.GetBytes(str, buffer);
     }
 
-    internal static int snprintf(byte* buffer, nuint count, byte* format, params object[] args)
-    {
-        var len = (int)strlen(format);
-        Span<char> str = stackalloc char[len];
-        for (var i = 0; i < len; i++) str[i] = (char)format[i];
-        var formatStr = new string(str);
+    //internal static int snprintf(byte* buffer, nuint count, byte* format, params object[] args)
+    //{
+    //    var len = (int)strlen(format);
+    //    Span<char> str = stackalloc char[len];
+    //    for (var i = 0; i < len; i++) str[i] = (char)format[i];
+    //    var formatStr = new string(str);
 
         
-        return snprintf(buffer, count, formatStr, args);
-    }
+    //    return snprintf(buffer, count, formatStr, args);
+    //}
 
-    internal static int snprintf(byte* buffer, nuint count, string format, params object[] args)
-    {
-        try
-        {
-            var str = String.Format(format, args);
-            var pos = -1;
+    //internal static int snprintf(byte* buffer, nuint count, string format, params object[] args)
+    //{
+    //    try
+    //    {
+    //        var str = String.Format(format, args);
+    //        var pos = -1;
 
-            while (str[++pos] is not '\0')
-            {
-                if ((nuint)pos < count - 1)
-                    buffer[pos] = (byte)str[pos];
-            }
-            if ((nuint)pos < count - 1)
-                buffer[pos + 1] = 0;
-            else
-                buffer[count - 1] = 0;
+    //        while (str[++pos] is not '\0')
+    //        {
+    //            if ((nuint)pos < count - 1)
+    //                buffer[pos] = (byte)str[pos];
+    //        }
+    //        if ((nuint)pos < count - 1)
+    //            buffer[pos + 1] = 0;
+    //        else
+    //            buffer[count - 1] = 0;
 
-            return pos;
-        }
-        catch
-        {
-            return -1;
-        }
-    }
+    //        return pos;
+    //    }
+    //    catch
+    //    {
+    //        return -1;
+    //    }
+    //}
 
     internal static nint strspn(ReadOnlySpan<byte> str, ReadOnlySpan<byte> strCharSet)
     {
@@ -1687,18 +1699,18 @@ public static unsafe partial class Lcms2
         return 0;
     }
 
-    internal static nuint fread(void* Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
+    internal static nuint fread(Span<byte> Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
     {
         var stream = Stream.Stream;
 
-        _cmsAssert(Buffer);
+        //_cmsAssert(Buffer);
         _cmsAssert(stream);
 
         for (nuint i = 0; i < ElementCount; i++)
         {
             try
             {
-                if (stream.Read(new(Buffer, (int)ElementSize)) != (int)ElementSize)
+                if (stream.Read(Buffer[(int)(i * ElementSize)..][..(int)ElementSize]) != (int)ElementSize)
                     return i;
             }
             catch (Exception)
@@ -1706,7 +1718,7 @@ public static unsafe partial class Lcms2
                 return i;
             }
 
-            Buffer = (byte*)Buffer + ElementSize;
+            //Buffer = (byte*)Buffer + ElementSize;
         }
 
         return ElementCount;
@@ -1767,30 +1779,30 @@ public static unsafe partial class Lcms2
         return ElementCount;
     }
 
-    internal static nuint fwrite(in void* Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
-    {
-        var stream = Stream.Stream;
-        var buffer = (byte*)Buffer;
+    //internal static nuint fwrite(in void* Buffer, nuint ElementSize, nuint ElementCount, FILE Stream)
+    //{
+    //    var stream = Stream.Stream;
+    //    var buffer = (byte*)Buffer;
 
-        _cmsAssert(Buffer);
-        _cmsAssert(stream);
+    //    _cmsAssert(Buffer);
+    //    _cmsAssert(stream);
 
-        for (nuint i = 0; i < ElementCount; i++)
-        {
-            try
-            {
-                stream.Write(new(buffer, (int)ElementSize));
-            }
-            catch (Exception)
-            {
-                return i;
-            }
+    //    for (nuint i = 0; i < ElementCount; i++)
+    //    {
+    //        try
+    //        {
+    //            stream.Write(new(buffer, (int)ElementSize));
+    //        }
+    //        catch (Exception)
+    //        {
+    //            return i;
+    //        }
 
-            buffer = buffer + ElementSize;
-        }
+    //        buffer = buffer + ElementSize;
+    //    }
 
-        return ElementCount;
-    }
+    //    return ElementCount;
+    //}
 
     internal static int fclose(FILE stream)
     {

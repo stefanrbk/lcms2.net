@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal unsafe class TransformPluginChunkType : IDup
+internal class TransformPluginChunkType : IDup
 {
     public TransformCollection? TransformCollection;
 

@@ -29,11 +29,11 @@ using System.Runtime.InteropServices;
 namespace lcms2.types;
 
 [StructLayout(LayoutKind.Explicit)]
-public unsafe struct Formatter
+public struct FormatterIn
 {
     [FieldOffset(0)]
-    public Formatter16 Fmt16;
+    public Formatter16In Fmt16;
 
     [FieldOffset(0)]
-    public FormatterFloat FmtFloat;
+    public FormatterFloatIn FmtFloat;
 }

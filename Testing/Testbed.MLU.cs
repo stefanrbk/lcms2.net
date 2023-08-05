@@ -32,7 +32,7 @@ using System.Text;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     public static bool CheckMLU()
     {
@@ -184,12 +184,12 @@ internal static unsafe partial class Testbed
         NamedColorList? nc = null, nc2;
         int i, j;
         bool rc = true;
-        var Name = stackalloc byte[cmsMAX_PATH];
-        var PCS = stackalloc ushort[3];
-        var Colorant = stackalloc ushort[cmsMAXCHANNELS];
-        var CheckName = stackalloc byte[cmsMAX_PATH];
-        var CheckPCS = stackalloc ushort[3];
-        var CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> Name = stackalloc byte[cmsMAX_PATH];
+        Span<ushort> PCS = stackalloc ushort[3];
+        Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> CheckName = stackalloc byte[cmsMAX_PATH];
+        Span<ushort> CheckPCS = stackalloc ushort[3];
+        Span<ushort> CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
         Profile h;
 
         nc = cmsAllocNamedColorList(DbgThread(), 0, 4, "prefix"u8, "suffix"u8);
@@ -203,7 +203,7 @@ internal static unsafe partial class Testbed
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(4096 - i);
 
             sprintf(Name, "#{0}", i);
-            if (!cmsAppendNamedColor(nc, new (Name, 255), new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; break; }
+            if (!cmsAppendNamedColor(nc, Name, PCS, Colorant)) { rc = false; break; }
         }
 
         for (i = 0; i < 4096; i++)
@@ -213,7 +213,7 @@ internal static unsafe partial class Testbed
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
-            if (!cmsNamedColorInfo(nc, (uint)i, new(Name, 255), null, null, new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; goto Error; }
+            if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
 
 
             for (j = 0; j < 3; j++)
@@ -252,7 +252,7 @@ internal static unsafe partial class Testbed
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
-            if (!cmsNamedColorInfo(nc2, (uint)i, new(Name, 255), null, null, new(PCS, 3), new(Colorant, cmsMAXCHANNELS))) { rc = false; goto Error; }
+            if (!cmsNamedColorInfo(nc2, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
 
 
             for (j = 0; j < 3; j++)
@@ -292,8 +292,8 @@ internal static unsafe partial class Testbed
 
         // Values
         CIELab Lab;
-        var PCS = stackalloc ushort[3];
-        var Colorant = stackalloc ushort[4];
+        Span<ushort> PCS = stackalloc ushort[3];
+        Span<ushort> Colorant = stackalloc ushort[4];
 
         // Set profile class
         cmsSetProfileVersion(hProfile, 4.3);
@@ -313,20 +313,20 @@ internal static unsafe partial class Testbed
         cmsWriteTag(hProfile, cmsSigCopyrightTag, CopyrightMLU);
 
         // Set the media white point
-        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()));
+        cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ));
 
 
         // Populate one value, Colorant = CMYK values in 16 bits, PCS[] = Encoded Lab values (in V2 format!!)
         Lab.L = 50; Lab.a = 10; Lab.b = -10;
-        cmsFloat2LabEncodedV2(PCS, &Lab);
+        cmsFloat2LabEncodedV2(PCS, Lab);
         Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
-        cmsAppendNamedColor(colors, "Hazelnut 14-1315"u8, new(PCS, 3), new(Colorant, cmsMAXCHANNELS));
+        cmsAppendNamedColor(colors, "Hazelnut 14-1315"u8, PCS, Colorant);
 
         // Another one. Consider to write a routine for that
         Lab.L = 40; Lab.a = -5; Lab.b = 8;
-        cmsFloat2LabEncodedV2(PCS, &Lab);
+        cmsFloat2LabEncodedV2(PCS, Lab);
         Colorant[0] = 10 * 257; Colorant[1] = 20 * 257; Colorant[2] = 30 * 257; Colorant[3] = 40 * 257;
-        cmsAppendNamedColor(colors, "Kale 18-0107"u8, new(PCS, 3), new(Colorant, cmsMAXCHANNELS));
+        cmsAppendNamedColor(colors, "Kale 18-0107"u8, PCS, Colorant);
 
         // Write the colors database
         cmsWriteTag(hProfile, cmsSigNamedColor2Tag, colors);

@@ -28,7 +28,7 @@ using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-[StructLayout(LayoutKind.Explicit)]
+[StructLayout(LayoutKind.Explicit, Size = 12)]
 public struct DateTimeNumber(ushort year, ushort month, ushort day, ushort hours, ushort minutes, ushort seconds)
 {
     [FieldOffset(4)] public ushort Day = day;

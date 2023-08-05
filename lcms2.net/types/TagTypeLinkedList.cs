@@ -39,7 +39,7 @@ public class TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next =
         TagTypeHandler.ReadFn readPtr,
         TagTypeHandler.WriteFn writePtr,
         TagTypeHandler.DupFn dupPtr,
-        TagTypeHandler.FreeFn freePtr,
+        TagTypeHandler.FreeFn? freePtr,
         Context? contextID,
         uint iCCVersion, TagTypeLinkedList? next = null)
         : this(new(signature, readPtr, writePtr, dupPtr, freePtr, contextID, iCCVersion), next) { }
@@ -54,5 +54,5 @@ public class TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next =
     }
 
     public object Clone() =>
-        new TagTypeLinkedList(handler, next);
+        new TagTypeLinkedList(Handler, Next);
 }

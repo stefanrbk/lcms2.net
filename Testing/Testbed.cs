@@ -32,11 +32,10 @@ using Microsoft.Extensions.Logging.Console;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Runtime.InteropServices;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     public static string ReasonToFailBuffer = String.Empty;
     public static string SubTestBuffer = String.Empty;
@@ -54,7 +53,7 @@ internal static unsafe partial class Testbed
     public static readonly object MaxErrLock = new();
     public static double AllowedErr = FIXED_PRECISION_15_16;
 
-    public static readonly int SIZE_OF_MEM_HEADER = sizeof(MemoryBlock);
+    public static readonly int SIZE_OF_MEM_HEADER = 16;
 
     public static readonly ILoggerFactory factory = BuildDebugLogger();
     public static readonly ILogger logger = factory.CreateLogger<Program>();
@@ -329,7 +328,7 @@ internal static unsafe partial class Testbed
 
     public static void PrintSupportedIntents()
     {
-        var codes = stackalloc uint[200];
+        Span<uint> codes = stackalloc uint[200];
         var descriptions = new string?[200];
         var intents = cmsGetSupportedIntents(200, codes, descriptions);
 

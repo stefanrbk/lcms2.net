@@ -61,7 +61,7 @@ public class CliOptions
         "speed",
         Required = false,
         HelpText = "Whether or not to run speed tests",
-        Default = true)]
+        Default = false)]
     public bool DoSpeed { get; set; }
 
     [Option(

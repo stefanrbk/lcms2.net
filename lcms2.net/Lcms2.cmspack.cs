@@ -28,17 +28,19 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static readonly FormattersPluginChunkType FormattersPluginChunk = new();
 
     internal static readonly FormattersPluginChunkType globalFormattersPluginChunk = new();
 
-    internal static readonly Formatters16[] InputFormatters16 =
+    internal static readonly Formatters16In[] InputFormatters16 =
         {
             new( TYPE_Lab_DBL,                                 ANYPLANAR|ANYEXTRA,   UnrollLabDoubleTo16),
             new( TYPE_XYZ_DBL,                                 ANYPLANAR|ANYEXTRA,   UnrollXYZDoubleTo16),
@@ -106,7 +108,7 @@ public static unsafe partial class Lcms2
             new( BYTES_SH(2),  ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYENDIAN|ANYEXTRA|ANYCHANNELS|ANYSPACE|PREMUL_SH(1),  UnrollAnyWordsPremul)
         };
 
-    internal static readonly FormattersFloat[] InputFormattersFloat = {
+    internal static readonly FormattersFloatIn[] InputFormattersFloat = {
     //    Type                                          Mask                  Function
     //  ----------------------------   ------------------------------------  ----------------------------
     new(     TYPE_Lab_DBL,                                ANYPLANAR|ANYEXTRA,   UnrollLabDoubleToFloat),
@@ -134,7 +136,7 @@ public static unsafe partial class Lcms2
                                                         ANYCHANNELS|ANYSPACE, UnrollHalfToFloat),
 };
 
-    internal static readonly Formatters16[] OutputFormatters16 = {
+    internal static readonly Formatters16Out[] OutputFormatters16 = {
     //    Type                                          Mask                  Function
     //  ----------------------------   ------------------------------------  ----------------------------
 
@@ -221,7 +223,7 @@ public static unsafe partial class Lcms2
                                      ANYCHANNELS|ANYSPACE|ANYPREMUL,          PackPlanarWords)
     };
 
-    internal static readonly FormattersFloat[] OutputFormattersFloat = {
+    internal static readonly FormattersFloatOut[] OutputFormattersFloat = {
     //    Type                                          Mask                                 Function
     //  ----------------------------   ---------------------------------------------------  ----------------------------
     new(     TYPE_Lab_FLT,                                                ANYPLANAR|ANYEXTRA,   PackLabFloatFromFloat),
@@ -238,18 +240,32 @@ public static unsafe partial class Lcms2
                              ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackHalfFromFloat ),
 };
 
-    internal struct Formatters16(uint Type, uint Mask, Formatter16 Frm)
+    internal struct Formatters16In(uint Type, uint Mask, Formatter16In Frm)
     {
         public uint Type = Type;
         public uint Mask = Mask;
-        public Formatter16 Frm = Frm;
+        public Formatter16In Frm = Frm;
     }
 
-    internal struct FormattersFloat(uint Type, uint Mask, FormatterFloat Frm)
+    internal struct FormattersFloatIn(uint Type, uint Mask, FormatterFloatIn Frm)
     {
         public uint Type = Type;
         public uint Mask = Mask;
-        public FormatterFloat Frm = Frm;
+        public FormatterFloatIn Frm = Frm;
+    }
+
+    internal struct Formatters16Out(uint Type, uint Mask, Formatter16Out Frm)
+    {
+        public uint Type = Type;
+        public uint Mask = Mask;
+        public Formatter16Out Frm = Frm;
+    }
+
+    internal struct FormattersFloatOut(uint Type, uint Mask, FormatterFloatOut Frm)
+    {
+        public uint Type = Type;
+        public uint Mask = Mask;
+        public FormatterFloatOut Frm = Frm;
     }
 
     private static uint ANYSPACE => COLORSPACE_SH(31);
@@ -262,19 +278,19 @@ public static unsafe partial class Lcms2
     private static uint ANYFLAVOR => FLAVOR_SH(1);
     private static uint ANYPREMUL => PREMUL_SH(1);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort CHANGE_ENDIAN(ushort w) =>
         (ushort)((w << 8) | (w >> 8));
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte REVERSE_FLAVOR_8(byte x) =>
         (byte)(0xFF - x);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort REVERSE_FLAVOR_16(ushort x) =>
         (ushort)(0xFFFF - x);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort FomLabV2ToLabV4(ushort x)
     {
         var a = ((x << 8) | x) >> 8;
@@ -284,33 +300,33 @@ public static unsafe partial class Lcms2
                 : (ushort)a;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ushort FomLabV4ToLabV2(ushort x) =>
         (ushort)(((x << 8) + 0x80) / 257);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static (uint nChan, bool DoSwap, bool Reverse, bool SwapFirst, uint Extra, bool Planar, bool Premul, bool SwapEndian) T_BREAK(uint m) =>
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static (int nChan, bool DoSwap, bool Reverse, bool SwapFirst, int Extra, bool Planar, bool Premul, bool SwapEndian) T_BREAK(uint m) =>
         (T_CHANNELS(m), T_DOSWAP(m) is not 0, T_FLAVOR(m) is not 0, T_SWAPFIRST(m) is not 0, T_EXTRA(m), T_PLANAR(m) is not 0, T_PREMUL(m) is not 0, T_ENDIAN16(m) is not 0);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void PackSwapFirst<T>(T* swap1, uint nChan) where T : unmanaged
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void PackSwapFirst<T>(Span<T> swap1, int nChan) where T : unmanaged
     {
         var tmp = swap1[nChan - 1];
 
-        memmove(swap1 + 1, swap1, (nChan - 1) * _sizeof<T>());
+        memmove(swap1[1..], swap1, (uint)nChan - 1);
         swap1[0] = tmp;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UnrollSwapFirst<T>(T* wIn, uint nChan) where T : unmanaged
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void UnrollSwapFirst<T>(Span<T> wIn, int nChan) where T : unmanaged
     {
         var tmp = wIn[0];
 
-        memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<T>());
+        memmove(wIn, wIn[1..], (uint)nChan - 1);
         wIn[nChan - 1] = tmp;
     }
 
-    private static byte* UnrollChunkyBytes(Transform info, ushort* wIn, byte* accum, uint _)
+    private static ReadOnlySpan<byte> UnrollChunkyBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
@@ -322,24 +338,26 @@ public static unsafe partial class Lcms2
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 1u;
 
+        var ptr = 0;
+
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[0]));
 
-            accum += Extra;
+            ptr += (int)Extra;
         }
         else
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[nChan]));
+                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[(int)nChan]));
         }
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? ((int)nChan - i - 1) : i;
 
-            var v = (uint)FROM_8_TO_16(*accum);
+            var v = (uint)FROM_8_TO_16(accum[ptr]);
             v = Reverse ? REVERSE_FLAVOR_16((ushort)v) : v;
 
             if (Premul && alpha_factor > 0)
@@ -349,24 +367,19 @@ public static unsafe partial class Lcms2
             }
 
             wIn[index] = (ushort)v;
-            accum++;
+            ptr++;
         }
 
         if (!ExtraFirst)
-            accum += Extra;
+            ptr += (int)Extra;
 
         if (Extra is 0 && SwapFirst)
-        {
-            var tmp = wIn[0];
+            UnrollSwapFirst(wIn, nChan);
 
-            memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<ushort>());
-            wIn[nChan - 1] = tmp;
-        }
-
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollPlanarBytes(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollPlanarBytes(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var DoSwap = T_DOSWAP(info.InputFormat) is not 0;
@@ -378,23 +391,25 @@ public static unsafe partial class Lcms2
         var Init = accum;
         var alpha_factor = 1u;
 
+        var ptr = 0;
+
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[0]));
 
-            accum += Extra * Stride;
+            ptr += (int)(Extra * Stride);
         }
         else
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[nChan * Stride]));
+                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(accum[(int)(nChan * Stride)]));
         }
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
-            var v = (uint)FROM_8_TO_16(*accum);
+            var index = DoSwap ? ((int)nChan - i - 1) : i;
+            var v = (uint)FROM_8_TO_16(accum[ptr]);
 
             v = Reverse ? REVERSE_FLAVOR_16((ushort)v) : v;
 
@@ -405,177 +420,195 @@ public static unsafe partial class Lcms2
             }
 
             wIn[index] = (ushort)v;
-            accum += Stride;
+            ptr += (int)Stride;
         }
 
-        return Init + 1;
+        return Init[1..];
     }
 
-    private static byte* Unroll4Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // C
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // M
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
-        wIn[3] = FROM_8_TO_16(*accum); accum++; // K
+        var ptr = 0;
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // C
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // M
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // Y
+        wIn[3] = FROM_8_TO_16(accum[ptr++]); // K
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll4BytesReverse(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4BytesReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // C
-        wIn[1] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // M
-        wIn[2] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // Y
-        wIn[3] = FROM_8_TO_16(REVERSE_FLAVOR_8(*accum)); accum++; // K
+        var ptr = 0;
+        wIn[0] = FROM_8_TO_16(REVERSE_FLAVOR_8(accum[ptr++])); // C
+        wIn[1] = FROM_8_TO_16(REVERSE_FLAVOR_8(accum[ptr++])); // M
+        wIn[2] = FROM_8_TO_16(REVERSE_FLAVOR_8(accum[ptr++])); // Y
+        wIn[3] = FROM_8_TO_16(REVERSE_FLAVOR_8(accum[ptr++])); // K
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll4BytesSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4BytesSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[3] = FROM_8_TO_16(*accum); accum++; // K
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // C
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // M
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
+        var ptr = 0;
+        wIn[3] = FROM_8_TO_16(accum[ptr++]); // K
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // C
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // M
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // Y
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll4BytesSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[3] = FROM_8_TO_16(*accum); accum++; // K
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // M
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // C
+        var ptr = 0;
+        wIn[3] = FROM_8_TO_16(accum[ptr++]); // K
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // Y
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // M
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // C
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll4BytesSwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4BytesSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // Y
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // M
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // C
-        wIn[3] = FROM_8_TO_16(*accum); accum++; // K
+        var ptr = 0;
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // Y
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // M
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // C
+        wIn[3] = FROM_8_TO_16(accum[ptr++]); // K
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll3Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
+        var ptr = 0;
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // R
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // G
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // B
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll3BytesSkip1Swap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        accum++;                                // A
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
+        var ptr = 0;
+        ptr++;                                // A
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // B
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // G
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // R
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll3BytesSkip1SwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1SwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
-        accum++;                                // A
+        var ptr = 0;
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // B
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // G
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // R
+        ptr++;                                // A
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll3BytesSkip1SwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3BytesSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        accum++;                                // A
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
+        var ptr = 0;
+        ptr++;                                // A
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // R
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // G
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // B
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll3BytesSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3BytesSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[2] = FROM_8_TO_16(*accum); accum++; // B
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // G
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // R
+        var ptr = 0;
+        wIn[2] = FROM_8_TO_16(accum[ptr++]); // B
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // G
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // R
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollLabV2_8(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollLabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // L
-        wIn[1] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // a
-        wIn[2] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // b
+        var ptr = 0;
+        wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // L
+        wIn[1] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // a
+        wIn[2] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // b
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollALabV2_8(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollALabV2_8(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        accum++;                                // A
-        wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // R
-        wIn[1] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // G
-        wIn[2] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++; // B
+        var ptr = 0;
+        ptr++;                                // A
+        wIn[0] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // R
+        wIn[1] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // G
+        wIn[2] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++])); // B
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollLabV2_16(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollLabV2_16(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FomLabV2ToLabV4(*(ushort*)accum); accum += 2; // L
-        wIn[1] = FomLabV2ToLabV4(*(ushort*)accum); accum += 2; // a
-        wIn[2] = FomLabV2ToLabV4(*(ushort*)accum); accum += 2; // b
+        var ptr = 0;
+        wIn[0] = FomLabV2ToLabV4(BitConverter.ToUInt16(accum[ptr..])); ptr += 2; // L
+        wIn[1] = FomLabV2ToLabV4(BitConverter.ToUInt16(accum[ptr..])); ptr += 2; // a
+        wIn[2] = FomLabV2ToLabV4(BitConverter.ToUInt16(accum[ptr..])); ptr += 2; // b
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll2Bytes(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll2Bytes(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = FROM_8_TO_16(*accum); accum++; // ch1
-        wIn[1] = FROM_8_TO_16(*accum); accum++; // ch2
+        var ptr = 0;
+        wIn[0] = FROM_8_TO_16(accum[ptr++]); // ch1
+        wIn[1] = FROM_8_TO_16(accum[ptr++]); // ch2
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll1Byte(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1Byte(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
+        var ptr = 0;
+        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(accum[ptr++]); // L
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll1ByteSkip1(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1ByteSkip1(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
-        accum++;
+        var ptr = 0;
+        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(accum[ptr++]); // L
+        ptr++;
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll1ByteSkip2(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1ByteSkip2(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(*accum); accum++; // L
-        accum += 2;
+        var ptr = 0;
+        wIn[0] = wIn[1] = wIn[2] = FROM_8_TO_16(accum[ptr]); // L
+        ptr += 2;
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* Unroll1ByteReversed(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1ByteReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(FROM_8_TO_16(*accum)); accum++; // L
+        var ptr = 0;
+        wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(FROM_8_TO_16(accum[ptr++])); // L
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollAnyWords(Transform info, ushort* wIn, byte* accum, uint _)
+    private static ReadOnlySpan<byte> UnrollAnyWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _1)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
@@ -585,37 +618,34 @@ public static unsafe partial class Lcms2
         var Extra = T_EXTRA(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
 
+        var ptr = 0;
+
         if (ExtraFirst)
-            accum += Extra * _sizeof<ushort>();
+            ptr += Extra * sizeof(ushort);
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
-            var v = (uint)*(ushort*)accum;
+            var index = DoSwap ? (nChan - i - 1) : i;
+            var v = (uint)BitConverter.ToUInt16(accum[ptr..]);
 
             if (SwapEndian)
                 v = CHANGE_ENDIAN((ushort)v);
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
-            accum += _sizeof<ushort>();
+            ptr += sizeof(ushort);
         }
 
         if (!ExtraFirst)
-            accum += Extra * _sizeof<ushort>();
+            ptr += Extra * sizeof(ushort);
 
         if (Extra is 0 && SwapFirst)
-        {
-            var tmp = wIn[0];
+            UnrollSwapFirst(wIn, nChan);
 
-            memmove(&wIn[0], &wIn[1], (nChan - 1) * _sizeof<ushort>());
-            wIn[nChan - 1] = tmp;
-        }
-
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollAnyWordsPremul(Transform info, ushort* wIn, byte* accum, uint _)
+    private static ReadOnlySpan<byte> UnrollAnyWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
@@ -627,13 +657,15 @@ public static unsafe partial class Lcms2
         var alpha = (uint)(ExtraFirst ? accum[0] : accum[nChan - 1]);
         var alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(alpha));
 
+        var ptr = 0;
+
         if (ExtraFirst)
-            accum += _sizeof<ushort>();
+            ptr += sizeof(ushort);
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
-            var v = (uint)*(ushort*)accum;
+            var index = DoSwap ? (nChan - i - 1) : i;
+            var v = (uint)BitConverter.ToUInt16(accum[ptr..]);
 
             if (SwapEndian)
                 v = CHANGE_ENDIAN((ushort)v);
@@ -643,16 +675,16 @@ public static unsafe partial class Lcms2
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
-            accum += _sizeof<ushort>();
+            ptr += sizeof(ushort);
         }
 
         if (!ExtraFirst)
-            accum += _sizeof<ushort>();
+            ptr += sizeof(ushort);
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollPlanarWords(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollPlanarWords(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
@@ -661,26 +693,28 @@ public static unsafe partial class Lcms2
         var Extra = T_EXTRA(info.InputFormat);
         var Init = accum;
 
+        var ptr = 0;
+
         if (DoSwap)
-            accum += Extra * Stride;
+            ptr += Extra * (int)Stride;
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
-            var v = *(ushort*)accum;
+            var index = DoSwap ? (nChan - i - 1) : i;
+            var v = BitConverter.ToUInt16(accum[ptr..]);
 
             if (SwapEndian)
                 v = CHANGE_ENDIAN(v);
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16(v) : v;
 
-            accum += Stride;
+            ptr += (int)Stride;
         }
 
-        return Init + _sizeof<ushort>();
+        return Init[sizeof(ushort)..];
     }
 
-    private static byte* UnrollPlanarWordsPremul(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollPlanarWordsPremul(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var nChan = T_CHANNELS(info.InputFormat);
         var SwapEndian = T_ENDIAN16(info.InputFormat) is not 0;
@@ -690,16 +724,18 @@ public static unsafe partial class Lcms2
         var ExtraFirst = DoSwap ^ SwapFirst;
         var Init = accum;
 
-        var alpha = (ushort)(ExtraFirst ? accum[0] : accum[(nChan - 1) * Stride]);
+        var alpha = (ushort)(ExtraFirst ? accum[0] : accum[(nChan - 1) * (int)Stride]);
         var alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(alpha));
 
+        var ptr = 0;
+
         if (ExtraFirst)
-            accum += Stride;
+            ptr += (int)Stride;
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
-            var v = (uint)*(ushort*)accum;
+            var index = DoSwap ? (nChan - i - 1) : i;
+            var v = (uint)BitConverter.ToUInt16(accum[ptr..]);
 
             if (SwapEndian)
                 v = CHANGE_ENDIAN((ushort)v);
@@ -709,237 +745,264 @@ public static unsafe partial class Lcms2
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
-            accum += Stride;
+            ptr += (int)Stride;
         }
 
-        return Init + _sizeof<ushort>();
+        return Init[sizeof(ushort)..];
     }
 
-    private static byte* Unroll4Words(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = *(ushort*)accum; accum += 2; // C
-        wIn[1] = *(ushort*)accum; accum += 2; // M
-        wIn[2] = *(ushort*)accum; accum += 2; // Y
-        wIn[3] = *(ushort*)accum; accum += 2; // K
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = acc[ptr++]; // C
+        wIn[1] = acc[ptr++]; // M
+        wIn[2] = acc[ptr++]; // Y
+        wIn[3] = acc[ptr++]; // K
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll4WordsReverse(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4WordsReverse(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // C
-        wIn[1] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // M
-        wIn[2] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // Y
-        wIn[3] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // K
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = REVERSE_FLAVOR_16(acc[ptr++]); // C
+        wIn[1] = REVERSE_FLAVOR_16(acc[ptr++]); // M
+        wIn[2] = REVERSE_FLAVOR_16(acc[ptr++]); // Y
+        wIn[3] = REVERSE_FLAVOR_16(acc[ptr++]); // K
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll4WordsSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4WordsSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[3] = *(ushort*)accum; accum += 2; // K
-        wIn[0] = *(ushort*)accum; accum += 2; // C
-        wIn[1] = *(ushort*)accum; accum += 2; // M
-        wIn[2] = *(ushort*)accum; accum += 2; // Y
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[3] = acc[ptr++]; // K
+        wIn[0] = acc[ptr++]; // C
+        wIn[1] = acc[ptr++]; // M
+        wIn[2] = acc[ptr++]; // Y
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll4WordsSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[3] = *(ushort*)accum; accum += 2; // K
-        wIn[2] = *(ushort*)accum; accum += 2; // Y
-        wIn[1] = *(ushort*)accum; accum += 2; // M
-        wIn[0] = *(ushort*)accum; accum += 2; // C
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[3] = acc[ptr++]; // K
+        wIn[2] = acc[ptr++]; // Y
+        wIn[1] = acc[ptr++]; // M
+        wIn[0] = acc[ptr++]; // C
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll4WordsSwapSwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll4WordsSwapSwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[2] = *(ushort*)accum; accum += 2; // Y
-        wIn[1] = *(ushort*)accum; accum += 2; // M
-        wIn[0] = *(ushort*)accum; accum += 2; // C
-        wIn[3] = *(ushort*)accum; accum += 2; // K
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[2] = acc[ptr++]; // Y
+        wIn[1] = acc[ptr++]; // M
+        wIn[0] = acc[ptr++]; // C
+        wIn[3] = acc[ptr++]; // K
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll3Words(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = *(ushort*)accum; accum += 2; // C R
-        wIn[1] = *(ushort*)accum; accum += 2; // M G
-        wIn[2] = *(ushort*)accum; accum += 2; // Y B
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = acc[ptr++]; // C R
+        wIn[1] = acc[ptr++]; // M G
+        wIn[2] = acc[ptr++]; // Y B
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll3WordsSwap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3WordsSwap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[2] = *(ushort*)accum; accum += 2; // Y B
-        wIn[1] = *(ushort*)accum; accum += 2; // M G
-        wIn[0] = *(ushort*)accum; accum += 2; // C R
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[2] = acc[ptr++]; // Y B
+        wIn[1] = acc[ptr++]; // M G
+        wIn[0] = acc[ptr++]; // C R
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll3WordsSkip1Swap(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3WordsSkip1Swap(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        accum += 2;                           // A
-        wIn[2] = *(ushort*)accum; accum += 2; // B
-        wIn[1] = *(ushort*)accum; accum += 2; // G
-        wIn[0] = *(ushort*)accum; accum += 2; // R
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        ptr++;                // A
+        wIn[2] = acc[ptr++]; // B
+        wIn[1] = acc[ptr++]; // G
+        wIn[0] = acc[ptr++]; // R
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll3WordsSkip1SwapFirst(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll3WordsSkip1SwapFirst(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        accum += 2;                           // A
-        wIn[0] = *(ushort*)accum; accum += 2; // R
-        wIn[1] = *(ushort*)accum; accum += 2; // G
-        wIn[2] = *(ushort*)accum; accum += 2; // B
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        ptr++;                           // A
+        wIn[0] = acc[ptr++]; // R
+        wIn[1] = acc[ptr++]; // G
+        wIn[2] = acc[ptr++]; // B
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll1Word(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1Word(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = *(ushort*)accum; accum += 2; // L
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = wIn[1] = wIn[2] = acc[ptr++]; // L
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll1WordReversed(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1WordReversed(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(*(ushort*)accum); accum += 2; // L
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = wIn[1] = wIn[2] = REVERSE_FLAVOR_16(acc[ptr++]); // L
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll1WordSkip3(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll1WordSkip3(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = wIn[1] = wIn[2] = *(ushort*)accum;
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = wIn[1] = wIn[2] = acc[ptr++];
 
-        accum += 8;
+        ptr += 3;
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* Unroll2Words(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> Unroll2Words(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        wIn[0] = *(ushort*)accum; accum += 2; // ch1
-        wIn[1] = *(ushort*)accum; accum += 2; // ch2
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        wIn[0] = acc[ptr++]; // ch1
+        wIn[1] = acc[ptr++]; // ch2
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* UnrollLabDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollLabDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             CIELab Lab;
 
             var pos_L = accum;
-            var pos_a = accum + Stride;
-            var pos_b = accum + (Stride * 2);
+            var pos_a = accum[(int)Stride..];
+            var pos_b = accum[(int)(Stride * 2)..];
 
-            Lab.L = *(double*)pos_L;
-            Lab.a = *(double*)pos_a;
-            Lab.b = *(double*)pos_b;
+            Lab.L = BitConverter.ToDouble(pos_L);
+            Lab.a = BitConverter.ToDouble(pos_a);
+            Lab.b = BitConverter.ToDouble(pos_b);
 
-            cmsFloat2LabEncoded(wIn, &Lab);
-            return accum + _sizeof<double>();
+            cmsFloat2LabEncoded(wIn, Lab);
+            return accum[sizeof(double)..];
         }
         else
         {
-            cmsFloat2LabEncoded(wIn, (CIELab*)accum);
-            accum += _sizeof<CIELab>() + (T_EXTRA(info.InputFormat) * _sizeof<double>());
-            return accum;
+            cmsFloat2LabEncoded(wIn, MemoryMarshal.Read<CIELab>(accum));
+            var ptr = (sizeof(double) * 3) + (T_EXTRA(info.InputFormat) * sizeof(double));
+            return accum[ptr..];
         }
     }
 
-    private static byte* UnrollLabFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollLabFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         CIELab Lab;
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             var pos_L = accum;
-            var pos_a = accum + Stride;
-            var pos_b = accum + (Stride * 2);
+            var pos_a = accum[(int)Stride..];
+            var pos_b = accum[(int)(Stride * 2)..];
 
-            Lab.L = *(float*)pos_L;
-            Lab.a = *(float*)pos_a;
-            Lab.b = *(float*)pos_b;
+            Lab.L = BitConverter.ToSingle(pos_L);
+            Lab.a = BitConverter.ToSingle(pos_a);
+            Lab.b = BitConverter.ToSingle(pos_b);
 
-            cmsFloat2LabEncoded(wIn, &Lab);
-            return accum + _sizeof<float>();
+            cmsFloat2LabEncoded(wIn, Lab);
+            return accum[sizeof(float)..];
         }
         else
         {
-            Lab.L = ((float*)accum)[0];
-            Lab.a = ((float*)accum)[1];
-            Lab.b = ((float*)accum)[2];
+            var acc = MemoryMarshal.Cast<byte, float>(accum);
+            Lab.L = acc[0];
+            Lab.a = acc[1];
+            Lab.b = acc[2];
 
-            cmsFloat2LabEncoded(wIn, &Lab);
-            accum += (3 + T_EXTRA(info.InputFormat)) * _sizeof<float>();
-            return accum;
+            cmsFloat2LabEncoded(wIn, Lab);
+            var ptr = (3 + T_EXTRA(info.InputFormat)) * sizeof(float);
+            return accum[ptr..];
         }
     }
 
-    private static byte* UnrollXYZDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollXYZDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             CIEXYZ XYZ;
 
             var pos_X = accum;
-            var pos_Y = accum + Stride;
-            var pos_Z = accum + (Stride * 2);
+            var pos_Y = accum[(int)Stride..];
+            var pos_Z = accum[(int)(Stride * 2)..];
 
-            XYZ.X = *(double*)pos_X;
-            XYZ.Y = *(double*)pos_Y;
-            XYZ.Z = *(double*)pos_Z;
+            XYZ.X = BitConverter.ToDouble(pos_X);
+            XYZ.Y = BitConverter.ToDouble(pos_Y);
+            XYZ.Z = BitConverter.ToDouble(pos_Z);
 
-            cmsFloat2XYZEncoded(wIn, &XYZ);
-            return accum + _sizeof<double>();
+            cmsFloat2XYZEncoded(wIn, XYZ);
+            return accum[sizeof(double)..];
         }
         else
         {
-            cmsFloat2XYZEncoded(wIn, (CIEXYZ*)accum);
-            accum += _sizeof<CIEXYZ>() + (T_EXTRA(info.InputFormat) * _sizeof<double>());
-            return accum;
+            cmsFloat2XYZEncoded(wIn, MemoryMarshal.Read<CIEXYZ>(accum));
+            var ptr = (sizeof(double) * 3) + (T_EXTRA(info.InputFormat) * sizeof(double));
+            return accum[ptr..];
         }
     }
 
-    private static byte* UnrollXYZFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollXYZFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         CIEXYZ XYZ;
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             var pos_X = accum;
-            var pos_Y = accum + Stride;
-            var pos_Z = accum + (Stride * 2);
+            var pos_Y = accum[(int)Stride..];
+            var pos_Z = accum[(int)(Stride * 2)..];
 
-            XYZ.X = *(float*)pos_X;
-            XYZ.Y = *(float*)pos_Y;
-            XYZ.Z = *(float*)pos_Z;
+            XYZ.X = BitConverter.ToSingle(pos_X);
+            XYZ.Y = BitConverter.ToSingle(pos_Y);
+            XYZ.Z = BitConverter.ToSingle(pos_Z);
 
-            cmsFloat2XYZEncoded(wIn, &XYZ);
-            return accum + _sizeof<float>();
+            cmsFloat2XYZEncoded(wIn, XYZ);
+            return accum[sizeof(float)..];
         }
         else
         {
-            var pt = (float*)accum;
+            var pt = MemoryMarshal.Cast<byte, float>(accum);
 
             XYZ.X = pt[0];
             XYZ.Y = pt[1];
             XYZ.Z = pt[2];
-            cmsFloat2XYZEncoded(wIn, &XYZ);
-            accum += (3 + T_EXTRA(info.InputFormat)) * _sizeof<float>();
-            return accum;
+            cmsFloat2XYZEncoded(wIn, XYZ);
+            var ptr = (3 + T_EXTRA(info.InputFormat)) * sizeof(float);
+            return accum[ptr..];
         }
     }
 
@@ -965,21 +1028,21 @@ public static unsafe partial class Lcms2
 
     private static uint PixelSize(uint Format)
     {
-        var fmt_bytes = T_BYTES(Format);
+        var fmt_bytes = (uint)T_BYTES(Format);
 
         // For double, the T_BYTES field is zero
         if (fmt_bytes is 0)
-            return _sizeof<double>();
+            return sizeof(double);
 
         // Otherwise, it is already correct for all formats
         return fmt_bytes;
     }
 
-    private static byte* UnrollDoubleTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollDoubleTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 655.35 : 65535.0;
 
         Stride /= PixelSize(info.InputFormat);
@@ -988,11 +1051,13 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
+
+            var acc = MemoryMarshal.Cast<byte, double>(accum);
 
             var v = (float)(Planar
-                ? ((double*)accum)[(i + start) * Stride]
-                : ((double*)accum)[i + start]);
+                ? acc[(i + start) * (int)Stride]
+                : acc[i + start]);
 
             var vi = _cmsQuickSaturateWord(v * maximum);
 
@@ -1004,14 +1069,14 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(double))..];
     }
 
-    private static byte* UnrollFloatTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollFloatTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 655.35 : 65535.0;
 
         Stride /= PixelSize(info.InputFormat);
@@ -1020,11 +1085,13 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
+
+            var acc = MemoryMarshal.Cast<byte, float>(accum);
 
             var v = Planar
-                ? ((float*)accum)[(i + start) * Stride]
-                : ((float*)accum)[i + start];
+                ? acc[(i + start) * (int)Stride]
+                : acc[i + start];
 
             var vi = _cmsQuickSaturateWord(v * maximum);
 
@@ -1036,23 +1103,23 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(float))..];
     }
 
-    private static byte* UnrollDouble1Chan(Transform _1, ushort* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollDouble1Chan(Transform _1, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        var Inks = (double*)accum;
+        var Inks = MemoryMarshal.Cast<byte, double>(accum);
 
         wIn[0] = wIn[1] = wIn[2] = _cmsQuickSaturateWord(Inks[0] * 65535.0);
 
-        return accum + _sizeof<double>();
+        return accum[sizeof(double)..];
     }
 
-    private static byte* Unroll8ToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> Unroll8ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
 
         Stride /= PixelSize(info.InputFormat);
 
@@ -1060,10 +1127,10 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = (float)(Planar
-                ? accum[(i + start) * Stride]
+                ? accum[(i + start) * (int)Stride]
                 : accum[i + start]);
 
             v /= 255.0F;
@@ -1073,14 +1140,14 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<byte>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(byte))..];
     }
 
-    private static byte* Unroll16ToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> Unroll16ToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
 
         Stride /= PixelSize(info.InputFormat);
 
@@ -1088,11 +1155,13 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
+
+            var acc = MemoryMarshal.Cast<byte, ushort>(accum);
 
             var v = (float)(Planar
-                ? ((ushort*)accum)[(i + start) * Stride]
-                : ((ushort*)accum)[i + start]);
+                ? acc[(i + start) * (int)Stride]
+                : acc[i + start]);
 
             v /= 65535.0F;
 
@@ -1101,30 +1170,30 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort))..];
     }
 
-    private static byte* UnrollFloatsToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollFloatsToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 100.0F : 1.0F;
         var alpha_factor = 1.0F;
-        var ptr = (float*)accum;
+        var acc = MemoryMarshal.Cast<byte, float>(accum);
 
         Stride /= PixelSize(info.InputFormat);
 
         if (Premul && Extra is not 0)
-            alpha_factor = (ExtraFirst ? ptr[0] : ptr[nChan * (Planar ? Stride : 1)]) / maximum;
+            alpha_factor = (ExtraFirst ? acc[0] : acc[nChan * (Planar ? (int)Stride : 1)]) / maximum;
 
         if (ExtraFirst) start = Extra;
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
-            var v = ptr[(i + start) * (Planar ? Stride : 1)];
+            var v = acc[(i + start) * (Planar ? (int)Stride : 1)];
 
             if (Premul && alpha_factor > 0)
                 v /= alpha_factor;
@@ -1136,30 +1205,30 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<float>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(float))..];
     }
 
-    private static byte* UnrollDoublesToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollDoublesToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, Premul, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 100.0 : 1.0;
         var alpha_factor = 1.0;
-        var ptr = (double*)accum;
+        var acc = MemoryMarshal.Cast<byte, double>(accum);
 
         Stride /= PixelSize(info.InputFormat);
 
         if (Premul && Extra is not 0)
-            alpha_factor = (ExtraFirst ? ptr[0] : ptr[nChan * (Planar ? Stride : 1)]) / maximum;
+            alpha_factor = (ExtraFirst ? acc[0] : acc[nChan * (Planar ? (int)Stride : 1)]) / maximum;
 
         if (ExtraFirst) start = Extra;
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
-            var v = ptr[(i + start) * (Planar ? Stride : 1)];
+            var v = acc[(i + start) * (Planar ? (int)Stride : 1)];
 
             if (Premul && alpha_factor > 0)
                 v /= alpha_factor;
@@ -1171,107 +1240,107 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<double>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(double))..];
     }
 
-    private static byte* UnrollLabDoubleToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollLabDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
-        var Pt = (double*)accum;
+        var acc = MemoryMarshal.Cast<byte, double>(accum);
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             Stride /= PixelSize(info.InputFormat);
 
-            wIn[0] = (float)(Pt[0] / 100.0);
-            wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
-            wIn[2] = (float)((Pt[Stride * 2] + 128) / 255.0);
+            wIn[0] = (float)(acc[0] / 100.0);
+            wIn[1] = (float)((acc[(int)Stride] + 128) / 255.0);
+            wIn[2] = (float)((acc[(int)Stride * 2] + 128) / 255.0);
 
-            return accum + _sizeof<double>();
+            return accum[sizeof(double)..];
         }
         else
         {
-            wIn[0] = (float)(Pt[0] / 100.0);
-            wIn[1] = (float)((Pt[1] + 128) / 255.0);
-            wIn[2] = (float)((Pt[2] + 128) / 255.0);
+            wIn[0] = (float)(acc[0] / 100.0);
+            wIn[1] = (float)((acc[1] + 128) / 255.0);
+            wIn[2] = (float)((acc[2] + 128) / 255.0);
 
-            return accum + (_sizeof<double>() * (3 + T_EXTRA(info.InputFormat)));
+            return accum[(sizeof(double) * (3 + T_EXTRA(info.InputFormat)))..];
         }
     }
 
-    private static byte* UnrollLabFloatToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollLabFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
-        var Pt = (float*)accum;
+        var acc = MemoryMarshal.Cast<byte, float>(accum);
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             Stride /= PixelSize(info.InputFormat);
 
-            wIn[0] = (float)(Pt[0] / 100.0);
-            wIn[1] = (float)((Pt[Stride] + 128) / 255.0);
-            wIn[2] = (float)((Pt[Stride * 2] + 128) / 255.0);
+            wIn[0] = (float)(acc[0] / 100.0);
+            wIn[1] = (float)((acc[(int)Stride] + 128) / 255.0);
+            wIn[2] = (float)((acc[(int)Stride * 2] + 128) / 255.0);
 
-            return accum + _sizeof<float>();
+            return accum[sizeof(float)..];
         }
         else
         {
-            wIn[0] = (float)(Pt[0] / 100.0);
-            wIn[1] = (float)((Pt[1] + 128) / 255.0);
-            wIn[2] = (float)((Pt[2] + 128) / 255.0);
+            wIn[0] = (float)(acc[0] / 100.0);
+            wIn[1] = (float)((acc[1] + 128) / 255.0);
+            wIn[2] = (float)((acc[2] + 128) / 255.0);
 
-            return accum + (_sizeof<float>() * (3 + T_EXTRA(info.InputFormat)));
+            return accum[(sizeof(float) * (3 + T_EXTRA(info.InputFormat)))..];
         }
     }
 
-    private static byte* UnrollXYZDoubleToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollXYZDoubleToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
-        var Pt = (double*)accum;
+        var acc = MemoryMarshal.Cast<byte, double>(accum);
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             Stride /= PixelSize(info.InputFormat);
 
-            wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
-            wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
-            wIn[2] = (float)(Pt[Stride * 2] / MAX_ENCODEABLE_XYZ);
+            wIn[0] = (float)(acc[0] / MAX_ENCODEABLE_XYZ);
+            wIn[1] = (float)(acc[(int)Stride] / MAX_ENCODEABLE_XYZ);
+            wIn[2] = (float)(acc[(int)Stride * 2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + _sizeof<double>();
+            return accum[sizeof(double)..];
         }
         else
         {
-            wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
-            wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
-            wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
+            wIn[0] = (float)(acc[0] / MAX_ENCODEABLE_XYZ);
+            wIn[1] = (float)(acc[1] / MAX_ENCODEABLE_XYZ);
+            wIn[2] = (float)(acc[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (_sizeof<double>() * (3 + T_EXTRA(info.InputFormat)));
+            return accum[(sizeof(double) * (3 + T_EXTRA(info.InputFormat)))..];
         }
     }
 
-    private static byte* UnrollXYZFloatToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollXYZFloatToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
-        var Pt = (float*)accum;
+        var acc = MemoryMarshal.Cast<byte, float>(accum);
 
         if (T_PLANAR(info.InputFormat) is not 0)
         {
             Stride /= PixelSize(info.InputFormat);
 
-            wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
-            wIn[1] = (float)(Pt[Stride] / MAX_ENCODEABLE_XYZ);
-            wIn[2] = (float)(Pt[Stride * 2] / MAX_ENCODEABLE_XYZ);
+            wIn[0] = (float)(acc[0] / MAX_ENCODEABLE_XYZ);
+            wIn[1] = (float)(acc[(int)Stride] / MAX_ENCODEABLE_XYZ);
+            wIn[2] = (float)(acc[(int)Stride * 2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + _sizeof<float>();
+            return accum[sizeof(float)..];
         }
         else
         {
-            wIn[0] = (float)(Pt[0] / MAX_ENCODEABLE_XYZ);
-            wIn[1] = (float)(Pt[1] / MAX_ENCODEABLE_XYZ);
-            wIn[2] = (float)(Pt[2] / MAX_ENCODEABLE_XYZ);
+            wIn[0] = (float)(acc[0] / MAX_ENCODEABLE_XYZ);
+            wIn[1] = (float)(acc[1] / MAX_ENCODEABLE_XYZ);
+            wIn[2] = (float)(acc[2] / MAX_ENCODEABLE_XYZ);
 
-            return accum + (_sizeof<float>() * (3 + T_EXTRA(info.InputFormat)));
+            return accum[(sizeof(float) * (3 + T_EXTRA(info.InputFormat)))..];
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void lab4toFloat(float* wIn, ushort* lab4)
+    private static void lab4toFloat(Span<float> wIn, ReadOnlySpan<ushort> lab4)
     {
         var L = lab4[0] / 655.35F;
         var a = (lab4[1] / 257.0F) - 128.0F;
@@ -1282,60 +1351,64 @@ public static unsafe partial class Lcms2
         wIn[2] = (b + 128.0F) / 255.0F;
     }
 
-    private static byte* UnrollLabV2_8ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollLabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        var lab4 = stackalloc ushort[3];
+        var ptr = 0;
+        Span<ushort> lab4 = stackalloc ushort[3];
 
-        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // L
-        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // a
-        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // b
+        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // L
+        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // a
+        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // b
 
         lab4toFloat(wIn, lab4);
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollALabV2_8ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollALabV2_8ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        var lab4 = stackalloc ushort[3];
+        Span<ushort> lab4 = stackalloc ushort[3];
 
-        accum++;                                                    // A
-        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // L
-        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // a
-        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(*accum)); accum++;   // b
+        var ptr = 0;
+        ptr++;                                                    // A
+        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // L
+        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // a
+        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(accum[ptr++]));   // b
 
         lab4toFloat(wIn, lab4);
 
-        return accum;
+        return accum[ptr..];
     }
 
-    private static byte* UnrollLabV2_16ToFloat(Transform _1, float* wIn, byte* accum, uint _2)
+    private static ReadOnlySpan<byte> UnrollLabV2_16ToFloat(Transform _1, Span<float> wIn, ReadOnlySpan<byte> accum, uint _2)
     {
-        var lab4 = stackalloc ushort[3];
+        Span<ushort> lab4 = stackalloc ushort[3];
 
-        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(*(ushort*)accum)); accum += 2;   // L
-        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(*(ushort*)accum)); accum += 2;   // a
-        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(*(ushort*)accum)); accum += 2;   // b
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        lab4[0] = FomLabV2ToLabV4(FROM_8_TO_16(acc[ptr++]));   // L
+        lab4[1] = FomLabV2ToLabV4(FROM_8_TO_16(acc[ptr++]));   // a
+        lab4[2] = FomLabV2ToLabV4(FROM_8_TO_16(acc[ptr++]));   // b
 
         lab4toFloat(wIn, lab4);
 
-        return accum;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* PackChunkyBytes(Transform info, ushort* wOut, byte* output, uint _)
+    private static Span<byte> PackChunkyBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
 
-        var swap1 = output;
+        var ptr = 0;
 
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(output[0]));
 
-            output += Extra;
+            ptr += Extra;
         }
         else
         {
@@ -1345,7 +1418,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index];
 
@@ -1355,42 +1428,43 @@ public static unsafe partial class Lcms2
             if (Premul && alpha_factor is not 0)
                 v = (ushort)(((v * alpha_factor) + 0x8000) >> 16);
 
-            *output++ = FROM_16_TO_8(v);
+            output[ptr++] = FROM_16_TO_8(v);
         }
 
         if (!ExtraFirst)
-            output += Extra;
+            ptr += Extra;
 
         if (Extra is 0 && SwapFirst)
-            PackSwapFirst(swap1, nChan);
+            PackSwapFirst(output, nChan);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* PackChunkyWords(Transform info, ushort* wOut, byte* output, uint _)
+    private static Span<byte> PackChunkyWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
 
-        var swap1 = (ushort*)output;
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(output);
 
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(*(ushort*)output);
+                alpha_factor = (uint)_cmsToFixedDomain(acc[ptr]);
 
-            output += Extra * _sizeof<ushort>();
+            ptr += Extra * sizeof(ushort);
         }
         else
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(((ushort*)output)[nChan]);
+                alpha_factor = (uint)_cmsToFixedDomain(acc[nChan]);
         }
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index];
 
@@ -1403,43 +1477,42 @@ public static unsafe partial class Lcms2
             if (Premul && alpha_factor is not 0)
                 v = (ushort)(((v * alpha_factor) + 0x8000) >> 16);
 
-            *(ushort*)output = v;
-
-            output += _sizeof<ushort>();
+            acc[ptr++] = v;
         }
 
         if (!ExtraFirst)
-            output += Extra * _sizeof<ushort>();
+            ptr += Extra;
 
         if (Extra is 0 && SwapFirst)
-            PackSwapFirst(swap1, nChan);
+            PackSwapFirst(acc, nChan);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(acc[ptr..]);
     }
 
-    private static byte* PackPlanarBytes(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackPlanarBytes(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
-        var Init = output;
+
+        var ptr = 0;
 
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
                 alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(output[0]));
 
-            output += Extra * Stride;
+            ptr += Extra * (int)Stride;
         }
         else
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(output[nChan * Stride]));
+                alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(output[nChan * (int)Stride]));
         }
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index];
 
@@ -1449,37 +1522,41 @@ public static unsafe partial class Lcms2
             if (Premul && alpha_factor is not 0)
                 v = (ushort)(((v * alpha_factor) + 0x8000) >> 16);
 
-            *output = FROM_16_TO_8(v);
+            output[ptr] = FROM_16_TO_8(v);
 
-            output += Stride;
+            ptr += (int)Stride;
         }
 
-        return Init + 1;
+        return output[1..];
     }
 
-    private static byte* PackPlanarWords(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackPlanarWords(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, _, Premul, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var alpha_factor = 0u;
-        var Init = output;
+
+        Stride /= PixelSize(info.OutputFormat);
+
+        var ptr = 0;
+        var acc = MemoryMarshal.Cast<byte, ushort>(output);
 
         if (ExtraFirst)
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(*(ushort*)output);
+                alpha_factor = (uint)_cmsToFixedDomain(acc[0]);
 
-            output += Extra * Stride;
+            ptr += Extra * (int)Stride;
         }
         else
         {
             if (Premul && Extra is not 0)
-                alpha_factor = (uint)_cmsToFixedDomain(((ushort*)output)[nChan * Stride]);
+                alpha_factor = (uint)_cmsToFixedDomain(acc[nChan * (int)Stride]);
         }
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index];
 
@@ -1492,522 +1569,527 @@ public static unsafe partial class Lcms2
             if (Premul && alpha_factor is not 0)
                 v = (ushort)(((v * alpha_factor) + 0x8000) >> 16);
 
-            *(ushort*)output = v;
+            acc[ptr] = v;
 
-            output += Stride;
+            ptr += (int)Stride;
         }
 
-        return Init + _sizeof<ushort>();
+        return output[sizeof(ushort)..];
     }
 
-    private static byte* Pack6Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack6Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[3]);
-        *output++ = FROM_16_TO_8(wOut[4]);
-        *output++ = FROM_16_TO_8(wOut[5]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
+        output[ptr++] = FROM_16_TO_8(wOut[4]);
+        output[ptr++] = FROM_16_TO_8(wOut[5]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack6BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack6BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[5]);
-        *output++ = FROM_16_TO_8(wOut[4]);
-        *output++ = FROM_16_TO_8(wOut[3]);
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[5]);
+        output[ptr++] = FROM_16_TO_8(wOut[4]);
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack6Words(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack6Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[3];
-        output += 2;
-        *(ushort*)output = wOut[4];
-        output += 2;
-        *(ushort*)output = wOut[5];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[3];
+        o[ptr++] = wOut[4];
+        o[ptr++] = wOut[5];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack6WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack6WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[5];
-        output += 2;
-        *(ushort*)output = wOut[4];
-        output += 2;
-        *(ushort*)output = wOut[3];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[5];
+        o[ptr++] = wOut[4];
+        o[ptr++] = wOut[3];
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack4Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[3]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack4BytesReverse(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4BytesReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[0]));
-        *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[1]));
-        *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[2]));
-        *output++ = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[3]));
+        var ptr = 0;
+        output[ptr++] = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[0]));
+        output[ptr++] = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[1]));
+        output[ptr++] = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[2]));
+        output[ptr++] = REVERSE_FLAVOR_8(FROM_16_TO_8(wOut[3]));
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack4BytesSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4BytesSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[3]);
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack4BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[3]);
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack4BytesSwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4BytesSwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[3]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[3]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack4Words(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[3];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[3];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack4WordsReverse(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4WordsReverse(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = REVERSE_FLAVOR_16(wOut[0]);
-        output += 2;
-        *(ushort*)output = REVERSE_FLAVOR_16(wOut[1]);
-        output += 2;
-        *(ushort*)output = REVERSE_FLAVOR_16(wOut[2]);
-        output += 2;
-        *(ushort*)output = REVERSE_FLAVOR_16(wOut[3]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = REVERSE_FLAVOR_16(wOut[0]);
+        o[ptr++] = REVERSE_FLAVOR_16(wOut[1]);
+        o[ptr++] = REVERSE_FLAVOR_16(wOut[2]);
+        o[ptr++] = REVERSE_FLAVOR_16(wOut[3]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack4WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[3];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[3];
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack4WordsBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack4WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
-        output += 2;
-        *(ushort*)output = CHANGE_ENDIAN(wOut[1]);
-        output += 2;
-        *(ushort*)output = CHANGE_ENDIAN(wOut[2]);
-        output += 2;
-        *(ushort*)output = CHANGE_ENDIAN(wOut[3]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = CHANGE_ENDIAN(wOut[0]);
+        o[ptr++] = CHANGE_ENDIAN(wOut[1]);
+        o[ptr++] = CHANGE_ENDIAN(wOut[2]);
+        o[ptr++] = CHANGE_ENDIAN(wOut[3]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* PackLabV2_8(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> PackLabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[1]));
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[2]));
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[1]));
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[2]));
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* PackALabV2_8(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> PackALabV2_8(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[1]));
-        *output++ = FROM_16_TO_8(FomLabV4ToLabV2(wOut[2]));
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[0]));
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[1]));
+        output[ptr++] = FROM_16_TO_8(FomLabV4ToLabV2(wOut[2]));
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* PackLabV2_16(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> PackLabV2_16(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = FomLabV4ToLabV2(wOut[0]);
-        output += 2;
-        *(ushort*)output = FomLabV4ToLabV2(wOut[1]);
-        output += 2;
-        *(ushort*)output = FomLabV4ToLabV2(wOut[2]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = FomLabV4ToLabV2(wOut[0]);
+        o[ptr++] = FomLabV4ToLabV2(wOut[1]);
+        o[ptr++] = FomLabV4ToLabV2(wOut[2]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3Bytes(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3Bytes(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = (byte)(wOut[0] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[2] & 0xFFu);
+        var ptr = 0;
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesSwapOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesSwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = (byte)(wOut[2] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[0] & 0xFFu);
+        var ptr = 0;
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3Words(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3Words(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[2];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3WordsSwap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsSwap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3WordsBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
-        output += 2;
-        *(ushort*)output = CHANGE_ENDIAN(wOut[1]);
-        output += 2;
-        *(ushort*)output = CHANGE_ENDIAN(wOut[2]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = CHANGE_ENDIAN(wOut[0]);
+        o[ptr++] = CHANGE_ENDIAN(wOut[1]);
+        o[ptr++] = CHANGE_ENDIAN(wOut[2]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3BytesAndSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
-        output++;
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        ptr++;
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1Optimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1Optimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = (byte)(wOut[0] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[2] & 0xFFu);
-        output++;
+        var ptr = 0;
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
+        ptr++;
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = FROM_16_TO_8(wOut[0]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[2]);
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1SwapFirstOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1SwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = (byte)(wOut[0] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[2] & 0xFFu);
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1Swap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1SwapOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1SwapOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = (byte)(wOut[2] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[0] & 0xFFu);
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1SwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[2]);
-        *output++ = FROM_16_TO_8(wOut[1]);
-        *output++ = FROM_16_TO_8(wOut[0]);
-        output++;
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[2]);
+        output[ptr++] = FROM_16_TO_8(wOut[1]);
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        ptr++;
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3BytesAndSkip1SwapSwapFirstOptimized(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = (byte)(wOut[2] & 0xFFu);
-        *output++ = (byte)(wOut[1] & 0xFFu);
-        *output++ = (byte)(wOut[0] & 0xFFu);
-        output++;
+        var ptr = 0;
+        output[ptr++] = (byte)(wOut[2] & 0xFFu);
+        output[ptr++] = (byte)(wOut[1] & 0xFFu);
+        output[ptr++] = (byte)(wOut[0] & 0xFFu);
+        ptr++;
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack3WordsAndSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsAndSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[2];
+        ptr++;
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3WordsAndSkip1Swap(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsAndSkip1Swap(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        ptr++;
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3WordsAndSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsAndSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[2];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        ptr++;
+        o[ptr++] = wOut[0];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[2];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack3WordsAndSkip1SwapSwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack3WordsAndSkip1SwapSwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[2];
-        output += 2;
-        *(ushort*)output = wOut[1];
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[2];
+        o[ptr++] = wOut[1];
+        o[ptr++] = wOut[0];
+        ptr++;
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack1Byte(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1Byte(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack1ByteReversed(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1ByteReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(REVERSE_FLAVOR_16(wOut[0]));
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(REVERSE_FLAVOR_16(wOut[0]));
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack1ByteSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1ByteSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *output++ = FROM_16_TO_8(wOut[0]);
-        output++;
+        var ptr = 0;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
+        ptr++;
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack1ByteSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1ByteSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output++;
-        *output++ = FROM_16_TO_8(wOut[0]);
+        var ptr = 0;
+        ptr++;
+        output[ptr++] = FROM_16_TO_8(wOut[0]);
 
-        return output;
+        return output[ptr..];
     }
 
-    private static byte* Pack1Word(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1Word(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack1WordReversed(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1WordReversed(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = REVERSE_FLAVOR_16(wOut[0]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = REVERSE_FLAVOR_16(wOut[0]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack1WordBigEndian(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1WordBigEndian(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = CHANGE_ENDIAN(wOut[0]);
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = CHANGE_ENDIAN(wOut[0]);
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack1WordSkip1(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1WordSkip1(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        *(ushort*)output = wOut[0];
-        output += 2;
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        o[ptr++] = wOut[0];
+        ptr++;
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* Pack1WordSkip1SwapFirst(Transform _1, ushort* wOut, byte* output, uint _2)
+    private static Span<byte> Pack1WordSkip1SwapFirst(Transform _1, ReadOnlySpan<ushort> wOut, Span<byte> output, uint _2)
     {
-        output += 2;
-        *(ushort*)output = wOut[0];
-        output += 2;
+        var ptr = 0;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        ptr++;
+        o[ptr++] = wOut[0];
 
-        return output;
+        return MemoryMarshal.Cast<ushort, byte>(o[ptr..]);
     }
 
-    private static byte* PackLabDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackLabDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            CIELab Lab;
-            var Out = (double*)output;
-            cmsLabEncoded2Float(&Lab, wOut);
+            var Out = MemoryMarshal.Cast<byte, double>(output);
+            var Lab = cmsLabEncoded2Float(wOut);
 
             Out[0] = Lab.L;
-            Out[Stride] = Lab.a;
-            Out[Stride * 2] = Lab.b;
+            Out[(int)Stride] = Lab.a;
+            Out[(int)Stride * 2] = Lab.b;
 
-            return output + _sizeof<double>();
+            return output[sizeof(double)..];
         }
         else
         {
-            cmsLabEncoded2Float((CIELab*)output, wOut);
-            return output + (_sizeof<CIELab>() + (T_EXTRA(info.OutputFormat) * _sizeof<double>()));
+            var value = cmsLabEncoded2Float(wOut);
+            MemoryMarshal.Write(output, ref value);
+            return output[((sizeof(double) * 3) + (T_EXTRA(info.OutputFormat) * sizeof(double)))..];
         }
     }
 
-    private static byte* PackLabFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackLabFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
-        CIELab Lab;
-        cmsLabEncoded2Float(&Lab, wOut);
+        var Lab = cmsLabEncoded2Float(wOut);
 
-        var Out = (float*)output;
+        var Out = MemoryMarshal.Cast<byte, float>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Out[0] = (float)Lab.L;
-            Out[Stride] = (float)Lab.a;
-            Out[Stride * 2] = (float)Lab.b;
+            Out[(int)Stride] = (float)Lab.a;
+            Out[(int)Stride * 2] = (float)Lab.b;
 
-            return output + _sizeof<float>();
+            return output[sizeof(float)..];
         }
         else
         {
@@ -2015,45 +2097,44 @@ public static unsafe partial class Lcms2
             Out[1] = (float)Lab.a;
             Out[2] = (float)Lab.b;
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(float))..];
         }
     }
 
-    private static byte* PackXYZDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackXYZDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
-            CIEXYZ XYZ;
-            var Out = (double*)output;
-            cmsXYZEncoded2Float(&XYZ, wOut);
+            var Out = MemoryMarshal.Cast<byte, double>(output);
+            var XYZ = cmsXYZEncoded2Float(wOut);
 
             Out[0] = XYZ.X;
-            Out[Stride] = XYZ.Y;
-            Out[Stride * 2] = XYZ.Z;
+            Out[(int)Stride] = XYZ.Y;
+            Out[(int)Stride * 2] = XYZ.Z;
 
-            return output + _sizeof<double>();
+            return output[sizeof(double)..];
         }
         else
         {
-            cmsXYZEncoded2Float((CIEXYZ*)output, wOut);
-            return output + (_sizeof<CIEXYZ>() + (T_EXTRA(info.OutputFormat) * _sizeof<double>()));
+            var value = cmsXYZEncoded2Float(wOut);
+            MemoryMarshal.Write(output, ref value);
+            return output[((sizeof(double) * 3) + (T_EXTRA(info.OutputFormat) * sizeof(double)))..];
         }
     }
 
-    private static byte* PackXYZFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackXYZFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
-        CIEXYZ XYZ;
-        cmsXYZEncoded2Float(&XYZ, wOut);
+        var XYZ = cmsXYZEncoded2Float(wOut);
 
-        var Out = (float*)output;
+        var Out = MemoryMarshal.Cast<byte, float>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Out[0] = (float)XYZ.X;
-            Out[Stride] = (float)XYZ.Y;
-            Out[Stride * 2] = (float)XYZ.Z;
+            Out[(int)Stride] = (float)XYZ.Y;
+            Out[(int)Stride * 2] = (float)XYZ.Z;
 
-            return output + _sizeof<float>();
+            return output[sizeof(float)..];
         }
         else
         {
@@ -2061,17 +2142,18 @@ public static unsafe partial class Lcms2
             Out[1] = (float)XYZ.Y;
             Out[2] = (float)XYZ.Z;
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(float))..];
         }
     }
 
-    private static byte* PackDoubleFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackDoubleFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 655.35 : 65535.0;
-        var swap1 = (double*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, double>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2080,28 +2162,29 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] / maximum;
 
             if (Reverse)
                 v = maximum - v;
-            ((double*)output)[(i + start) * (Planar ? Stride : 1)] = v;
+            o[(i + start) * (Planar ? (int)Stride : 1)] = v;
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(double) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    private static byte* PackFloatFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackFloatFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 655.35 : 65535.0;
-        var swap1 = (float*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, float>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2110,29 +2193,30 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] / maximum;
 
             if (Reverse)
                 v = maximum - v;
 
-            ((float*)output)[(i + start) * (Planar ? Stride : 1)] = (float)v;
+            o[(i + start) * (Planar ? (int)Stride : 1)] = (float)v;
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(float) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    private static byte* PackFloatsFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackFloatsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 100.0 : 1.0;
-        var swap1 = (float*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, float>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2141,29 +2225,30 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] * maximum;
 
             if (Reverse)
                 v = maximum - v;
 
-            ((float*)output)[(i + start) * (Planar ? Stride : 1)] = (float)v;
+            o[(i + start) * (Planar ? (int)Stride : 1)] = (float)v;
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<float>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(float) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    private static byte* PackDoublesFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackDoublesFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 100.0 : 1.0;
-        var swap1 = (double*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, double>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2172,35 +2257,35 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] * maximum;
 
             if (Reverse)
                 v = maximum - v;
 
-            ((double*)output)[(i + start) * (Planar ? Stride : 1)] = v;
+            o[(i + start) * (Planar ? (int)Stride : 1)] = v;
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<double>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(double) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    private static byte* PackLabFloatFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackLabFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
-        var Out = (float*)output;
+        var Out = MemoryMarshal.Cast<byte, float>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = (float)(wOut[0] * 100.0);
-            Out[Stride] = (float)((wOut[1] * 255.0) - 128.0);
-            Out[Stride * 2] = (float)((wOut[2] * 255.0) - 128.0);
+            Out[(int)Stride] = (float)((wOut[1] * 255.0) - 128.0);
+            Out[(int)Stride * 2] = (float)((wOut[2] * 255.0) - 128.0);
 
-            return output + _sizeof<float>();
+            return output[sizeof(float)..];
         }
         else
         {
@@ -2208,23 +2293,23 @@ public static unsafe partial class Lcms2
             Out[1] = (float)((wOut[1] * 255.0) - 128.0);
             Out[2] = (float)((wOut[2] * 255.0) - 128.0);
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(float))..];
         }
     }
 
-    private static byte* PackLabDoubleFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackLabDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
-        var Out = (double*)output;
+        var Out = MemoryMarshal.Cast<byte, double>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = wOut[0] * 100.0;
-            Out[Stride] = (wOut[1] * 255.0) - 128.0;
-            Out[Stride * 2] = (wOut[2] * 255.0) - 128.0;
+            Out[(int)Stride] = (wOut[1] * 255.0) - 128.0;
+            Out[(int)Stride * 2] = (wOut[2] * 255.0) - 128.0;
 
-            return output + _sizeof<double>();
+            return output[sizeof(double)..];
         }
         else
         {
@@ -2232,23 +2317,23 @@ public static unsafe partial class Lcms2
             Out[1] = (wOut[1] * 255.0) - 128.0;
             Out[2] = (wOut[2] * 255.0) - 128.0;
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<double>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(double))..];
         }
     }
 
-    private static byte* PackXYZFloatFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackXYZFloatFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
-        var Out = (float*)output;
+        var Out = MemoryMarshal.Cast<byte, float>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = (float)(wOut[0] * MAX_ENCODEABLE_XYZ);
-            Out[Stride] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
-            Out[Stride * 2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
+            Out[(int)Stride] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
+            Out[(int)Stride * 2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
 
-            return output + _sizeof<float>();
+            return output[sizeof(float)..];
         }
         else
         {
@@ -2256,23 +2341,23 @@ public static unsafe partial class Lcms2
             Out[1] = (float)(wOut[1] * MAX_ENCODEABLE_XYZ);
             Out[2] = (float)(wOut[2] * MAX_ENCODEABLE_XYZ);
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<float>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(float))..];
         }
     }
 
-    private static byte* PackXYZDoubleFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackXYZDoubleFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
-        var Out = (double*)output;
+        var Out = MemoryMarshal.Cast<byte, double>(output);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
             Stride /= PixelSize(info.OutputFormat);
 
             Out[0] = wOut[0] * MAX_ENCODEABLE_XYZ;
-            Out[Stride] = wOut[1] * MAX_ENCODEABLE_XYZ;
-            Out[Stride * 2] = wOut[2] * MAX_ENCODEABLE_XYZ;
+            Out[(int)Stride] = wOut[1] * MAX_ENCODEABLE_XYZ;
+            Out[(int)Stride * 2] = wOut[2] * MAX_ENCODEABLE_XYZ;
 
-            return output + _sizeof<double>();
+            return output[sizeof(double)..];
         }
         else
         {
@@ -2280,15 +2365,15 @@ public static unsafe partial class Lcms2
             Out[1] = wOut[1] * MAX_ENCODEABLE_XYZ;
             Out[2] = wOut[2] * MAX_ENCODEABLE_XYZ;
 
-            return output + ((3 + T_EXTRA(info.OutputFormat)) * _sizeof<double>());
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(double))..];
         }
     }
 
-    private static byte* UnrollHalfTo16(Transform info, ushort* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollHalfTo16(Transform info, Span<ushort> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 655.35F : 65535.0F;
 
         Stride /= PixelSize(info.InputFormat);
@@ -2297,9 +2382,9 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
-            var v = _cmsHalf2Float(((ushort*)accum)[(i + start) * (Planar ? Stride : 1)]);
+            var v = _cmsHalf2Float(BitConverter.ToUInt16(accum[((i + start) * (Planar ? (int)Stride : 1))..]));
 
             if (Reverse)
                 v = maximum - v;
@@ -2309,14 +2394,14 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort))..];
     }
 
-    private static byte* UnrollHalfToFloat(Transform info, float* wIn, byte* accum, uint Stride)
+    private static ReadOnlySpan<byte> UnrollHalfToFloat(Transform info, Span<float> wIn, ReadOnlySpan<byte> accum, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.InputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
-        var start = 0u;
+        var start = 0;
         var maximum = IsInkSpace(info.InputFormat) ? 100.0F : 1.0F;
 
         Stride /= PixelSize(info.InputFormat);
@@ -2325,9 +2410,11 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
-            var v = _cmsHalf2Float(((ushort*)accum)[(i + start) * (Planar ? Stride : 1)]);
+            var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+
+            var v = _cmsHalf2Float(acc[(i + start) * (Planar ? (int)Stride : 1)]);
 
             v /= maximum;
 
@@ -2336,16 +2423,17 @@ public static unsafe partial class Lcms2
 
         if (Extra is 0 && SwapFirst) UnrollSwapFirst(wIn, nChan);
 
-        return accum + ((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * _sizeof<ushort>());
+        return accum[((T_PLANAR(info.InputFormat) is not 0 ? 1 : nChan + Extra) * sizeof(ushort))..];
     }
 
-    private static byte* PackHalfFrom16(Transform info, ushort* wOut, byte* output, uint Stride)
+    private static Span<byte> PackHalfFrom16(Transform info, ReadOnlySpan<ushort> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 655.35F : 65535.0F;
-        var swap1 = (ushort*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2354,29 +2442,30 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] / maximum;
 
             if (Reverse)
                 v = maximum - v;
 
-            ((ushort*)output)[(i + start) * (Planar ? Stride : 1)] = _cmsFloat2Half(v);
+            o[(i + start) * (Planar ? (int)Stride : 1)] = _cmsFloat2Half(v);
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<ushort>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(ushort) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    private static byte* PackHalfFromFloat(Transform info, float* wOut, byte* output, uint Stride)
+    private static Span<byte> PackHalfFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 100.0F : 1.0F;
-        var swap1 = (float*)output;
-        var start = 0u;
+        var o = MemoryMarshal.Cast<byte, float>(output);
+        var swap1 = o;
+        var start = 0;
 
         Stride /= PixelSize(info.OutputFormat);
 
@@ -2385,25 +2474,25 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < nChan; i++)
         {
-            var index = (uint)(DoSwap ? (nChan - i - 1) : i);
+            var index = DoSwap ? (nChan - i - 1) : i;
 
             var v = wOut[index] * maximum;
 
             if (Reverse)
                 v = maximum - v;
 
-            ((ushort*)output)[(i + start) * (Planar ? Stride : 1)] = _cmsFloat2Half(v);
+            o[(i + start) * (Planar ? (int)Stride : 1)] = _cmsFloat2Half(v);
         }
 
         if (Extra is 0 && SwapFirst)
             PackSwapFirst(swap1, nChan);
 
-        return output + (_sizeof<ushort>() * (Planar ? 1 : (nChan + Extra)));
+        return output[(sizeof(ushort) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
-    internal static Formatter _cmsGetStockInputFormatter(uint dwInput, PackFlags dwFlags)
+    internal static FormatterIn _cmsGetStockInputFormatter(uint dwInput, PackFlags dwFlags)
     {
-        Formatter fr = default;
+        FormatterIn fr = default;
 
         switch (dwFlags)
         {
@@ -2439,9 +2528,9 @@ public static unsafe partial class Lcms2
         return default;
     }
 
-    internal static Formatter _cmsGetStockOutputFormatter(uint dwInput, PackFlags dwFlags)
+    internal static FormatterOut _cmsGetStockOutputFormatter(uint dwInput, PackFlags dwFlags)
     {
-        Formatter fr = default;
+        FormatterOut fr = default;
 
         // Optimization is only a hint
         dwInput &= ~OPTIMIZED_SH(1);
@@ -2480,34 +2569,8 @@ public static unsafe partial class Lcms2
         return default;
     }
 
-    private static void DupFormatterFactoryList(Context ctx, in Context src)
-    {
-        var head = src.FormattersPlugin;
-        FormattersFactoryList? Anterior = null;
-        FormattersPluginChunkType newHead = new();
-
-        _cmsAssert(head);
-
-        // Walk the list copying all nodes
-        for (var entry = head.FactoryList; entry is not null; entry = entry.Next)
-        {
-            var newEntry = (FormattersFactoryList?)entry.Clone();
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.FactoryList ??= newEntry;
-        }
-
-        ctx.FormattersPlugin = newHead;
-    }
+    private static void DupFormatterFactoryList(Context ctx, in Context src) =>
+        ctx.FormattersPlugin = (FormattersPluginChunkType)src.FormattersPlugin.Dup(ctx)!;
 
     internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context? src)
     {
@@ -2536,43 +2599,69 @@ public static unsafe partial class Lcms2
     internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase? Data)
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
-        var Plugin = (PluginFormatters?)Data;
+        var Plugin = (PluginFormatters)Data!;
 
         // Reset to build-in defaults
         if (Data is null)
         {
-            ctx.FactoryList = null;
+            ctx.FactoryInList = null;
+            ctx.FactoryOutList = null;
             return true;
         }
 
-        var fl = new FormattersFactoryList();
-        if (fl is null) return false;
+        if (Plugin.FormattersFactoryIn is not null)
+        {
+            ctx.FactoryInList = new FormattersFactoryInList
+            {
+                //if (flIn is null) return false;
 
-        fl.Factory = Plugin!.FormattersFactory;
+                Factory = Plugin.FormattersFactoryIn,
 
-        fl.Next = ctx.FactoryList;
-        ctx.FactoryList = fl;
+                Next = ctx.FactoryInList
+            };
+        }
+
+        if (Plugin.FormattersFactoryOut is not null)
+        {
+            ctx.FactoryOutList = new FormattersFactoryOutList
+            {
+                //if (flOut is null) return false;
+
+                Factory = Plugin!.FormattersFactoryOut,
+
+                Next = ctx.FactoryOutList
+            };
+        }
 
         return true;
     }
 
-    internal static Formatter _cmsGetFormatter(Context? ContextID, uint Type, FormatterDirection Dir, PackFlags dwFlags)
+    internal static FormatterIn _cmsGetFormatterIn(Context? ContextID, uint Type, PackFlags dwFlags)
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
-        for (var f = ctx.FactoryList; f is not null; f = f.Next)
+        for (var f = ctx.FactoryInList; f is not null; f = f.Next)
         {
-            var fn = f.Factory(Type, Dir, (uint)dwFlags);
+            var fn = f.Factory(Type, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
         }
 
         // Revert to default
-        return Dir switch
+        return _cmsGetStockInputFormatter(Type, dwFlags);
+    }
+
+    internal static FormatterOut _cmsGetFormatterOut(Context? ContextID, uint Type, PackFlags dwFlags)
+    {
+        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
+
+        for (var f = ctx.FactoryOutList; f is not null; f = f.Next)
         {
-            FormatterDirection.Input => _cmsGetStockInputFormatter(Type, dwFlags),
-            FormatterDirection.Output => _cmsGetStockOutputFormatter(Type, dwFlags),
-            _ => throw new ArgumentException(null, nameof(Dir)),
-        };
+            var fn = f.Factory(Type, (uint)dwFlags);
+            if (fn.Fmt16 is not null) return fn;
+        }
+
+        // Revert to default
+        return _cmsGetStockOutputFormatter(Type, dwFlags);
     }
 
     internal static bool _cmsFormatterIsFloat(uint Type) =>

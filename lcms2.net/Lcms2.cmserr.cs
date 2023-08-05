@@ -31,11 +31,10 @@ using lcms2.types;
 using Microsoft.Extensions.Logging;
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private const int MaxErrorMessageLen = 1024;
     private const uint MaxMemoryForAlloc = 1024u * 1024u * 512u;
@@ -53,20 +52,17 @@ public static unsafe partial class Lcms2
     public static int cmsGetEncodedCMMversion() =>
         LCMS_VERSION;
 
-    public static int cmsstrcasecmp(ReadOnlySpan<byte> s1, ReadOnlySpan<byte> s2)
+    public static int cmsstrcasecmp(ReadOnlySpan<char> s1, ReadOnlySpan<char> s2)
     {
-        var ss1 = s1;
-        var ss2 = s2;
+        var index = 0;
 
-        var us1 = (char)s1[0];
-        var us2 = (char)s2[0];
+        var us1 = s1[index];
+        var us2 = s2[index];
 
         while (Char.ToUpper(us1) == Char.ToUpper(us2))
         {
-            ss1 = ss1.Length > 1 ? ss1[1..] : ReadOnlySpan<byte>.Empty;
-            ss2 = ss2.Length > 1 ? ss2[1..] : ReadOnlySpan<byte>.Empty;
-            us1 = !ss1.IsEmpty ? (char)ss1[0] : '\0';
-            us2 = !ss2.IsEmpty ? (char)ss2[0] : '\0';
+            us1 = s1[++index];
+            us2 = s2[index];
 
             if (us1 is '\0')
                 return 0;
@@ -75,24 +71,23 @@ public static unsafe partial class Lcms2
         return Char.ToUpper(us1) - Char.ToUpper(us2);
     }
 
-    public static int cmsstrcasecmp(in byte* s1, in byte* s2)
+    public static int cmsstrcasecmp(ReadOnlySpan<byte> s1, ReadOnlySpan<byte> s2)
     {
-        var ss1 = s1;
-        var ss2 = s2;
+        var index = 0;
 
-        var us1 = (char)*s1;
-        var us2 = (char)*s2;
+        var us1 = (char)s1[index];
+        var us2 = (char)s2[index];
 
         while (Char.ToUpper(us1) == Char.ToUpper(us2))
         {
-            us1 = (char)*++ss1;
-            us2 = (char)*++ss2;
+            us1 = (char)s1[++index];
+            us2 = (char)s2[index];
 
             if (us1 is '\0')
                 return 0;
         }
 
-        return Char.ToUpper((char)*ss1) - Char.ToUpper((char)*ss2);
+        return Char.ToUpper(us1) - Char.ToUpper(us2);
     }
 
     public static long cmsfilelength(FILE f)
@@ -268,10 +263,10 @@ public static unsafe partial class Lcms2
     //internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
     //    (T**)_cmsMallocZero(ContextID, _sizeof<nint>(), typeof(T*));
     [DebuggerStepThrough]
-    internal static T[] _cmsCallocArray<T>(Context? ContextID, uint num) where T : struct
+    internal static T[] GetArray<T>(Context? ContextID, uint count) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
-        var array = pool.Rent((int)num);
+        var array = pool.Rent((int)count);
         Array.Clear(array);
 
         return array;
@@ -300,12 +295,11 @@ public static unsafe partial class Lcms2
     //}
 
     [DebuggerStepThrough]
-    internal static T[] _cmsRealloc<T>(Context? ContextID, T[] array, uint size) where T : struct
+    internal static T[] _cmsRealloc<T>(Context? ContextID, T[] array, uint count) where T : struct
     {
         var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
-        size /= _sizeof<T>();
 
-        var newBuffer = pool.Rent((int)size);
+        var newBuffer = pool.Rent((int)count);
 
         array.AsSpan().CopyTo(newBuffer.AsSpan()[..array.Length]);
 
@@ -319,7 +313,7 @@ public static unsafe partial class Lcms2
     //    (T*)_cmsRealloc(ContextID, Ptr, size);
 
     [DebuggerStepThrough]
-    internal static void _cmsFree<T>(Context? ContextID, T[]? array)
+    internal static void ReturnArray<T>(Context? ContextID, T[]? array)
     {
         if (array is not null)
         {
@@ -570,16 +564,25 @@ public static unsafe partial class Lcms2
     /// <summary>
     ///     Utility function to print signatures
     /// </summary>
-    internal static void _cmsTagSignature2String(byte* str, Signature sig)
+    internal static string _cmsTagSignature2String(Signature sig)
     {
+        Span<byte> buf = stackalloc byte[4];
+        Span<char> chars = stackalloc char[4];
+
         // Convert to big endian
         var be = _cmsAdjustEndianess32((uint)sig);
 
+        // Get bytes
+        BitConverter.TryWriteBytes(buf, be);
+
         // Move characters
-        memcpy(str, &be, 4);
+        for (var i = 0; i < 4; i++)
+            chars[i] = (char)buf[i];
 
         // Make sure of terminator
-        str[4] = 0;
+        //str[4] = 0;
+
+        return new(chars);
     }
 
     private static object defMtxCreate(Context? id) =>

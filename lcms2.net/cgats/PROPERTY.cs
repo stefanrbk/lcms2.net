@@ -27,7 +27,7 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct PROPERTY
+internal struct PROPERTY
 {
     public byte[] id;
     public WRITEMODE @as;

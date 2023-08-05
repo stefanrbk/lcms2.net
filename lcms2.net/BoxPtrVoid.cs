@@ -1,9 +1,9 @@
-﻿namespace lcms2;
+﻿//namespace lcms2;
 
-public unsafe class BoxPtrVoid(void* ptr)
-{
-    public void* Ptr = ptr;
+//public unsafe class BoxPtrVoid(void* ptr)
+//{
+//    public void* Ptr = ptr;
 
-    public static implicit operator void*(BoxPtrVoid ptr) =>
-        ptr.Ptr;
-}
+//    public static implicit operator void*(BoxPtrVoid ptr) =>
+//        ptr.Ptr;
+//}

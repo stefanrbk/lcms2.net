@@ -27,7 +27,7 @@
 
 namespace lcms2.state;
 
-internal unsafe class IntentsPluginChunkType : IDup
+internal class IntentsPluginChunkType : IDup
 {
     public IntentsList? Intents;
 

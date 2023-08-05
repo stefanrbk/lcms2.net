@@ -28,12 +28,11 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     private static Profile? Create_AboveRGB()
     {
@@ -59,12 +58,11 @@ internal static unsafe partial class Testbed
                 Y = 1
             },
         };
-        CIExyY D65;
 
         Curve[0] = Curve[1] = Curve[2] = cmsBuildGamma(DbgThread(), 2.19921875);
 
-        cmsWhitePointFromTemp(&D65, 6504);
-        var Profile = cmsCreateRGBProfileTHR(DbgThread(), &D65, &Primaries, Curve);
+        var D65 = cmsWhitePointFromTemp(6504);
+        var Profile = cmsCreateRGBProfileTHR(DbgThread(), D65, Primaries, Curve);
         cmsFreeToneCurve(Curve[0]);
 
         return Profile;
@@ -75,7 +73,7 @@ internal static unsafe partial class Testbed
         var Curve = cmsBuildGamma(DbgThread(), 2.2);
         if (Curve is null) return null;
 
-        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), D50xyY, Curve);
         cmsFreeToneCurve(Curve);
 
         return Profile;
@@ -86,7 +84,7 @@ internal static unsafe partial class Testbed
         var Curve = cmsBuildGamma(DbgThread(), 3.0);
         if (Curve is null) return null;
 
-        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), D50xyY, Curve);
         cmsFreeToneCurve(Curve);
 
         return Profile;
@@ -97,7 +95,7 @@ internal static unsafe partial class Testbed
         var Curve = cmsBuildGamma(DbgThread(), 1.0);
         if (Curve is null) return null;
 
-        var Profile = cmsCreateGrayProfileTHR(DbgThread(), cmsD50_xyY(), Curve);
+        var Profile = cmsCreateGrayProfileTHR(DbgThread(), D50xyY, Curve);
         cmsFreeToneCurve(Curve);
 
         cmsSetPCS(Profile, cmsSigLabData);
@@ -128,10 +126,10 @@ internal static unsafe partial class Testbed
     private static double Clip(double v) =>
         Math.Max(Math.Min(v, 1), 0);
 
-    private static bool ForwardSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool ForwardSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
-        var rgb = stackalloc double[3];
-        var cmyk = stackalloc double[4];
+        Span<double> rgb = stackalloc double[3];
+        Span<double> cmyk = stackalloc double[4];
 
         if (Cargo is not Box<FakeCMYKParams> p)
             return false;
@@ -158,9 +156,9 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool ReverseSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool ReverseSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
-        var rgb = stackalloc double[3];
+        Span<double> rgb = stackalloc double[3];
 
         if (Cargo is not Box<FakeCMYKParams> p)
             return false;
@@ -1227,16 +1225,16 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOneStr(Mlu mlu, int n)
     {
-        var Buffer = stackalloc byte[256];
-        var Buffer2 = stackalloc byte[256];
+        Span<byte> Buffer = stackalloc byte[256];
+        Span<byte> Buffer2 = stackalloc byte[256];
 
 
-        cmsMLUgetASCII(mlu, "en"u8, "US"u8, new Span<byte>(Buffer, 255));
+        cmsMLUgetASCII(mlu, "en"u8, "US"u8, Buffer);
         sprintf(Buffer2, "Hello, world {0}", n);
         if (strcmp(Buffer, Buffer2) != 0) return false;
 
 
-        cmsMLUgetASCII(mlu, "es"u8, "ES"u8, new Span<byte>(Buffer, 255));
+        cmsMLUgetASCII(mlu, "es"u8, "ES"u8, Buffer);
         sprintf(Buffer2, "Hola, mundo {0}", n);
         if (strcmp(Buffer, Buffer2) != 0) return false;
 
@@ -1328,12 +1326,9 @@ internal static unsafe partial class Testbed
                 s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
                 if (s == null) return false;
 
-                fixed (byte* id8 = s.seq[0].ProfileID.id8)
-                    memcpy(id8, "0123456789ABCDEF"u8);
-                fixed (byte* id8 = s.seq[1].ProfileID.id8)
-                    memcpy(id8, "1111111111111111"u8);
-                fixed (byte* id8 = s.seq[2].ProfileID.id8)
-                    memcpy(id8, "2222222222222222"u8);
+                s.seq[0].ProfileID = ProfileID.Set("0123456789ABCDEF"u8);
+                s.seq[1].ProfileID = ProfileID.Set("1111111111111111"u8);
+                s.seq[2].ProfileID = ProfileID.Set("2222222222222222"u8);
 
 
                 SetOneStr(out s.seq[0].Description, "Hello, world 0", "Hola, mundo 0");
@@ -1351,12 +1346,13 @@ internal static unsafe partial class Testbed
 
                 if (s.n != 3) return false;
 
-                fixed (byte* id8 = s.seq[0].ProfileID.id8)
-                    if (memcmp(id8, "0123456789ABCDEF"u8) != 0) return false;
-                fixed (byte* id8 = s.seq[1].ProfileID.id8)
-                    if (memcmp(id8, "1111111111111111"u8) != 0) return false;
-                fixed (byte* id8 = s.seq[2].ProfileID.id8)
-                    if (memcmp(id8, "2222222222222222"u8) != 0) return false;
+                Span<byte> buf = stackalloc byte[16];
+                s.seq[0].ProfileID.Get(buf);
+                if (memcmp(buf, "0123456789ABCDEF"u8) != 0) return false;
+                s.seq[1].ProfileID.Get(buf);
+                if (memcmp(buf, "1111111111111111"u8) != 0) return false;
+                s.seq[2].ProfileID.Get(buf);
+                if (memcmp(buf, "2222222222222222"u8) != 0) return false;
 
                 for (i = 0; i < 3; i++)
                 {

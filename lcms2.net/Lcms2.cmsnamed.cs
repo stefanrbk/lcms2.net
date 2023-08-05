@@ -33,7 +33,7 @@ using System.Text;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     public static Mlu? cmsMLUalloc(Context? ContextID, uint nItems)
     {
@@ -61,32 +61,32 @@ public static unsafe partial class Lcms2
         return mlu;
     }
 
-    private static bool GrowMLUpool(Mlu mlu)
+    private static bool GrowMLUpool(Mlu? mlu)
     {
         // Sanity check
         if (mlu is null) return false;
 
         var size =
-            mlu.PoolSizeInBytes is 0
+            mlu.PoolSize is 0
                 ? 256u
-                : mlu.PoolSizeInBytes * 2;
+                : mlu.PoolSize * 2;
 
         // Check for overflow
-        if (size < mlu.PoolSizeInBytes) return false;
+        if (size < mlu.PoolSize) return false;
 
         // Reallocate the pool
         var NewPtr = (mlu.MemPool is not null)
             ? _cmsRealloc(mlu.ContextID, mlu.MemPool, size)
-            : _cmsCallocArray<char>(mlu.ContextID, size);
+            : GetArray<char>(mlu.ContextID, size);
         if (NewPtr is null) return false;
 
         mlu.MemPool = NewPtr;
-        mlu.PoolSizeInBytes = size;
+        mlu.PoolSize = size;
 
         return true;
     }
 
-    private static bool GrowMLUtable(Mlu mlu)
+    private static bool GrowMLUtable(Mlu? mlu)
     {
         // I know this function is not needed as List<T> does this automatically, but I'm not ready to
         // make that kind of cleaning sweep through the code to C#ify it...
@@ -109,7 +109,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static int SearchMLUEntry(Mlu mlu, ushort LanguageCode, ushort CountryCode)
+    private static int SearchMLUEntry(Mlu? mlu, ushort LanguageCode, ushort CountryCode)
     {
         // Sanity Check
         if (mlu is null) return -1;
@@ -125,7 +125,7 @@ public static unsafe partial class Lcms2
         return -1;
     }
 
-    private static bool AddMLUBlock(Mlu mlu, uint sizeInBytes, ReadOnlySpan<char> Block, ushort LanguageCode, ushort CountryCode)
+    private static bool AddMLUBlock(Mlu? mlu, uint size, ReadOnlySpan<char> Block, ushort LanguageCode, ushort CountryCode)
     {
         // Sanity Check
         if (mlu is null) return false;
@@ -140,24 +140,24 @@ public static unsafe partial class Lcms2
         if (SearchMLUEntry(mlu, LanguageCode, CountryCode) >= 0) return false;
 
         // Check for size
-        while ((mlu.PoolSizeInBytes - mlu.PoolUsedInBytes) < sizeInBytes)
+        while ((mlu.PoolSize - mlu.PoolUsed) < size)
             if (!GrowMLUpool(mlu)) return false;
 
-        var OffsetInChars = mlu.PoolUsedInBytes / _sizeof<char>();
+        var Offset = mlu.PoolUsed;
 
         var Ptr = mlu.MemPool.AsSpan();
         //if (Ptr is null) return false;
 
         // Set the entry
         //memmove(Ptr + Offset, Block, size);
-        Block[..(int)(sizeInBytes/_sizeof<char>())].CopyTo(Ptr[(int)OffsetInChars..][..(int)(sizeInBytes/_sizeof<char>())]);
-        mlu.PoolUsedInBytes += sizeInBytes;
+        Block[..(int)size].CopyTo(Ptr[(int)Offset..][..(int)size]);
+        mlu.PoolUsed += size;
 
         mlu.Entries.Add(new(
             LanguageCode,
             CountryCode,
-            OffsetInChars * _sizeof<char>(),
-            sizeInBytes));
+            Offset,
+            size));
         //mlu->Entries[mlu->UsedEntries].StrW = Offset;
         //mlu->Entries[mlu->UsedEntries].Len = size;
         //mlu->Entries[mlu->UsedEntries].Country = CountryCode;
@@ -167,48 +167,35 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    [DebuggerStepThrough]
-    private static ushort strTo16(in byte* str)
-    {
-        // for non-existent strings
-        if (str is null) return 0;
-        return (ushort)((str[0] << 8) | str[1]);
-    }
+    //[DebuggerStepThrough]
+    //private static ushort strTo16(in byte* str)
+    //{
+    //    // for non-existent strings
+    //    if (str is null) return 0;
+    //    return (ushort)((str[0] << 8) | str[1]);
+    //}
 
     [DebuggerStepThrough]
-    private static ushort strTo16(ReadOnlySpan<byte> str)
-    {
-        var strPtr = stackalloc byte[2]
-        {
-            str[0],
-            str[1]
-        };
-        return strTo16(strPtr);
-    }
+    private static ushort strTo16(ReadOnlySpan<byte> str) =>
+        BitConverter.ToUInt16(str);
 
-    [DebuggerStepThrough]
-    private static void strFrom16(byte* str, ushort n)
-    {
-        str[0] = (byte)(n >> 8);
-        str[1] = (byte)n;
-        str[2] = 0;
-    }
+    //[DebuggerStepThrough]
+    //private static void strFrom16(byte* str, ushort n)
+    //{
+    //    str[0] = (byte)(n >> 8);
+    //    str[1] = (byte)n;
+    //    str[2] = 0;
+    //}
 
-    private static void strFrom16(Span<byte> str, ushort n)
-    {
-        var buf = stackalloc byte[3];
-        strFrom16(buf, n);
-
-        str[0] = buf[0];
-        str[1] = buf[1];
-    }
+    private static void strFrom16(Span<byte> str, ushort n) =>
+        BitConverter.TryWriteBytes(str, n);
 
     public static bool cmsMLUsetASCII(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
     {
         if (mlu is null) return false;
 
         //var len = (uint)strlen(ASCIIString);
-        var len = (uint)ASCIIString.Length;
+        var len = ASCIIString.Length;
         var Lang = strTo16(LanguageCode);
         var Cntry = strTo16(CountryCode);
 
@@ -216,16 +203,16 @@ public static unsafe partial class Lcms2
         if (len is 0)
             len = 1;
 
-        var WStr = _cmsCallocArray<char>(mlu.ContextID, len);
+        var WStr = GetArray<char>(mlu.ContextID, (uint)len);
         //if (WStr is null) return false;
 
-        for (var i = 0; i < len; i++)
+        //for (var i = 0; i < len; i++)
             //WStr[i] = (char)ASCIIString[i];
-            Ascii.ToUtf16(ASCIIString[i..][..1], WStr.AsSpan()[i..][..1], out _);
+        Ascii.ToUtf16(ASCIIString, WStr, out len);
 
-        var rc = AddMLUBlock(mlu, len * _sizeof<char>(), WStr, Lang, Cntry);
+        var rc = AddMLUBlock(mlu, (uint)len, WStr, Lang, Cntry);
 
-        _cmsFree(mlu.ContextID, WStr);
+        ReturnArray(mlu.ContextID, WStr);
         return rc;
     }
 
@@ -239,27 +226,27 @@ public static unsafe partial class Lcms2
         return (uint)s.Length;
     }
 
-    private static uint mywcslen(in byte* s)
-    {
-        var p = s;
+    //private static uint mywcslen(in byte* s)
+    //{
+    //    var p = s;
 
-        while (*p is not 0)
-            p++;
+    //    while (*p is not 0)
+    //        p++;
 
-        return (uint)(p - s);
-    }
+    //    return (uint)(p - s);
+    //}
 
-    private static uint mywcslen(in char* s)
-    {
-        var p = s;
+    //private static uint mywcslen(in char* s)
+    //{
+    //    var p = s;
 
-        while (*p is not '\0')
-            p++;
+    //    while (*p is not '\0')
+    //        p++;
 
-        return (uint)(p - s);
-    }
+    //    return (uint)(p - s);
+    //}
 
-    public static bool cmsMLUsetWide(Mlu mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<char> WideString)
+    public static bool cmsMLUsetWide(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<char> WideString)
     {
         if (mlu is null) return false;
         if (WideString.Length is 0) return false;
@@ -267,14 +254,14 @@ public static unsafe partial class Lcms2
         var Lang = strTo16(LanguageCode);
         var Cntry = strTo16(CountryCode);
 
-        var len = (uint)WideString.Length * _sizeof<char>();
+        var len = (uint)WideString.Length;
         if (len is 0)
-            len = _sizeof<char>();
+            len = 1;
 
         return AddMLUBlock(mlu, len, WideString, Lang, Cntry);
     }
 
-    public static Mlu? cmsMLUdup(Mlu mlu)
+    public static Mlu? cmsMLUdup(Mlu? mlu)
     {
         // Duplicating a null obtains a null
         if (mlu is null) return null;
@@ -294,23 +281,23 @@ public static unsafe partial class Lcms2
             NewMlu.Entries.Add((MluEntry)entry.Clone());
 
         // The MLU may be empty
-        if (mlu.PoolUsedInBytes is 0)
+        if (mlu.PoolUsed is 0)
             NewMlu.MemPool = null;
         else
         {
             // It is not empty
             //NewMlu.MemPool = _cmsMalloc(mlu.ContextID, mlu.PoolUsedInBytes);
-            NewMlu.MemPool = _cmsCallocArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
+            NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsed);
             if (NewMlu.MemPool is null) goto Error;
         }
 
-        NewMlu.PoolSizeInBytes = mlu.PoolSizeInBytes;
+        NewMlu.PoolSize = mlu.PoolSize;
 
         if (NewMlu.MemPool is null || mlu.MemPool is null) goto Error;
 
         //memmove(NewMlu->MemPool, mlu->MemPool, mlu->PoolUsedInBytes);
-        Array.Copy(mlu.MemPool, NewMlu.MemPool, (int)(mlu.PoolUsedInBytes / _sizeof<char>()));
-        NewMlu.PoolUsedInBytes = mlu.PoolUsedInBytes;
+        Array.Copy(mlu.MemPool, NewMlu.MemPool, (int)mlu.PoolUsed);
+        NewMlu.PoolUsed = mlu.PoolUsed;
 
         return NewMlu;
 
@@ -325,7 +312,7 @@ public static unsafe partial class Lcms2
         {
             //if (mlu.Entries is not null) _cmsFree(mlu.ContextID, mlu.Entries);
             mlu.Entries.Clear();
-            if (mlu.MemPool is not null) _cmsFree(mlu.ContextID, mlu.MemPool);
+            if (mlu.MemPool is not null) ReturnArray(mlu.ContextID, mlu.MemPool);
 
             mlu.MemPool = null;
             mlu.ContextID = null;
@@ -334,7 +321,7 @@ public static unsafe partial class Lcms2
     }
 
     internal static Span<char> _cmsMLUgetWide(
-        Mlu mlu,
+        Mlu? mlu,
         ushort LanguageCode,
         ushort CountryCode,
         out ushort UsedLanguageCode,
@@ -390,29 +377,13 @@ public static unsafe partial class Lcms2
         //if (len is not null) *len = v->Len;
 
         //return (char*)((byte*)mlu->MemPool + v->StrWCharOffset);
-        return mlu.MemPool.AsSpan()[(int)(v.StrWByteOffset / _sizeof<char>())..][..(int)(v.LenInBytes / _sizeof<char>())];
+        return mlu.MemPool.AsSpan()[(int)v.StrWOffset..][..(int)v.Len];
     }
 
     public static uint cmsMLUgetASCII(
-        Mlu mlu,
+        Mlu? mlu,
         ReadOnlySpan<byte> LanguageCode,
         ReadOnlySpan<byte> CountryCode,
-        Span<byte> Buffer)
-    {
-        var bufLang = stackalloc byte[LanguageCode.Length + 1];
-        for (var i = 0; i < LanguageCode.Length; i++)
-            bufLang[i] = LanguageCode[i];
-        var bufCnty = stackalloc byte[CountryCode.Length + 1];
-        for (var i = 0; i < CountryCode.Length; i++)
-            bufCnty[i] = CountryCode[i];
-
-        return cmsMLUgetASCII(mlu, bufLang, bufCnty, Buffer);
-    }
-
-    public static uint cmsMLUgetASCII(
-        Mlu mlu,
-        in byte* LanguageCode,
-        in byte* CountryCode,
         Span<byte> Buffer)
     {
         var Lang = strTo16(LanguageCode);
@@ -459,7 +430,7 @@ public static unsafe partial class Lcms2
     }
 
     public static uint cmsMLUgetWide(
-        Mlu mlu,
+        Mlu? mlu,
         ReadOnlySpan<byte> LanguageCode,
         ReadOnlySpan<byte> CountryCode,
         Span<char> Buffer)
@@ -499,7 +470,7 @@ public static unsafe partial class Lcms2
     }
 
     public static bool cmsMLUgetTranslation(
-        Mlu mlu,
+        Mlu? mlu,
         ReadOnlySpan<byte> LanguageCode,
         ReadOnlySpan<byte> CountryCode,
         Span<byte> ObtainedLanguage,
@@ -536,7 +507,7 @@ public static unsafe partial class Lcms2
         // Keep a maximum color lists can grow, 100k entries seems reasonable
         if (size > 1024 * 100)
         {
-            _cmsFree(v.ContextID, v.List);
+            ReturnArray(v.ContextID, v.List);
             v.List = null!;
             return false;
         }
@@ -696,7 +667,7 @@ public static unsafe partial class Lcms2
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
             //NamedColorList->List[idx].Name[cmsMAX_PATH - 1] = 0;
-            Name.CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
+            TrimAsciiBuffer(Name).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
             name[cmsMAX_PATH - 1] = 0;
         }
         else
@@ -738,10 +709,10 @@ public static unsafe partial class Lcms2
         if (!Suffix.IsEmpty) strcpy(Suffix, NamedColorList.Suffix);
         if (!PCS.IsEmpty)
             for (var i = 0; i < 3; i++) PCS[i] = NamedColorList.List[nColor].PCS[i];
-        //memmove(PCS, NamedColorList->List[nColor].PCS, 3 * _sizeof<ushort>());
+        //memmove(PCS, NamedColorList->List[nColor].PCS, 3 * sizeof(ushort));
         if (!Colorant.IsEmpty)
             for (var i = 0; i < NamedColorList.ColorantCount; i++) Colorant[i] = NamedColorList.List[nColor].DeviceColorant[i];
-        //memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * _sizeof<ushort>());
+        //memmove(Colorant, NamedColorList->List[nColor].DeviceColorant, NamedColorList->ColorantCount * sizeof(ushort));
 
         return true;
     }
@@ -774,7 +745,7 @@ public static unsafe partial class Lcms2
     private static object? DupNamedColorList(Stage mpe) =>
         cmsDupNamedColorList(mpe.Data as NamedColorList);
 
-    private static void EvalNamedColorPCS(in float* In, float* Out, Stage mpe)
+    private static void EvalNamedColorPCS(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not NamedColorList NamedColorList)
             return;
@@ -794,7 +765,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void EvalNamedColor(in float* In, float* Out, Stage mpe)
+    private static void EvalNamedColor(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not NamedColorList NamedColorList)
             return;
@@ -885,7 +856,7 @@ public static unsafe partial class Lcms2
         }
 
         if (pseq.seq is not null)
-            _cmsFree(pseq.ContextID, pseq.seq);
+            ReturnArray(pseq.ContextID, pseq.seq);
         //_cmsFree(pseq.ContextID, pseq);
     }
 

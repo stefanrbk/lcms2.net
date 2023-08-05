@@ -26,6 +26,6 @@
 //
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
 }

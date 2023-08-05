@@ -31,7 +31,7 @@ using System.Runtime.CompilerServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static readonly InterpPluginChunkType InterpPluginChunk = new();
     private static readonly InterpPluginChunkType globalInterpPluginChunk = new();
@@ -176,7 +176,7 @@ public static unsafe partial class Lcms2
         return (ushort)dif;
     }
 
-    private static void LinLerp1D(in ushort* Value, ushort* Output, InterpParams<ushort> p)
+    private static void LinLerp1D(ReadOnlySpan<ushort> Value, Span<ushort> Output, InterpParams<ushort> p)
     {
         var lutTable = p.Table.Span;
 
@@ -206,7 +206,7 @@ public static unsafe partial class Lcms2
             ? 0.0f
             : (v > 1.0f ? 1.0f : v);
 
-    private static void LinLerp1Dfloat(in float* value, float* output, InterpParams<float> p)
+    private static void LinLerp1Dfloat(ReadOnlySpan<float> value, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table.Span;
 
@@ -234,7 +234,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void Eval1Input(in ushort* input, ushort* output, InterpParams<ushort> p16)
+    private static void Eval1Input(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16)
     {
         var lutTable = p16.Table.Span;
 
@@ -264,7 +264,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void Eval1InputFloat(in float* value, float* output, InterpParams<float> p)
+    private static void Eval1InputFloat(ReadOnlySpan<float> value, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table.Span;
 
@@ -299,7 +299,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void BilinearInterpFloat(in float* input, float* output, InterpParams<float> p)
+    private static void BilinearInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table.Span;
 
@@ -330,7 +330,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void BilinearInterp16(in ushort* input, ushort* output, InterpParams<ushort> p)
+    private static void BilinearInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p)
     {
         var lutTable = p.Table.Span;
 
@@ -364,7 +364,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TrilinearInterpFloat(in float* input, float* output, InterpParams<float> p)
+    private static void TrilinearInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table.Span;
 
@@ -412,7 +412,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TrilinearInterp16(in ushort* input, ushort* output, InterpParams<ushort> p)
+    private static void TrilinearInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p)
     {
         var lutTable = p.Table.Span;
 
@@ -464,7 +464,7 @@ public static unsafe partial class Lcms2
     }
 
     // Tetrahedral interpolation, using Sakamoto algorithm.
-    private static void TetrahedralInterpFloat(in float* input, float* output, InterpParams<float> p)
+    private static void TetrahedralInterpFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table.Span;
 
@@ -539,7 +539,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void TetrahedralInterp16(in ushort* input, ushort* output, InterpParams<ushort> p)
+    private static void TetrahedralInterp16(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p)
     {
         int rest, c0, c1 = 0, c2 = 0, c3 = 0;
 
@@ -568,6 +568,7 @@ public static unsafe partial class Lcms2
         var z1 = input[2] == 0xFFFF ? 0 : (int)p.opta[0];
 
         var lutTable = p.Table.Span[(x0 + y0 + z0)..];
+        var i = 0;
         if (rx >= ry)
         {
             if (ry >= rz)
@@ -584,7 +585,7 @@ public static unsafe partial class Lcms2
                     c2 -= c1;
                     c1 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -602,7 +603,7 @@ public static unsafe partial class Lcms2
                     c1 -= c3;
                     c3 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -620,7 +621,7 @@ public static unsafe partial class Lcms2
                     c3 -= c1;
                     c1 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -641,7 +642,7 @@ public static unsafe partial class Lcms2
                     c1 -= c2;
                     c2 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -659,7 +660,7 @@ public static unsafe partial class Lcms2
                     c3 -= c2;
                     c2 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -677,7 +678,7 @@ public static unsafe partial class Lcms2
                     c2 -= c3;
                     c3 -= c0;
                     rest = (c1 * rx) + (c2 * ry) + (c3 * rz) + 0x8001;
-                    *output++ = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
+                    output[i++] = (ushort)(c0 + ((rest + (rest >> 16)) >> 16));
                     lutTable = lutTable.Length > 1 ? lutTable[1..] : Span<ushort>.Empty;
                 }
             }
@@ -708,10 +709,10 @@ public static unsafe partial class Lcms2
     private static ushort Lerp(int a, ushort l, ushort h) =>
         (ushort)(l + ROUND_FIXED_TO_INT((h - l) * a));
 
-    private static void Eval4Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16)
+    private static void Eval4Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16)
     {
-        var tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
-        var tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
         int c0, rest, c1 = 0, c2 = 0, c3 = 0;
 
@@ -849,11 +850,11 @@ public static unsafe partial class Lcms2
             output[i] = LinearInterp(rk, tmp1[i], tmp2[i]);
     }
 
-    private static void Eval4InputsFloat(in float* input, float* output, InterpParams<float> p)
+    private static void Eval4InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p)
     {
         var lutTable = p.Table;
-        var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
-        var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
+        Span<float> tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
+        Span<float> tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
         var pk = Fclamp(input[0]) * p.Domain[0];
         var k0 = _cmsQuickFloor(pk);
@@ -863,19 +864,19 @@ public static unsafe partial class Lcms2
         var k1 = k0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[3]);
 
         //var p1 = *p;
-        //memcpy(&p1.Domain[0], &p.Domain[1], 3 * _sizeof<uint>());
+        //memcpy(&p1.Domain[0], &p.Domain[1], 3 * sizeof(uint));
         var p1 = p.Clone() as InterpParams<float>;
         p.Domain.AsSpan(1..4).CopyTo(p1.Domain.AsSpan(0..3));
 
         var t = lutTable[k0..];
         p1.Table = t;
 
-        TetrahedralInterpFloat(input + 1, tmp1, p1);
+        TetrahedralInterpFloat(input[1..], tmp1, p1);
 
         t = lutTable[k1..];
         p1.Table = t;
 
-        TetrahedralInterpFloat(input + 1, tmp2, p1);
+        TetrahedralInterpFloat(input[1..], tmp2, p1);
 
         for (var i = 0; i < p.nOutputs; i++)
         {
@@ -886,14 +887,14 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void EvalXInputs(int N, in ushort* input, ushort* output, InterpParams<ushort> p16)
+    private static void EvalXInputs(int N, ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16)
     {
         var lutTable = p16.Table;
 
         var NM = N - 1;
 
-        var tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
-        var tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> tmp1 = stackalloc ushort[MAX_STAGE_CHANNELS];
+        Span<ushort> tmp2 = stackalloc ushort[MAX_STAGE_CHANNELS];
 
         var fk = _cmsToFixedDomain(input[0] * (int)p16.Domain[0]);
         var k0 = FIXED_TO_INT(fk);
@@ -903,7 +904,7 @@ public static unsafe partial class Lcms2
         var K1 = (int)p16.opta[NM] * (k0 + (input[0] != 0xFFFF ? 1 : 0));
 
         //var p1 = *p16;
-        //Buffer.MemoryCopy(&p16.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        //Buffer.MemoryCopy(&p16.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
         var p1 = p16.Clone() as InterpParams<ushort>;
         p16.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
@@ -911,29 +912,29 @@ public static unsafe partial class Lcms2
         p1.Table = t;
 
         if (NM is 4)
-            Eval4Inputs(input + 1, tmp1, p1);
+            Eval4Inputs(input[1..], tmp1, p1);
         else
-            EvalXInputs(NM, input + 1, tmp1, p1);
+            EvalXInputs(NM, input[1..], tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4Inputs(input + 1, tmp2, p1);
+            Eval4Inputs(input[1..], tmp2, p1);
         else
-            EvalXInputs(NM, input + 1, tmp2, p1);
+            EvalXInputs(NM, input[1..], tmp2, p1);
 
         for (var j = 0; j < p16.nOutputs; j++)
             output[j] = LinearInterp(rk, tmp1[j], tmp2[j]);
     }
 
-    private static void EvalXInputsFloat(int N, in float* input, float* output, InterpParams<float> p)
+    private static void EvalXInputsFloat(int N, ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p)
     {
         var NM = N - 1;
 
         var lutTable = p.Table;
-        var tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
-        var tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
+        Span<float> tmp1 = stackalloc float[MAX_STAGE_CHANNELS];
+        Span<float> tmp2 = stackalloc float[MAX_STAGE_CHANNELS];
 
         var pk = Fclamp(input[0]) * p.Domain[0];
         var k0 = _cmsQuickFloor(pk);
@@ -943,7 +944,7 @@ public static unsafe partial class Lcms2
         var K1 = K0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[NM]);
 
         //var p1 = *p;
-        //Buffer.MemoryCopy(&p.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * _sizeof<uint>(), NM * _sizeof<uint>());
+        //Buffer.MemoryCopy(&p.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
         var p1 = p.Clone() as InterpParams<float>;
         p.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
@@ -951,17 +952,17 @@ public static unsafe partial class Lcms2
         p1.Table = t;
 
         if (NM is 4)
-            Eval4InputsFloat(input + 1, tmp1, p1);
+            Eval4InputsFloat(input[1..], tmp1, p1);
         else
-            EvalXInputsFloat(NM, input + 1, tmp1, p1);
+            EvalXInputsFloat(NM, input[1..], tmp1, p1);
 
         t = lutTable[K1..];
         p1.Table = t;
 
         if (NM is 4)
-            Eval4InputsFloat(input + 1, tmp2, p1);
+            Eval4InputsFloat(input[1..], tmp2, p1);
         else
-            EvalXInputsFloat(NM, input + 1, tmp2, p1);
+            EvalXInputsFloat(NM, input[1..], tmp2, p1);
 
         for (var j = 0; j < p.nOutputs; j++)
         {
@@ -972,70 +973,70 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void Eval5Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval5Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(5, input, output, p16);
 
-    private static void Eval6Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval6Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(6, input, output, p16);
 
-    private static void Eval7Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval7Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(7, input, output, p16);
 
-    private static void Eval8Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval8Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(8, input, output, p16);
 
-    private static void Eval9Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval9Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(9, input, output, p16);
 
-    private static void Eval10Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval10Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(10, input, output, p16);
 
-    private static void Eval11Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval11Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(11, input, output, p16);
 
-    private static void Eval12Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval12Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(12, input, output, p16);
 
-    private static void Eval13Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval13Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(13, input, output, p16);
 
-    private static void Eval14Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval14Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(14, input, output, p16);
 
-    private static void Eval15Inputs(in ushort* input, ushort* output, InterpParams<ushort> p16) =>
+    private static void Eval15Inputs(ReadOnlySpan<ushort> input, Span<ushort> output, InterpParams<ushort> p16) =>
         EvalXInputs(15, input, output, p16);
 
-    private static void Eval5InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval5InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(5, input, output, p);
 
-    private static void Eval6InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval6InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(6, input, output, p);
 
-    private static void Eval7InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval7InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(7, input, output, p);
 
-    private static void Eval8InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval8InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(8, input, output, p);
 
-    private static void Eval9InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval9InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(9, input, output, p);
 
-    private static void Eval10InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval10InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(10, input, output, p);
 
-    private static void Eval11InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval11InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(11, input, output, p);
 
-    private static void Eval12InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval12InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(12, input, output, p);
 
-    private static void Eval13InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval13InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(13, input, output, p);
 
-    private static void Eval14InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval14InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(14, input, output, p);
 
-    private static void Eval15InputsFloat(in float* input, float* output, InterpParams<float> p) =>
+    private static void Eval15InputsFloat(ReadOnlySpan<float> input, Span<float> output, InterpParams<float> p) =>
         EvalXInputsFloat(15, input, output, p);
 
     private static InterpFunction? DefaultInterpolatorsFactory(uint nInputChannels, uint nOutputChannels, LerpFlag dwFlags)

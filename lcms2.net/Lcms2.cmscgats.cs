@@ -34,7 +34,7 @@ using static lcms2.cgats.CGATS;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     //private static @string StringAlloc(IT8 it8, int max)
     //{
@@ -693,14 +693,14 @@ public static unsafe partial class Lcms2
             //{
             //    n = p->Next;
             //    if (p->Ptr is not null) _cmsFree(it8->ContextID, p->Ptr);
-                _cmsFree(it8.ContextID, p);
+                ReturnArray(it8.ContextID, p);
             //}
         }
 
         if (it8.MemoryBlock is not null)
-            _cmsFree(it8.ContextID, it8.MemoryBlock);
+            ReturnArray(it8.ContextID, it8.MemoryBlock);
 
-        _cmsFree(it8.ContextID, it8.DoubleFormatter);
+        ReturnArray(it8.ContextID, it8.DoubleFormatter);
 
         //_cmsFree(it8->ContextID, it8);
     }
@@ -758,10 +758,10 @@ public static unsafe partial class Lcms2
 
     private static byte[] AllocString(IT8 it8, ReadOnlySpan<byte> str)
     {
-        var Size = strlen(str)/* + _sizeof<byte>()*/;
+        var Size = strlen(str)/* + sizeof(byte)*/;
 
         var ptr = Context.GetPool<byte>(it8.ContextID).Rent((int)Size); //(byte*)AllocChunk(it8, (uint)Size);
-        str.CopyTo(ptr); //if (ptr is not null) memcpy(ptr, str, Size - (nint)_sizeof<byte>());
+        str.CopyTo(ptr); //if (ptr is not null) memcpy(ptr, str, Size - (nint)sizeof(byte));
 
         return ptr;
     }
@@ -1193,18 +1193,18 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void WriteStr(SAVESTREAM* f, ReadOnlySpan<byte> str)
+    private static void WriteStr(SAVESTREAM f, ReadOnlySpan<byte> str)
     {
         if (str.IsEmpty)
             str = " "u8;
 
         // Length to write
         var len = (uint)strlen(str);
-        f->Used += len;
+        f.Used += len;
 
-        if (f->stream is not null)  // Should I write it to a file?
+        if (f.stream is not null)  // Should I write it to a file?
         {
-            if (fwrite(str, 1, len, f->stream) != len)
+            if (fwrite(str, 1, len, f.stream) != len)
             {
                 cmsSignalError(null, cmsERROR_WRITE, "Write to file error in CGATS parser");
                 return;
@@ -1212,22 +1212,22 @@ public static unsafe partial class Lcms2
         }
         else        // Or to a memory block?
         {
-            if (f->Base is not null)    // Am I just counting the bytes?
+            if (f.Base is not null)    // Am I just counting the bytes?
             {
-                if (f->Used > f->Max)
+                if (f.Used > f.Max)
                 {
                     cmsSignalError(null, cmsERROR_WRITE, "Write to memoty overflows in CGATS parser");
                     return;
                 }
 
-                memmove(f->Ptr.Span, str, len);
-                f->Ptr = f->Ptr[(int)len..];
+                memmove(f.Ptr.Span, str, len);
+                f.Ptr = f.Ptr[(int)len..];
             }
 
         }
     }
 
-    private static void Writef(SAVESTREAM* f, ReadOnlySpan<byte> frm, params object[] args)
+    private static void Writef(SAVESTREAM f, ReadOnlySpan<byte> frm, params object[] args)
     {
         Span<byte> Buffer = stackalloc byte[4096];
 
@@ -1236,7 +1236,7 @@ public static unsafe partial class Lcms2
         WriteStr(f, Buffer);
     }
 
-    private static void WriteHeader(IT8 it8, SAVESTREAM* fp)
+    private static void WriteHeader(IT8 it8, SAVESTREAM fp)
     {
         var t = GetTable(it8);
 
@@ -1301,7 +1301,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void WriteDataFormat(SAVESTREAM* fp, IT8 it8)
+    private static void WriteDataFormat(SAVESTREAM fp, IT8 it8)
     {
         var t = GetTable(it8);
 
@@ -1320,7 +1320,7 @@ public static unsafe partial class Lcms2
         WriteStr(fp, "END_DATA_FORMAT\n"u8);
     }
 
-    private static void WriteData(SAVESTREAM* fp, IT8 it8)
+    private static void WriteData(SAVESTREAM fp, IT8 it8)
     {
         var t = GetTable(it8);
 
@@ -1360,13 +1360,13 @@ public static unsafe partial class Lcms2
         WriteStr(fp, "END_DATA\n"u8);
     }
 
-    public static bool cmsIT8SaveToFile(object? hIT8, char* cFileName)
+    public static bool cmsIT8SaveToFile(object? hIT8, ReadOnlySpan<char> cFileName)
     {
-        SAVESTREAM sd;
+        SAVESTREAM sd = new();
         if (hIT8 is not IT8 it8)
             return false;
 
-        memset(&sd, 0);
+        //memset(&sd, 0);
 
         sd.stream = fopen(new(cFileName), "wt");
         if (sd.stream is null) return false;
@@ -1374,9 +1374,9 @@ public static unsafe partial class Lcms2
         for (var i = 0u; i < it8.TablesCount; i++)
         {
             cmsIT8SetTable(hIT8, i);
-            WriteHeader(it8, &sd);
-            WriteDataFormat(&sd, it8);
-            WriteData(&sd, it8);
+            WriteHeader(it8, sd);
+            WriteDataFormat(sd, it8);
+            WriteData(sd, it8);
         }
 
         if (fclose(sd.stream) is not 0) return false;
@@ -1384,13 +1384,13 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsIT8SaveToMem(object? hIT8, byte[] MemPtr, uint* BytesNeeded)
+    public static bool cmsIT8SaveToMem(object? hIT8, byte[] MemPtr, ref uint BytesNeeded)
     {
-        SAVESTREAM sd;
+        SAVESTREAM sd = new();
         if (hIT8 is not IT8 it8)
             return false;
 
-        memset(&sd, 0);
+        //memset(&sd, 0);
 
         sd.stream = null;
         sd.Base = MemPtr;
@@ -1399,15 +1399,15 @@ public static unsafe partial class Lcms2
         sd.Used = 0;
 
         sd.Max = (sd.Base is not null)
-            ? *BytesNeeded      // Write to memory?
+            ? BytesNeeded       // Write to memory?
             : 0;                // Just counting the needed bytes
 
         for (var i = 0u; i < it8.TablesCount; i++)
         {
             cmsIT8SetTable(hIT8, i);
-            WriteHeader(it8, &sd);
-            WriteDataFormat(&sd, it8);
-            WriteData(&sd, it8);
+            WriteHeader(it8, sd);
+            WriteDataFormat(sd, it8);
+            WriteData(sd, it8);
         }
 
         sd.Used++;      // the \0 at the very end
@@ -1415,7 +1415,7 @@ public static unsafe partial class Lcms2
         if (sd.Base is not null)
             sd.Ptr.Span[0] = 0;
 
-        *BytesNeeded = sd.Used;
+        BytesNeeded = sd.Used;
 
         return true;
     }
@@ -1772,7 +1772,7 @@ public static unsafe partial class Lcms2
                                 if (IsAvailableOnList(Table.HeaderList, Label, null, out var p))
                                 {
                                     // Available, keep type and table
-                                    //memset(Buffer, 0, 256 * _sizeof<byte>());
+                                    //memset(Buffer, 0, 256 * sizeof(byte));
                                     Buffer.Clear();
 
                                     var Type = p.Value;
@@ -1838,7 +1838,7 @@ public static unsafe partial class Lcms2
             return false;
         }
 
-        var Size = (uint)fread(Unsafe.AsPointer(ref Ptr.GetPinnableReference()), 1, 132, fp);
+        var Size = (uint)fread(Ptr, 1, 132, fp);
 
         if (fclose(fp) is not 0)
             return false;
@@ -1860,7 +1860,7 @@ public static unsafe partial class Lcms2
         if (hIT8 is not IT8 it8) return null;
 
         //var it8 = (IT8*)hIT8;
-        it8.MemoryBlock = _cmsCallocArray<byte>(ContextID, len + 1);
+        it8.MemoryBlock = GetArray<byte>(ContextID, len + 1);
         //if (it8.MemoryBlock is null)
         //{
         //    cmsIT8Free(hIT8);
@@ -1882,7 +1882,7 @@ public static unsafe partial class Lcms2
         CookPointers(it8);
         it8.nTable = 0;
 
-        _cmsFree(ContextID, it8.MemoryBlock);
+        ReturnArray(ContextID, it8.MemoryBlock);
         it8.MemoryBlock = null;
 
         return hIT8;
@@ -2181,8 +2181,10 @@ public static unsafe partial class Lcms2
         return hIT8 is not IT8 it8 ? uint.MaxValue : it8.TablesCount;
     }
 
-    private static int ParseLabel(ReadOnlySpan<byte> buffer, Span<byte> label, uint* tableNum, Span<byte> type)
+    private static int ParseLabel(ReadOnlySpan<byte> buffer, Span<byte> label, out uint tableNum, Span<byte> type)
     {
+        tableNum = 0;
+
         var str = SpanToString(buffer);
         var split = str.Split(' ');
         var result = split.Length;
@@ -2199,7 +2201,7 @@ public static unsafe partial class Lcms2
         var success = uint.TryParse(split[1], out var n);
         if (!success) return 1;
 
-        *tableNum = n;
+        tableNum = n;
 
         if (result is 2) return 2;
 
@@ -2218,14 +2220,13 @@ public static unsafe partial class Lcms2
 
         _cmsAssert(hIT8);
 
-        if ((!cField.IsEmpty && cField[0] is 0) || (cField.IsEmpty))
+        if ((!cField.IsEmpty && cField[0] is 0) || cField.IsEmpty)
             cField = "LABEL"u8;
 
         var cLabelFld = cmsIT8GetData(hIT8, cSet, cField);
         if (cLabelFld is null) return -1;
 
-        uint nTable;
-        if (ParseLabel(cLabelFld, Label, &nTable, Type) is not 3)
+        if (ParseLabel(cLabelFld, Label, out var nTable, Type) is not 3)
             return -1;
 
         if (!ExpectedType.IsEmpty && ExpectedType[0] is 0)

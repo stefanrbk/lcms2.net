@@ -27,7 +27,7 @@
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     //private static uint[] Mantissa = {
     //    0x00000000, 0x33800000, 0x34000000, 0x34400000, 0x34800000, 0x34a00000,
@@ -502,7 +502,7 @@ public static unsafe partial class Lcms2
 
     internal static float _cmsHalf2Float(ushort h)
     {
-        var value = *(Half*)&h;
+        var value = BitConverter.UInt16BitsToHalf(h);
         return (float)value;
 
         //var n = h >> 10;
@@ -514,7 +514,7 @@ public static unsafe partial class Lcms2
     internal static ushort _cmsFloat2Half(float flt)
     {
         var value = (Half)flt;
-        return *(ushort*)&value;
+        return BitConverter.HalfToUInt16Bits(value);
 
         //var n = *(uint*)&flt;
         //var j = (n >> 23) & 0x1FF;

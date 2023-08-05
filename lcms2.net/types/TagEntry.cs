@@ -25,11 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.types;
 
+[StructLayout(LayoutKind.Explicit, Size = 12)]
 public struct TagEntry
 {
-    public Signature sig;
-    public uint offset;
-    public uint size;
+    [FieldOffset(0)] public Signature sig;
+    [FieldOffset(4)] public uint offset;
+    [FieldOffset(8)] public uint size;
 }

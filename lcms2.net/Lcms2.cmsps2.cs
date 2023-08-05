@@ -30,11 +30,10 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Text;
-using System.Xml.Linq;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static readonly byte[] PSBuffer = new byte[2048];
     private const byte MAXPSCOLS = 60;
@@ -387,10 +386,10 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "%%BeginResource\n");
     }
 
-    private static void EmitWhiteBlackD50(IOHandler m, CIEXYZ* BlackPoint)
+    private static void EmitWhiteBlackD50(IOHandler m, CIEXYZ BlackPoint)
     {
-        _cmsIOPrintf(m, "/BlackPoint [{0} {1} {2}]\n", BlackPoint->X, BlackPoint->Y, BlackPoint->Z);
-        _cmsIOPrintf(m, "/WhitePoint [{0} {1} {2}]\n", cmsD50_XYZ()->X, cmsD50_XYZ()->Y, cmsD50_XYZ()->Z);
+        _cmsIOPrintf(m, "/BlackPoint [{0} {1} {2}]\n", BlackPoint.X, BlackPoint.Y, BlackPoint.Z);
+        _cmsIOPrintf(m, "/WhitePoint [{0} {1} {2}]\n", D50XYZ.X, D50XYZ.Y, D50XYZ.Z);
     }
 
     private static void EmitRangeCheck(IOHandler m) =>
@@ -528,10 +527,8 @@ public static unsafe partial class Lcms2
         EmitSafeGuardEnd(m, lcms2gammatable, 1);
     }
 
-    private static bool GammaTableEquals(ushort* g1, ushort* g2, uint nG1, uint nG2) =>
-        nG1 == nG2
-            ? memcmp(g1, g2, (nint)(nG1 * _sizeof<ushort>())) == 0
-            : false;
+    private static bool GammaTableEquals(ReadOnlySpan<ushort> g1, ReadOnlySpan<ushort> g2, uint nG1, uint nG2) =>
+        nG1 == nG2 && memcmp(g1, g2) == 0;
 
     private static void EmitNGamma(IOHandler m, uint n, ReadOnlySpan<ToneCurve> g, ReadOnlySpan<byte> nameprefix)
     {
@@ -545,26 +542,20 @@ public static unsafe partial class Lcms2
         {
             if (g[i] is null) return;   // Error
 
-            fixed (ushort* t1 = &g[i - 1].Table16[0])
+            if (i > 0 && GammaTableEquals(g[i - 1].Table16, g[i].Table16, g[i - 1].nEntries, g[i].nEntries))
             {
-                fixed (ushort* t2 = &g[i].Table16[0])
-                {
-                    if (i > 0 && GammaTableEquals(t1, t2, g[i-1].nEntries, g[i].nEntries))
-                    {
-                        _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", nameprefixStr, i, i - 1);
-                    }
-                    else
-                    {
-                        snprintf(buffer, 2048, "{0}{1:d}"u8, nameprefixStr, i);
-                        buffer[2047] = 0;
-                        Emit1Gamma(m, g[i], buffer);
-                    }
-                }
+                _cmsIOPrintf(m, "/{0}{1:d} /{0}{2:d} load def\n", nameprefixStr, i, i - 1);
+            }
+            else
+            {
+                snprintf(buffer, 2048, "{0}{1:d}"u8, nameprefixStr, i);
+                buffer[2047] = 0;
+                Emit1Gamma(m, g[i], buffer);
             }
         }
     }
 
-    private static bool OutputValueSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool OutputValueSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         if (Cargo is not PsSamplerCargo sc)
             return false;
@@ -577,10 +568,10 @@ public static unsafe partial class Lcms2
                     (In[2] is >= 0x7800 and <= 0x8800))
                 {
 
-                    if (!_cmsEndPointsBySpace(sc.ColorSpace, out var White, out var Black, out var nOutputs))
+                    if (!_cmsEndPointsBySpace(sc.ColorSpace, out var White, out _, out var nOutputs))
                         return false;
 
-                    for (var i = 0u; i < nOutputs; i++)
+                    for (var i = 0; i < nOutputs; i++)
                         Out[i] = White[i];
                 }
             }
@@ -617,7 +608,7 @@ public static unsafe partial class Lcms2
 
         // Dump table.
 
-        for (var i = 0u; i < sc.Pipeline.Params.nOutputs; i++)
+        for (var i = 0; i < sc.Pipeline.Params.nOutputs; i++)
         {
             var wWordOut = Out[i];
 
@@ -659,7 +650,7 @@ public static unsafe partial class Lcms2
         _cmsIOPrintf(m, "] ");
     }
 
-    private static bool EmitCIEBasedA(IOHandler m, ToneCurve Curve, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedA(IOHandler m, ToneCurve Curve, CIEXYZ BlackPoint)
     {
         var lcms2gammaproc = "lcms2gammaproc"u8;
 
@@ -684,7 +675,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ReadOnlySpan<ToneCurve> CurveSet, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ReadOnlySpan<ToneCurve> CurveSet, CIEXYZ BlackPoint)
     {
         var lcms2gammaproc = "lcms2gammaproc"u8;
         var lcms2gammaproc0 = "lcms2gammaproc0"u8;
@@ -731,7 +722,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool EmitCIEBasedDEF(IOHandler m, Pipeline Pipeline, uint Intent, CIEXYZ* BlackPoint)
+    private static bool EmitCIEBasedDEF(IOHandler m, Pipeline Pipeline, uint Intent, CIEXYZ BlackPoint)
     {
         ReadOnlySpan<byte> PreMaj;
         ReadOnlySpan<byte> PostMaj;
@@ -814,16 +805,18 @@ public static unsafe partial class Lcms2
         var hXYZ = cmsCreateXYZProfile();
         var xform = cmsCreateTransformTHR(ContextID, Profile, TYPE_GRAY_8, hXYZ, TYPE_XYZ_DBL, Intent, cmsFLAGS_NOOPTIMIZE);
 
+        Span<byte> Gray = stackalloc byte[1];
+        Span<CIEXYZ> XYZ = stackalloc CIEXYZ[1];
+
         if (Out is not null && xform is not null)
         {
             for (var i = 0; i < 256; i++)
             {
-                var Gray = (byte)i;
-                CIEXYZ XYZ;
+                Gray[0] = (byte)i;
 
-                cmsDoTransform(xform, &Gray, &XYZ, 1);
+                cmsDoTransform(xform, Gray, XYZ, 1);
 
-                Out.Table16[i] = _cmsQuickSaturateWord(XYZ.Y * 65535.0);
+                Out.Table16[i] = _cmsQuickSaturateWord(XYZ[0].Y * 65535.0);
             }
         }
 
@@ -843,7 +836,7 @@ public static unsafe partial class Lcms2
         var InputFormat = cmsFormatterForColorspaceOfProfile(Profile, 2, false);
         var nChannels = T_CHANNELS(InputFormat);
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, Intent, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent, 0);
 
         // Adjust output to Lab4
         var hLab = cmsCreateLab4ProfileTHR(m.ContextID, null);
@@ -867,7 +860,7 @@ public static unsafe partial class Lcms2
             case 1:
                 {
                     var Gray2Y = ExtractGray2Y(m.ContextID, Profile, Intent);
-                    EmitCIEBasedA(m, Gray2Y, &BlackPointAdaptedToD50);
+                    EmitCIEBasedA(m, Gray2Y, BlackPointAdaptedToD50);
                     cmsFreeToneCurve(Gray2Y);
                 }
                 break;
@@ -881,9 +874,9 @@ public static unsafe partial class Lcms2
                     if (DeviceLink is null) return false;
 
                     dwFlags |= cmsFLAGS_FORCE_CLUT;
-                    _cmsOptimizePipeline(m.ContextID, ref DeviceLink, Intent, &InputFormat, &OutFrm, &dwFlags);
+                    _cmsOptimizePipeline(m.ContextID, ref DeviceLink, Intent, ref InputFormat, ref OutFrm, ref dwFlags);
 
-                    var rc = EmitCIEBasedDEF(m, DeviceLink, Intent, &BlackPointAdaptedToD50);
+                    var rc = EmitCIEBasedDEF(m, DeviceLink, Intent, BlackPointAdaptedToD50);
                     cmsPipelineFree(DeviceLink);
                     if (!rc) return false;
                 }
@@ -910,12 +903,12 @@ public static unsafe partial class Lcms2
 
         var ColorSpace = cmsGetColorSpace(Profile);
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, INTENT_RELATIVE_COLORIMETRIC, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, INTENT_RELATIVE_COLORIMETRIC, 0);
 
         if ((uint)ColorSpace is cmsSigGrayData)
         {
             var ShaperCurve = _cmsStageGetPtrToCurveSet(Shaper);
-            rc = EmitCIEBasedA(m, ShaperCurve[0], &BlackPointAdaptedToD50);
+            rc = EmitCIEBasedA(m, ShaperCurve[0], BlackPointAdaptedToD50);
         }
         else if ((uint)ColorSpace is cmsSigRgbData)
         {
@@ -924,7 +917,7 @@ public static unsafe partial class Lcms2
             for (var i = 0; i < 9; i++)
                 Mat[i] *= MAX_ENCODEABLE_XYZ;
 
-            rc = EmitCIEBasedABC(m, Mat, _cmsStageGetPtrToCurveSet(Shaper), &BlackPointAdaptedToD50);
+            rc = EmitCIEBasedABC(m, Mat, _cmsStageGetPtrToCurveSet(Shaper), BlackPointAdaptedToD50);
         }
         else
         {
@@ -954,18 +947,17 @@ public static unsafe partial class Lcms2
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
-        var In = stackalloc ushort[1];
+        Span<ushort> In = stackalloc ushort[1];
+        Span<CIELab> Lab = stackalloc CIELab[1];
         for (var i = 0u; i < nColors; i++)
         {
-            CIELab Lab;
-
             In[0] = (ushort)i;
 
             if (!cmsNamedColorInfo(NamedColorList, i, ColorName, null, null, null, null))
                 continue;
 
-            cmsDoTransform(xform, In, &Lab, 1);
-            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Lab.L, Lab.a, Lab.b);
+            cmsDoTransform(xform, In, Lab, 1);
+            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Lab[0].L, Lab[0].a, Lab[0].b);
         }
 
         _cmsIOPrintf(m, ">>\n");
@@ -1163,15 +1155,15 @@ public static unsafe partial class Lcms2
 
         // We need a CLUT
         dwFlags |= cmsFLAGS_FORCE_CLUT;
-        _cmsOptimizePipeline(m.ContextID, ref DeviceLink, RelativeEncodingIntent, &InFrm, &OutputFormat, &dwFlags);
+        _cmsOptimizePipeline(m.ContextID, ref DeviceLink, RelativeEncodingIntent, ref InFrm, ref OutputFormat, ref dwFlags);
 
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "/ColorRenderingType 1\n");
 
-        cmsDetectBlackPoint(&BlackPointAdaptedToD50, Profile, Intent, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent, 0);
 
         // Emit headers, etc.
-        EmitWhiteBlackD50(m, &BlackPointAdaptedToD50);
+        EmitWhiteBlackD50(m, BlackPointAdaptedToD50);
         EmitPQRStage(m, Profile, lDoBPC, Intent is INTENT_ABSOLUTE_COLORIMETRIC);
         EmitXYZ2Lab(m);
 
@@ -1209,7 +1201,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static void BuildColorantList(byte* Colorant, uint nColorant, ushort* Out)
+    private static void BuildColorantList(Span<byte> Colorant, uint nColorant, ReadOnlySpan<ushort> Out)
     {
         Span<byte> Buff = stackalloc byte[32];
 
@@ -1218,7 +1210,7 @@ public static unsafe partial class Lcms2
             nColorant = cmsMAXCHANNELS;
 
         var format = "{0:f3}"u8;
-        for (var j = 0u; j < nColorant; j++)
+        for (var j = 0; j < nColorant; j++)
         {
             snprintf(Buff, 31, format, Out[j] / 65535.0);
             Buff[31] = 0;
@@ -1231,10 +1223,10 @@ public static unsafe partial class Lcms2
     private static bool WriteNamedColorCRD(IOHandler m, Profile hNamedColor, uint Intent, uint dwFlags)
     {
         Span<byte> ColorName = stackalloc byte[cmsMAX_PATH];
-        var Colorant = stackalloc byte[512];
+        Span<byte> Colorant = stackalloc byte[512];
 
         var OutputFormat = cmsFormatterForColorspaceOfProfile(hNamedColor, 2, false);
-        var nColorant = T_CHANNELS(OutputFormat);
+        var nColorant = (uint)T_CHANNELS(OutputFormat);
 
         var xform = cmsCreateTransform(hNamedColor, TYPE_NAMED_COLOR_INDEX, null, OutputFormat, Intent, dwFlags);
         if (xform is null) return false;
@@ -1249,8 +1241,8 @@ public static unsafe partial class Lcms2
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
-        var In = stackalloc ushort[1];
-        var Out = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> In = stackalloc ushort[1];
+        Span<ushort> Out = stackalloc ushort[cmsMAXCHANNELS];
         for (var i = 0u; i < nColors; i++)
         {
             In[0] = (ushort)i;
@@ -1260,7 +1252,7 @@ public static unsafe partial class Lcms2
 
             cmsDoTransform(xform, In, Out, 1);
             BuildColorantList(Colorant, nColorant, Out);
-            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), new string((sbyte*)Colorant));
+            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimAsciiBuffer(ColorName)), Encoding.ASCII.GetString(TrimAsciiBuffer(Colorant)));
         }
 
         _cmsIOPrintf(m, "   >>");

@@ -32,7 +32,7 @@ using System.Runtime.CompilerServices;
 using static System.Math;
 
 namespace lcms2;
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal const byte SECTORS = 16;
 
@@ -69,83 +69,85 @@ public static unsafe partial class Lcms2
         return a;
     }
 
-    private static void ToSpherical(Spherical* sp, in VEC3* v)
+    private static Spherical ToSpherical(VEC3 v)
     {
-        var L = v->X;
-        var a = v->Y;
-        var b = v->Z;
+        var sp = new Spherical();
 
-        sp->r = Sqrt(L * L + a * a + b * b);
+        var L = v.X;
+        var a = v.Y;
+        var b = v.Z;
 
-        if (sp->r is 0)
+        sp.r = Sqrt(L * L + a * a + b * b);
+
+        if (sp.r is 0)
         {
-            sp->alpha = sp->theta = 0;
-            return;
+            sp.alpha = sp.theta = 0;
+            return sp;
         }
 
-        sp->alpha = _cmsAtan2(a, b);
-        sp->theta = _cmsAtan2(Sqrt(a*a + b*b), L);
+        sp.alpha = _cmsAtan2(a, b);
+        sp.theta = _cmsAtan2(Sqrt(a*a + b*b), L);
+
+        return sp;
     }
 
-    private static void ToCartesian(VEC3* v, in Spherical* sp)
+    private static VEC3 ToCartesian(Spherical sp)
     {
-        var sin_alpha = Sin(M_PI * sp->alpha / 180.0);
-        var cos_alpha = Cos(M_PI * sp->alpha / 180.0);
-        var sin_theta = Sin(M_PI * sp->theta / 180.0);
-        var cos_theta = Cos(M_PI * sp->theta / 180.0);
+        var sin_alpha = Sin(M_PI * sp.alpha / 180.0);
+        var cos_alpha = Cos(M_PI * sp.alpha / 180.0);
+        var sin_theta = Sin(M_PI * sp.theta / 180.0);
+        var cos_theta = Cos(M_PI * sp.theta / 180.0);
 
-        var a = sp->r * sin_theta * sin_alpha;
-        var b = sp->r * sin_theta * cos_alpha;
-        var L = sp->r * cos_theta;
+        var a = sp.r * sin_theta * sin_alpha;
+        var b = sp.r * sin_theta * cos_alpha;
+        var L = sp.r * cos_theta;
 
-        v->X = L;
-        v->Y = a;
-        v->Z = b;
+        return new(L, a, b);
     }
 
-    private static void QuantizeToSector(in Spherical* sp, int* alpha, int* theta)
+    private static void QuantizeToSector(Spherical sp, out int alpha, out int theta)
     {
-        *alpha = (int)Floor(sp->alpha * SECTORS / 360.0);
-        *theta = (int)Floor(sp->theta * SECTORS / 180.0);
+        alpha = (int)Floor(sp.alpha * SECTORS / 360.0);
+        theta = (int)Floor(sp.theta * SECTORS / 180.0);
 
-        if (*alpha >= SECTORS)
-            *alpha = SECTORS - 1;
-        if (*theta >= SECTORS)
-            *theta = SECTORS - 1;
+        if (alpha >= SECTORS)
+            alpha = SECTORS - 1;
+        if (theta >= SECTORS)
+            theta = SECTORS - 1;
     }
 
-    private static void LineOf2Points(Line* line, VEC3* a, VEC3* b)
+    private static Line LineOf2Points(VEC3 a, VEC3 b)
     {
         VEC3 vA, vU;
-        _cmsVEC3init(out vA, a->X, a->Y, a->Z);
-        _cmsVEC3init(out vU, b->X - a->X,
-                          b->Y - a->Y,
-                          b->Z - a->Z);
-        (line->a, line->u) = (vA, vU);
+        vA = new VEC3(a.X, a.Y, a.Z);
+        vU = new VEC3(b.X - a.X,
+                      b.Y - a.Y,
+                      b.Z - a.Z);
+
+        return new(vA, vU);
+
     }
 
-    private static void GetPointOfLine(VEC3* p, in Line* line, double t)
-    {
-        p->X = line->a.X + t * line->u.X;
-        p->Y = line->a.Y + t * line->u.Y;
-        p->X = line->a.X + t * line->u.X;
-    }
+    private static VEC3 GetPointOfLine(Line line, double t) =>
+        new(
+            line.a.X + t * line.u.X,
+            line.a.Y + t * line.u.Y,
+            line.a.X + t * line.u.X);
 
-    private static bool ClosestLineToLine(VEC3* r, in Line* line1, in Line* line2)
+    private static VEC3 ClosestLineToLine(Line line1, Line line2)
     {
-        VEC3 a1 = line1->a, a2 = line2->a;
-        VEC3 u1 = line1->u, u2 = line2->u;
-        VEC3 w0;
+        VEC3 a1 = line1.a, a2 = line2.a;
+        VEC3 u1 = line1.u, u2 = line2.u;
 
         double sN, sD, tN, tD;
 
-        _cmsVEC3minus(out w0, a1, a2);
+        var w0 = a1 - a2;
 
-        var a = _cmsVEC3dot(u1, u1);
-        var b = _cmsVEC3dot(u1, u2);
-        var c = _cmsVEC3dot(u2, u2);
-        var d = _cmsVEC3dot(u1, w0);
-        var e = _cmsVEC3dot(u2, w0);
+        var a = u1.Dot(u1);
+        var b = u1.Dot(u2);
+        var c = u2.Dot(u2);
+        var d = u1.Dot(w0);
+        var e = u2.Dot(w0);
 
         var D = a * c - b * b;      // Denominator
         sD = tD = D;                // default sD = D >= 0
@@ -213,9 +215,7 @@ public static unsafe partial class Lcms2
         var sc = Abs(sN) < MATRIX_DET_TOLERANCE ? 0.0 : sN / sD;
         //var tc = Abs(tN) < MATRIX_DET_TOLERANCE ? 0.0 : tN / tD; // left for future use.
 
-        GetPointOfLine(r, line1, sc);
-
-        return true;
+        return GetPointOfLine(line1, sc);
     }
 
     public static GBD cmsGBDAlloc(Context? ContextID)
@@ -243,28 +243,25 @@ public static unsafe partial class Lcms2
         if (gbd is not null)
         {
             if (gbd.Gamut is null)
-                _cmsFree(gbd.ContextID, gbd.Gamut);
+                ReturnArray(gbd.ContextID, gbd.Gamut);
             //_cmsFree(gbd.ContextID, hGBD);
         }
     }
 
-    private static ref GBDPoint GetPoint(GBD gbd, in CIELab* Lab, Spherical* sp)
+    private static ref GBDPoint GetPoint(GBD gbd, CIELab Lab, out Spherical sp)
     {
-        VEC3 v;
-        int alpha, theta;
-
         // Housekeeping
         _cmsAssert(gbd);
-        _cmsAssert(Lab);
-        _cmsAssert(sp);
+        //_cmsAssert(Lab);
+        //_cmsAssert(sp);
 
         // Center L* by subtracting half of its domain, that's 50
-        _cmsVEC3init(out v, Lab->L - 50.0, Lab->a, Lab->b);
+        var v = new VEC3(Lab.L - 50.0, Lab.a, Lab.b);
 
         // Convert to spherical coordinates
-        ToSpherical(sp, &v);
+        sp = ToSpherical(v);
 
-        if (sp->r < 0 || sp->alpha < 0 || sp->theta < 0)
+        if (sp.r < 0 || sp.alpha < 0 || sp.theta < 0)
         {
             cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "spherical value out of range");
             //return null;
@@ -272,7 +269,7 @@ public static unsafe partial class Lcms2
         }
 
         // On which sector it falls?
-        QuantizeToSector(sp, &alpha, &theta);
+        QuantizeToSector(sp, out var alpha, out var theta);
 
         if (alpha is < 0 or >= SECTORS || theta is <0 or >= SECTORS)
         {
@@ -285,12 +282,10 @@ public static unsafe partial class Lcms2
         return ref gbd.GamutPtr(theta, alpha);
     }
 
-    public static bool cmsGBDAddPoint(GBD gbd, in CIELab* Lab)
+    public static bool cmsGBDAddPoint(GBD gbd, CIELab Lab)
     {
-        Spherical sp;
-
         // Get pointer to the sector
-        ref var ptr = ref GetPoint(gbd, Lab, &sp);
+        ref var ptr = ref GetPoint(gbd, Lab, out var sp);
         if (Unsafe.AreSame(ref ptr, ref Unsafe.NullRef<GBDPoint>())) return false;
 
         // If no samples at this sector, add it
@@ -312,12 +307,10 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    public static bool cmsGBDCheckPoint(GBD gbd, in CIELab* Lab)
+    public static bool cmsGBDCheckPoint(GBD gbd, CIELab Lab)
     {
-        Spherical sp;
-
         // Get pointer to the sector
-        ref var ptr = ref GetPoint(gbd, Lab, &sp);
+        ref var ptr = ref GetPoint(gbd, Lab, out var sp);
         if (Unsafe.AreSame(ref ptr, ref Unsafe.NullRef<GBDPoint>())) return false;
 
         // If no samples at this sector, return no data
@@ -357,9 +350,6 @@ public static unsafe partial class Lcms2
     private static bool InterpolateMissingSector(GBD gbd, int alpha, int theta)
     {
         Spherical sp = new();
-        VEC3 Lab;
-        VEC3 Center;
-        Line ray;
         Span<GBDPoint> Close = stackalloc GBDPoint[NSTEPS + 1];
         Spherical closel = new();
 
@@ -377,11 +367,11 @@ public static unsafe partial class Lcms2
         sp.r = 50.0;
 
         // Convert to Cartesian
-        ToCartesian(&Lab, &sp);
+        var Lab = ToCartesian(sp);
 
         // Create a ray line from center to this point
-        _cmsVEC3init(out Center, 50.0, 0, 0);
-        LineOf2Points(&ray, &Lab, &Center);
+        var Center = new VEC3(50.0, 0, 0);
+        var ray = LineOf2Points(Lab, Center);
 
         // For all close sectors
         closel.r = 0.0;
@@ -392,24 +382,20 @@ public static unsafe partial class Lcms2
         {
             for (var m = 0; m < nCloseSectors; m++)
             {
-                Spherical templ;
-                VEC3 temp, a1, a2;
-                Line edge;
-
                 var Closekp = Close[k].p;
                 var Closemp = Close[m].p;
 
                 // A line from sector to sector
-                ToCartesian(&a1, &Closekp);
-                ToCartesian(&a2, &Closemp);
+                var a1 = ToCartesian(Closekp);
+                var a2 = ToCartesian(Closemp);
 
-                LineOf2Points(&edge, &a1, &a2);
+                var edge = LineOf2Points(a1, a2);
 
                 // Find a line
-                ClosestLineToLine(&temp, &ray, &edge);
+                var temp = ClosestLineToLine(ray, edge);
 
                 // Convert to spherical
-                ToSpherical(&templ, &temp);
+                var templ = ToSpherical(temp);
 
                 if (templ.r > closel.r &&
                     templ.theta >= (theta*180.0/SECTORS) &&
@@ -422,13 +408,11 @@ public static unsafe partial class Lcms2
             }
         }
 
-        var result = new GBDPoint
+        gbd.GamutPtr(theta, alpha) = new GBDPoint
         {
             p = closel,
             Type = GP_MODELED
         };
-
-        gbd.GamutPtr(theta, alpha) = result;
 
         return true;
     }
@@ -533,12 +517,10 @@ public static unsafe partial class Lcms2
         {
             for (var j = 0; j < SECTORS; j++)
             {
-                VEC3 v;
-
                 ref var pt = ref gbd.GamutPtr(i, j);
                 if (Unsafe.AreSame(ref pt, ref Unsafe.NullRef<GBDPoint>())) pt = new();
                 var ptp = pt.p;
-                ToCartesian(&v, &ptp);
+                var v = ToCartesian(ptp);
 
                 fp.Write("\t\t\t\t\t{0:g} {1:g} {2:g}", v.X + 50, v.Y, v.Z);
 
@@ -559,12 +541,10 @@ public static unsafe partial class Lcms2
         {
             for (var j = 0; j < SECTORS; j++)
             {
-                VEC3 v;
-
                 ref var pt = ref gbd.GamutPtr(i, j);
                 if (Unsafe.AreSame(ref pt, ref Unsafe.NullRef<GBDPoint>())) pt = new();
                 var ptp = pt.p;
-                ToCartesian(&v, &ptp);
+                var v = ToCartesian(ptp);
 
                 switch (pt.Type)
                 {

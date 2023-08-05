@@ -30,12 +30,13 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
-    private static uint NULLRead(IOHandler iohandler, void* _, uint size, uint count)
+    private static uint NULLRead(IOHandler iohandler, Span<byte> _, uint size, uint count)
     {
         if (iohandler.stream is not FILENULL ResData)
             return 0;
@@ -62,7 +63,7 @@ public static unsafe partial class Lcms2
         return ResData.Pointer;
     }
 
-    private static bool NULLWrite(IOHandler iohandler, uint size, in void* _)
+    private static bool NULLWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> _)
     {
         if (iohandler.stream is not FILENULL ResData)
             return false;
@@ -107,7 +108,7 @@ public static unsafe partial class Lcms2
         return iohandler;
     }
 
-    private static uint MemoryRead(IOHandler iohandler, void* Buffer, uint size, uint count)
+    private static uint MemoryRead(IOHandler iohandler, Span<byte> Buffer, uint size, uint count)
     {
         if (iohandler.stream is not FILEMEM ResData)
             return 0;
@@ -122,7 +123,7 @@ public static unsafe partial class Lcms2
         }
 
         var Ptr = ResData.Block.Span[(int)ResData.Pointer..][..(int)len];
-        Ptr.CopyTo(new Span<byte>(Buffer, (int)len));
+        Ptr.CopyTo(Buffer[..(int)len]);
         //memmove(Buffer, Ptr, len);
         ResData.Pointer += len;
 
@@ -152,7 +153,7 @@ public static unsafe partial class Lcms2
         return ResData.Pointer;
     }
 
-    private static bool MemoryWrite(IOHandler iohandler, uint size, in void* Ptr)
+    private static bool MemoryWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> Ptr)
     {
         if (iohandler.stream is not FILEMEM ResData)
             return false;
@@ -163,7 +164,7 @@ public static unsafe partial class Lcms2
 
         if (size is 0) return true;     // Write zero bytes is ok, but does nothing
 
-        new Span<byte>(Ptr, (int)size).CopyTo(ResData.Block.Span[(int)ResData.Pointer..]);
+        Ptr[..(int)size].CopyTo(ResData.Block.Span[(int)ResData.Pointer..]);
         //memmove(ResData.Block + ResData.Pointer, Ptr, size);
         ResData.Pointer += size;
 
@@ -178,7 +179,7 @@ public static unsafe partial class Lcms2
         if (iohandler.stream is not FILEMEM ResData)
             return false;
 
-        if (ResData.FreeBlockOnClose && ResData.Array is not null) _cmsFree(iohandler.ContextID, ResData.Array);
+        if (ResData.FreeBlockOnClose && ResData.Array is not null) ReturnArray(iohandler.ContextID, ResData.Array);
 
         //_cmsFree(iohandler.ContextID, ResData);
         //_cmsFree(iohandler.ContextID, iohandler);
@@ -262,7 +263,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static uint FileRead(IOHandler iohandler, void* Buffer, uint size, uint count)
+    private static uint FileRead(IOHandler iohandler, Span<byte> Buffer, uint size, uint count)
     {
         if (iohandler.stream is not FILE file)
             return 0;
@@ -307,7 +308,7 @@ public static unsafe partial class Lcms2
         return (uint)t;
     }
 
-    private static bool FileWrite(IOHandler iohandler, uint size, in void* Buffer)
+    private static bool FileWrite(IOHandler iohandler, uint size, ReadOnlySpan<byte> Buffer)
     {
         if (size is 0) return true;     // We allow to write 0 bytes, but nothing is written
 
@@ -450,8 +451,8 @@ public static unsafe partial class Lcms2
         Icc.Version = 0x02100000;
 
         // Set creation date/time
-        fixed(DateTime* dt = &Icc.Created)
-            if (!_cmsGetTime(dt)) return null;
+        if (!_cmsGetTime(out Icc.Created))
+            return null;
 
         // Create a mutex if the user provided proper plugin. NULL otherwise
         Icc.UserMutex = _cmsCreateMutex(ContextID);
@@ -547,7 +548,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static bool _cmsNewTag(Profile Icc, Signature sig, int* NewPos)
+    internal static bool _cmsNewTag(Profile Icc, Signature sig, out int NewPos)
     {
         // Search for the tag
         var i = _cmsSearchTag(Icc, sig, false);
@@ -555,7 +556,7 @@ public static unsafe partial class Lcms2
         {
             // Already exists? delete it
             _cmsDeleteTagByPos(Icc, i);
-            *NewPos = i;
+            NewPos = i;
         }
         else
         {
@@ -563,10 +564,11 @@ public static unsafe partial class Lcms2
             if (Icc.Tags.Count >= MAX_TABLE_TAG)
             {
                 cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags ({MAX_TABLE_TAG})");
+                NewPos = -1;
                 return false;
             }
 
-            *NewPos = (int)Icc.Tags.Count;
+            NewPos = Icc.Tags.Count;
             //Icc.TagCount++;
             Icc.Tags.Add(new());
         }
@@ -579,22 +581,25 @@ public static unsafe partial class Lcms2
 
     private static uint _validatedVersion(uint DWord)
     {
-        var pByte = (byte*)&DWord;
+        Span<byte> pByte = stackalloc byte[4];
+        BitConverter.TryWriteBytes(pByte, DWord);
 
-        if (*pByte > 0x09) *pByte = 0x09;
-        var temp1 = (byte)(*(pByte + 1) & 0xF0);
-        var temp2 = (byte)(*(pByte + 1) & 0x0F);
+        if (pByte[0] > 0x09) pByte[0] = 0x09;
+        var temp1 = (byte)(pByte[1] & 0xF0);
+        var temp2 = (byte)(pByte[1] & 0x0F);
         if (temp1 > 0x90) temp1 = 0x90;
         if (temp2 > 0x09) temp2 = 0x09;
-        *(pByte + 1) = (byte)(temp1 | temp2);
-        *(pByte + 2) = 0;
-        *(pByte + 3) = 0;
+        pByte[1] = (byte)(temp1 | temp2);
+        pByte[2] = 0;
+        pByte[3] = 0;
 
-        return DWord;
+        return BitConverter.ToUInt32(pByte);
     }
 
     internal static bool _cmsReadHeader(Profile Icc)
     {
+        Span<byte> buffer = stackalloc byte[128];
+
         Profile.Header Header;
         TagEntry Tag;
         uint TagCount;
@@ -604,8 +609,10 @@ public static unsafe partial class Lcms2
         if (io is null) return false;
 
         // Read the header
-        if (io.Read(io, &Header, _sizeof<Profile.Header>(), 1) is not 1)
+        if (io.Read(io, buffer, (uint)buffer.Length, 1) is not 1)
             return false;
+
+        Header = MemoryMarshal.Read<Profile.Header>(buffer);
 
         // Validate file as an ICC profile
         if (_cmsAdjustEndianess32(Header.magic) != cmsMagicNumber)
@@ -625,8 +632,7 @@ public static unsafe partial class Lcms2
         Icc.model = _cmsAdjustEndianess32(Header.model);
         Icc.creator = _cmsAdjustEndianess32(Header.creator);
 
-        fixed(ulong* attributes = &Icc.attributes)
-            _cmsAdjustEndianess64(attributes, &Header.attributes);
+        Icc.attributes = _cmsAdjustEndianess64(Header.attributes);
         Icc.Version = _cmsAdjustEndianess32(_validatedVersion(Header.version));
 
         // Get size as reported in header
@@ -640,11 +646,10 @@ public static unsafe partial class Lcms2
         _cmsDecodeDateTimeNumber(Header.date, out Icc.Created);
 
         // The profile ID are 32 raw bytes
-        fixed(ProfileID* ProfileID = &Icc.ProfileID)
-            memmove(ProfileID->id32, Header.profileID.id32, 16);
+        Icc.ProfileID = Header.profileID;
 
         // Read tag directory
-        if (!_cmsReadUInt32Number(io, &TagCount)) return false;
+        if (!_cmsReadUInt32Number(io, out TagCount)) return false;
         if (TagCount > MAX_TABLE_TAG)
         {
             cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags({TagCount})");
@@ -655,9 +660,10 @@ public static unsafe partial class Lcms2
         //Icc.TagCount = 0;
         for (var i = 0; i < TagCount; i++)
         {
-            if (!_cmsReadUInt32Number(io, (uint*)&Tag.sig)) return false;
-            if (!_cmsReadUInt32Number(io, &Tag.offset)) return false;
-            if (!_cmsReadUInt32Number(io, &Tag.size)) return false;
+            if (!_cmsReadUInt32Number(io, out var sig)) return false;
+            Tag.sig = sig;
+            if (!_cmsReadUInt32Number(io, out Tag.offset)) return false;
+            if (!_cmsReadUInt32Number(io, out Tag.size)) return false;
 
             // Perform some sanity check. Offset + size should fall inside file.
             if (Tag.offset + Tag.size > HeaderSize ||
@@ -700,8 +706,11 @@ public static unsafe partial class Lcms2
 
     internal static bool _cmsWriteHeader(Profile Icc, uint UsedSpace)
     {
-        Profile.Header Header;
-        TagEntry Tag;
+        Span<byte> headerBuffer = stackalloc byte[128];
+        Span<byte> tagBuffer = stackalloc byte[12];
+
+        Profile.Header Header = new();
+        TagEntry Tag = new();
 
         Header.size = _cmsAdjustEndianess32(UsedSpace);
         Header.cmmId = new(_cmsAdjustEndianess32(lcmsSignature));
@@ -721,28 +730,28 @@ public static unsafe partial class Lcms2
         Header.manufacturer = new(_cmsAdjustEndianess32(Icc.manufacturer));
         Header.model = _cmsAdjustEndianess32(Icc.model);
 
-        fixed(ulong* attributes = &Icc.attributes)
-            _cmsAdjustEndianess64(&Header.attributes, attributes);
+        Header.attributes = _cmsAdjustEndianess64(Icc.attributes);
 
         // Rendering intent in the header (for embedded profiles)
         Header.renderingIntent = _cmsAdjustEndianess32(Icc.RenderingIntent);
 
         // Illuminant is always D50
-        Header.illuminant.X = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(cmsD50_XYZ()->X));
-        Header.illuminant.Y = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(cmsD50_XYZ()->Y));
-        Header.illuminant.Z = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(cmsD50_XYZ()->Z));
+        Header.illuminant.X = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.X));
+        Header.illuminant.Y = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
+        Header.illuminant.Z = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
 
         // Created by LittleCMS (that's me!)
         Header.creator = new(_cmsAdjustEndianess32(lcmsSignature));
 
-        memset(&Header.reserved, 0, 28);
+        //memset(&Header.reserved, 0, 28);
 
         // Set profile ID. Endianness is always big endian
-        fixed(ProfileID* ProfileID = &Icc.ProfileID)
-            memmove(&Header.profileID, ProfileID, 16);
+        Header.profileID = Icc.ProfileID;
 
         // Dump the header
-        if (Icc.IOHandler is null || !Icc.IOHandler.Write(Icc.IOHandler, _sizeof<Profile.Header>(), &Header)) return false;
+        MemoryMarshal.Write(headerBuffer, ref Header);
+        if (Icc.IOHandler?.Write(Icc.IOHandler, (uint)headerBuffer.Length, headerBuffer) != true)
+            return false;
 
         // Saves Tag directory
 
@@ -766,7 +775,9 @@ public static unsafe partial class Lcms2
             Tag.offset = _cmsAdjustEndianess32(t.Offset);
             Tag.size = _cmsAdjustEndianess32(t.Size);
 
-            if (!Icc.IOHandler.Write(Icc.IOHandler, _sizeof<TagEntry>(), &Tag)) return false;
+            MemoryMarshal.Write(tagBuffer, ref Tag);
+
+            if (!Icc.IOHandler.Write(Icc.IOHandler, (uint)tagBuffer.Length, tagBuffer)) return false;
         }
 
         return true;
@@ -799,28 +810,21 @@ public static unsafe partial class Lcms2
     public static void cmsSetHeaderModel(Profile Icc, uint model) =>
         Icc.model = model;
 
-    public static void cmsGetHeaderAttributes(Profile Icc, ulong* Flags) =>
-        *Flags = Icc.attributes;
+    public static ulong cmsGetHeaderAttributes(Profile Icc) =>
+        Icc.attributes;
 
     public static void cmsSetHeaderAttributes(Profile Icc, ulong Flags) =>
         Icc.attributes = Flags;
 
-    public static void cmsGetHeaderProfileID(Profile Icc, byte* ProfileID)
-    {
-        fixed (ProfileID* profileID = &Icc.ProfileID)
-                memmove(ProfileID, profileID->id8, 16);
-    }
+    public static void cmsGetHeaderProfileID(Profile Icc, Span<byte> ProfileID) =>
+        MemoryMarshal.Write(ProfileID, ref Icc.ProfileID);
 
-    public static void cmsSetHeaderProfileID(Profile Icc, byte* ProfileID)
-    {
-        fixed(ProfileID* profileID = &Icc.ProfileID)
-            memmove(profileID->id8, ProfileID, 16);
-    }
+    public static void cmsSetHeaderProfileID(Profile Icc, ReadOnlySpan<byte> ProfileID) =>
+        Icc.ProfileID = MemoryMarshal.Read<ProfileID>(ProfileID);
 
-    public static bool cmsGetHeaderCreationDateTime(Profile Icc, DateTime* Dest)
+    public static bool cmsGetHeaderCreationDateTime(Profile Icc, out DateTime Dest)
     {
-        fixed(DateTime* Created = &Icc.Created)
-            memmove(Dest, Created, _sizeof<DateTime>());
+        Dest = Icc.Created;
         return true;
     }
 
@@ -850,7 +854,7 @@ public static unsafe partial class Lcms2
 
     private static uint BaseToBase(uint @in, int BaseIn, int BaseOut)
     {
-        var Buff = stackalloc byte[100];
+        Span<byte> Buff = stackalloc byte[100];
         var @out = 0u;
         int len = 0, i;
 
@@ -1025,12 +1029,10 @@ public static unsafe partial class Lcms2
                     //if (Mem is null) return false;
                     var Mem = pool.Rent((int)TagSize);
 
-                    fixed (byte* memPtr = Mem)
-                    {
-                        if (FileOrig.IOHandler.Read(FileOrig.IOHandler, memPtr, TagSize, 1) is not 1) goto Error;
-                        if (!io.Write(io, TagSize, memPtr)) goto Error;
-                    }
-                    _cmsFree(Icc.ContextID, Mem);
+                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1) goto Error;
+                    if (!io.Write(io, TagSize, Mem)) goto Error;
+
+                    ReturnArray(Icc.ContextID, Mem);
 
                     Tag.Size = io.UsedSpace - Begin;
 
@@ -1039,7 +1041,7 @@ public static unsafe partial class Lcms2
                         return false;
 
                 Error:
-                    _cmsFree(Icc.ContextID, Mem);
+                    ReturnArray(Icc.ContextID, Mem);
                     return false;
                 }
 
@@ -1050,7 +1052,7 @@ public static unsafe partial class Lcms2
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
             if (Tag.SaveAsRaw && Data is byte[] buffer)
             {
-                fixed (void* ptr = &buffer[0]) if (!io.Write(io, Tag.Size, ptr)) return false;
+                if (!io.Write(io, Tag.Size, buffer)) return false;
             }
             else
             {
@@ -1084,10 +1086,7 @@ public static unsafe partial class Lcms2
                 LocalTypeHandler.ICCVersion = Icc.Version;
                 if (!LocalTypeHandler.WritePtr(LocalTypeHandler, io, Data, TagDescriptor.ElemCount))
                 {
-                    var str = stackalloc sbyte[5];
-
-                    _cmsTagSignature2String((byte*)str, TypeBase);
-                    cmsSignalError(Icc.ContextID, cmsERROR_WRITE, $"Couldn't write type '{new string(str)}'");
+                    cmsSignalError(Icc.ContextID, cmsERROR_WRITE, $"Couldn't write type '{_cmsTagSignature2String(TypeBase)}'");
                     return false;
                 }
             }
@@ -1213,21 +1212,23 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static bool cmsSaveProfileToMem(Profile Profile, Memory<byte> MemPtr, uint* BytesNeeded)
+    public static bool cmsSaveProfileToMem(Profile Profile, Memory<byte> MemPtr, out uint BytesNeeded)
     {
+        BytesNeeded = 0;
+
         var ContextID = cmsGetProfileContextID(Profile);
 
-        _cmsAssert(BytesNeeded);
+        //_cmsAssert(BytesNeeded);
 
         // Should we just calculate the needed space?
         if (MemPtr.IsEmpty)
         {
-            *BytesNeeded = cmsSaveProfileToIOhandler(Profile, null);
-            return *BytesNeeded is not 0;
+            BytesNeeded = cmsSaveProfileToIOhandler(Profile, null);
+            return BytesNeeded is not 0;
         }
 
         // That is a read write operation
-        var io = cmsOpenIOhandlerFromMem(ContextID, MemPtr, *BytesNeeded, "w");
+        var io = cmsOpenIOhandlerFromMem(ContextID, MemPtr, BytesNeeded, "w");
         if (io is null) return false;
 
         var rc = cmsSaveProfileToIOhandler(Profile, io) is not 0;
@@ -1249,12 +1250,12 @@ public static unsafe partial class Lcms2
 
                 LocalTypeHandler.ContextID = Icc.ContextID;
                 LocalTypeHandler.ICCVersion = Icc.Version;
-                LocalTypeHandler.FreePtr(LocalTypeHandler, tag.TagObject);
+                LocalTypeHandler.FreePtr?.Invoke(LocalTypeHandler, tag.TagObject);
             }
             else
             {
                 if (tag.TagObject is byte[] ptr)
-                    _cmsFree(Icc.ContextID, ptr);
+                    ReturnArray(Icc.ContextID, ptr);
                 //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
             }
         }
@@ -1305,8 +1306,6 @@ public static unsafe partial class Lcms2
     {
         TagDescriptor? TagDescriptor;
         Signature BaseType;
-        uint ElemCount;
-        var str = stackalloc sbyte[5];
 
         var Icc = Profile;
 
@@ -1356,10 +1355,8 @@ public static unsafe partial class Lcms2
         TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
-            _cmsTagSignature2String((byte*)str, sig);
-
             // An unknown element was found.
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{new string(str)}' found.");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{_cmsTagSignature2String(sig)}' found.");
             goto Error;     // Unsupported
         }
 
@@ -1380,14 +1377,13 @@ public static unsafe partial class Lcms2
         tag.TypeHandler = TypeHandler;
         LocalTypeHandler.ContextID = Icc.ContextID;
         LocalTypeHandler.ICCVersion = Icc.Version;
-        tag.TagObject = LocalTypeHandler.ReadPtr(LocalTypeHandler, io, &ElemCount, TagSize);
+        tag.TagObject = LocalTypeHandler.ReadPtr(LocalTypeHandler, io, out var ElemCount, TagSize);
 
         // The tag type is supported, but something wrong happened and we cannot read the tag.
         // let the user know about this (although it is just a warning)
         if (tag.TagObject is null)
         {
-            _cmsTagSignature2String((byte*)str, sig);
-            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{new string(str)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{_cmsTagSignature2String(sig)}'");
             goto Error2;
         }
 
@@ -1395,9 +1391,8 @@ public static unsafe partial class Lcms2
         // stored items is actuall less than the number of required elements.
         if (ElemCount < TagDescriptor.ElemCount)
         {
-            _cmsTagSignature2String((byte*)str, sig);
             cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED,
-                $"'{new string(str)}' Inconsistent number of items: expected {TagDescriptor.ElemCount}, got {ElemCount}");
+                $"'{_cmsTagSignature2String(sig)}' Inconsistent number of items: expected {TagDescriptor.ElemCount}, got {ElemCount}");
             goto Error2;
         }
 
@@ -1432,8 +1427,6 @@ public static unsafe partial class Lcms2
     {
         var Icc = Profile;
 
-        var TypeString = stackalloc sbyte[5];
-        var SigString = stackalloc sbyte[5];
         Signature Type;
         int i;
         Profile.TagEntry tag;
@@ -1459,7 +1452,7 @@ public static unsafe partial class Lcms2
             goto Error;
         }
 
-        if (!_cmsNewTag(Icc, sig, &i)) goto Error;
+        if (!_cmsNewTag(Icc, sig, out i)) goto Error;
         tag = Icc.Tags[i];
 
         // This is not raw
@@ -1472,8 +1465,7 @@ public static unsafe partial class Lcms2
         var TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
-            _cmsTagSignature2String((byte*)SigString, sig);
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 
@@ -1497,10 +1489,7 @@ public static unsafe partial class Lcms2
         // Does the tag support this type?
         if (!IsTypeSupported(TagDescriptor, Type))
         {
-            _cmsTagSignature2String((byte*)TypeString, Type);
-            _cmsTagSignature2String((byte*)SigString, sig);
-
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 
@@ -1508,10 +1497,7 @@ public static unsafe partial class Lcms2
         var TypeHandler = _cmsGetTagTypeHandler(Icc.ContextID, Type);
         if (TypeHandler is null)
         {
-            _cmsTagSignature2String((byte*)TypeString, Type);
-            _cmsTagSignature2String((byte*)SigString, sig);
-
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;     // Should never happen
         }
 
@@ -1528,10 +1514,7 @@ public static unsafe partial class Lcms2
 
         if (tag.TagObject is null)
         {
-            _cmsTagSignature2String((byte*)TypeString, Type);
-            _cmsTagSignature2String((byte*)SigString, sig);
-
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{new string(TypeString)}' for tag '{new string(SigString)}'");
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 
@@ -1568,7 +1551,7 @@ public static unsafe partial class Lcms2
                     TagSize = BufferSize;
 
                 if (Icc.IOHandler?.Seek(Icc.IOHandler, Offset) != true) goto Error;
-                if (Icc.IOHandler.Read(Icc.IOHandler, Unsafe.AsPointer(ref data.Span.GetPinnableReference()), 1, TagSize) is 0) goto Error;
+                if (Icc.IOHandler.Read(Icc.IOHandler, data.Span, 1, TagSize) is 0) goto Error;
 
                 _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
                 return TagSize;
@@ -1657,13 +1640,11 @@ public static unsafe partial class Lcms2
 
     public static bool cmsWriteRawTag(Profile Profile, Signature sig, ReadOnlySpan<byte> data, uint Size)
     {
-        int i;
-
         var Icc = Profile;
 
         if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return false;
 
-        if (!_cmsNewTag(Icc, sig, &i))
+        if (!_cmsNewTag(Icc, sig, out var i))
         {
             _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return false;
@@ -1694,13 +1675,11 @@ public static unsafe partial class Lcms2
 
     public static bool cmsLinkTag(Profile Profile, Signature sig, Signature dest)
     {
-        int i;
-
         var Icc = Profile;
 
         if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return false;
 
-        if (!_cmsNewTag(Icc, sig, &i))
+        if (!_cmsNewTag(Icc, sig, out var i))
         {
             _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
             return false;

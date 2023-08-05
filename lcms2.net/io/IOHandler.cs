@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.io;
 
-public unsafe class IOHandler
+public class IOHandler
 {
     internal object? stream;
     internal Context? ContextID;
@@ -37,11 +37,11 @@ public unsafe class IOHandler
     internal uint reportedSize;
     internal string? physicalFile;
 
-    internal delegate uint ReadFn(IOHandler iohandler, void* buffer, uint size, uint count);
+    internal delegate uint ReadFn(IOHandler iohandler, Span<byte> buffer, uint size, uint count);
     internal delegate bool SeekFn(IOHandler iohandler, uint offset);
     internal delegate bool CloseFn(IOHandler iohandler);
     internal delegate uint TellFn(IOHandler iohandler);
-    internal delegate bool WriteFn(IOHandler iohandler, uint size, in void* buffer);
+    internal delegate bool WriteFn(IOHandler iohandler, uint size, ReadOnlySpan<byte> buffer);
 
     internal ReadFn Read;
     internal SeekFn Seek;

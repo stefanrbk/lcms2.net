@@ -31,7 +31,7 @@ using System.Text;
 
 namespace lcms2.cgats;
 
-internal unsafe class IT8
+internal class IT8
 {
     public uint TablesCount;
     public uint nTable;

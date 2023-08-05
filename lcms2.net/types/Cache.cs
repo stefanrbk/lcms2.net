@@ -27,8 +27,8 @@
 
 namespace lcms2.types;
 
-public unsafe struct Cache
+public struct Cache
 {
-    public fixed ushort CacheIn[cmsMAXCHANNELS];
-    public fixed ushort CacheOut[cmsMAXCHANNELS];
+    public ushort[] CacheIn;
+    public ushort[] CacheOut;
 }

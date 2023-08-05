@@ -26,7 +26,7 @@
 //
 
 namespace lcms2.cgats;
-internal static unsafe class CGATS
+internal static class CGATS
 {
     public const ushort MAXID = 128;
     public const ushort MAXSTR = 1024;

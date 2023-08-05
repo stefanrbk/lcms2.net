@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe interface IMutex : IDisposable
+public interface IMutex : IDisposable
 {
     static abstract IMutex Create(Context? context);
 

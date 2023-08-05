@@ -26,8 +26,6 @@
 //
 global using static lcms2.Lcms2;
 
-global using unsafe HANDLE = void*;
-
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Testbed")]

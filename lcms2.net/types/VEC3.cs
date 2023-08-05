@@ -25,13 +25,16 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-[StructLayout(LayoutKind.Explicit)]
-public unsafe struct VEC3(double x, double y, double z)
+[DebuggerStepThrough, StructLayout(LayoutKind.Explicit)]
+public struct VEC3(double x, double y, double z)
 {
     [FieldOffset(0)]
     public double X = x;
@@ -59,9 +62,70 @@ public unsafe struct VEC3(double x, double y, double z)
         return result;
     }
 
+    public double this[int index]
+    {
+        get
+        {
+            return index switch
+            {
+                0 => X,
+                1 => Y,
+                2 => Z,
+                _ => throw new IndexOutOfRangeException(nameof(index)),
+            };
+        }
+        set
+        {
+            switch (index)
+            {
+                case 0:
+                    X = value;
+                    break;
+                case 1:
+                    Y = value;
+                    break;
+                case 2:
+                    Z = value;
+                    break;
+                default:
+                    throw new IndexOutOfRangeException(nameof(index));
+            }
+        }
+    }
+
+    public void Deconstruct(out double x, out double y, out double z) =>
+        (x, y, z) = (X, Y, Z);
+
     public static VEC3 operator *(VEC3 lhs, double rhs) =>
         new(lhs.X * rhs, lhs.Y * rhs, lhs.Z * rhs);
 
     public static VEC3 operator *(double lhs, VEC3 rhs) =>
         new(rhs.X * lhs, rhs.Y * lhs, rhs.Z * lhs);
+
+    public static VEC3 NaN =>
+        new(double.NaN, double.NaN, double.NaN);
+
+    public readonly bool IsNaN =>
+        double.IsNaN(X) || double.IsNaN(Y) || double.IsNaN(Z);
+
+    public static VEC3 operator -(VEC3 left, VEC3 right) =>
+        new(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
+
+    public readonly VEC3 Cross(VEC3 other) =>
+        new(
+            (Y * other.Z) - (other.Y * Z),
+            (Z * other.X) - (other.Z * X),
+            (X * other.Y) - (other.X * Y));
+
+    public readonly double Dot(VEC3 other) =>
+        (X * other.X) + (Y * other.Y) + (Z * other.Z);
+
+    public readonly double Length =>
+        Math.Sqrt((X * X) + (Y * Y) + (Z * Z));
+
+    public readonly double Distance(VEC3 other) =>
+        (this - other).Length;
+
+    public readonly CIEXYZ AsXYZ =>
+        new(X, Y, Z);
 }

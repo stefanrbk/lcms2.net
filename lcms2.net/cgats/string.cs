@@ -27,7 +27,7 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct @string
+internal struct @string
 {
     public IT8 it8;
     public int max;

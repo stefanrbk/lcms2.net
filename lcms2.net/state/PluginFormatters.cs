@@ -29,5 +29,6 @@ namespace lcms2.state;
 
 public class PluginFormatters : PluginBase
 {
-    public FormatterFactory FormattersFactory;
+    public FormatterFactoryIn FormattersFactoryIn;
+    public FormatterFactoryOut FormattersFactoryOut;
 }

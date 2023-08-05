@@ -31,7 +31,7 @@ using static System.Math;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static readonly ushort[] RGBblack = new ushort[4];
     private static readonly ushort[] RGBwhite = new ushort[4] { 0xFFFF, 0xFFFF, 0xFFFF, 0 };
@@ -44,21 +44,21 @@ public static unsafe partial class Lcms2
     private static readonly ushort[] GrayBlack = new ushort[4];
     private static readonly ushort[] GrayWhite = new ushort[4] { 0xFFFF, 0, 0, 0 };
 
-    public static void cmsXYZ2xyY(CIExyY* Dest, in CIEXYZ* Source)
+    public static CIExyY cmsXYZ2xyY(CIEXYZ Source)
     {
-        var ISum = 1 / (Source->X + Source->Y + Source->Z);
+        var ISum = 1 / (Source.X + Source.Y + Source.Z);
 
-        Dest->x = Source->X * ISum;
-        Dest->y = Source->Y * ISum;
-        Dest->Y = Source->Y;
+        return new CIExyY(
+            x: Source.X * ISum,
+            y: Source.Y * ISum,
+            Y: Source.Y);
     }
 
-    public static void cmsxyY2XYZ(CIEXYZ* Dest, in CIExyY* Source)
-    {
-        Dest->X = Source->x / Source->y * Source->Y;
-        Dest->Y = Source->Y;
-        Dest->Z = (1 - Source->x - Source->y) / Source->y * Source->Y;
-    }
+    public static CIEXYZ cmsxyY2XYZ(CIExyY Source) =>
+        new CIEXYZ(
+            x: Source.x / Source.y * Source.Y,
+            y: Source.Y,
+            z: (1 - Source.x - Source.y) / Source.y * Source.Y);
 
     private static double f(double t)
     {
@@ -78,32 +78,30 @@ public static unsafe partial class Lcms2
             : t * t * t;
     }
 
-    public static void cmsXYZ2Lab(CIEXYZ* WhitePoint, CIELab* Lab, in CIEXYZ* xyz)
+    public static void cmsXYZ2Lab(CIEXYZ? WhitePoint, out CIELab Lab, CIEXYZ xyz)
     {
-        if (WhitePoint is null)
-            WhitePoint = cmsD50_XYZ();
+        WhitePoint ??= D50XYZ;
 
-        var fx = f(xyz->X / WhitePoint->X);
-        var fy = f(xyz->Y / WhitePoint->Y);
-        var fz = f(xyz->Z / WhitePoint->Z);
+        var fx = f(xyz.X / WhitePoint.Value.X);
+        var fy = f(xyz.Y / WhitePoint.Value.Y);
+        var fz = f(xyz.Z / WhitePoint.Value.Z);
 
-        Lab->L = (116 * fy) - 16;
-        Lab->a = 500 * (fx - fy);
-        Lab->b = 200 * (fy - fz);
+        Lab.L = (116 * fy) - 16;
+        Lab.a = 500 * (fx - fy);
+        Lab.b = 200 * (fy - fz);
     }
 
-    public static void cmsLab2XYZ(CIEXYZ* WhitePoint, CIEXYZ* xyz, in CIELab* Lab)
+    public static void cmsLab2XYZ(CIEXYZ? WhitePoint, out CIEXYZ xyz, CIELab Lab)
     {
-        if (WhitePoint is null)
-            WhitePoint = cmsD50_XYZ();
+        WhitePoint ??= D50XYZ;
 
-        var y = (Lab->L + 16.0) / 116.0;
-        var x = y + (0.002 * Lab->a);
-        var z = y - (0.005 * Lab->b);
+        var y = (Lab.L + 16.0) / 116.0;
+        var x = y + (0.002 * Lab.a);
+        var z = y - (0.005 * Lab.b);
 
-        xyz->X = f_1(x) * WhitePoint->X;
-        xyz->Y = f_1(y) * WhitePoint->Y;
-        xyz->Z = f_1(z) * WhitePoint->Z;
+        xyz.X = f_1(x) * WhitePoint.Value.X;
+        xyz.Y = f_1(y) * WhitePoint.Value.Y;
+        xyz.Z = f_1(z) * WhitePoint.Value.Z;
     }
 
     private static double L2float2(ushort v) =>
@@ -124,19 +122,17 @@ public static unsafe partial class Lcms2
     private static double ab2float4(ushort v) =>
         (v / 257.0) - 128;
 
-    public static void cmsLabEncoded2FloatV2(CIELab* Lab, in ushort* wLab)
-    {
-        Lab->L = L2float2(wLab[0]);
-        Lab->a = ab2float2(wLab[1]);
-        Lab->b = ab2float2(wLab[2]);
-    }
+    public static CIELab cmsLabEncoded2FloatV2(ReadOnlySpan<ushort> wLab) =>
+        new(
+            L: L2float2(wLab[0]),
+            a: ab2float2(wLab[1]),
+            b: ab2float2(wLab[2]));
 
-    public static void cmsLabEncoded2Float(CIELab* Lab, in ushort* wLab)
-    {
-        Lab->L = L2float4(wLab[0]);
-        Lab->a = ab2float4(wLab[1]);
-        Lab->b = ab2float4(wLab[2]);
-    }
+    public static CIELab cmsLabEncoded2Float(ReadOnlySpan<ushort> wLab) =>
+        new(
+            L: L2float4(wLab[0]),
+            a: ab2float4(wLab[1]),
+            b: ab2float4(wLab[2]));
 
     private static double Clamp_L_doubleV2(double L) =>
         Max(Min(L, 0xffff * 100.0 / 0xff00), 0);
@@ -144,13 +140,13 @@ public static unsafe partial class Lcms2
     private static double Clamp_ab_doubleV2(double ab) =>
         Max(Min(ab, MAX_ENCODEABLE_ab2), MIN_ENCODEABLE_ab2);
 
-    public static void cmsFloat2LabEncodedV2(ushort* wLab, in CIELab* fLab)
+    public static void cmsFloat2LabEncodedV2(Span<ushort> wLab, CIELab fLab)
     {
         CIELab Lab;
 
-        Lab.L = Clamp_L_doubleV2(fLab->L);
-        Lab.a = Clamp_ab_doubleV2(fLab->a);
-        Lab.b = Clamp_ab_doubleV2(fLab->b);
+        Lab.L = Clamp_L_doubleV2(fLab.L);
+        Lab.a = Clamp_ab_doubleV2(fLab.a);
+        Lab.b = Clamp_ab_doubleV2(fLab.b);
 
         wLab[0] = L2Fix2(Lab.L);
         wLab[1] = ab2Fix2(Lab.a);
@@ -169,13 +165,13 @@ public static unsafe partial class Lcms2
     private static ushort ab2Fix4(double ab) =>
         _cmsQuickSaturateWord((ab + 128) * 257);
 
-    public static void cmsFloat2LabEncoded(ushort* wLab, in CIELab* fLab)
+    public static void cmsFloat2LabEncoded(Span<ushort> wLab, CIELab fLab)
     {
         CIELab Lab;
 
-        Lab.L = Clamp_L_doubleV4(fLab->L);
-        Lab.a = Clamp_ab_doubleV4(fLab->a);
-        Lab.b = Clamp_ab_doubleV4(fLab->b);
+        Lab.L = Clamp_L_doubleV4(fLab.L);
+        Lab.a = Clamp_ab_doubleV4(fLab.a);
+        Lab.b = Clamp_ab_doubleV4(fLab.b);
 
         wLab[0] = L2Fix4(Lab.L);
         wLab[1] = ab2Fix4(Lab.a);
@@ -204,33 +200,27 @@ public static unsafe partial class Lcms2
     private static double Sqr(double v) =>
         v * v;
 
-    public static void cmsLab2LCh(CIELCh* LCh, in CIELab* Lab)
-    {
-        LCh->L = Lab->L;
-        LCh->C = Pow(Sqr(Lab->a) + Sqr(Lab->b), 0.5);
-        LCh->h = atan2deg(Lab->b, Lab->a);
-    }
+    public static CIELCh cmsLab2LCh(CIELab Lab) =>
+        new(
+            L: Lab.L,
+            C: Pow(Sqr(Lab.a) + Sqr(Lab.b), 0.5),
+            h: atan2deg(Lab.b, Lab.a));
 
-    public static void cmsLCh2Lab(CIELab* Lab, in CIELCh* LCh)
+    public static CIELab cmsLCh2Lab(CIELCh LCh)
     {
-        var h = LCh->h * M_PI / 180;
+        var h = LCh.h * M_PI / 180;
 
-        Lab->L = LCh->L;
-        Lab->a = LCh->C * Cos(h);
-        Lab->b = LCh->C * Sin(h);
+        return new(
+            L: LCh.L,
+            a: LCh.C * Cos(h),
+            b: LCh.C * Sin(h));
     }
 
     private static ushort XYZ2Fix(double d) =>
         _cmsQuickSaturateWord(d * 32768);
 
-    public static void cmsFloat2XYZEncoded(ushort* XYZ, in CIEXYZ* fXYZ)
+    public static void cmsFloat2XYZEncoded(Span<ushort> XYZ, CIEXYZ xyz)
     {
-        CIEXYZ xyz;
-
-        xyz.X = fXYZ->X;
-        xyz.Y = fXYZ->Y;
-        xyz.Z = fXYZ->Z;
-
         // Clamp to encodeable values.
         if (xyz.Y <= 0)
         {
@@ -265,143 +255,128 @@ public static unsafe partial class Lcms2
     private static double XYZ2float(ushort v) =>
         _cms15Fixed16toDouble(v << 1);
 
-    public static void cmsXYZEncoded2Float(CIEXYZ* fXYZ, in ushort* XYZ)
-    {
-        fXYZ->X = XYZ2float(XYZ[0]);
-        fXYZ->Y = XYZ2float(XYZ[1]);
-        fXYZ->Z = XYZ2float(XYZ[2]);
-    }
+    public static CIEXYZ cmsXYZEncoded2Float(ReadOnlySpan<ushort> XYZ) =>
+        new(
+            x: XYZ2float(XYZ[0]),
+            y: XYZ2float(XYZ[1]),
+            z: XYZ2float(XYZ[2]));
 
-    public static double cmsDeltaE(in CIELab* Lab1, in CIELab* Lab2)
+    public static double cmsDeltaE(CIELab Lab1, CIELab Lab2)
     {
-        var dL = Abs(Lab1->L - Lab2->L);
-        var da = Abs(Lab1->a - Lab2->a);
-        var db = Abs(Lab1->b - Lab2->b);
+        var dL = Abs(Lab1.L - Lab2.L);
+        var da = Abs(Lab1.a - Lab2.a);
+        var db = Abs(Lab1.b - Lab2.b);
 
         return Pow(Sqr(dL) + Sqr(da) + Sqr(db), 0.5);
     }
 
-    public static double cmsCIE94DeltaE(in CIELab* Lab1, in CIELab* Lab2)
+    public static double cmsCIE94DeltaE(CIELab Lab1, CIELab Lab2)
     {
-        CIELCh LCh1, LCh2;
-        double dE, dL, dC, dh, dhsq;
-        double c12, sc, sh;
+        var dL = Abs(Lab1.L - Lab2.L);
 
-        dL = Abs(Lab1->L - Lab2->L);
+        var LCh1 = cmsLab2LCh(Lab1);
+        var LCh2 = cmsLab2LCh(Lab2);
 
-        cmsLab2LCh(&LCh1, Lab1);
-        cmsLab2LCh(&LCh2, Lab2);
+        var dC = Abs(LCh1.C - LCh2.C);
+        var dE = cmsDeltaE(Lab1, Lab2);
 
-        dC = Abs(LCh1.C - LCh2.C);
-        dE = cmsDeltaE(Lab1, Lab2);
+        var dhsq = Sqr(dE) - Sqr(dL) - Sqr(dC);
+        var dh = dhsq < 0 ? 0 : Pow(dhsq, 0.5);
 
-        dhsq = Sqr(dE) - Sqr(dL) - Sqr(dC);
-        if (dhsq < 0)
-            dh = 0;
-        else
-            dh = Pow(dhsq, 0.5);
+        var c12 = Sqrt(LCh1.C * LCh2.C);
 
-        c12 = Sqrt(LCh1.C * LCh2.C);
-
-        sc = 1.0 + (0.048 * c12);
-        sh = 1.0 + (0.014 * c12);
+        var sc = 1.0 + (0.048 * c12);
+        var sh = 1.0 + (0.014 * c12);
 
         return Sqrt(Sqr(dL) + (Sqr(dC) / Sqr(sc)) + (Sqr(dh) / Sqr(sh)));
     }
 
-    private static double ComputeLBFD(in CIELab* Lab) =>
-        (54.6 * (M_LOG10E * Log((Lab->L > 7.996969 ? Sqr((Lab->L + 16) / 116) * ((Lab->L + 16) / 116) * 100 : 100 * (Lab->L / 903.3)) + 1.5))) - 9.6;
+    private static double ComputeLBFD(CIELab Lab) =>
+        (54.6 * (M_LOG10E * Log((Lab.L > 7.996969 ? Sqr((Lab.L + 16) / 116) * ((Lab.L + 16) / 116) * 100 : 100 * (Lab.L / 903.3)) + 1.5))) - 9.6;
 
-    public static double cmsBFDdeltaE(in CIELab* Lab1, in CIELab* Lab2)
+    public static double cmsBFDdeltaE(CIELab Lab1, CIELab Lab2)
     {
-        double lbfd1, lbfd2, AveC, Aveh, dE, deltaL,
-            deltaC, deltah, dc, t, g, dh, rh, rc, rt;
-        CIELCh LCh1, LCh2;
+        var lbfd1 = ComputeLBFD(Lab1);
+        var lbfd2 = ComputeLBFD(Lab2);
+        var deltaL = lbfd2 - lbfd1;
 
-        lbfd1 = ComputeLBFD(Lab1);
-        lbfd2 = ComputeLBFD(Lab2);
-        deltaL = lbfd2 - lbfd1;
+        var LCh1 = cmsLab2LCh(Lab1);
+        var LCh2 = cmsLab2LCh(Lab2);
 
-        cmsLab2LCh(&LCh1, Lab1);
-        cmsLab2LCh(&LCh2, Lab2);
+        var deltaC = LCh2.C - LCh1.C;
+        var AveC = (LCh1.C + LCh2.C) / 2;
+        var Aveh = (LCh1.h + LCh2.h) / 2;
 
-        deltaC = LCh2.C - LCh1.C;
-        AveC = (LCh1.C + LCh2.C) / 2;
-        Aveh = (LCh1.h + LCh2.h) / 2;
+        var dE = cmsDeltaE(Lab1, Lab2);
 
-        dE = cmsDeltaE(Lab1, Lab2);
-
-        deltah =
-            Sqr(dE) > (Sqr(Lab2->L - Lab1->L) + Sqr(deltaC))
-            ? Sqrt(Sqr(dE) - Sqr(Lab2->L - Lab1->L) - Sqr(deltaC))
+        var deltah =
+            Sqr(dE) > (Sqr(Lab2.L - Lab1.L) + Sqr(deltaC))
+            ? Sqrt(Sqr(dE) - Sqr(Lab2.L - Lab1.L) - Sqr(deltaC))
             : 0;
 
-        dc = (0.035 * AveC / (1 + (0.00365 * AveC))) + 0.521;
-        g = Sqrt(Sqr(Sqr(AveC)) / (Sqr(Sqr(AveC)) + 14000));
-        t = 0.627 + ((0.055 * Cos((Aveh - 254) / (180 / M_PI))) -
+        var dc = (0.035 * AveC / (1 + (0.00365 * AveC))) + 0.521;
+        var g = Sqrt(Sqr(Sqr(AveC)) / (Sqr(Sqr(AveC)) + 14000));
+        var t = 0.627 + ((0.055 * Cos((Aveh - 254) / (180 / M_PI))) -
                (0.040 * Cos(((2 * Aveh) - 136) / (180 / M_PI))) +
                (0.070 * Cos(((3 * Aveh) - 31) / (180 / M_PI))) +
                (0.049 * Cos(((4 * Aveh) + 114) / (180 / M_PI))) -
                (0.015 * Cos(((5 * Aveh) - 103) / (180 / M_PI))));
 
-        dh = dc * ((g * t) + 1 - g);
-        rh = (-0.260 * Cos((Aveh - 308) / (180 / M_PI))) -
+        var dh = dc * ((g * t) + 1 - g);
+        var rh = (-0.260 * Cos((Aveh - 308) / (180 / M_PI))) -
                (0.379 * Cos(((2 * Aveh) - 160) / (180 / M_PI))) -
                (0.636 * Cos(((3 * Aveh) + 254) / (180 / M_PI))) +
                (0.226 * Cos(((4 * Aveh) + 140) / (180 / M_PI))) -
                (0.194 * Cos(((5 * Aveh) + 280) / (180 / M_PI)));
 
-        rc = Sqrt(AveC * AveC * AveC * AveC * AveC * AveC / ((AveC * AveC * AveC * AveC * AveC * AveC) + 70000000));
-        rt = rh * rc;
+        var rc = Sqrt(AveC * AveC * AveC * AveC * AveC * AveC / ((AveC * AveC * AveC * AveC * AveC * AveC) + 70000000));
+        var rt = rh * rc;
 
         return Sqrt(Sqr(deltaL) + Sqr(deltaC / dc) + Sqr(deltah / dh) + (rt * (deltaC / dc) * (deltah / dh)));
     }
 
-    public static double cmsCMCdeltaE(in CIELab* Lab1, in CIELab* Lab2, double l, double c)
+    public static double cmsCMCdeltaE(CIELab Lab1, CIELab Lab2, double l, double c)
     {
-        double dE, dL, dC, dh, sl, sc, sh, t, f;
-        CIELCh LCh1, LCh2;
+        if (Lab1.L == 0 && Lab2.L == 0) return 0;
 
-        if (Lab1->L == 0 && Lab2->L == 0) return 0;
+        var LCh1 = cmsLab2LCh(Lab1);
+        var LCh2 = cmsLab2LCh(Lab2);
 
-        cmsLab2LCh(&LCh1, Lab1);
-        cmsLab2LCh(&LCh2, Lab2);
+        var dL = Lab2.L - Lab1.L;
+        var dC = LCh2.C - LCh1.C;
 
-        dL = Lab2->L - Lab1->L;
-        dC = LCh2.C - LCh1.C;
+        var dE = cmsDeltaE(Lab1, Lab2);
 
-        dE = cmsDeltaE(Lab1, Lab2);
-
-        dh =
+        var dh =
             Sqr(dE) > (Sqr(dL) + Sqr(dC))
             ? Sqrt(Sqr(dE) - Sqr(dL) - Sqr(dC))
             : 0;
 
-        t = LCh1.h is > 164 and < 345
+        var t = LCh1.h is > 164 and < 345
             ? 0.56 + Abs(0.2 * Cos((LCh1.h + 168) / (180 / M_PI)))
             : 0.36 + Abs(0.4 * Cos((LCh1.h + 35) / (180 / M_PI)));
 
-        sc = (0.0638 * LCh1.C / (1 + (0.0131 * LCh1.C))) + 0.638;
-        sl = 0.040975 * Lab1->L / (1 + (0.01765 * Lab1->L));
+        var sc = (0.0638 * LCh1.C / (1 + (0.0131 * LCh1.C))) + 0.638;
+        var sl = 0.040975 * Lab1.L / (1 + (0.01765 * Lab1.L));
 
-        if (Lab1->L < 16)
+        if (Lab1.L < 16)
             sl = 0.511;
 
-        f = Sqrt(LCh1.C * LCh1.C * LCh1.C * LCh1.C / ((LCh1.C * LCh1.C * LCh1.C * LCh1.C) + 1900));
-        sh = sc * ((t * f) + 1 - f);
+        var f = Sqrt(LCh1.C * LCh1.C * LCh1.C * LCh1.C / ((LCh1.C * LCh1.C * LCh1.C * LCh1.C) + 1900));
+        var sh = sc * ((t * f) + 1 - f);
         return Sqrt(Sqr(dL / (l * sl)) + Sqr(dC / (c * sc)) + Sqr(dh / sh));
     }
 
-    public static double cmsCIE2000DeltaE(in CIELab* Lab1, in CIELab* Lab2, double Kl, double Kc, double Kh)
+    public static double cmsCIE2000DeltaE(CIELab Lab1, CIELab Lab2, double Kl, double Kc, double Kh)
     {
-        var L1 = Lab1->L;
-        var a1 = Lab1->a;
-        var b1 = Lab1->b;
+        var L1 = Lab1.L;
+        var a1 = Lab1.a;
+        var b1 = Lab1.b;
         var C = Sqrt(Sqr(a1) + Sqr(b1));
 
-        var Ls = Lab2->L;
-        var @as = Lab2->a;
-        var bs = Lab2->b;
+        var Ls = Lab2.L;
+        var @as = Lab2.a;
+        var bs = Lab2.b;
         var Cs = Sqrt(Sqr(@as) + Sqr(bs));
 
         var G = 0.5 * (1 - Sqrt(Pow((C + Cs) / 2, 7.0) / (Pow((C + Cs) / 2, 7.0) + Pow(25.0, 7.0))));

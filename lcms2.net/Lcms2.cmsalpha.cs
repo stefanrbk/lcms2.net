@@ -30,9 +30,11 @@ using lcms2.types;
 
 using System.Runtime.CompilerServices;
 
+using static System.BitConverter;
+
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     // CHANGE_ENDIAN already defined in Lcms2.cmspack.cs
 
@@ -40,106 +42,107 @@ public static unsafe partial class Lcms2
     private static byte _cmsQuickSaturateByte(double d) =>
         (byte)_cmsQuickSaturateWord(Math.Max(Math.Min(d + 0.5, 255), 0));
 
-    private static uint trueBytesSize(uint Format) => PixelSize(Format);
+    private static uint trueBytesSize(uint Format) =>
+        PixelSize(Format);
 
-    private static void copy8(void* dst, in void* src) =>
-        memmove(dst, src, 1);
+    private static void copy8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = src[0];
 
-    private static void from8to16(void* dst, in void* src) =>
-        *(ushort*)dst = FROM_8_TO_16(*(byte*)src);
+    private static void from8to16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, FROM_8_TO_16(src[0]));
 
-    private static void from8to16SE(void* dst, in void* src) =>
-        *(ushort*)dst = CHANGE_ENDIAN(FROM_8_TO_16(*(byte*)src));
+    private static void from8to16SE(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(FROM_8_TO_16(src[0])));
 
-    private static void from8toFLT(void* dst, in void* src) =>
-        *(float*)dst = *(byte*)src / 255f;
+    private static void from8toFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, src[0] / 255f);
 
-    private static void from8toDBL(void* dst, in void* src) =>
-        *(double*)dst = *(byte*)src / 255d;
+    private static void from8toDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, src[0] / 255d);
 
-    private static void from8toHLF(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsFloat2Half(*(byte*)src / 255f);
+    private static void from8toHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsFloat2Half(src[0] / 255f));
 
-    private static void from16to8(void* dst, in void* src) =>
-        *(byte*)dst = FROM_16_TO_8(*(ushort*)src);
+    private static void from16to8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = FROM_16_TO_8(ToUInt16(src));
 
-    private static void from16SEto8(void* dst, in void* src) =>
-        *(byte*)dst = FROM_16_TO_8(CHANGE_ENDIAN(*(ushort*)src));
+    private static void from16SEto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = FROM_16_TO_8(CHANGE_ENDIAN(ToUInt16(src)));
 
-    private static void copy16(void* dst, in void* src) =>
-        memmove(dst, src, 2);
+    private static void copy16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        src[..2].CopyTo(dst);
 
-    private static void from16to16(void* dst, in void* src) =>
-        *(ushort*)dst = CHANGE_ENDIAN(*(ushort*)src);
+    private static void from16to16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(ToUInt16(src)));
 
-    private static void from16toFLT(void* dst, in void* src) =>
-        *(float*)dst = *(ushort*)src / 255f;
+    private static void from16toFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, ToUInt16(src) / 255f);
 
-    private static void from16SEtoFLT(void* dst, in void* src) =>
-        *(float*)dst = CHANGE_ENDIAN(*(ushort*)src) / 255f;
+    private static void from16SEtoFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(ToUInt16(src)) / 255f);
 
-    private static void from16toDBL(void* dst, in void* src) =>
-        *(double*)dst = *(ushort*)src / 255d;
+    private static void from16toDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, ToUInt16(src) / 255d);
 
-    private static void from16SEtoDBL(void* dst, in void* src) =>
-        *(double*)dst = CHANGE_ENDIAN(*(ushort*)src) / 255d;
+    private static void from16SEtoDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(ToUInt16(src)) / 255f);
 
-    private static void from16toHLF(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsFloat2Half(*(ushort*)src / 255f);
+    private static void from16toHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsFloat2Half(ToUInt16(src) / 255f));
 
-    private static void from16SEtoHLF(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsFloat2Half(CHANGE_ENDIAN(*(ushort*)src) / 255f);
+    private static void from16SEtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsFloat2Half(CHANGE_ENDIAN(ToUInt16(src)) / 255f));
 
-    private static void fromFLTto8(void* dst, in void* src) =>
-        *(byte*)dst = _cmsQuickSaturateByte(*(float*)src * 255.0);
+    private static void fromFLTto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = _cmsQuickSaturateByte(ToSingle(src) * 255.0);
 
-    private static void fromFLTto16(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsQuickSaturateWord(*(float*)src * 65535f);
+    private static void fromFLTto16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsQuickSaturateWord(ToSingle(src) * 65535f));
 
-    private static void fromFLTto16SE(void* dst, in void* src) =>
-        *(ushort*)dst = CHANGE_ENDIAN(_cmsQuickSaturateWord(*(float*)src * 65535f));
+    private static void fromFLTto16SE(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(_cmsQuickSaturateWord(ToSingle(src) * 65535f)));
 
-    private static void copy32(void* dst, in void* src) =>
-        memmove(dst, src, _sizeof<float>());
+    private static void copy32(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        src[..4].CopyTo(dst);
 
-    private static void fromFLTtoDBL(void* dst, in void* src) =>
-        *(double*)dst = *(float*)src;
+    private static void fromFLTtoDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, ToSingle(src));
 
-    private static void fromFLTtoHLF(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsFloat2Half(*(float*)src);
+    private static void fromFLTtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsFloat2Half(ToSingle(src)));
 
-    private static void fromHLFto8(void* dst, in void* src) =>
-        *(byte*)dst = _cmsQuickSaturateByte(_cmsHalf2Float(*(ushort*)src) * 255.0);
+    private static void fromHLFto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = _cmsQuickSaturateByte(_cmsHalf2Float(ToUInt16(src)) * 255.0);
 
-    private static void fromHLFto16(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsQuickSaturateWord(_cmsHalf2Float(*(ushort*)src) * 65535f);
+    private static void fromHLFto16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsQuickSaturateWord(_cmsHalf2Float(ToUInt16(src)) * 65535f));
 
-    private static void fromHLFto16SE(void* dst, in void* src) =>
-        *(ushort*)dst = CHANGE_ENDIAN(_cmsQuickSaturateWord(_cmsHalf2Float(*(ushort*)src) * 65535f));
+    private static void fromHLFto16SE(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(_cmsQuickSaturateWord(_cmsHalf2Float(ToUInt16(src)) * 65535f)));
 
-    private static void fromHLFtoFLT(void* dst, in void* src) =>
-        *(double*)dst = _cmsHalf2Float(*(ushort*)src);
+    private static void fromHLFtoFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsHalf2Float(ToUInt16(src)));
 
-    private static void fromHLFtoDBL(void* dst, in void* src) =>
-        *(double*)dst = _cmsHalf2Float(*(ushort*)src);
+    private static void fromHLFtoDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, (double)_cmsHalf2Float(ToUInt16(src)));
 
-    private static void fromDBLto8(void* dst, in void* src) =>
-        *(byte*)dst = _cmsQuickSaturateByte(*(double*)src * 255.0);
+    private static void fromDBLto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        dst[0] = _cmsQuickSaturateByte(ToDouble(src) * 255.0);
 
-    private static void fromDBLto16(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsQuickSaturateWord(*(double*)src * 65535f);
+    private static void fromDBLto16(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsQuickSaturateWord(ToDouble(src) * 65535f));
 
-    private static void fromDBLto16SE(void* dst, in void* src) =>
-        *(ushort*)dst = CHANGE_ENDIAN(_cmsQuickSaturateWord(*(double*)src * 65535f));
+    private static void fromDBLto16SE(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, CHANGE_ENDIAN(_cmsQuickSaturateWord(ToDouble(src) * 65535f)));
 
-    private static void fromDBLtoFLT(void* dst, in void* src) =>
-        *(float*)dst = (float)*(double*)src;
+    private static void fromDBLtoFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst,(float)ToDouble(src));
 
-    private static void fromDBLtoHLF(void* dst, in void* src) =>
-        *(ushort*)dst = _cmsFloat2Half((float)*(double*)src);
+    private static void fromDBLtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        TryWriteBytes(dst, _cmsFloat2Half((float)ToDouble(src)));
 
-    private static void copy64(void* dst, in void* src) =>
-        memmove(dst, src, _sizeof<double>());
+    private static void copy64(Span<byte> dst, ReadOnlySpan<byte> src) =>
+        src[..8].CopyTo(dst);
 
     private static int FormatterPos(uint frm) =>
         (T_BYTES(frm), T_FLOAT(frm) is not 0) switch
@@ -179,28 +182,28 @@ public static unsafe partial class Lcms2
         return FormattersAlpha[in_n, out_n];
     }
 
-    private static void ComputeIncrementsForChunky(uint Format, uint* ComponentStartingOrder, uint* ComponentPointerIncrements)
+    private static void ComputeIncrementsForChunky(uint Format, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
-        var channels = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> channels = stackalloc uint[cmsMAXCHANNELS];
         var extra = T_EXTRA(Format);
         var nchannels = T_CHANNELS(Format);
         var total_chans = nchannels + extra;
-        var channelSize = PixelSize(Format);
+        var channelSize = (int)PixelSize(Format);
         var pixelSize = channelSize * total_chans;
 
         // Sanity check
         if (total_chans is <= 0 or >= cmsMAXCHANNELS)
             return;
 
-        memset(channels, 0, cmsMAXCHANNELS * _sizeof<uint>());
+        //memset(channels, 0, cmsMAXCHANNELS * sizeof(uint));
 
         // Separation is independent of starting point and only depends on channel size
         for (var i = 0; i < extra; i++)
-            ComponentPointerIncrements[i] = pixelSize;
+            ComponentPointerIncrements[i] = (uint)pixelSize;
 
         // Handle do swap
-        for (var i = 0u; i < total_chans; i++)
-            channels[i] = T_DOSWAP(Format) is not 0 ? total_chans - i - 1 : i;
+        for (var i = 0; i < total_chans; i++)
+            channels[i] = (uint)(T_DOSWAP(Format) is not 0 ? total_chans - i - 1 : i);
 
         // Handle swap first (ROL of positions), example CMYK -> KCMY | 0123 ->3012
         if (T_SWAPFIRST(Format) is not 0 && total_chans > 1)
@@ -213,16 +216,18 @@ public static unsafe partial class Lcms2
 
         // Handle size
         if (channelSize > 1)
+        {
             for (var i = 0; i < total_chans; i++)
-                channels[i] *= channelSize;
+                channels[i] *= (uint)channelSize;
+        }
 
         for (var i = 0; i < extra; i++)
             ComponentStartingOrder[i] = channels[i + nchannels];
     }
 
-    private static void ComputeIncrementsForPlanar(uint Format, uint BytesPerPlane, uint* ComponentStartingOrder, uint* ComponentPointerIncrements)
+    private static void ComputeIncrementsForPlanar(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
-        var channels = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> channels = stackalloc uint[cmsMAXCHANNELS];
         var extra = T_EXTRA(Format);
         var nchannels = T_CHANNELS(Format);
         var total_chans = nchannels + extra;
@@ -232,7 +237,7 @@ public static unsafe partial class Lcms2
         if (total_chans is <= 0 or >= cmsMAXCHANNELS)
             return;
 
-        memset(channels, 0, cmsMAXCHANNELS * _sizeof<uint>());
+        //memset(channels, 0, cmsMAXCHANNELS * sizeof(uint));
 
         // Separation is independent of starting point and only depends on channel size
         for (var i = 0; i < extra; i++)
@@ -240,7 +245,7 @@ public static unsafe partial class Lcms2
 
         // Handle do swap
         for (var i = 0u; i < total_chans; i++)
-            channels[i] = T_DOSWAP(Format) is not 0 ? total_chans - i - 1 : i;
+            channels[(int)i] = (uint)(T_DOSWAP(Format) is not 0 ? total_chans - i - 1 : i);
 
         // Handle swap first (ROL of positions), example CMYK -> KCMY | 0123 ->3012
         if (T_SWAPFIRST(Format) is not 0 && total_chans > 1)
@@ -248,7 +253,7 @@ public static unsafe partial class Lcms2
             var tmp = channels[0];
             for (var i = 0; i < total_chans - 1; i++)
                 channels[i] = channels[i + 1];
-            channels[total_chans - 1] = tmp;
+            channels[(int)total_chans - 1] = tmp;
         }
 
         // Handle size
@@ -256,10 +261,10 @@ public static unsafe partial class Lcms2
             channels[i] *= BytesPerPlane;
 
         for (var i = 0; i < extra; i++)
-            ComponentStartingOrder[i] = channels[i + nchannels];
+            ComponentStartingOrder[i] = channels[i + (int)nchannels];
     }
 
-    private static void ComputeComponentIncrements(uint Format, uint BytesPerPlane, uint* ComponentStartingOrder, uint* ComponentPointerIncrements)
+    private static void ComputeComponentIncrements(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
         if (T_PLANAR(Format) is not 0)
         {
@@ -271,12 +276,12 @@ public static unsafe partial class Lcms2
         }
     }
 
-    internal static void _cmsHandleExtraChannels(Transform p, in void* @in, void* @out, uint PixelsPerLine, uint LineCount, Stride* Stride)
+    internal static void _cmsHandleExtraChannels(Transform p, ReadOnlySpan<byte> @in, Span<byte> @out, uint PixelsPerLine, uint LineCount, Stride Stride)
     {
-        var SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-        var SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
-        var DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-        var DestIncrements = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+        Span<uint> DestIncrements = stackalloc uint[cmsMAXCHANNELS];
 
         // Make sure we need some copy
         if ((p.dwOriginalFlags & cmsFLAGS_COPY_ALPHA) is 0)
@@ -295,8 +300,8 @@ public static unsafe partial class Lcms2
         if (nExtra is 0) return;
 
         // Compute the increments
-        ComputeComponentIncrements(p.InputFormat, Stride->BytesPerPlaneIn, SourceStartingOrder, SourceIncrements);
-        ComputeComponentIncrements(p.OutputFormat, Stride->BytesPerPlaneOut, DestStartingOrder, DestIncrements);
+        ComputeComponentIncrements(p.InputFormat, Stride.BytesPerPlaneIn, SourceStartingOrder, SourceIncrements);
+        ComputeComponentIncrements(p.OutputFormat, Stride.BytesPerPlaneOut, DestStartingOrder, DestIncrements);
 
         // Check for conversions 8, 16, half, float, double
         var copyValueFn = _cmsGetFormatterAlpha(p.ContextID, p.InputFormat, p.OutputFormat);
@@ -311,30 +316,30 @@ public static unsafe partial class Lcms2
             for (var i = 0; i < LineCount; i++)
             {
                 // Prepare pointers for the loop
-                var SourcePtr = (byte*)@in + SourceStartingOrder[0] + SourceStrideIncrement;
-                var DestPtr = (byte*)@out + DestStartingOrder[0] + DestStrideIncrement;
+                var SourcePtr = (int)(SourceStartingOrder[0] + SourceStrideIncrement);
+                var DestPtr = (int)(DestStartingOrder[0] + DestStrideIncrement);
 
                 for (var j = 0; j < PixelsPerLine; j++)
                 {
-                    copyValueFn(DestPtr, SourcePtr);
+                    copyValueFn(@out[DestPtr..], @in[SourcePtr..]);
 
-                    SourcePtr += SourceIncrements[0];
-                    DestPtr += DestIncrements[0];
+                    SourcePtr += (int)SourceIncrements[0];
+                    DestPtr += (int)DestIncrements[0];
                 }
 
-                SourceStrideIncrement += Stride->BytesPerLineIn;
-                DestStrideIncrement += Stride->BytesPerPlaneOut;
+                SourceStrideIncrement += Stride.BytesPerLineIn;
+                DestStrideIncrement += Stride.BytesPerPlaneOut;
             }
         }
         else            // General case with more than one extra channel
         {
-            var SourcePtr = stackalloc byte*[cmsMAXCHANNELS];
-            var DestPtr = stackalloc byte*[cmsMAXCHANNELS];
-            var SourceStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
-            var DestStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
+            Span<int> SourcePtr = stackalloc int[cmsMAXCHANNELS];
+            Span<int> DestPtr = stackalloc int[cmsMAXCHANNELS];
+            Span<uint> SourceStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
+            Span<uint> DestStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
 
-            memset(SourceStrideIncrements, 0, _sizeof<uint>() * cmsMAXCHANNELS);
-            memset(DestStrideIncrements, 0, _sizeof<uint>() * cmsMAXCHANNELS);
+            //memset(SourceStrideIncrements, 0, sizeof(uint) * cmsMAXCHANNELS);
+            //memset(DestStrideIncrements, 0, sizeof(uint) * cmsMAXCHANNELS);
 
             // The loop itself
             for (var i = 0; i < LineCount; i++)
@@ -342,25 +347,25 @@ public static unsafe partial class Lcms2
                 // Prepare pointers for the loop
                 for (var j = 0; j < nExtra; j++)
                 {
-                    SourcePtr[j] = (byte*)@in + SourceStartingOrder[j] + SourceStrideIncrements[j];
-                    DestPtr[j] = (byte*)@out + DestStartingOrder[j] + DestStrideIncrements[j];
+                    SourcePtr[j] = (int)(SourceStartingOrder[j] + SourceStrideIncrements[j]);
+                    DestPtr[j] = (int)(DestStartingOrder[j] + DestStrideIncrements[j]);
                 }
 
                 for (var j = 0; j < PixelsPerLine; j++)
                 {
                     for (var k = 0; k < nExtra; k++)
                     {
-                        copyValueFn(DestPtr[k], SourcePtr[k]);
+                        copyValueFn(@out[DestPtr[k]..], @in[SourcePtr[k]..]);
 
-                        SourcePtr[k] += SourceIncrements[k];
-                        DestPtr[k] += DestIncrements[k];
+                        SourcePtr[k] += (int)SourceIncrements[k];
+                        DestPtr[k] += (int)DestIncrements[k];
                     }
                 }
 
                 for (var j = 0; j < nExtra; j++)
                 {
-                    SourceStrideIncrements[j] += Stride->BytesPerLineIn;
-                    DestStrideIncrements[j] += Stride->BytesPerLineOut;
+                    SourceStrideIncrements[j] += Stride.BytesPerLineIn;
+                    DestStrideIncrements[j] += Stride.BytesPerLineOut;
                 }
             }
         }

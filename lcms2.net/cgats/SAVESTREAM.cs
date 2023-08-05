@@ -29,7 +29,7 @@ using lcms2.io;
 
 namespace lcms2.cgats;
 
-internal unsafe struct SAVESTREAM
+internal class SAVESTREAM
 {
     public FILE? stream;
 

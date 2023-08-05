@@ -29,12 +29,8 @@ using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-[StructLayout(LayoutKind.Explicit)]
-public unsafe struct TagBase
+[StructLayout(LayoutKind.Explicit, Size = 8)]
+public struct TagBase(Signature sig)
 {
-    [FieldOffset(4)] public fixed sbyte Reserved[4];
-    [FieldOffset(0)] public Signature Signature;
-
-    public TagBase(Signature sig) =>
-        Signature = sig;
+    [FieldOffset(0)] public Signature Signature = sig;
 }

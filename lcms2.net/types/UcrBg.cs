@@ -27,7 +27,7 @@
 
 namespace lcms2.types;
 
-public unsafe struct UcrBg
+public struct UcrBg
 {
     public ToneCurve Ucr;
     public ToneCurve Bg;

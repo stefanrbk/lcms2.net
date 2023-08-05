@@ -29,7 +29,7 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe class DefaultMutex : IMutex
+public class DefaultMutex : IMutex
 {
     private readonly Mutex mutex = new();
 

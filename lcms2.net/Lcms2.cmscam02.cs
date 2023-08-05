@@ -27,14 +27,12 @@
 
 using lcms2.types;
 
-using static lcms2.Lcms2;
 using static System.Math;
-using System.Runtime.ConstrainedExecution;
 using lcms2.state;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static double compute_n(CIECAM02 pMod) =>
         pMod.Yb / pMod.adoptedWhite.XYZ[1];
@@ -80,7 +78,7 @@ public static unsafe partial class Lcms2
 
     private static CAM02COLOR CAT02toHPE(CAM02COLOR clr)
     {
-        var M = stackalloc double[9];
+        Span<double> M = stackalloc double[9];
 
         M[0] = ((0.38971 * 1.096124) + (0.68898 * 0.454369) + (-0.07868 * -0.009628));
         M[1] = ((0.38971 * -0.278869) + (0.68898 * 0.473533) + (-0.07868 * -0.005698));
@@ -267,7 +265,7 @@ public static unsafe partial class Lcms2
 
     private static CAM02COLOR HPEtoCAT02(CAM02COLOR clr)
     {
-        var M = stackalloc double[9];
+        Span<double> M = stackalloc double[9];
 
         M[0] = ((0.7328 * 1.910197) + (0.4296 * 0.370950));
         M[1] = ((0.7328 * -1.112124) + (0.4296 * 0.629054));
@@ -305,11 +303,11 @@ public static unsafe partial class Lcms2
         return clr;
     }
 
-    public static object cmsCIECAM02INIT(Context? ContextID, in ViewingConditions* pVC)
+    public static object cmsCIECAM02INIT(Context? ContextID, ViewingConditions pVC)
     {
         //CIECAM02* lpMod;
 
-        _cmsAssert(pVC);
+        //_cmsAssert(pVC);
 
         //if ((lpMod = _cmsMallocZero<CIECAM02>(ContextID)) is null)
         //    return null;
@@ -318,14 +316,14 @@ public static unsafe partial class Lcms2
             ContextID = ContextID
         };
 
-        lpMod.adoptedWhite.XYZ[0] = pVC->whitePoint.X;
-        lpMod.adoptedWhite.XYZ[1] = pVC->whitePoint.Y;
-        lpMod.adoptedWhite.XYZ[2] = pVC->whitePoint.Z;
+        lpMod.adoptedWhite.XYZ[0] = pVC.whitePoint.X;
+        lpMod.adoptedWhite.XYZ[1] = pVC.whitePoint.Y;
+        lpMod.adoptedWhite.XYZ[2] = pVC.whitePoint.Z;
 
-        lpMod.LA = pVC->La;
-        lpMod.Yb = pVC->Yb;
-        lpMod.D = pVC->D_value;
-        lpMod.surround = pVC->surround;
+        lpMod.LA = pVC.La;
+        lpMod.Yb = pVC.Yb;
+        lpMod.D = pVC.D_value;
+        lpMod.surround = pVC.surround;
 
         switch (lpMod.surround)
         {
@@ -385,20 +383,19 @@ public static unsafe partial class Lcms2
         //    _cmsFree(lpMod->ContextID, lpMod);
     }
 
-    public static void cmsCIECAM02Forward(object hModel, in CIEXYZ* pIn, JCh* pOut)
+    public static JCh cmsCIECAM02Forward(object hModel, CIEXYZ pIn)
     {
-        CAM02COLOR clr;
+        CAM02COLOR clr = new(null);
         CIECAM02 lpMod = (hModel as CIECAM02)!;
 
         _cmsAssert(lpMod);
         _cmsAssert(pIn);
-        _cmsAssert(pOut);
 
-        memset(&clr, 0);
+        //memset(&clr, 0);
 
-        clr.XYZ[0] = pIn->X;
-        clr.XYZ[1] = pIn->Y;
-        clr.XYZ[2] = pIn->Z;
+        clr.XYZ[0] = pIn.X;
+        clr.XYZ[1] = pIn.Y;
+        clr.XYZ[2] = pIn.Z;
 
         clr = XYZtoCAT02(clr);
         clr = ChromaticAdaptation(clr, lpMod);
@@ -406,25 +403,28 @@ public static unsafe partial class Lcms2
         clr = NonlinearCompression(clr, lpMod);
         clr = ComputeCorrelates(clr, lpMod);
 
-        pOut->J = clr.J;
-        pOut->C = clr.C;
-        pOut->h = clr.h;
+        return new JCh
+        {
+            J = clr.J,
+            C = clr.C,
+            h = clr.h
+        };
     }
 
-    public static void cmsCIECAM02Reverse(object hModel, in JCh* pIn, CIEXYZ* pOut)
+    public static CIEXYZ cmsCIECAM02Reverse(object hModel, JCh pIn)
     {
-        CAM02COLOR clr;
+        CAM02COLOR clr = new(null);
         CIECAM02 lpMod = (hModel as CIECAM02)!;
 
         _cmsAssert(lpMod);
         _cmsAssert(pIn);
-        _cmsAssert(pOut);
+        //_cmsAssert(pOut);
 
-        memset(&clr, 0);
+        //memset(&clr, 0);
 
-        clr.J = pIn->J;
-        clr.C = pIn->C;
-        clr.h = pIn->h;
+        clr.J = pIn.J;
+        clr.C = pIn.C;
+        clr.h = pIn.h;
 
         clr = InverseCorrelates(clr, lpMod);
         clr = InverseNonlinearity(clr, lpMod);
@@ -432,8 +432,11 @@ public static unsafe partial class Lcms2
         clr = InverseChromaticAdaptation(clr, lpMod);
         clr = CAT02toXYZ(clr);
 
-        pOut->X = clr.XYZ[0];
-        pOut->Y = clr.XYZ[1];
-        pOut->Z = clr.XYZ[2];
+        return new()
+        {
+            X = clr.XYZ[0],
+            Y = clr.XYZ[1],
+            Z = clr.XYZ[2]
+        };
     }
 }

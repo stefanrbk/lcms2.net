@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     public static bool CheckLab2LCh()
     {
@@ -48,10 +48,10 @@ internal static unsafe partial class Testbed
                     Lab.a = a;
                     Lab.b = b;
 
-                    cmsLab2LCh(&LCh, &Lab);
-                    cmsLCh2Lab(&Lab2, &LCh);
+                    LCh = cmsLab2LCh(Lab);
+                    Lab2 = cmsLCh2Lab(LCh);
 
-                    var dist = cmsDeltaE(&Lab, &Lab2);
+                    var dist = cmsDeltaE(Lab, Lab2);
                     Max = Math.Max(dist, Max);
                 }
             }
@@ -76,10 +76,10 @@ internal static unsafe partial class Testbed
                     Lab.a = a;
                     Lab.b = b;
 
-                    cmsLab2XYZ(null, &XYZ, &Lab);
-                    cmsXYZ2Lab(null, &Lab2, &XYZ);
+                    cmsLab2XYZ(null, out XYZ, Lab);
+                    cmsXYZ2Lab(null, out Lab2, XYZ);
 
-                    var dist = cmsDeltaE(&Lab, &Lab2);
+                    var dist = cmsDeltaE(Lab, Lab2);
                     Max = Math.Max(dist, Max);
                 }
             }
@@ -105,12 +105,12 @@ internal static unsafe partial class Testbed
                     Lab.a = a;
                     Lab.b = b;
 
-                    cmsLab2XYZ(null, &XYZ, &Lab);
-                    cmsXYZ2xyY(&xyY, &XYZ);
-                    cmsxyY2XYZ(&XYZ, &xyY);
-                    cmsXYZ2Lab(null, &Lab2, &XYZ);
+                    cmsLab2XYZ(null, out XYZ, Lab);
+                    xyY = cmsXYZ2xyY(XYZ);
+                    XYZ = cmsxyY2XYZ(xyY);
+                    cmsXYZ2Lab(null, out Lab2, XYZ);
 
-                    var dist = cmsDeltaE(&Lab, &Lab2);
+                    var dist = cmsDeltaE(Lab, Lab2);
                     if (!Double.IsNaN(dist))
                         Max = Math.Max(dist, Max);
                     if (Max > 1e-12)
@@ -128,16 +128,16 @@ internal static unsafe partial class Testbed
     public static bool CheckLabV2encoding()
     {
         var n2 = 0;
-        var Inw = stackalloc ushort[3];
-        var aw = stackalloc ushort[3];
+        Span<ushort> Inw = stackalloc ushort[3];
+        Span<ushort> aw = stackalloc ushort[3];
         CIELab Lab;
 
         for (var j = 0; j < 65535; j++)
         {
             Inw[0] = Inw[1] = Inw[2] = (ushort)j;
 
-            cmsLabEncoded2FloatV2(&Lab, Inw);
-            cmsFloat2LabEncodedV2(aw, &Lab);
+            Lab = cmsLabEncoded2FloatV2(Inw);
+            cmsFloat2LabEncodedV2(aw, Lab);
 
             for (var i = 0; i < 3; i++)
             {
@@ -152,16 +152,16 @@ internal static unsafe partial class Testbed
     public static bool CheckLabV4encoding()
     {
         var n2 = 0;
-        var Inw = stackalloc ushort[3];
-        var aw = stackalloc ushort[3];
+        Span<ushort> Inw = stackalloc ushort[3];
+        Span<ushort> aw = stackalloc ushort[3];
         CIELab Lab;
 
         for (var j = 0; j < 65535; j++)
         {
             Inw[0] = Inw[1] = Inw[2] = (ushort)j;
 
-            cmsLabEncoded2Float(&Lab, Inw);
-            cmsFloat2LabEncoded(aw, &Lab);
+            Lab = cmsLabEncoded2Float(Inw);
+            cmsFloat2LabEncoded(aw, Lab);
 
             for (var i = 0; i < 3; i++)
             {

@@ -29,19 +29,19 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public unsafe class TagTypeHandler(
+public class TagTypeHandler(
     Signature signature,
     TagTypeHandler.ReadFn readPtr,
     TagTypeHandler.WriteFn writePtr,
     TagTypeHandler.DupFn dupPtr,
-    TagTypeHandler.FreeFn freePtr,
+    TagTypeHandler.FreeFn? freePtr,
     Context? contextID,
     uint iCCVersion) : ICloneable
 {
     public Signature Signature = signature;
     public Context? ContextID = contextID;
 
-    public delegate object? ReadFn(TagTypeHandler self, IOHandler io, uint* nItems, uint SizeOfTag);
+    public delegate object? ReadFn(TagTypeHandler self, IOHandler io, out uint nItems, uint SizeOfTag);
     public delegate bool WriteFn(TagTypeHandler self, IOHandler io, object? Ptr, uint nItems);
     public delegate object? DupFn(TagTypeHandler self, object? Ptr, uint nItems);
     public delegate void FreeFn(TagTypeHandler self, object? Ptr);
@@ -49,7 +49,7 @@ public unsafe class TagTypeHandler(
     public ReadFn ReadPtr = readPtr;
     public WriteFn WritePtr = writePtr;
     public DupFn DupPtr = dupPtr;
-    public FreeFn FreePtr = freePtr;
+    public FreeFn? FreePtr = freePtr;
 
     public uint ICCVersion = iCCVersion;
 

@@ -30,7 +30,7 @@ using lcms2.types;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static readonly IntentsList defaultIntents;
 
@@ -91,7 +91,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    private static void ComputeBlackPointCompensation(in CIEXYZ* BlackPointIn, in CIEXYZ* BlackPointOut, MAT3* m, VEC3* off)
+    private static void ComputeBlackPointCompensation(CIEXYZ BlackPointIn, CIEXYZ BlackPointOut, out MAT3 m, out VEC3 off)
     {
         // Now we need to compute a matrix plus an offset m and of such of
         // [m]*bpin + off = bpout
@@ -101,152 +101,141 @@ public static unsafe partial class Lcms2
         // a = (bpout - D50) / (bpin - D50)
         // b = - D50* (bpout - bpin) / (bpin - D50)
 
-        var tx = BlackPointIn->X - cmsD50_XYZ()->X;
-        var ty = BlackPointIn->Y - cmsD50_XYZ()->Y;
-        var tz = BlackPointIn->Z - cmsD50_XYZ()->Z;
+        var tx = BlackPointIn.X - D50XYZ.X;
+        var ty = BlackPointIn.Y - D50XYZ.Y;
+        var tz = BlackPointIn.Z - D50XYZ.Z;
 
-        var ax = (BlackPointOut->X - cmsD50_XYZ()->X) / tx;
-        var ay = (BlackPointOut->Y - cmsD50_XYZ()->Y) / ty;
-        var az = (BlackPointOut->Z - cmsD50_XYZ()->Z) / tz;
+        var ax = (BlackPointOut.X - D50XYZ.X) / tx;
+        var ay = (BlackPointOut.Y - D50XYZ.Y) / ty;
+        var az = (BlackPointOut.Z - D50XYZ.Z) / tz;
 
-        var bx = -cmsD50_XYZ()->X * (BlackPointOut->X - BlackPointIn->X) / tx;
-        var by = -cmsD50_XYZ()->Y * (BlackPointOut->Y - BlackPointIn->Y) / ty;
-        var bz = -cmsD50_XYZ()->Z * (BlackPointOut->Z - BlackPointIn->Z) / tz;
+        var bx = -D50XYZ.X * (BlackPointOut.X - BlackPointIn.X) / tx;
+        var by = -D50XYZ.Y * (BlackPointOut.Y - BlackPointIn.Y) / ty;
+        var bz = -D50XYZ.Z * (BlackPointOut.Z - BlackPointIn.Z) / tz;
 
-        _cmsVEC3init(out m->X, ax, 0, 0);
-        _cmsVEC3init(out m->Y, 0, ay, 0);
-        _cmsVEC3init(out m->Z, 0, 0, az);
-        _cmsVEC3init(out *off, bx, by, bz);
+        m = new(
+            x: new(ax, 0, 0),
+            y: new(0, ay, 0),
+            z: new(0, 0, az));
+
+        off = new(bx, by, bz);
     }
 
-    private static double CHAD2Temp(in MAT3* Chad) =>
-        CHAD2Temp(*Chad);
     private static double CHAD2Temp(MAT3 Chad)
     {
         // Convert D50 across inverse CHAD to get the absolute white point
-        VEC3 d, s;
-        double* sn = &s.X;
-        double* dn = &d.X;
-        CIEXYZ Dest;
-        CIExyY DestChromaticity;
-        double TempK;
-        MAT3 m1, m2;
 
-        m1 = Chad;
-        if (!_cmsMAT3inverse(m1, out m2)) return -1.0;
+        var m1 = Chad;
+        var m2 = m1.Inverse;
+        if (m2.IsNaN)
+            return -1.0;
 
-        s.X = cmsD50_XYZ()->X;
-        s.Y = cmsD50_XYZ()->Y;
-        s.Z = cmsD50_XYZ()->Z;
+        var s = D50XYZ.AsVec;
 
-        _cmsMAT3eval(out d, m2, s);
+        var d = m2.Eval(s);
 
-        Dest.X = dn[VX];
-        Dest.Y = dn[VY];
-        Dest.Z = dn[VZ];
+        var Dest = d.AsXYZ;
 
-        cmsXYZ2xyY(&DestChromaticity, &Dest);
+        var DestChromaticity = cmsXYZ2xyY(Dest);
 
-        if (!cmsTempFromWhitePoint(&TempK, &DestChromaticity))
+        var TempK = cmsTempFromWhitePoint(DestChromaticity);
+        if (double.IsNaN(TempK))
             return -1.0;
 
         return TempK;
     }
 
-    private static void Temp2CHAD(MAT3* Chad, double Temp)
+    private static MAT3 Temp2CHAD(double Temp)
     {
-        CIEXYZ White;
-        CIExyY ChromaticityOfWhite;
-
-        cmsWhitePointFromTemp(&ChromaticityOfWhite, Temp);
-        cmsxyY2XYZ(&White, &ChromaticityOfWhite);
-        _cmsAdaptationMatrix(Chad, null, &White, cmsD50_XYZ());
+        var ChromaticityOfWhite = cmsWhitePointFromTemp(Temp);
+        var White = cmsxyY2XYZ(ChromaticityOfWhite);
+        return _cmsAdaptationMatrix(null, White, D50XYZ);
     }
 
-    private static bool ComputeAbsoluteIntent(
+    private static MAT3 ComputeAbsoluteIntent(
         double AdaptationState,
         CIEXYZ WhitePointIn,
         MAT3 ChromaticAdaptationMatrixIn,
         CIEXYZ WhitePointOut,
-        MAT3 ChromaticAdaptationMatrixOut,
-        MAT3* m)
+        MAT3 ChromaticAdaptationMatrixOut)
     {
-        MAT3 Scale, m1, m2, m3, m4;
-
         // TODO: Follow Marc Mahy's recommendation to check if CHAD is same by using M1*M2 == M2*M1. If so, do nothing.
         // TODO: Add support for ArgyllArts tag
 
-        _cmsVEC3init(out Scale.X, WhitePointIn.X / WhitePointOut.X, 0, 0);
-        _cmsVEC3init(out Scale.Y, 0, WhitePointIn.Y / WhitePointOut.Y, 0);
-        _cmsVEC3init(out Scale.Z, 0, 0, WhitePointIn.Z / WhitePointOut.Z);
+        var Scale = new MAT3(
+            x: new(WhitePointIn.X / WhitePointOut.X, 0, 0),
+            y: new(0, WhitePointIn.Y / WhitePointOut.Y, 0),
+            z: new(0, 0, WhitePointIn.Z / WhitePointOut.Z));
 
         // Adaptation state
         if (AdaptationState is 1.0)
         {
             // Observer is fully adapted. Keep chromatic adaptation.
             // That is the standard V4 behavior
-            memcpy(m, &Scale);
+            return Scale;
         }
         else if (AdaptationState is 0.0)
         {
-            m1 = ChromaticAdaptationMatrixOut;
-            _cmsMAT3per(out m2, m1, Scale);
+            var m1 = ChromaticAdaptationMatrixOut;
+            var m2 = m1 * Scale;
             // m2 holds CHAD from output white to D50 times abs. col. scaling
 
-            // Observer is not adapted, undo the chromatic adaptation
-            _cmsMAT3per(out *m, m2, ChromaticAdaptationMatrixOut);
+            // Observer is not adapted
+            var m3 = ChromaticAdaptationMatrixIn;
+            var m4 = m3.Inverse;
 
-            m3 = ChromaticAdaptationMatrixIn;
-            if (!_cmsMAT3inverse(m3, out m4)) return false;
-            _cmsMAT3per(out *m, m2, m4);
+            return (m4.IsNaN)
+                ? MAT3.NaN
+                : m2 * m4;
         }
         else
         {
-            MAT3 MixedCHAD;
-            double TempSrc, TempDest, Temp;
+            var m1 = ChromaticAdaptationMatrixIn;
+            var m2 = m1.Inverse;
+            if (m2.IsNaN)
+                return MAT3.NaN;
 
-            m1 = ChromaticAdaptationMatrixIn;
-            if (!_cmsMAT3inverse(m1, out m2)) return false;
-            _cmsMAT3per(out m3, m2, Scale);
+            var m3 = m2 * Scale;
             // m3 holds CHAD from input white to D50 times abs. col. scaling
 
-            TempSrc = CHAD2Temp(ChromaticAdaptationMatrixIn);
-            TempDest = CHAD2Temp(ChromaticAdaptationMatrixOut);
+            var TempSrc = CHAD2Temp(ChromaticAdaptationMatrixIn);
+            var TempDest = CHAD2Temp(ChromaticAdaptationMatrixOut);
 
-            if (TempSrc < 0.0 || TempDest < 0.0) return false; // Something went wrong
+            if (TempSrc < 0.0 || TempDest < 0.0)
+                return MAT3.NaN; // Something went wrong
 
-            if (_cmsMAT3isIdentity(Scale) && Math.Abs(TempSrc - TempDest) < 1e-2)
-            {
-                _cmsMAT3identity(out *m);
-                return true;
-            }
+            if (Scale.IsIdentity && Math.Abs(TempSrc - TempDest) < 1e-2)
+                return MAT3.Identity;
 
-            Temp = (1.0 - AdaptationState) * TempDest + AdaptationState * TempSrc;
+            var Temp = (1.0 - AdaptationState) * TempDest + AdaptationState * TempSrc;
 
             // Get a CHAD from whatever output temperature to D50. This replaces output CHAD
-            Temp2CHAD(&MixedCHAD, Temp);
+            var MixedCHAD = Temp2CHAD(Temp);
 
-            _cmsMAT3per(out *m, m3, MixedCHAD);
+            return m3 * MixedCHAD;
         }
-
-        return true;
     }
 
-    private static bool IsEmptyLayer(MAT3* m, VEC3* off)
+    private static bool IsEmptyLayer(MAT3? m, VEC3? off)
     {
         var diff = 0.0;
-        MAT3 Ident;
 
         if (m is null && off is null) return true;      // null is allowed as an empty layer
         if (m is null && off is not null) return false; // This is an internal error
 
-        _cmsMAT3identity(out Ident);
+        var Ident = MAT3.Identity;
 
-        for (var i = 0; i < 3 * 3; i++)
-            diff += Math.Abs(((double*)m)[i] - ((double*)&Ident)[i]);
+        for (var x = 0; x < 3; x++)
+        {
+            for (var y = 0; y < 3; y++)
+                diff += Math.Abs(m!.Value[x][y] - Ident[x][y]);
+        }
 
-        for (var i = 0; i < 3; i++)
-            diff += Math.Abs(((double*)off)[i]);
+        if (off is not null)
+        {
+            for (var i = 0; i < 3; i++)
+                diff += Math.Abs(off.Value[i]);
+        }
 
         return diff < 2e-3;
     }
@@ -257,14 +246,12 @@ public static unsafe partial class Lcms2
         uint Intent,
         bool BPC,
         double AdaptationState,
-        MAT3* m,
-        VEC3* off)
+        out MAT3 m,
+        out VEC3 off)
     {
-        double* offn = &off->X;
-
         // m and off are set to identity and this is detected later on
-        _cmsMAT3identity(out *m);
-        _cmsVEC3init(out *off, 0, 0, 0);
+        m = MAT3.Identity;
+        off = new(0, 0, 0);
 
         // If intent is abs. colorimetric,
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
@@ -276,7 +263,8 @@ public static unsafe partial class Lcms2
             _cmsReadMediaWhitePoint(out var WhitePointOut, Profiles[i]);
             _cmsReadCHAD(out var ChromaticAdaptationMatrixOut, Profiles[i]);
 
-            if (!ComputeAbsoluteIntent(AdaptationState, WhitePointIn, ChromaticAdaptationMatrixIn, WhitePointOut, ChromaticAdaptationMatrixOut, m))
+            m = ComputeAbsoluteIntent(AdaptationState, WhitePointIn, ChromaticAdaptationMatrixIn, WhitePointOut, ChromaticAdaptationMatrixOut);
+            if (m.IsNaN)
                 return false;
         }
         else
@@ -286,15 +274,15 @@ public static unsafe partial class Lcms2
             {
                 CIEXYZ BlackPointIn, BlackPointOut;
 
-                cmsDetectBlackPoint(&BlackPointIn, Profiles[i - 1], Intent, 0);
-                cmsDetectDestinationBlackPoint(&BlackPointOut, Profiles[i], Intent, 0);
+                BlackPointIn = cmsDetectBlackPoint(Profiles[i - 1], Intent, 0);
+                BlackPointOut = cmsDetectDestinationBlackPoint(Profiles[i], Intent, 0);
 
                 // If black points are equal, then do nothing
                 if (BlackPointIn.X != BlackPointOut.X ||
                     BlackPointIn.Y != BlackPointOut.Y ||
                     BlackPointIn.Z != BlackPointOut.Z)
                 {
-                    ComputeBlackPointCompensation(&BlackPointIn, &BlackPointOut, m, off);
+                    ComputeBlackPointCompensation(BlackPointIn, BlackPointOut, out m, out off);
                 }
             }
         }
@@ -309,16 +297,16 @@ public static unsafe partial class Lcms2
         // y' = (Mx'c + Off) /c = Mx' + (Off / c)
 
         for (var k = 0; k < 3; k++)
-            offn[k] /= MAX_ENCODEABLE_XYZ;
+            off[k] /= MAX_ENCODEABLE_XYZ;
 
         return true;
     }
 
-    private static bool AddConversion(Pipeline Result, Signature InPCS, Signature OutPCS, MAT3* m, VEC3* off)
+    private static bool AddConversion(Pipeline Result, Signature InPCS, Signature OutPCS, MAT3 m, VEC3 off)
     {
         var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
-        var m_as_dbl = m->AsArray(pool);
-        var off_as_dbl = off->AsArray(pool);
+        var m_as_dbl = m.AsArray(pool);
+        var off_as_dbl = off.AsArray(pool);
 
         // Handle PCS mismatches. A specialized stage is added to the LUT in such case
         switch ((uint)InPCS)
@@ -413,10 +401,10 @@ public static unsafe partial class Lcms2
     private static Pipeline? DefaultICCintents(
         Context? ContextID,
         uint nProfiles,
-        uint* TheIntents,
+        ReadOnlySpan<uint> TheIntents,
         Profile[] Profiles,
-        bool* BPC,
-        double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
         Pipeline? Lut = null, Result;
@@ -435,7 +423,7 @@ public static unsafe partial class Lcms2
 
         CurrentColorSpace = cmsGetColorSpace(Profiles[0]);
 
-        for (var i = 0u; i < nProfiles; i++)
+        for (var i = 0; i < nProfiles; i++)
         {
             Profile = Profiles[i];
             ClassSig = cmsGetDeviceClass(Profile);
@@ -469,16 +457,16 @@ public static unsafe partial class Lcms2
                 // What about abstract profiles?
                 if ((uint)ClassSig is cmsSigAbstractClass && i > 0)
                 {
-                    if (!ComputeConversion(i, Profiles, Intent, BPC[i], AdaptationStates[i], &m, &off))
+                    if (!ComputeConversion((uint)i, Profiles, Intent, BPC[i], AdaptationStates[i], out m, out off))
                         goto Error;
                 }
                 else
                 {
-                    _cmsMAT3identity(out m);
-                    _cmsVEC3init(out off, 0, 0, 0);
+                    m = MAT3.Identity;
+                    off = new(0, 0, 0);
                 }
 
-                if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, &m, &off))
+                if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, m, off))
                     goto Error;
             }
             else
@@ -495,8 +483,8 @@ public static unsafe partial class Lcms2
                     Lut = _cmsReadOutputLUT(Profile, Intent);
                     if (Lut is null) goto Error;
 
-                    if (!ComputeConversion(i, Profiles, Intent, BPC[i], AdaptationStates[i], &m, &off)) goto Error;
-                    if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, &m, &off)) goto Error;
+                    if (!ComputeConversion((uint)i, Profiles, Intent, BPC[i], AdaptationStates[i], out m, out off)) goto Error;
+                    if (!AddConversion(Result, CurrentColorSpace, ColorSpaceIn, m, off)) goto Error;
                 }
             }
 
@@ -538,10 +526,10 @@ public static unsafe partial class Lcms2
     internal static Pipeline? _cmsDefaultICCintents(
         Context? ContextID,
         uint nProfiles,
-        uint* TheIntents,
+        ReadOnlySpan<uint> TheIntents,
         Profile[] Profiles,
-        bool* BPC,
-        double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags) =>
         DefaultICCintents(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
 
@@ -566,7 +554,7 @@ public static unsafe partial class Lcms2
         public ToneCurve KTone;
     }
 
-    private static bool BlackPreservingGrayOnlySampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool BlackPreservingGrayOnlySampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         if (Cargo is not Box<GrayOnlyParams> bp)
             return false;
@@ -588,15 +576,15 @@ public static unsafe partial class Lcms2
     private static Pipeline? BlackPreservingKOnlyIntents(
         Context? ContextID,
         uint nProfiles,
-        uint* TheIntents,
+        ReadOnlySpan<uint> TheIntents,
         Profile[] Profiles,
-        bool* BPC,
-        double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
-        GrayOnlyParams bp;
+        GrayOnlyParams bp = new();
         Pipeline? Result;
-        var ICCIntents = stackalloc uint[256];
+        Span<uint> ICCIntents = stackalloc uint[256];
         Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
         Profile hLastProfile;
@@ -634,7 +622,7 @@ public static unsafe partial class Lcms2
         Result = cmsPipelineAlloc(ContextID, 4, 4);
         if (Result is null) return null;
 
-        memset(&bp, 0);
+        //memset(&bp, 0);
 
         // Create a LUT holding normal ICC transform
         bp.cmyk2cmyk = DefaultICCintents(ContextID, preservationProfilesCount, ICCIntents, Profiles, BPC, AdaptationStates, dwFlags);
@@ -664,7 +652,7 @@ public static unsafe partial class Lcms2
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
         {
-            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[i]);
+            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[(int)i]);
             if (devlink is null) goto Error;
 
             if (!cmsPipelineCat(Result, devlink))
@@ -702,13 +690,14 @@ public static unsafe partial class Lcms2
         public double MaxTAC;
     }
 
-    private static bool BlackPreservingSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool BlackPreservingSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
-        var Inf = stackalloc float[4];
-        var Outf = stackalloc float[4];
-        var LabK = stackalloc float[4];
+        Span<float> Inf = stackalloc float[4];
+        Span<float> Outf = stackalloc float[4];
+        Span<float> LabK = stackalloc float[4];
         double SumCMY, SumCMYK, Error, Ratio;
-        CIELab ColorimetricLab, BlackPreservingLab;
+        CIELab ColorimetricLab = new();
+        Span<CIELab> BlackPreservingLab = stackalloc CIELab[1];
 
         if (Cargo is not PreserveKPlaneParams bp)
             return false;
@@ -774,8 +763,8 @@ public static unsafe partial class Lcms2
         Out[3] = _cmsQuickSaturateWord(Outf[3] * 65535.0);
 
         // Estimate the error (this goes 16 bits to Lab DBL)
-        cmsDoTransform(bp.hProofOutput, Out, &BlackPreservingLab, 1);
-        Error = cmsDeltaE(&ColorimetricLab, &BlackPreservingLab);
+        cmsDoTransform(bp.hProofOutput, Out, BlackPreservingLab, 1);
+        Error = cmsDeltaE(ColorimetricLab, BlackPreservingLab[0]);
         if (Error > bp.MaxError)
             bp.MaxError = Error;
 
@@ -785,14 +774,14 @@ public static unsafe partial class Lcms2
     private static Pipeline? BlackPreservingKPlaneIntents(
         Context? ContextID,
         uint nProfiles,
-        uint* TheIntents,
+        ReadOnlySpan<uint> TheIntents,
         Profile[] Profiles,
-        bool* BPC,
-        double* AdaptationStates,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
         Pipeline? Result = null;
-        var ICCIntents = stackalloc uint[256];
+        Span<uint> ICCIntents = stackalloc uint[256];
         Stage? CLUT;
         uint nGridPoints, lastProfilePos, preservationProfilesCount;
         Profile? hLastProfile, hLab;
@@ -888,7 +877,7 @@ public static unsafe partial class Lcms2
         // Insert possible devicelinks at the end
         for (var i = lastProfilePos + 1; i < nProfiles; i++)
         {
-            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[i]);
+            var devlink = _cmsReadDevicelinkLUT(Profiles[i], ICCIntents[(int)i]);
             if (devlink is null) goto Cleanup;
 
             if (!cmsPipelineCat(Result, devlink))
@@ -912,10 +901,10 @@ public static unsafe partial class Lcms2
     internal static Pipeline? _cmsLinkProfiles(
         Context? ContextID,
         uint nProfiles,
-        uint* TheIntents,
+        ReadOnlySpan<uint> TheIntents,
         Profile[] Profiles,
-        bool* BPC,
-        double* AdaptationStates,
+        Span<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
         uint dwFlags)
     {
         // Make sure a reasonable number of profiles is provided
@@ -959,7 +948,7 @@ public static unsafe partial class Lcms2
         return Intent.Link(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
     }
 
-    public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, uint* Codes, string?[]? Descriptions)
+    public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, Span<uint> Codes, Span<string?> Descriptions)
     {
         var ctx = _cmsGetContext(ContextID)?.IntentsPlugin;
         uint nIntents = 0;
@@ -970,11 +959,11 @@ public static unsafe partial class Lcms2
             {
                 if (nIntents < nMax)
                 {
-                    if (Codes is not null)
-                        Codes[nIntents] = pt.Intent;
+                    if (!Codes.IsEmpty)
+                        Codes[(int)nIntents] = pt.Intent;
 
-                    if (nIntents < Descriptions?.Length)
-                        Descriptions[nIntents] = pt.Description;
+                    if (!Descriptions.IsEmpty && nIntents < Descriptions.Length)
+                        Descriptions[(int)nIntents] = pt.Description;
                 }
 
                 nIntents++;
@@ -983,11 +972,11 @@ public static unsafe partial class Lcms2
         {
             if (nIntents < nMax)
             {
-                if (Codes is not null)
-                    Codes[nIntents] = pt.Intent;
+                if (!Codes.IsEmpty)
+                    Codes[(int)nIntents] = pt.Intent;
 
-                if (nIntents < Descriptions?.Length)
-                    Descriptions[nIntents] = pt.Description;
+                if (!Descriptions.IsEmpty && nIntents < Descriptions.Length)
+                    Descriptions[(int)nIntents] = pt.Description;
             }
 
             nIntents++;
@@ -996,7 +985,7 @@ public static unsafe partial class Lcms2
         return nIntents;
     }
 
-    public static uint cmsGetSupportedIntents(uint nMax, uint* Codes, string?[]? Descriptions) =>
+    public static uint cmsGetSupportedIntents(uint nMax, Span<uint> Codes, Span<string?> Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
     internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase? Data)

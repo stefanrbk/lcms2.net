@@ -28,12 +28,9 @@
 using lcms2.state;
 using lcms2.types;
 
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static bool SetTextTags(Profile Profile, string Description)
     {
@@ -71,12 +68,6 @@ public static unsafe partial class Lcms2
         var ContextID = cmsGetProfileContextID(Profile);
         var Seq = cmsAllocProfileSequenceDescription(ContextID, 1);
         var name = "Little CMS"u8;
-        var nameBuffer = stackalloc byte[name.Length + 1];
-        for (var i = 0; i < name.Length; i++)
-            nameBuffer[i] = name[i];
-        var modelBuffer = stackalloc byte[Model.Length + 1];
-        for (var i = 0; i < Model.Length; i++)
-            modelBuffer[i] = Model[i];
 
         if (Seq is null) return false;
 
@@ -102,7 +93,7 @@ public static unsafe partial class Lcms2
         return rc;
     }
 
-    public static Profile? cmsCreateRGBProfileTHR(Context? ContextID, in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ReadOnlySpan<ToneCurve> TransferFunction)
+    public static Profile? cmsCreateRGBProfileTHR(Context? ContextID, CIExyY? WhitePoint, CIExyYTRIPLE? Primaries, ReadOnlySpan<ToneCurve> TransferFunction)
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
@@ -140,11 +131,11 @@ public static unsafe partial class Lcms2
 
         if (WhitePoint is not null)
         {
-            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ())))
+            if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ)))
                 goto Error;
 
-            cmsxyY2XYZ(&WhitePointXYZ, WhitePoint);
-            _cmsAdaptationMatrix(&CHAD, null, &WhitePointXYZ, cmsD50_XYZ());
+            WhitePointXYZ = cmsxyY2XYZ(WhitePoint.Value);
+            CHAD = _cmsAdaptationMatrix(null, WhitePointXYZ, D50XYZ);
 
             // This is a V4 tag, but many CMM does read and understand it no matter which version
             chad = CHAD.AsArray(pool);
@@ -156,13 +147,13 @@ public static unsafe partial class Lcms2
             {
                 CIEXYZTRIPLE Colorants;
                 CIExyY MaxWhite;
-                MAT3 MColorants;
+                MAT3 MColorants = new();
 
-                MaxWhite.x = WhitePoint->x;
-                MaxWhite.y = WhitePoint->y;
+                MaxWhite.x = WhitePoint.Value.x;
+                MaxWhite.y = WhitePoint.Value.y;
                 MaxWhite.Y = 1.0;
 
-                if (!_cmsBuildRGB2XYZtransferMatrix(&MColorants, &MaxWhite, Primaries))
+                if (!_cmsBuildRGB2XYZtransferMatrix(ref MColorants, MaxWhite, Primaries.Value))
                     goto Error;
 
                 Colorants.Red.X = MColorants.X.X;
@@ -208,7 +199,7 @@ public static unsafe partial class Lcms2
             }
         }
 
-        if (Primaries is not null && !cmsWriteTag(hICC, cmsSigChromaticityTag, new Box<CIExyYTRIPLE>(*Primaries)))
+        if (Primaries is not null && !cmsWriteTag(hICC, cmsSigChromaticityTag, new Box<CIExyYTRIPLE>(Primaries.Value)))
             goto Error;
 
         return hICC;
@@ -221,10 +212,10 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateRGBProfile(in CIExyY* WhitePoint, in CIExyYTRIPLE* Primaries, ReadOnlySpan<ToneCurve> TransferFunction) =>
+    public static Profile? cmsCreateRGBProfile(CIExyY? WhitePoint, CIExyYTRIPLE? Primaries, ReadOnlySpan<ToneCurve> TransferFunction) =>
         cmsCreateRGBProfileTHR(null, WhitePoint, Primaries, TransferFunction);
 
-    public static Profile? cmsCreateGrayProfileTHR(Context? ContextID, in CIExyY* WhitePoint, ToneCurve TransferFunction)
+    public static Profile? cmsCreateGrayProfileTHR(Context? ContextID, CIExyY? WhitePoint, ToneCurve TransferFunction)
     {
         CIEXYZ tmp;
 
@@ -253,7 +244,7 @@ public static unsafe partial class Lcms2
 
         if (WhitePoint is not null)
         {
-            cmsxyY2XYZ(&tmp, WhitePoint);
+            tmp = cmsxyY2XYZ(WhitePoint.Value);
             if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(tmp))) goto Error;
         }
 
@@ -267,7 +258,7 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateGrayProfile(in CIExyY* WhitePoint, ToneCurve TransferFunction) =>
+    public static Profile? cmsCreateGrayProfile(CIExyY? WhitePoint, ToneCurve TransferFunction) =>
         cmsCreateGrayProfileTHR(null, WhitePoint, TransferFunction);
 
     public static Profile? cmsCreateLinearizationDeviceLinkTHR(Context? ContextID, Signature ColorSpace, ReadOnlySpan<ToneCurve> TransferFunctions)
@@ -315,7 +306,7 @@ public static unsafe partial class Lcms2
     public static Profile? cmsCreateLinearizationDeviceLink(Signature ColorSpace, ReadOnlySpan<ToneCurve> TransferFunctions) =>
         cmsCreateLinearizationDeviceLinkTHR(null, ColorSpace, TransferFunctions);
 
-    private static bool InkLimitingSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool InkLimitingSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         // Ink-limiting algorithm
         //
@@ -421,11 +412,11 @@ public static unsafe partial class Lcms2
     public static Profile? cmsCreateInkLimitingDeviceLink(Signature ColorSpace, double Limit) =>
         cmsCreateInkLimitingDeviceLinkTHR(null, ColorSpace, Limit);
 
-    public static Profile? cmsCreateLab2ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
+    public static Profile? cmsCreateLab2ProfileTHR(Context? ContextID, CIExyY? WhitePoint)
     {
         Pipeline? LUT = null;
 
-        var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? cmsD50_xyY() : WhitePoint, null, null);
+        var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? D50xyY : WhitePoint, null, null);
         if (Profile is null) return null;
 
         cmsSetProfileVersion(Profile, 2.1);
@@ -457,14 +448,14 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateLab2Profile(in CIExyY* WhitePoint) =>
+    public static Profile? cmsCreateLab2Profile(CIExyY? WhitePoint) =>
         cmsCreateLab2ProfileTHR(null, WhitePoint);
 
-    public static Profile? cmsCreateLab4ProfileTHR(Context? ContextID, in CIExyY* WhitePoint)
+    public static Profile? cmsCreateLab4ProfileTHR(Context? ContextID, CIExyY? WhitePoint)
     {
         Pipeline? LUT = null;
 
-        var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? cmsD50_xyY() : WhitePoint, null, null);
+        var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? D50xyY : WhitePoint, null, null);
         if (Profile is null) return null;
 
         cmsSetProfileVersion(Profile, 4.3);
@@ -496,14 +487,14 @@ public static unsafe partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateLab4Profile(in CIExyY* WhitePoint) =>
+    public static Profile? cmsCreateLab4Profile(CIExyY? WhitePoint) =>
         cmsCreateLab4ProfileTHR(null, WhitePoint);
 
     public static Profile? cmsCreateXYZProfileTHR(Context? ContextID)
     {
         Pipeline? LUT = null;
 
-        var Profile = cmsCreateRGBProfileTHR(ContextID, cmsD50_xyY(), null, null);
+        var Profile = cmsCreateRGBProfileTHR(ContextID, D50xyY, null, null);
         if (Profile is null) return null;
 
         cmsSetProfileVersion(Profile, 4.3);
@@ -540,14 +531,7 @@ public static unsafe partial class Lcms2
 
     private static ToneCurve? Build_sRGBGamma(Context? ContextID)
     {
-        var Parameters = stackalloc double[5]
-        {
-            2.4,
-            1 / 1.055,
-            0.055 / 1.055,
-            1 / 12.92,
-            0.04045,
-        };
+        Span<double> Parameters = stackalloc double[5] { 2.4, 1 / 1.055, 0.055 / 1.055, 1 / 12.92, 0.04045 };
 
         return cmsBuildParametricToneCurve(ContextID, 4, Parameters);
     }
@@ -568,7 +552,7 @@ public static unsafe partial class Lcms2
         Gamma22[0] = Gamma22[1] = Gamma22[2] = Build_sRGBGamma(ContextID)!;
         if (Gamma22[0] is null) goto Error;
 
-        var hsRGB = cmsCreateRGBProfileTHR(ContextID, &D65, &Rec709Primaries, Gamma22);
+        var hsRGB = cmsCreateRGBProfileTHR(ContextID, D65, Rec709Primaries, Gamma22);
         cmsFreeToneCurve(Gamma22[0]);
         if (hsRGB is null) goto Error;
 
@@ -595,7 +579,7 @@ public static unsafe partial class Lcms2
         public CIEXYZ WPsrc, WPdest;
     }
 
-    private static bool bchswSampler(in ushort* In, ushort* Out, object? Cargo)
+    private static bool bchswSampler(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         CIELab LabIn, LabOut;
         CIELCh LChIn, LChOut;
@@ -604,9 +588,9 @@ public static unsafe partial class Lcms2
         if (Cargo is not Box<BCHSWADJUSTS> bchsw)
             return false;
 
-        cmsLabEncoded2Float(&LabIn, In);
+        LabIn = cmsLabEncoded2Float(In);
 
-        cmsLab2LCh(&LChIn, &LabIn);
+        LChIn = cmsLab2LCh(LabIn);
 
         // Do some adjusts on LCh
 
@@ -614,17 +598,17 @@ public static unsafe partial class Lcms2
         LChOut.C = LChIn.C + bchsw.Value.Saturation;
         LChOut.h = LChIn.h + bchsw.Value.Hue;
 
-        cmsLCh2Lab(&LabOut, &LChOut);
+        LabOut = cmsLCh2Lab(LChOut);
 
         // Move white point in Lab
         if (bchsw.Value.lAdjustWP)
         {
-            fixed (CIEXYZ* ptr = &bchsw.Value.WPsrc) cmsLab2XYZ(ptr, &XYZ, &LabOut);
-            fixed (CIEXYZ* ptr = &bchsw.Value.WPdest) cmsXYZ2Lab(ptr, &LabOut, &XYZ);
+            cmsLab2XYZ(bchsw.Value.WPsrc, out XYZ, LabOut);
+            cmsXYZ2Lab(bchsw.Value.WPdest, out LabOut, XYZ);
         }
 
         // Back to encoded
-        cmsFloat2LabEncoded(Out, &LabOut);
+        cmsFloat2LabEncoded(Out, LabOut);
         return true;
     }
 
@@ -654,10 +638,10 @@ public static unsafe partial class Lcms2
         else
         {
             bchsw.lAdjustWP = true;
-            cmsWhitePointFromTemp(&WhitePnt, TempSrc);
-            cmsxyY2XYZ(&bchsw.WPsrc, &WhitePnt);
-            cmsWhitePointFromTemp(&WhitePnt, TempDest);
-            cmsxyY2XYZ(&bchsw.WPdest, &WhitePnt);
+            WhitePnt = cmsWhitePointFromTemp(TempSrc);
+            bchsw.WPsrc = cmsxyY2XYZ(WhitePnt);
+            WhitePnt = cmsWhitePointFromTemp(TempDest);
+            bchsw.WPdest = cmsxyY2XYZ(WhitePnt);
         }
 
         var hICC = cmsCreateProfilePlaceholder(ContextID);
@@ -690,7 +674,7 @@ public static unsafe partial class Lcms2
         // Create tags
         if (!SetTextTags(hICC, "BCHS build-in")) goto Error;
 
-        if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()))) goto Error;
+        if (!cmsWriteTag(hICC, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ))) goto Error;
         if (!cmsWriteTag(hICC, cmsSigAToB0Tag, Pipeline)) goto Error;
 
         // Pipeline is already on virtual profile
@@ -718,7 +702,7 @@ public static unsafe partial class Lcms2
 
     public static Profile? cmsCreateNULLProfileTHR(Context? ContextID)
     {
-        var Zero = stackalloc ushort[2] { 0, 0 };
+        Span<ushort> Zero = stackalloc ushort[2] { 0, 0 };
         ReadOnlySpan<double> PickLstarMatrix = stackalloc double[] { 1, 0, 0 };
         ToneCurve[]? EmptyTab = null;
         Pipeline? LUT = null;
@@ -756,7 +740,7 @@ public static unsafe partial class Lcms2
             goto Error;
 
         if (!cmsWriteTag(Profile, cmsSigBToA0Tag, LUT)) goto Error;
-        if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*cmsD50_XYZ()))) goto Error;
+        if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ))) goto Error;
 
         pool.Return(EmptyTab);
         cmsPipelineFree(LUT);
@@ -796,6 +780,7 @@ public static unsafe partial class Lcms2
 
     private static Profile? CreateNamedColorDevicelink(Transform xform)
     {
+        Span<int> i = stackalloc int[1];
         var v = xform;
         Profile? hICC = null;
         NamedColorList? nc2 = null, Original = null;
@@ -827,10 +812,9 @@ public static unsafe partial class Lcms2
             FLOAT_SH(0) | COLORSPACE_SH((uint)_cmsLCMScolorSpace(v.ExitColorSpace)) | BYTES_SH(2) | CHANNELS_SH(cmsChannelsOf(v.ExitColorSpace)));
 
         // Apply the transform to colorants.
-        for (var i = 0; i < nColors; i++)
+        for (i[0] = 0; i[0] < nColors; i[0]++)
         {
-            fixed (ushort* colorant = &nc2.List[i].DeviceColorant[0])
-                cmsDoTransform(xform, &i, colorant, 1);
+            cmsDoTransform(xform, i, nc2.List[i[0]].DeviceColorant, 1);
         }
 
         if (!cmsWriteTag(hICC, cmsSigNamedColor2Tag, nc2)) goto Error;
@@ -849,7 +833,7 @@ public static unsafe partial class Lcms2
         public Signature RequiredTag;
         public Signature LutType;
         public int nTypes;
-        public fixed uint MpeTypes[5];
+        public uint[] MpeTypes = new uint[5];
 
         public AllowedLUT(bool isV4, Signature requiredTag, Signature lutType, params uint[] mpeTypes)
         {
@@ -881,34 +865,32 @@ public static unsafe partial class Lcms2
 
     private const uint SIZE_OF_ALLOWED_LUT = 11;
 
-    private static bool CheckOne(in AllowedLUT* Tab, Pipeline Lut)
+    private static bool CheckOne(AllowedLUT Tab, Pipeline Lut)
     {
         Stage? mpe;
         int n;
 
         for (n = 0, mpe = Lut.Elements; mpe is not null; mpe = mpe.Next, n++)
         {
-            if (n > Tab->nTypes) return false;
-            if (cmsStageType(mpe) != Tab->MpeTypes[n]) return false;
+            if (n > Tab.nTypes) return false;
+            if (cmsStageType(mpe) != Tab.MpeTypes[n]) return false;
         }
 
-        return n == Tab->nTypes;
+        return n == Tab.nTypes;
     }
 
-    private static AllowedLUT* FindCombination(Pipeline Lut, bool IsV4, Signature DestinationTag)
+    private static AllowedLUT FindCombination(Pipeline Lut, bool IsV4, Signature DestinationTag)
     {
         for (var n = 0u; n < SIZE_OF_ALLOWED_LUT; n++)
         {
-            fixed (AllowedLUT* Tab = &AllowedLUTTypes[n])
-            {
-                if (IsV4 ^ Tab->IsV4) continue;
-                if (((uint)Tab->RequiredTag is not 0) && (Tab->RequiredTag != DestinationTag)) continue;
+            var Tab = AllowedLUTTypes[n];
+            if (IsV4 ^ Tab.IsV4) continue;
+            if (((uint)Tab.RequiredTag is not 0) && (Tab.RequiredTag != DestinationTag)) continue;
 
-                if (CheckOne(Tab, Lut)) return Tab;
-            }
+            if (CheckOne(Tab, Lut)) return Tab;
         }
 
-        return null;
+        return default;
     }
 
     public static Profile? cmsTransform2DeviceLink(Transform hTransform, double Version, uint dwFlags)
@@ -975,20 +957,20 @@ public static unsafe partial class Lcms2
         // Check if the profile/version can store the result
         var AllowedLUT = ((dwFlags & cmsFLAGS_FORCE_CLUT) is 0)
             ? FindCombination(LUT, Version >= 4.0, DestinationTag)
-            : null;
+            : default;
 
-        if (AllowedLUT is null)
+        if (AllowedLUT.MpeTypes is null)
         {
             // Try to optimize
-            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, ref FrmIn, ref FrmOut, ref dwFlags);
             AllowedLUT = FindCombination(LUT, Version >= 4.0, DestinationTag);
         }
 
         // If no way, then force CLUT that for sure can be written
-        if (AllowedLUT is null)
+        if (AllowedLUT.MpeTypes is null)
         {
             dwFlags |= cmsFLAGS_FORCE_CLUT;
-            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, &FrmIn, &FrmOut, &dwFlags);
+            _cmsOptimizePipeline(ContextID, ref LUT, xform.RenderingIntent, ref FrmIn, ref FrmOut, ref dwFlags);
 
             // Put identity curves if needed
             var FirstStage = cmsPipelineGetPtrToFirstStage(LUT);
@@ -1011,7 +993,7 @@ public static unsafe partial class Lcms2
         }
 
         // Something is wrong...
-        if (AllowedLUT is null)
+        if (AllowedLUT.MpeTypes is null)
             goto Error;
 
         if ((dwFlags & cmsFLAGS_8BITS_DEVICELINK) is not 0)
@@ -1038,13 +1020,11 @@ public static unsafe partial class Lcms2
         // Set the white point
         if ((uint)deviceClass is cmsSigInputClass)
         {
-            fixed (CIEXYZ* wp = &xform.EntryWhitePoint)
-                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*wp))) goto Error;
+            if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(xform.EntryWhitePoint))) goto Error;
         }
         else
         {
-            fixed (CIEXYZ* wp = &xform.ExitWhitePoint)
-                if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(*wp))) goto Error;
+            if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(xform.ExitWhitePoint))) goto Error;
         }
 
         // Per 7.2.14 in spec 4.3

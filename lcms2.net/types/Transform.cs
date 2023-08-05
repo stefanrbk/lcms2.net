@@ -34,11 +34,11 @@ public class Transform
 
     public Transform2Fn xform;
 
-    public Formatter16 FromInput;
-    public Formatter16 ToOutput;
+    public Formatter16In FromInput;
+    public Formatter16Out ToOutput;
 
-    public FormatterFloat FromInputFloat;
-    public FormatterFloat ToOutputFloat;
+    public FormatterFloatIn FromInputFloat;
+    public FormatterFloatOut ToOutputFloat;
 
     public Cache Cache;
 

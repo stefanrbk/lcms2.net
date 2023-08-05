@@ -27,34 +27,32 @@
 
 using lcms2.types;
 
-using System.Diagnostics;
-
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
-    private static readonly CIEXYZ D50XYZ = new() { X = cmsD50X, Y = cmsD50Y, Z = cmsD50Z };
-    private static readonly CIExyY D50xyY;
+    public static readonly CIEXYZ D50XYZ = new() { X = cmsD50X, Y = cmsD50Y, Z = cmsD50Z };
+    public static readonly CIExyY D50xyY = cmsXYZ2xyY(D50XYZ);
 
-    [DebuggerStepThrough]
-    public static CIEXYZ* cmsD50_XYZ()
-    {
-        fixed (CIEXYZ* xyz = &D50XYZ)
-            return xyz;
-    }
+    //[DebuggerStepThrough]
+    //public static CIEXYZ* D50XYZ
+    //{
+    //    fixed (CIEXYZ* xyz = &D50XYZ)
+    //        return xyz;
+    //}
 
-    [DebuggerStepThrough]
-    public static CIExyY* cmsD50_xyY()
-    {
-        fixed (CIExyY* xyy = &D50xyY)
-            return xyy;
-    }
+    //[DebuggerStepThrough]
+    //public static CIExyY* D50xyY
+    //{
+    //    fixed (CIExyY* xyy = &D50xyY)
+    //        return xyy;
+    //}
 
-    public static bool cmsWhitePointFromTemp(CIExyY* WhitePoint, double TempK)
+    public static CIExyY cmsWhitePointFromTemp(double TempK)
 
     {
         double x;
-        _cmsAssert(WhitePoint);
+        //_cmsAssert(WhitePoint);
 
         var T = TempK;
         var T2 = T * T;            // Square
@@ -76,7 +74,7 @@ public static unsafe partial class Lcms2
         else
         {
             cmsSignalError(null, ErrorCode.Range, "cmsWhitePointFromTemp: invalid temp");
-            return false;
+            return CIExyY.NaN;
         }
 
         // Obtain y(x)
@@ -87,11 +85,10 @@ public static unsafe partial class Lcms2
         // M1 = (-1.3515 - 1.7703*x + 5.9114 *y)/(0.0241 + 0.2562*x - 0.7341*y);
         // M2 = (0.0300 - 31.4424*x + 30.0717*y)/(0.0241 + 0.2562*x - 0.7341*y);
 
-        WhitePoint->x = x;
-        WhitePoint->y = y;
-        WhitePoint->Y = 1.0;
-
-        return true;
+        return new(
+            x: x,
+            y: y,
+            Y: 1.0);
     }
 
     private struct ISOTEMPERATURE
@@ -139,15 +136,18 @@ public static unsafe partial class Lcms2
     private static uint NISO =>
         (uint)isotempdata.Length;
 
-    public static bool cmsTempFromWhitePoint(double* TempK, in CIExyY* WhitePoint)
+    public static double cmsTempFromWhitePoint(CIExyY WhitePoint)
     {
-        _cmsAssert(WhitePoint);
-        _cmsAssert(TempK);
+        //_cmsAssert(WhitePoint);
+        //_cmsAssert(TempK);
+
+        if (WhitePoint.IsNaN)
+            return double.NaN;
 
         var di = 0.0;
         var mi = 0.0;
-        var xs = WhitePoint->x;
-        var ys = WhitePoint->y;
+        var xs = WhitePoint.x;
+        var ys = WhitePoint.y;
 
         // convert (x,y) to CIE 1960 (u,WhitePoint)
 
@@ -166,8 +166,7 @@ public static unsafe partial class Lcms2
             if ((j != 0) && (di / dj < 0.0))
             {
                 // Found a match
-                *TempK = 1000000.0 / (mi + (di / (di - dj) * (mj - mi)));
-                return true;
+                return 1000000.0 / (mi + (di / (di - dj) * (mj - mi)));
             }
 
             di = dj;
@@ -175,136 +174,105 @@ public static unsafe partial class Lcms2
         }
 
         // Not found
-        return false;
+        return double.NaN;
     }
 
-    private static bool ComputeChromaticAdaptation(
-        MAT3* Conversion,
-        in CIEXYZ* SourceWhitePoint,
-        in CIEXYZ* DestWhitePoint,
-        in MAT3* Chad)
+    private static MAT3 ComputeChromaticAdaptation(CIEXYZ SourceWhitePoint, CIEXYZ DestWhitePoint, MAT3 Chad)
     {
-        MAT3 Chad_Inv, Cone;
-        VEC3 ConeSourceXYZ, ConeSourceRGB, ConeDestXYZ, ConeDestRGB;
+        var Chad_Inv = Chad.Inverse;
+        if (Chad_Inv.IsNaN)
+            return MAT3.NaN;
 
-        var Tmp = *Chad;
-        if (!_cmsMAT3inverse(Tmp, out Chad_Inv)) return false;
+        var ConeSourceXYZ = new VEC3(SourceWhitePoint.X, SourceWhitePoint.Y, SourceWhitePoint.Z);
 
-        _cmsVEC3init(out ConeSourceXYZ, SourceWhitePoint->X, SourceWhitePoint->Y, SourceWhitePoint->Z);
+        var ConeDestXYZ = new VEC3(DestWhitePoint.X, DestWhitePoint.Y, DestWhitePoint.Z);
 
-        _cmsVEC3init(out ConeDestXYZ, DestWhitePoint->X, DestWhitePoint->Y, DestWhitePoint->Z);
-
-        _cmsMAT3eval(out ConeSourceRGB, *Chad, ConeSourceXYZ);
-        _cmsMAT3eval(out ConeDestRGB, *Chad, ConeDestXYZ);
+        var ConeSourceRGB = Chad.Eval(ConeSourceXYZ);
+        var ConeDestRGB = Chad.Eval(ConeDestXYZ);
 
         // Build matrix
-        _cmsVEC3init(out Cone.X, ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0);
-        _cmsVEC3init(out Cone.Y, 0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0);
-        _cmsVEC3init(out Cone.Z, 0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z);
+        var Cone = new MAT3(
+            x: new(ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0),
+            y: new(0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0),
+            z: new(0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z));
 
         // Normalize
-        _cmsMAT3per(out Tmp, Cone, *Chad);
-        _cmsMAT3per(out *Conversion, Chad_Inv, Tmp);
+        var Tmp = Cone * Chad;
+        return Chad_Inv * Tmp;
+    }
+
+    internal static MAT3 _cmsAdaptationMatrix(MAT3? ConeMatrix, CIEXYZ FromIll, CIEXYZ ToIll)
+    {
+        var LamRigg = new MAT3(0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296);
+
+        var _coneMatrix = ConeMatrix ?? LamRigg;
+
+        return ComputeChromaticAdaptation(FromIll, ToIll, _coneMatrix);
+    }
+
+    internal static bool _cmsAdaptMatrixToD50(ref MAT3 r, CIExyY SourceWhitePt)
+    {
+        var Dn = cmsxyY2XYZ(SourceWhitePt);
+
+        var Bradford = _cmsAdaptationMatrix(null, Dn, D50XYZ);
+        if (Bradford.IsNaN)
+            return false;
+
+        r = Bradford * r;
 
         return true;
     }
 
-    internal static bool _cmsAdaptationMatrix(MAT3* r, in MAT3* ConeMatrix, in CIEXYZ* FromIll, in CIEXYZ* ToIll)
+    internal static bool _cmsBuildRGB2XYZtransferMatrix(ref MAT3 r, CIExyY WhitePt, CIExyYTRIPLE Primrs)
     {
-        var LamRigg = stackalloc double[]
-        {
-            0.8951,
-            0.2664,
-            -0.1614,
-            -0.7502,
-            1.7135,
-            0.0367,
-            0.0389,
-            -0.0685,
-            1.0296,
-        };
-
-        var _coneMatrix = (ConeMatrix is null) ? (MAT3*)LamRigg : ConeMatrix;
-
-        return ComputeChromaticAdaptation(r, FromIll, ToIll, _coneMatrix);
-    }
-
-    internal static bool _cmsAdaptMatrixToD50(MAT3* r, in CIExyY* SourceWhitePt)
-    {
-        CIEXYZ Dn;
-        MAT3 Bradford;
-
-        cmsxyY2XYZ(&Dn, SourceWhitePt);
-
-        if (!_cmsAdaptationMatrix(&Bradford, null, &Dn, cmsD50_XYZ())) return false;
-
-        var Tmp = *r;
-        _cmsMAT3per(out *r, Bradford, Tmp);
-
-        return true;
-    }
-
-    internal static bool _cmsBuildRGB2XYZtransferMatrix(MAT3* r, in CIExyY* WhitePt, in CIExyYTRIPLE* Primrs)
-    {
-        VEC3* rv = &r->X;
-        VEC3 WhitePoint, Coef;
-        double* Coefn = &Coef.X;
-        MAT3 Result, Primaries;
-
-        var xn = WhitePt->x;
-        var yn = WhitePt->y;
-        var xr = Primrs->Red.x;
-        var yr = Primrs->Red.y;
-        var xg = Primrs->Green.x;
-        var yg = Primrs->Green.y;
-        var xb = Primrs->Blue.x;
-        var yb = Primrs->Blue.y;
+        var xn = WhitePt.x;
+        var yn = WhitePt.y;
+        var xr = Primrs.Red.x;
+        var yr = Primrs.Red.y;
+        var xg = Primrs.Green.x;
+        var yg = Primrs.Green.y;
+        var xb = Primrs.Blue.x;
+        var yb = Primrs.Blue.y;
 
         // Build Primaries matrix
-        _cmsVEC3init(out Primaries.X, xr, xg, xb);
-        _cmsVEC3init(out Primaries.Y, yr, yg, yb);
-        _cmsVEC3init(out Primaries.Z, 1 - xr - yr, 1 - xg - yg, 1 - xb - yb);
+        var Primaries = new MAT3(
+            x: new(xr, xg, xb),
+            y: new(yr, yg, yb),
+            z: new(1 - xr - yr, 1 - xg - yg, 1 - xb - yb));
 
         // Result = Primaries ^ (-1) inverse matrix
-        if (!_cmsMAT3inverse(Primaries, out Result)) return false;
+        var Result = Primaries.Inverse;
+        if (Result.IsNaN)
+            return false;
 
-        _cmsVEC3init(out WhitePoint, xn / yn, 1.0, (1.0 - xn - yn) / yn);
+        var WhitePoint = new VEC3(xn / yn, 1.0, (1.0 - xn - yn) / yn);
 
         // Across inverse primaries...
-        _cmsMAT3eval(out Coef, Result, WhitePoint);
+        var Coef = Result.Eval(WhitePoint);
 
         // Give us the Coefs, then I build transformation matrix
-        _cmsVEC3init(out rv[0], Coefn[VX] * xr, Coefn[VY] * xg, Coefn[VZ] * xb);
-        _cmsVEC3init(out rv[1], Coefn[VX] * yr, Coefn[VY] * yg, Coefn[VZ] * yb);
-        _cmsVEC3init(out rv[2], Coefn[VX] * (1.0 - xr - yr), Coefn[VY] * (1.0 - xg - yg), Coefn[VZ] * (1.0 - xb - yb));
+        r = new MAT3(
+            x: new(Coef.X * xr, Coef.Y * xg, Coef.Z * xb),
+            y: new(Coef.X * yr, Coef.Y * yg, Coef.Z * yb),
+            z: new(Coef.X * (1.0 - xr - yr), Coef.Y * (1.0 - xg - yg), Coef.Z * (1.0 - xb - yb)));
 
-        return _cmsAdaptMatrixToD50(r, WhitePt);
+        return _cmsAdaptMatrixToD50(ref r, WhitePt);
     }
 
-    public static bool cmsAdaptToIlluminant(
-        CIEXYZ* Result,
-        in CIEXYZ* SourceWhitePt,
-        in CIEXYZ* Illuminant,
-        in CIEXYZ* Value)
+    public static CIEXYZ cmsAdaptToIlluminant(CIEXYZ SourceWhitePt, CIEXYZ Illuminant, CIEXYZ Value)
     {
-        MAT3 Bradford;
-        VEC3 In, Out;
-        double* Outn = &Out.X;
+        //_cmsAssert(Result);
+        //_cmsAssert(SourceWhitePt);
+        //_cmsAssert(Illuminant);
+        //_cmsAssert(Value);
 
-        _cmsAssert(Result);
-        _cmsAssert(SourceWhitePt);
-        _cmsAssert(Illuminant);
-        _cmsAssert(Value);
+        var Bradford = _cmsAdaptationMatrix(null, SourceWhitePt, Illuminant);
+        if (Bradford.IsNaN)
+            return CIEXYZ.NaN;
 
-        if (!_cmsAdaptationMatrix(&Bradford, null, SourceWhitePt, Illuminant)) return false;
+        var In = new VEC3(Value.X, Value.Y, Value.Z);
+        var Out = Bradford.Eval(In);
 
-        _cmsVEC3init(out In, Value->X, Value->Y, Value->Z);
-        _cmsMAT3eval(out Out, Bradford, In);
-
-        Result->X = Outn[0];
-        Result->Y = Outn[1];
-        Result->Z = Outn[2];
-
-        return true;
+        return Out.AsXYZ;
     }
 }

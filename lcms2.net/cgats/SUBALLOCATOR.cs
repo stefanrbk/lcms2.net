@@ -27,9 +27,9 @@
 
 namespace lcms2.cgats;
 
-internal unsafe struct SUBALLOCATOR
+internal struct SUBALLOCATOR
 {
-    public byte* Block;
+    public byte[]? Block;
     public uint BlockSize;
     public uint Used;
 }

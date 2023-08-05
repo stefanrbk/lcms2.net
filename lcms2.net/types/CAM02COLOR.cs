@@ -25,16 +25,71 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.state;
+
+using System.Buffers;
+
 namespace lcms2.types;
-public unsafe struct CAM02COLOR
+public class CAM02COLOR : IDisposable
 {
-    public fixed double XYZ[3];
-    public fixed double RGB[3];
-    public fixed double RGBc[3];
-    public fixed double RGBp[3];
-    public fixed double RGBpa[3];
+    private readonly ArrayPool<double> pool;
+    private readonly double[] _XYZ;
+    private readonly double[] _RGB;
+    private readonly double[] _RGBc;
+    private readonly double[] _RGBp;
+    private readonly double[] _RGBpa;
     public double a, b, h, e, H, A, J, Q, s, t, C, M;
-    public fixed double abC[2];
-    public fixed double abs[2];
-    public fixed double abM[2];
+    private readonly double[] _AbC;
+    private readonly double[] _Abs;
+    private readonly double[] _AbM;
+    private bool disposedValue;
+
+    public Span<double> XYZ => _XYZ.AsSpan(..3);
+    public Span<double> RGB => _RGB.AsSpan(..3);
+    public Span<double> RGBc => _RGBc.AsSpan(..3);
+    public Span<double> RGBp => _RGBp.AsSpan(..3);
+    public Span<double> RGBpa => _RGBpa.AsSpan(..3);
+    public Span<double> AbC => _AbC.AsSpan(..2);
+    public Span<double> Abs => _Abs.AsSpan(..2);
+    public Span<double> AbM => _AbM.AsSpan(..2);
+
+    internal CAM02COLOR(Context? context)
+    {
+        pool = Context.GetPool<double>(context);
+
+        _XYZ = pool.Rent(3);
+        _RGB = pool.Rent(3);
+        _RGBc = pool.Rent(3);
+        _RGBp = pool.Rent(3);
+        _RGBpa = pool.Rent(3);
+        _AbC = pool.Rent(2);
+        _Abs = pool.Rent(2);
+        _AbM = pool.Rent(2);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                pool.Return(_XYZ);
+                pool.Return(_RGB);
+                pool.Return(_RGBc);
+                pool.Return(_RGBp);
+                pool.Return(_RGBpa);
+                pool.Return(_AbC);
+                pool.Return(_Abs);
+                pool.Return(_AbM);
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

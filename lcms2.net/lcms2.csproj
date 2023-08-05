@@ -5,7 +5,6 @@
 	  <LangVersion>Preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
   </PropertyGroup>
 

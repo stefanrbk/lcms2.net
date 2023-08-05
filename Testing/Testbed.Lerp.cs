@@ -32,7 +32,7 @@ using System.Text;
 
 namespace lcms2.testbed;
 
-internal static unsafe partial class Testbed
+internal static partial class Testbed
 {
     // Since prime factors of 65535 (FFFF) are,
     //
@@ -56,8 +56,8 @@ internal static unsafe partial class Testbed
     // max_err = max allowed error
     public static bool Check1D(int numNodesToCheck, bool down, int maxErr)
     {
-        ushort @in;
-        ushort @out;
+        Span<ushort> @in = stackalloc ushort[1];
+        Span<ushort> @out = stackalloc ushort[1];
 
         //var tab = calloc<ushort>((uint)numNodesToCheck);
         //if (tab is null) return false;
@@ -70,16 +70,16 @@ internal static unsafe partial class Testbed
 
         for (var i = 0; i <= 0xFFFF; i++)
         {
-            @in = (ushort)i;
-            @out = 0;
+            @in[0] = (ushort)i;
+            @out[0] = 0;
 
-            p.Interpolation.Lerp16(&@in, &@out, p);
+            p.Interpolation.Lerp16(@in, @out, p);
 
-            if (down) @out = (ushort)(0xFFFF - @out);
+            if (down) @out[0] = (ushort)(0xFFFF - @out[0]);
 
-            if (Math.Abs(@out - @in) > maxErr)
+            if (Math.Abs(@out[0] - @in[0]) > maxErr)
             {
-                logger.LogWarning("({numNodesToCheck}): Must be {in}, but was {out}", numNodesToCheck, @in, @out);
+                logger.LogWarning("({numNodesToCheck}): Must be {in}, but was {out}", numNodesToCheck, @in[0], @out[0]);
                 _cmsFreeInterpParams(p);
                 //free(tab);
                 return false;
@@ -126,7 +126,7 @@ internal static unsafe partial class Testbed
         var rc = true;
 
         var tasks = new List<Task<bool>>();
-        var check = stackalloc bool[4086];
+        var check = new bool[4086];
         for (var i = 0; i < 4096; i += 256)
         {
             tasks.Add(Task.Factory.StartNew((o) =>
@@ -185,7 +185,7 @@ internal static unsafe partial class Testbed
         var rc = true;
 
         var tasks = new List<Task<bool>>();
-        var check = stackalloc bool[4086];
+        var check = new bool[4086];
         for (var i = 0; i < 4096; i += 256)
         {
             tasks.Add(Task.Factory.StartNew((o) =>
@@ -275,8 +275,8 @@ internal static unsafe partial class Testbed
             .5f,
             .25f,       // B=1, G=1, R=1
         };
-        var @in = stackalloc float[3];
-        var @out = stackalloc float[3];
+        Span<float> @in = stackalloc float[3];
+        Span<float> @out = stackalloc float[3];
 
         var p = _cmsComputeInterpParams(DbgThread(), 2, 3, 3, floatTable, LerpFlag.Float);
 
@@ -338,8 +338,8 @@ internal static unsafe partial class Testbed
             .5f,
             .25f,       // B=1, G=1, R=1
         };
-        var @in = stackalloc float[3];
-        var @out = stackalloc float[3];
+        Span<float> @in = stackalloc float[3];
+        Span<float> @out = stackalloc float[3];
 
         var p = _cmsComputeInterpParams(DbgThread(), 2, 3, 3, floatTable, LerpFlag.Float | LerpFlag.Trilinear);
 
@@ -400,8 +400,8 @@ internal static unsafe partial class Testbed
             0xFFFF,
             0xFFFF, // B=1, G=1, R=1
         };
-        var @in = stackalloc ushort[3];
-        var @out = stackalloc ushort[3];
+        Span<ushort> @in = stackalloc ushort[3];
+        Span<ushort> @out = stackalloc ushort[3];
 
         var p = _cmsComputeInterpParams(DbgThread(), 2, 3, 3, table, LerpFlag.Ushort);
 
@@ -462,8 +462,8 @@ internal static unsafe partial class Testbed
             0xFFFF,
             0xFFFF, // B=1, G=1, R=1
         };
-        var @in = stackalloc ushort[3];
-        var @out = stackalloc ushort[3];
+        Span<ushort> @in = stackalloc ushort[3];
+        Span<ushort> @out = stackalloc ushort[3];
 
         var p = _cmsComputeInterpParams(DbgThread(), 2, 3, 3, table, LerpFlag.Trilinear);
 
@@ -491,8 +491,8 @@ internal static unsafe partial class Testbed
     private static void Check3DInterpolationFloatTask(InterpParams<float> p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
-        var @in = stackalloc float[3];
-        var @out = stackalloc float[3];
+        Span<float> @in = stackalloc float[3];
+        Span<float> @out = stackalloc float[3];
         for (var r = offset; r < offset + 4; r++)
         {
             for (var g = 0; g <= 0xFF; g++)
@@ -670,8 +670,8 @@ internal static unsafe partial class Testbed
     private static void Check3DInterpolation16Task(InterpParams<ushort> p, bool[,,] check, bool[,,] isGood, object? o)
     {
         var offset = (int)o!;
-        var @in = stackalloc ushort[3];
-        var @out = stackalloc ushort[3];
+        Span<ushort> @in = stackalloc ushort[3];
+        Span<ushort> @out = stackalloc ushort[3];
         for (var r = offset; r < offset + 16; r++)
         {
             for (var g = 0; g <= 0xFF; g++)
@@ -804,11 +804,11 @@ internal static unsafe partial class Testbed
 
     public static bool CheckReverseInterpolation3x3()
     {
-        var target = stackalloc float[4];
-        var result = stackalloc float[4];
-        var hint = stackalloc float[4];
+        Span<float> target = stackalloc float[4];
+        Span<float> result = stackalloc float[4];
+        Span<float> hint = stackalloc float[4];
 
-        var table = stackalloc ushort[]
+        Span<ushort> table = stackalloc ushort[]
         {
             0,
             0,
@@ -865,7 +865,7 @@ internal static unsafe partial class Testbed
             var err = MathF.Abs(@in - result[0]);
             if (err > max) max = err;
 
-            memcpy(hint, result, sizeof(float) * 4);
+            memcpy(hint, result, 4);
         }
 
         cmsPipelineFree(lut);
@@ -878,11 +878,11 @@ internal static unsafe partial class Testbed
 
     public static bool CheckReverseInterpolation4x3()
     {
-        var target = stackalloc float[4];
-        var result = stackalloc float[4];
-        var hint = stackalloc float[4];
+        Span<float> target = stackalloc float[4];
+        Span<float> result = stackalloc float[4];
+        Span<float> hint = stackalloc float[4];
 
-        var table = stackalloc ushort[]
+        Span<ushort> table = stackalloc ushort[]
         {
             0,
             0,
@@ -996,7 +996,7 @@ internal static unsafe partial class Testbed
                 var err = MathF.Abs(@in - result[0]);
                 if (err > max) max = err;
 
-                memcpy(hint, result, sizeof(float) * 4);
+                memcpy(hint, result, 4);
             }
         }
 
@@ -1017,7 +1017,7 @@ internal static unsafe partial class Testbed
     private static ushort Fn8D3(uint m, ushort a1, ushort a2, ushort a3, ushort a4 = 0, ushort a5 = 0, ushort a6 = 0, ushort a7 = 0, ushort a8 = 0) =>
         (ushort)(((3 * a1) + (2 * a2) + (3 * a3) + a4 + a5 + a6 + a7 + a8) / (m + 5));
 
-    private static bool Sampler3D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler3D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(3, In[0], In[1], In[2]);
         Out[1] = Fn8D2(3, In[0], In[1], In[2]);
@@ -1026,7 +1026,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler4D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler4D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(4, In[0], In[1], In[2], In[3]);
         Out[1] = Fn8D2(4, In[0], In[1], In[2], In[3]);
@@ -1035,7 +1035,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler5D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler5D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(5, In[0], In[1], In[2], In[3], In[4]);
         Out[1] = Fn8D2(5, In[0], In[1], In[2], In[3], In[4]);
@@ -1047,7 +1047,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler6D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler6D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(6, In[0], In[1], In[2], In[3], In[4], In[5]);
         Out[1] = Fn8D2(6, In[0], In[1], In[2], In[3], In[4], In[5]);
@@ -1056,7 +1056,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler7D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler7D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(7, In[0], In[1], In[2], In[3], In[4], In[5], In[6]);
         Out[1] = Fn8D2(7, In[0], In[1], In[2], In[3], In[4], In[5], In[6]);
@@ -1065,7 +1065,7 @@ internal static unsafe partial class Testbed
         return true;
     }
 
-    private static bool Sampler8D(in ushort* In, ushort* Out, object? _)
+    private static bool Sampler8D(ReadOnlySpan<ushort> In, Span<ushort> Out, object? _)
     {
         Out[0] = Fn8D1(8, In[0], In[1], In[2], In[3], In[4], In[5], In[6], In[7]);
         Out[1] = Fn8D2(8, In[0], In[1], In[2], In[3], In[4], In[5], In[6], In[7]);
@@ -1076,9 +1076,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne3D(Pipeline lut, ushort a1, ushort a2, ushort a3)
     {
-        var In = stackalloc ushort[3];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[3];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3;
 
@@ -1099,9 +1099,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne4D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4)
     {
-        var In = stackalloc ushort[4];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[4];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3; In[3] = a4;
 
@@ -1122,9 +1122,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne5D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5)
     {
-        var In = stackalloc ushort[5];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[5];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3; In[3] = a4; In[4] = a5;
 
@@ -1145,9 +1145,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne6D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6)
     {
-        var In = stackalloc ushort[6];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[6];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3; In[3] = a4; In[4] = a5; In[5] = a6;
 
@@ -1168,9 +1168,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne7D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7)
     {
-        var In = stackalloc ushort[7];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[7];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3; In[3] = a4; In[4] = a5; In[5] = a6; In[6] = a7;
 
@@ -1191,9 +1191,9 @@ internal static unsafe partial class Testbed
 
     private static bool CheckOne8D(Pipeline lut, ushort a1, ushort a2, ushort a3, ushort a4, ushort a5, ushort a6, ushort a7, ushort a8)
     {
-        var In = stackalloc ushort[8];
-        var Out1 = stackalloc ushort[3];
-        var Out2 = stackalloc ushort[3];
+        Span<ushort> In = stackalloc ushort[8];
+        Span<ushort> Out1 = stackalloc ushort[3];
+        Span<ushort> Out2 = stackalloc ushort[3];
 
         In[0] = a1; In[1] = a2; In[2] = a3; In[3] = a4; In[4] = a5; In[5] = a6; In[6] = a7; In[7] = a8;
 

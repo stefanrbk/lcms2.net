@@ -31,7 +31,7 @@ using System.Runtime.CompilerServices;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     internal static readonly OptimizationCollection DefaultOptimization = OptimizationCollection.Build(
         new(OptimizeByJoiningCurves),
@@ -346,19 +346,19 @@ public static unsafe partial class Lcms2
     private static bool CloseEnoughFloat(double a, double b) =>
         Math.Abs(b - a) < 1e-5f;
 
-    private static bool isFloatMatrixIdentity(in MAT3* a)
+    private static bool isFloatMatrixIdentity(MAT3 a)
     {
-        MAT3 Identity;
+        var Identity = MAT3.Identity;
 
-        _cmsMAT3identity(out Identity);
-
-        for (var i = 0; i < 3; i++)
-        {
-            for (var j = 0; j < 3; j++)
-                if (!CloseEnoughFloat(((double*)a)[(i * 3) + j], ((double*)&Identity)[(i * 3) + j])) return false;
-        }
-
-        return true;
+        return CloseEnoughFloat(a.X.X, Identity.X.X) &&
+               CloseEnoughFloat(a.X.Y, Identity.X.Y) &&
+               CloseEnoughFloat(a.X.Z, Identity.X.Z) &&
+               CloseEnoughFloat(a.Y.X, Identity.Y.X) &&
+               CloseEnoughFloat(a.Y.Y, Identity.Y.Y) &&
+               CloseEnoughFloat(a.Y.Z, Identity.Y.Z) &&
+               CloseEnoughFloat(a.Z.X, Identity.Z.X) &&
+               CloseEnoughFloat(a.Z.Y, Identity.Z.Y) &&
+               CloseEnoughFloat(a.Z.Z, Identity.Z.Z);
     }
 
     private static bool _MultiplyMatrix(Pipeline Lut)
@@ -388,7 +388,7 @@ public static unsafe partial class Lcms2
                 }
 
                 // Multiply both matrices to get the result
-                _cmsMAT3per(out MAT3 res, new MAT3(m2.Double), new MAT3(m1.Double));
+                var res = new MAT3(m2.Double) * new MAT3(m1.Double);
 
                 // Get the next in chain after the matrices
                 var chain = pt2.Next;
@@ -398,7 +398,7 @@ public static unsafe partial class Lcms2
                 _RemoveElement(ref pt1);
 
                 // Now what if the result is a plain identity?
-                if (!isFloatMatrixIdentity(&res))
+                if (!isFloatMatrixIdentity(res))
                 {
                     // We can not get rid of full matrix
                     var ctx = _cmsGetContext(Lut.ContextID);
@@ -460,26 +460,26 @@ public static unsafe partial class Lcms2
         return AnyOpt;
     }
 
-    private static void Eval16nop1D(in ushort* Input, ushort* Output, InterpParams<ushort> _)
+    private static void Eval16nop1D(ReadOnlySpan<ushort> Input, Span<ushort> Output, InterpParams<ushort> _)
     {
         Output[0] = Input[0];
     }
 
-    private static void PrelinEval16(in ushort* Input, ushort* Output, object? D)
+    private static void PrelinEval16(ReadOnlySpan<ushort> Input, Span<ushort> Output, object? D)
     {
         if (D is not Prelin16Data p16)
             return;
 
-        var StageABC = stackalloc ushort[MAX_INPUT_DIMENSIONS];
-        var StageDEF = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> StageABC = stackalloc ushort[MAX_INPUT_DIMENSIONS];
+        Span<ushort> StageDEF = stackalloc ushort[cmsMAXCHANNELS];
 
         for (var i = 0; i < p16.nInputs; i++)
-            p16.EvalCurveIn16[i](&Input[i], &StageABC[i], p16.ParamsCurveIn16[i]);
+            p16.EvalCurveIn16[i](Input[i..], StageABC[i..], p16.ParamsCurveIn16[i]);
 
         p16.EvalCLUT(StageABC, StageDEF, p16.CLUTparams);
 
         for (var i = 0; i < p16.nOutputs; i++)
-            p16.EvalCurveIn16[i](&StageDEF[i], &Output[i], p16.ParamsCurveOut16[i]);
+            p16.EvalCurveIn16[i](StageDEF[i..], Output[i..], p16.ParamsCurveOut16[i]);
     }
 
     private static void PrelinOpt16free(Context? ContextID, object? ptr) =>
@@ -567,13 +567,13 @@ public static unsafe partial class Lcms2
 
     private const uint PRELINEARIZATION_POINTS = 4096;
 
-    private static bool XFormSampler16(in ushort* In, ushort* Out, object? Cargo)
+    private static bool XFormSampler16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
         if (Cargo is not Pipeline Lut)
             return false;
 
-        var InFloat = stackalloc float[cmsMAXCHANNELS];
-        var OutFloat = stackalloc float[cmsMAXCHANNELS];
+        Span<float> InFloat = stackalloc float[cmsMAXCHANNELS];
+        Span<float> OutFloat = stackalloc float[cmsMAXCHANNELS];
 
         _cmsAssert(Lut.InputChannels < cmsMAXCHANNELS,
                    Lut.OutputChannels < cmsMAXCHANNELS);
@@ -608,8 +608,8 @@ public static unsafe partial class Lcms2
 
     private static bool PatchLUT(
         Stage? CLUT,
-        ushort* At,
-        ushort* Value,
+        ReadOnlySpan<ushort> At,
+        ReadOnlySpan<ushort> Value,
         uint nChannelsOut,
         uint nChannelsIn)
     {
@@ -703,7 +703,7 @@ public static unsafe partial class Lcms2
         return true;
     }
 
-    private static bool WhitesAreEqual(uint n, ushort* White1, ushort* White2)
+    private static bool WhitesAreEqual(uint n, ReadOnlySpan<ushort> White1, ReadOnlySpan<ushort> White2)
     {
         for (var i = 0; i < n; i++)
         {
@@ -716,9 +716,9 @@ public static unsafe partial class Lcms2
 
     private static bool FixWhiteMisalignment(Pipeline Lut, Signature EntryColorSpace, Signature ExitColorSpace)
     {
-        var WhiteIn = stackalloc ushort[cmsMAXCHANNELS];
-        var WhiteOut = stackalloc ushort[cmsMAXCHANNELS];
-        var ObtainedOut = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> WhiteIn = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> WhiteOut = stackalloc ushort[cmsMAXCHANNELS];
+        Span<ushort> ObtainedOut = stackalloc ushort[cmsMAXCHANNELS];
 
         if (!_cmsEndPointsBySpace(EntryColorSpace, out var WhitePointIn, out _, out var nIns))
             return false;
@@ -730,14 +730,10 @@ public static unsafe partial class Lcms2
         if (Lut.InputChannels != nIns) return false;
         if (Lut.OutputChannels != nOuts) return false;
 
-        fixed (ushort* ptr = WhitePointIn)
-            cmsPipelineEval16(ptr, ObtainedOut, Lut);
+        cmsPipelineEval16(WhitePointIn, ObtainedOut, Lut);
 
-        fixed (ushort* ptr = WhitePointOut)
-        {
-            if (WhitesAreEqual(nOuts, ptr, ObtainedOut))
-                return true;    // Whites already match
-        }
+        if (WhitesAreEqual(nOuts, WhitePointOut, ObtainedOut))
+            return true;    // Whites already match
 
         // Check if the LUT comes as Prelin, CLUT or Postlin. We allow all combinations
         if (!cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out Stage? PreLin, cmsSigCLutElemType, out Stage? CLUT, cmsSigCurveSetElemType, out Stage? PostLin) &&
@@ -797,25 +793,25 @@ public static unsafe partial class Lcms2
     private static bool OptimizeByResampling(
         ref Pipeline Lut,
         uint Intent,
-        uint* InputFormat,
-        uint* OutputFormat,
-        uint* dwFlags)
+        ref uint InputFormat,
+        ref uint OutputFormat,
+        ref uint dwFlags)
     {
         Pipeline? Src = null, Dest = null;
         Stage? KeepPreLin = null, KeepPostLin = null;
         Stage? NewPreLin = null, NewPostLin = null;
 
         // This is a lossy optimization! does not apply in floating-point cases
-        if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
+        if (_cmsFormatterIsFloat(InputFormat) || _cmsFormatterIsFloat(OutputFormat)) return false;
 
-        var ColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*InputFormat));
-        var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*OutputFormat));
+        var ColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(InputFormat));
+        var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(OutputFormat));
 
         // Color space must be specified
         if ((uint)ColorSpace is 0 ||
             (uint)OutputColorSpace is 0) { return false; }
 
-        var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, *dwFlags);
+        var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, dwFlags);
 
         // For empty LUTs, 2 points are enough
         if (cmsPipelineStageCount(Lut) is 0)
@@ -828,7 +824,7 @@ public static unsafe partial class Lcms2
         if (Dest is null) return false;
 
         // Prelinearization tables are kept unless indicated by flags
-        if ((*dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is not 0)
+        if ((dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is not 0)
         {
             // Get a pointer to the prelinearization element
             var PreLin = cmsPipelineGetPtrToFirstStage(Src);
@@ -861,7 +857,7 @@ public static unsafe partial class Lcms2
             goto Error;
 
         // Postlinearization tables are kept unless indicated by flags
-        if ((*dwFlags & cmsFLAGS_CLUT_POST_LINEARIZATION) is not 0)
+        if ((dwFlags & cmsFLAGS_CLUT_POST_LINEARIZATION) is not 0)
         {
             // Get a pointer to the postlinearization if present
             var PostLin = cmsPipelineGetPtrToLastStage(Src);
@@ -903,7 +899,7 @@ public static unsafe partial class Lcms2
         {
             _cmsPipelineSetOptimizationParameters(
                 Dest,
-                (in ushort* i, ushort* o, object? p) =>
+                (ReadOnlySpan<ushort> i, Span<ushort> o, object? p) =>
                 {
                     if (p is not InterpParams<ushort> ptr) return;
                     DataCLUT.Params.Interpolation.Lerp16?.Invoke(i, o, ptr);
@@ -921,9 +917,9 @@ public static unsafe partial class Lcms2
 
         // Don't fix white on absolute colorimentric
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
-            *dwFlags |= cmsFLAGS_NOWHITEONWHITEFIXUP;
+            dwFlags |= cmsFLAGS_NOWHITEONWHITEFIXUP;
 
-        if ((*dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0)
+        if ((dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0)
             FixWhiteMisalignment(Dest, ColorSpace, OutputColorSpace);
 
         Lut = Dest;
@@ -970,7 +966,7 @@ public static unsafe partial class Lcms2
 
     private static Prelin8Data? PrelinOpt8alloc(Context? ContextID, InterpParams<ushort> p, Span<ToneCurve> G)
     {
-        var Input = stackalloc ushort[3];
+        Span<ushort> Input = stackalloc ushort[3];
 
         //var p8 = _cmsMallocZero<Prelin8Data>(ContextID);
         //if (p8 is null) return null;
@@ -1015,14 +1011,14 @@ public static unsafe partial class Lcms2
         return p8;
     }
 
-    private static void Prelin8free(Context? ContextID, object? ptr) =>
+    private static void Prelin8free(Context? _, object? ptr) =>
         //_cmsFree(ContextID, ptr as BoxPtr<Prelin16Data>);
         (ptr as Prelin8Data)?.Dispose();
 
-    private static object? Prelin8dup(Context? ContextID, object? ptr) =>
+    private static object? Prelin8dup(Context? _, object? ptr) =>
         (ptr as Prelin8Data)?.Clone();
 
-    private static void PrelinEval8(in ushort* Input, ushort* Output, object? D)
+    private static void PrelinEval8(ReadOnlySpan<ushort> Input, Span<ushort> Output, object? D)
     {
         int c0, c1, c2, c3;
 
@@ -1121,37 +1117,37 @@ public static unsafe partial class Lcms2
         return false;
     }
 
-    private static bool OptimizeByComputingLinearization(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeByComputingLinearization(ref Pipeline Lut, uint Intent, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags)
     {
         var pool = Context.GetPool<ToneCurve>(Lut.ContextID);
-        var In = stackalloc float[cmsMAXCHANNELS];
-        var Out = stackalloc float[cmsMAXCHANNELS];
+        Span<float> In = stackalloc float[cmsMAXCHANNELS];
+        Span<float> Out = stackalloc float[cmsMAXCHANNELS];
         Pipeline? OptimizedLUT = null, LutPlusCurves = null;
 
         // This is a lossy optimization! does not apply in floating-point cases
-        if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
+        if (_cmsFormatterIsFloat(InputFormat) || _cmsFormatterIsFloat(OutputFormat)) return false;
 
         // Only on chunky RGB
-        if (T_COLORSPACE(*InputFormat) is not PT_RGB) return false;
-        if (T_PLANAR(*InputFormat) is not 0) return false;
+        if (T_COLORSPACE(InputFormat) is not PT_RGB) return false;
+        if (T_PLANAR(InputFormat) is not 0) return false;
 
-        if (T_COLORSPACE(*OutputFormat) is not PT_RGB) return false;
-        if (T_PLANAR(*OutputFormat) is not 0) return false;
+        if (T_COLORSPACE(OutputFormat) is not PT_RGB) return false;
+        if (T_PLANAR(OutputFormat) is not 0) return false;
 
         // On 16 bits, user has to specify the feature
-        if (!_cmsFormatterIs8bit(*InputFormat) && (*dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is 0)
+        if (!_cmsFormatterIs8bit(InputFormat) && (dwFlags & cmsFLAGS_CLUT_PRE_LINEARIZATION) is 0)
             return false;
 
         var OriginalLut = Lut;
 
-        var ColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*InputFormat));
-        var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(*OutputFormat));
+        var ColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(InputFormat));
+        var OutputColorSpace = _cmsICCcolorSpace((int)T_COLORSPACE(OutputFormat));
 
         // Color space must be specified
         if ((uint)ColorSpace is 0 || (uint)OutputColorSpace is 0)
             return false;
 
-        var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, *dwFlags);
+        var nGridPoints = _cmsReasonableGridpointsByColorspace(ColorSpace, dwFlags);
 
         // Empty gamma containers
         //memset(Trans, 0, _sizeof<nint>() * cmsMAXCHANNELS);
@@ -1179,7 +1175,7 @@ public static unsafe partial class Lcms2
 
         for (var t = 0; t < OriginalLut.InputChannels; t++)
         {
-            Trans[t] = cmsBuildTabulatedToneCurve16(OriginalLut.ContextID, PRELINEARIZATION_POINTS, null);
+            Trans[t] = cmsBuildTabulatedToneCurve16(OriginalLut.ContextID, PRELINEARIZATION_POINTS, null)!;
             if (Trans[t] is null) goto Error;
         }
 
@@ -1265,7 +1261,7 @@ public static unsafe partial class Lcms2
             return false;
 
         // Set the evaluator if 8-bit
-        if (_cmsFormatterIs8bit(*InputFormat))
+        if (_cmsFormatterIs8bit(InputFormat))
         {
             var p8 = PrelinOpt8alloc(OptimizedLUT.ContextID, OptimizedPrelinCLUT.Params, OptimizedPrelinCurves);
             if (p8 is null) goto Error;
@@ -1282,9 +1278,9 @@ public static unsafe partial class Lcms2
 
         // Don't fix white on absolute colorimetric
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
-            *dwFlags |= cmsFLAGS_NOWHITEONWHITEFIXUP;
+            dwFlags |= cmsFLAGS_NOWHITEONWHITEFIXUP;
 
-        if ((*dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0)
+        if ((dwFlags & cmsFLAGS_NOWHITEONWHITEFIXUP) is 0)
             if (!FixWhiteMisalignment(OptimizedLUT, ColorSpace, OutputColorSpace)) goto Error;
 
         // And return the obtained LUT
@@ -1393,7 +1389,7 @@ public static unsafe partial class Lcms2
     //    return null;
     }
 
-    private static void FastEvaluateCurves8(in ushort* In, ushort* Out, object? D)
+    private static void FastEvaluateCurves8(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
     {
         if (D is not Curves16Data Data)
             return;
@@ -1405,7 +1401,7 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static void FastEvaluateCurves16(in ushort* In, ushort* Out, object? D)
+    private static void FastEvaluateCurves16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
     {
         if (D is not Curves16Data Data)
             return;
@@ -1414,7 +1410,7 @@ public static unsafe partial class Lcms2
             Out[i] = Data.Curves[i, In[i]];
     }
 
-    private static void FastIdentify16(in ushort* In, ushort* Out, object? D)
+    private static void FastIdentify16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
     {
         if (D is not Pipeline Lut)
             return;
@@ -1423,17 +1419,17 @@ public static unsafe partial class Lcms2
             Out[i] = In[i];
     }
 
-    private static bool OptimizeByJoiningCurves(ref Pipeline Lut, uint _, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeByJoiningCurves(ref Pipeline Lut, uint _, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags)
     {
-        var InFloat = stackalloc float[cmsMAXCHANNELS];
-        var OutFloat = stackalloc float[cmsMAXCHANNELS];
+        Span<float> InFloat = stackalloc float[cmsMAXCHANNELS];
+        Span<float> OutFloat = stackalloc float[cmsMAXCHANNELS];
 
         Stage? ObtainedCurves = null;
         Pipeline? Dest = null;
         var Src = Lut;
 
         // This is a lossy optimization! does not apply in floating-point cases
-        if (_cmsFormatterIsFloat(*InputFormat) || _cmsFormatterIsFloat(*OutputFormat)) return false;
+        if (_cmsFormatterIsFloat(InputFormat) || _cmsFormatterIsFloat(OutputFormat)) return false;
 
         // Only curves in this LUT?
         for (var mpe = cmsPipelineGetPtrToFirstStage(Src);
@@ -1483,7 +1479,7 @@ public static unsafe partial class Lcms2
 
         if (GammaTables is not null)
         {
-            _cmsFree(Src.ContextID, GammaTables);
+            ReturnArray(Src.ContextID, GammaTables);
             GammaTables = null!;
         }
 
@@ -1497,19 +1493,19 @@ public static unsafe partial class Lcms2
             ObtainedCurves = null;
 
             // If the curves are to by applied in 8 bits, we can save memory
-            if (_cmsFormatterIs8bit(*InputFormat))
+            if (_cmsFormatterIs8bit(InputFormat))
             {
                 var c16 = CurvesAlloc(Dest.ContextID, Data.nCurves, 256, Data.TheCurves);
 
                 if (c16 is null) goto Error;
-                *dwFlags |= cmsFLAGS_NOCACHE;
+                dwFlags |= cmsFLAGS_NOCACHE;
                 _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves8, c16, CurvesFree, CurvesDup);
             }
             else
             {
                 var c16 = CurvesAlloc(Dest.ContextID, Data.nCurves, 65536, Data.TheCurves);
                 if (c16 is null) goto Error;
-                *dwFlags |= cmsFLAGS_NOCACHE;
+                dwFlags |= cmsFLAGS_NOCACHE;
                 _cmsPipelineSetOptimizationParameters(Dest, FastEvaluateCurves16, c16, CurvesFree, CurvesDup);
             }
         }
@@ -1522,7 +1518,7 @@ public static unsafe partial class Lcms2
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtBegin, cmsStageAllocIdentity(Dest.ContextID, Src.InputChannels)))
                 goto Error;
 
-            *dwFlags |= cmsFLAGS_NOCACHE;
+            dwFlags |= cmsFLAGS_NOCACHE;
             _cmsPipelineSetOptimizationParameters(Dest, FastIdentify16, Dest, null, null);
         }
 
@@ -1535,7 +1531,7 @@ public static unsafe partial class Lcms2
 
         for (var i = 0; i < Src.InputChannels; i++)
             cmsFreeToneCurve(GammaTables?[i]);
-        _cmsFree(Src.ContextID, GammaTables);
+        ReturnArray(Src.ContextID, GammaTables);
 
         if (ObtainedCurves is not null)
             cmsStageFree(ObtainedCurves);
@@ -1553,7 +1549,7 @@ public static unsafe partial class Lcms2
     private static MatShaper8Data? DupMatShaper(Context? ContextID, object? Data) =>
         (Data as MatShaper8Data)?.Clone() as MatShaper8Data;
 
-    private static void MatShaperEval16(in ushort* In, ushort* Out, object? D)
+    private static void MatShaperEval16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
     {
         if (D is not MatShaper8Data p)
             return;
@@ -1625,10 +1621,9 @@ public static unsafe partial class Lcms2
         }
     }
 
-    private static bool SetMatShaper(Pipeline Dest, ReadOnlySpan<ToneCurve> Curve1, MAT3* Mat, VEC3* Off, ReadOnlySpan<ToneCurve> Curve2, uint* OutputFormat)
+    private static bool SetMatShaper(Pipeline Dest, ReadOnlySpan<ToneCurve> Curve1, MAT3 Mat, VEC3? Off, ReadOnlySpan<ToneCurve> Curve2, ref uint OutputFormat)
     {
-        var Offn = &Off->X;
-        bool Is8Bits = _cmsFormatterIs8bit(*OutputFormat);
+        bool Is8Bits = _cmsFormatterIs8bit(OutputFormat);
 
         // Allocate a big chunk of memory to store precomputed tables
         //var p = _cmsMalloc<MatShaper8Data>(Dest.ContextID);
@@ -1652,34 +1647,34 @@ public static unsafe partial class Lcms2
         {
             for (var j = 0; j < 3; j++)
             {
-                p.Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(((double*)Mat)[(i * 3) + 1]);
+                p.Mat[(i * 3) + j] = DOUBLE_TO_1FIXED14(Mat[i][j]);
             }
         }
 
         for (var i = 0; i < 3; i++)
         {
-            p.Off[i] = Off is null ? 0 : DOUBLE_TO_1FIXED14(Offn[i]);
+            p.Off[i] = Off is null ? 0 : DOUBLE_TO_1FIXED14(Off.Value[i]);
         }
 
         // Mark as optimized for faster formatter
         if (Is8Bits)
-            *OutputFormat |= OPTIMIZED_SH(1);
+            OutputFormat |= OPTIMIZED_SH(1);
 
         // Fill function pointers
         _cmsPipelineSetOptimizationParameters(Dest, MatShaperEval16, p, FreeMatShaper, DupMatShaper);
         return true;
     }
 
-    private static bool OptimizeMatrixShaper(ref Pipeline Lut, uint Intent, uint* InputFormat, uint* OutputFormat, uint* dwFlags)
+    private static bool OptimizeMatrixShaper(ref Pipeline Lut, uint Intent, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags)
     {
         double[]? Offset;
         MAT3 res;
 
         // Only works on RGB to RGB
-        if (T_CHANNELS(*InputFormat) is not 3 || T_CHANNELS(*OutputFormat) is not 3) return false;
+        if (T_CHANNELS(InputFormat) is not 3 || T_CHANNELS(OutputFormat) is not 3) return false;
 
         // Only works on 8 bit input
-        if (!_cmsFormatterIs8bit(*InputFormat)) return false;
+        if (!_cmsFormatterIs8bit(InputFormat)) return false;
 
         // Seems suitable, proceed
         var Src = Lut;
@@ -1707,13 +1702,13 @@ public static unsafe partial class Lcms2
             if (Data1.Offset is not null) return false;
 
             // Multiply both matrices to get the result
-            _cmsMAT3per(out res, new(Data2.Double), new(Data1.Double));
+            res = new MAT3(Data2.Double) * new MAT3(Data1.Double);
 
             // Only 2nd matrix has offset, or it is zero
             Offset = Data2.Offset;
 
             // Now the result is in res + Data2->Offset. Maybe it is a plain identity?
-            if (_cmsMAT3isIdentity(res) && Offset is null)
+            if (res.IsIdentity && Offset is null)
             {
                 // We can get rid of full matrix
                 IdentityMat = true;
@@ -1733,7 +1728,7 @@ public static unsafe partial class Lcms2
             // Preserve the offset (may be null as a zero offset)
             Offset = Data.Offset;
 
-            if (_cmsMAT3isIdentity(res) && Offset is null)
+            if (res.IsIdentity && Offset is null)
             {
                 // We can get rid of full matrix
                 IdentityMat = true;
@@ -1767,7 +1762,7 @@ public static unsafe partial class Lcms2
         // If identity on matrix, we can further optimize the curves, so call the join curves routine
         if (IdentityMat)
         {
-            OptimizeByJoiningCurves(ref Dest, Intent, InputFormat, OutputFormat, dwFlags);
+            OptimizeByJoiningCurves(ref Dest, Intent, ref InputFormat, ref OutputFormat, ref dwFlags);
         }
         else
         {
@@ -1779,11 +1774,11 @@ public static unsafe partial class Lcms2
 
             // In this particular optimization, cache does not help as it takes more time to deal with
             // the cache than with the pixel handling
-            *dwFlags |= cmsFLAGS_NOCACHE;
+            dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routinds
             var resOffset = Offset is null ? default : new VEC3(Offset);
-            SetMatShaper(Dest, mpeC1.TheCurves, &res, &resOffset, mpeC2.TheCurves, OutputFormat);
+            SetMatShaper(Dest, mpeC1.TheCurves, res, resOffset, mpeC2.TheCurves, ref OutputFormat);
         }
 
         cmsPipelineFree(Src);
@@ -1883,18 +1878,18 @@ public static unsafe partial class Lcms2
         Context? ContextID,
         ref Pipeline PtrLut,
         uint Intent,
-        uint* InputFormat,
-        uint* OutputFormat,
-        uint* dwFlags)
+        ref uint InputFormat,
+        ref uint OutputFormat,
+        ref uint dwFlags)
     {
         var ctx = _cmsGetContext(ContextID).OptimizationPlugin;
         var AnySuccess = false;
 
         // A CLUT is being asked, so force this specific optimization
-        if ((*dwFlags & cmsFLAGS_FORCE_CLUT) is not 0)
+        if ((dwFlags & cmsFLAGS_FORCE_CLUT) is not 0)
         {
             PreOptimize(PtrLut);
-            return OptimizeByResampling(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags);
+            return OptimizeByResampling(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags);
         }
 
         // Anything to optimize?
@@ -1923,7 +1918,7 @@ public static unsafe partial class Lcms2
         }
 
         // Do not optimize, keep all precision
-        if ((*dwFlags & cmsFLAGS_NOOPTIMIZE) is not 0)
+        if ((dwFlags & cmsFLAGS_NOOPTIMIZE) is not 0)
             return false;
 
         // Try plug-in optimizations
@@ -1932,7 +1927,7 @@ public static unsafe partial class Lcms2
              Opts = Opts.Next)
         {
             // If one schema succeeded, we are done
-            if (Opts.OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+            if (Opts.OptimizePtr(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
                 return true;    // Optimized!
         }
 
@@ -1941,7 +1936,7 @@ public static unsafe partial class Lcms2
              Opts is not null;
              Opts = Opts.Next)
         {
-            if (Opts.OptimizePtr(ref PtrLut, Intent, InputFormat, OutputFormat, dwFlags))
+            if (Opts.OptimizePtr(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
                 return true;
         }
 

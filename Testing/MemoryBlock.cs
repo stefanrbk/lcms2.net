@@ -25,14 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
+//using lcms2.state;
 
-namespace lcms2.testbed;
+//namespace lcms2.testbed;
 
-public unsafe struct MemoryBlock
-{
-    public uint KeepSize;
-    public int WhoAllocated;
-    public uint DontCheck;
-    public ulong alignment;
-}
+//public unsafe struct MemoryBlock
+//{
+//    public uint KeepSize;
+//    public int WhoAllocated;
+//    public uint DontCheck;
+//    public uint alignment;
+//}

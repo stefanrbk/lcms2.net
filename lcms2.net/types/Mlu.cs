@@ -36,8 +36,8 @@ public class Mlu(Context? ContextID, uint nEntries)
     //public uint UsedEntries;
     public List<MluEntry> Entries = new((int)nEntries);
 
-    public uint PoolSizeInBytes;
-    public uint PoolUsedInBytes;
+    public uint PoolSize;
+    public uint PoolUsed;
     public char[]? MemPool;
 
     public uint UsedEntries =>
