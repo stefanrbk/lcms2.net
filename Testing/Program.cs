@@ -227,7 +227,7 @@ if (doCheckTests)
     using (logger.BeginScope("Transforms"))
     {
         Check("Curves only transforms", CheckCurvesOnlyTransforms);
-        //Check("Float Lab->Lab transforms", CheckFloatLabTransforms);
+        Check("Float Lab->Lab transforms", CheckFloatLabTransforms);
         //Check("Encoded Lab->Lab transforms", CheckEncodedLabTransforms);
         //Check("Stored identities", CheckStoredIdentities);
 

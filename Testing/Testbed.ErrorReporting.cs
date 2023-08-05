@@ -419,4 +419,71 @@ internal static partial class Testbed
 
         return rc;
     }
+
+    private static double MaxDE;
+
+    private static bool CheckOneLab(Transform xform, double L, double a, double b)
+    {
+        Span<CIELab> In = stackalloc CIELab[1] { new CIELab(L, a, b) };
+        Span<CIELab> Out = stackalloc CIELab[1];
+
+        cmsDoTransform(xform, In, Out, 1);
+
+        var dE = cmsDeltaE(In[0], Out[0]);
+
+        if (dE > MaxDE) MaxDE = dE;
+
+        if (MaxDE > 0.003)
+        {
+            logger.LogWarning("dE={dE}", MaxDE);
+            logger.LogWarning("Lab1=({L}, {a}, {b})", In[0].L, In[0].a, In[0].b);
+            logger.LogWarning("Lab2=({L}, {a}, {b})", Out[0].L, Out[0].a, Out[0].b);
+            cmsDoTransform(xform, In, Out, 1);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool CheckSeveralLab(Transform xform)
+    {
+        MaxDE = 0;
+
+        for (var L = 0; L < 65536; L += 1311)
+        {
+            for (var a = 0; a < 65536; a += 1232)
+            {
+                for (var b = 0; b < 65536; b += 1111)
+                {
+                    if (!CheckOneLab(xform, (L * 100.0) / 65535.0,
+                                            (a / 257.0) - 128, (b / 257.0) - 128))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool OneTrivialLab(Profile hLab1, Profile hLab2, string txt)
+    {
+        using (logger.BeginScope("{txt}", txt))
+        {
+            var xform = cmsCreateTransformTHR(DbgThread(), hLab1, TYPE_Lab_DBL, hLab2, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hLab1);
+            cmsCloseProfile(hLab2);
+
+            var rc = CheckSeveralLab(xform);
+            cmsDeleteTransform(xform);
+            return rc;
+        }
+    }
+
+    internal static bool CheckFloatLabTransforms() =>
+        OneTrivialLab(cmsCreateLab4ProfileTHR(DbgThread(), null)!, cmsCreateLab4ProfileTHR(DbgThread(), null)!, "Lab4/Lab4") &&
+        OneTrivialLab(cmsCreateLab2ProfileTHR(DbgThread(), null)!, cmsCreateLab2ProfileTHR(DbgThread(), null)!, "Lab2/Lab2") &&
+        OneTrivialLab(cmsCreateLab4ProfileTHR(DbgThread(), null)!, cmsCreateLab2ProfileTHR(DbgThread(), null)!, "Lab4/Lab2") &&
+        OneTrivialLab(cmsCreateLab2ProfileTHR(DbgThread(), null)!, cmsCreateLab4ProfileTHR(DbgThread(), null)!, "Lab2/Lab4");
 }
