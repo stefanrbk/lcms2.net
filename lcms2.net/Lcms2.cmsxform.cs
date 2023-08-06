@@ -150,6 +150,14 @@ public static partial class Lcms2
 
     // PixelSize already defined in Lcms2.cmspack.cs
 
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom InputBuffer, ref Tto OutputBuffer, uint Size)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransform(p, buf, ref OutputBuffer, Size);
+    }
+
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, ref Tto OutputBuffer, uint Size)
         where Tfrom : unmanaged
         where Tto : unmanaged =>
@@ -413,7 +421,7 @@ public static partial class Lcms2
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
                 p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
-                output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
+                output = p.ToOutput(p, wOut, output, Stride.BytesPerPlaneOut);
             }
 
             strideIn += Stride.BytesPerLineIn;

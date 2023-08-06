@@ -38,7 +38,7 @@ internal static partial class Testbed
 
     private static void C16(string a)
     {
-        var field = typeof(Lcms2).GetField(a);
+        var field = typeof(Lcms2).GetProperty(a);
         var value = (uint)field!.GetValue(null)!;
 
         CheckSingleFormatter16(null, value, a);
@@ -46,7 +46,7 @@ internal static partial class Testbed
 
     private static void CF(string a)
     {
-        var field = typeof(Lcms2).GetField(a);
+        var field = typeof(Lcms2).GetProperty(a);
         var value = (uint)field!.GetValue(null)!;
 
         CheckSingleFormatterFloat(value, a);

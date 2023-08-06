@@ -1242,7 +1242,7 @@ public static partial class Lcms2
             Phase = NextPhase;
         }
 
-        memmove(Out, Storage[(Phase * MAX_STAGE_CHANNELS)..], lut.InputChannels);
+        memmove(Out, Storage[(Phase * MAX_STAGE_CHANNELS)..], lut.OutputChannels);
     }
 
     public static Pipeline? cmsPipelineAlloc(Context? ContextID, uint InputChannels, uint OutputChannels)
