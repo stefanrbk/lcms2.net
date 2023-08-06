@@ -314,76 +314,76 @@ public static partial class Lcms2
 
     internal const byte cmsMAXCHANNELS = 16;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint PREMUL_SH(uint m) => m << 23;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint FLOAT_SH(uint m) => m << 22;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint OPTIMIZED_SH(uint m) => m << 21;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint COLORSPACE_SH(uint m) => m << 16;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint SWAPFIRST_SH(uint m) => m << 14;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint FLAVOR_SH(uint m) => m << 13;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint PLANAR_SH(uint m) => m << 12;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint ENDIAN16_SH(uint m) => m << 11;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint DOSWAP_SH(uint m) => m << 10;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint EXTRA_SH(uint m) => m << 7;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint CHANNELS_SH(uint m) => m << 3;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint BYTES_SH(uint m) => m << 0;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_PREMUL(uint m) => (int)(m >> 23) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_FLOAT(uint m) => (int)(m >> 22) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_OPTIMIZED(uint m) => (int)(m >> 21) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_COLORSPACE(uint m) => (int)(m >> 16) & 31;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_SWAPFIRST(uint m) => (int)(m >> 14) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_FLAVOR(uint m) => (int)(m >> 13) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_PLANAR(uint m) => (int)(m >> 12) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_ENDIAN16(uint m) => (int)(m >> 11) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_DOSWAP(uint m) => (int)(m >> 10) & 1;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_EXTRA(uint m) => (int)(m >> 7) & 7;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_CHANNELS(uint m) => (int)(m >> 3) & 15;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int T_BYTES(uint m) => (int)(m >> 0) & 7;
 
     internal const ushort PT_ANY = 0;
@@ -416,224 +416,224 @@ public static partial class Lcms2
     internal const ushort PT_MCH15 = 29;
     internal const ushort PT_LabV2 = 30;
 
-    public static uint TYPE_GRAY_8 = COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1);
-    public static uint TYPE_GRAY_8_REV = COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1) | FLAVOR_SH(1);
-    public static uint TYPE_GRAY_16 = COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
-    public static uint TYPE_GRAY_16_REV = COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2) | FLAVOR_SH(1);
-    public static uint TYPE_GRAY_16_SE = COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_GRAYA_8 = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1);
-    public static uint TYPE_GRAYA_8_PREMUL = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_GRAYA_16 = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2);
-    public static uint TYPE_GRAYA_16_PREMUL = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | PREMUL_SH(1);
-    public static uint TYPE_GRAYA_16_SE = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_GRAYA_8_PLANAR = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_GRAYA_16_PLANAR = COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_GRAY_8 => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1);
+    public static uint TYPE_GRAY_8_REV => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1) | FLAVOR_SH(1);
+    public static uint TYPE_GRAY_16 => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
+    public static uint TYPE_GRAY_16_REV => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2) | FLAVOR_SH(1);
+    public static uint TYPE_GRAY_16_SE => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_GRAYA_8 => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1);
+    public static uint TYPE_GRAYA_8_PREMUL => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_GRAYA_16 => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2);
+    public static uint TYPE_GRAYA_16_PREMUL => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | PREMUL_SH(1);
+    public static uint TYPE_GRAYA_16_SE => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_GRAYA_8_PLANAR => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_GRAYA_16_PLANAR => COLORSPACE_SH(PT_GRAY) | EXTRA_SH(1) | CHANNELS_SH(1) | BYTES_SH(2) | PLANAR_SH(1);
 
-    public static uint TYPE_RGB_8 = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1);
-    public static uint TYPE_RGB_8_PLANAR = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_BGR_8 = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_BGR_8_PLANAR = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_RGB_16 = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_RGB_16_PLANAR = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_RGB_16_SE = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_BGR_16 = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_BGR_16_PLANAR = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_BGR_16_SE = COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_RGB_8 => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_RGB_8_PLANAR => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_BGR_8 => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_BGR_8_PLANAR => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_RGB_16 => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_RGB_16_PLANAR => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_RGB_16_SE => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_BGR_16 => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_BGR_16_PLANAR => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_BGR_16_SE => COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
 
-    public static uint TYPE_RGBA_8 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1);
-    public static uint TYPE_RGBA_8_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_RGBA_8_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_RGBA_16 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_RGBA_16_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | PREMUL_SH(1);
-    public static uint TYPE_RGBA_16_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_RGBA_16_SE = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_RGBA_8 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_RGBA_8_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_RGBA_8_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_RGBA_16 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_RGBA_16_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | PREMUL_SH(1);
+    public static uint TYPE_RGBA_16_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_RGBA_16_SE => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
-    public static uint TYPE_ARGB_8 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_ARGB_8_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_ARGB_8_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_ARGB_16 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1);
-    public static uint TYPE_ARGB_16_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_ARGB_8 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_ARGB_8_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_ARGB_8_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | SWAPFIRST_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_ARGB_16 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1);
+    public static uint TYPE_ARGB_16_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1) | PREMUL_SH(1);
 
-    public static uint TYPE_ABGR_8 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_ABGR_8_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_ABGR_8_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_ABGR_16 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_ABGR_16_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_ABGR_16_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_ABGR_16_SE = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_ABGR_8 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_ABGR_8_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_ABGR_8_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_ABGR_16 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_ABGR_16_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_ABGR_16_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_ABGR_16_SE => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
 
-    public static uint TYPE_BGRA_8 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_BGRA_8_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_BGRA_8_PLANAR = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_BGRA_16 = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_BGRA_16_PREMUL = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_BGRA_16_SE = COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_BGRA_8 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_BGRA_8_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_BGRA_8_PLANAR => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_BGRA_16 => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_BGRA_16_PREMUL => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_BGRA_16_SE => COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
 
-    public static uint TYPE_CMY_8 = COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(1);
-    public static uint TYPE_CMY_8_PLANAR = COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_CMY_16 = COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_CMY_16_PLANAR = COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_CMY_16_SE = COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_CMY_8 => COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_CMY_8_PLANAR => COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_CMY_16 => COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_CMY_16_PLANAR => COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_CMY_16_SE => COLORSPACE_SH(PT_CMY) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
-    public static uint TYPE_CMYK_8 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1);
-    public static uint TYPE_CMYKA_8 = COLORSPACE_SH(PT_CMYK) | EXTRA_SH(1) | CHANNELS_SH(4) | BYTES_SH(1);
-    public static uint TYPE_CMYK_8_REV = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | FLAVOR_SH(1);
-    public static uint TYPE_YUVK_8 = TYPE_CMYK_8_REV;
-    public static uint TYPE_CMYK_8_PLANAR = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_CMYK_16 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2);
-    public static uint TYPE_CMYK_16_REV = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | FLAVOR_SH(1);
-    public static uint TYPE_YUVK_16 = TYPE_CMYK_16_REV;
-    public static uint TYPE_CMYK_16_PLANAR = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_CMYK_16_SE = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK_8 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1);
+    public static uint TYPE_CMYKA_8 => COLORSPACE_SH(PT_CMYK) | EXTRA_SH(1) | CHANNELS_SH(4) | BYTES_SH(1);
+    public static uint TYPE_CMYK_8_REV => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | FLAVOR_SH(1);
+    public static uint TYPE_YUVK_8 => TYPE_CMYK_8_REV;
+    public static uint TYPE_CMYK_8_PLANAR => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_CMYK_16 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2);
+    public static uint TYPE_CMYK_16_REV => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | FLAVOR_SH(1);
+    public static uint TYPE_YUVK_16 => TYPE_CMYK_16_REV;
+    public static uint TYPE_CMYK_16_PLANAR => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_CMYK_16_SE => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | ENDIAN16_SH(1);
 
-    public static uint TYPE_KYMC_8 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC_16 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC_16_SE = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC_8 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC_16 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC_16_SE => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
 
-    public static uint TYPE_KCMY_8 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_KCMY_8_REV = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | FLAVOR_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_KCMY_16 = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | SWAPFIRST_SH(1);
-    public static uint TYPE_KCMY_16_REV = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | FLAVOR_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_KCMY_16_SE = COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | ENDIAN16_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_KCMY_8 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_KCMY_8_REV => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(1) | FLAVOR_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_KCMY_16 => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | SWAPFIRST_SH(1);
+    public static uint TYPE_KCMY_16_REV => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | FLAVOR_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_KCMY_16_SE => COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2) | ENDIAN16_SH(1) | SWAPFIRST_SH(1);
 
-    public static uint TYPE_CMYK5_8 = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(1);
-    public static uint TYPE_CMYK5_16 = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2);
-    public static uint TYPE_CMYK5_16_SE = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC5_8 = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC5_16 = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC5_16_SE = COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK6_8 = COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(1);
-    public static uint TYPE_CMYK6_8_PLANAR = COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_CMYK6_16 = COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2);
-    public static uint TYPE_CMYK6_16_PLANAR = COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_CMYK6_16_SE = COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK7_8 = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(1);
-    public static uint TYPE_CMYK7_16 = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2);
-    public static uint TYPE_CMYK7_16_SE = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC7_8 = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC7_16 = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC7_16_SE = COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK8_8 = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(1);
-    public static uint TYPE_CMYK8_16 = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2);
-    public static uint TYPE_CMYK8_16_SE = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC8_8 = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC8_16 = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC8_16_SE = COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK9_8 = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(1);
-    public static uint TYPE_CMYK9_16 = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2);
-    public static uint TYPE_CMYK9_16_SE = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC9_8 = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC9_16 = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC9_16_SE = COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK10_8 = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(1);
-    public static uint TYPE_CMYK10_16 = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2);
-    public static uint TYPE_CMYK10_16_SE = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC10_8 = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC10_16 = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC10_16_SE = COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK11_8 = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(1);
-    public static uint TYPE_CMYK11_16 = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2);
-    public static uint TYPE_CMYK11_16_SE = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC11_8 = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC11_16 = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC11_16_SE = COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
-    public static uint TYPE_CMYK12_8 = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(1);
-    public static uint TYPE_CMYK12_16 = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2);
-    public static uint TYPE_CMYK12_16_SE = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | ENDIAN16_SH(1);
-    public static uint TYPE_KYMC12_8 = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(1) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC12_16 = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_KYMC12_16_SE = COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK5_8 => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(1);
+    public static uint TYPE_CMYK5_16 => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2);
+    public static uint TYPE_CMYK5_16_SE => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC5_8 => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC5_16 => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC5_16_SE => COLORSPACE_SH(PT_MCH5) | CHANNELS_SH(5) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK6_8 => COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(1);
+    public static uint TYPE_CMYK6_8_PLANAR => COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_CMYK6_16 => COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2);
+    public static uint TYPE_CMYK6_16_PLANAR => COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_CMYK6_16_SE => COLORSPACE_SH(PT_MCH6) | CHANNELS_SH(6) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK7_8 => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(1);
+    public static uint TYPE_CMYK7_16 => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2);
+    public static uint TYPE_CMYK7_16_SE => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC7_8 => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC7_16 => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC7_16_SE => COLORSPACE_SH(PT_MCH7) | CHANNELS_SH(7) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK8_8 => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(1);
+    public static uint TYPE_CMYK8_16 => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2);
+    public static uint TYPE_CMYK8_16_SE => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC8_8 => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC8_16 => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC8_16_SE => COLORSPACE_SH(PT_MCH8) | CHANNELS_SH(8) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK9_8 => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(1);
+    public static uint TYPE_CMYK9_16 => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2);
+    public static uint TYPE_CMYK9_16_SE => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC9_8 => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC9_16 => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC9_16_SE => COLORSPACE_SH(PT_MCH9) | CHANNELS_SH(9) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK10_8 => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(1);
+    public static uint TYPE_CMYK10_16 => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2);
+    public static uint TYPE_CMYK10_16_SE => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC10_8 => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC10_16 => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC10_16_SE => COLORSPACE_SH(PT_MCH10) | CHANNELS_SH(10) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK11_8 => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(1);
+    public static uint TYPE_CMYK11_16 => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2);
+    public static uint TYPE_CMYK11_16_SE => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC11_8 => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC11_16 => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC11_16_SE => COLORSPACE_SH(PT_MCH11) | CHANNELS_SH(11) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
+    public static uint TYPE_CMYK12_8 => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(1);
+    public static uint TYPE_CMYK12_16 => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2);
+    public static uint TYPE_CMYK12_16_SE => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_KYMC12_8 => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(1) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC12_16 => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_KYMC12_16_SE => COLORSPACE_SH(PT_MCH12) | CHANNELS_SH(12) | BYTES_SH(2) | DOSWAP_SH(1) | ENDIAN16_SH(1);
 
     // Colorimetric
-    public static uint TYPE_XYZ_16 = COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_XYZ_16 => COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(2);
 
-    public static uint TYPE_Lab_8 = COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(1);
-    public static uint TYPE_LabV2_8 = COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_Lab_8 => COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_LabV2_8 => COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(1);
 
-    public static uint TYPE_ALab_8 = COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_ALabV2_8 = COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_Lab_16 = COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_LabV2_16 = COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_Yxy_16 = COLORSPACE_SH(PT_Yxy) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_ALab_8 => COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_ALabV2_8 => COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(1) | EXTRA_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_Lab_16 => COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_LabV2_16 => COLORSPACE_SH(PT_LabV2) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_Yxy_16 => COLORSPACE_SH(PT_Yxy) | CHANNELS_SH(3) | BYTES_SH(2);
 
     // YCbCr
-    public static uint TYPE_YCbCr_8 = COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_YCbCr_8 => COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(1);
 
-    public static uint TYPE_YCbCr_8_PLANAR = COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_YCbCr_16 = COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_YCbCr_16_PLANAR = COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_YCbCr_16_SE = COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_YCbCr_8_PLANAR => COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_YCbCr_16 => COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_YCbCr_16_PLANAR => COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_YCbCr_16_SE => COLORSPACE_SH(PT_YCbCr) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
     // YUV
-    public static uint TYPE_YUV_8 = COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_YUV_8 => COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(1);
 
-    public static uint TYPE_YUV_8_PLANAR = COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_YUV_16 = COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_YUV_16_PLANAR = COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_YUV_16_SE = COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_YUV_8_PLANAR => COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_YUV_16 => COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_YUV_16_PLANAR => COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_YUV_16_SE => COLORSPACE_SH(PT_YUV) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
     // HLS
-    public static uint TYPE_HLS_8 = COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_HLS_8 => COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(1);
 
-    public static uint TYPE_HLS_8_PLANAR = COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_HLS_16 = COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_HLS_16_PLANAR = COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_HLS_16_SE = COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_HLS_8_PLANAR => COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_HLS_16 => COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_HLS_16_PLANAR => COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_HLS_16_SE => COLORSPACE_SH(PT_HLS) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
     // HSV
-    public static uint TYPE_HSV_8 = COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(1);
+    public static uint TYPE_HSV_8 => COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(1);
 
-    public static uint TYPE_HSV_8_PLANAR = COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
-    public static uint TYPE_HSV_16 = COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_HSV_16_PLANAR = COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
-    public static uint TYPE_HSV_16_SE = COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
+    public static uint TYPE_HSV_8_PLANAR => COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(1) | PLANAR_SH(1);
+    public static uint TYPE_HSV_16 => COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_HSV_16_PLANAR => COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2) | PLANAR_SH(1);
+    public static uint TYPE_HSV_16_SE => COLORSPACE_SH(PT_HSV) | CHANNELS_SH(3) | BYTES_SH(2) | ENDIAN16_SH(1);
 
     // Named color index. Only 16 bits is allowed (don't check colorspace)
-    public static uint TYPE_NAMED_COLOR_INDEX = CHANNELS_SH(1) | BYTES_SH(2);
+    public static uint TYPE_NAMED_COLOR_INDEX => CHANNELS_SH(1) | BYTES_SH(2);
 
     // Float formatters.
-    public static uint TYPE_XYZ_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(4);
+    public static uint TYPE_XYZ_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(4);
 
-    public static uint TYPE_Lab_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(4);
-    public static uint TYPE_LabA_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
-    public static uint TYPE_GRAY_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4);
-    public static uint TYPE_GRAYA_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4) | EXTRA_SH(1);
-    public static uint TYPE_GRAYA_FLT_PREMUL = FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4) | EXTRA_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_RGB_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(4);
+    public static uint TYPE_Lab_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(4);
+    public static uint TYPE_LabA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
+    public static uint TYPE_GRAY_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4);
+    public static uint TYPE_GRAYA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4) | EXTRA_SH(1);
+    public static uint TYPE_GRAYA_FLT_PREMUL => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(4) | EXTRA_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_RGB_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(4);
 
-    public static uint TYPE_RGBA_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
-    public static uint TYPE_RGBA_FLT_PREMUL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | PREMUL_SH(1);
-    public static uint TYPE_ARGB_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | SWAPFIRST_SH(1);
-    public static uint TYPE_ARGB_FLT_PREMUL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | SWAPFIRST_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_BGR_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1);
-    public static uint TYPE_BGRA_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_BGRA_FLT_PREMUL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
-    public static uint TYPE_ABGR_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1);
-    public static uint TYPE_ABGR_FLT_PREMUL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_RGBA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
+    public static uint TYPE_RGBA_FLT_PREMUL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | PREMUL_SH(1);
+    public static uint TYPE_ARGB_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | SWAPFIRST_SH(1);
+    public static uint TYPE_ARGB_FLT_PREMUL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_BGR_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1);
+    public static uint TYPE_BGRA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_BGRA_FLT_PREMUL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | SWAPFIRST_SH(1) | PREMUL_SH(1);
+    public static uint TYPE_ABGR_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1);
+    public static uint TYPE_ABGR_FLT_PREMUL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4) | DOSWAP_SH(1) | PREMUL_SH(1);
 
-    public static uint TYPE_CMYK_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(4);
+    public static uint TYPE_CMYK_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(4);
 
     // Floating point formatters.
     // NOTE THAT 'BYTES' FIELD IS SET TO ZERO ON DLB because 8 bytes overflows the bitfield
-    public static uint TYPE_XYZ_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(0);
+    public static uint TYPE_XYZ_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | CHANNELS_SH(3) | BYTES_SH(0);
 
-    public static uint TYPE_Lab_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(0);
-    public static uint TYPE_GRAY_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(0);
-    public static uint TYPE_RGB_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0);
-    public static uint TYPE_BGR_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | DOSWAP_SH(1);
-    public static uint TYPE_CMYK_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(0);
+    public static uint TYPE_Lab_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_Lab) | CHANNELS_SH(3) | BYTES_SH(0);
+    public static uint TYPE_GRAY_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(0);
+    public static uint TYPE_RGB_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0);
+    public static uint TYPE_BGR_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | DOSWAP_SH(1);
+    public static uint TYPE_CMYK_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(0);
 
     // IEEE 754-2008 "half"
-    public static uint TYPE_GRAY_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
+    public static uint TYPE_GRAY_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
 
-    public static uint TYPE_RGB_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_RGBA_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2);
-    public static uint TYPE_CMYK_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2);
+    public static uint TYPE_RGB_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_RGBA_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2);
+    public static uint TYPE_CMYK_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(2);
 
-    public static uint TYPE_ARGB_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1);
-    public static uint TYPE_BGR_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
-    public static uint TYPE_BGRA_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
-    public static uint TYPE_ABGR_HALF_FLT = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_ARGB_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | SWAPFIRST_SH(1);
+    public static uint TYPE_BGR_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
+    public static uint TYPE_BGRA_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
+    public static uint TYPE_ABGR_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
 
     internal const uint cmsILLUMINANT_TYPE_UNKNOWN = 0x0000000;
     internal const uint cmsILLUMINANT_TYPE_D50 = 0x0000001;
@@ -1274,6 +1274,26 @@ public static partial class Lcms2
 
     [DebuggerStepThrough]
     internal static T memcmp<T>(T[] buf1, T[] buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp((ReadOnlySpan<T>)buf1, (ReadOnlySpan<T>)buf2);
+
+    [DebuggerStepThrough]
+    internal static T memcmp<T>(T[] buf1, Span<T> buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp((ReadOnlySpan<T>)buf1, (ReadOnlySpan<T>)buf2);
+
+    [DebuggerStepThrough]
+    internal static T memcmp<T>(Span<T> buf1, T[] buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp((ReadOnlySpan<T>)buf1, (ReadOnlySpan<T>)buf2);
+
+    [DebuggerStepThrough]
+    internal static T memcmp<T>(T[] buf1, ReadOnlySpan<T> buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp((ReadOnlySpan<T>)buf1, buf2);
+
+    [DebuggerStepThrough]
+    internal static T memcmp<T>(ReadOnlySpan<T> buf1, T[] buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
+        memcmp(buf1, (ReadOnlySpan<T>)buf2);
+
+    [DebuggerStepThrough]
+    internal static T memcmp<T>(Span<T> buf1, Span<T> buf2) where T : unmanaged, ISubtractionOperators<T, T, T> =>
         memcmp((ReadOnlySpan<T>)buf1, (ReadOnlySpan<T>)buf2);
 
     [DebuggerStepThrough]
