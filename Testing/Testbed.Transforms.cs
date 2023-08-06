@@ -516,4 +516,76 @@ internal static partial class Testbed
         remove("abstractv4.icc");
         return rc;
     }
+
+    internal static bool CheckMatrixShaperXFORMFloat()
+    {
+        bool rc1, rc2;
+        using (logger.BeginScope("\"Above\""))
+        {
+            var hAbove = Create_AboveRGB()!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hAbove, TYPE_RGB_FLT, hAbove, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hAbove);
+            rc1 = CheckFloatLinearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        using (logger.BeginScope("sRGB"))
+        {
+            var hSRGB = cmsCreate_sRGBProfileTHR(DbgThread())!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hSRGB, TYPE_RGB_FLT, hSRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hSRGB);
+            rc2 = CheckFloatLinearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        return rc1 && rc2;
+    }
+
+    internal static bool CheckMatrixShaperXFORM16()
+    {
+        bool rc1, rc2;
+        using (logger.BeginScope("\"Above\""))
+        {
+            var hAbove = Create_AboveRGB()!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hAbove, TYPE_RGB_16, hAbove, TYPE_RGB_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hAbove);
+            rc1 = Check16linearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        using (logger.BeginScope("sRGB"))
+        {
+            var hSRGB = cmsCreate_sRGBProfileTHR(DbgThread())!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hSRGB, TYPE_RGB_16, hSRGB, TYPE_RGB_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hSRGB);
+            rc2 = Check16linearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        return rc1 && rc2;
+    }
+
+    internal static bool CheckMatrixShaperXFORM8()
+    {
+        bool rc1, rc2;
+        using (logger.BeginScope("\"Above\""))
+        {
+            var hAbove = Create_AboveRGB()!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hAbove, TYPE_RGB_8, hAbove, TYPE_RGB_8, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hAbove);
+            rc1 = Check8linearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        using (logger.BeginScope("sRGB"))
+        {
+            var hSRGB = cmsCreate_sRGBProfileTHR(DbgThread())!;
+            var xform = cmsCreateTransformTHR(DbgThread(), hSRGB, TYPE_RGB_8, hSRGB, TYPE_RGB_8, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+            cmsCloseProfile(hSRGB);
+            rc2 = Check8linearXFORM(xform, 3);
+            cmsDeleteTransform(xform);
+        }
+
+        return rc1 && rc2;
+    }
 }

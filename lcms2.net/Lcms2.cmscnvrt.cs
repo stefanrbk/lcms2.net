@@ -277,6 +277,12 @@ public static partial class Lcms2
                 BlackPointIn = cmsDetectBlackPoint(Profiles[i - 1], Intent, 0);
                 BlackPointOut = cmsDetectDestinationBlackPoint(Profiles[i], Intent, 0);
 
+                if (BlackPointIn.IsNaN)
+                    BlackPointIn = new(0, 0, 0);
+
+                if (BlackPointOut.IsNaN)
+                    BlackPointOut = new(0, 0, 0);
+
                 // If black points are equal, then do nothing
                 if (BlackPointIn.X != BlackPointOut.X ||
                     BlackPointIn.Y != BlackPointOut.Y ||

@@ -975,7 +975,7 @@ public static partial class Lcms2
             // Put identity curves if needed
             var FirstStage = cmsPipelineGetPtrToFirstStage(LUT);
             if (FirstStage is not null &&
-                (uint)FirstStage.Type is cmsSigCurveSetElemType &&
+                (uint)FirstStage.Type is not cmsSigCurveSetElemType &&
                 !cmsPipelineInsertStage(LUT, StageLoc.AtBegin, _cmsStageAllocIdentityCurves(ContextID, ChansIn)))
             {
                 goto Error;
@@ -983,7 +983,7 @@ public static partial class Lcms2
 
             var LastStage = cmsPipelineGetPtrToLastStage(LUT);
             if (LastStage is not null &&
-                (uint)LastStage.Type is cmsSigCurveSetElemType &&
+                (uint)LastStage.Type is not cmsSigCurveSetElemType &&
                 !cmsPipelineInsertStage(LUT, StageLoc.AtEnd, _cmsStageAllocIdentityCurves(ContextID, ChansOut)))
             {
                 goto Error;

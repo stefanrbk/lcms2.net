@@ -231,9 +231,9 @@ if (doCheckTests)
         Check("Encoded Lab->Lab transforms", CheckEncodedLabTransforms);
         Check("Stored identities", CheckStoredIdentities);
 
-        //Check("Matrix-shaper transform (float)",   CheckMatrixShaperXFORMFloat);
-        //Check("Matrix-shaper transform (16 bits)", CheckMatrixShaperXFORM16);
-        //Check("Matrix-shaper transform (8 bits)",  CheckMatrixShaperXFORM8);
+        Check("Matrix-shaper transform (float)", CheckMatrixShaperXFORMFloat);
+        Check("Matrix-shaper transform (16 bits)", CheckMatrixShaperXFORM16);
+        Check("Matrix-shaper transform (8 bits)", CheckMatrixShaperXFORM8);
 
         //Check("Primaries of sRGB", CheckRGBPrimaries);
     }

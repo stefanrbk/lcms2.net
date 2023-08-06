@@ -1838,10 +1838,10 @@ public static partial class Lcms2
 
         var nEntries = Tables.TheCurves[0].nEntries;
 
-        for (var i = 0; i < nEntries; i++)
+        for (var i = 0; i < Tables.nCurves; i++)
         {
             // Usual case of identity curves
-            for (var j = 0; j < 256; j++)
+            for (var j = 0; j < nEntries; j++)
                 if (!_cmsWriteUInt16Number(io, Tables.TheCurves[i].Table16[j])) return false;
         }
         return true;

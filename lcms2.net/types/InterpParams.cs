@@ -51,6 +51,10 @@ public class InterpParams<T> : ICloneable, IDisposable
         nSamples = pool.Rent(MAX_INPUT_DIMENSIONS);
         Domain = pool.Rent(MAX_INPUT_DIMENSIONS);
         opta = pool.Rent(MAX_INPUT_DIMENSIONS);
+
+        Array.Clear(nSamples);
+        Array.Clear(Domain);
+        Array.Clear(opta);
     }
 
     protected virtual void Dispose(bool disposing)
