@@ -291,9 +291,9 @@ internal static partial class Testbed
 
         if (MaxDE > 0.003)
         {
-            logger.LogWarning("dE={dE}", MaxDE);
-            logger.LogWarning("Lab1=({L}, {a}, {b})", In[0].L, In[0].a, In[0].b);
-            logger.LogWarning("Lab2=({L}, {a}, {b})", Out[0].L, Out[0].a, Out[0].b);
+            logger.LogError("dE={dE}", MaxDE);
+            logger.LogError("Lab1=({L}, {a}, {b})", In[0].L, In[0].a, In[0].b);
+            logger.LogError("Lab2=({L}, {a}, {b})", Out[0].L, Out[0].a, Out[0].b);
             cmsDoTransform(xform, In, Out, 1);
             return false;
         }
@@ -440,5 +440,80 @@ internal static partial class Testbed
         cmsDeleteTransform(xform);
 
         return true;
+    }
+
+    internal static bool CheckStoredIdentities()
+    {
+        var rc = true;
+
+        var hLab = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+        var xform = cmsCreateTransformTHR(DbgThread(), hLab, TYPE_Lab_8, hLab, TYPE_Lab_8, 0, 0)!;
+
+        var hLink = cmsTransform2DeviceLink(xform, 3.4, 0)!;
+        cmsSaveProfileToFile(hLink, "abstractv2.icc");
+        cmsCloseProfile(hLink);
+
+        hLink = cmsTransform2DeviceLink(xform, 4.3, 0)!;
+        cmsSaveProfileToFile(hLink, "abstractv4.icc");
+        cmsCloseProfile(hLink);
+
+        cmsDeleteTransform(xform);
+        cmsCloseProfile(hLab);
+
+        using (logger.BeginScope("V4"))
+        {
+            var h4 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv4.icc", "r")!;
+            xform = cmsCreateTransformTHR(DbgThread(), h4, TYPE_Lab_DBL, h4, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+            rc &= CheckSeveralLab(xform);
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(h4);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("V2"))
+        {
+            var h2 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv2.icc", "r");
+            xform = cmsCreateTransformTHR(DbgThread(), h2, TYPE_Lab_DBL, h2, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+            rc &= CheckSeveralLab(xform);
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(h2);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("V2 -> V4"))
+        {
+            var h2 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv2.icc", "r")!;
+            var h4 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv4.icc", "r")!;
+            xform = cmsCreateTransformTHR(DbgThread(), h4, TYPE_Lab_DBL, h2, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+            rc &= CheckSeveralLab(xform);
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(h2);
+            cmsCloseProfile(h4);
+            if (!rc) goto Error;
+        }
+
+        using (logger.BeginScope("V4 -> V2"))
+        {
+            var h2 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv2.icc", "r")!;
+            var h4 = cmsOpenProfileFromFileTHR(DbgThread(), "abstractv4.icc", "r")!;
+            xform = cmsCreateTransformTHR(DbgThread(), h2, TYPE_Lab_DBL, h4, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+            rc &= CheckSeveralLab(xform);
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(h2);
+            cmsCloseProfile(h4);
+        }
+
+    Error:
+        remove("abstractv2.icc");
+        remove("abstractv4.icc");
+        return rc;
     }
 }

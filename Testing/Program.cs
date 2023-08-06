@@ -229,7 +229,7 @@ if (doCheckTests)
         Check("Curves only transforms", CheckCurvesOnlyTransforms);
         Check("Float Lab->Lab transforms", CheckFloatLabTransforms);
         Check("Encoded Lab->Lab transforms", CheckEncodedLabTransforms);
-        //Check("Stored identities", CheckStoredIdentities);
+        Check("Stored identities", CheckStoredIdentities);
 
         //Check("Matrix-shaper transform (float)",   CheckMatrixShaperXFORMFloat);
         //Check("Matrix-shaper transform (16 bits)", CheckMatrixShaperXFORM16);

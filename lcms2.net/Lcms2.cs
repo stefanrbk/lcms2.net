@@ -1966,4 +1966,8 @@ public static partial class Lcms2
         loggers.Add(context.ErrorLogger, logger);
         return logger;
     }
+
+    [DebuggerStepThrough]
+    internal static void remove(string path) =>
+        File.Delete(path);
 }
