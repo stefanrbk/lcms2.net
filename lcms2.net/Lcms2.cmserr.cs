@@ -30,6 +30,7 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
+using System.Buffers;
 using System.Diagnostics;
 
 namespace lcms2;
@@ -306,7 +307,7 @@ public static partial class Lcms2
 
         array.AsSpan().CopyTo(newBuffer.AsSpan()[..array.Length]);
 
-        pool.Return(array);
+        ReturnArray(pool, array);
 
         return newBuffer;
     }
@@ -316,13 +317,24 @@ public static partial class Lcms2
     //    (T*)_cmsRealloc(ContextID, Ptr, size);
 
     [DebuggerStepThrough]
-    internal static void ReturnArray<T>(Context? ContextID, T[]? array)
+    internal static void ReturnArray<T>(ArrayPool<T> pool, T[]? array)
     {
         if (array is not null)
         {
-            var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+            if (typeof(T).IsByRef)
+            {
+                for (var i = 0; i < array.Length; i++)
+                    array[i] = default!;
+            }
             pool.Return(array);
         }
+    }
+
+    [DebuggerStepThrough]
+    internal static void ReturnArray<T>(Context? ContextID, T[]? array)
+    {
+        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        ReturnArray(pool, array);
     }
 
     //[DebuggerStepThrough]

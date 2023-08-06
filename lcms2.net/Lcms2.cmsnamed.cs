@@ -524,7 +524,7 @@ public static partial class Lcms2
         v.List.AsSpan(..(int)v.Allocated).CopyTo(NewPtr);
 
         if (v.List is not null)
-            pool.Return(v.List);
+            ReturnArray(pool, v.List);
         v.List = NewPtr;
 
         v.Allocated = size;

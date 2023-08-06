@@ -432,7 +432,7 @@ public static partial class Lcms2
             bp.MaxTAC = 0;
 
         cmsDeleteTransform(bp.hRoundTrip);
-        pool.Return(bp.MaxInput);
+        ReturnArray(pool, bp.MaxInput);
 
         // Results in %
         return bp.MaxTAC;
@@ -540,7 +540,7 @@ public static partial class Lcms2
         for (var i = 0; i < 256; i++)
             rgb[i].R = rgb[i].G = rgb[i].B = FROM_8_TO_16((uint)i);
 
-        cmsDoTransform<Rgb<ushort>, CIEXYZ>(xform, rgb, XYZ, 256);
+        cmsDoTransform(xform, rgb, XYZ, 256);
 
         cmsDeleteTransform(xform);
         cmsCloseProfile(hXYZ);
@@ -550,7 +550,7 @@ public static partial class Lcms2
             Y_normalized[i] = (float)XYZ[i].Y;
 
         var Y_curve = cmsBuildTabulatedToneCurveFloat(ContextID, 256, Y_normalized);
-        pool.Return(Y_normalized);
+        ReturnArray(pool, Y_normalized);
         if (Y_curve is null)
             return -1;
 

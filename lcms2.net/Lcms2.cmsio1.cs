@@ -197,12 +197,12 @@ public static partial class Lcms2
             }
         }
 
-        pool.Return(LabCurves);
+        ReturnArray(pool, LabCurves);
         return Lut;
 
     Error:
         if (LabCurves is not null)
-            pool.Return(LabCurves);
+            ReturnArray(pool, LabCurves);
 
         cmsPipelineFree(Lut);
         return null;
@@ -261,15 +261,15 @@ public static partial class Lcms2
             goto Error;
         }
 
-        tcPool.Return(Shapes);
-        dPool.Return(MatArray);
+        ReturnArray(tcPool, Shapes);
+        ReturnArray(dPool, MatArray);
         return Lut;
 
     Error:
         if (Shapes is not null)
-            tcPool.Return(Shapes);
+            ReturnArray(tcPool, Shapes);
         if (MatArray is not null)
-            dPool.Return(MatArray);
+            ReturnArray(dPool, MatArray);
         cmsPipelineFree(Lut);
         return null;
     }
@@ -436,12 +436,12 @@ public static partial class Lcms2
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, rev)))
             goto Error2;
 
-        pool.Return(rev);
+        ReturnArray(pool, rev);
         cmsFreeToneCurve(RevGrayTRC);
         return Lut;
 
     Error2:
-        pool.Return(rev);
+        ReturnArray(pool, rev);
         cmsPipelineFree(Lut);
     Error1:
         cmsFreeToneCurve(RevGrayTRC);
@@ -513,10 +513,10 @@ public static partial class Lcms2
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, InvArray, null)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, InvShapesTriple)))
         {
-            pool.Return(InvArray);
+            ReturnArray(pool, InvArray);
             goto Error2;
         }
-        pool.Return(InvArray);
+        ReturnArray(pool, InvArray);
 
         cmsFreeToneCurveTriple(InvShapesTriple);
         return Lut;

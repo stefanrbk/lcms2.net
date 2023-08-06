@@ -83,12 +83,12 @@ public static partial class Lcms2
             var usPool = Context.GetPool<ushort>(ContextID);
             var uiPool = Context.GetPool<uint>(ContextID);
 
-            usPool.Return(_rx);
-            usPool.Return(_ry);
-            usPool.Return(_rz);
-            uiPool.Return(_x0);
-            uiPool.Return(_y0);
-            uiPool.Return(_z0);
+            ReturnArray(usPool, _rx);
+            ReturnArray(usPool, _ry);
+            ReturnArray(usPool, _rz);
+            ReturnArray(uiPool, _x0);
+            ReturnArray(uiPool, _y0);
+            ReturnArray(uiPool, _z0);
 
             GC.SuppressFinalize(this);
         }
@@ -161,11 +161,11 @@ public static partial class Lcms2
             var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
             var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
 
-            ifPool.Return(evalCurveIn16);
-            ipPool.Return(paramsCurveIn16);
+            ReturnArray(ifPool, evalCurveIn16);
+            ReturnArray(ipPool, paramsCurveIn16);
 
-            ifPool.Return(evalCurveOut16);
-            ipPool.Return(paramsCurveOut16);
+            ReturnArray(ifPool, evalCurveOut16);
+            ReturnArray(ipPool, paramsCurveOut16);
 
             GC.SuppressFinalize(this);
         }
@@ -244,16 +244,16 @@ public static partial class Lcms2
             var iPool = Context.GetPool<int>(ContextID);
             var usPool = Context.GetPool<ushort>(ContextID);
 
-            iPool.Return(shaper1R);
-            iPool.Return(shaper1G);
-            iPool.Return(shaper1B);
+            ReturnArray(iPool, shaper1R);
+            ReturnArray(iPool, shaper1G);
+            ReturnArray(iPool, shaper1B);
 
-            iPool.Return(mat);
-            iPool.Return(off);
+            ReturnArray(iPool, mat);
+            ReturnArray(iPool, off);
 
-            usPool.Return(shaper2R);
-            usPool.Return(shaper2G);
-            usPool.Return(shaper2B);
+            ReturnArray(usPool, shaper2R);
+            ReturnArray(usPool, shaper2G);
+            ReturnArray(usPool, shaper2B);
 
             GC.SuppressFinalize(this);
         }
@@ -405,7 +405,7 @@ public static partial class Lcms2
                     var pool = ctx.GetBufferPool<double>();
                     var resArray = res.AsArray(pool);
                     var Multmat = cmsStageAllocMatrix(Lut.ContextID, 3, 3, resArray, null);
-                    pool.Return(resArray);
+                    ReturnArray(pool, resArray);
                     if (Multmat is null) return false;
 
                     // Recover the chain
@@ -1287,8 +1287,8 @@ public static partial class Lcms2
 
         cmsPipelineFree(OriginalLut);
         Lut = OptimizedLUT;
-        pool.Return(TransReverse);
-        pool.Return(Trans);
+        ReturnArray(pool, TransReverse);
+        ReturnArray(pool, Trans);
         return true;
 
     Error:
@@ -1297,8 +1297,8 @@ public static partial class Lcms2
             if (Trans[t] is not null) cmsFreeToneCurve(Trans[t]);
             if (TransReverse[t] is not null) cmsFreeToneCurve(TransReverse[t]);
         }
-        pool.Return(TransReverse);
-        pool.Return(Trans);
+        ReturnArray(pool, TransReverse);
+        ReturnArray(pool, Trans);
 
         if (LutPlusCurves is not null) cmsPipelineFree(LutPlusCurves);
         if (OptimizedLUT is not null) cmsPipelineFree(OptimizedLUT);
@@ -1753,10 +1753,10 @@ public static partial class Lcms2
             var resArray = res.AsArray(pool);
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest.ContextID, 3, 3, resArray, Offset)))
             {
-                pool.Return(resArray);
+                ReturnArray(pool, resArray);
                 goto Error;
             }
-            pool.Return(resArray);
+            ReturnArray(pool, resArray);
         }
 
         // If identity on matrix, we can further optimize the curves, so call the join curves routine

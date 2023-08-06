@@ -1549,7 +1549,7 @@ public static partial class Lcms2
         if (Temp is not null) ReturnArray(ContextID, Temp);
 
     Error2:
-        pool.Return(Tables);
+        ReturnArray(pool, Tables);
         return false;
     }
 
@@ -1821,14 +1821,14 @@ public static partial class Lcms2
         for (var i = 0; i < nChannels; i++)
             cmsFreeToneCurve(Tables[i]);
 
-        pool.Return(Tables);
+        ReturnArray(pool, Tables);
         return true;
 
     Error:
         for (var i = 0; i < nChannels; i++)
             if (Tables[i] is not null) cmsFreeToneCurve(Tables[i]);
 
-        pool.Return(Tables);
+        ReturnArray(pool, Tables);
         return false;
     }
 
@@ -2174,7 +2174,7 @@ public static partial class Lcms2
         for (var i = 0; i < nCurves; i++)
             cmsFreeToneCurve(Curves[i]);
 
-        pool.Return(Curves);
+        ReturnArray(pool, Curves);
         return Lin;
     }
 

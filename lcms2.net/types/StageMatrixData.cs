@@ -69,10 +69,10 @@ public class StageMatrixData : IDisposable
             {
                 if (pool is not null)
                 {
-                    pool.Return(Double);
+                    ReturnArray(pool, Double);
                     Double = null!;
                     if (Offset is not null)
-                        pool.Return(Offset);
+                        ReturnArray(pool, Offset);
                     Offset = null!;
                 }
             }

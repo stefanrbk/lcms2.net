@@ -241,9 +241,9 @@ internal readonly struct MD5 : IDisposable
         var uiPool = Context.GetPool<uint>(ContextID);
         var bPool = Context.GetPool<byte>(ContextID);
 
-        uiPool.Return(_buf);
-        uiPool.Return(_bits);
-        bPool.Return(_in);
+        ReturnArray(uiPool, _buf);
+        ReturnArray(uiPool, _bits);
+        ReturnArray(bPool, _in);
 
         GC.SuppressFinalize(this);
     }

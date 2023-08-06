@@ -65,9 +65,9 @@ public class InterpParams<T> : ICloneable, IDisposable
             {
                 var pool = Context.GetPool<uint>(ContextID);
 
-                pool.Return(nSamples); nSamples = null!;
-                pool.Return(Domain); Domain = null!;
-                pool.Return(opta); opta = null!;
+                ReturnArray(pool, nSamples); nSamples = null!;
+                ReturnArray(pool, Domain); Domain = null!;
+                ReturnArray(pool, opta); opta = null!;
             }
 
             disposedValue = true;

@@ -44,7 +44,7 @@ public class StageToneCurvesData(Context? context, uint numCurves) : IDisposable
         {
             if (disposing)
             {
-                Context.GetPool<ToneCurve>(ctx).Return(TheCurves); TheCurves = null!;
+                ReturnArray(ctx, TheCurves); TheCurves = null!;
             }
 
             disposedValue = true;

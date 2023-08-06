@@ -947,7 +947,7 @@ public static partial class Lcms2
             if (LabTable[j] is null)
             {
                 cmsFreeToneCurveTriple(LabTable);
-                pool.Return(LabTable);
+                ReturnArray(pool, LabTable);
                 return null;
             }
 
@@ -963,7 +963,7 @@ public static partial class Lcms2
 
         var mpe = cmsStageAllocToneCurves(ContextID, 3, LabTable);
         cmsFreeToneCurveTriple(LabTable);
-        pool.Return(LabTable);
+        ReturnArray(pool, LabTable);
 
         if (mpe is null) return null;
         mpe.Implements = cmsSigLabV2toV4;

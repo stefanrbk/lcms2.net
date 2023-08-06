@@ -141,7 +141,7 @@ public static partial class Lcms2
             chad = CHAD.AsArray(pool);
             if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, chad))
                 goto Error2;
-            pool.Return(chad);
+            ReturnArray(pool, chad);
 
             if (Primaries is not null)
             {
@@ -205,7 +205,7 @@ public static partial class Lcms2
         return hICC;
 
     Error2:
-        pool.Return(chad);
+        ReturnArray(pool, chad);
     Error:
         if (hICC is not null)
             cmsCloseProfile(hICC);
@@ -565,7 +565,7 @@ public static partial class Lcms2
         return hsRGB;
 
     Error:
-        pool.Return(Gamma22);
+        ReturnArray(pool, Gamma22);
         return null;
     }
 
@@ -742,13 +742,13 @@ public static partial class Lcms2
         if (!cmsWriteTag(Profile, cmsSigBToA0Tag, LUT)) goto Error;
         if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ))) goto Error;
 
-        pool.Return(EmptyTab);
+        ReturnArray(pool, EmptyTab);
         cmsPipelineFree(LUT);
         return Profile;
 
     Error:
         if (EmptyTab is not null)
-            pool.Return(EmptyTab);
+            ReturnArray(pool, EmptyTab);
         if (LUT is not null)
             cmsPipelineFree(LUT);
         if (Profile is not null)

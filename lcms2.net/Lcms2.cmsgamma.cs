@@ -289,7 +289,7 @@ public static partial class Lcms2
         if (p.InterpParams is not null)
             return p;
         Error:
-        if (p.SegInterp is not null) ipPool.Return(p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
+        if (p.SegInterp is not null) ReturnArray(ipPool, p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
         if (p.Segments is not null) ReturnArray(ContextID, p.Segments);
         if (p.Evals is not null) ReturnArray(ContextID, p.Evals);
         if (p.Table16 is not null) ReturnArray(ContextID, p.Table16);
@@ -771,9 +771,9 @@ public static partial class Lcms2
         Seg[2].Params[4] = 0;
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 3, Seg);
-        dPool.Return(Seg[0].Params);
-        dPool.Return(Seg[2].Params);
-        pool.Return(Seg);
+        ReturnArray(dPool, Seg[0].Params);
+        ReturnArray(dPool, Seg[2].Params);
+        ReturnArray(pool, Seg);
         return result;
     }
 
@@ -804,8 +804,8 @@ public static partial class Lcms2
         memcpy(Seg0.Params, Params, size);
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 1, Seg);
-        dPool.Return(Seg0.Params);
-        pool.Return(Seg);
+        ReturnArray(dPool, Seg0.Params);
+        ReturnArray(pool, Seg);
         return result;
     }
 

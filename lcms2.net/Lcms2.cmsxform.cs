@@ -319,8 +319,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(fIn);
-        pool.Return(fOut);
+        ReturnArray(pool, fIn);
+        ReturnArray(pool, fOut);
     }
 
     private static void NullFloatXFORM(
@@ -355,7 +355,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(fIn);
+        ReturnArray(pool, fIn);
     }
 
     private static void NullXFORM(
@@ -390,7 +390,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(wIn);
+        ReturnArray(pool, wIn);
     }
 
     private static void PrecalculatedXFORM(
@@ -428,8 +428,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(wIn);
-        pool.Return(wOut);
+        ReturnArray(pool, wIn);
+        ReturnArray(pool, wOut);
     }
 
     private static void TransformOnePixelWithGamutCheck(Transform p, ReadOnlySpan<ushort> wIn, Span<ushort> wOut)
@@ -485,8 +485,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(wIn);
-        pool.Return(wOut);
+        ReturnArray(pool, wIn);
+        ReturnArray(pool, wOut);
     }
 
     private static void CachedXFORM(
@@ -547,8 +547,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(wIn);
-        pool.Return(wOut);
+        ReturnArray(pool, wIn);
+        ReturnArray(pool, wOut);
     }
 
     private static void CachedXFORMGamutCheck(
@@ -609,8 +609,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        pool.Return(wIn);
-        pool.Return(wOut);
+        ReturnArray(pool, wIn);
+        ReturnArray(pool, wOut);
     }
 
     internal static void DupPluginTransformList(Context ctx, in Context src)

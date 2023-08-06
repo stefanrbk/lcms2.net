@@ -64,11 +64,11 @@ public class NamedColorList : IDisposable
                 var bPool = Context.GetPool<byte>(ContextID);
                 var ncPool = Context.GetPool<NamedColor>(ContextID);
 
-                bPool.Return(Prefix);
-                bPool.Return(Suffix);
+                ReturnArray(bPool, Prefix);
+                ReturnArray(bPool, Suffix);
 
                 if (List is not null)
-                    ncPool.Return(List);
+                    ReturnArray(ncPool, List);
             }
 
             disposedValue = true;

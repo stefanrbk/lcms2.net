@@ -374,13 +374,13 @@ public static partial class Lcms2
                 break;
         }
 
-        pool.Return(m_as_dbl);
-        pool.Return(off_as_dbl);
+        ReturnArray(pool, m_as_dbl);
+        ReturnArray(pool, off_as_dbl);
 
         return true;
     Error:
-        pool.Return(m_as_dbl);
-        pool.Return(off_as_dbl);
+        ReturnArray(pool, m_as_dbl);
+        ReturnArray(pool, off_as_dbl);
 
         return false;
     }

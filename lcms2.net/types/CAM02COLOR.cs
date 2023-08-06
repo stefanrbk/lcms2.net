@@ -73,14 +73,14 @@ public class CAM02COLOR : IDisposable
         {
             if (disposing)
             {
-                pool.Return(_XYZ);
-                pool.Return(_RGB);
-                pool.Return(_RGBc);
-                pool.Return(_RGBp);
-                pool.Return(_RGBpa);
-                pool.Return(_AbC);
-                pool.Return(_Abs);
-                pool.Return(_AbM);
+                ReturnArray(pool, _XYZ);
+                ReturnArray(pool, _RGB);
+                ReturnArray(pool, _RGBc);
+                ReturnArray(pool, _RGBp);
+                ReturnArray(pool, _RGBpa);
+                ReturnArray(pool, _AbC);
+                ReturnArray(pool, _Abs);
+                ReturnArray(pool, _AbM);
             }
 
             disposedValue = true;
