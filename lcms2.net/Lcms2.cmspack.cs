@@ -1026,6 +1026,7 @@ public static partial class Lcms2
             _ => false,
         };
 
+    [DebuggerStepThrough]
     private static uint PixelSize(uint Format)
     {
         var fmt_bytes = (uint)T_BYTES(Format);

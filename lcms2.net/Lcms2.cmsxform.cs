@@ -149,34 +149,57 @@ public static partial class Lcms2
     }
 
     // PixelSize already defined in Lcms2.cmspack.cs
+
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, ref Tto OutputBuffer, uint Size)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, ref OutputBuffer, Size);
+
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, ref Tto OutputBuffer, uint Size)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        Span<Tto> buf = stackalloc Tto[] { OutputBuffer };
+        cmsDoTransform(p, InputBuffer, buf, Size);
+        OutputBuffer = buf[0];
+    }
+
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom InputBuffer, Span<Tto> OutputBuffer, uint Size)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransform(p, buf, OutputBuffer, Size);
+    }
+
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Tto[] OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct =>
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
         cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Span<Tto> OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct =>
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
         cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, Tto[] OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct =>
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
         cmsDoTransform(p, InputBuffer, (Span<Tto>)OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Tto[] OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct =>
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
         cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Span<Tto> OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct =>
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
         cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, Span<Tto> OutputBuffer, uint Size)
-        where Tfrom : struct
-        where Tto : struct
+        where Tfrom : unmanaged
+        where Tto : unmanaged
     {
         Stride stride;
 
@@ -244,6 +267,8 @@ public static partial class Lcms2
         var strideOut = 0u;
         //memset(fIn, 0, sizeof(float) * cmsMAXCHANNELS);
         //memset(fOut, 0, sizeof(float) * cmsMAXCHANNELS);
+        Array.Clear(fIn);
+        Array.Clear(fOut);
 
         for (var i = 0; i < LineCount; i++)
         {

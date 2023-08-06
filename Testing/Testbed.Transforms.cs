@@ -342,4 +342,103 @@ internal static partial class Testbed
         OneTrivialLab(cmsCreateLab2ProfileTHR(DbgThread(), null)!, cmsCreateLab2ProfileTHR(DbgThread(), null)!, "Lab2/Lab2") &&
         OneTrivialLab(cmsCreateLab4ProfileTHR(DbgThread(), null)!, cmsCreateLab2ProfileTHR(DbgThread(), null)!, "Lab4/Lab2") &&
         OneTrivialLab(cmsCreateLab2ProfileTHR(DbgThread(), null)!, cmsCreateLab4ProfileTHR(DbgThread(), null)!, "Lab2/Lab4");
+
+    internal static bool CheckEncodedLabTransforms()
+    {
+        Span<ushort> In = stackalloc ushort[3];
+        Span<ushort> wLab = stackalloc ushort[3];
+        var Lab = new CIELab();
+
+        var White = new CIELab(100, 0, 0);
+        var Color = new CIELab(7.11070, -76, 26);
+
+        var hLab1 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+        var hLab2 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        var xform = cmsCreateTransformTHR(DbgThread(), hLab1, TYPE_Lab_16, hLab2, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0);
+        cmsCloseProfile(hLab1);
+        cmsCloseProfile(hLab2);
+
+        In[0] = 0xFFFF;
+        In[1] = 0x8080;
+        In[2] = 0x8080;
+
+        cmsDoTransform(xform, In, ref Lab, 1);
+
+        if (cmsDeltaE(Lab, White) > 0.0001)
+            return false;
+
+        In[0] = 0x1234;
+        In[1] = 0x3434;
+        In[2] = 0x9A9A;
+
+        cmsDoTransform(xform, In, ref Lab, 1);
+        cmsFloat2LabEncoded(wLab, Lab);
+        if (memcmp(In, wLab) is not 0)
+            return false;
+        if (cmsDeltaE(Lab, Color) > 0.0001)
+            return false;
+
+        cmsDeleteTransform(xform);
+
+        hLab1 = cmsCreateLab2ProfileTHR(DbgThread(), null)!;
+        hLab2 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        xform = cmsCreateTransformTHR(DbgThread(), hLab1, TYPE_LabV2_16, hLab2, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(hLab1);
+        cmsCloseProfile(hLab2);
+
+        In[0] = 0xFF00;
+        In[1] = 0x8000;
+        In[2] = 0x8000;
+
+        cmsDoTransform(xform, In, ref Lab, 1);
+
+        if (cmsDeltaE(Lab, White) > 0.0001)
+            return false;
+
+        cmsDeleteTransform(xform);
+
+        hLab2 = cmsCreateLab2ProfileTHR(DbgThread(), null)!;
+        hLab1 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        xform = cmsCreateTransformTHR(DbgThread(), hLab1, TYPE_Lab_DBL, hLab2, TYPE_LabV2_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(hLab1);
+        cmsCloseProfile(hLab2);
+
+        Lab.L = 100;
+        Lab.a = 0;
+        Lab.b = 0;
+
+        cmsDoTransform(xform, Lab, In, 1);
+
+        if (In[0] is not 0xFF00 ||
+            In[1] is not 0x8000 ||
+            In[2] is not 0X8000)
+        { return false; }
+
+        cmsDeleteTransform(xform);
+
+        hLab2 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+        hLab1 = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        xform = cmsCreateTransformTHR(DbgThread(), hLab1, TYPE_Lab_DBL, hLab2, TYPE_LabV2_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(hLab1);
+        cmsCloseProfile(hLab2);
+
+        Lab.L = 100;
+        Lab.a = 0;
+        Lab.b = 0;
+
+        cmsDoTransform(xform, Lab, In, 1);
+
+        if (In[0] is not 0xFF00 ||
+            In[1] is not 0x8000 ||
+            In[2] is not 0X8000)
+        { return false; }
+
+        cmsDeleteTransform(xform);
+
+        return true;
+    }
 }
