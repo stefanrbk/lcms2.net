@@ -106,8 +106,11 @@ public static partial class Lcms2
     {
         Dest = new(default);
 
-        if (cmsReadTag(Profile, cmsSigChromaticAdaptationTag) is Box<MAT3> Tag)
+        var _t = cmsReadTag(Profile, cmsSigChromaticAdaptationTag);
+        if (_t is not null)
         {
+            if (_t is not Box<MAT3> Tag)
+                Tag = new(new((double[])_t));
             Dest = Tag;
             return true;
         }

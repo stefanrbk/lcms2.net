@@ -235,7 +235,7 @@ if (doCheckTests)
         Check("Matrix-shaper transform (16 bits)", CheckMatrixShaperXFORM16);
         Check("Matrix-shaper transform (8 bits)", CheckMatrixShaperXFORM8);
 
-        //Check("Primaries of sRGB", CheckRGBPrimaries);
+        Check("Primaries of sRGB", CheckRGBPrimaries);
     }
 
     using (logger.BeginScope("Known values")) {

@@ -588,4 +588,54 @@ internal static partial class Testbed
 
         return rc1 && rc2;
     }
+
+    private static bool GetProfileRGBPrimaries(Profile hProfile, out CIEXYZTRIPLE result, uint intent)
+    {
+        result = default;
+        Span<double> rgb = stackalloc double[] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+
+        var hXYZ = cmsCreateXYZProfile();
+        if (hXYZ is null) return false;
+
+        var hTransform = cmsCreateTransform(hProfile, TYPE_RGB_DBL, hXYZ, TYPE_XYZ_DBL, intent, cmsFLAGS_NOCACHE | cmsFLAGS_NOOPTIMIZE);
+        cmsCloseProfile(hXYZ);
+        if (hTransform is null) return false;
+
+        cmsDoTransform(hTransform, rgb, ref result, 3);
+        cmsDeleteTransform(hTransform);
+        return true;
+    }
+
+    internal static bool CheckRGBPrimaries()
+    {
+        cmsSetAdaptationState(0);
+        var hsRGB = cmsCreate_sRGBProfileTHR(DbgThread());
+        if (hsRGB is null) return false;
+
+        var result = GetProfileRGBPrimaries(hsRGB, out var tripXYZ, INTENT_ABSOLUTE_COLORIMETRIC);
+
+        cmsCloseProfile(hsRGB);
+        if (!result) return false;
+
+        var tripxyY = new CIExyYTRIPLE(
+            cmsXYZ2xyY(tripXYZ.Red),
+            cmsXYZ2xyY(tripXYZ.Green),
+            cmsXYZ2xyY(tripXYZ.Blue));
+
+        /* valus were taken from
+        http://en.wikipedia.org/wiki/RGB_color_spaces#Specifications */
+
+        if (!IsGoodFixed15_16("xRed", tripxyY.Red.x, 0.64) ||
+            !IsGoodFixed15_16("yRed", tripxyY.Red.y, 0.33) ||
+            !IsGoodFixed15_16("xGreen", tripxyY.Green.x, 0.30) ||
+            !IsGoodFixed15_16("yGreen", tripxyY.Green.y, 0.60) ||
+            !IsGoodFixed15_16("xBlue", tripxyY.Blue.x, 0.15) ||
+            !IsGoodFixed15_16("yBlue", tripxyY.Blue.y, 0.06))
+        {
+            logger.LogError("One or more primaries are wrong.");
+            return false;
+        }
+
+        return true;
+    }
 }
