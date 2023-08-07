@@ -236,9 +236,6 @@ internal static partial class Testbed
     {
         return LoggerFactory.Create(builder =>
             builder
-                .AddFilter("Microsoft", LogLevel.Warning)
-                .AddFilter("System", LogLevel.Warning)
-                .AddFilter("lcms2", LogLevel.Debug)
                 .SetMinimumLevel(LogLevel.Information)
                 .AddTestBedFormatter(options => { options.IncludeScopes = true; options.SingleLine = true; }));
     }

@@ -778,12 +778,12 @@ public static partial class Lcms2
             {
                 loggers[logChunk] = logChunk.Factory.CreateLogger("Lcms2");
             }
-            else
-            {
-                logger = logChunk.Factory.CreateLogger("Lcms2");
-                loggers.Add(logChunk, logger);
+            //else
+            //{
+            //    logger = logChunk.Factory.CreateLogger("Lcms2");
+            //    loggers.Add(logChunk, logger);
 
-            }
+            //}
         }
     }
 

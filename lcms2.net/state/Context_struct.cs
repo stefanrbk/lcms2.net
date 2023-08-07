@@ -60,7 +60,11 @@ public class Context
                 return foundPool;
         }
 
+#if DEBUG
+        var newPool = new AccountableArrayPool<T>();
+#else
         var newPool = ArrayPool<T>.Create();
+#endif
         BufferPools.Add(newPool);
 
         return newPool;
@@ -69,17 +73,16 @@ public class Context
     internal static ArrayPool<T> GetPool<T>(Context? context) =>
         _cmsGetContext(context).GetBufferPool<T>();
 
-    //internal MemoryPool<T> GetMemoryPool<T>()
-    //{
-    //    foreach (var pool in BufferPools)
-    //    {
-    //        if (pool is MemoryPool<T> foundPool)
-    //            return foundPool;
-    //    }
+#if DEBUG
+    internal IEnumerable<(Type type, IEnumerable<(int bufferSize, int rentCount, int maxRent, int allocCount, int maxAlloc)>)> GetBufferPoolCounts() =>
+        BufferPools.Select<object, (Type type, IEnumerable<(int bufferSize, int rentCount, int maxRent, int allocCount, int maxAlloc)>)>(b =>
+        {
+            var info = (IAccountableArrayPoolInfo)b;
+            return (info.Type, info.GetTotals);
 
-    //    var newPool = MemoryPool.<T>..Create();
-    //    BufferPools.Add(newPool);
+        });
 
-    //    return newPool;
-    //}
+    internal static IEnumerable<(Type type, IEnumerable<(int bufferSize, int rentCount, int maxRent, int allocCount, int maxAlloc)>)> GetBufferPoolCounts(Context? context) =>
+        _cmsGetContext(context).GetBufferPoolCounts();
+#endif
 }

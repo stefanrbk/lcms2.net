@@ -46,7 +46,7 @@ var doZooTests = cliResult.Value.DoZoo;
 //    exhaustive = CheckExhaustive();
 
 //doCheckTests = false;
-doSpeedTests = true;
+//doSpeedTests = true;
 
 if (exhaustive)
 {
@@ -330,5 +330,7 @@ cmsUnregisterPlugins();
 // Cleanup
 if (doCheckTests || doSpeedTests)
     RemoveTestProfiles();
+
+//LogArrayPoolUsage(null);
 
 return TotalFail;

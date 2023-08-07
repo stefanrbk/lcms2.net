@@ -29,6 +29,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -66,6 +67,7 @@ public sealed class TestBedFormatter : ConsoleFormatter, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    [DebuggerStepThrough]
     public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
     {
         var formattedText = logEntry.Formatter(logEntry.State, logEntry.Exception);
@@ -160,6 +162,7 @@ public sealed class TestBedFormatter : ConsoleFormatter, IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(logLevel)),
         };
 
+    [DebuggerStepThrough]
     private ConsoleColors GetLogLevelConsoleColors(LogLevel logLevel)
     {
         if (FormatterOptions.ColorBehavior is LoggerColorBehavior.Disabled ||
