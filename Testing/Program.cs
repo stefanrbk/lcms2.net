@@ -250,10 +250,10 @@ if (doCheckTests)
 
         //Check("Gamut check", CheckGamutCheck);
 
-        //Check("CMYK roundtrip on perceptual transform",   CheckCMYKRoundtrip);
+        Check("CMYK roundtrip on perceptual transform", CheckCMYKRoundtrip);
 
-        //Check("CMYK perceptual transform",   CheckCMYKPerceptual);
-        //Check("CMYK rel.col. transform",   CheckCMYKRelCol);
+        Check("CMYK perceptual transform", CheckCMYKPerceptual);
+        Check("CMYK rel.col. transform", CheckCMYKRelCol);
 
         //Check("Black ink only preservation", CheckKOnlyBlackPreserving);
         //Check("Black plane preservation", CheckKPlaneBlackPreserving);

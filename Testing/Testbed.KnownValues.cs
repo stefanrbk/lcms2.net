@@ -195,4 +195,79 @@ internal static partial class Testbed
         cmsDeleteTransform(xform);
         return true;
     }
+
+    private static bool CheckCMYK(int Intent, byte[] Profile1, byte[] Profile2)
+    {
+        var Lab1 = new CIELab();
+        var Lab2 = new CIELab();
+
+        var hSWOP = cmsOpenProfileFromMemTHR(DbgThread(), Profile1)!;
+        var hFOGRA = cmsOpenProfileFromMemTHR(DbgThread(), Profile2)!;
+
+        Span<float> CMYK1 = stackalloc float[4];
+        Span<float> CMYK2 = stackalloc float[4];
+
+        var hLab = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        var xform = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hFOGRA, TYPE_CMYK_FLT, (uint)Intent, 0)!;
+
+        var swop_lab = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, (uint)Intent, 0)!;
+        var fogra_lab = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, (uint)Intent, 0)!;
+
+        var Max = 0.0;
+        for (var i = 0; i <= 100; i++)
+        {
+            CMYK1[0] = 10;
+            CMYK1[1] = 20;
+            CMYK1[2] = 30;
+            CMYK1[3] = i;
+
+            cmsDoTransform(swop_lab, CMYK1, ref Lab1, 1);
+            cmsDoTransform(xform, CMYK1, CMYK2, 1);
+            cmsDoTransform(fogra_lab, CMYK2, ref Lab2, 1);
+
+            var DeltaL = Math.Abs(Lab1.L - Lab2.L);
+
+            Max = Math.Max(Max, DeltaL);
+        }
+
+        cmsDeleteTransform(xform);
+
+        xform = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hSWOP, TYPE_CMYK_FLT, (uint)Intent, 0)!;
+
+        for (var i = 0; i <= 100; i++)
+        {
+            CMYK1[0] = 10;
+            CMYK1[1] = 20;
+            CMYK1[2] = 30;
+            CMYK1[3] = i;
+
+            cmsDoTransform(fogra_lab, CMYK1, ref Lab1, 1);
+            cmsDoTransform(xform, CMYK1, CMYK2, 1);
+            cmsDoTransform(swop_lab, CMYK2, ref Lab2, 1);
+
+            var DeltaL = Math.Abs(Lab1.L - Lab2.L);
+
+            Max = Math.Max(Max, DeltaL);
+        }
+
+        cmsCloseProfile(hSWOP);
+        cmsCloseProfile(hFOGRA);
+        cmsCloseProfile(hLab);
+
+        cmsDeleteTransform(xform);
+        cmsDeleteTransform(swop_lab);
+        cmsDeleteTransform(fogra_lab);
+
+        return Max < 3.0;
+    }
+
+    internal static bool CheckCMYKRoundtrip() =>
+        CheckCMYK(INTENT_RELATIVE_COLORIMETRIC, TestProfiles.test1, TestProfiles.test1);
+
+    internal static bool CheckCMYKPerceptual() =>
+        CheckCMYK(INTENT_PERCEPTUAL, TestProfiles.test1, TestProfiles.test2);
+
+    internal static bool CheckCMYKRelCol() =>
+        CheckCMYK(INTENT_RELATIVE_COLORIMETRIC, TestProfiles.test1, TestProfiles.test2);
 }
