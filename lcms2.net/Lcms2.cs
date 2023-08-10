@@ -645,20 +645,20 @@ public static partial class Lcms2
     internal const uint cmsILLUMINANT_TYPE_E = 0x0000007;
     internal const uint cmsILLUMINANT_TYPE_F8 = 0x0000008;
 
-    internal const ErrorCode cmsERROR_UNDEFINED = ErrorCode.Undefined;
-    internal const ErrorCode cmsERROR_FILE = ErrorCode.File;
-    internal const ErrorCode cmsERROR_RANGE = ErrorCode.Range;
-    internal const ErrorCode cmsERROR_INTERNAL = ErrorCode.Internal;
-    internal const ErrorCode cmsERROR_NULL = ErrorCode.Null;
-    internal const ErrorCode cmsERROR_READ = ErrorCode.Read;
-    internal const ErrorCode cmsERROR_SEEK = ErrorCode.Seek;
-    internal const ErrorCode cmsERROR_WRITE = ErrorCode.Write;
-    internal const ErrorCode cmsERROR_UNKNOWN_EXTENSION = ErrorCode.UnknownExtension;
-    internal const ErrorCode cmsERROR_COLORSPACE_CHECK = ErrorCode.ColorspaceCheck;
-    internal const ErrorCode cmsERROR_ALREADY_DEFINED = ErrorCode.AlreadyDefined;
-    internal const ErrorCode cmsERROR_BAD_SIGNATURE = ErrorCode.BadSignature;
-    internal const ErrorCode cmsERROR_CORRUPTION_DETECTED = ErrorCode.CorruptionDetected;
-    internal const ErrorCode cmsERROR_NOT_SUITABLE = ErrorCode.NotSuitable;
+    internal static EventId cmsERROR_UNDEFINED = ErrorCodes.Undefined;
+    internal static EventId cmsERROR_FILE = ErrorCodes.File;
+    internal static EventId cmsERROR_RANGE = ErrorCodes.Range;
+    internal static EventId cmsERROR_INTERNAL = ErrorCodes.Internal;
+    internal static EventId cmsERROR_NULL = ErrorCodes.Null;
+    internal static EventId cmsERROR_READ = ErrorCodes.Read;
+    internal static EventId cmsERROR_SEEK = ErrorCodes.Seek;
+    internal static EventId cmsERROR_WRITE = ErrorCodes.Write;
+    internal static EventId cmsERROR_UNKNOWN_EXTENSION = ErrorCodes.UnknownExtension;
+    internal static EventId cmsERROR_COLORSPACE_CHECK = ErrorCodes.ColorspaceCheck;
+    internal static EventId cmsERROR_ALREADY_DEFINED = ErrorCodes.AlreadyDefined;
+    internal static EventId cmsERROR_BAD_SIGNATURE = ErrorCodes.BadSignature;
+    internal static EventId cmsERROR_CORRUPTION_DETECTED = ErrorCodes.CorruptionDetected;
+    internal static EventId cmsERROR_NOT_SUITABLE = ErrorCodes.NotSuitable;
 
     internal const uint AVG_SURROUND = 1;
     internal const uint DIM_SURROUND = 2;

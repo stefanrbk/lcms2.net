@@ -25,22 +25,24 @@
 //---------------------------------------------------------------------------------
 //
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.types;
 
-public enum ErrorCode
+public static class ErrorCodes
 {
-    Undefined,
-    File,
-    Range,
-    Internal,
-    Null,
-    Read,
-    Seek,
-    Write,
-    UnknownExtension,
-    ColorspaceCheck,
-    AlreadyDefined,
-    BadSignature,
-    CorruptionDetected,
-    NotSuitable,
+    public static readonly EventId Undefined = new(1, "Undefined error");
+    public static readonly EventId File = new(2, "File system error");
+    public static readonly EventId Range = new(3, "Value out of range");
+    public static readonly EventId Internal = new(4, "Internal error");
+    public static readonly EventId Null = new(5, "Value was null");
+    public static readonly EventId Read = new(6, "IO read error");
+    public static readonly EventId Seek = new(7, "IO seek error");
+    public static readonly EventId Write = new(8, "IO write error");
+    public static readonly EventId UnknownExtension = new(9, "Unknown extension type");
+    public static readonly EventId ColorspaceCheck = new(10, "Invalid color space");
+    public static readonly EventId AlreadyDefined = new(11, "Value already defined");
+    public static readonly EventId BadSignature = new(12, "Object has bad signature");
+    public static readonly EventId CorruptionDetected = new(13, "Corruption detected");
+    public static readonly EventId NotSuitable = new(14, "Value not suitable");
 }

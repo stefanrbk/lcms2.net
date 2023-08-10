@@ -552,7 +552,7 @@ public static partial class Lcms2
 
         if (inputChan > MAX_INPUT_DIMENSIONS)
         {
-            cmsSignalError(ContextID, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={MAX_INPUT_DIMENSIONS})");
+            cmsSignalError(ContextID, ErrorCodes.Range, $"Too many input channels ({inputChan} channels, max={MAX_INPUT_DIMENSIONS})");
 
             return null;
         }
@@ -647,7 +647,7 @@ public static partial class Lcms2
 
         if (inputChan > MAX_INPUT_DIMENSIONS)
         {
-            cmsSignalError(ContextID, ErrorCode.Range, $"Too many input channels ({inputChan} channels, max={MAX_INPUT_DIMENSIONS})");
+            cmsSignalError(ContextID, ErrorCodes.Range, $"Too many input channels ({inputChan} channels, max={MAX_INPUT_DIMENSIONS})");
             return null;
         }
 

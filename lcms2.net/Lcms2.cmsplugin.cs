@@ -507,13 +507,13 @@ public static partial class Lcms2
         {
             if (Plugin.Magic != cmsPluginMagicNumber)
             {
-                cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
+                cmsSignalError(id, ErrorCodes.UnknownExtension, "Unrecognized plugin");
                 return false;
             }
 
             if (Plugin.ExpectedVersion > LCMS_VERSION)
             {
-                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
+                cmsSignalError(id, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
                 return false;
             }
 
@@ -564,7 +564,7 @@ public static partial class Lcms2
                     break;
 
                 default:
-                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
+                    cmsSignalError(id, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
                     return false;
             }
         }

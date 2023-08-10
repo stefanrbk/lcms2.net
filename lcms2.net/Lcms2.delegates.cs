@@ -29,6 +29,8 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2;
 
 public static partial class Lcms2
@@ -67,7 +69,7 @@ public static partial class Lcms2
     public delegate void DestroyMutexFnPtrType(Context? ContextID, object? mtx);
     public delegate bool LockMutexFnPtrType(Context? ContextID, object? mtx);
     public delegate void UnlockMutexFnPtrType(Context? ContextID, object? mtx);
-    public delegate void LogErrorHandlerFunction(Context? ContextID, ErrorCode ErrorCode, string Text);
+    public delegate void LogErrorHandlerFunction(Context? ContextID, EventId ErrorCode, string Text);
     public delegate bool SAMPLER16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo);
     public delegate bool SAMPLERFLOAT(ReadOnlySpan<float> In, Span<float> Out, object? Cargo);
     internal delegate bool PositionTableEntryFn(TagTypeHandler self, IOHandler io, object? Cargo, uint n, uint SizeOfTag);

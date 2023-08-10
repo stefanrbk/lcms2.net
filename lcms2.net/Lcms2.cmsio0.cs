@@ -125,7 +125,7 @@ public static partial class Lcms2
         if (ResData.Pointer + len > ResData.Size)
         {
             len = ResData.Size - ResData.Pointer;
-            cmsSignalError(iohandler.ContextID, ErrorCode.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler.ContextID, ErrorCodes.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -145,7 +145,7 @@ public static partial class Lcms2
 
         if (offset > ResData.Size)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCode.Seek, "Too few data; probably corrupted profile");
+            cmsSignalError(iohandler.ContextID, ErrorCodes.Seek, "Too few data; probably corrupted profile");
             return false;
         }
 
@@ -216,7 +216,7 @@ public static partial class Lcms2
 
                 if (Buffer.IsEmpty)
                 {
-                    cmsSignalError(ContextID, ErrorCode.Read, "Couldn't read profile from NULL pointer");
+                    cmsSignalError(ContextID, ErrorCodes.Read, "Couldn't read profile from NULL pointer");
                     goto Error;
                 }
 
@@ -253,7 +253,7 @@ public static partial class Lcms2
                 break;
 
             default:
-                cmsSignalError(ContextID, ErrorCode.UnknownExtension, $"Unknown access mode '{AccessMode}'");
+                cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Unknown access mode '{AccessMode}'");
                 return null;
         }
 
@@ -285,7 +285,7 @@ public static partial class Lcms2
 
         if (nReaded != count)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCode.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
+            cmsSignalError(iohandler.ContextID, ErrorCodes.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -300,7 +300,7 @@ public static partial class Lcms2
 
         if (fseek(file, offset, SEEK_SET) is not 0)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCode.File, "Seek error; probably corrupted file");
+            cmsSignalError(iohandler.ContextID, ErrorCodes.File, "Seek error; probably corrupted file");
             return false;
         }
 
@@ -316,7 +316,7 @@ public static partial class Lcms2
         var t = ftell(file);
         if (t is -1)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCode.File, "Tell error; probably corrupted file");
+            cmsSignalError(iohandler.ContextID, ErrorCodes.File, "Tell error; probably corrupted file");
             return 0;
         }
 
@@ -362,7 +362,7 @@ public static partial class Lcms2
                 if (fm is null)
                 {
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCode.File, $"File '{FileName}' not found");
+                    cmsSignalError(ContextID, ErrorCodes.File, $"File '{FileName}' not found");
                     return null;
                 }
                 fileLen = (int)cmsfilelength(fm);
@@ -370,7 +370,7 @@ public static partial class Lcms2
                 {
                     fclose(fm);
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCode.File, $"Cannot get size of file '{FileName}'");
+                    cmsSignalError(ContextID, ErrorCodes.File, $"Cannot get size of file '{FileName}'");
                     return null;
                 }
 
@@ -382,7 +382,7 @@ public static partial class Lcms2
                 if (fm is null)
                 {
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCode.File, $"Couldn't create '{FileName}'");
+                    cmsSignalError(ContextID, ErrorCodes.File, $"Couldn't create '{FileName}'");
                     return null;
                 }
 
@@ -391,7 +391,7 @@ public static partial class Lcms2
 
             default:
                 //_cmsFree(ContextID, iohandler);
-                cmsSignalError(ContextID, ErrorCode.File, $"Unknown access mode '{AccessMode}'");
+                cmsSignalError(ContextID, ErrorCodes.File, $"Unknown access mode '{AccessMode}'");
                 return null;
         }
 
@@ -422,7 +422,7 @@ public static partial class Lcms2
         var fileSize = cmsfilelength(file);
         if (fileSize < 0)
         {
-            cmsSignalError(ContextID, ErrorCode.File, "Cannot get size of stream");
+            cmsSignalError(ContextID, ErrorCodes.File, "Cannot get size of stream");
             return null;
             //goto Error;
         }
@@ -592,7 +592,7 @@ public static partial class Lcms2
             // No, make a new one
             if (Icc.Tags.Count >= MAX_TABLE_TAG)
             {
-                cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags ({MAX_TABLE_TAG})");
+                cmsSignalError(Icc.ContextID, ErrorCodes.Range, $"Too many tags ({MAX_TABLE_TAG})");
                 NewPos = -1;
                 return false;
             }
@@ -649,7 +649,7 @@ public static partial class Lcms2
         // Validate file as an ICC profile
         if (_cmsAdjustEndianess32(Header.magic) != cmsMagicNumber)
         {
-            cmsSignalError(Icc.ContextID, ErrorCode.BadSignature, "not an Icc profile, invalid signature");
+            cmsSignalError(Icc.ContextID, ErrorCodes.BadSignature, "not an Icc profile, invalid signature");
             return false;
         }
 
@@ -684,7 +684,7 @@ public static partial class Lcms2
         if (!_cmsReadUInt32Number(io, out TagCount)) return false;
         if (TagCount > MAX_TABLE_TAG)
         {
-            cmsSignalError(Icc.ContextID, ErrorCode.Range, $"Too many tags({TagCount})");
+            cmsSignalError(Icc.ContextID, ErrorCodes.Range, $"Too many tags({TagCount})");
             return false;
         }
 

@@ -100,7 +100,7 @@ public static partial class Lcms2
         // Check for maximum inputs
         if (InputChan > MAX_INPUT_DIMENSIONS)
         {
-            cmsSignalError(ContextID, ErrorCode.Range, $"Too many input channels ({InputChan} channels, max={MAX_INPUT_DIMENSIONS})");
+            cmsSignalError(ContextID, ErrorCodes.Range, $"Too many input channels ({InputChan} channels, max={MAX_INPUT_DIMENSIONS})");
             return null;
         }
 
@@ -137,7 +137,7 @@ public static partial class Lcms2
 
         if (!_cmsSetInterpolationRoutine(ContextID, p))
         {
-            cmsSignalError(ContextID, ErrorCode.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
+            cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
             //_cmsFree(ContextID, p);
             p.Dispose();
             return null;

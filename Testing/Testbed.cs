@@ -25,6 +25,7 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.state;
+using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -96,6 +97,13 @@ internal static partial class Testbed
     public static void Die(string message, params object[] args)
     {
         logger.LogError(message, args);
+        Environment.Exit(1);
+    }
+
+    [DoesNotReturn]
+    public static void Die(EventId eventId, string message, params object[] args)
+    {
+        logger.LogError(eventId, message, args);
         Environment.Exit(1);
     }
 
@@ -248,11 +256,11 @@ internal static partial class Testbed
                 .SetMinimumLevel(LogLevel.None));
     }
 
-    //public static void FatalErrorQuit(Context? _1, ErrorCode _2, string text) =>
-    //    Die(text);
+    public static void FatalErrorQuit(EventId eventId, string text) =>
+        Die(eventId, text);
 
-    //public static void ResetFatalError() =>
-    //    cmsSetLogErrorHandler(FatalErrorQuit);
+    public static void ResetFatalError() =>
+        cmsSetLogErrorHandler(BuildDebugLogger());
 
     public static void Check(string title, Func<bool> test)
     {

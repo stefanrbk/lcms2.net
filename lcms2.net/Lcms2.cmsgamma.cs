@@ -194,13 +194,13 @@ public static partial class Lcms2
         // We allow huge tables, which are then restricted for smoothing operations
         if (nEntries > 65530)
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "Couldn't create tone curve of more than 65530 entries");
+            cmsSignalError(ContextID, ErrorCodes.Range, "Couldn't create tone curve of more than 65530 entries");
             return null;
         }
 
         if (nEntries == 0 && nSegments == 0)
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "Couldn't create tone curve with zero segments and no table");
+            cmsSignalError(ContextID, ErrorCodes.Range, "Couldn't create tone curve with zero segments and no table");
             return null;
         }
 
@@ -790,7 +790,7 @@ public static partial class Lcms2
 
         if (c is null)
         {
-            cmsSignalError(ContextID, ErrorCode.UnknownExtension, $"Invalid parametric curve type {Type}");
+            cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Invalid parametric curve type {Type}");
             return null;
         }
 
@@ -1103,7 +1103,7 @@ public static partial class Lcms2
         nItems = Tab.nEntries;
         if (nItems >= maxNodesInCurve)    // too many items in the table
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Too many points.");
+            cmsSignalError(ContextID, ErrorCodes.Range, "cmsSmoothToneCurve: Too many points.");
             return false;
         }
 
@@ -1143,7 +1143,7 @@ public static partial class Lcms2
 
         if (!smooth2(ContextID, w, y, z, (float)lambda, (int)nItems))    // Could not smooth
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Function smooth2 failed.");
+            cmsSignalError(ContextID, ErrorCodes.Range, "cmsSmoothToneCurve: Function smooth2 failed.");
             return false;
         }
 
@@ -1156,7 +1156,7 @@ public static partial class Lcms2
             if (z[i] >= 65535) Poles++;
             if (z[i] < z[i - 1])
             {
-                cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Non-Monotonic.");
+                cmsSignalError(ContextID, ErrorCodes.Range, "cmsSmoothToneCurve: Non-Monotonic.");
                 SuccessStatus = notCheck;
                 break;
             }
@@ -1167,14 +1167,14 @@ public static partial class Lcms2
 
         if (Zeros > (nItems / 3))
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Degenerated, mostly zeros.");
+            cmsSignalError(ContextID, ErrorCodes.Range, "cmsSmoothToneCurve: Degenerated, mostly zeros.");
             SuccessStatus = notCheck;
             goto Done;
         }
 
         if (Poles > (nItems / 3))
         {
-            cmsSignalError(ContextID, ErrorCode.Range, "cmsSmoothToneCurve: Degenerated, mostly poles.");
+            cmsSignalError(ContextID, ErrorCodes.Range, "cmsSmoothToneCurve: Degenerated, mostly poles.");
             SuccessStatus = notCheck;
             goto Done;
         }

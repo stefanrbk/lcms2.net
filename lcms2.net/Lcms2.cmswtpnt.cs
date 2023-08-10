@@ -73,7 +73,7 @@ public static partial class Lcms2
         }
         else
         {
-            cmsSignalError(null, ErrorCode.Range, "cmsWhitePointFromTemp: invalid temp");
+            cmsSignalError(null, ErrorCodes.Range, "cmsWhitePointFromTemp: invalid temp");
             return CIExyY.NaN;
         }
 

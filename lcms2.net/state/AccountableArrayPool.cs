@@ -6,6 +6,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace lcms2.state;
+
+[DebuggerStepThrough]
 internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayPoolInfo
 {
     private enum BufferAllocatedReason
@@ -65,6 +67,7 @@ internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayP
             _cmsGetContext(null).ErrorLogger.FactoryChanged += ErrorLogger_FactoryChanged;
         }
 
+        [DebuggerStepThrough]
         internal T[] Rent()
         {
             T[][] buffers = _buffers;
@@ -103,6 +106,7 @@ internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayP
             return array;
         }
 
+        [DebuggerStepThrough]
         internal void Return(T[] array)
         {
             if (array.Length != _bufferLength)
@@ -218,6 +222,7 @@ internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayP
         _buckets = array;
     }
 
+    [DebuggerStepThrough]
     public override T[] Rent(int minimumLength)
     {
         T[] array;
@@ -267,6 +272,7 @@ internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayP
         return array;
     }
 
+    [DebuggerStepThrough]
     public override void Return(T[] array, bool clearArray = false)
     {
         ArgumentNullException.ThrowIfNull(array, nameof(array));
@@ -314,11 +320,11 @@ internal sealed class AccountableArrayPool<T> : ArrayPool<T>, IAccountableArrayP
 
     public Type Type => typeof(T);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int SelectBucketIndex(int bufferSize) =>
         BitOperations.Log2((uint)(bufferSize - 1) | 0xFu) - 3;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetMaxSizeForBucket(int binIndex) =>
         16 << binIndex;
 

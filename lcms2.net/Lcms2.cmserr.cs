@@ -568,7 +568,7 @@ public static partial class Lcms2
     /// </summary>
     /// <param name="text">English description of the error in String.Format format</param>
     [DebuggerStepThrough]
-    public static void cmsSignalError(Context? ContextID, ErrorCode errorCode, string text, params object?[] args)
+    public static void cmsSignalError(Context? ContextID, EventId errorCode, string text, params object?[] args)
     {
         // Check for the context, if specified go there. If not, go for the global
         var lhg = GetLogger(ContextID);
@@ -576,7 +576,7 @@ public static partial class Lcms2
         if (text.Length > MaxErrorMessageLen)
             text = text.Remove(MaxErrorMessageLen);
 
-        lhg.LogError("[lcms ErrorCode.{ErrorCode}]: {ErrorText}", Enum.GetName(errorCode), text);
+        lhg.LogError(errorCode, "{ErrorText}", text);
     }
 
     /// <summary>
