@@ -40,9 +40,9 @@ public static partial class Lcms2
 {
     private const double DEFAULT_OBSERVER_ADAPTATION_STATE = 1.0;
 
-    private static readonly AdaptationStateChunkType AdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
+    private static readonly AdaptationStateChunkType AdaptationStateChunk = new(DEFAULT_OBSERVER_ADAPTATION_STATE);
 
-    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = new() { AdaptationState = DEFAULT_OBSERVER_ADAPTATION_STATE };
+    private static readonly AdaptationStateChunkType globalAdaptationStateChunk = new(DEFAULT_OBSERVER_ADAPTATION_STATE);
 
     private static readonly AlarmCodesChunkType AlarmCodesChunk = new();
 
@@ -60,9 +60,7 @@ public static partial class Lcms2
             ? src.AdaptationState
             : AdaptationStateChunk;
 
-        _cmsAssert(from);
-
-        ctx.AdaptationState = (AdaptationStateChunkType)from.Dup(ctx);
+        ctx.AdaptationState = (AdaptationStateChunkType)from.Clone();
 
         //fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
         //    AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
@@ -117,9 +115,7 @@ public static partial class Lcms2
             ? src.AlarmCodes
             : AlarmCodesChunk;
 
-        _cmsAssert(from);
-
-        ctx.AlarmCodes = (AlarmCodesChunkType)from.Dup(ctx);
+        ctx.AlarmCodes = (AlarmCodesChunkType)from.Clone();
 
         //fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
         //    AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
@@ -613,38 +609,8 @@ public static partial class Lcms2
         ReturnArray(pool, wOut);
     }
 
-    internal static void DupPluginTransformList(Context ctx, in Context src)
-    {
-        TransformPluginChunkType head = src.TransformPlugin;
-        TransformCollection? Anterior = null, entry;
-        TransformPluginChunkType newHead = new();
-
-        _cmsAssert(ctx);
-        _cmsAssert(head);
-
-        // Walk the list copying all nodes
-        for (entry = head.TransformCollection;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
-
-            //if (newEntry is null)
-            //    return;
-            var newEntry = (TransformCollection)entry.Clone();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.TransformCollection ??= newEntry;
-        }
-
-        ctx.TransformPlugin = newHead;
-    }
+    internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>
+        dest = (TransformPluginChunkType)src.Clone();
 
     internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context? src)
     {
@@ -654,12 +620,7 @@ public static partial class Lcms2
             ? src.TransformPlugin
             : TransformPluginChunk;
 
-        _cmsAssert(from);
-
-        ctx.TransformPlugin = (TransformPluginChunkType)from.Dup(ctx)!;
-
-        //fixed (TransformPluginChunkType* @default = &TransformPluginChunk)
-        //    AllocPluginChunk(ctx, src, DupPluginTransformList, Chunks.TransformPlugin, @default);
+        DupPluginTransformList(ref ctx.TransformPlugin, from);
     }
 
     internal static void _cmsTransform2toTransformAdaptor(
@@ -694,7 +655,7 @@ public static partial class Lcms2
         if (Data is null)
         {
             // Free the chain. Memory is safely freed at exit
-            ctx.TransformCollection = null;
+            ctx.List.Clear();
             return true;
         }
 
@@ -712,13 +673,9 @@ public static partial class Lcms2
 
         // Copy the parameters
         //fl->Factory = Plugin.factories.xform;
-        var fl = (Plugin.ExpectedVersion < 2080)
-            ? new TransformCollection(Plugin.factories.legacy_xform)
-            : new TransformCollection(Plugin.factories.xform);
-
-        // Keep linked list
-        fl.Next = ctx.TransformCollection;
-        ctx.TransformCollection = fl;
+        ctx.List.Add((Plugin.ExpectedVersion < 2080)
+            ? new TransformFunc(Plugin.factories.legacy_xform)
+            : new TransformFunc(Plugin.factories.xform));
 
         // All is ok
         return true;
@@ -794,9 +751,7 @@ public static partial class Lcms2
         {
             if ((dwFlags & cmsFLAGS_NOOPTIMIZE) is 0)
             {
-                for (var Plugin = ctx.TransformCollection;
-                    Plugin is not null;
-                    Plugin = Plugin.Next)
+                foreach (var Plugin in ctx.List)
                 {
 
                     p.ContextID = ContextID;

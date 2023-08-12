@@ -28,8 +28,8 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public class PluginTag : PluginBase
+public class PluginTag(Signature sig, uint expectedVersion, Signature type, Signature tag, TagDescriptor desc) : PluginBase(sig, expectedVersion, type)
 {
-    public Signature Signature;
-    public TagDescriptor Descriptor;
+    public Signature Signature = tag;
+    public TagDescriptor Descriptor = desc;
 }

@@ -28,40 +28,20 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class OptimizationPluginChunkType : IDup
+internal class OptimizationPluginChunkType : ICloneable
 {
-    public OptimizationCollection OptimizationCollection;
+    public readonly OptimizationCollection List;
 
-    public object? Dup(Context ctx)
-    {
-        OptimizationPluginChunkType head = this;
-        OptimizationCollection? Anterior = null, entry;
-        OptimizationPluginChunkType newHead = new();
+    public OptimizationPluginChunkType(IEnumerable<OPToptimizeFn> list) =>
+        List = new(list);
 
-        _cmsAssert(ctx);
-        _cmsAssert(head);
+    public OptimizationPluginChunkType(params OPToptimizeFn[] args) =>
 
-        // Walk the list copying all nodes
-        for (entry = head.OptimizationCollection;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
+        List = new(args);
 
-            //if (newEntry is null)
-            //    return null;
-            var newEntry = (OptimizationCollection)entry.Clone();
+    public OptimizationPluginChunkType() =>
+        List = new();
 
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.OptimizationCollection ??= newEntry;
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new OptimizationPluginChunkType(List);
 }

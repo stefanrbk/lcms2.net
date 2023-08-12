@@ -27,23 +27,19 @@
 
 namespace lcms2.state;
 
-internal class MutexPluginChunkType : IDup
+internal class MutexPluginChunkType : ICloneable
 {
     public CreateMutexFnPtrType? CreateFn;
     public DestroyMutexFnPtrType? DestroyFn;
     public LockMutexFnPtrType? LockFn;
     public UnlockMutexFnPtrType? UnlockFn;
 
-    public object? Dup(Context ctx)
-    {
-        _cmsAssert(ctx);
-
-        return new MutexPluginChunkType()
+    public object Clone() =>
+        new MutexPluginChunkType()
         {
             CreateFn = CreateFn,
             DestroyFn = DestroyFn,
             LockFn = LockFn,
             UnlockFn = UnlockFn
         };
-    }
 }

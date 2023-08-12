@@ -42,7 +42,7 @@ namespace lcms2;
 public static partial class Lcms2
 {
     private static readonly object contextPoolHeadMutex = new();
-    private static Context? contextPoolHead;
+    private static List<Context> contextPoolHead = new();
 
     private static readonly Context globalContext;
 
@@ -499,11 +499,20 @@ public static partial class Lcms2
     public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, PluginBase? Plug_in)
+    public static bool cmsPluginTHR(Context? id, List<PluginBase> Plugins)
     {
-        for (var Plugin = Plug_in;
-                Plugin is not null;
-                Plugin = Plugin.Next)
+        foreach (var plugin in Plugins)
+        {
+            if (!cmsPluginTHR(id, plugin))
+                return false;
+        }
+
+        return true;
+    }
+
+    public static bool cmsPluginTHR(Context? id, PluginBase? Plugin)
+    {
+        if (Plugin is not null)
         {
             if (Plugin.Magic != cmsPluginMagicNumber)
             {
@@ -584,16 +593,7 @@ public static partial class Lcms2
 
         // Search
         lock (contextPoolHeadMutex)
-        {
-            for (var ctx = contextPoolHead; ctx is not null; ctx = ctx.Next)
-            {
-                // Found it?
-                if (id == ctx)
-                    return ctx;
-            }
-        }
-
-        return globalContext;
+            return contextPoolHead.FirstOrDefault(ctx => id == ctx, globalContext);
     }
 
     //[DebuggerStepThrough]
@@ -735,15 +735,7 @@ public static partial class Lcms2
 
         // Maintain the linked list (with proper locking)
         lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
-            ctx.Next = contextPoolHead;
-            contextPoolHead = ctx;
-            //Console.WriteLine("\nAdded to the pool");
-            //for (var c = contextPoolHead; c is not null; c = c->Next)
-            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
-            //Console.WriteLine("\tend");
-        }
+            contextPoolHead.Add(ctx);
 
         ctx.UserData = UserData;
         //ctx.MemPlugin = ctx.DefaultMemoryManager;
@@ -809,15 +801,11 @@ public static partial class Lcms2
 
         // Maintain the linked list
         lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nAdding Context {(ulong)ctx:x16}");
-            ctx.Next = contextPoolHead;
-            contextPoolHead = ctx;
+            contextPoolHead.Add(ctx);
             //Console.WriteLine("\nAdded to the pool");
             //for (var c = contextPoolHead; c is not null; c = c->Next)
             //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
             //Console.WriteLine("\tend");
-        }
 
         ctx.UserData = userData;
         //ctx.MemPlugin = ctx.DefaultMemoryManager;
@@ -884,32 +872,7 @@ public static partial class Lcms2
 
         // Maintain list
         lock (contextPoolHeadMutex)
-        {
-            //Console.WriteLine($"\nRemoving Context {(ulong)ctx:x16}");
-            if (contextPoolHead == ctx)
-            {
-                contextPoolHead = ctx.Next;
-            }
-            else
-            {
-                // Search for previous
-                for (
-                    var prev = contextPoolHead;
-                    prev is not null;
-                    prev = prev.Next)
-                {
-                    if (prev.Next == ctx)
-                    {
-                        prev.Next = ctx.Next;
-                        break;
-                    }
-                }
-            }
-            //Console.WriteLine("\nRemoved from the pool");
-            //for (var c = contextPoolHead; c is not null; c = c->Next)
-            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
-            //Console.WriteLine("\tend");
-        }
+            contextPoolHead.Remove(ctx);
 
         // free the memory block itself
         //_cmsFree(fakeContext, ctx);

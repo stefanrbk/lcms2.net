@@ -33,11 +33,14 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    internal static readonly OptimizationCollection DefaultOptimization = OptimizationCollection.Build(
-        new(OptimizeByJoiningCurves),
-        new(OptimizeMatrixShaper),
-        new(OptimizeByComputingLinearization),
-        new(OptimizeByResampling));
+    internal static readonly OptimizationCollection DefaultOptimization = new(
+        new OPToptimizeFn[]
+        {
+            new(OptimizeByJoiningCurves),
+            new(OptimizeMatrixShaper),
+            new(OptimizeByComputingLinearization),
+            new(OptimizeByResampling)
+        });
 
     internal static readonly OptimizationPluginChunkType OptimizationPluginChunk = new();
 
@@ -1791,40 +1794,8 @@ public static partial class Lcms2
         return false;
     }
 
-    internal static void DupPluginOptimizationList(Context ctx, in Context src)
-    {
-        OptimizationPluginChunkType head = src.OptimizationPlugin;
-        OptimizationCollection? Anterior = null, entry;
-        OptimizationPluginChunkType newHead = new();
-
-        _cmsAssert(ctx);
-        _cmsAssert(head);
-
-        // Walk the list copying all nodes
-        for (entry = head.OptimizationCollection;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<OptimizationCollection>(ctx.MemPool, entry);
-
-            //if (newEntry is null)
-            //    return;
-
-            var newEntry = (OptimizationCollection)entry.Clone();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            if (newHead.OptimizationCollection is null)
-                newHead.OptimizationCollection = newEntry;
-        }
-
-        ctx.OptimizationPlugin = newHead;
-    }
+    internal static void DupPluginOptimizationList(ref OptimizationPluginChunkType dest, in OptimizationPluginChunkType src) =>
+        dest = (OptimizationPluginChunkType)src.Clone();
 
     internal static void _cmsAllocOptimizationPluginChunk(Context ctx, in Context? src)
     {
@@ -1834,27 +1805,21 @@ public static partial class Lcms2
             ? src.OptimizationPlugin
             : OptimizationPluginChunk;
 
-        _cmsAssert(from);
-
-        ctx.OptimizationPlugin = (OptimizationPluginChunkType)from.Dup(ctx);
-        //fixed (OptimizationPluginChunkType* @default = &OptimizationPluginChunk)
-        //    AllocPluginChunk(ctx, src, DupPluginOptimizationList, Chunks.OptimizationPlugin, @default);
+        DupPluginOptimizationList(ref ctx.OptimizationPlugin, from);
     }
 
     internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase? Data)
     {
         var ctx = _cmsGetContext(id).OptimizationPlugin;
-        if (Data is null)
+        if (Data is not PluginOptimization Plugin)
         {
-            ctx.OptimizationCollection = null;
+            ctx.List.Clear();
             return true;
         }
 
-        if (Data is not PluginOptimization Plugin)
-            return false;
-
         // Optimizer callback is required
-        if (Plugin!.OptimizePtr is null) return false;
+        if (Plugin.OptimizePtr is null)
+            return false;
 
         //var fl = _cmsPluginMalloc<OptimizationCollection>(id);
         //if (fl is null) return false;
@@ -1865,10 +1830,7 @@ public static partial class Lcms2
         // Keep linked list
         //fl->Next = ctx.OptimizationCollection;
 
-        var fl = new OptimizationCollection(Plugin.OptimizePtr, ctx.OptimizationCollection);
-
-        // Set the head
-        ctx.OptimizationCollection = fl;
+        ctx.List.Add(Plugin.OptimizePtr);
 
         // All is ok
         return true;
@@ -1922,21 +1884,17 @@ public static partial class Lcms2
             return false;
 
         // Try plug-in optimizations
-        for (var Opts = ctx.OptimizationCollection;
-             Opts is not null;
-             Opts = Opts.Next)
+        foreach (var Opts in ctx.List)
         {
             // If one schema succeeded, we are done
-            if (Opts.OptimizePtr(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
+            if (Opts(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
                 return true;    // Optimized!
         }
 
         // Try built-in optimizations
-        for (var Opts = DefaultOptimization;
-             Opts is not null;
-             Opts = Opts.Next)
+        foreach (var Opts in DefaultOptimization)
         {
-            if (Opts.OptimizePtr(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
+            if (Opts(ref PtrLut, Intent, ref InputFormat, ref OutputFormat, ref dwFlags))
                 return true;
         }
 

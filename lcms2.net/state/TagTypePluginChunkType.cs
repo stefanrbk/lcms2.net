@@ -24,44 +24,20 @@
 //
 //---------------------------------------------------------------------------------
 //
-
 using lcms2.types;
 
 namespace lcms2.state;
 
-internal class TagTypePluginChunkType : IDup
+internal class TagTypePluginChunkType : ICloneable
 {
-    public TagTypeLinkedList? TagTypes;
+    public readonly TagTypeLinkedList List;
 
-    public object? Dup(Context ctx)
-    {
-        TagTypePluginChunkType head = this;
-        TagTypeLinkedList? Anterior = null, entry;
-        TagTypePluginChunkType newHead = new();
+    public TagTypePluginChunkType() =>
+        List = new();
 
-        _cmsAssert(ctx);
+    public TagTypePluginChunkType(IEnumerable<TagTypeHandler> list) =>
+        List = new(list);
 
-        // Walk the list copying all nodes
-        for (entry = head.TagTypes;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<TagTypeLinkedList>(ctx.MemPool, entry);
-
-            //if (newEntry is null)
-            //    return null;
-            var newEntry = (TagTypeLinkedList)entry.Clone();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.TagTypes ??= newEntry;
-        }
-        
-        return newHead;
-    }
+    public object Clone() =>
+        new TagTypePluginChunkType(List);
 }

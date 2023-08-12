@@ -29,7 +29,8 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public class PluginInterpolation : PluginBase
+public class PluginInterpolation(Signature sig, uint expectedVersion, Signature type, InterpFnFactory factory)
+    : PluginBase(sig, expectedVersion, type)
 {
-    public InterpFnFactory InterpolatorsFactory;
+    public InterpFnFactory InterpolatorsFactory = factory;
 }

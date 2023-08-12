@@ -27,13 +27,10 @@
 
 namespace lcms2.state;
 
-internal class InterpPluginChunkType : IDup
+internal class InterpPluginChunkType(InterpFnFactory? interp = null) : ICloneable
 {
-    public InterpFnFactory? Interpolators;
+    public InterpFnFactory? Interpolators = interp;
 
-    public object? Dup(Context ctx) =>
-        new InterpPluginChunkType()
-        {
-            Interpolators = Interpolators
-        };
+    public object Clone() =>
+        new InterpPluginChunkType(Interpolators);
 }

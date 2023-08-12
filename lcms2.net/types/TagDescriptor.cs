@@ -27,22 +27,13 @@
 
 namespace lcms2.types;
 
-public class TagDescriptor
+public class TagDescriptor(uint elemCount, ReadOnlySpan<Signature> supportedTypes, TagDescriptor.TagTypeDecider? decideType)
 {
-    public uint ElemCount;
+    public uint ElemCount = elemCount;
 
-    public uint nSupportedTypes;
-    public readonly Signature[] SupportedTypes = new Signature[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly Signature[] SupportedTypes = supportedTypes.Length > MAX_TYPES_IN_LCMS_PLUGIN ? supportedTypes[..MAX_TYPES_IN_LCMS_PLUGIN].ToArray() : supportedTypes.ToArray();
 
     public delegate Signature TagTypeDecider(double ICCVersion, object? Data);
 
-    public TagTypeDecider? DecideType;
-
-    public TagDescriptor(uint elemCount, ReadOnlySpan<Signature> supportedTypes, TagTypeDecider? decideType)
-    {
-        ElemCount = elemCount;
-        nSupportedTypes = (uint)supportedTypes.Length;
-        supportedTypes.CopyTo(SupportedTypes);
-        DecideType = decideType;
-    }
+    public TagTypeDecider? DecideType = decideType;
 }

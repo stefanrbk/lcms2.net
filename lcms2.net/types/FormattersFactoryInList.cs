@@ -25,13 +25,65 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Collections;
+
 namespace lcms2.types;
 
-internal class FormattersFactoryInList : ICloneable
+internal class FormattersFactoryInList : IList<FormatterFactoryIn>, ICloneable
 {
-    public FormatterFactoryIn Factory;
-    public FormattersFactoryInList? Next;
+    private readonly List<FormatterFactoryIn> _list;
+
+    public FormattersFactoryInList() =>
+        _list = new();
+
+    public FormattersFactoryInList(int capacity) =>
+        _list = new(capacity);
+
+    public FormattersFactoryInList(IEnumerable<FormatterFactoryIn> list) =>
+        _list = new(list);
+
+    public FormatterFactoryIn this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<FormatterFactoryIn>)_list).IsReadOnly;
+
+    public void Add(FormatterFactoryIn item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
 
     public object Clone() =>
-        new FormattersFactoryInList() { Factory = Factory, Next = null };
+        new FormattersFactoryInList(_list.Select(c => (FormatterFactoryIn)c.Clone()));
+
+    public bool Contains(FormatterFactoryIn item) =>
+        _list.Contains(item);
+
+    public void CopyTo(FormatterFactoryIn[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<FormatterFactoryIn> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(FormatterFactoryIn item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, FormatterFactoryIn item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(FormatterFactoryIn item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
 }

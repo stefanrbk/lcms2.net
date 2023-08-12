@@ -25,13 +25,14 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 namespace lcms2.state;
 
-public class PluginParametricCurves : PluginBase
+public class PluginParametricCurves(Signature sig, uint expectedVersion, Signature type, IEnumerable<(int, uint)> fns, ParametricCurveEvaluator eval)
+    : PluginBase(sig, expectedVersion, type)
 {
-    public uint NumFunctions;
-    public readonly uint[] FunctionTypes = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
-    public readonly uint[] ParameterCount = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
+    public readonly (int type, uint paramCount)[] Functions = fns.Take(MAX_TYPES_IN_LCMS_PLUGIN).ToArray();
 
-    public ParametricCurveEvaluator Evaluator;
+    public ParametricCurveEvaluator Evaluator = eval;
 }

@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public class PluginTagType : PluginBase
+public class PluginTagType(Signature sig, uint expectedVersion, Signature type, TagTypeHandler handler) : PluginBase(sig, expectedVersion, type)
 {
-    public TagTypeHandler Handler;
+    public TagTypeHandler Handler = handler;
 }

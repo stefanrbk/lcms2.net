@@ -1368,7 +1368,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     private static bool IsTypeSupported(TagDescriptor TagDescriptor, Signature Type)
     {
-        var nMaxTypes = TagDescriptor.nSupportedTypes;
+        var nMaxTypes = TagDescriptor.SupportedTypes.Length;
         if (nMaxTypes >= MAX_TYPES_IN_LCMS_PLUGIN)
             nMaxTypes = MAX_TYPES_IN_LCMS_PLUGIN;
 

@@ -32,64 +32,40 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    internal static readonly IntentsList defaultIntents;
+    internal static readonly IntentsList defaultIntents = new(
+        new Intent[] {
+            new(INTENT_PERCEPTUAL, "Perceptual", DefaultICCintents),
+            new(INTENT_RELATIVE_COLORIMETRIC, "Relative colorimetric", DefaultICCintents),
+            new(INTENT_SATURATION, "Saturation", DefaultICCintents),
+            new(INTENT_ABSOLUTE_COLORIMETRIC, "Absolute colorimetric", DefaultICCintents),
+            new(INTENT_PRESERVE_K_ONLY_PERCEPTUAL, "Perceptual preserving black ink", DefaultICCintents),
+            new(INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black ink", DefaultICCintents),
+            new(INTENT_PRESERVE_K_ONLY_SATURATION, "Saturation preserving black ink", DefaultICCintents),
+            new(INTENT_PRESERVE_K_PLANE_PERCEPTUAL, "Perceptual preserving black plane", DefaultICCintents),
+            new(INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black plane", DefaultICCintents),
+            new(INTENT_PRESERVE_K_PLANE_SATURATION, "Saturation preserving black plane", DefaultICCintents)
+        });
 
     internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
 
     internal static readonly IntentsPluginChunkType globalIntentsPluginChunk = new();
 
-    internal static void DupPluginIntentsList(Context ctx, in Context src)
-    {
-        IntentsPluginChunkType head = src.IntentsPlugin;
-        IntentsList? Anterior = null, entry;
-        IntentsPluginChunkType newHead = new();
+    internal static void DupPluginIntentsList(ref IntentsPluginChunkType dest, in IntentsPluginChunkType src) =>
 
-        _cmsAssert(ctx);
-
-        // Walk the list copying all nodes
-        for (entry = head.Intents;
-             entry is not null;
-             entry = entry.Next)
-        {
-            var newEntry = (IntentsList)entry.Clone();
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.Intents ??= newEntry;
-        }
-
-        ctx.IntentsPlugin = newHead;
-    }
+        dest = (IntentsPluginChunkType)src.Clone();
 
     internal static void _cmsAllocIntentsPluginChunk(Context ctx, Context? src)
     {
+        _cmsAssert(ctx);
+
         var from = src?.IntentsPlugin ?? IntentsPluginChunk;
-        ctx.IntentsPlugin = (IntentsPluginChunkType)from.Dup(ctx);
-
-        //fixed (IntentsPluginChunkType* @default = &IntentsPluginChunk)
-        //    AllocPluginChunk(ctx, src, DupPluginIntentsList, Chunks.IntentPlugin, @default);
+        DupPluginIntentsList(ref ctx.IntentsPlugin, from);
     }
 
-    private static IntentsList? SearchIntent(Context? ContextID, uint Intent)
-    {
-        var ctx = _cmsGetContext(ContextID).IntentsPlugin;
-
-        for (var pt = ctx.Intents; pt is not null; pt = pt.Next)
-            if (pt.Intent == Intent) return pt;
-
-        for (var pt = defaultIntents; pt is not null; pt = pt.Next)
-            if (pt.Intent == Intent) return pt;
-
-        return null;
-    }
+    private static Intent? SearchIntent(Context? ContextID, uint Intent) =>
+        _cmsGetContext(ContextID).IntentsPlugin.Intents
+            .Concat(defaultIntents)
+            .FirstOrDefault(i => i == Intent);
 
     private static void ComputeBlackPointCompensation(CIEXYZ BlackPointIn, CIEXYZ BlackPointOut, out MAT3 m, out VEC3 off)
     {
@@ -675,7 +651,7 @@ public static partial class Lcms2
         return Result;
 
     Error2:
-        //cmsStageFree(CLUT);
+    //cmsStageFree(CLUT);
     Error:
         if (bp.cmyk2cmyk is not null) cmsPipelineFree(bp.cmyk2cmyk);
         if (bp.KTone is not null) cmsFreeToneCurve(bp.KTone);
@@ -954,68 +930,39 @@ public static partial class Lcms2
         return Intent.Link(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
     }
 
-    public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, Span<uint> Codes, Span<string?> Descriptions)
+    public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, Span<uint> Codes, Span<string> Descriptions)
     {
-        var ctx = _cmsGetContext(ContextID)?.IntentsPlugin;
-        uint nIntents = 0;
-        IntentsList? pt;
+        var ctx = _cmsGetContext(ContextID).IntentsPlugin;
 
-        if (ctx is not null)
-            for (pt = ctx.Intents; pt is not null; pt = pt.Next)
-            {
-                if (nIntents < nMax)
-                {
-                    if (!Codes.IsEmpty)
-                        Codes[(int)nIntents] = pt.Intent;
-
-                    if (!Descriptions.IsEmpty && nIntents < Descriptions.Length)
-                        Descriptions[(int)nIntents] = pt.Description;
-                }
-
-                nIntents++;
-            }
-        for (pt = defaultIntents; pt is not null; pt = pt.Next)
+        var i = 0;
+        foreach (var intent in ctx.Intents.Concat(defaultIntents).Take((int)nMax))
         {
-            if (nIntents < nMax)
-            {
-                if (!Codes.IsEmpty)
-                    Codes[(int)nIntents] = pt.Intent;
+            if (Codes.Length > i)
+                Codes[i] = intent;
+            if (Descriptions.Length > i)
+                Descriptions[i] = intent.Description;
 
-                if (!Descriptions.IsEmpty && nIntents < Descriptions.Length)
-                    Descriptions[(int)nIntents] = pt.Description;
-            }
-
-            nIntents++;
+            i++;
         }
 
-        return nIntents;
+        return (uint)i;
     }
 
-    public static uint cmsGetSupportedIntents(uint nMax, Span<uint> Codes, Span<string?> Descriptions) =>
+    public static uint cmsGetSupportedIntents(uint nMax, Span<uint> Codes, Span<string> Descriptions) =>
         cmsGetSupportedIntentsTHR(null, nMax, Codes, Descriptions);
 
     internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase? Data)
     {
         var ctx = _cmsGetContext(id).IntentsPlugin;
-        var Plugin = (PluginRenderingIntent?)Data;
 
         // Do we have to reset the custom intents?
-        if (Data is null)
+        if (Data is not PluginRenderingIntent Plugin)
         {
-            ctx.Intents = null;
+            ctx.Intents.Clear();
             return true;
         }
 
-        var fl = new IntentsList();
-        if (fl is null) return false;
-
-        fl.Intent = Plugin!.Intent;
-        fl.Description = Plugin.Description;
-
-        fl.Link = Plugin.Link;
-
-        fl.Next = ctx.Intents;
-        ctx.Intents = fl;
+        ctx.Intents.Add(new(Plugin.Intent, Plugin.Description, Plugin.Link));
 
         return true;
     }

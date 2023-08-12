@@ -28,7 +28,7 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public class PluginOptimization : PluginBase
+public class PluginOptimization(Signature sig, uint expectedVersion, Signature type, OPToptimizeFn optimizer) : PluginBase(sig, expectedVersion, type)
 {
-    public OPToptimizeFn OptimizePtr;
+    public OPToptimizeFn OptimizePtr = optimizer;
 }

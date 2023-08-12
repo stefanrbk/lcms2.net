@@ -47,11 +47,7 @@ internal static partial class Testbed
         return cpy;
     }
 
-    private readonly static PluginInterpolation InterpPluginSample = new()
-    {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginInterpolationSig, Next = null,
-        InterpolatorsFactory = my_Interpolators_Factory,
-    };
+    private readonly static PluginInterpolation InterpPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginInterpolationSig, my_Interpolators_Factory);
 
     // This fake interpolation takes always the closest lower node in the interpolation table for 1D 
     private static void Fake1Dfloat(ReadOnlySpan<float> Value,
@@ -455,31 +451,15 @@ internal static partial class Testbed
 
     // Add nonstandard TRC curves -> Rec709
 
-    private readonly static PluginParametricCurves Rec709Plugin = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
-        NumFunctions = 1,
-        //{TYPE_709},
-        //{5},
-        Evaluator = Rec709Math
-    };
+    private readonly static PluginParametricCurves Rec709Plugin = new(
+        cmsPluginMagicNumber, 2060, cmsPluginParametricCurveSig, new (int, uint)[] { (TYPE_709, 5) }, Rec709Math);
 
 
-    private readonly static PluginParametricCurves CurvePluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
-        NumFunctions = 2,
-        //{ TYPE_SIN, TYPE_COS },
-        //{ 1, 1 },
-        Evaluator = my_fns
-    };
+    private readonly static PluginParametricCurves CurvePluginSample = new(
+        cmsPluginMagicNumber, 2060, cmsPluginParametricCurveSig, new (int, uint)[] { (TYPE_SIN, 1), (TYPE_COS, 1) }, my_fns);
 
-    private readonly static PluginParametricCurves CurvePluginSample2 = new()
-    {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginParametricCurveSig, Next = null,
-        NumFunctions = 1,
-        //{ TYPE_TAN },
-        //{ 1 },
-        Evaluator = my_fns2
-    };
+    private readonly static PluginParametricCurves CurvePluginSample2 = new(
+        cmsPluginMagicNumber, 2060, cmsPluginParametricCurveSig, new (int, uint)[] { (TYPE_TAN, 1) }, my_fns2);
 
     // --------------------------------------------------------------------------------------------------
     // In this test, the DupContext function will be checked as well                      
@@ -625,17 +605,15 @@ internal static partial class Testbed
         return Result;
     }
 
-    private readonly static PluginFormatters FormattersPluginSample = new() 
+    private readonly static PluginFormatters FormattersPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginFormattersSig) 
     {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
         FormattersFactoryIn = my_FormatterFactory
     };
 
 
 
-    private readonly static PluginFormatters FormattersPluginSample2 = new() 
+    private readonly static PluginFormatters FormattersPluginSample2 = new(cmsPluginMagicNumber, 2060, cmsPluginFormattersSig) 
     {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginFormattersSig, Next = null,
         FormattersFactoryOut = my_FormatterFactory2
     };
 
@@ -691,16 +669,30 @@ internal static partial class Testbed
     { }
 
 
-    private readonly static PluginTag HiddenTagPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagSig, Next = null,
-        Signature = SigInt,
-        Descriptor = new (1, new Signature[] { SigIntType }, null)
-    };
+    private readonly static PluginTag HiddenTagPluginSample = new(
+        cmsPluginMagicNumber,
+        2060,
+        cmsPluginTagSig,
+        SigInt,
+        new(
+            1,
+            new Signature[] { SigIntType },
+            null));
 
-    private readonly static PluginTagType TagTypePluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTagTypeSig, Next = HiddenTagPluginSample,
-        Handler = new(SigIntType, Type_int_Read, Type_int_Write, Type_int_Dup, Type_int_Free, null, 0)
-    };
+    private readonly static PluginTagType FirstTagTypePluginSample = new(
+        cmsPluginMagicNumber,
+        2060,
+        cmsPluginTagTypeSig,
+        new(
+            SigIntType,
+            Type_int_Read,
+            Type_int_Write,
+            Type_int_Dup,
+            Type_int_Free,
+            null,
+            0));
+
+    private readonly static List<PluginBase> TagTypePluginSample = new() { FirstTagTypePluginSample, HiddenTagPluginSample };
 
 
     public static bool CheckTagTypePlugin()
@@ -849,10 +841,18 @@ internal static partial class Testbed
         return _cmsWriteUInt16Number(io, 3);
     }
 
-    private readonly static PluginTagType MPEPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMultiProcessElementSig, Next = null,
-        Handler = new(SigNegateType, Type_negate_Read, Type_negate_Write, null, null, null, 0)
-    };
+    private readonly static PluginTagType MPEPluginSample = new(
+        cmsPluginMagicNumber,
+        2060,
+        cmsPluginMultiProcessElementSig,
+        new(
+            SigNegateType,
+            Type_negate_Read,
+            Type_negate_Write,
+            null,
+            null,
+            null,
+            0));
 
 
     public static bool CheckMPEPlugin()
@@ -1029,10 +1029,7 @@ internal static partial class Testbed
         return true;
     }
 
-    private readonly static PluginOptimization OptimizationPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginOptimizationSig, Next = null,
-        OptimizePtr = MyOptimize
-    };
+    private readonly static PluginOptimization OptimizationPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginOptimizationSig, MyOptimize);
 
 
     public static bool CheckOptimizationPlugin()
@@ -1090,12 +1087,13 @@ internal static partial class Testbed
         return Result;
     }
 
-    private readonly static PluginRenderingIntent IntentPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginRenderingIntentSig, Next = null,
-        Intent = INTENT_DECEPTIVE,
-        Link = MyNewIntent,
-        Description = "bypass gray to gray rendering intent"
-};
+    private readonly static PluginRenderingIntent IntentPluginSample = new(
+        cmsPluginMagicNumber,
+        2060,
+        cmsPluginRenderingIntentSig,
+        INTENT_DECEPTIVE,
+        MyNewIntent,
+        "bypass gray to gray rendering intent");
 
     public static bool CheckIntentPlugin()
     {
@@ -1162,10 +1160,11 @@ internal static partial class Testbed
 
 
     // The Plug-in entry point
-    private readonly static PluginTransform FullTransformPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginTransformSig, Next = null,
-        factories = new() { legacy_xform = TransformFactory }
-    };
+    private readonly static PluginTransform FullTransformPluginSample = new(
+        cmsPluginMagicNumber,
+        2060,
+        cmsPluginTransformSig,
+        new() { legacy_xform = TransformFactory });
 
     public static bool CheckTransformPlugin()
     {
@@ -1247,13 +1246,7 @@ internal static partial class Testbed
     }
 
 
-    private readonly static PluginMutex MutexPluginSample = new() {
-        Magic = cmsPluginMagicNumber, ExpectedVersion = 2060, Type = cmsPluginMutexSig, Next = null,
-        CreateMutexPtr = MyMtxCreate,
-        DestroyMutexPtr = MyMtxDestroy,
-        LockMutexPtr = MyMtxLock,
-        UnlockMutexPtr = MyMtxUnlock
-    };
+    private readonly static PluginMutex MutexPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginMutexSig, MyMtxCreate, MyMtxDestroy, MyMtxLock, MyMtxUnlock);
 
 
     public static bool CheckMutexPlugin()

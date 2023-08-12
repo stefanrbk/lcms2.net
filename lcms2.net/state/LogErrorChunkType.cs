@@ -29,7 +29,7 @@ using Microsoft.Extensions.Logging;
 
 namespace lcms2.state;
 
-internal class LogErrorChunkType(ILoggerFactory? factory = null) : IDup
+internal class LogErrorChunkType(ILoggerFactory? factory = null) : ICloneable
 {
     private ILoggerFactory factory = factory ?? DefaultLogErrorHandlerFunction();
 
@@ -42,14 +42,14 @@ internal class LogErrorChunkType(ILoggerFactory? factory = null) : IDup
         }
     }
 
-    internal event EventHandler<FactoryChangedEventArgs> FactoryChanged;
+    internal event EventHandler<FactoryChangedEventArgs>? FactoryChanged;
 
-    public object? Dup(Context ctx)
-    {
-        _cmsAssert(ctx);
-
-        return new LogErrorChunkType() { Factory = Factory };
-    }
+    public object Clone() =>
+        new LogErrorChunkType()
+        {
+            Factory = Factory,
+            FactoryChanged = FactoryChanged?.Clone() as EventHandler<FactoryChangedEventArgs>
+        };
 }
 internal class FactoryChangedEventArgs(ILoggerFactory factory)
 {

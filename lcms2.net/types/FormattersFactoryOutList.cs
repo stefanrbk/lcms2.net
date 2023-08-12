@@ -25,13 +25,65 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Collections;
+
 namespace lcms2.types;
 
-internal class FormattersFactoryOutList : ICloneable
+internal class FormattersFactoryOutList : IList<FormatterFactoryOut>, ICloneable
 {
-    public FormatterFactoryOut Factory;
-    public FormattersFactoryOutList? Next;
+    private readonly List<FormatterFactoryOut> _list;
+
+    public FormattersFactoryOutList() =>
+        _list = new();
+
+    public FormattersFactoryOutList(int capacity) =>
+        _list = new(capacity);
+
+    public FormattersFactoryOutList(IEnumerable<FormatterFactoryOut> list) =>
+        _list = new(list);
+
+    public FormatterFactoryOut this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<FormatterFactoryOut>)_list).IsReadOnly;
+
+    public void Add(FormatterFactoryOut item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
 
     public object Clone() =>
-        new FormattersFactoryOutList() { Factory = Factory, Next = null };
+        new FormattersFactoryOutList(_list.Select(c => (FormatterFactoryOut)c.Clone()));
+
+    public bool Contains(FormatterFactoryOut item) =>
+        _list.Contains(item);
+
+    public void CopyTo(FormatterFactoryOut[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<FormatterFactoryOut> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(FormatterFactoryOut item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, FormatterFactoryOut item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(FormatterFactoryOut item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
 }

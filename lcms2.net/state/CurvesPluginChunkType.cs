@@ -29,36 +29,16 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class CurvesPluginChunkType : IDup
+internal class CurvesPluginChunkType : ICloneable
 {
-    public ParametricCurvesCollection? ParametricCurves;
+    public readonly ParametricCurvesCollection ParametricCurves;
 
-    public object? Dup(Context ctx)
-    {
-        var head = this;
-        ParametricCurvesCollection? Anterior = null;
-        var newHead = new CurvesPluginChunkType();
+    public CurvesPluginChunkType(IEnumerable<ParametricCurve> curves) =>
+        ParametricCurves = new(curves);
 
-        // Walk the list copying all nodes
-        for (var entry = head.ParametricCurves;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = (ParametricCurvesCollection?)entry.Clone();
+    public CurvesPluginChunkType() =>
+        ParametricCurves = new();
 
-            if (newEntry is null)
-                return null;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.ParametricCurves ??= newEntry;
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new CurvesPluginChunkType(ParametricCurves);
 }

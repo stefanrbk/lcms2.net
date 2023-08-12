@@ -25,9 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 namespace lcms2.state;
 
-public class PluginTransform : PluginBase
+public class PluginTransform(Signature sig, uint expectedVersion, Signature type, TransformFactories factory) : PluginBase(sig, expectedVersion, type)
 {
-    public TransformFactories factories;
+    public TransformFactories factories = factory;
 }

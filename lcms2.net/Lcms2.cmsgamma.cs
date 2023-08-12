@@ -41,14 +41,23 @@ public static partial class Lcms2
     private const float MINUS_INF = -1e22f;
     private const float PLUS_INF = 1e22f;
 
-    private static readonly int[] defaultCurvesFunctionTypes = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 108, 109 };
-    private static readonly uint[] defaultCurvesParameterCounts = new uint[] { 1, 3, 4, 5, 7, 4, 5, 5, 1, 1 };
-
-    private static readonly ParametricCurvesCollection defaultCurves = new()
-    {
-        Evaluator = DefaultEvalParametricFn,
-        nFunctions = 10,
-    };
+    private static readonly ParametricCurvesCollection defaultCurves = new(
+        new ParametricCurve[]
+        { new (
+            new (int type, uint paramCount)[]
+            {
+                new(1, 1),
+                new(2, 3),
+                new(3, 4),
+                new(4, 5),
+                new(5, 7),
+                new(6, 4),
+                new(7, 5),
+                new(8, 5),
+                new(108, 1),
+                new(109, 1)
+            }, DefaultEvalParametricFn)
+        });
 
     internal static readonly CurvesPluginChunkType CurvesPluginChunk = new();
 
@@ -57,34 +66,8 @@ public static partial class Lcms2
     /// <summary>
     ///     Duplicates the plug-in in the new context.
     /// </summary>
-    private static void DupPluginCurvesList(Context ctx, in Context src)
-    {
-        var head = src.CurvesPlugin;
-        ParametricCurvesCollection? Anterior = null;
-        var newHead = new CurvesPluginChunkType();
-
-        // Walk the list copying all nodes
-        for (var entry = head.ParametricCurves;
-            entry is not null;
-            entry = entry.Next)
-        {
-            var newEntry = (ParametricCurvesCollection?)entry.Clone();
-
-            if (newEntry is null)
-                return;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.ParametricCurves ??= newEntry;
-        }
-
-        ctx.CurvesPlugin = newHead;
-    }
+    private static void DupPluginCurvesList(ref CurvesPluginChunkType dest, in CurvesPluginChunkType src) =>
+        dest = (CurvesPluginChunkType)src.Clone();
 
     internal static void _cmsAllocCurvesPluginChunk(Context ctx, in Context? src)
     {
@@ -94,89 +77,64 @@ public static partial class Lcms2
             ? src.CurvesPlugin
             : CurvesPluginChunk;
 
-        ctx.CurvesPlugin = (CurvesPluginChunkType)from.Dup(ctx);
-
-        //fixed (CurvesPluginChunkType* @default = &CurvesPluginChunk)
-        //    AllocPluginChunk(ctx, src, DupPluginCurvesList, Chunks.CurvesPlugin, @default);
+        DupPluginCurvesList(ref ctx.CurvesPlugin, from);
     }
 
     internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase? Data)
     {
         var ctx = _cmsGetContext(ContextID).CurvesPlugin;
-        var Plugin = (PluginParametricCurves?)Data;
 
-        if (Data is null)
+        if (Data is not PluginParametricCurves Plugin)
         {
-            ctx.ParametricCurves = null;
+            ctx.ParametricCurves.Clear();
             return true;
         }
 
-        var fl = new ParametricCurvesCollection();
-        if (fl == null) return false;
-
-        // Copy the parameters
-        fl.Evaluator = Plugin!.Evaluator;
-        fl.nFunctions = Plugin.NumFunctions;
-
-        // Make sure no mem overwrites
-        if (fl.nFunctions > MAX_TYPES_IN_LCMS_PLUGIN)
-        {
-            fl.nFunctions = MAX_TYPES_IN_LCMS_PLUGIN;
-        }
-
-        // Copy the data
-        for (var i = 0; i < fl.nFunctions; i++)
-            fl.FunctionTypes[i] = (int)Plugin.FunctionTypes[i];
-        for (var i = 0; i < fl.nFunctions; i++)
-            fl.ParameterCount[i] = Plugin.ParameterCount[i];
-        //memcpy(fl->FunctionTypes, Plugin.FunctionTypes, fl->nFunctions * sizeof(uint));
-        //memcpy(fl->ParameterCount, Plugin.ParameterCount, fl->nFunctions * sizeof(uint));
-
-        // Keep linked list
-        fl.Next = ctx.ParametricCurves;
-        ctx.ParametricCurves = fl;
+        ctx.ParametricCurves.Add(new ParametricCurve(
+            ((int, uint)[])Plugin.Functions.Clone(),
+            (ParametricCurveEvaluator)Plugin.Evaluator.Clone()));
 
         // All is ok
         return true;
     }
 
-    private static int IsInSet(int Type, ParametricCurvesCollection c)
+    private static int IsInSet(int Type, ParametricCurve c)
     {
-        for (var i = 0; i < c.nFunctions; i++)
-            if (Abs(Type) == c.FunctionTypes[i]) return i;
+        for (var i = 0; i < c.Functions.Length; i++)
+            if (Abs(Type) == c.Functions[i].type) return i;
 
         return -1;
     }
 
-    private static ParametricCurvesCollection? GetParametricCurveByType(Context? ContextID, int Type, out int index)
+    private static ParametricCurve? GetParametricCurveByType(Context? ContextID, int Type, out int indices)
     {
         int Position;
         var ctx = _cmsGetContext(ContextID).CurvesPlugin;
 
-        for (var c = ctx.ParametricCurves; c is not null; c = c.Next)
+        foreach (var c in ctx.ParametricCurves)
         {
             Position = IsInSet(Type, c);
 
             if (Position is not -1)
             {
-                index = Position;
+                indices = Position;
                 return c;
             }
         }
 
         // If none found, revert for defaults
-        for (var c = defaultCurves; c is not null; c = c.Next)
+        foreach (var c in defaultCurves)
         {
             Position = IsInSet(Type, c);
 
             if (Position is not -1)
             {
-                index = Position;
+                indices = Position;
                 return c;
             }
         }
 
-        index = 0;
+        indices = 0;
         return null;
     }
 
@@ -800,7 +758,7 @@ public static partial class Lcms2
         Seg0.x1 = PLUS_INF;
         Seg0.Type = Type;
 
-        var size = c.ParameterCount[Pos];
+        var size = c.Functions[Pos].paramCount;
         memcpy(Seg0.Params, Params, size);
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 1, Seg);

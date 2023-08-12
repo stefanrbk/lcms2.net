@@ -28,9 +28,9 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public class PluginRenderingIntent : PluginBase
+public class PluginRenderingIntent(Signature sig, uint expectedVersion, Signature type, uint intent, IntentFn fn, string desc) : PluginBase(sig, expectedVersion, type)
 {
-    public uint Intent;
-    public IntentFn Link;
-    public string Description;
+    public uint Intent = intent;
+    public IntentFn Link = fn;
+    public string Description = desc;
 }

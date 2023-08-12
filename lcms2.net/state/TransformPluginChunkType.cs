@@ -28,40 +28,16 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class TransformPluginChunkType : IDup
+internal class TransformPluginChunkType : ICloneable
 {
-    public TransformCollection? TransformCollection;
+    public readonly TransformCollection List;
 
-    public object? Dup(Context ctx)
-    {
-        TransformPluginChunkType head = this;
-        TransformCollection? Anterior = null, entry;
-        TransformPluginChunkType newHead = new();
+    public TransformPluginChunkType(IEnumerable<TransformFunc> curves) =>
+        List = new(curves);
 
-        _cmsAssert(ctx);
-        _cmsAssert(head);
+    public TransformPluginChunkType() =>
+        List = new();
 
-        // Walk the list copying all nodes
-        for (entry = head.TransformCollection;
-             entry is not null;
-             entry = entry.Next)
-        {
-            //var newEntry = _cmsSubAllocDup<TransformCollection>(ctx.MemPool, entry);
-
-            //if (newEntry is null)
-            //    return null;
-            var newEntry = (TransformCollection)entry.Clone();
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.TransformCollection ??= newEntry;
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new TransformPluginChunkType(List);
 }

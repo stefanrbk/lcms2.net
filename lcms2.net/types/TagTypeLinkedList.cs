@@ -25,34 +25,68 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
+using System.Collections;
 
 namespace lcms2.types;
 
-public class TagTypeLinkedList(TagTypeHandler handler, TagTypeLinkedList? next = null) : ICloneable
+public class TagTypeLinkedList : IList<TagTypeHandler>, ICloneable
 {
-    public TagTypeHandler Handler = handler;
-    public TagTypeLinkedList? Next = next;
+    private readonly List<TagTypeHandler> _list;
 
-    public TagTypeLinkedList(
-        Signature signature,
-        TagTypeHandler.ReadFn readPtr,
-        TagTypeHandler.WriteFn writePtr,
-        TagTypeHandler.DupFn dupPtr,
-        TagTypeHandler.FreeFn? freePtr,
-        Context? contextID,
-        uint iCCVersion, TagTypeLinkedList? next = null)
-        : this(new(signature, readPtr, writePtr, dupPtr, freePtr, contextID, iCCVersion), next) { }
+    public TagTypeLinkedList() =>
+        _list = new();
 
-    public static TagTypeLinkedList Build(params TagTypeLinkedList[] handlers)
+    public TagTypeLinkedList(int capacity) =>
+        _list = new(capacity);
+
+    public TagTypeLinkedList(IEnumerable<TagTypeHandler> list) =>
+        _list = new(list);
+
+    public TagTypeLinkedList(params TagTypeHandler[] args) =>
+        _list = new(args);
+
+    public TagTypeHandler this[int index]
     {
-        for (var i = 1; i < handlers.Length; i++)
-        {
-            handlers[i - 1].Next = handlers[i];
-        }
-        return handlers[0];
+        get => _list[index];
+        set => _list[index] = value;
     }
 
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<TagTypeHandler>)_list).IsReadOnly;
+
+    public void Add(TagTypeHandler item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
+
     public object Clone() =>
-        new TagTypeLinkedList(Handler, Next);
+        new TagTypeLinkedList(_list.Select(c => (TagTypeHandler)c.Clone()));
+
+    public bool Contains(TagTypeHandler item) =>
+        _list.Contains(item);
+
+    public void CopyTo(TagTypeHandler[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<TagTypeHandler> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(TagTypeHandler item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, TagTypeHandler item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(TagTypeHandler item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
 }

@@ -33,7 +33,6 @@ namespace lcms2.state;
 [DebuggerStepThrough]
 public class Context
 {
-    internal Context? Next;
     private readonly List<object> BufferPools = new();
     //internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;

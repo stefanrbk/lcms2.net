@@ -24,27 +24,76 @@
 //
 //---------------------------------------------------------------------------------
 //
+using System.Collections;
+
 namespace lcms2.types;
 
-internal class ParametricCurvesCollection : ICloneable
+internal class ParametricCurvesCollection : IList<ParametricCurve>, ICloneable
 {
-    public uint nFunctions;
-    public readonly int[] FunctionTypes = new int[MAX_TYPES_IN_LCMS_PLUGIN];
-    public readonly uint[] ParameterCount = new uint[MAX_TYPES_IN_LCMS_PLUGIN];
+    private readonly List<ParametricCurve> _list;
+
+    public ParametricCurvesCollection() =>
+        _list = new();
+
+    public ParametricCurvesCollection(int capacity) =>
+        _list = new(capacity);
+
+    public ParametricCurvesCollection(IEnumerable<ParametricCurve> list) =>
+        _list = new(list);
+
+    public ParametricCurve this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<ParametricCurve>)_list).IsReadOnly;
+
+    public void Add(ParametricCurve item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
+
+    public object Clone() =>
+        new ParametricCurvesCollection(_list.Select(c => (ParametricCurve)c.Clone()));
+
+    public bool Contains(ParametricCurve item) =>
+        _list.Contains(item);
+
+    public void CopyTo(ParametricCurve[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<ParametricCurve> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(ParametricCurve item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, ParametricCurve item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(ParametricCurve item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
+}
+internal class ParametricCurve : ICloneable
+{
+    public readonly (int type, uint paramCount)[] Functions;
     public ParametricCurveEvaluator Evaluator;
 
-    public ParametricCurvesCollection? Next;
+    public ParametricCurve(ReadOnlySpan<(int type, uint paramCount)> fns, ParametricCurveEvaluator eval) =>
+        (Functions, Evaluator) = (fns.Length > MAX_TYPES_IN_LCMS_PLUGIN ? fns[..MAX_TYPES_IN_LCMS_PLUGIN].ToArray() : fns.ToArray(), eval);
 
-    public object Clone()
-    {
-        var result = new ParametricCurvesCollection() { nFunctions = nFunctions, Evaluator = Evaluator };
-
-        for (var i = 0; i < MAX_TYPES_IN_LCMS_PLUGIN; i++)
-        {
-            result.FunctionTypes[i] = FunctionTypes[i];
-            result.ParameterCount[i] = ParameterCount[i];
-        }
-
-        return result;
-    }
+    public object Clone() =>
+        new ParametricCurve(Functions, Evaluator);
 }

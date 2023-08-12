@@ -25,7 +25,6 @@
 //---------------------------------------------------------------------------------
 //
 using lcms2.state;
-using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
@@ -74,19 +73,11 @@ internal static partial class Testbed
     public static bool HasConsole = !Console.IsInputRedirected;
     private static uint thread = 1;
 
+    public static bool timeTests;
+    private static readonly List<(string name, int time)> testTimes = new();
+
     static Testbed()
     {
-        Rec709Plugin.FunctionTypes[0] = TYPE_709;
-        Rec709Plugin.ParameterCount[0] = 5;
-
-        CurvePluginSample.FunctionTypes[0] = TYPE_SIN;
-        CurvePluginSample.FunctionTypes[1] = TYPE_COS;
-        CurvePluginSample.ParameterCount[0] = 1;
-        CurvePluginSample.ParameterCount[1] = 1;
-
-        CurvePluginSample2.FunctionTypes[0] = TYPE_TAN;
-        CurvePluginSample2.ParameterCount[0] = 1;
-
         HiddenTagPluginSample.Descriptor.SupportedTypes[0] = SigIntType;
     }
 
@@ -264,6 +255,7 @@ internal static partial class Testbed
 
     public static void Check(string title, Func<bool> test)
     {
+        var timer = new Stopwatch();
         using (logger.BeginScope("Checking {title}", title))
         {
             ReasonToFailBuffer = String.Empty;
@@ -271,16 +263,35 @@ internal static partial class Testbed
             TrappedError = false;
             SimultaneousErrors = 0;
             TotalTests++;
-
+            if (timeTests)
+                timer.Start();
             if (test() && !TrappedError)
             {
                 // It is a good place to check memory
                 //TestMemoryLeaks(true);
-                logger.LogInformation("Ok");
+                if (timeTests)
+                {
+                    timer.Stop();
+                    logger.LogInformation("Ok - Duration: {elapsed}", timer.Elapsed.Microseconds);
+                    testTimes.Add((title, timer.Elapsed.Microseconds));
+                }
+                else
+                {
+                    logger.LogInformation("Ok");
+                }
             }
             else
             {
-                logger.LogError("Test failed");
+                if (timeTests)
+                {
+                    timer.Stop();
+                    logger.LogError("Test failed - Duration: {elapsed}", timer.Elapsed.Microseconds);
+                    testTimes.Add((title, timer.Elapsed.Microseconds));
+                }
+                else
+                {
+                    logger.LogError("Test failed");
+                }
                 TotalFail++;
             }
         }
@@ -334,7 +345,7 @@ internal static partial class Testbed
     public static void PrintSupportedIntents()
     {
         Span<uint> codes = stackalloc uint[200];
-        var descriptions = new string?[200];
+        var descriptions = new string[200];
         var intents = cmsGetSupportedIntents(200, codes, descriptions);
 
         var str = "Supported intents:";
@@ -515,4 +526,17 @@ internal static partial class Testbed
         Action<SimpleConsoleFormatterOptions> configure) =>
         builder.AddConsole(options => options.FormatterName = "TestBed")
                .AddConsoleFormatter<TestBedFormatter, SimpleConsoleFormatterOptions>(configure);
+
+    public static void PrintTestTimes()
+    {
+        logger.LogInformation("Test durations from longest to shortest");
+        foreach (var (name, time) in testTimes.OrderByDescending(t => t.time))
+        {
+            using (logger.BeginScope("{test}", name))
+            {
+                logger.LogInformation("{time}", time);
+            }
+        }
+        Thread.Sleep(1000);
+    }
 }

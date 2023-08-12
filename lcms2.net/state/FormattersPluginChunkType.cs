@@ -29,58 +29,17 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class FormattersPluginChunkType : IDup
+internal class FormattersPluginChunkType : ICloneable
 {
-    public FormattersFactoryInList? FactoryInList;
-    public FormattersFactoryOutList? FactoryOutList;
+    public readonly FormattersFactoryInList FactoryInList;
+    public readonly FormattersFactoryOutList FactoryOutList;
 
-    public object? Dup(Context ctx)
-    {
-        FormattersPluginChunkType newHead = new();
+    public FormattersPluginChunkType(IEnumerable<FormatterFactoryIn> inList, IEnumerable<FormatterFactoryOut> outList) =>
+        (FactoryInList, FactoryOutList) = (new(inList), new(outList));
 
-        {
-            FormattersFactoryInList? Anterior = null;
+    public FormattersPluginChunkType() =>
+        (FactoryInList, FactoryOutList) = (new(), new());
 
-            // Walk the list copying all nodes
-            for (var entry = FactoryInList; entry is not null; entry = entry.Next)
-            {
-                var newEntry = (FormattersFactoryInList?)entry.Clone();
-
-                if (newEntry is null)
-                    return null;
-
-                // We want to keep the linked list order
-                newEntry.Next = null;
-                if (Anterior is not null)
-                    Anterior.Next = newEntry;
-
-                Anterior = newEntry;
-
-                newHead.FactoryInList ??= newEntry;
-            }
-        }
-        {
-            FormattersFactoryOutList? Anterior = null;
-
-            // Walk the list copying all nodes
-            for (var entry = FactoryOutList; entry is not null; entry = entry.Next)
-            {
-                var newEntry = (FormattersFactoryOutList?)entry.Clone();
-
-                if (newEntry is null)
-                    return null;
-
-                // We want to keep the linked list order
-                newEntry.Next = null;
-                if (Anterior is not null)
-                    Anterior.Next = newEntry;
-
-                Anterior = newEntry;
-
-                newHead.FactoryOutList ??= newEntry;
-            }
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new FormattersPluginChunkType(FactoryInList, FactoryOutList);
 }

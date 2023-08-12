@@ -24,23 +24,66 @@
 //
 //---------------------------------------------------------------------------------
 //
+
+using System.Collections;
+
 namespace lcms2.types;
 
-public class OptimizationCollection(OPToptimizeFn optimizePtr, OptimizationCollection? next = null) : ICloneable
+public class OptimizationCollection : IList<OPToptimizeFn>, ICloneable
 {
-    public OPToptimizeFn OptimizePtr = optimizePtr;
-    public OptimizationCollection? Next = next;
+    private readonly List<OPToptimizeFn> _list;
+
+    public OptimizationCollection() =>
+        _list = new();
+
+    public OptimizationCollection(int capacity) =>
+        _list = new(capacity);
+
+    public OptimizationCollection(IEnumerable<OPToptimizeFn> list) =>
+        _list = new(list);
+
+    public OPToptimizeFn this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<OPToptimizeFn>)_list).IsReadOnly;
+
+    public void Add(OPToptimizeFn item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
 
     public object Clone() =>
-        new OptimizationCollection(OptimizePtr, Next);
+        new OptimizationCollection(_list.Select(c => (OPToptimizeFn)c.Clone()));
 
-    public static OptimizationCollection Build(params OptimizationCollection[] ops)
-    {
-        for (var i = 1; i < ops.Length; i++)
-        {
-            ops[i-1].Next = ops[i];
-        }
+    public bool Contains(OPToptimizeFn item) =>
+        _list.Contains(item);
 
-        return ops[0];
-    }
+    public void CopyTo(OPToptimizeFn[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<OPToptimizeFn> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(OPToptimizeFn item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, OPToptimizeFn item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(OPToptimizeFn item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
 }

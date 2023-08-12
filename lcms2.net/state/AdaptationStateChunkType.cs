@@ -27,13 +27,10 @@
 
 namespace lcms2.state;
 
-internal class AdaptationStateChunkType : IDup
+internal class AdaptationStateChunkType(double state) : ICloneable
 {
-    public double AdaptationState;
+    public double AdaptationState = state;
 
-    public object? Dup(Context ctx) =>
-        new AdaptationStateChunkType()
-        {
-            AdaptationState = AdaptationState
-        };
+    public object Clone() =>
+        new AdaptationStateChunkType(AdaptationState);
 }

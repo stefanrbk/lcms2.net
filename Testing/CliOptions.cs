@@ -72,5 +72,13 @@ public class CliOptions
         Default = false)]
     public bool DoZoo { get; set; }
 
+    [Option(
+        't',
+        "time",
+        Required = false,
+        HelpText = "Whether or not to time each test",
+        Default = false)]
+    public bool TimeTests { get; set; }
+
     #endregion Properties
 }

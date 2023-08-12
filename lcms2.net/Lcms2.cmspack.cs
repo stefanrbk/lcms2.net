@@ -2572,8 +2572,8 @@ public static partial class Lcms2
         return default;
     }
 
-    private static void DupFormatterFactoryList(Context ctx, in Context src) =>
-        ctx.FormattersPlugin = (FormattersPluginChunkType)src.FormattersPlugin.Dup(ctx)!;
+    private static void DupFormatterFactoryList(ref FormattersPluginChunkType ctx, in FormattersPluginChunkType src) =>
+        ctx = (FormattersPluginChunkType)src.Clone();
 
     internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context? src)
     {
@@ -2583,58 +2583,27 @@ public static partial class Lcms2
             ? src.FormattersPlugin
             : FormattersPluginChunk;
 
-        _cmsAssert(from);
-
-        ctx.FormattersPlugin = (FormattersPluginChunkType)from.Dup(ctx);
-
-        //if (src is not null)
-        //{
-        //    // Duplicate
-        //    DupFormatterFactoryList(ctx, src);
-        //}
-        //else
-        //{
-        //    fixed (FormattersPluginChunkType* @default = &FormattersPluginChunk)
-        //        ctx->chunks[Chunks.FormattersPlugin] = _cmsSubAllocDup<FormattersPluginChunkType>(ctx->MemPool, @default);
-        //}
+        DupFormatterFactoryList(ref ctx.FormattersPlugin, from);
     }
 
     internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase? Data)
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
-        var Plugin = (PluginFormatters)Data!;
 
         // Reset to build-in defaults
-        if (Data is null)
+        if (Data is not PluginFormatters Plugin)
         {
-            ctx.FactoryInList = null;
-            ctx.FactoryOutList = null;
+            ctx.FactoryInList.Clear();
+            ctx.FactoryOutList.Clear();
             return true;
         }
 
+
         if (Plugin.FormattersFactoryIn is not null)
-        {
-            ctx.FactoryInList = new FormattersFactoryInList
-            {
-                //if (flIn is null) return false;
-
-                Factory = Plugin.FormattersFactoryIn,
-
-                Next = ctx.FactoryInList
-            };
-        }
+            ctx.FactoryInList.Add(Plugin.FormattersFactoryIn);
 
         if (Plugin.FormattersFactoryOut is not null)
-        {
-            ctx.FactoryOutList = new FormattersFactoryOutList
-            {
-                //if (flOut is null) return false;
-
-                Factory = Plugin!.FormattersFactoryOut,
-
-                Next = ctx.FactoryOutList
-            };
-        }
+            ctx.FactoryOutList.Add(Plugin.FormattersFactoryOut);
 
         return true;
     }
@@ -2643,9 +2612,9 @@ public static partial class Lcms2
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
-        for (var f = ctx.FactoryInList; f is not null; f = f.Next)
+        foreach (var f in ctx.FactoryInList)
         {
-            var fn = f.Factory(Type, (uint)dwFlags);
+            var fn = f(Type, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
         }
 
@@ -2657,9 +2626,9 @@ public static partial class Lcms2
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
-        for (var f = ctx.FactoryOutList; f is not null; f = f.Next)
+        foreach (var f in ctx.FactoryOutList)
         {
-            var fn = f.Factory(Type, (uint)dwFlags);
+            var fn = f(Type, (uint)dwFlags);
             if (fn.Fmt16 is not null) return fn;
         }
 

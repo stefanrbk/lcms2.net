@@ -24,26 +24,82 @@
 //
 //---------------------------------------------------------------------------------
 //
+
+using System.Collections;
+
 using static lcms2.types.TagDescriptor;
 
 namespace lcms2.types;
 
-public class TagLinkedList(Signature sig, TagDescriptor desc, TagLinkedList? next = null) : ICloneable
+public class TagLinkedList : IList<Tag>, ICloneable
+{
+    private readonly List<Tag> _list;
+
+    public TagLinkedList() =>
+        _list = new();
+
+    public TagLinkedList(int capacity) =>
+        _list = new(capacity);
+
+    public TagLinkedList(params Tag[] list) =>
+        _list = new(list);
+
+    public TagLinkedList(IEnumerable<Tag> list) =>
+        _list = new(list);
+
+    public Tag this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<Tag>)_list).IsReadOnly;
+
+    public void Add(Tag item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
+
+    public object Clone() =>
+        new TagLinkedList(_list.Select(c => (Tag)c.Clone()));
+
+    public bool Contains(Tag item) =>
+        _list.Contains(item);
+
+    public void CopyTo(Tag[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<Tag> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(Tag item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, Tag item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(Tag item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
+}
+public class Tag(Signature sig, TagDescriptor desc) : ICloneable
 {
     public Signature Signature = sig;
     public TagDescriptor Descriptor = desc;
-    public TagLinkedList? Next = next;
 
-    public TagLinkedList(Signature sig, uint elemCount, ReadOnlySpan<Signature> supportedTypes, TagTypeDecider? decideType, TagLinkedList? next = null)
-        : this(sig, new(elemCount, supportedTypes, decideType), next) { }
-
-    public static TagLinkedList Build(params TagLinkedList[] tags)
-    {
-        for (var i = 1; i < tags.Length; i++)
-            tags[i - 1].Next = tags[i];
-        return tags[0];
-    }
+    public Tag(Signature sig, uint elemCount, ReadOnlySpan<Signature> supportedTypes, TagTypeDecider? decideType)
+        : this(sig, new(elemCount, supportedTypes, decideType)) { }
 
     public object Clone() =>
-        new TagLinkedList(Signature, Descriptor, Next);
+        new Tag(Signature, Descriptor);
 }

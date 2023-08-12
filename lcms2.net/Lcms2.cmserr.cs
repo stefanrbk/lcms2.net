@@ -525,10 +525,7 @@ public static partial class Lcms2
             ? src.ErrorLogger
             : LogErrorChunk;
 
-        ctx.ErrorLogger = (LogErrorChunkType)from.Dup(ctx);
-
-        //fixed (LogErrorChunkType* @default = &LogErrorChunk)
-        //    AllocPluginChunk(ctx, src, Chunks.Logger, @default);
+        ctx.ErrorLogger = (LogErrorChunkType)from.Clone();
     }
 
     internal static ILoggerFactory DefaultLogErrorHandlerFunction()
@@ -651,10 +648,7 @@ public static partial class Lcms2
             ? src.MutexPlugin
             : MutexChunk;
 
-        ctx.MutexPlugin = (MutexPluginChunkType)from.Dup(ctx);
-
-        //fixed (MutexPluginChunkType* @default = &MutexChunk)
-        //    AllocPluginChunk(ctx, src, Chunks.MutexPlugin, @default);
+        ctx.MutexPlugin = (MutexPluginChunkType)from.Clone();
     }
 
     internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)

@@ -25,23 +25,77 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
+using System.Collections;
 
 namespace lcms2.state;
 
-public class IntentsList : ICloneable
+public class IntentsList : IList<Intent>, ICloneable
 {
-    public uint Intent;
-    public string Description;
-    public IntentFn Link;
-    public IntentsList? Next;
+    private readonly List<Intent> _list;
+
+    public IntentsList() =>
+        _list = new();
+
+    public IntentsList(int capacity) =>
+        _list = new(capacity);
+
+    public IntentsList(IEnumerable<Intent> list) =>
+        _list = new(list);
+
+    public Intent this[int index]
+    {
+        get => _list[index];
+        set => _list[index] = value;
+    }
+
+    public int Count =>
+        _list.Count;
+
+    public bool IsReadOnly =>
+        ((ICollection<Intent>)_list).IsReadOnly;
+
+    public void Add(Intent item) =>
+        _list.Add(item);
+
+    public void Clear() =>
+        _list.Clear();
 
     public object Clone() =>
-        new IntentsList()
-        {
-            Intent = Intent,
-            Description = Description,
-            Link = Link,
-            Next = null
-        };
+        new IntentsList(_list.Select(c => (Intent)c.Clone()));
+
+    public bool Contains(Intent item) =>
+        _list.Contains(item);
+
+    public void CopyTo(Intent[] array, int arrayIndex) =>
+        _list.CopyTo(array, arrayIndex);
+
+    public IEnumerator<Intent> GetEnumerator() =>
+        _list.GetEnumerator();
+
+    public int IndexOf(Intent item) =>
+        _list.IndexOf(item);
+
+    public void Insert(int index, Intent item) =>
+        _list.Insert(index, item);
+
+    public bool Remove(Intent item) =>
+        _list.Remove(item);
+
+    public void RemoveAt(int index) =>
+        _list.RemoveAt(index);
+
+    IEnumerator IEnumerable.GetEnumerator() =>
+        ((IEnumerable)_list).GetEnumerator();
+}
+public class Intent(uint intent, string desc, IntentFn fn) : ICloneable
+{
+    private readonly uint _value = intent;
+    public string Description = desc;
+    public IntentFn Link = fn;
+
+    public static implicit operator uint(Intent intent) =>
+        intent._value;
+
+    public object Clone() =>
+        new Intent(_value, Description, Link);
 }

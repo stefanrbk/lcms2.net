@@ -25,10 +25,13 @@
 //---------------------------------------------------------------------------------
 //
 
+using lcms2.types;
+
 namespace lcms2.state;
 
-public class PluginFormatters : PluginBase
+public class PluginFormatters(Signature sig, uint expectedVersion, Signature type)
+    : PluginBase(sig, expectedVersion, type)
 {
-    public FormatterFactoryIn FormattersFactoryIn;
-    public FormatterFactoryOut FormattersFactoryOut;
+    public FormatterFactoryIn? FormattersFactoryIn;
+    public FormatterFactoryOut? FormattersFactoryOut;
 }

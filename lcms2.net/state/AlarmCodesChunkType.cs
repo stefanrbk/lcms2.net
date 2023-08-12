@@ -27,16 +27,14 @@
 
 namespace lcms2.state;
 
-internal class AlarmCodesChunkType : IDup
+internal class AlarmCodesChunkType() : ICloneable
 {
     public readonly ushort[] AlarmCodes = new ushort[cmsMAXCHANNELS];
 
-    public object? Dup(Context ctx)
-    {
-        var result = new AlarmCodesChunkType();
+    public AlarmCodesChunkType(ReadOnlySpan<ushort> codes)
+        : this() =>
+        codes[..cmsMAXCHANNELS].CopyTo(AlarmCodes);
 
-        AlarmCodes.CopyTo(result.AlarmCodes.AsSpan());
-
-        return result;
-    }
+    public object Clone() =>
+        new AlarmCodesChunkType(AlarmCodes);
 }

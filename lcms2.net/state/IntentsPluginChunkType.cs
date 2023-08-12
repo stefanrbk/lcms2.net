@@ -27,38 +27,19 @@
 
 namespace lcms2.state;
 
-internal class IntentsPluginChunkType : IDup
+internal class IntentsPluginChunkType : ICloneable
 {
-    public IntentsList? Intents;
+    public readonly IntentsList Intents;
 
-    public object? Dup(Context? ctx)
-    {
-        IntentsPluginChunkType head = this;
-        IntentsList? Anterior = null, entry;
-        IntentsPluginChunkType newHead = new();
+    public IntentsPluginChunkType(IEnumerable<Intent> intents) =>
+        Intents = new(intents);
 
-        _cmsAssert(ctx);
+    public IntentsPluginChunkType(params Intent[] args) =>
+        Intents = new(args);
 
-        // Walk the list copying all nodes
-        for (entry = head.Intents;
-             entry is not null;
-             entry = entry.Next)
-        {
-            var newEntry = (IntentsList)entry.Clone();
+    public IntentsPluginChunkType() =>
+        Intents = new();
 
-            if (newEntry is null)
-                return null;
-
-            // We want to keep the linked list order, so this is a little bit tricky
-            newEntry.Next = null;
-            if (Anterior is not null)
-                Anterior.Next = newEntry;
-
-            Anterior = newEntry;
-
-            newHead.Intents ??= newEntry;
-        }
-
-        return newHead;
-    }
+    public object Clone() =>
+        new IntentsPluginChunkType(Intents);
 }

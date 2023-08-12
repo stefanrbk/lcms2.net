@@ -28,10 +28,9 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-public abstract class PluginBase
+public abstract class PluginBase(Signature sig, uint expectedVersion, Signature type)
 {
-    public uint ExpectedVersion;
-    public Signature Magic;
-    public PluginBase? Next;
-    public Signature Type;
+    public uint ExpectedVersion = expectedVersion;
+    public Signature Magic = sig;
+    public Signature Type = type;
 }

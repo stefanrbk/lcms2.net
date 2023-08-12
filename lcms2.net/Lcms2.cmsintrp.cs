@@ -46,7 +46,7 @@ public static partial class Lcms2
 
         _cmsAssert(from);
 
-        ctx.InterpPlugin = (InterpPluginChunkType)from.Dup(ctx);
+        ctx.InterpPlugin = (InterpPluginChunkType)from.Clone();
 
         //fixed (InterpPluginChunkType* @default = &InterpPluginChunk)
         //    AllocPluginChunk(ctx, src, Chunks.InterpPlugin, @default);
