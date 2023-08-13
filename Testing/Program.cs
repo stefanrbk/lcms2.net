@@ -247,15 +247,16 @@ if (doCheckTests)
         Check("Gray output profile", CheckOutputGray);
         Check("Gray Lab output profile", CheckLabOutputGray);
 
-        //Check("Matrix-shaper proofing transform (float)",   CheckProofingXFORMFloat);
-        //Check("Matrix-shaper proofing transform (16 bits)",  CheckProofingXFORM16);
+        Check("Matrix-shaper proofing transform (float)", CheckProofingXFORMFloat);
+        Check("Matrix-shaper proofing transform (16 bits)", CheckProofingXFORM16);
 
-        //Check("Gamut check", CheckGamutCheck);
+        Check("Gamut check", CheckGamutCheck);
 
         Check("CMYK roundtrip on perceptual transform", CheckCMYKRoundtrip);
 
         Check("CMYK perceptual transform", CheckCMYKPerceptual);
-        Check("CMYK rel.col. transform", CheckCMYKRelCol);
+        // Test disabled on original
+        //Check("CMYK rel.col. transform", CheckCMYKRelCol);
 
         //Check("Black ink only preservation", CheckKOnlyBlackPreserving);
         //Check("Black plane preservation", CheckKPlaneBlackPreserving);

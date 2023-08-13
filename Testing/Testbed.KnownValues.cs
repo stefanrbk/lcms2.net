@@ -26,6 +26,8 @@
 //
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 namespace lcms2.testbed;
 
 internal static partial class Testbed
@@ -270,4 +272,84 @@ internal static partial class Testbed
 
     internal static bool CheckCMYKRelCol() =>
         CheckCMYK(INTENT_RELATIVE_COLORIMETRIC, TestProfiles.test1, TestProfiles.test2);
+
+    internal static bool CheckProofingXFORMFloat()
+    {
+        var hAbove = Create_AboveRGB()!;
+        var xform = cmsCreateProofingTransformTHR(DbgThread(), hAbove, TYPE_RGB_FLT, hAbove, TYPE_RGB_FLT, hAbove,
+            INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_SOFTPROOFING)!;
+
+        cmsCloseProfile(hAbove);
+        var rc = CheckFloatLinearXFORM(xform, 3);
+        cmsDeleteTransform(xform);
+        return rc;
+    }
+
+    internal static bool CheckProofingXFORM16()
+    {
+        var hAbove = Create_AboveRGB()!;
+        var xform = cmsCreateProofingTransformTHR(DbgThread(), hAbove, TYPE_RGB_16, hAbove, TYPE_RGB_16, hAbove,
+            INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_SOFTPROOFING|cmsFLAGS_NOCACHE)!;
+
+        cmsCloseProfile(hAbove);
+        var rc = Check16linearXFORM(xform, 3);
+        cmsDeleteTransform(xform);
+        return rc;
+    }
+
+    internal static bool CheckGamutCheck()
+    {
+        var Alarm = new ushort[16];
+        Alarm[0] = 0xDEAD;
+        Alarm[1] = 0xBABE;
+        Alarm[2] = 0xFACE;
+
+        // Set alarm codes to fancy values so we could check the out of gamut condition
+        cmsSetAlarmCodes(Alarm);
+
+        // Create the profiles
+        var hSRGB = cmsCreate_sRGBProfileTHR(DbgThread());
+        var hAbove = Create_AboveRGB();
+
+        if (hSRGB is null || hAbove is null)
+            return false;   // Failed
+
+        using (logger.BeginScope("Gamut check on floating point"))
+        {
+            // Create a gamut checker in the same space. No value should be out of gamut
+            var xform = cmsCreateProofingTransformTHR(DbgThread(), hAbove, TYPE_RGB_FLT, hAbove, TYPE_RGB_FLT, hAbove,
+                INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK);
+
+            if (!CheckFloatLinearXFORM(xform, 3))
+            {
+                cmsCloseProfile(hSRGB);
+                cmsCloseProfile(hAbove);
+                cmsDeleteTransform(xform);
+                logger.LogWarning("Gamut check on same profile failed");
+                return false;
+            }
+
+            cmsDeleteTransform(xform);
+        }
+
+        using (logger.BeginScope("Gamut check on 16 bits"))
+        {
+            var xform = cmsCreateProofingTransformTHR(DbgThread(), hAbove, TYPE_RGB_16, hAbove, TYPE_RGB_16, hSRGB,
+                INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK);
+
+            cmsCloseProfile(hSRGB);
+            cmsCloseProfile(hAbove);
+
+            if (!Check16linearXFORM(xform, 3))
+            {
+                cmsDeleteTransform(xform);
+                logger.LogWarning("Gamut check on 16 bits failed");
+                return false;
+            }
+
+            cmsDeleteTransform(xform);
+        }
+
+        return true;
+    }
 }
