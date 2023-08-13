@@ -2378,7 +2378,7 @@ public static partial class Lcms2
         var maximum = IsInkSpace(info.InputFormat) ? 655.35F : 65535.0F;
 
         Stride /= PixelSize(info.InputFormat);
-        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        var acc = MemoryMarshal.Cast<byte, Half>(accum);
 
         if (ExtraFirst) start = Extra;
 
@@ -2387,7 +2387,7 @@ public static partial class Lcms2
             var index = DoSwap ? (nChan - i - 1) : i;
 
             var offset = (i + start) * (Planar ? (int)Stride : 1);
-            var v = _cmsHalf2Float(acc[offset]);
+            var v = (float)acc[offset];
 
             if (Reverse)
                 v = maximum - v;
@@ -2415,9 +2415,9 @@ public static partial class Lcms2
         {
             var index = DoSwap ? (nChan - i - 1) : i;
 
-            var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+            var acc = MemoryMarshal.Cast<byte, Half>(accum);
 
-            var v = _cmsHalf2Float(acc[(i + start) * (Planar ? (int)Stride : 1)]);
+            var v = (float)acc[(i + start) * (Planar ? (int)Stride : 1)];
 
             v /= maximum;
 
@@ -2434,7 +2434,7 @@ public static partial class Lcms2
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 655.35F : 65535.0F;
-        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        var o = MemoryMarshal.Cast<byte, Half>(output);
         var swap1 = o;
         var start = 0;
 
@@ -2452,7 +2452,7 @@ public static partial class Lcms2
             if (Reverse)
                 v = maximum - v;
 
-            o[(i + start) * (Planar ? (int)Stride : 1)] = _cmsFloat2Half(v);
+            o[(i + start) * (Planar ? (int)Stride : 1)] = (Half)v;
         }
 
         if (Extra is 0 && SwapFirst)
@@ -2466,7 +2466,7 @@ public static partial class Lcms2
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, _) = T_BREAK(info.OutputFormat);
         var ExtraFirst = DoSwap ^ SwapFirst;
         var maximum = IsInkSpace(info.OutputFormat) ? 100.0F : 1.0F;
-        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        var o = MemoryMarshal.Cast<byte, Half>(output);
         var swap1 = o;
         var start = 0;
 
@@ -2484,7 +2484,7 @@ public static partial class Lcms2
             if (Reverse)
                 v = maximum - v;
 
-            o[(i + start) * (Planar ? (int)Stride : 1)] = _cmsFloat2Half(v);
+            o[(i + start) * (Planar ? (int)Stride : 1)] = (Half)v;
         }
 
         if (Extra is 0 && SwapFirst)

@@ -61,7 +61,7 @@ public static partial class Lcms2
         TryWriteBytes(dst, src[0] / 255d);
 
     private static void from8toHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsFloat2Half(src[0] / 255f));
+        TryWriteBytes(dst, (Half)(src[0] / 255f));
 
     private static void from16to8(Span<byte> dst, ReadOnlySpan<byte> src) =>
         dst[0] = FROM_16_TO_8(ToUInt16(src));
@@ -88,10 +88,10 @@ public static partial class Lcms2
         TryWriteBytes(dst, CHANGE_ENDIAN(ToUInt16(src)) / 255f);
 
     private static void from16toHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsFloat2Half(ToUInt16(src) / 255f));
+        TryWriteBytes(dst, (Half)(ToUInt16(src) / 255f));
 
     private static void from16SEtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsFloat2Half(CHANGE_ENDIAN(ToUInt16(src)) / 255f));
+        TryWriteBytes(dst, (Half)(CHANGE_ENDIAN(ToUInt16(src)) / 255f));
 
     private static void fromFLTto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
         dst[0] = _cmsQuickSaturateByte(ToSingle(src) * 255.0);
@@ -109,22 +109,22 @@ public static partial class Lcms2
         TryWriteBytes(dst, ToSingle(src));
 
     private static void fromFLTtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsFloat2Half(ToSingle(src)));
+        TryWriteBytes(dst, (Half)ToSingle(src));
 
     private static void fromHLFto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        dst[0] = _cmsQuickSaturateByte(_cmsHalf2Float(ToUInt16(src)) * 255.0);
+        dst[0] = _cmsQuickSaturateByte((double)ToHalf(src) * 255.0);
 
     private static void fromHLFto16(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsQuickSaturateWord(_cmsHalf2Float(ToUInt16(src)) * 65535f));
+        TryWriteBytes(dst, _cmsQuickSaturateWord((float)ToHalf(src) * 65535f));
 
     private static void fromHLFto16SE(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, CHANGE_ENDIAN(_cmsQuickSaturateWord(_cmsHalf2Float(ToUInt16(src)) * 65535f)));
+        TryWriteBytes(dst, CHANGE_ENDIAN(_cmsQuickSaturateWord((float)ToHalf(src) * 65535f)));
 
     private static void fromHLFtoFLT(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsHalf2Float(ToUInt16(src)));
+        TryWriteBytes(dst, (float)ToHalf(src));
 
     private static void fromHLFtoDBL(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, (double)_cmsHalf2Float(ToUInt16(src)));
+        TryWriteBytes(dst, (double)ToHalf(src));
 
     private static void fromDBLto8(Span<byte> dst, ReadOnlySpan<byte> src) =>
         dst[0] = _cmsQuickSaturateByte(ToDouble(src) * 255.0);
@@ -139,7 +139,7 @@ public static partial class Lcms2
         TryWriteBytes(dst,(float)ToDouble(src));
 
     private static void fromDBLtoHLF(Span<byte> dst, ReadOnlySpan<byte> src) =>
-        TryWriteBytes(dst, _cmsFloat2Half((float)ToDouble(src)));
+        TryWriteBytes(dst, (Half)ToDouble(src));
 
     private static void copy64(Span<byte> dst, ReadOnlySpan<byte> src) =>
         src[..8].CopyTo(dst);

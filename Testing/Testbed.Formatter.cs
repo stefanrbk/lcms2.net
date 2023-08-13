@@ -30,6 +30,9 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
 namespace lcms2.testbed;
 
 internal static partial class Testbed
@@ -405,19 +408,24 @@ internal static partial class Testbed
     }
 
 #pragma warning disable CS1718 // Comparison made to same variable
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool my_isfinite(float x) =>
         x != x;
+
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool my_isfinite(Half x) =>
+        my_isfinite((float)x);
 #pragma warning restore CS1718 // Comparison made to same variable
 
     public static bool CheckFormattersHalf()
     {
         for (var i = 0; i < 0xffff; i++)
         {
-            var f = _cmsHalf2Float((ushort)i);
+            var f = BitConverter.UInt16BitsToHalf((ushort)i);
 
             if (!my_isfinite(f))
             {
-                var j = _cmsFloat2Half(f);
+                var j = BitConverter.HalfToUInt16Bits(f);
 
                 if (i != j)
                 {
