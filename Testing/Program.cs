@@ -32,6 +32,9 @@ var now = DateTime.Now;
 
 logger.LogInformation("LittleCMS.net {version:#.##} test bed {now:MMM d yyyy HH:mm:ss}", LCMS_VERSION / 1000.0, now);
 
+Thread.Sleep(10);
+Console.WriteLine();
+
 //Thread.Sleep(2000);
 
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
@@ -47,7 +50,7 @@ timeTests = cliResult.Value.TimeTests;
 //    exhaustive = CheckExhaustive();
 
 //doCheckTests = false;
-//doSpeedTests = true;
+doSpeedTests = true;
 timeTests = true;
 
 if (exhaustive)

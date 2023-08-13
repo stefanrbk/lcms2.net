@@ -263,35 +263,19 @@ internal static partial class Testbed
             TrappedError = false;
             SimultaneousErrors = 0;
             TotalTests++;
-            if (timeTests)
-                timer.Start();
-            if (test() && !TrappedError)
+            timer.Start();
+            var rc = test();
+            timer.Stop();
+            testTimes.Add((title, timer.Elapsed.Milliseconds));
+            if (rc && !TrappedError)
             {
                 // It is a good place to check memory
                 //TestMemoryLeaks(true);
-                if (timeTests)
-                {
-                    timer.Stop();
-                    logger.LogInformation("Ok - Duration: {elapsed}", timer.Elapsed.Microseconds);
-                    testTimes.Add((title, timer.Elapsed.Microseconds));
-                }
-                else
-                {
-                    logger.LogInformation("Ok");
-                }
+                logger.LogInformation("Ok");
             }
             else
             {
-                if (timeTests)
-                {
-                    timer.Stop();
-                    logger.LogError("Test failed - Duration: {elapsed}", timer.Elapsed.Microseconds);
-                    testTimes.Add((title, timer.Elapsed.Microseconds));
-                }
-                else
-                {
-                    logger.LogError("Test failed");
-                }
+                logger.LogError("Test failed");
                 TotalFail++;
             }
         }
@@ -355,6 +339,8 @@ internal static partial class Testbed
         }
 
         logger.LogInformation(str);
+        Thread.Sleep(10);
+        Console.WriteLine();
     }
 
     public static bool IsGoodVal(string title, double @in, double @out, double max)
@@ -532,7 +518,7 @@ internal static partial class Testbed
         logger.LogInformation("Test durations from longest to shortest");
         foreach (var (name, time) in testTimes.OrderByDescending(t => t.time))
         {
-            using (logger.BeginScope("{test}", name))
+            using (logger.BeginScope("\t{test}", name))
             {
                 logger.LogInformation("{time}", time);
             }

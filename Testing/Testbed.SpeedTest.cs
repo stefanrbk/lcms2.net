@@ -50,7 +50,7 @@ internal static partial class Testbed
         var seconds = diff / 1000;
         var mpix_sec = Bytes / (1024 * 1024 * seconds * SizeOfPixel);
 
-        logger.LogInformation("{pps:0000.000} MPixel/sec.", mpix_sec);
+        logger.LogInformation("{pps:g3} MPixel/sec.", mpix_sec);
     }
 
     private static void SpeedTest32bits(string Title, Profile lcmsProfileIn, Profile lcmsProfileOut, int Intent)
@@ -474,10 +474,16 @@ internal static partial class Testbed
 
     public static void SpeedTest()
     {
+        Console.WriteLine();
+        Console.WriteLine();
+
         using (logger.BeginScope("Speed Test"))
         {
             logger.LogInformation("P E R F O R M A N C E   T E S T S");
             logger.LogInformation("=================================");
+
+            Thread.Sleep(10);
+            Console.WriteLine();
 
             var test1 = OpenBuiltInProfile(TestProfiles.test1);
             var test2 = OpenBuiltInProfile(TestProfiles.test2);
@@ -490,6 +496,8 @@ internal static partial class Testbed
 
             SpeedTest32bits("32 bits on CLUT profiles", test5, test3, INTENT_PERCEPTUAL);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             var aRGBlcms2 = cmsOpenProfileFromFile("aRGBlcms2.icc", "r")!;
@@ -500,6 +508,8 @@ internal static partial class Testbed
 
             SpeedTest32bits("32 bits on Matrix-Shaper profiles", test5, aRGBlcms2, INTENT_PERCEPTUAL);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             SpeedTest8bits("8 bits on SAME Matrix-Shaper profiles", test5, test5, INTENT_PERCEPTUAL);
@@ -507,6 +517,8 @@ internal static partial class Testbed
             SpeedTest16bits("16 bits on SAME Matrix-Shaper profiles", aRGBlcms2, aRGBlcms2, INTENT_PERCEPTUAL);
 
             SpeedTest32bits("32 bits on SAME Matrix-Shaper profiles", aRGBlcms2, aRGBlcms2, INTENT_PERCEPTUAL);
+
+            Console.WriteLine();
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -516,6 +528,8 @@ internal static partial class Testbed
 
             SpeedTest32bits("32 bits on Matrix-Shaper profiles (AbsCol)", test5, aRGBlcms2, INTENT_ABSOLUTE_COLORIMETRIC);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             SpeedTest8bits("8 bits on curves", CreateCurves(), CreateCurves(), INTENT_PERCEPTUAL);
@@ -524,6 +538,8 @@ internal static partial class Testbed
 
             SpeedTest32bits("32 bits on curves", CreateCurves(), CreateCurves(), INTENT_PERCEPTUAL);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             SpeedTest8bitsCMYK("8 bits on CMYK profiles", test1, test2);
@@ -531,6 +547,8 @@ internal static partial class Testbed
             SpeedTest16bitsCMYK("16 bits on CMYK profiles", test1, test2);
 
             SpeedTest32bitsCMYK("32 bits on CMYK profiles", test1, test2);
+
+            Console.WriteLine();
 
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -543,6 +561,8 @@ internal static partial class Testbed
 
             SpeedTest32bitsGray("32 bits on gray to gray", gray3lcms2, graylcms2, INTENT_RELATIVE_COLORIMETRIC);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             var glablcms2 = cmsOpenProfileFromFile("glablcms2.icc", "r")!;
@@ -553,6 +573,8 @@ internal static partial class Testbed
 
             SpeedTest32bitsGray("32 bits on gray to lab gray", graylcms2, glablcms2, INTENT_RELATIVE_COLORIMETRIC);
 
+            Console.WriteLine();
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
             SpeedTest8bitsGray("8 bits on SAME gray to gray", graylcms2, graylcms2, INTENT_RELATIVE_COLORIMETRIC);
@@ -560,6 +582,8 @@ internal static partial class Testbed
             SpeedTest16bitsGray("16 bits on SAME gray to gray", graylcms2, graylcms2, INTENT_RELATIVE_COLORIMETRIC);
 
             SpeedTest32bitsGray("32 bits on SAME gray to gray", graylcms2, graylcms2, INTENT_RELATIVE_COLORIMETRIC);
+
+            Console.WriteLine();
 
             cmsCloseProfile(glablcms2);
             cmsCloseProfile(gray3lcms2);
