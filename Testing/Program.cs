@@ -258,8 +258,8 @@ if (doCheckTests)
         // Test disabled on original
         //Check("CMYK rel.col. transform", CheckCMYKRelCol);
 
-        //Check("Black ink only preservation", CheckKOnlyBlackPreserving);
-        //Check("Black plane preservation", CheckKPlaneBlackPreserving);
+        Check("Black ink only preservation", CheckKOnlyBlackPreserving);
+        Check("Black plane preservation", CheckKPlaneBlackPreserving);
 
 
         //Check("Deciding curve types", CheckV4gamma);

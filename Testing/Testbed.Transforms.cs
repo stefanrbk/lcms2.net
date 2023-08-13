@@ -347,7 +347,6 @@ internal static partial class Testbed
     {
         Span<ushort> In = stackalloc ushort[3];
         Span<ushort> wLab = stackalloc ushort[3];
-        var Lab = new CIELab();
 
         var White = new CIELab(100, 0, 0);
         var Color = new CIELab(7.11070, -76, 26);
@@ -363,7 +362,7 @@ internal static partial class Testbed
         In[1] = 0x8080;
         In[2] = 0x8080;
 
-        cmsDoTransform(xform, In, ref Lab, 1);
+        cmsDoTransform(xform, In, out CIELab Lab, 1);
 
         if (cmsDeltaE(Lab, White) > 0.0001)
             return false;
@@ -372,7 +371,7 @@ internal static partial class Testbed
         In[1] = 0x3434;
         In[2] = 0x9A9A;
 
-        cmsDoTransform(xform, In, ref Lab, 1);
+        cmsDoTransform(xform, In, out Lab, 1);
         cmsFloat2LabEncoded(wLab, Lab);
         if (memcmp(In, wLab) is not 0)
             return false;
@@ -392,7 +391,7 @@ internal static partial class Testbed
         In[1] = 0x8000;
         In[2] = 0x8000;
 
-        cmsDoTransform(xform, In, ref Lab, 1);
+        cmsDoTransform(xform, In, out Lab, 1);
 
         if (cmsDeltaE(Lab, White) > 0.0001)
             return false;
@@ -601,7 +600,7 @@ internal static partial class Testbed
         cmsCloseProfile(hXYZ);
         if (hTransform is null) return false;
 
-        cmsDoTransform(hTransform, rgb, ref result, 3);
+        cmsDoTransform(hTransform, rgb, out result, 3);
         cmsDeleteTransform(hTransform);
         return true;
     }

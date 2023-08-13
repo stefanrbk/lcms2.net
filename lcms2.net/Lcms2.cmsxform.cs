@@ -146,27 +146,32 @@ public static partial class Lcms2
 
     // PixelSize already defined in Lcms2.cmspack.cs
 
-    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom InputBuffer, ref Tto OutputBuffer, uint Size)
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom InputBuffer, out Tto OutputBuffer, uint Size)
         where Tfrom : unmanaged
         where Tto : unmanaged
     {
         ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
-        cmsDoTransform(p, buf, ref OutputBuffer, Size);
+        cmsDoTransform(p, buf, out OutputBuffer, Size);
     }
 
-    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, ref Tto OutputBuffer, uint Size)
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, out Tto OutputBuffer, uint Size)
         where Tfrom : unmanaged
         where Tto : unmanaged =>
-        cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, ref OutputBuffer, Size);
+        cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, Size);
 
-    public static void cmsDoTransform<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, ref Tto OutputBuffer, uint Size)
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, out Tto OutputBuffer, uint Size)
         where Tfrom : unmanaged
         where Tto : unmanaged
     {
-        Span<Tto> buf = stackalloc Tto[] { OutputBuffer };
+        Span<Tto> buf = stackalloc Tto[1];
         cmsDoTransform(p, InputBuffer, buf, Size);
         OutputBuffer = buf[0];
     }
+
+    public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, out Tto OutputBuffer, uint Size)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransform(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, Size);
 
     public static void cmsDoTransform<Tfrom, Tto>(Transform p, Tfrom InputBuffer, Span<Tto> OutputBuffer, uint Size)
         where Tfrom : unmanaged

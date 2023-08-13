@@ -90,9 +90,7 @@ internal static partial class Testbed
 
     private static bool CheckGray(Transform xform, byte g, double L)
     {
-        var Lab = new CIELab();
-
-        cmsDoTransform(xform, g, ref Lab, 1);
+        cmsDoTransform(xform, g, out CIELab Lab, 1);
 
         if (!IsGoodVal("a axis on gray", 0, Lab.a, 0.001)) return false;
         if (!IsGoodVal("b axis on gray", 0, Lab.b, 0.001)) return false;
@@ -142,13 +140,12 @@ internal static partial class Testbed
 
     private static bool CheckOutGray(Transform xform, double L, byte g)
     {
-        byte g_out = 0;
         var Lab = new CIELab(
             L: L,
             a: 0,
             b: 0);
 
-        cmsDoTransform(xform, Lab, ref g_out, 1);
+        cmsDoTransform(xform, Lab, out byte g_out, 1);
 
         return IsGoodVal("Gray value", g, g_out, 0.01);
     }
@@ -200,9 +197,6 @@ internal static partial class Testbed
 
     private static bool CheckCMYK(int Intent, byte[] Profile1, byte[] Profile2)
     {
-        var Lab1 = new CIELab();
-        var Lab2 = new CIELab();
-
         var hSWOP = cmsOpenProfileFromMemTHR(DbgThread(), Profile1)!;
         var hFOGRA = cmsOpenProfileFromMemTHR(DbgThread(), Profile2)!;
 
@@ -224,9 +218,9 @@ internal static partial class Testbed
             CMYK1[2] = 30;
             CMYK1[3] = i;
 
-            cmsDoTransform(swop_lab, CMYK1, ref Lab1, 1);
+            cmsDoTransform(swop_lab, CMYK1, out CIELab Lab1, 1);
             cmsDoTransform(xform, CMYK1, CMYK2, 1);
-            cmsDoTransform(fogra_lab, CMYK2, ref Lab2, 1);
+            cmsDoTransform(fogra_lab, CMYK2, out CIELab Lab2, 1);
 
             var DeltaL = Math.Abs(Lab1.L - Lab2.L);
 
@@ -244,9 +238,9 @@ internal static partial class Testbed
             CMYK1[2] = 30;
             CMYK1[3] = i;
 
-            cmsDoTransform(fogra_lab, CMYK1, ref Lab1, 1);
+            cmsDoTransform(fogra_lab, CMYK1, out CIELab Lab1, 1);
             cmsDoTransform(xform, CMYK1, CMYK2, 1);
-            cmsDoTransform(swop_lab, CMYK2, ref Lab2, 1);
+            cmsDoTransform(swop_lab, CMYK2, out CIELab Lab2, 1);
 
             var DeltaL = Math.Abs(Lab1.L - Lab2.L);
 
@@ -348,6 +342,198 @@ internal static partial class Testbed
             }
 
             cmsDeleteTransform(xform);
+        }
+
+        return true;
+    }
+
+    internal static bool CheckKOnlyBlackPreserving()
+    {
+        var hSWOP = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test1)!;
+        var hFOGRA = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test2)!;
+        var CMYK1 = new float[4];
+        var CMYK2 = new float[4];
+
+        var hLab = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        var xform = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hFOGRA, TYPE_CMYK_FLT, INTENT_PRESERVE_K_ONLY_PERCEPTUAL, 0)!;
+
+        var swop_lab = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+        var fogra_lab = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+
+        var Max = 0.0;
+
+        using (logger.BeginScope("SWOP to FOGRA"))
+        {
+            for (var i = 0; i <= 100; i++)
+            {
+                CMYK1[0] = 0;
+                CMYK1[1] = 0;
+                CMYK1[2] = 0;
+                CMYK1[3] = i;
+
+                // SWOP CMYK to Lab1
+                cmsDoTransform(swop_lab, CMYK1, out CIELab Lab1, 1);
+
+                // SWOP To FOGRA using black preservation
+                cmsDoTransform(xform, CMYK1, CMYK2, 1);
+
+                // Obtained FOGRA CMYK to Lab2
+                cmsDoTransform(fogra_lab, CMYK2, out CIELab Lab2, 1);
+
+                // We care only on L*
+                var DeltaL = Math.Abs(Lab1.L - Lab2.L);
+
+                if (DeltaL > Max) Max = DeltaL;
+            }
+
+            cmsDeleteTransform(xform);
+
+            if (Max >= 3.0)
+            {
+                logger.LogWarning("Delta was >= 3.0 ({delta})", Max);
+
+                cmsCloseProfile(hSWOP);
+                cmsCloseProfile(hFOGRA);
+                cmsCloseProfile(hLab);
+
+                cmsDeleteTransform(swop_lab);
+                cmsDeleteTransform(fogra_lab);
+
+                return false;
+            }
+        }
+
+        using (logger.BeginScope("FOGRA to SWOP"))
+        {
+            Max = 0;
+
+            xform = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hSWOP, TYPE_CMYK_FLT, INTENT_PRESERVE_K_ONLY_PERCEPTUAL, 0)!;
+
+            for (var i = 0; i <= 100; i++)
+            {
+                CMYK1[0] = 0;
+                CMYK1[1] = 0;
+                CMYK1[2] = 0;
+                CMYK1[3] = i;
+
+                cmsDoTransform(fogra_lab, CMYK1, out CIELab Lab1, 1);
+                cmsDoTransform(xform, CMYK1, CMYK2, 1);
+                cmsDoTransform(swop_lab, CMYK2, out CIELab Lab2, 1);
+
+                var DeltaL = Math.Abs(Lab1.L - Lab2.L);
+
+                if (DeltaL > Max) Max = DeltaL;
+            }
+
+            cmsDeleteTransform(xform);
+
+            if (Max >= 3.0)
+            {
+                logger.LogWarning("Delta was >= 3.0 ({delta})", Max);
+
+                cmsCloseProfile(hSWOP);
+                cmsCloseProfile(hFOGRA);
+                cmsCloseProfile(hLab);
+
+                cmsDeleteTransform(swop_lab);
+                cmsDeleteTransform(fogra_lab);
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    internal static bool CheckKPlaneBlackPreserving()
+    {
+        var hSWOP = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test1)!;
+        var hFOGRA = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test2)!;
+        var CMYK1 = new float[4];
+        var CMYK2 = new float[4];
+
+        var hLab = cmsCreateLab4ProfileTHR(DbgThread(), null)!;
+
+        var xform = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hFOGRA, TYPE_CMYK_FLT, INTENT_PERCEPTUAL, 0)!;
+
+        var swop_lab = cmsCreateTransformTHR(DbgThread(), hSWOP, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+        var fogra_lab = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+
+        var Max = 0.0;
+
+        using (logger.BeginScope("SWOP to FOGRA"))
+        {
+            for (var i = 0; i <= 100; i++)
+            {
+                CMYK1[0] = 0;
+                CMYK1[1] = 0;
+                CMYK1[2] = 0;
+                CMYK1[3] = i;
+
+                cmsDoTransform(swop_lab, CMYK1, out CIELab Lab1, 1);
+                cmsDoTransform(xform, CMYK1, CMYK2, 1);
+                cmsDoTransform(fogra_lab, CMYK2, out CIELab Lab2, 1);
+
+                var DeltaE = cmsDeltaE(Lab1, Lab2);
+
+                if (DeltaE > Max) Max = DeltaE;
+            }
+
+            cmsDeleteTransform(xform);
+
+            if (Max >= 30.0)
+            {
+                logger.LogWarning("Delta was >= 30.0 ({delta})", Max);
+
+                cmsCloseProfile(hSWOP);
+                cmsCloseProfile(hFOGRA);
+                cmsCloseProfile(hLab);
+
+                cmsDeleteTransform(swop_lab);
+                cmsDeleteTransform(fogra_lab);
+
+                return false;
+            }
+        }
+
+        using (logger.BeginScope("FOGRA to SWOP"))
+        {
+            Max = 0;
+
+            xform = cmsCreateTransformTHR(DbgThread(), hFOGRA, TYPE_CMYK_FLT, hSWOP, TYPE_CMYK_FLT, INTENT_PRESERVE_K_PLANE_PERCEPTUAL, 0)!;
+
+            for (var i = 0; i <= 100; i++)
+            {
+                CMYK1[0] = 30;
+                CMYK1[1] = 20;
+                CMYK1[2] = 10;
+                CMYK1[3] = i;
+
+                cmsDoTransform(fogra_lab, CMYK1, out CIELab Lab1, 1);
+                cmsDoTransform(xform, CMYK1, CMYK2, 1);
+                cmsDoTransform(swop_lab, CMYK2, out CIELab Lab2, 1);
+
+                var DeltaE = cmsDeltaE(Lab1, Lab2);
+
+                if (DeltaE > Max) Max = DeltaE;
+            }
+
+            cmsDeleteTransform(xform);
+
+            if (Max >= 30.0)
+            {
+                logger.LogWarning("Delta was >= 30.0 ({delta})", Max);
+
+                cmsCloseProfile(hSWOP);
+                cmsCloseProfile(hFOGRA);
+                cmsCloseProfile(hLab);
+
+                cmsDeleteTransform(swop_lab);
+                cmsDeleteTransform(fogra_lab);
+
+                return false;
+            }
         }
 
         return true;

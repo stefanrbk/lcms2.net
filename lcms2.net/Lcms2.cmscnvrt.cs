@@ -38,12 +38,12 @@ public static partial class Lcms2
             new(INTENT_RELATIVE_COLORIMETRIC, "Relative colorimetric", DefaultICCintents),
             new(INTENT_SATURATION, "Saturation", DefaultICCintents),
             new(INTENT_ABSOLUTE_COLORIMETRIC, "Absolute colorimetric", DefaultICCintents),
-            new(INTENT_PRESERVE_K_ONLY_PERCEPTUAL, "Perceptual preserving black ink", DefaultICCintents),
-            new(INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black ink", DefaultICCintents),
-            new(INTENT_PRESERVE_K_ONLY_SATURATION, "Saturation preserving black ink", DefaultICCintents),
-            new(INTENT_PRESERVE_K_PLANE_PERCEPTUAL, "Perceptual preserving black plane", DefaultICCintents),
-            new(INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black plane", DefaultICCintents),
-            new(INTENT_PRESERVE_K_PLANE_SATURATION, "Saturation preserving black plane", DefaultICCintents)
+            new(INTENT_PRESERVE_K_ONLY_PERCEPTUAL, "Perceptual preserving black ink", BlackPreservingKOnlyIntents),
+            new(INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black ink", BlackPreservingKOnlyIntents),
+            new(INTENT_PRESERVE_K_ONLY_SATURATION, "Saturation preserving black ink", BlackPreservingKOnlyIntents),
+            new(INTENT_PRESERVE_K_PLANE_PERCEPTUAL, "Perceptual preserving black plane", BlackPreservingKPlaneIntents),
+            new(INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black plane", BlackPreservingKPlaneIntents),
+            new(INTENT_PRESERVE_K_PLANE_SATURATION, "Saturation preserving black plane", BlackPreservingKPlaneIntents)
         });
 
     internal static readonly IntentsPluginChunkType IntentsPluginChunk = new();
