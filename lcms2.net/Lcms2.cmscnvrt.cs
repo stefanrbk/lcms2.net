@@ -250,8 +250,8 @@ public static partial class Lcms2
             {
                 CIEXYZ BlackPointIn, BlackPointOut;
 
-                BlackPointIn = cmsDetectBlackPoint(Profiles[i - 1], Intent, 0);
-                BlackPointOut = cmsDetectDestinationBlackPoint(Profiles[i], Intent, 0);
+                BlackPointIn = cmsDetectBlackPoint(Profiles[i - 1], Intent);
+                BlackPointOut = cmsDetectDestinationBlackPoint(Profiles[i], Intent);
 
                 if (BlackPointIn.IsNaN)
                     BlackPointIn = new(0, 0, 0);

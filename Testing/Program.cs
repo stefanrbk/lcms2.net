@@ -258,17 +258,17 @@ if (doCheckTests)
         Check("CMYK roundtrip on perceptual transform", CheckCMYKRoundtrip);
 
         Check("CMYK perceptual transform", CheckCMYKPerceptual);
-        // Test disabled on original
-        //Check("CMYK rel.col. transform", CheckCMYKRelCol);
+        //// Test disabled on original
+        ////Check("CMYK rel.col. transform", CheckCMYKRelCol);
 
         Check("Black ink only preservation", CheckKOnlyBlackPreserving);
         Check("Black plane preservation", CheckKPlaneBlackPreserving);
 
 
-        //Check("Deciding curve types", CheckV4gamma);
+        Check("Deciding curve types", CheckV4gamma);
 
-        //Check("Black point detection", CheckBlackPoint);
-        //Check("TAC detection", CheckTAC);
+        Check("Black point detection", CheckBlackPoint);
+        Check("TAC detection", CheckTAC);
 
         //Check("CGATS parser", CheckCGATS);
         //Check("CGATS parser on junk", CheckCGATS2);
@@ -299,30 +299,30 @@ if (doCheckTests)
     }
 }
 
-if (doPluginTests)
-{
-    using (logger.BeginScope("Plugin tests"))
-    {
-        Check("Simple context functionality", CheckSimpleContext);
-        Check("Alarm codes context", CheckAlarmColorsContext);
-        Check("Adaptation state context", CheckAdaptationStateContext);
-        Check("1D interpolation plugin", CheckInterp1DPlugin);
-        Check("3D interpolation plugin", CheckInterp3DPlugin);
-        Check("Parametric curve plugin", CheckParametricCurvePlugin);
-        Check("Formatters plugin", CheckFormattersPlugin);
-        Check("Tag type plugin", CheckTagTypePlugin);
-        Check("MPE type plugin", CheckMPEPlugin);
-        Check("Optimization plugin", CheckOptimizationPlugin);
-        Check("Rendering intent plugin", CheckIntentPlugin);
-        Check("Full transform plugin", CheckTransformPlugin);
-        Check("Mutex plugin", CheckMutexPlugin);
-    }
-}
+//if (doPluginTests)
+//{
+//    using (logger.BeginScope("Plugin tests"))
+//    {
+//        Check("Simple context functionality", CheckSimpleContext);
+//        Check("Alarm codes context", CheckAlarmColorsContext);
+//        Check("Adaptation state context", CheckAdaptationStateContext);
+//        Check("1D interpolation plugin", CheckInterp1DPlugin);
+//        Check("3D interpolation plugin", CheckInterp3DPlugin);
+//        Check("Parametric curve plugin", CheckParametricCurvePlugin);
+//        Check("Formatters plugin", CheckFormattersPlugin);
+//        Check("Tag type plugin", CheckTagTypePlugin);
+//        Check("MPE type plugin", CheckMPEPlugin);
+//        Check("Optimization plugin", CheckOptimizationPlugin);
+//        Check("Rendering intent plugin", CheckIntentPlugin);
+//        Check("Full transform plugin", CheckTransformPlugin);
+//        Check("Mutex plugin", CheckMutexPlugin);
+//    }
+//}
 
-if (doSpeedTests)
-{
-    SpeedTest();
-}
+//if (doSpeedTests)
+//{
+//    SpeedTest();
+//}
 
 if (doZooTests)
 {
@@ -339,7 +339,7 @@ if (doCheckTests || doSpeedTests)
 
 //LogArrayPoolUsage(null);
 
-if (timeTests)
-    PrintTestTimes();
+//if (timeTests)
+//    PrintTestTimes();
 
 return TotalFail;

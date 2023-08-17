@@ -418,15 +418,15 @@ public static partial class Lcms2
 
         var totalOut = p.nOutputs;
 
-        var fx = _cmsToFixedDomain(input[0]) * (int)p.Domain[0];
+        var fx = _cmsToFixedDomain(input[0] * (int)p.Domain[0]);
         var x0 = FIXED_TO_INT(fx);
         var rx = FIXED_REST_TO_INT(fx);
 
-        var fy = _cmsToFixedDomain(input[1]) * (int)p.Domain[1];
+        var fy = _cmsToFixedDomain(input[1] * (int)p.Domain[1]);
         var y0 = FIXED_TO_INT(fy);
         var ry = FIXED_REST_TO_INT(fy);
 
-        var fz = _cmsToFixedDomain(input[2]) * (int)p.Domain[2];
+        var fz = _cmsToFixedDomain(input[2] * (int)p.Domain[2]);
         var z0 = FIXED_TO_INT(fz);
         var rz = FIXED_REST_TO_INT(fz);
 

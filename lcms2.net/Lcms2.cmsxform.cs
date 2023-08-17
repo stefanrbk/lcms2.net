@@ -412,6 +412,8 @@ public static partial class Lcms2
         var strideOut = 0u;
         //memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
         //memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
+        Array.Clear(wIn);
+        Array.Clear(wOut);
 
         for (var i = 0; i < LineCount; i++)
         {

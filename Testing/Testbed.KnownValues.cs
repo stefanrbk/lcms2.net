@@ -538,4 +538,84 @@ internal static partial class Testbed
 
         return true;
     }
+
+    internal static bool CheckV4gamma()
+    {
+        var Lin = new ushort[] { 0, 0xFFFF };
+        var g = cmsBuildTabulatedToneCurve16(DbgThread(), 2, Lin);
+
+        var h = cmsOpenProfileFromFileTHR(DbgThread(), "v4gamma.icc", "w");
+        if (h is null)
+            return false;
+
+        cmsSetProfileVersion(h, 4.3);
+
+        if (!cmsWriteTag(h, cmsSigGrayTRCTag, g))
+            return false;
+        cmsCloseProfile(h);
+
+        cmsFreeToneCurve(g);
+        remove("v4gamma.icc");
+        return true;
+    }
+
+    internal static bool CheckBlackPoint()
+    {
+        var hProfile = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test5)!;
+        var Black = cmsDetectDestinationBlackPoint(hProfile, INTENT_RELATIVE_COLORIMETRIC);
+        cmsCloseProfile(hProfile);
+
+        hProfile = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test1)!;
+        Black = cmsDetectDestinationBlackPoint(hProfile, INTENT_RELATIVE_COLORIMETRIC);
+        cmsXYZ2Lab(null, out var Lab, Black);
+        cmsCloseProfile(hProfile);
+
+        hProfile = cmsOpenProfileFromFileTHR(DbgThread(), "lcms2cmyk.icc", "r")!;
+        Black = cmsDetectDestinationBlackPoint(hProfile, INTENT_RELATIVE_COLORIMETRIC);
+        cmsXYZ2Lab(null, out Lab, Black);
+        cmsCloseProfile(hProfile);
+
+        hProfile = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test2)!;
+        Black = cmsDetectDestinationBlackPoint(hProfile, INTENT_RELATIVE_COLORIMETRIC);
+        cmsXYZ2Lab(null, out Lab, Black);
+        cmsCloseProfile(hProfile);
+
+        hProfile = cmsOpenProfileFromMemTHR(DbgThread(), TestProfiles.test1)!;
+        Black = cmsDetectDestinationBlackPoint(hProfile, INTENT_PERCEPTUAL);
+        cmsXYZ2Lab(null, out Lab, Black);
+        cmsCloseProfile(hProfile);
+
+        return true;
+    }
+    
+    internal static bool CheckOneTAC(double InkLimit)
+    {
+        var h = CreateFakeCMYK(InkLimit, true)!;
+        cmsSaveProfileToFile(h, "lcmstac.icc");
+        cmsCloseProfile(h);
+
+        h = cmsOpenProfileFromFile("lcmstac.icc", "r")!;
+        var d = cmsDetectTAC(h);
+        cmsCloseProfile(h);
+
+        remove("lcmstac.icc");
+
+        return Math.Abs(d - InkLimit) <= 5;
+    }
+
+
+    internal static bool CheckTAC()
+    {
+        if (!CheckOneTAC(180))
+            return false;
+        if (!CheckOneTAC(220))
+            return false;
+        if (!CheckOneTAC(286))
+            return false;
+        if (!CheckOneTAC(310))
+            return false;
+        if (!CheckOneTAC(330))
+            return false;
+        return true;
+    }
 }

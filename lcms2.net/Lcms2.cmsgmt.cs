@@ -373,7 +373,7 @@ public static partial class Lcms2
         float Sum;
 
         // Evalutate the xform
-        cmsDoTransform<ushort, float>(bp.Value.hRoundTrip, In, RoundTrip, 1);
+        cmsDoTransform(bp.Value.hRoundTrip, In, RoundTrip, 1);
 
         // All all amounts of ink
         for (Sum = 0, i = 0; i < bp.Value.nOutputChans; i++)
@@ -394,10 +394,10 @@ public static partial class Lcms2
     public static double cmsDetectTAC(Profile Profile)
     {
         var pool = Context.GetPool<float>(Profile.ContextID);
-        TACestimator bp = new()
+        Box<TACestimator> bp = new(new()
         {
             MaxInput = pool.Rent(cmsMAXCHANNELS)
-        };
+        });
         Span<uint> GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
         var ContextID = cmsGetProfileContextID(Profile);
 
@@ -408,34 +408,34 @@ public static partial class Lcms2
         // Create a fake formatter for result
         var dwFormatter = cmsFormatterForColorspaceOfProfile(Profile, 4, true);
 
-        bp.nOutputChans = (uint)T_CHANNELS(dwFormatter);
-        bp.MaxTAC = 0;  // Initial TAC is 0
+        bp.Value.nOutputChans = (uint)T_CHANNELS(dwFormatter);
+        bp.Value.MaxTAC = 0;  // Initial TAC is 0
 
         // for safety
-        if (bp.nOutputChans >= cmsMAXCHANNELS) return 0;
+        if (bp.Value.nOutputChans >= cmsMAXCHANNELS) return 0;
 
         var hLab = cmsCreateLab4ProfileTHR(ContextID, null);
         if (hLab is null) return 0;
         // Setup a roundtrip on perceptual intent in output profile for TAC estimation
-        bp.hRoundTrip = cmsCreateTransformTHR(
+        bp.Value.hRoundTrip = cmsCreateTransformTHR(
             ContextID, hLab, TYPE_Lab_16, Profile, dwFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_NOCACHE)!;
 
         cmsCloseProfile(hLab);
-        if (bp.hRoundTrip is null) return 0;
+        if (bp.Value.hRoundTrip is null) return 0;
 
         // For L* we only need black and white. For C* we need many points
         GridPoints[0] = 6;
         GridPoints[1] = 74;
         GridPoints[2] = 74;
 
-        if (!cmsSliceSpace16(3, GridPoints, EstimateTAC, new Box<TACestimator>(bp)))
-            bp.MaxTAC = 0;
+        if (!cmsSliceSpace16(3, GridPoints, EstimateTAC, bp))
+            bp.Value.MaxTAC = 0;
 
-        cmsDeleteTransform(bp.hRoundTrip);
-        ReturnArray(pool, bp.MaxInput);
+        cmsDeleteTransform(bp.Value.hRoundTrip);
+        ReturnArray(pool, bp.Value.MaxInput);
 
         // Results in %
-        return bp.MaxTAC;
+        return bp.Value.MaxTAC;
     }
 
     public static bool cmsDesaturateLab(ref CIELab Lab, double amax, double amin, double bmax, double bmin)

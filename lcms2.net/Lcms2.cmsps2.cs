@@ -836,7 +836,7 @@ public static partial class Lcms2
         var InputFormat = cmsFormatterForColorspaceOfProfile(Profile, 2, false);
         var nChannels = T_CHANNELS(InputFormat);
 
-        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent);
 
         // Adjust output to Lab4
         var hLab = cmsCreateLab4ProfileTHR(m.ContextID, null);
@@ -903,7 +903,7 @@ public static partial class Lcms2
 
         var ColorSpace = cmsGetColorSpace(Profile);
 
-        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, INTENT_RELATIVE_COLORIMETRIC, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, INTENT_RELATIVE_COLORIMETRIC);
 
         if ((uint)ColorSpace is cmsSigGrayData)
         {
@@ -1160,7 +1160,7 @@ public static partial class Lcms2
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "/ColorRenderingType 1\n");
 
-        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent, 0);
+        BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent);
 
         // Emit headers, etc.
         EmitWhiteBlackD50(m, BlackPointAdaptedToD50);

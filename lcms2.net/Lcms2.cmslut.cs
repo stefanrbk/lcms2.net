@@ -28,6 +28,7 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace lcms2;
@@ -320,7 +321,7 @@ public static partial class Lcms2
             if (Data.Offset is not null)
                 Tmp += Data.Offset[i];
 
-            Out[i] = (float)Tmp;
+             Out[i] = (float)Tmp;
         }
 
         // Output in 0..1.0 domain
@@ -375,7 +376,7 @@ public static partial class Lcms2
         //if (NewElem is null) goto Error;
         var pool = Context.GetPool<double>(ContextID);
         var NewElem = Offset.Length >= Rows
-            ? new StageMatrixData(Matrix, Offset, pool)
+            ? new StageMatrixData(Matrix, Offset[..(int)Rows], pool)
             : new StageMatrixData(Matrix, default, pool);
 
         NewMPE.Data = NewElem;
@@ -580,6 +581,7 @@ public static partial class Lcms2
 
         //NewElem.Tab = _cmsCalloc<ushort>(ContextID, n);
         NewElem.Tab = Context.GetPool<ushort>(ContextID).Rent((int)n);
+        Array.Clear(NewElem.Tab);
         //if (NewElem.Tab is null)
         //{
         //    cmsStageFree(NewMPE);
@@ -737,6 +739,7 @@ public static partial class Lcms2
         return mpe;
     }
 
+    [DebuggerStepThrough]
     internal static ushort _cmsQuantizeVal(double i, uint MaxSamples)
     {
         var x = (i * 65535.0) / (MaxSamples - 1);

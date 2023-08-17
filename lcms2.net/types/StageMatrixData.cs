@@ -49,7 +49,7 @@ public class StageMatrixData : IDisposable
             : pool.Rent(@double.Length);
         @double.CopyTo(Double);
 
-        Offset = offset.Length < 0
+        Offset = offset.Length > 0
             ? pool is null
                 ? new double[offset.Length]
                 : pool.Rent(offset.Length)

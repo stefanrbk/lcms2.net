@@ -325,10 +325,10 @@ public static partial class Lcms2
         //     Y = Ratio * Y
         //     K: Does not change
 
-        if (Cargo is not Box<double> InkLimit)
+        if (Cargo is not Box<double> limit)
             return false;
 
-        InkLimit.Value *= 655.35;
+        var InkLimit = limit * 655.35;
 
         var SumCMY = (double)In[0] + In[1] + In[2];
         var SumCMYK = SumCMY + In[3];

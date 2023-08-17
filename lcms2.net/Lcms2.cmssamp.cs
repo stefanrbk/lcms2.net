@@ -145,16 +145,16 @@ public static partial class Lcms2
         return CIEXYZ.NaN;
     }
 
-    public static CIEXYZ cmsDetectBlackPoint(Profile Profile, uint Intent, uint dwFlags)
+    public static CIEXYZ cmsDetectBlackPoint(Profile Profile, uint Intent)
     {
         // Make sure the device class is adequate
         var devClass = cmsGetDeviceClass(Profile);
         if ((uint)devClass is cmsSigLinkClass or cmsSigAbstractClass or cmsSigNamedColorClass)
-            goto Fail;
+            return new(0, 0, 0);
 
         // Make sure intent is adequate
         if (Intent is not INTENT_PERCEPTUAL and not INTENT_RELATIVE_COLORIMETRIC and not INTENT_SATURATION)
-            goto Fail;
+            return new(0, 0, 0);
 
         // v4 + perceptual & saturation intents does have its own black point, and it is
         // well specified enough to use it. Black point tag is deprecated in V4.
@@ -180,9 +180,6 @@ public static partial class Lcms2
 
         // Nope, compute BP using current intent.
         return BlackPointAsDarkerColorant(Profile, Intent);
-
-    Fail:
-        return CIEXYZ.NaN;
     }
 
     private static double RootOfLeastSquaresFitQuadraticCurve(int n, ReadOnlySpan<double> x, ReadOnlySpan<double> y)
@@ -241,7 +238,7 @@ public static partial class Lcms2
         }
     }
 
-    public static CIEXYZ cmsDetectDestinationBlackPoint(Profile Profile, uint Intent, uint dwFlags)
+    public static CIEXYZ cmsDetectDestinationBlackPoint(Profile Profile, uint Intent)
     {
         Transform? hRoundTrip = null;
         CIELab InitialLab;
@@ -285,7 +282,7 @@ public static partial class Lcms2
             ((uint)ColorSpace is not cmsSigGrayData and not cmsSigRgbData and not cmsSigCmykData))
         {
             // In this case, handle as input case
-            return cmsDetectBlackPoint(Profile, Intent, dwFlags);
+            return cmsDetectBlackPoint(Profile, Intent);
         }
 
         // It is one of the valid cases! Use Adobe algorithm
@@ -296,7 +293,7 @@ public static partial class Lcms2
             CIEXYZ IniXYZ;
 
             // calculate initial Lab as source black point
-            IniXYZ = cmsDetectBlackPoint(Profile, Intent, dwFlags);
+            IniXYZ = cmsDetectBlackPoint(Profile, Intent);
             if (IniXYZ.IsNaN)
                 return CIEXYZ.NaN;
 

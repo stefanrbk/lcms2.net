@@ -2473,19 +2473,7 @@ public static partial class Lcms2
 
         if (offsetB is not 0)
         {
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetB, outputChan)))
-                goto Error;
-        }
-
-        if (offsetC is not 0)
-        {
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadCLUT(self, io, BaseOffset + offsetC, inputChan, outputChan)))
-                goto Error;
-        }
-
-        if (offsetM is not 0)
-        {
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetM, outputChan)))
+            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetB, inputChan)))
                 goto Error;
         }
 
@@ -2495,9 +2483,21 @@ public static partial class Lcms2
                 goto Error;
         }
 
+        if (offsetM is not 0)
+        {
+            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetM, inputChan)))
+                goto Error;
+        }
+
+        if (offsetC is not 0)
+        {
+            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadCLUT(self, io, BaseOffset + offsetC, inputChan, outputChan)))
+                goto Error;
+        }
+
         if (offsetA is not 0)
         {
-            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetA, inputChan)))
+            if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, ReadSetOfCurves(self, io, BaseOffset + offsetA, outputChan)))
                 goto Error;
         }
 
