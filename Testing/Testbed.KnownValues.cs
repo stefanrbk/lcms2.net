@@ -1287,4 +1287,22 @@ internal static partial class Testbed
         return true;
     }
 
+
+    internal static bool CheckMatrixSimplify()
+    {
+        Span<byte> buf = stackalloc byte[3] { 127, 32, 64 };
+
+        var pIn = cmsCreate_sRGBProfile()!;
+        var pOut = cmsOpenProfileFromMem(TestProfiles.ibm_t61)!;
+        if (pIn is null || pOut is null)
+            return false;
+
+        var t = cmsCreateTransform(pIn, TYPE_RGB_8, pOut, TYPE_RGB_8, INTENT_PERCEPTUAL, 0)!;
+        cmsDoTransformStride(t, buf, buf, 1, 1);
+        cmsDeleteTransform(t);
+        cmsCloseProfile(pIn);
+        cmsCloseProfile(pOut);
+
+        return buf[0] == 144 && buf[1] == 0 && buf[2] == 69;
+    }
 }
