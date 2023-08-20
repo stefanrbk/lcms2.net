@@ -1146,4 +1146,43 @@ internal static partial class Testbed
 
         return ok;
     }
+
+    internal static bool CheckReadRAW()
+    {
+        var buffer = new byte[4];
+        using (logger.BeginScope("RAW read on on-disk"))
+        {
+            var hProfile = cmsOpenProfileFromMem(TestProfiles.test1);
+
+            if (hProfile is null)
+                return false;
+
+            var tag_size = cmsReadRawTag(hProfile, cmsSigGamutTag, buffer, 4);
+            var tag_size1 = cmsReadRawTag(hProfile, cmsSigGamutTag, null, 0);
+
+            cmsCloseProfile(hProfile);
+
+            if (tag_size is not 4)
+                return false;
+
+            if (tag_size1 is not 37009)
+                return false;
+        }
+
+        using (logger.BeginScope("RAW read on in-memory created profiles"))
+        {
+            var hProfile = cmsCreate_sRGBProfile()!;
+            var tag_size = cmsReadRawTag(hProfile, cmsSigGreenColorantTag, buffer, 4);
+            var tag_size1 = cmsReadRawTag(hProfile, cmsSigGreenColorantTag, null, 0);
+
+            cmsCloseProfile(hProfile);
+
+            if (tag_size is not 4)
+                return false;
+            if (tag_size1 is not 20)
+                return false;
+        }
+
+        return true;
+    }
 }
