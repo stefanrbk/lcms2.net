@@ -417,7 +417,7 @@ public static partial class Lcms2
         return true;
     }
 
-    public static bool cmsGDBCompute(GBD gbd, uint _)
+    public static bool cmsGBDCompute(GBD gbd, uint _)
     {
         _cmsAssert(gbd);
 
