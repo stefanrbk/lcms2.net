@@ -1498,4 +1498,32 @@ internal static partial class Testbed
         return false;
     }
 
+    internal static bool CheckProofingIntersection()
+    {
+        var hnd1 = cmsCreate_sRGBProfile()!;
+        var hnd2 = Create_AboveRGB()!;
+
+        var profile_null = cmsCreateNULLProfileTHR(DbgThread())!;
+        var transform = cmsCreateProofingTransformTHR(DbgThread(),
+            hnd1,
+            TYPE_RGB_FLT,
+            profile_null,
+            TYPE_GRAY_FLT,
+            hnd2,
+            INTENT_ABSOLUTE_COLORIMETRIC,
+            INTENT_ABSOLUTE_COLORIMETRIC,
+            cmsFLAGS_GAMUTCHECK |
+            cmsFLAGS_SOFTPROOFING)!;
+
+        cmsCloseProfile(hnd1);
+        cmsCloseProfile(hnd2);
+        cmsCloseProfile(profile_null);
+
+        // Failed?
+        if (transform is null)
+            return false;
+
+        cmsDeleteTransform(transform);
+        return true;
+    }
 }
