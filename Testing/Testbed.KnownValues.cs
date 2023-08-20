@@ -1305,4 +1305,20 @@ internal static partial class Testbed
 
         return buf[0] == 144 && buf[1] == 0 && buf[2] == 69;
     }
+    internal static bool CheckPlanar8opt()
+    {
+        var aboveRGB = Create_AboveRGB()!;
+        var sRGB = cmsCreate_sRGBProfile()!;
+
+        var transform = cmsCreateTransform(sRGB, TYPE_RGB_8_PLANAR,
+            aboveRGB, TYPE_RGB_8_PLANAR,
+            INTENT_PERCEPTUAL, 0)!;
+
+        cmsDeleteTransform(transform);
+        cmsCloseProfile(aboveRGB);
+        cmsCloseProfile(sRGB);
+
+        return true;
+    }
+
 }

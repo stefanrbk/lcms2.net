@@ -287,7 +287,7 @@ if (doCheckTests)
         Check("Null transform on floats", CheckFloatNULLxform);
         Check("Set free a tag", CheckRemoveTag);
         Check("Matrix simplification", CheckMatrixSimplify);
-        //Check("Planar 8 optimization", CheckPlanar8opt);
+        Check("Planar 8 optimization", CheckPlanar8opt);
         //Check("Swap endian feature", CheckSE);
         //Check("Transform line stride RGB", CheckTransformLineStride);
         //Check("Forged MPE profile", CheckForgedMPE);
