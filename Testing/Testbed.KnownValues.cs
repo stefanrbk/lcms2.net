@@ -798,4 +798,350 @@ internal static partial class Testbed
         }
     }
 
+    internal static bool CheckLinking()
+    {
+        // Create a CLUT based profile
+        var h = cmsCreateInkLimitingDeviceLinkTHR(DbgThread(), cmsSigCmykData, 150)!;
+
+        // link a second tag
+        cmsLinkTag(h, cmsSigAToB1Tag, cmsSigAToB0Tag);
+
+        // Save the linked devicelink
+        if (!cmsSaveProfileToFile(h, "lcms2link.icc"))
+            return false;
+        cmsCloseProfile(h);
+
+        // Now open the profile and read the pipeline
+        h = cmsOpenProfileFromFile("lcms2link.icc", "r");
+        if (h is null)
+            return false;
+
+        if (cmsReadTag(h, cmsSigAToB1Tag) is not Pipeline pipeline)
+            return false;
+
+        pipeline = cmsPipelineDup(pipeline)!;
+
+        // extract stage from pipeline
+        cmsPipelineUnlinkStage(pipeline, cmsAT_BEGIN, out var stageBegin);
+        cmsPipelineUnlinkStage(pipeline, cmsAT_END, out var stageEnd);
+        cmsPipelineInsertStage(pipeline, cmsAT_END, stageEnd);
+        cmsPipelineInsertStage(pipeline, cmsAT_BEGIN, stageBegin);
+
+        if ((uint)cmsTagLinkedTo(h, cmsSigAToB1Tag) is not cmsSigAToB0Tag)
+            return false;
+
+        cmsCloseProfile(h);
+
+        return true;
+    }
+
+    private static Profile IdentityMatrixProfile(Signature dataSpace)
+    {
+        Context? ctx = null;
+        Span<double> zero = stackalloc double[] { 0, 0, 0 };
+        var identityProfile = cmsCreateProfilePlaceholder(ctx)!;
+
+
+        cmsSetProfileVersion(identityProfile, 4.3);
+
+        cmsSetDeviceClass(identityProfile, cmsSigColorSpaceClass);
+        cmsSetColorSpace(identityProfile, dataSpace);
+        cmsSetPCS(identityProfile, cmsSigXYZData);
+
+        cmsSetHeaderRenderingIntent(identityProfile, INTENT_RELATIVE_COLORIMETRIC);
+
+        cmsWriteTag(identityProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ));
+
+        var identity = MAT3.Identity.AsArray(Context.GetPool<double>(null));
+
+        // build forward transform.... (RGB to PCS)
+        var forward = cmsPipelineAlloc(ctx, 3, 3);
+        cmsPipelineInsertStage(forward, cmsAT_END, cmsStageAllocMatrix(ctx, 3, 3, identity, zero));
+        cmsWriteTag(identityProfile, cmsSigDToB1Tag, forward);
+
+        cmsPipelineFree(forward);
+
+        var reverse = cmsPipelineAlloc(ctx, 3, 3);
+        cmsPipelineInsertStage(reverse, cmsAT_END, cmsStageAllocMatrix(ctx, 3, 3, identity, zero));
+        cmsWriteTag(identityProfile, cmsSigBToD1Tag, reverse);
+
+        cmsPipelineFree(reverse);
+
+        return identityProfile;
+    }
+
+    private static uint TYPE_XYZA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
+    internal static bool CheckFloatXYZ()
+    {
+        var xyzProfile = cmsCreateXYZProfile()!;
+        Span<float> @in = stackalloc float[4] { 1.0f, 1.0f, 1.0f, 0.5f };
+        Span<float> @out = stackalloc float[4];
+
+        // RGB to XYZ
+        var input = IdentityMatrixProfile(cmsSigRgbData);
+
+        var xform = cmsCreateTransform(input, TYPE_RGB_FLT, xyzProfile, TYPE_XYZ_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(input);
+
+        cmsDoTransform(xform, @in, @out, 1);
+        cmsDeleteTransform(xform);
+
+        if (!IsGoodVal("Float RGB->XYZ", @in[0], @out[0], FLOAT_PRECISION) ||
+            !IsGoodVal("Float RGB->XYZ", @in[1], @out[1], FLOAT_PRECISION) ||
+            !IsGoodVal("Float RGB->XYZ", @in[2], @out[2], FLOAT_PRECISION))
+        {
+            return false;
+        }
+
+
+        // XYZ to XYZ
+        input = IdentityMatrixProfile(cmsSigXYZData);
+
+        xform = cmsCreateTransform(input, TYPE_XYZ_FLT, xyzProfile, TYPE_XYZ_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(input);
+
+        cmsDoTransform(xform, @in, @out, 1);
+
+        cmsDeleteTransform(xform);
+
+        if (!IsGoodVal("Float XYZ->XYZ", @in[0], @out[0], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZ->XYZ", @in[1], @out[1], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZ->XYZ", @in[2], @out[2], FLOAT_PRECISION))
+        {
+            return true;
+        }
+
+        input = IdentityMatrixProfile(cmsSigXYZData);
+
+        xform = cmsCreateTransform(input, TYPE_XYZA_FLT, xyzProfile, TYPE_XYZA_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_COPY_ALPHA)!;
+        cmsCloseProfile(input);
+
+        cmsDoTransform(xform, @in, @out, 1);
+
+
+        cmsDeleteTransform(xform);
+
+        if (!IsGoodVal("Float XYZA->XYZA", @in[0], @out[0], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZA->XYZA", @in[1], @out[1], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZA->XYZA", @in[2], @out[2], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZA->XYZA", @in[3], @out[3], FLOAT_PRECISION))
+        {
+            return false;
+        }
+
+
+        // XYZ to RGB
+        input = IdentityMatrixProfile(cmsSigRgbData);
+
+        xform = cmsCreateTransform(xyzProfile, TYPE_XYZ_FLT, input, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(input);
+
+        cmsDoTransform(xform, @in, @out, 1);
+
+        cmsDeleteTransform(xform);
+
+        if (!IsGoodVal("Float XYZ->RGB", @in[0], @out[0], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZ->RGB", @in[1], @out[1], FLOAT_PRECISION) ||
+            !IsGoodVal("Float XYZ->RGB", @in[2], @out[2], FLOAT_PRECISION))
+        {
+            return false;
+        }
+
+
+        // Now the optimizer should remove a stage
+
+        // XYZ to RGB
+        input = IdentityMatrixProfile(cmsSigRgbData);
+
+        xform = cmsCreateTransform(input, TYPE_RGB_FLT, input, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        cmsCloseProfile(input);
+
+        cmsDoTransform(xform, @in, @out, 1);
+
+        cmsDeleteTransform(xform);
+
+        if (!IsGoodVal("Float RGB->RGB", @in[0], @out[0], FLOAT_PRECISION) ||
+            !IsGoodVal("Float RGB->RGB", @in[1], @out[1], FLOAT_PRECISION) ||
+            !IsGoodVal("Float RGB->RGB", @in[2], @out[2], FLOAT_PRECISION))
+        {
+            return false;
+        }
+
+        cmsCloseProfile(xyzProfile);
+
+
+        return true;
+    }
+
+    internal static bool ChecksRGB2LabFLT()
+    {
+        var hSRGB = cmsCreate_sRGBProfile()!;
+        var hLab = cmsCreateLab4Profile(null)!;
+
+        var xform1 = cmsCreateTransform(hSRGB, TYPE_RGBA_FLT, hLab, TYPE_LabA_FLT, 0, cmsFLAGS_NOCACHE | cmsFLAGS_NOOPTIMIZE)!;
+        var xform2 = cmsCreateTransform(hLab, TYPE_LabA_FLT, hSRGB, TYPE_RGBA_FLT, 0, cmsFLAGS_NOCACHE | cmsFLAGS_NOOPTIMIZE)!;
+
+        Span<float> RGBA1 = stackalloc float[4];
+        Span<float> RGBA2 = stackalloc float[4];
+        Span<float> LabA = stackalloc float[4];
+
+        for (var i = 0; i <= 100; i++)
+        {
+            RGBA1[0] = i / 100.0F;
+            RGBA1[1] = i / 100.0F;
+            RGBA1[2] = i / 100.0F;
+            RGBA1[3] = 0;
+
+            cmsDoTransform(xform1, RGBA1, LabA, 1);
+            cmsDoTransform(xform2, LabA, RGBA2, 1);
+
+            if (!IsGoodVal("Float RGB->RGB", RGBA1[0], RGBA2[0], FLOAT_PRECISION) ||
+                !IsGoodVal("Float RGB->RGB", RGBA1[1], RGBA2[1], FLOAT_PRECISION) ||
+                !IsGoodVal("Float RGB->RGB", RGBA1[2], RGBA2[2], FLOAT_PRECISION))
+            {
+                return false;
+            }
+        }
+
+
+        cmsDeleteTransform(xform1);
+        cmsDeleteTransform(xform2);
+        cmsCloseProfile(hSRGB);
+        cmsCloseProfile(hLab);
+
+        return true;
+    }
+
+    private static double Rec709(double L)
+    {
+        if (L < 0.018)
+        {
+            return 4.5 * L;
+        }
+        else
+        {
+            double a = 1.099 * Math.Pow(L, 0.45);
+
+            return a - 0.099;
+        }
+    }
+
+    internal static bool CheckParametricRec709()
+    {
+        Span<double> @params = stackalloc double[7];
+
+        @params[0] = 0.45; /* y */
+        @params[1] = Math.Pow(1.099, 1.0 / 0.45); /* a */
+        @params[2] = 0.0; /* b */
+        @params[3] = 4.5; /* c */
+        @params[4] = 0.018; /* d */
+        @params[5] = -0.099; /* e */
+        @params[6] = 0.0; /* f */
+
+        var t = cmsBuildParametricToneCurve(null, 5, @params)!;
+
+
+        for (var i = 0; i < 256; i++)
+        {
+            var n = i / 255.0F;
+            var f1 = (ushort)Math.Floor(255.0 * cmsEvalToneCurveFloat(t, n) + 0.5);
+            var f2 = (ushort)Math.Floor(255.0 * Rec709(i / 255.0) + 0.5);
+
+            if (f1 != f2)
+            {
+                cmsFreeToneCurve(t);
+                return false;
+            }
+        }
+
+        cmsFreeToneCurve(t);
+        return true;
+    }
+
+    private const byte kNumPoints = 10;
+    private static float StraightLine(float x) =>
+        (float)(0.1 + (0.9 * x));
+
+    private static bool TestCurve(string label, ToneCurve curve, Func<float, float> fn)
+    {
+        var ok = true;
+
+        for (var i = 0; i < kNumPoints; i++)
+        {
+            var x = (float)i / ((kNumPoints * 3) - 1);
+            var expectedY = fn(x);
+            var @out = cmsEvalToneCurveFloat(curve, x);
+
+            if (!IsGoodVal(label, expectedY, @out, FLOAT_PRECISION))
+                ok = false;
+        }
+
+        return ok;
+    }
+
+    internal static bool CheckFloatSamples()
+    {
+        var y = GetArray<float>(null, kNumPoints);
+
+        for (var i = 0; i < kNumPoints; i++)
+            y[i] = StraightLine((float)i / (kNumPoints - 1));
+
+        var curve = cmsBuildTabulatedToneCurveFloat(null, kNumPoints, y)!;
+        var ok = TestCurve("Float Samples", curve, StraightLine);
+        cmsFreeToneCurve(curve);
+        return ok;
+    }
+
+    internal static bool CheckFloatSegments()
+    {
+        var y = new float[kNumPoints];
+
+        var ok = true;
+
+        // build a segmented curve with a sampled section...
+        var Seg = new CurveSegment[3];
+
+        // Initialize segmented curve part up to 0.1
+        Seg[0].x0 = -1e22f;      // -infinity
+        Seg[0].x1 = 0.1f;
+        Seg[0].Type = 6;             // Y = (a * X + b) ^ Gamma + c
+        Seg[0].Params[0] = 1.0f;     // gamma
+        Seg[0].Params[1] = 0.9f;     // a
+        Seg[0].Params[2] = 0.0f;        // b
+        Seg[0].Params[3] = 0.1f;     // c
+        Seg[0].Params[4] = 0.0f;
+
+        // From zero to 1
+        Seg[1].x0 = 0.1f;
+        Seg[1].x1 = 0.9f;
+        Seg[1].Type = 0;
+
+        Seg[1].nGridPoints = kNumPoints;
+        Seg[1].SampledPoints = y;
+
+        for (var i = 0; i < kNumPoints; i++)
+        {
+            var x = (float)(0.1 + ((float)i / (kNumPoints - 1) * (0.9 - 0.1)));
+            y[i] = StraightLine(x);
+        }
+
+        // from 1 to +infinity
+        Seg[2].x0 = 0.9f;
+        Seg[2].x1 = 1e22f;   // +infinity
+        Seg[2].Type = 6;
+
+        Seg[2].Params[0] = 1.0f;
+        Seg[2].Params[1] = 0.9f;
+        Seg[2].Params[2] = 0.0f;
+        Seg[2].Params[3] = 0.1f;
+        Seg[2].Params[4] = 0.0f;
+
+        var curve = cmsBuildSegmentedToneCurve(null, 3, Seg)!;
+
+        ok = TestCurve("Float Segmented Curve", curve, StraightLine);
+
+        cmsFreeToneCurve(curve);
+
+        return ok;
+    }
 }
