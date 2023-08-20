@@ -288,7 +288,7 @@ if (doCheckTests)
         Check("Set free a tag", CheckRemoveTag);
         Check("Matrix simplification", CheckMatrixSimplify);
         Check("Planar 8 optimization", CheckPlanar8opt);
-        //Check("Swap endian feature", CheckSE);
+        Check("Swap endian feature", CheckSE);
         //Check("Transform line stride RGB", CheckTransformLineStride);
         //Check("Forged MPE profile", CheckForgedMPE);
         //Check("Proofing intersection", CheckProofingIntersection);

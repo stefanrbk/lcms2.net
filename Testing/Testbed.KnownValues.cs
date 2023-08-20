@@ -1321,4 +1321,25 @@ internal static partial class Testbed
         return true;
     }
 
+    internal static bool CheckSE()
+    {
+        var input_profile = Create_AboveRGB()!;
+        var output_profile = cmsCreate_sRGBProfile()!;
+
+        var tr = cmsCreateTransform(input_profile, TYPE_RGBA_8, output_profile, TYPE_RGBA_16_SE, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_COPY_ALPHA)!;
+
+        ReadOnlySpan<byte> rgba = stackalloc byte[4] { 40, 41, 41, 0xfa };
+        Span<ushort> @out = stackalloc ushort[4];
+
+        cmsDoTransform(tr, rgba, @out, 1);
+        cmsCloseProfile(input_profile);
+        cmsCloseProfile(output_profile);
+        cmsDeleteTransform(tr);
+
+        if (@out[0] != 0xf622 || @out[1] != 0x7f24 || @out[2] != 0x7f24)
+            return false;
+
+        return true;
+    }
+
 }
