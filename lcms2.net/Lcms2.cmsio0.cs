@@ -1103,8 +1103,17 @@ public static partial class Lcms2
                     //if (Mem is null) return false;
                     var Mem = pool.Rent((int)TagSize);
 
-                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1) goto Error;
-                    if (!io.Write(io, TagSize, Mem)) goto Error;
+                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1)
+                    {
+                        ReturnArray(Icc.ContextID, Mem);
+                        return false;
+                    }
+
+                    if (!io.Write(io, TagSize, Mem))
+                    {
+                        ReturnArray(Icc.ContextID, Mem);
+                        return false;
+                    }
 
                     ReturnArray(Icc.ContextID, Mem);
 
@@ -1113,10 +1122,6 @@ public static partial class Lcms2
                     // Align to 32 bit boundary.
                     if (!_cmsWriteAlignment(io))
                         return false;
-
-                Error:
-                    ReturnArray(Icc.ContextID, Mem);
-                    return false;
                 }
 
                 Icc.Tags[i] = Tag;
