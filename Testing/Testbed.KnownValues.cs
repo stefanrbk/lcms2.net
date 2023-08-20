@@ -24,9 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+using lcms2.state;
 using lcms2.types;
 
 using Microsoft.Extensions.Logging;
+
+using System.Text;
 
 namespace lcms2.testbed;
 
@@ -617,5 +620,138 @@ internal static partial class Testbed
         if (!CheckOneTAC(330))
             return false;
         return true;
+    }
+
+    private static string PrintArray<T>(Span<T> values)
+    {
+        if (values.Length is 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        foreach (var v in values)
+            sb.AppendFormat(", {0}", v);
+
+        return sb.Remove(0, 2).ToString();
+    }
+    private delegate CIELab LabFn(Span<int> values);
+    private static bool CheckOneGBD(
+        LabFn Lab,
+        params (SteppedRange<int> build, SteppedRange<int>? test)[] vals)
+    {
+        if (vals.Length is 0)
+            return false;
+
+        Span<int> values = stackalloc int[vals.Length];
+        var build = vals.Select(v => v.build).ToArray();
+        var test = vals.Any(v => !v.test.HasValue)
+            ? null
+            : vals.Select(v => v.test!.Value).ToArray();
+
+        var h = cmsGBDAlloc(DbgThread());
+        if (h is null)
+        {
+            logger.LogWarning("Failed to create GBD object");
+            return false;
+        }
+
+        using (logger.BeginScope("Filling gamut"))
+        {
+            if (!@foreach(build, values, string.Format("Failed to add value ({0})", PrintArray(values))))
+            {
+                cmsGBDFree(h);
+                return false;
+            }
+
+        }
+
+        using (logger.BeginScope("GBD compute"))
+        {
+            if (!cmsGBDCompute(h, 0))
+            {
+                logger.LogWarning("GBD failed to compute");
+                cmsGBDFree(h);
+                return false;
+            }
+        }
+
+        using (logger.BeginScope("Checking gamut"))
+        {
+            if (test is not null && !@foreach(test, values, string.Format("Gamut check failed with value ({0})", PrintArray(values))))
+            {
+                cmsGBDFree(h);
+                return false;
+            }
+        }
+
+        cmsGBDFree(h);
+        return true;
+
+        bool @foreach(ReadOnlySpan<SteppedRange<int>> range, Span<int> values, string warning, int index = 0)
+        {
+            foreach (var x in vals[index].build)
+            {
+                values[index] = x;
+                if (vals.Length - 1 == index)
+                {
+                    if (!cmsGBDAddPoint(h, Lab(values)))
+                    {
+                        logger.LogWarning("{warning}", warning);
+                        cmsGBDFree(h);
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (!@foreach(range, values, warning, ++index))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    internal static bool CheckGBD()
+    {
+        var rc = false;
+
+        using (logger.BeginScope("RAW/Lab gamut"))
+        {
+            rc |= !CheckOneGBD(
+                (v) => new CIELab(v[0], v[1], v[2]),
+                (SteppedRange<int>.CreateInclusive(0, 100, 10), SteppedRange<int>.CreateInclusive(10, 90, 25)),
+                (SteppedRange<int>.CreateInclusive(-128, 128, 5), SteppedRange<int>.CreateInclusive(-120, 120, 25)),
+                (SteppedRange<int>.CreateInclusive(-128, 128, 5), SteppedRange<int>.CreateInclusive(-120, 120, 25)));
+        }
+
+        using (logger.BeginScope("sRGB gamut"))
+        {
+            var hsRGB = cmsCreate_sRGBProfile()!;
+            var hLab = cmsCreateLab4Profile(null)!;
+
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
+            cmsCloseProfile(hsRGB); cmsCloseProfile(hLab);
+
+            rc |= !CheckOneGBD(
+                (v) =>
+                {
+                    cmsDoTransform(xform, v, out CIELab Lab, 1);
+
+                    return Lab;
+                },
+                (SteppedRange<int>.CreateExclusive(0, 256, 5), SteppedRange<int>.CreateExclusive(10, 200, 10)),
+                (SteppedRange<int>.CreateExclusive(0, 256, 5), SteppedRange<int>.CreateExclusive(10, 200, 10)),
+                (SteppedRange<int>.CreateExclusive(0, 256, 5), SteppedRange<int>.CreateExclusive(10, 200, 10)));
+            cmsDeleteTransform(xform);
+        }
+
+        using (logger.BeginScope("LCh chroma ring"))
+        {
+            rc |= !CheckOneGBD(
+                v => cmsLCh2Lab(new(70, 60, v[0])),
+                (SteppedRange<int>.CreateExclusive(0, 360, 1), null));
+        }
+
+        return !rc;
     }
 }
