@@ -220,11 +220,73 @@ public static partial class Lcms2
         p.xform(p, MemoryMarshal.Cast<Tfrom, byte>(InputBuffer), MemoryMarshal.Cast<Tto, byte>(OutputBuffer), Size, 1, stride);
     }
 
-    public static void cmsDoTransformStride(
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Tfrom InputBuffer, out Tto OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransformStride(p, buf, out OutputBuffer, Size, Stride);
+    }
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, out Tto OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, out Tto OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        Span<Tto> buf = stackalloc Tto[1];
+        cmsDoTransformStride(p, InputBuffer, buf, Size, Stride);
+        OutputBuffer = buf[0];
+    }
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, out Tto OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Tfrom InputBuffer, Span<Tto> OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransformStride(p, buf, OutputBuffer, Size, Stride);
+    }
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Tto[] OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Span<Tto> OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, Tto[] OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, InputBuffer, (Span<Tto>)OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Tto[] OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Span<Tto> OutputBuffer, uint Size, uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, Size, Stride);
+
+    public static void cmsDoTransformStride<Tfrom, Tto>(
         Transform p,
-        Span<byte> InputBuffer, Span<byte> OutputBuffer,
+        ReadOnlySpan<Tfrom> InputBuffer, Span<Tto> OutputBuffer,
         uint Size,
         uint Stride)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
     {
         Stride stride;
 
@@ -233,19 +295,81 @@ public static partial class Lcms2
         stride.BytesPerPlaneIn = Stride;
         stride.BytesPerPlaneOut = Stride;
 
-        p.xform(p, InputBuffer, OutputBuffer, Size, 1, stride);
+        p.xform(p, MemoryMarshal.Cast<Tfrom, byte>(InputBuffer), MemoryMarshal.Cast<Tto, byte>(OutputBuffer), Size, 1, stride);
     }
 
-    public static void cmsDoTransformLineStride(
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Tfrom InputBuffer, out Tto OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransformLineStride(p, buf, out OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+    }
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, out Tto OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, out Tto OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        Span<Tto> buf = stackalloc Tto[1];
+        cmsDoTransformLineStride(p, InputBuffer, buf, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+        OutputBuffer = buf[0];
+    }
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, out Tto OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, out OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Tfrom InputBuffer, Span<Tto> OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
+    {
+        ReadOnlySpan<Tfrom> buf = stackalloc Tfrom[] { InputBuffer };
+        cmsDoTransformLineStride(p, buf, OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+    }
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Tto[] OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Tfrom[] InputBuffer, Span<Tto> OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, ReadOnlySpan<Tfrom> InputBuffer, Tto[] OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, InputBuffer, (Span<Tto>)OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Tto[] OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, (Span<Tto>)OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(Transform p, Span<Tfrom> InputBuffer, Span<Tto> OutputBuffer, uint PixelsPerLine, uint LineCount, uint BytesPerLineIn, uint BytesPerLineOut, uint BytesPerPlaneIn, uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged =>
+        cmsDoTransformLineStride(p, (ReadOnlySpan<Tfrom>)InputBuffer, OutputBuffer, PixelsPerLine, LineCount, BytesPerLineIn, BytesPerLineOut, BytesPerPlaneIn, BytesPerPlaneOut);
+
+    public static void cmsDoTransformLineStride<Tfrom, Tto>(
         Transform p,
-        Span<byte> InputBuffer,
-        Span<byte> OutputBuffer,
+        ReadOnlySpan<Tfrom> InputBuffer,
+        Span<Tto> OutputBuffer,
         uint PixelsPerLine,
         uint LineCount,
         uint BytesPerLineIn,
         uint BytesPerLineOut,
         uint BytesPerPlaneIn,
         uint BytesPerPlaneOut)
+        where Tfrom : unmanaged
+        where Tto : unmanaged
     {
         Stride stride;
 
@@ -254,7 +378,7 @@ public static partial class Lcms2
         stride.BytesPerPlaneIn = BytesPerPlaneIn;
         stride.BytesPerPlaneOut = BytesPerPlaneOut;
 
-        p.xform(p, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, stride);
+        p.xform(p, MemoryMarshal.Cast<Tfrom, byte>(InputBuffer), MemoryMarshal.Cast<Tto, byte>(OutputBuffer), PixelsPerLine, LineCount, stride);
     }
 
     private static void FloatXFORM(
