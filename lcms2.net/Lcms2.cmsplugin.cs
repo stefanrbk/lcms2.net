@@ -76,10 +76,6 @@ public static partial class Lcms2
         (pByte[6], pByte[1]) = (pByte[1], pByte[6]);
         (pByte[5], pByte[2]) = (pByte[2], pByte[5]);
         (pByte[4], pByte[3]) = (pByte[3], pByte[4]);
-        (pByte[3], pByte[4]) = (pByte[4], pByte[3]);
-        (pByte[2], pByte[5]) = (pByte[5], pByte[2]);
-        (pByte[1], pByte[6]) = (pByte[6], pByte[1]);
-        (pByte[0], pByte[7]) = (pByte[7], pByte[0]);
 
         return BitConverter.ToUInt64(pByte);
     }
@@ -364,7 +360,14 @@ public static partial class Lcms2
         var mon = _cmsAdjustEndianess16(Source.Month);
         var year = _cmsAdjustEndianess16(Source.Year);
 
-        Dest = new(year, mon, day, hour, min, sec);
+        try
+        {
+            Dest = new(year, mon, day, hour, min, sec);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            Dest = default;
+        }
     }
 
     [DebuggerStepThrough]
