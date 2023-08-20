@@ -1185,4 +1185,49 @@ internal static partial class Testbed
 
         return true;
     }
+
+    internal static bool CheckMeta()
+    {
+        /* open file */
+        var p = cmsOpenProfileFromMem(TestProfiles.ibm_t61);
+        if (p is null)
+            return false;
+
+        /* read dictionary, but don't do anything with the value */
+        //COMMENT OUT THE NEXT THREE LINES AND IT WORKS FINE!!!
+        var dict = cmsReadTag(p, cmsSigMetaTag);
+        if (dict is null)
+            return false;
+
+        /* serialize profile to memory */
+        var rc = cmsSaveProfileToMem(p, null, out var clen);
+        if (!rc)
+            return false;
+
+        var data = new byte[(int)clen];
+        rc = cmsSaveProfileToMem(p, data, out clen);
+        if (!rc) return false;
+
+        /* write the memory blob to a file */
+        //NOTE: The crash does not happen if cmsSaveProfileToFile() is used */
+        var fp = fopen("new.icc", "wb")!;
+        fwrite(data, 1, clen, fp);
+        fclose(fp);
+        //free(data);
+
+        cmsCloseProfile(p);
+
+        /* open newly created file and read metadata */
+        p = cmsOpenProfileFromFile("new.icc", "r")!;
+        //ERROR: Bad dictionary Name/Value
+        //ERROR: Corrupted tag 'meta'
+        //test: test.c:59: main: Assertion `dict' failed.
+        dict = cmsReadTag(p, cmsSigMetaTag);
+        if (dict is null)
+            return false;
+
+        cmsCloseProfile(p);
+        return true;
+    }
+
 }
