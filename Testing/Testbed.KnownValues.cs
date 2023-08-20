@@ -1442,4 +1442,60 @@ internal static partial class Testbed
         return true;
     }
 
+    internal static bool CheckForgedMPE()
+    {
+        const uint intent = 0;
+        const uint flags = 0;
+        Span<byte> output = stackalloc byte[4];
+
+        var srcProfile = cmsOpenProfileFromMem(TestProfiles.bad_mpe);
+        if (srcProfile is null)
+            return false;
+
+        var dstProfile = cmsCreate_sRGBProfile();
+        if (dstProfile is null)
+        {
+            cmsCloseProfile(srcProfile);
+            return false;
+        }
+
+        var srcCS = cmsGetColorSpace(srcProfile);
+        var nSrcComponents = cmsChannelsOf(srcCS);
+
+        var srcFormat = srcCS == cmsSigLabData
+            ? COLORSPACE_SH(PT_Lab) | CHANNELS_SH(nSrcComponents) | BYTES_SH(0)
+            : COLORSPACE_SH(PT_ANY) | CHANNELS_SH(nSrcComponents) | BYTES_SH(1);
+
+        cmsSetLogErrorHandler(BuildNullLogger());
+
+        var hTransform = cmsCreateTransform(srcProfile, srcFormat, dstProfile,
+            TYPE_BGR_8, intent, flags)!;
+        cmsCloseProfile(srcProfile);
+        cmsCloseProfile(dstProfile);
+
+        cmsSetLogErrorHandler(BuildDebugLogger());
+
+        // Transform should NOT be created
+        if (hTransform is null) return true;
+
+        // Never should reach here
+        if (T_BYTES(srcFormat) == 0)
+        {  // 0 means double
+            Span<double> input = stackalloc double[128];
+            for (var i = 0; i < nSrcComponents; i++)
+                input[i] = 0.5f;
+            cmsDoTransform(hTransform, input, output, 1);
+        }
+        else
+        {
+            Span<double> input = stackalloc double[128];
+            for (var i = 0; i < nSrcComponents; i++)
+                input[i] = 128;
+            cmsDoTransform(hTransform, input, output, 1);
+        }
+        cmsDeleteTransform(hTransform);
+
+        return false;
+    }
+
 }

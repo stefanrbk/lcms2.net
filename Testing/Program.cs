@@ -290,7 +290,7 @@ if (doCheckTests)
         Check("Planar 8 optimization", CheckPlanar8opt);
         Check("Swap endian feature", CheckSE);
         Check("Transform line stride RGB", CheckTransformLineStride);
-        //Check("Forged MPE profile", CheckForgedMPE);
+        Check("Forged MPE profile", CheckForgedMPE);
         //Check("Proofing intersection", CheckProofingIntersection);
         //Check("Empty MLUC", CheckEmptyMLUC);
         //Check("sRGB round-trips", Check_sRGB_Rountrips);
