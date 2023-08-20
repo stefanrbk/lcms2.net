@@ -1604,7 +1604,7 @@ public static partial class Lcms2
             var R = (float)(i / 16384.0);
             var Val = cmsEvalToneCurveFloat(Curve, R);
 
-            Val = Math.Max(Math.Min(Val, 0), 1);
+            Val = Math.Max(Math.Min(Val, 1), 0);
 
             if (Is8BitsOutput)
             {
