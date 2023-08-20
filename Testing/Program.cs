@@ -285,7 +285,7 @@ if (doCheckTests)
         Check("Read RAW portions", CheckReadRAW);
         Check("Check MetaTag", CheckMeta);
         Check("Null transform on floats", CheckFloatNULLxform);
-        //Check("Set free a tag", CheckRemoveTag);
+        Check("Set free a tag", CheckRemoveTag);
         //Check("Matrix simplification", CheckMatrixSimplify);
         //Check("Planar 8 optimization", CheckPlanar8opt);
         //Check("Swap endian feature", CheckSE);

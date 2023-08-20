@@ -1261,4 +1261,30 @@ internal static partial class Testbed
         return true;
     }
 
+    internal static bool CheckRemoveTag()
+    {
+        var p = cmsCreate_sRGBProfileTHR(null)!;
+
+        /* set value */
+        var mlu = cmsMLUalloc(null, 1);
+        var ret = cmsMLUsetASCII(mlu, "en"u8, "US"u8, "bar"u8);
+        if (!ret)
+            return false;
+
+        ret = cmsWriteTag(p, cmsSigDeviceMfgDescTag, mlu);
+        if (!ret)
+            return false;
+
+        cmsMLUfree(mlu);
+
+        /* remove the tag  */
+        ret = cmsWriteTag(p, cmsSigDeviceMfgDescTag, null);
+        if (!ret)
+            return false;
+
+        /* THIS EXPLODES */
+        cmsCloseProfile(p);
+        return true;
+    }
+
 }
