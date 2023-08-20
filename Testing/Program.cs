@@ -284,7 +284,7 @@ if (doCheckTests)
         Check("Floating Point segmented curve with short sampled segment", CheckFloatSegments);
         Check("Read RAW portions", CheckReadRAW);
         Check("Check MetaTag", CheckMeta);
-        //Check("Null transform on floats", CheckFloatNULLxform);
+        Check("Null transform on floats", CheckFloatNULLxform);
         //Check("Set free a tag", CheckRemoveTag);
         //Check("Matrix simplification", CheckMatrixSimplify);
         //Check("Planar 8 optimization", CheckPlanar8opt);

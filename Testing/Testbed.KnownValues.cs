@@ -1230,4 +1230,35 @@ internal static partial class Testbed
         return true;
     }
 
+
+    // Bug on applying null transforms on floating point buffers
+    internal static bool CheckFloatNULLxform()
+    {
+        Span<float> @in = stackalloc float[10] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        Span<float> @out = stackalloc float[10];
+
+        var xform = cmsCreateTransform(null, TYPE_GRAY_FLT, null, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, cmsFLAGS_NULLTRANSFORM);
+
+        if (xform is null)
+        {
+            logger.LogWarning("Unable to create float null transform");
+            return false;
+        }
+
+        cmsDoTransform(xform, @in, @out, 10);
+
+        cmsDeleteTransform(xform);
+        for (var i = 0; i < 10; i++)
+        {
+
+            if (!IsGoodVal("float nullxform", @in[i], @out[i], 0.001))
+            {
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 }
