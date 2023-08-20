@@ -275,7 +275,7 @@ if (doCheckTests)
         //Check("CGATS parser on overflow", CheckCGATS_Overflow);
         //Check("PostScript generator", CheckPostScript);
         Check("Segment maxima GBD", CheckGBD);
-        //Check("MD5 digest", CheckMD5);
+        Check("MD5 digest", CheckMD5);
         //Check("Linking", CheckLinking);
         //Check("floating point tags on XYZ", CheckFloatXYZ);
         //Check("RGB->Lab->RGB with alpha on FLT", ChecksRGB2LabFLT);

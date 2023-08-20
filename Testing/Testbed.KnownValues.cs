@@ -754,4 +754,48 @@ internal static partial class Testbed
 
         return !rc;
     }
+
+    internal static bool CheckMD5()
+    {
+        bool rc = false;
+
+        using (logger.BeginScope("TestProfiles.test1"))
+            rc |= !check(cmsOpenProfileFromMem(TestProfiles.test1)!);
+
+        using (logger.BeginScope("TestProfiles.test2"))
+            rc |= !check(cmsOpenProfileFromMem(TestProfiles.test2)!);
+
+        using (logger.BeginScope("TestProfiles.test3"))
+            rc |= !check(cmsOpenProfileFromMem(TestProfiles.test3)!);
+
+        using (logger.BeginScope("TestProfiles.test4"))
+            rc |= !check(cmsOpenProfileFromMem(TestProfiles.test4)!);
+
+        return !rc;
+
+        static bool check(Profile h)
+        {
+            Span<byte> profileID1 = stackalloc byte[16];
+            Span<byte> profileID2 = stackalloc byte[16];
+
+            cmsGetHeaderProfileID(h, profileID1);
+            if (!cmsMD5computeID(h))
+            {
+                logger.LogWarning("Failed to compute Profile ID");
+                return false;
+
+            }
+            else
+            {
+                cmsGetHeaderProfileID(h, profileID2);
+                for (var i = 0; i < 16; i++)
+                {
+                    if (profileID1[i] != profileID2[i])
+                        return false;
+                }
+            }
+            return true;
+        }
+    }
+
 }
