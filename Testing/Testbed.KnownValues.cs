@@ -29,6 +29,7 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace lcms2.testbed;
@@ -1305,6 +1306,105 @@ internal static partial class Testbed
 
         return buf[0] == 144 && buf[1] == 0 && buf[2] == 69;
     }
+
+    internal static bool CheckTransformLineStride()
+    {
+        // Our buffer is formed by 4 RGB8 lines, each line is 2 pixels wide plus a padding of one byte
+        ReadOnlySpan<byte> buf1 = stackalloc byte[] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0,
+                                              0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0,
+                                              0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0,
+                                              0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, };
+
+        // Our buffer2 is formed by 4 RGBA lines, each line is 2 pixels wide plus a padding of one byte
+        ReadOnlySpan<byte> buf2 = stackalloc byte[] { 0xff, 0xff, 0xff, 1, 0xff, 0xff, 0xff, 1, 0,
+                                              0xff, 0xff, 0xff, 1, 0xff, 0xff, 0xff, 1, 0,
+                                              0xff, 0xff, 0xff, 1, 0xff, 0xff, 0xff, 1, 0,
+                                              0xff, 0xff, 0xff, 1, 0xff, 0xff, 0xff, 1, 0};
+
+        // Our buffer3 is formed by 4 RGBA16 lines, each line is 2 pixels wide plus a padding of two bytes
+        ReadOnlySpan<ushort> buf3 = stackalloc ushort[] { 0xffff, 0xffff, 0xffff, 0x0101, 0xffff, 0xffff, 0xffff, 0x0101, 0,
+                                                  0xffff, 0xffff, 0xffff, 0x0101, 0xffff, 0xffff, 0xffff, 0x0101, 0,
+                                                  0xffff, 0xffff, 0xffff, 0x0101, 0xffff, 0xffff, 0xffff, 0x0101, 0,
+                                                  0xffff, 0xffff, 0xffff, 0x0101, 0xffff, 0xffff, 0xffff, 0x0101, 0 };
+        var buf3AsBytes = MemoryMarshal.Cast<ushort, byte>(buf3);
+
+        Span<byte> @out = stackalloc byte[1024];
+
+
+        var pIn = cmsCreate_sRGBProfile()!;
+        var pOut = cmsOpenProfileFromMem(TestProfiles.ibm_t61)!;
+        if (pIn is null || pOut is null)
+            return false;
+
+        var t = cmsCreateTransform(pIn, TYPE_RGB_8, pOut, TYPE_RGB_8, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA)!;
+
+        cmsDoTransformLineStride(t, buf1, @out, 2, 4, 7, 7, 0, 0);
+        cmsDeleteTransform(t);
+
+        if (memcmp(@out, buf1) != 0)
+        {
+            logger.LogWarning("Failed transform line stride on RGB8");
+            cmsCloseProfile(pIn);
+            cmsCloseProfile(pOut);
+            return false;
+        }
+
+        @out.Clear();
+
+        t = cmsCreateTransform(pIn, TYPE_RGBA_8, pOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA)!;
+
+        cmsDoTransformLineStride(t, buf2, @out, 2, 4, 9, 9, 0, 0);
+
+        cmsDeleteTransform(t);
+
+
+        if (memcmp(@out, buf2) != 0)
+        {
+            cmsCloseProfile(pIn);
+            cmsCloseProfile(pOut);
+            logger.LogWarning("Failed transform line stride on RGBA8");
+            return false;
+        }
+
+        @out.Clear();
+
+        t = cmsCreateTransform(pIn, TYPE_RGBA_16, pOut, TYPE_RGBA_16, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA)!;
+
+        cmsDoTransformLineStride(t, buf3AsBytes, @out, 2, 4, 18, 18, 0, 0);
+
+        cmsDeleteTransform(t);
+
+        if (memcmp(@out, buf3AsBytes) != 0)
+        {
+            cmsCloseProfile(pIn);
+            cmsCloseProfile(pOut);
+            logger.LogWarning("Failed transform line stride on RGBA16");
+            return false;
+        }
+
+        @out.Clear();
+
+        // From 8 to 16
+        t = cmsCreateTransform(pIn, TYPE_RGBA_8, pOut, TYPE_RGBA_16, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA)!;
+
+        cmsDoTransformLineStride(t, buf2, @out, 2, 4, 9, 18, 0, 0);
+
+        cmsDeleteTransform(t);
+
+        if (memcmp(@out, buf2) != 0)
+        {
+            cmsCloseProfile(pIn);
+            cmsCloseProfile(pOut);
+            logger.LogWarning("Failed transform line stride on RGBA16");
+            return false;
+        }
+
+        cmsCloseProfile(pIn);
+        cmsCloseProfile(pOut);
+
+        return true;
+    }
+
     internal static bool CheckPlanar8opt()
     {
         var aboveRGB = Create_AboveRGB()!;
