@@ -1105,6 +1105,7 @@ internal static partial class Testbed
         Seg[0].x0 = -1e22f;      // -infinity
         Seg[0].x1 = 0.1f;
         Seg[0].Type = 6;             // Y = (a * X + b) ^ Gamma + c
+        Seg[0].Params = new double[10];
         Seg[0].Params[0] = 1.0f;     // gamma
         Seg[0].Params[1] = 0.9f;     // a
         Seg[0].Params[2] = 0.0f;        // b
@@ -1130,6 +1131,7 @@ internal static partial class Testbed
         Seg[2].x1 = 1e22f;   // +infinity
         Seg[2].Type = 6;
 
+        Seg[2].Params = new double[10];
         Seg[2].Params[0] = 1.0f;
         Seg[2].Params[1] = 0.9f;
         Seg[2].Params[2] = 0.0f;
