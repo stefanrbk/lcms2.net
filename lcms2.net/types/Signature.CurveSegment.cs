@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -34,9 +34,9 @@ public partial struct Signature
     {
         #region Fields
 
-        public static readonly Signature Formula = new("parf");
-        public static readonly Signature Sampled = new("samf");
-        public static readonly Signature Segmented = new("curf");
+        //public static readonly Signature Formula = new("parf"u8);
+        //public static readonly Signature Sampled = new("samf"u8);
+        //public static readonly Signature Segmented = new("curf"u8);
 
         #endregion Fields
     }

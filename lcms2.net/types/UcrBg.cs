@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,50 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public class UcrBg : ICloneable, IDisposable
+public struct UcrBg
 {
-    #region Fields
-
-    public ToneCurve Bg;
-    public Mlu Description;
     public ToneCurve Ucr;
-
-    private bool _disposed;
-
-    #endregion Fields
-
-    #region Public Constructors
-
-    public UcrBg(ToneCurve ucr, ToneCurve bg, Mlu description)
-    {
-        Ucr = ucr;
-        Bg = bg;
-        Description = description;
-
-        _disposed = false;
-    }
-
-    #endregion Public Constructors
-
-    #region Public Methods
-
-    public object Clone() =>
-        new UcrBg((ToneCurve)Ucr.Clone(), (ToneCurve)Bg.Clone(), (Mlu)Description.Clone());
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            Ucr?.Dispose();
-            Bg?.Dispose();
-            Description?.Dispose();
-
-            _disposed = true;
-        }
-        GC.SuppressFinalize(this);
-    }
-
-    #endregion Public Methods
+    public ToneCurve Bg;
+    public Mlu Desc;
 }

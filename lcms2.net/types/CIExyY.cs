@@ -24,11 +24,17 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public struct CIExyY
+public struct CIExyY(double x, double y, double Y)
 {
-    public double x;
-    public double y;
-    public double Y;
+    public double x = x;
+    public double y = y;
+    public double Y = Y;
+
+    public static readonly CIExyY NaN = new(double.NaN, double.NaN, double.NaN);
+
+    public bool IsNaN =>
+        double.IsNaN(x) || double.IsNaN(y) || double.IsNaN(Y);
 }

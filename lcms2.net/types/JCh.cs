@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,50 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public struct JCh : ICloneable
+public struct JCh
 {
-    #region Fields
-
-    public double C;
-
-    public double h;
-
     public double J;
-
-    #endregion Fields
-
-    #region Public Constructors
-
-    public JCh(double j, double c, double h) =>
-        (J, C, this.h) = (j, c, h);
-
-    #endregion Public Constructors
-
-    #region Properties
-
-    public static JCh NaN =>
-                        new(Double.NaN, Double.NaN, Double.NaN);
-
-    public bool IsNaN =>
-        Double.IsNaN(J) || Double.IsNaN(C) || Double.IsNaN(h);
-
-    #endregion Properties
-
-    #region Public Methods
-
-    public static explicit operator Vec3(JCh value) =>
-        value.ToVec();
-
-    public static implicit operator JCh((double, double, double) v) =>
-            new(v.Item1, v.Item2, v.Item3);
-
-    public object Clone() =>
-           new JCh(J, C, h);
-
-    public Vec3 ToVec() =>
-        new(J, C, h);
-
-    #endregion Public Methods
+    public double C;
+    public double h;
 }

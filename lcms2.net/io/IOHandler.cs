@@ -24,53 +24,28 @@
 //
 //---------------------------------------------------------------------------------
 //
+
+using lcms2.state;
+
 namespace lcms2.io;
-
-internal unsafe delegate uint ReadFn(IOHandler io, void* buffer, uint size, uint count);
-
-internal unsafe delegate bool WriteFn(IOHandler io, uint size, in void* buffer);
-
-internal delegate bool SeekFn(IOHandler io, uint offset);
-
-internal delegate bool CloseFn(IOHandler io);
-
-internal delegate uint TellFn(IOHandler io);
 
 public class IOHandler
 {
-    object? stream;
-    Context? contextID;
-    uint usedSpace;
-    uint reportedSize;
-    string? physicalFile;
+    internal object? stream;
+    internal Context? ContextID;
+    internal uint UsedSpace;
+    internal uint reportedSize;
+    internal string? physicalFile;
 
-    ReadFn read;
-    SeekFn seek;
-    CloseFn close;
-    TellFn tell;
-    WriteFn write;
+    internal delegate uint ReadFn(IOHandler iohandler, Span<byte> buffer, uint size, uint count);
+    internal delegate bool SeekFn(IOHandler iohandler, uint offset);
+    internal delegate bool CloseFn(IOHandler iohandler);
+    internal delegate uint TellFn(IOHandler iohandler);
+    internal delegate bool WriteFn(IOHandler iohandler, uint size, ReadOnlySpan<byte> buffer);
 
-    internal IOHandler(ReadFn read, SeekFn seek, CloseFn close, TellFn tell, WriteFn write)
-    {
-        this.read = read;
-        this.seek = seek;
-        this.close = close;
-        this.tell = tell;
-        this.write = write;
-    }
-
-    public unsafe uint Read(IOHandler io, void* buffer, uint size, uint count) =>
-        read(io, buffer, size, count);
-
-    public bool Seek(IOHandler io, uint offset) =>
-        seek(io, offset);
-
-    public bool Close(IOHandler io) =>
-        close(io);
-
-    public uint Tell(IOHandler io) =>
-        tell(io);
-
-    public unsafe bool Write(IOHandler io, uint size, in void* buffer) =>
-        write(io, size, buffer);
+    internal ReadFn Read;
+    internal SeekFn Seek;
+    internal CloseFn Close;
+    internal TellFn Tell;
+    internal WriteFn Write;
 }

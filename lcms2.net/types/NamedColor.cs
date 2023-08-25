@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,33 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-internal class NamedColor : ICloneable
+public class NamedColor
 {
-    #region Fields
-
-    internal ushort[] deviceColorant = new ushort[maxChannels];
-    internal string name;
-    internal ushort[] pcs = new ushort[3];
-
-    #endregion Fields
-
-    #region Public Constructors
-
-    public NamedColor(string name) =>
-        this.name = name;
-
-    #endregion Public Constructors
-
-    #region Public Methods
-
-    public object Clone() =>
-        new NamedColor(name)
-        {
-            deviceColorant = (ushort[])deviceColorant.Clone(),
-            pcs = (ushort[])pcs.Clone()
-        };
-
-    #endregion Public Methods
+    public byte[] Name;/*[cmsMAX_PATH]*/
+    public ushort[] PCS;/*[3]*/
+    public ushort[] DeviceColorant;/*[cmsMAXCHANNELS]*/
 }

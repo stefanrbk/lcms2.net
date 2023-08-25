@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,50 +24,35 @@
 //
 //---------------------------------------------------------------------------------
 //
-using System.Text;
+
+using System.Diagnostics;
 
 namespace lcms2.types;
 
-public partial struct Signature : ICloneable
+public readonly partial struct Signature : ICloneable
 {
     #region Fields
 
-    public static readonly Signature LcmsSignature = new("lcms");
-    public static readonly Signature MagicNumber = new("ascp");
+    //public static readonly Signature LcmsSignature = new("lcms"u8);
+    //public static readonly Signature MagicNumber = new("ascp"u8);
 
     private readonly uint _value;
 
     #endregion Fields
 
     #region Public Constructors
-
+    
+    [DebuggerStepThrough]
     public Signature(uint value) =>
-           _value = value;
+        _value = value;
 
-    public Signature(string value)
+    public Signature(ReadOnlySpan<byte> value)
     {
-        byte[] bytes = { 0x20, 0x20, 0x20, 0x20 };
-        var s = Encoding.ASCII.GetBytes(value);
-        switch (s.Length)
-        {
-            case 0:
-                break;
-
-            case 1:
-                bytes[0] = s[0];
-                break;
-
-            case 2:
-                bytes[1] = s[1];
-                goto case 1;
-            case 3:
-                bytes[2] = s[2];
-                goto case 2;
-            default:
-                bytes[3] = s[3];
-                goto case 3;
-        };
-        this._value = ((uint)bytes[0] << 24) + ((uint)bytes[1] << 16) + ((uint)bytes[2] << 8) + bytes[3];
+        Span<byte> bytes = stackalloc byte[] { 0x20, 0x20, 0x20, 0x20 };
+        if (value.Length > 4)
+            value = value[..4];
+        value.CopyTo(bytes);
+        _value = BitConverter.ToUInt32(bytes);
     }
 
     #endregion Public Constructors
@@ -77,19 +62,16 @@ public partial struct Signature : ICloneable
     public static implicit operator uint(Signature v) =>
         v._value;
 
+    public static implicit operator Signature(uint v) =>
+        new(v);
+
     public object Clone() =>
         new Signature(_value);
 
     public override string ToString()
     {
-        var str = new char[4];
-
-        str[0] = (char)((_value >> 24) & 0xFF);
-        str[1] = (char)((_value >> 16) & 0xFF);
-        str[2] = (char)((_value >> 8) & 0xFF);
-        str[3] = (char)(_value & 0xFF);
-
-        return new string(str);
+        _cmsTagSignature2String(this);
+        return _cmsTagSignature2String(this);
     }
 
     #endregion Public Methods

@@ -24,11 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public struct CIELab
+public struct CIELab(double L, double a, double b)
 {
-    public double L;
-    public double a;
-    public double b;
+    public double L = L;
+    public double a = a;
+    public double b = b;
 }

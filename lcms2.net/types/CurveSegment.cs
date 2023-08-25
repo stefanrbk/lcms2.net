@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,31 +24,14 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public class CurveSegment
+public struct CurveSegment
 {
-    #region Fields
-
-    // Parameters if Type != 0;
-    public readonly double[] Params = new double[10];
-
-    // Points to an array of floats if Type == 0;
-    public float[]? SampledPoints;
-
-    // Parametric type, Type == 0 means sampled segment. Negative values are reserved
-    public int Type;
-
-    // Domain; for X0 < x <= X1
-    public float X0, X1;
-
-    #endregion Fields
-
-    #region Properties
-
-    // Number of grid points if Type == 0
-    public uint NumGridPoints =>
-        (uint?)SampledPoints?.Length ?? 0u;
-
-    #endregion Properties
+    internal float x0, x1;
+    internal int Type;
+    internal double[] Params;
+    internal uint nGridPoints;
+    internal float[]? SampledPoints;
 }

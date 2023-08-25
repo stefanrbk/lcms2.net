@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,39 +24,14 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public class IccMeasurementConditions : ICloneable
+public struct IccMeasurementConditions
 {
-    #region Fields
-
-    // Value of backing
-    public XYZ Backing;
-
-    // 0..1.0
-    public double Flare;
-
-    // 0=unknown, 1=45/0, 0/45 2=0d, d/0
-    public uint Geometry;
-
-    public IlluminantType IlluminantType;
-
-    // 0 = unknown, 1=CIE 1931, 2=CIE 1964
     public uint Observer;
-
-    #endregion Fields
-
-    #region Public Methods
-
-    public object Clone() =>
-        new IccMeasurementConditions()
-        {
-            Observer = Observer,
-            Backing = Backing,
-            Geometry = Geometry,
-            Flare = Flare,
-            IlluminantType = IlluminantType,
-        };
-
-    #endregion Public Methods
+    public CIEXYZ Backing;
+    public uint Geometry;
+    public double Flare;
+    public IlluminantType IlluminantType;
 }

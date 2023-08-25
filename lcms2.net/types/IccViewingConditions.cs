@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,33 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public class IccViewingConditions : ICloneable
+public struct IccViewingConditions
 {
-    #region Fields
-
+    public CIEXYZ IlluminantXYZ;
+    public CIEXYZ SurroundXYZ;
     public IlluminantType IlluminantType;
-    public XYZ IlluminantXyz;
-    public XYZ SurroundXyz;
-
-    #endregion Fields
-
-    #region Public Constructors
-
-    public IccViewingConditions(XYZ illuminantXyz, XYZ surroundXyz, IlluminantType illuminantType)
-    {
-        IlluminantXyz = illuminantXyz;
-        SurroundXyz = surroundXyz;
-        IlluminantType = illuminantType;
-    }
-
-    #endregion Public Constructors
-
-    #region Public Methods
-
-    public object Clone() =>
-        new IccViewingConditions(IlluminantXyz, SurroundXyz, IlluminantType);
-
-    #endregion Public Methods
 }

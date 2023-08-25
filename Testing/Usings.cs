@@ -24,8 +24,5 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using lcms2;
-
-global using static lcms2.Helpers;
 global using static lcms2.Lcms2;
-global using static lcms2.testing.Utils;
+global using static lcms2.testbed.Testbed;

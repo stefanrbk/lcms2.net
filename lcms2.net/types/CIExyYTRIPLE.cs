@@ -24,11 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public struct CIExyYTRIPLE
+public struct CIExyYTRIPLE(CIExyY r, CIExyY g, CIExyY b)
 {
-    public CIExyY Red;
-    public CIExyY Green;
-    public CIExyY Blue;
+    public CIExyY Red = r;
+    public CIExyY Green = g;
+    public CIExyY Blue = b;
 }

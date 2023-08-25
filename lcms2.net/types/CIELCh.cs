@@ -24,11 +24,12 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 namespace lcms2.types;
 
-public struct CIELCh
+public struct CIELCh(double L, double C, double h)
 {
-    public double L;
-    public double C;
-    public double h;
+    public double L = L;
+    public double C = C;
+    public double h = h;
 }

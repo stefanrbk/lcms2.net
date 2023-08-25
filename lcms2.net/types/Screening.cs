@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,81 +24,15 @@
 //
 //---------------------------------------------------------------------------------
 //
+
+using lcms2.state;
+
 namespace lcms2.types;
 
-public struct ScreeningChannel
+public struct Screening(Context? context)
 {
-    #region Fields
-
-    public double Frequency;
-    public double ScreenAngle;
-    public SpotShape SpotShape;
-
-    #endregion Fields
-}
-
-public class Screening : ICloneable
-{
-    #region Fields
-
-    public ScreeningChannel[] Channels;
-    public uint Flags;
-
-    #endregion Fields
-
-    #region Public Constructors
-
-    public Screening(uint flags, int numChannels)
-    {
-        Flags = flags;
-        Channels = new ScreeningChannel[numChannels];
-    }
-
-    #endregion Public Constructors
-
-    #region Properties
-
-    public int NumChannels
-    {
-        get =>
-            Channels.Length;
-        set
-        {
-            var temp = new ScreeningChannel[value];
-
-            if (Channels.Length > value)
-                Channels[..value].CopyTo(temp.AsSpan());
-            else
-                Channels.CopyTo(temp[..Channels.Length].AsSpan());
-
-            Channels = temp;
-        }
-    }
-
-    #endregion Properties
-
-    #region Public Methods
-
-    public object Clone()
-    {
-        Screening result = new(Flags, NumChannels);
-
-        Channels.CopyTo(result.Channels, 0);
-
-        return result;
-    }
-
-    #endregion Public Methods
-}
-
-public enum SpotShape
-{
-    Unknown = 0,
-    PrinterDefault = 1,
-    Round = 2,
-    Diamond = 3,
-    Ellipse = 4,
-    Line = 5,
-    Square = 6,
-    Cross = 7,
+    public uint Flag;
+    public uint nChannels;
+    internal readonly ScreeningChannel[] channels = Context.GetPool<ScreeningChannel>(context).Rent(cmsMAXCHANNELS * 4);
+    public readonly Span<ScreeningChannel> Channels => channels.AsSpan(..(cmsMAXCHANNELS * 4));
 }

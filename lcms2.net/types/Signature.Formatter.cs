@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,6 @@
 //---------------------------------------------------------------------------------
 //
 using System.Globalization;
-using System.Text;
 
 namespace lcms2.types;
 
@@ -46,14 +45,8 @@ public partial struct Signature
             {
                 // Text output
                 if (format?.ToUpper().StartsWith("T") ?? false)
-                {
-                    var sb = new StringBuilder(4);
-                    sb.Append((char)((value._value >> 24) & 0xFF));
-                    sb.Append((char)((value._value >> 16) & 0xFF));
-                    sb.Append((char)((value._value >> 8) & 0xFF));
-                    sb.Append((char)(value._value & 0xFF));
-                    return sb.ToString();
-                }
+                    return value.ToString();
+
                 // Hex output
                 if (format?.ToUpper().StartsWith("X") ?? false)
                     return String.Format(provider, "{" + format + "}", (uint)obj);

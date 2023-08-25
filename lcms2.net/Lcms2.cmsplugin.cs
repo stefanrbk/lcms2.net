@@ -26,215 +26,229 @@
 //
 
 using lcms2.io;
-using lcms2.plugins;
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using S15Fixed16Number = System.Int32;
 
 namespace lcms2;
 
-public static unsafe partial class Lcms2
+public static partial class Lcms2
 {
     private static readonly object contextPoolHeadMutex = new();
-    private static Context? contextPoolHead;
+    private static List<Context> contextPoolHead = new();
 
     private static readonly Context globalContext;
 
-    static Lcms2()
-    {
-        globalContext = new()
-        {
-            chunks = new object?[(int)Chunks.Max]
-        {
-            null,
-            globalLogErrorChunk,
-            globalAlarmCodesChunk,
-            globalAdaptationStateChunk,
-            globalInterpPluginChunk,
-            globalCurvePluginChunk,
-            globalFormattersPluginChunk,
-            globalTagTypePluginChunk,
-            globalTagPluginChunk,
-            globalIntentsPluginChunk,
-            globalMPETypePluginChunk,
-            globalOptimizationPluginChunk,
-            globalTransformPluginChunk,
-            globalMutexPluginChunk,
-        }
-        };
-    }
-
+    [DebuggerStepThrough]
     internal static ushort _cmsAdjustEndianess16(ushort Word)
     {
-        var pByte = (byte*)&Word;
+        Span<byte> pByte = stackalloc byte[2];
+        BitConverter.TryWriteBytes(pByte, Word);
 
-        var tmp = *pByte;
-        *pByte = *++pByte;
-        *pByte = tmp;
-
-        return Word;
+        (pByte[1], pByte[0]) = (pByte[0], pByte[1]);
+        return BitConverter.ToUInt16(pByte);
     }
 
+    [DebuggerStepThrough]
     internal static uint _cmsAdjustEndianess32(uint DWord)
     {
-        var pByte = (byte*)&DWord;
+        Span<byte> pByte = stackalloc byte[4];
+        BitConverter.TryWriteBytes(pByte, DWord);
 
-        var temp1 = *pByte++;
-        var temp2 = *pByte++;
-        *(pByte - 1) = *pByte;
-        *pByte++ = temp2;
-        *(pByte - 3) = *pByte;
-        *pByte++ = temp1;
-
-        return DWord;
+        (pByte[3], pByte[2], pByte[1], pByte[0]) = (pByte[0], pByte[1], pByte[2], pByte[3]);
+        return BitConverter.ToUInt32(pByte);
     }
 
-    internal static void _cmsAdjustEndianess64(ulong* Result, ulong QWord)
+    [DebuggerStepThrough]
+    internal static ulong _cmsAdjustEndianess64(ulong QWord)
     {
-        var pIn = (byte*)&QWord;
-        var pOut = (byte*)Result;
+        Span<byte> pByte = stackalloc byte[8];
+        BitConverter.TryWriteBytes(pByte, QWord);
 
-        pOut[7] = pIn[0];
-        pOut[6] = pIn[1];
-        pOut[5] = pIn[2];
-        pOut[4] = pIn[3];
-        pOut[3] = pIn[4];
-        pOut[2] = pIn[5];
-        pOut[1] = pIn[6];
-        pOut[0] = pIn[7];
+        (pByte[7], pByte[0]) = (pByte[0], pByte[7]);
+        (pByte[6], pByte[1]) = (pByte[1], pByte[6]);
+        (pByte[5], pByte[2]) = (pByte[2], pByte[5]);
+        (pByte[4], pByte[3]) = (pByte[3], pByte[4]);
+
+        return BitConverter.ToUInt64(pByte);
     }
 
-    internal static bool _cmsReadUInt8Number(IOHandler io, byte* n)
+    [DebuggerStepThrough]
+    internal static bool _cmsReadUInt8Number(IOHandler io, out byte n)
     {
-        byte tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[1];
 
-        if (io.Read(io, &tmp, sizeof(byte), 1) != 1)
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(byte), 1) != 1)
             return false;
 
-        if (n is not null) *n = tmp;
+        n = tmp[0];
         return true;
     }
 
-    internal static bool _cmsReadUInt16Number(IOHandler io, ushort* n)
+    [DebuggerStepThrough]
+    internal static bool _cmsReadUInt16Number(IOHandler io, out ushort n)
     {
-        ushort tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[2];
 
-        if (io.Read(io, &tmp, sizeof(ushort), 1) != 1)
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(ushort), 1) != 1)
             return false;
 
-        if (n is not null) *n = _cmsAdjustEndianess16(tmp);
+        n = _cmsAdjustEndianess16(BitConverter.ToUInt16(tmp));
         return true;
     }
 
-    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, ushort* array)
+    [DebuggerStepThrough]
+    internal static bool _cmsReadUInt16Array(IOHandler io, uint n, Span<ushort> array)
     {
+        _cmsAssert(io);
+
         for (var i = 0; i < n; i++)
         {
-            if (array is not null)
-            {
-                if (!_cmsReadUInt16Number(io, array + i))
-                    return false;
-            }
-            else
-            {
-                if (!_cmsReadUInt16Number(io, null))
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    internal static bool _cmsReadUInt32Number(IOHandler io, uint* n)
-    {
-        uint tmp;
-
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
-            return false;
-
-        if (n is not null) *n = _cmsAdjustEndianess32(tmp);
-        return true;
-    }
-
-    internal static bool _cmsReadFloat32Number(IOHandler io, float* n)
-    {
-        uint tmp;
-
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
-            return false;
-
-        if (n is not null)
-        {
-            tmp = _cmsAdjustEndianess32(tmp);
-            *n = *(float*)(void*)&tmp;
-
-            // Safeguard which covers against absurd values
-            if (*n is > 1E+20f or < -1E+20f)
+            if (!_cmsReadUInt16Number(io, out array[i]))
                 return false;
-
-            // I guess we don't deal with subnormal values!
-            return Single.IsNormal(*n) || *n is 0;
         }
-
         return true;
     }
 
-    internal static bool _cmsReadUInt64Number(IOHandler io, ulong* n)
+    [DebuggerStepThrough]
+    internal static bool _cmsReadUInt32Number(IOHandler io, out uint n)
     {
-        ulong tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
 
-        if (io.Read(io, &tmp, sizeof(ulong), 1) != 1)
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        if (n is not null) _cmsAdjustEndianess64(n, tmp);
+        n = _cmsAdjustEndianess32(BitConverter.ToUInt32(tmp));
         return true;
     }
 
-    internal static bool _cmsRead15Fixed16Number(IOHandler io, double* n)
+    [DebuggerStepThrough]
+    internal static bool _cmsReadFloat32Number(IOHandler io, out float n)
     {
-        uint tmp;
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
 
-        if (io.Read(io, &tmp, sizeof(uint), 1) != 1)
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        if (n is not null)
-            *n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(tmp));
+        n = BitConverter.UInt32BitsToSingle(_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
 
-        return true;
-    }
-
-    internal static bool _cmsReadXYZNumber(IOHandler io, CIEXYZ* XYZ)
-    {
-        EncodedXYZNumber xyz;
-
-        if (io.Read(io, &xyz, (uint)sizeof(EncodedXYZNumber), 1) != 1)
+        // Safeguard which covers against absurd values
+        if (n is > 1E+20f or < -1E+20f)
             return false;
 
-        if (XYZ is not null)
-        {
-            XYZ->X = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.X));
-            XYZ->Y = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.Y));
-            XYZ->Z = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32((uint)xyz.Z));
-        }
+        // I guess we don't deal with subnormal values!
+        return Single.IsNormal(n) || n is 0;
+    }
+
+    [DebuggerStepThrough]
+    internal static bool _cmsReadSignature(IOHandler io, out Signature sig)
+    {
+        sig = 0;
+
+        if (!_cmsReadUInt32Number(io, out var value))
+            return false;
+
+        sig = value;
+        return true;
+    }
+
+    [DebuggerStepThrough]
+    internal static bool _cmsReadUInt64Number(IOHandler io, out ulong n)
+    {
+        n = 0;
+        Span<byte> tmp = stackalloc byte[8];
+
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(ulong), 1) != 1)
+            return false;
+
+        n = _cmsAdjustEndianess64(BitConverter.ToUInt64(tmp));
+        return true;
+    }
+
+    [DebuggerStepThrough]
+    internal static bool _cmsRead15Fixed16Number(IOHandler io, out double n)
+    {
+        n = 0;
+        Span<byte> tmp = stackalloc byte[4];
+
+        _cmsAssert(io);
+
+        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
+            return false;
+
+        n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
 
         return true;
     }
 
-    internal static bool _cmsWriteUInt8Number(IOHandler io, byte n) =>
-        io.Write(io, sizeof(byte), &n);
+    [DebuggerStepThrough]
+    internal static bool _cmsReadXYZNumber(IOHandler io, out CIEXYZ XYZ)
+    {
+        XYZ = new CIEXYZ();
+        Span<byte> xyz = stackalloc byte[(sizeof(uint) * 3)];
 
+        _cmsAssert(io);
+
+        if (io.Read(io, xyz, (sizeof(uint) * 3), 1) != 1)
+            return false;
+
+        var ints = MemoryMarshal.Cast<byte, uint>(xyz);
+
+        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[0]));
+        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[1]));
+        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[2]));
+
+        return true;
+    }
+
+    [DebuggerStepThrough]
+    internal static bool _cmsWriteUInt8Number(IOHandler io, byte n)
+    {
+        _cmsAssert(io);
+
+        Span<byte> tmp = stackalloc byte[1] { n };
+
+        return io.Write(io, sizeof(byte), tmp);
+    }
+
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
     {
-        var tmp = _cmsAdjustEndianess16(n);
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(ushort), &tmp);
+        Span<byte> tmp = stackalloc byte[2];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess16(n));
+
+        return io.Write(io, sizeof(ushort), tmp);
     }
 
-    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, in ushort* array)
+    [DebuggerStepThrough]
+    internal static bool _cmsWriteUInt16Array(IOHandler io, uint n, ReadOnlySpan<ushort> array)
     {
+        _cmsAssert(io);
+        _cmsAssert(array);
+
         for (var i = 0; i < n; i++)
         {
             if (!_cmsWriteUInt16Number(io, array[i])) return false;
@@ -243,47 +257,65 @@ public static unsafe partial class Lcms2
         return true;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt32Number(IOHandler io, uint n)
     {
-        var tmp = _cmsAdjustEndianess32(n);
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(uint), &tmp);
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(n));
+
+        return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteFloat32Number(IOHandler io, float n)
     {
-        var tmp = *(uint*)(void*)&n;
-        tmp = _cmsAdjustEndianess32(tmp);
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(uint), &tmp);
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(BitConverter.SingleToUInt32Bits(n)));
+
+        return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
     {
-        ulong tmp;
-        _cmsAdjustEndianess64(&tmp, n);
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(ulong), &tmp);
+        Span<byte> tmp = stackalloc byte[8];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess64(n));
+
+        return io.Write(io, sizeof(ulong), tmp);
     }
 
-    internal static bool _cmsWrite15Fixed16Number(IOHandler io, uint n)
+    [DebuggerStepThrough]
+    internal static bool _cmsWrite15Fixed16Number(IOHandler io, double n)
     {
-        var tmp = _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n));
+        _cmsAssert(io);
 
-        return io.Write(io, sizeof(uint), &tmp);
+        Span<byte> tmp = stackalloc byte[4];
+        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n)));
+
+        return io.Write(io, sizeof(uint), tmp);
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ XYZ)
     {
-        EncodedXYZNumber xyz;
+        Span<int> xyz = stackalloc int[3];
 
-        xyz.X = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.X));
-        xyz.Y = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
-        xyz.Z = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
+        _cmsAssert(io);
 
-        return io.Write(io, (uint)sizeof(EncodedXYZNumber), &xyz);
+        xyz[0] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.X));
+        xyz[1] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
+        xyz[2] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
+
+        return io.Write(io, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
     }
 
+    [DebuggerStepThrough]
     internal static double _cms8Fixed8toDouble(ushort fixed8)
     {
         var lsb = (byte)(fixed8 & 0xff);
@@ -292,12 +324,14 @@ public static unsafe partial class Lcms2
         return msb + (lsb / 255.0);
     }
 
+    [DebuggerStepThrough]
     internal static ushort _cmsDoubleTo8Fixed8(double val)
     {
         var tmp = _cmsDoubleTo15Fixed16(val);
         return (ushort)((tmp >> 8) & 0xffff);
     }
 
+    [DebuggerStepThrough]
     internal static double _cms15Fixed16toDouble(S15Fixed16Number fix32)
     {
         var sign = fix32 < 0 ? -1 : 1;
@@ -312,56 +346,78 @@ public static unsafe partial class Lcms2
         return sign * floater;
     }
 
+    [DebuggerStepThrough]
     internal static S15Fixed16Number _cmsDoubleTo15Fixed16(double v) =>
         (S15Fixed16Number)Math.Floor((v * 65536.0) + 0.5);
 
-    internal static DateTime _cmsDecodeDateTimeNumber(DateTimeNumber source)
+    [DebuggerStepThrough]
+    internal static void _cmsDecodeDateTimeNumber(DateTimeNumber Source, out DateTime Dest)
     {
-        var sec = _cmsAdjustEndianess16(source.Seconds);
-        var min = _cmsAdjustEndianess16(source.Minutes);
-        var hour = _cmsAdjustEndianess16(source.Hours);
-        var day = _cmsAdjustEndianess16(source.Day);
-        var mon = _cmsAdjustEndianess16(source.Month);
-        var year = _cmsAdjustEndianess16(source.Year);
+        var sec = _cmsAdjustEndianess16(Source.Seconds);
+        var min = _cmsAdjustEndianess16(Source.Minutes);
+        var hour = _cmsAdjustEndianess16(Source.Hours);
+        var day = _cmsAdjustEndianess16(Source.Day);
+        var mon = _cmsAdjustEndianess16(Source.Month);
+        var year = _cmsAdjustEndianess16(Source.Year);
 
-        return new(year, mon, day, hour, min, sec);
+        try
+        {
+            Dest = new(year, mon, day, hour, min, sec);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            Dest = default;
+        }
     }
 
-    internal static void _cmsEncodeDateTimeNumber(DateTimeNumber* dest, DateTime source)
+    [DebuggerStepThrough]
+    internal static void _cmsEncodeDateTimeNumber(out DateTimeNumber dest, DateTime source)
     {
-        dest->Seconds = _cmsAdjustEndianess16((ushort)source.Second);
-        dest->Minutes = _cmsAdjustEndianess16((ushort)source.Minute);
-        dest->Hours = _cmsAdjustEndianess16((ushort)source.Hour);
-        dest->Day = _cmsAdjustEndianess16((ushort)source.Day);
-        dest->Month = _cmsAdjustEndianess16((ushort)source.Month);
-        dest->Year = _cmsAdjustEndianess16((ushort)source.Year);
+        dest = new()
+        {
+            Seconds = _cmsAdjustEndianess16((ushort)source.Second),
+            Minutes = _cmsAdjustEndianess16((ushort)source.Minute),
+            Hours = _cmsAdjustEndianess16((ushort)source.Hour),
+            Day = _cmsAdjustEndianess16((ushort)source.Day),
+            Month = _cmsAdjustEndianess16((ushort)source.Month),
+            Year = _cmsAdjustEndianess16((ushort)source.Year)
+        };
     }
 
+    [DebuggerStepThrough]
     internal static Signature _cmsReadTypeBase(IOHandler io)
     {
-        TagBase Base;
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
 
-        if (io.Read(io, &Base, (uint)sizeof(TagBase), 1) != 1)
+        _cmsAssert(io);
+
+        if (io.Read(io, Base, (sizeof(uint) * 2), 1) != 1)
             return default;
 
-        return new(_cmsAdjustEndianess32(Base.Signature));
+        return new(_cmsAdjustEndianess32(BitConverter.ToUInt32(Base)));
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteTypeBase(IOHandler io, Signature sig)
     {
-        TagBase Base;
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
 
-        Base.Signature = new(_cmsAdjustEndianess32(sig));
-        return io.Write(io, (uint)sizeof(TagBase), &Base);
+        _cmsAssert(io);
+
+        BitConverter.TryWriteBytes(Base, _cmsAdjustEndianess32(sig));
+        return io.Write(io, (sizeof(uint) * 2), Base);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint _cmsALIGNLONG(uint x) =>
-        (x + ((uint)sizeof(uint) - 1)) & ~((uint)sizeof(uint) - 1);
+        (x + (sizeof(uint) - 1u)) & ~(sizeof(uint) - 1u);
 
+    [DebuggerStepThrough]
     internal static bool _cmsReadAlignment(IOHandler io)
     {
-        var Buffer = stackalloc byte[4];
+        Span<byte> Buffer = stackalloc byte[4];
+
+        _cmsAssert(io);
 
         var At = io.Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
@@ -372,9 +428,12 @@ public static unsafe partial class Lcms2
         return io.Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
     }
 
+    [DebuggerStepThrough]
     internal static bool _cmsWriteAlignment(IOHandler io)
     {
-        var Buffer = stackalloc byte[4];
+        Span<byte> Buffer = stackalloc byte[4];
+
+        _cmsAssert(io);
 
         var At = io.Tell(io);
         var NextAligned = _cmsALIGNLONG(At);
@@ -385,140 +444,184 @@ public static unsafe partial class Lcms2
         return io.Write(io, BytesToNextAlignedPos, Buffer);
     }
 
+    [DebuggerStepThrough]
+    internal static string SpanToString(ReadOnlySpan<byte> span)
+    {
+        Span<char> str = stackalloc char[span.Length];
+        var index = span.IndexOf<byte>(0);
+        if (index is not -1)
+            str = str[..index];
+        for (var i = 0; i < str.Length; i++)
+            str[i] = (char)span[i];
+
+        return new string(str);
+    }
+
+    [DebuggerStepThrough]
+    internal static bool _cmsIOPrintf(IOHandler io, ReadOnlySpan<byte> frm, params object[] args) =>
+        _cmsIOPrintf(io, SpanToString(frm), args);
+
+    [DebuggerStepThrough]
     internal static bool _cmsIOPrintf(IOHandler io, string frm, params object[] args)
     {
+        _cmsAssert(io);
+        _cmsAssert(frm);
+
         var str = new StringBuilder(String.Format(frm, args));
         str.Replace(',', '.');
         if (str.Length > 2047) return false;
         var buffer = Encoding.UTF8.GetBytes(str.ToString());
 
-        fixed (byte* ptr = buffer)
-        {
-            return io.Write(io, (uint)str.Length, ptr);
-        }
+        return io.Write(io, (uint)str.Length, buffer);
     }
+
+    //internal static T* _cmsPluginMalloc<T>(Context? ContextID) where T : struct =>
+    //    (T*)_cmsPluginMalloc(ContextID, _sizeof<T>());
+
+    //internal static void* _cmsPluginMalloc(Context? ContextID, uint size)
+    //{
+    //    var ctx = _cmsGetContext(ContextID);
+
+    //    if (ctx.MemPool is null)
+    //    {
+    //        if (ContextID is null)
+    //        {
+    //            ctx.MemPool = _cmsCreateSubAlloc(null, 2 * 1024);
+    //            if (ctx.MemPool is null) return null;
+    //        }
+    //        else
+    //        {
+    //            cmsSignalError(ContextID, ErrorCode.CorruptionDetected, "NULL memory pool on context");
+    //            return null;
+    //        }
+    //    }
+
+    //    return _cmsSubAlloc(ctx.MemPool, size);
+    //}
 
     public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
 
-    public static bool cmsPluginTHR(Context? id, PluginBase? Plugin)
+    public static bool cmsPluginTHR(Context? id, List<PluginBase> Plugins)
     {
-        for (
-            ;
-            Plugin is not null;
-            Plugin = Plugin.Next)
+        foreach (var plugin in Plugins)
         {
-            if (Plugin.Magic != Signature.Plugin.MagicNumber)
-            {
-                cmsSignalError(id, ErrorCode.UnknownExtension, "Unrecognized plugin");
+            if (!cmsPluginTHR(id, plugin))
                 return false;
-            }
-
-            if (Plugin.ExpectedVersion > Version)
-            {
-                cmsSignalError(id, ErrorCode.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {Version}");
-                return false;
-            }
-
-            switch (Plugin)
-            {
-                case PluginInterpolation:
-                    if (Plugin.Type != Signature.Plugin.Interpolation || !_cmsRegisterInterpPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginTagType:
-                    if (Plugin.Type == Signature.Plugin.TagType)
-                    {
-                        return _cmsRegisterTagTypePlugin(id, Plugin);
-                    }
-                    else if (Plugin.Type == Signature.Plugin.MultiProcessElement)
-                    {
-                        return _cmsRegisterMultiProcessElementPlugin(id, Plugin);
-                    }
-                    return false;
-
-                case PluginTag:
-                    if (Plugin.Type != Signature.Plugin.Tag || !_cmsRegisterTagPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginFormatters:
-                    if (Plugin.Type != Signature.Plugin.Formatters || !_cmsRegisterFormattersPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginRenderingIntent:
-                    return
-                        Plugin.Type == Signature.Plugin.RenderingIntent &&
-                        _cmsRegisterRenderingIntentPlugin(id, Plugin);
-
-                case PluginParametricCurves:
-                    if (Plugin.Type != Signature.Plugin.ParametricCurve || !_cmsRegisterParametricCurvesPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                case PluginOptimization:
-                    return
-                        Plugin.Type == Signature.Plugin.Optimization &&
-                        _cmsRegisterOptimizationPlugin(id, Plugin);
-
-                case PluginTransform:
-                    return
-                        Plugin.Type == Signature.Plugin.Translform &&
-                        _cmsRegisterTransformPlugin(id, Plugin);
-
-                case PluginMutex:
-                    if (Plugin.Type != Signature.Plugin.Mutex || !_cmsRegisterMutexPlugin(id, Plugin))
-                        return false;
-                    break;
-
-                default:
-                    cmsSignalError(id, ErrorCode.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
-                    return false;
-            }
         }
 
         return true;
     }
 
-    internal static Context _cmsGetContext(Context? id)
+    public static bool cmsPluginTHR(Context? id, PluginBase? Plugin)
     {
+        if (Plugin is not null)
+        {
+            if (Plugin.Magic != cmsPluginMagicNumber)
+            {
+                cmsSignalError(id, ErrorCodes.UnknownExtension, "Unrecognized plugin");
+                return false;
+            }
+
+            if (Plugin.ExpectedVersion > LCMS_VERSION)
+            {
+                cmsSignalError(id, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {Plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
+                return false;
+            }
+
+            switch ((uint)Plugin.Type)
+            {
+                //case cmsPluginMemHandlerSig:
+                //    if (!_cmsRegisterMemHandlerPlugin(id, Plugin)) return false;
+                //    break;
+
+                case cmsPluginInterpolationSig:
+                    if (!_cmsRegisterInterpPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTagTypeSig:
+                    if (!_cmsRegisterTagTypePlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTagSig:
+                    if (!_cmsRegisterTagPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginFormattersSig:
+                    if (!_cmsRegisterFormattersPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginRenderingIntentSig:
+                    if (!_cmsRegisterRenderingIntentPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginParametricCurveSig:
+                    if (!_cmsRegisterParametricCurvesPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginMultiProcessElementSig:
+                    if (!_cmsRegisterMultiProcessElementPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginOptimizationSig:
+                    if (!_cmsRegisterOptimizationPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginTransformSig:
+                    if (!_cmsRegisterTransformPlugin(id, Plugin)) return false;
+                    break;
+
+                case cmsPluginMutexSig:
+                    if (!_cmsRegisterMutexPlugin(id, Plugin)) return false;
+                    break;
+
+                default:
+                    cmsSignalError(id, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
+                    return false;
+            }
+        }
+
+        // Keep a reference to the plug-in
+        return true;
+    }
+
+    [DebuggerStepThrough]
+    internal static Context _cmsGetContext(Context? ContextID)
+    {
+        Context? id = ContextID;
+
         // On null, use global settings
         if (id is null)
             return globalContext;
 
         // Search
         lock (contextPoolHeadMutex)
-        {
-            for (var ctx = contextPoolHead; ctx is not null; ctx = ctx.next)
-            {
-                // Found it?
-                if (id == ctx)
-                    return ctx;
-            }
-        }
-
-        return globalContext;
+            return contextPoolHead.FirstOrDefault(ctx => id == ctx, globalContext);
     }
 
-    internal static ref object? _cmsContextGetClientChunk(Context? id, Chunks mc)
-    {
-        if (mc is < 0 or >= Chunks.Max)
-        {
-            cmsSignalError(id, ErrorCode.Internal, "Bad context client -- possible corruption");
+    //[DebuggerStepThrough]
+    //internal static void* _cmsContextGetClientChunk(Context ContextID, Chunks mc)
+    //{
+    //    if (mc is < 0 or >= Chunks.Max)
+    //    {
+    //        cmsSignalError(ContextID, ErrorCode.Internal, "Bad context client -- possible corruption");
+    //        Debug.Fail("Bad context client -- possible corruption");
 
-            return ref globalContext.chunks[(int)Chunks.UserPtr];
-        }
+    //        return globalContext->chunks[Chunks.UserPtr];
+    //    }
 
-        var ctx = _cmsGetContext(id);
-        ref var ptr = ref ctx.chunks[(int)mc];
+    //    var ctx = _cmsGetContext(ContextID);
+    //    var ptr = ctx->chunks[mc];
 
-        if (ptr is not null) return ref ptr;
+    //    if (ptr is not null) return ptr;
 
-        // A null ptr means no special settings for that context, and this reverts to globals
-        return ref globalContext.chunks[(int)mc];
-    }
+    //    // A null ptr means no special settings for that context, and this reverts to globals
+    //    return globalContext->chunks[mc];
+    //}
+
+    //[DebuggerStepThrough]
+    //internal static T* _cmsContextGetClientChunk<T>(Context ContextID, Chunks mc) where T : struct =>
+    //    (T*)_cmsContextGetClientChunk(ContextID, mc);
 
     /// <summary>
     ///     This function returns the given context its default, pristene state, as if no
@@ -543,6 +646,7 @@ public static unsafe partial class Lcms2
     /// </remarks>
     public static void cmsUnregisterPluginsTHR(Context? context)
     {
+        //_cmsRegisterMemHandlerPlugin(context, null);
         _cmsRegisterInterpPlugin(context, null);
         _cmsRegisterTagTypePlugin(context, null);
         _cmsRegisterTagPlugin(context, null);
@@ -555,11 +659,31 @@ public static unsafe partial class Lcms2
         _cmsRegisterMutexPlugin(context, null);
     }
 
-    private static void AllocChunks(Context ctx, Context? src)
+    //internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase? PluginBundle)
+    //{
+    //    for (var Plugin = PluginBundle;
+    //        Plugin is not null;
+    //        Plugin = Plugin.Next)
+    //    {
+    //        if ((uint)Plugin.Magic is cmsPluginMagicNumber &&
+    //            Plugin.ExpectedVersion <= LCMS_VERSION &&
+    //            (uint)Plugin.Type is cmsPluginMemHandlerSig)
+    //        {
+    //            // Found!
+    //            return (PluginMemHandler)Plugin;
+    //        }
+    //    }
+
+    //    // Nope, revert to defaults
+    //    return null;
+    //}
+
+    private static void AllocChunks(Context ctx, Context? src, bool trace = false)
     {
         _cmsAllocLogErrorChunk(ctx, src);
         _cmsAllocAlarmCodesChunk(ctx, src);
         _cmsAllocAdaptationStateChunk(ctx, src);
+        //_cmsAllocMemPluginChunk(ctx, src);
         _cmsAllocInterpPluginChunk(ctx, src);
         _cmsAllocCurvesPluginChunk(ctx, src);
         _cmsAllocFormattersPluginChunk(ctx, src);
@@ -570,6 +694,24 @@ public static unsafe partial class Lcms2
         _cmsAllocOptimizationPluginChunk(ctx, src);
         _cmsAllocTransformPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
+
+        //static void PrintContext(Context ctx, string name)
+        //{
+        //    if (ctx is null)
+        //    {
+        //        Console.WriteLine($"\n{name}\tnull");
+        //    }
+        //    else
+        //    {
+        //        Console.WriteLine($"\n{name}\t{(ulong)ctx}");
+        //        Console.WriteLine($"\t\tNext\t{(ctx->Next is null ? "null" : (ulong)ctx->Next)}");
+        //        Console.WriteLine($"\t\tMemPool\t{(ctx->MemPool is null ? "null" : (ulong)ctx->MemPool)}");
+        //        Console.WriteLine($"\t\tDefaultMemoryManager\t{ctx->DefaultMemoryManager}");
+        //        Console.WriteLine($"\t\tchunks");
+        //        for (var i = 0; i < (int)Chunks.Max; i++)
+        //            Console.WriteLine($"\t\t\t{Enum.GetName((Chunks)i)}\t{(ulong)ctx->chunks[(Chunks)i]}");
+        //    }
+        //}
     }
 
     /// <summary>
@@ -580,17 +722,34 @@ public static unsafe partial class Lcms2
     /// </param>
     public static Context? cmsCreateContext(PluginBase? Plugin, object? UserData)
     {
-        // Create the context object.
+        //Context fakeContext = new();
+
+        //_cmsInstallAllocFunctions(_cmsFindMemoryPlugin(Plugin), ref fakeContext.DefaultMemoryManager);
+
+        //fakeContext.UserData = UserData;
+        //fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
+
+        // Create the context structure.
         var ctx = new Context();
+        if (ctx is null) return null; // Something very wrong happened!
+
+        // Keep memory manager
+        //ctx.DefaultMemoryManager = (MemPluginChunkType)fakeContext.DefaultMemoryManager.Dup(ctx)!;
 
         // Maintain the linked list (with proper locking)
         lock (contextPoolHeadMutex)
-        {
-            ctx.next = contextPoolHead;
-            contextPoolHead = ctx;
-        }
+            contextPoolHead.Add(ctx);
 
-        ctx.chunks[(int)Chunks.UserPtr] = UserData;
+        ctx.UserData = UserData;
+        //ctx.MemPlugin = ctx.DefaultMemoryManager;
+
+        // Now we can allocate the pool by using default memory manager
+        //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>()); // default size about 22 pointers
+        //if (ctx.MemPool is null)
+        //{
+        //    cmsDeleteContext(ctx);
+        //    return null;
+        //}
 
         AllocChunks(ctx, null);
 
@@ -601,7 +760,26 @@ public static unsafe partial class Lcms2
             return null;
         }
 
+        ctx.ErrorLogger.FactoryChanged += ErrorLogger_FactoryChanged;
+
         return ctx;
+    }
+
+    private static void ErrorLogger_FactoryChanged(object? sender, FactoryChangedEventArgs e)
+    {
+        if (sender is LogErrorChunkType logChunk)
+        {
+            if (loggers.TryGetValue(logChunk, out var logger))
+            {
+                loggers[logChunk] = logChunk.Factory.CreateLogger("Lcms2");
+            }
+            //else
+            //{
+            //    logger = logChunk.Factory.CreateLogger("Lcms2");
+            //    loggers.Add(logChunk, logger);
+
+            //}
+        }
     }
 
     /// <summary>
@@ -613,30 +791,56 @@ public static unsafe partial class Lcms2
     /// </param>
     public static Context? cmsDupContext(Context? context, object? NewUserData)
     {
-        var ctx = new Context();
         var src = _cmsGetContext(context);
 
-        var userData = NewUserData ?? src.chunks[(int)Chunks.UserPtr];
+        var userData = NewUserData ?? src.UserData;
+
+        var ctx = new Context();
+        if (ctx is null)
+            return null;    // Something very wrong happened
+
+        // Setup default memory allocators
+        //ctx.DefaultMemoryManager = src.DefaultMemoryManager;
 
         // Maintain the linked list
         lock (contextPoolHeadMutex)
-        {
-            ctx.next = contextPoolHead;
-            contextPoolHead = ctx;
-        }
+            contextPoolHead.Add(ctx);
+            //Console.WriteLine("\nAdded to the pool");
+            //for (var c = contextPoolHead; c is not null; c = c->Next)
+            //    Console.WriteLine($"\t{(ulong)c:x16}\n\t\tV");
+            //Console.WriteLine("\tend");
 
-        ctx.chunks[(int)Chunks.UserPtr] = userData;
+        ctx.UserData = userData;
+        //ctx.MemPlugin = ctx.DefaultMemoryManager;
 
-        AllocChunks(ctx, src);
+        //ctx.MemPool = _cmsCreateSubAlloc(ctx, 22u * _sizeof<nint>());
+        //if (ctx.MemPool is null)
+        //{
+        //    cmsDeleteContext(ctx);
+        //    return null;
+        //}
+
+        // Allocate all required chunks.
+        AllocChunks(ctx, src, true);
 
         // Make sure no one failed
-        for (var i = (int)Chunks.Logger; i < (int)Chunks.Max; i++)
+        if (ctx.ErrorLogger is null ||
+            ctx.AlarmCodes is null ||
+            ctx.AdaptationState is null ||
+            //ctx.MemPlugin is null ||
+            ctx.InterpPlugin is null ||
+            ctx.CurvesPlugin is null ||
+            ctx.FormattersPlugin is null ||
+            ctx.TagTypePlugin is null ||
+            ctx.TagPlugin is null ||
+            ctx.IntentsPlugin is null ||
+            ctx.MPEPlugin is null ||
+            ctx.OptimizationPlugin is null ||
+            ctx.TransformPlugin is null ||
+            ctx.MutexPlugin is null)
         {
-            if (ctx.chunks[i] is null)
-            {
-                cmsDeleteContext(ctx);
-                return null;
-            }
+            cmsDeleteContext(ctx);
+            return null;
         }
 
         return ctx;
@@ -649,39 +853,32 @@ public static unsafe partial class Lcms2
     /// <remarks>
     ///     <paramref name="context"/> can no longer be used in any THR operation.
     /// </remarks>
-    public static void cmsDeleteContext(Context? context)
+    public static void cmsDeleteContext(Context? ctx)
     {
-        if (context is null)
+        //Context fakeContext = new();
+
+        if (ctx is null)
             return;
 
-        var ctx = context;
+        //fakeContext.DefaultMemoryManager = ctx.DefaultMemoryManager;
+
+        //fakeContext.UserData = ctx.UserData;
+        //fakeContext.MemPlugin = fakeContext.DefaultMemoryManager;
 
         // Get rid of plugins
         cmsUnregisterPluginsTHR(ctx);
 
+        // Since all memory is allocated in the private pool, all we need to do is destroy the pool
+        //if (ctx.MemPool is not null)
+        //    _cmsSubAllocDestroy(ctx.MemPool);
+        //ctx.MemPool = null;
+
         // Maintain list
         lock (contextPoolHeadMutex)
-        {
-            if (contextPoolHead == ctx)
-            {
-                contextPoolHead = ctx.next;
-            }
-            else
-            {
-                // Search for previous
-                for (
-                    var prev = contextPoolHead;
-                    prev is not null;
-                    prev = prev.next)
-                {
-                    if (prev.next == ctx)
-                    {
-                        prev.next = ctx.next;
-                        break;
-                    }
-                }
-            }
-        }
+            contextPoolHead.Remove(ctx);
+
+        // free the memory block itself
+        //_cmsFree(fakeContext, ctx);
     }
 
     /// <summary>
@@ -691,8 +888,10 @@ public static unsafe partial class Lcms2
     /// <remarks>
     ///     This can be used to change the user data if needed, but probably not thread safe!
     /// </remarks>
+    
+    [DebuggerStepThrough]
     public static ref object? cmsGetContextUserData(Context? context) =>
-        ref _cmsContextGetClientChunk(context, Chunks.UserPtr);
+        ref _cmsGetContext(context).UserData;
 
     /// <summary>
     ///     Provides thread-safe time
@@ -701,9 +900,37 @@ public static unsafe partial class Lcms2
     ///     <see cref="DateTime.UtcNow"/> is already thread-safe.
     ///     Providing for completeness.
     /// </remarks>
+
+    [DebuggerStepThrough]
     internal static bool _cmsGetTime(out DateTime ptr_time)
     {
         ptr_time = DateTime.UtcNow;
         return true;
     }
+
+    //private static void AllocPluginChunk<T>(Context ctx, in Context src, Chunks mc, T* defaultChunk) where T : struct
+    //{
+    //    _cmsAssert(ctx);
+
+    //    var from = (src is not null) ? src->chunks[mc] : defaultChunk;
+
+    //    _cmsAssert(from);
+    //    ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, from);
+    //}
+
+    //private delegate void DupPlugin(Context ctx, in Context src);
+    //private static void AllocPluginChunk<T>(Context ctx, in Context src, DupPlugin dup, Chunks mc, T* defaultChunk) where T : struct
+    //{
+    //    Debug.Assert(ctx is not null);
+
+    //    if (src is not null)
+    //    {
+    //        // Duplicate the list
+    //        dup(ctx, src);
+    //    }
+    //    else
+    //    {
+    //        ctx->chunks[mc] = _cmsSubAllocDup<T>(ctx->MemPool, defaultChunk);
+    //    }
+    //}
 }

@@ -2,7 +2,7 @@
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022      Stefan Kewatt
+//                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -24,16 +24,15 @@
 //
 //---------------------------------------------------------------------------------
 //
+
 using System.Runtime.InteropServices;
 
 namespace lcms2.types;
 
-[StructLayout(LayoutKind.Explicit)]
+[StructLayout(LayoutKind.Explicit, Size = 12)]
 public struct TagEntry
 {
-    [FieldOffset(0)] public uint sig;
-
+    [FieldOffset(0)] public Signature sig;
     [FieldOffset(4)] public uint offset;
-
     [FieldOffset(8)] public uint size;
 }

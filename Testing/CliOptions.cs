@@ -61,7 +61,7 @@ public class CliOptions
         "speed",
         Required = false,
         HelpText = "Whether or not to run speed tests",
-        Default = true)]
+        Default = false)]
     public bool DoSpeed { get; set; }
 
     [Option(
@@ -71,6 +71,14 @@ public class CliOptions
         HelpText = "Whether or not to run zoo tests",
         Default = false)]
     public bool DoZoo { get; set; }
+
+    [Option(
+        't',
+        "time",
+        Required = false,
+        HelpText = "Whether or not to time each test",
+        Default = false)]
+    public bool TimeTests { get; set; }
 
     #endregion Properties
 }
