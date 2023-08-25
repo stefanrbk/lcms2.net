@@ -292,37 +292,37 @@ if (doCheckTests)
         Check("Transform line stride RGB", CheckTransformLineStride);
         Check("Forged MPE profile", CheckForgedMPE);
         Check("Proofing intersection", CheckProofingIntersection);
-        //Check("Empty MLUC", CheckEmptyMLUC);
-        //Check("sRGB round-trips", Check_sRGB_Rountrips);
-        //Check("Gamma space detection", CheckGammaSpaceDetection);
-        //Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
+        Check("Empty MLUC", CheckEmptyMLUC);
+        Check("sRGB round-trips", Check_sRGB_Rountrips);
+        Check("Gamma space detection", CheckGammaSpaceDetection);
+        Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
     }
 }
 
-//if (doPluginTests)
-//{
-//    using (logger.BeginScope("Plugin tests"))
-//    {
-//        Check("Simple context functionality", CheckSimpleContext);
-//        Check("Alarm codes context", CheckAlarmColorsContext);
-//        Check("Adaptation state context", CheckAdaptationStateContext);
-//        Check("1D interpolation plugin", CheckInterp1DPlugin);
-//        Check("3D interpolation plugin", CheckInterp3DPlugin);
-//        Check("Parametric curve plugin", CheckParametricCurvePlugin);
-//        Check("Formatters plugin", CheckFormattersPlugin);
-//        Check("Tag type plugin", CheckTagTypePlugin);
-//        Check("MPE type plugin", CheckMPEPlugin);
-//        Check("Optimization plugin", CheckOptimizationPlugin);
-//        Check("Rendering intent plugin", CheckIntentPlugin);
-//        Check("Full transform plugin", CheckTransformPlugin);
-//        Check("Mutex plugin", CheckMutexPlugin);
-//    }
-//}
+if (doPluginTests)
+{
+    using (logger.BeginScope("Plugin tests"))
+    {
+        Check("Simple context functionality", CheckSimpleContext);
+        Check("Alarm codes context", CheckAlarmColorsContext);
+        Check("Adaptation state context", CheckAdaptationStateContext);
+        Check("1D interpolation plugin", CheckInterp1DPlugin);
+        Check("3D interpolation plugin", CheckInterp3DPlugin);
+        Check("Parametric curve plugin", CheckParametricCurvePlugin);
+        Check("Formatters plugin", CheckFormattersPlugin);
+        Check("Tag type plugin", CheckTagTypePlugin);
+        Check("MPE type plugin", CheckMPEPlugin);
+        Check("Optimization plugin", CheckOptimizationPlugin);
+        Check("Rendering intent plugin", CheckIntentPlugin);
+        Check("Full transform plugin", CheckTransformPlugin);
+        Check("Mutex plugin", CheckMutexPlugin);
+    }
+}
 
-//if (doSpeedTests)
-//{
-//    SpeedTest();
-//}
+if (doSpeedTests)
+{
+    SpeedTest();
+}
 
 if (doZooTests)
 {

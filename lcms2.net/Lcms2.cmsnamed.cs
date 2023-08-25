@@ -132,7 +132,10 @@ public static partial class Lcms2
         // Sanity Check
         if (mlu is null) return false;
 
-        Block = TrimBuffer(Block);
+        var tempBlock = TrimBuffer(Block);
+        Block = tempBlock.Length is 0
+            ? Block[..1]
+            : tempBlock;
         var sizeInChars = (uint)Block.Length;
 
         // Is there any room available?
@@ -213,6 +216,8 @@ public static partial class Lcms2
         //for (var i = 0; i < len; i++)
             //WStr[i] = (char)ASCIIString[i];
         Ascii.ToUtf16(ASCIIString, WStr, out len);
+
+        WStr[len] = '\0';
 
         var rc = AddMLUBlock(mlu, WStr, Lang, Cntry);
 

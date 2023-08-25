@@ -1322,7 +1322,7 @@ public static partial class Lcms2
     public static void cmsPipelineEvalFloat(ReadOnlySpan<float> In, Span<float> Out, Pipeline lut)
     {
         _cmsAssert(lut);
-        lut.EvalFloatFn(In, Out, lut.Data);
+        lut.EvalFloatFn(In, Out, lut);
     }
 
     public static Pipeline? cmsPipelineDup(Pipeline? lut)

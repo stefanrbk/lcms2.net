@@ -32,6 +32,8 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;
 
+using static lcms2.types.TagTypeHandler;
+
 namespace lcms2.testbed;
 
 internal static partial class Testbed
@@ -1526,4 +1528,163 @@ internal static partial class Testbed
         cmsDeleteTransform(transform);
         return true;
     }
+
+    internal static bool CheckEmptyMLUC()
+    {
+        var context = cmsCreateContext(null, null);
+        var white = new CIExyY(0.31271, 0.32902, 1.0);
+        var primaries = new CIExyYTRIPLE(
+            new(0.640, 0.330, 1.0),
+            new(0.300, 0.600, 1.0),
+            new(0.150, 0.060, 1.0));
+
+        Span<double> parameters = stackalloc double[10] { 2.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+        var toneCurve = cmsBuildParametricToneCurve(context, 1, parameters)!;
+        var toneCurves = new ToneCurve[3] { toneCurve, toneCurve, toneCurve };
+
+        var profile = cmsCreateRGBProfileTHR(context, white, primaries, toneCurves)!;
+
+        cmsSetLogErrorHandlerTHR(null, BuildDebugLogger());
+
+        cmsFreeToneCurve(toneCurve);
+
+        // Set an empty copyright tag. This should log an error.
+        var mlu = cmsMLUalloc(context, 1);
+
+        cmsMLUsetASCII(mlu, "en"u8, "AU"u8, ""u8);
+        cmsMLUsetWide(mlu, "en"u8, "EN"u8, "");
+        cmsWriteTag(profile, cmsSigCopyrightTag, mlu);
+        cmsMLUfree(mlu);
+
+        // This will cause a crash after setting an empty copyright tag.
+        cmsMD5computeID(profile);
+
+        // Cleanup
+        cmsCloseProfile(profile);
+        cmsDeleteContext(context);
+
+        return true;
+    }
+
+    private static double distance(ReadOnlySpan<ushort> a, ReadOnlySpan<ushort> b)
+    {
+        double d1 = a[0] - b[0];
+        double d2 = a[1] - b[1];
+        double d3 = a[2] - b[2];
+
+        return Math.Sqrt(d1* d1 + d2* d2 + d3* d3);
+    }
+
+    internal static bool Check_sRGB_Rountrips()
+    {
+        Span<ushort> rgb = stackalloc ushort[3];
+        Span<ushort> seed = stackalloc ushort[3];
+
+        var hsRGB = cmsCreate_sRGBProfile()!;
+        var hLab = cmsCreateLab4Profile(null)!;
+
+        var hBack = cmsCreateTransform(hLab, TYPE_Lab_DBL, hsRGB, TYPE_RGB_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        var hForth = cmsCreateTransform(hsRGB, TYPE_RGB_16, hLab, TYPE_Lab_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+        cmsCloseProfile(hLab);
+        cmsCloseProfile(hsRGB);
+
+        var maxErr = 0.0;
+        for (var r = 0; r <= 255; r += 16)
+            for (var g = 0; g <= 255; g += 16)
+                for (var b = 0; b <= 255; b += 16)
+                {
+                    seed[0] = rgb[0] = (ushort)((r << 8) | r);
+                    seed[1] = rgb[1] = (ushort)((g << 8) | g);
+                    seed[2] = rgb[2] = (ushort)((b << 8) | b);
+
+                    for (var i = 0; i < 50; i++)
+                    {
+                        cmsDoTransform(hForth, rgb, out CIELab Lab, 1);
+                        cmsDoTransform(hBack, Lab, rgb, 1);
+                    }
+
+                    var err = distance(seed, rgb);
+
+                    if (err > maxErr)
+                        maxErr = err;
+                }
+
+
+        cmsDeleteTransform(hBack);
+        cmsDeleteTransform(hForth);
+
+        if (maxErr > 20.0)
+        {
+            logger.LogWarning("Maximum sRGB roundtrip error {maxErr}!", maxErr);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static Profile? createRgbGamma(double g)
+    {
+        var D65 = new CIExyY(0.3127, 0.3290, 1.0);
+        var Rec709Primaries = new CIExyYTRIPLE(
+            new(0.6400, 0.3300, 1.0),
+            new(0.3000, 0.6000, 1.0),
+            new(0.1500, 0.0600, 1.0));
+        var Gamma = new ToneCurve[3];
+
+        Gamma[0] = Gamma[1] = Gamma[2] = cmsBuildGamma(null, g)!;
+        if (Gamma[0] is null)
+            return null;
+
+        var hRGB = cmsCreateRGBProfile(D65, Rec709Primaries, Gamma)!;
+        cmsFreeToneCurve(Gamma[0]);
+        return hRGB;
+    }
+
+
+    internal static bool CheckGammaSpaceDetection()
+    {
+        for (var i = 0.5; i < 3; i += 0.1)
+        {
+            var hProfile = createRgbGamma(i)!;
+
+            var gamma = cmsDetectRGBProfileGamma(hProfile, 0.01);
+
+            cmsCloseProfile(hProfile);
+
+            if (Math.Abs(gamma - i) > 0.1)
+            {
+                logger.LogWarning("Failed profile gamma detection of {expected} (got {actual})", i, gamma);
+                return false;
+            }
+        }
+
+        return true;
+    }
+    internal static bool CheckIntToFloatTransform()
+    {
+        var hAbove = Create_AboveRGB()!;
+        var hsRGB = cmsCreate_sRGBProfile()!;
+
+        var xform = cmsCreateTransform(hAbove, TYPE_RGB_8, hsRGB, TYPE_RGB_DBL, INTENT_PERCEPTUAL, 0)!;
+
+        var rgb8 = new byte[] { 12, 253, 21 };
+        var rgbDBL = new double[3];
+
+        cmsCloseProfile(hAbove); cmsCloseProfile(hsRGB);
+
+        cmsDoTransform(xform, rgb8, rgbDBL, 1);
+
+
+        cmsDeleteTransform(xform);
+
+        if (rgbDBL[0] < 0 && rgbDBL[2] < 0)
+            return true;
+
+        logger.LogWarning("Unbounded transforms with integer input failed");
+
+        return false;
+    }
+
+
 }
