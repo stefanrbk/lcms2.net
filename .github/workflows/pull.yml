@@ -18,9 +18,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build lcms2 --no-restore
+      run: dotnet build lcms2.net/lcms2.csproj --no-restore
     - name: Build Testbed
-      run: dotnet build Testbed --no-restore
+      run: dotnet build Testing/Testbed.csproj --no-restore
     #- name: Test
       #run: dotnet test --no-build --verbosity normal
     - name: Run Testbed
