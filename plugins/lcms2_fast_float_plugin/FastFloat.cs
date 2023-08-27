@@ -1,33 +1,30 @@
 ﻿//---------------------------------------------------------------------------------
 //
-//  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
-//                2022-2023 Stefan Kewatt
+//  Little Color Management System, fast floating point extensions
+//  Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved
+//                     2023 Stefan Kewatt, all rights reserved
 //
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the "Software"),
-// to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense,
-// and/or sell copies of the Software, and to permit persons to whom the Software
-// is furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-//
-
-namespace lcms2_fast_float_plugin;
+namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
+    private const uint cmsFLAGS_CAN_CHANGE_FORMATTER = 0x02000000;   // Allow change buffer format
+    internal const ushort MAX_NODES_IN_CURVE = 0x8001;
+
     internal static uint BIT15_SH(uint a) =>           ((a) << 26);
     internal static uint T_BIT15(uint a) =>            (((a)>>26)&1);
     internal static uint DITHER_SH(uint a) =>          ((a) << 27);

@@ -331,6 +331,34 @@ public static partial class Lcms2
         Data.Dispose();
     }
 
+    public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, MAT3 Matrix, VEC3 Offset)
+    {
+        var pool = Context.GetPool<double>(ContextID);
+
+        var mat = Matrix.AsArray(pool);
+        var off = Offset.AsArray(pool);
+
+        var result = cmsStageAllocMatrix(ContextID, Rows, Cols, mat, off);
+
+        pool.Return(mat);
+        pool.Return(off);
+
+        return result;
+    }
+
+    public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, MAT3 Matrix, ReadOnlySpan<double> Offset)
+    {
+        var pool = Context.GetPool<double>(ContextID);
+
+        var mat = Matrix.AsArray(pool);
+
+        var result = cmsStageAllocMatrix(ContextID, Rows, Cols, mat, Offset);
+
+        pool.Return(mat);
+
+        return result;
+    }
+
     public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, ReadOnlySpan<double> Matrix, ReadOnlySpan<double> Offset)
     {
         var n = (int)(Rows * Cols);

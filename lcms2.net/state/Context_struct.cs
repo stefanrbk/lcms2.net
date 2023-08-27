@@ -51,7 +51,7 @@ public class Context
     internal TransformPluginChunkType TransformPlugin;
     internal MutexPluginChunkType MutexPlugin;
 
-    internal ArrayPool<T> GetBufferPool<T>()
+    public ArrayPool<T> GetBufferPool<T>()
     {
         foreach (var pool in BufferPools)
         {
@@ -69,7 +69,7 @@ public class Context
         return newPool;
     }
 
-    internal static ArrayPool<T> GetPool<T>(Context? context) =>
+    public static ArrayPool<T> GetPool<T>(Context? context) =>
         _cmsGetContext(context).GetBufferPool<T>();
 
 #if DEBUG
