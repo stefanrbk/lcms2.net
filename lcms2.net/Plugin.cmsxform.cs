@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,6 +24,47 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using static lcms2.Lcms2;
-global using static lcms2.Plugin;
-global using static lcms2.testbed.Testbed;
+using lcms2.types;
+
+namespace lcms2;
+public static partial class Plugin
+{
+    public static void _cmsSetTransformUserData(Transform CMMcargo, object? ptr, FreeUserDataFn? FreePrivateDataFn)
+    {
+        _cmsAssert(CMMcargo);
+        CMMcargo.UserData = ptr;
+        CMMcargo.FreeUserData = FreePrivateDataFn;
+    }
+
+    public static object? _cmsGetTransformUserData(Transform CMMcargo)
+    {
+        _cmsAssert(CMMcargo);
+        return CMMcargo.UserData;
+    }
+
+    public static void _cmsGetTransformFormatters16(
+        Transform CMMcargo,
+        out Formatter16In FromInput,
+        out Formatter16Out ToOutput)
+    {
+        _cmsAssert(CMMcargo);
+        FromInput = CMMcargo.FromInput;
+        ToOutput = CMMcargo.ToOutput;
+    }
+
+    public static void _cmsGetTransformFormattersFloat(
+        Transform CMMcargo,
+        out FormatterFloatIn FromInput,
+        out FormatterFloatOut ToOutput)
+    {
+        _cmsAssert(CMMcargo);
+        FromInput = CMMcargo.FromInputFloat;
+        ToOutput = CMMcargo.ToOutputFloat;
+    }
+
+    public static uint _cmsGetTransformFlags(Transform CMMcargo)
+    {
+        _cmsAssert(CMMcargo);
+        return CMMcargo.dwOriginalFlags;
+    }
+}

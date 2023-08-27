@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,6 +24,19 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using static lcms2.Lcms2;
-global using static lcms2.Plugin;
-global using static lcms2.testbed.Testbed;
+using lcms2.state;
+using lcms2.types;
+
+namespace lcms2;
+public static partial class Plugin
+{
+    public static Pipeline? _cmsDefaultICCintents(
+        Context? ContextID,
+        uint nProfiles,
+        ReadOnlySpan<uint> TheIntents,
+        Profile[] Profiles,
+        ReadOnlySpan<bool> BPC,
+        ReadOnlySpan<double> AdaptationStates,
+        uint dwFlags) =>
+        DefaultICCintents(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
+}

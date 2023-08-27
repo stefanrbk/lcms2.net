@@ -35,34 +35,6 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    internal static Stage _cmsStageAllocPlaceholder(
-        Context? ContextID,
-        Signature Type,
-        uint InputChannels,
-        uint OutputChannels,
-        StageEvalFn EvalPtr,
-        StageDupElemFn? DupElemPtr,
-        StageFreeElemFn? FreePtr,
-        object? Data)
-    {
-        var ph = new Stage();
-        //if (ph is null) return null;
-
-        ph.ContextID = ContextID;
-
-        ph.Type = Type;
-        ph.Implements = Type;  // By default, no clue on what is implementing
-
-        ph.InputChannels = InputChannels;
-        ph.OutputChannels = OutputChannels;
-        ph.EvalPtr = EvalPtr;
-        ph.DupElemPtr = DupElemPtr;
-        ph.FreePtr = FreePtr;
-        ph.Data = Data;
-
-        return ph;
-    }
-
     private static void EvaluateIdentity(ReadOnlySpan<float> @in, Span<float> @out, Stage mpe)
     {
         memcpy(@out, @in, mpe.InputChannels * sizeof(float));
@@ -1528,21 +1500,6 @@ public static partial class Lcms2
         for (n = 0, mpe = lut?.Elements; mpe is not null; mpe = mpe.Next)
             n++;
         return n;
-    }
-
-    // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
-    // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
-    internal static void _cmsPipelineSetOptimizationParameters(
-        Pipeline Lut,
-        PipelineEval16Fn Eval16,
-        object? PrivateData,
-        FreeManagedUserDataFn? FreePrivateDataFn,
-        DupManagedUserDataFn? DupPrivateDataFn)
-    {
-        Lut.Eval16Fn = Eval16;
-        Lut.DupDataFn = DupPrivateDataFn;
-        Lut.FreeDataFn = FreePrivateDataFn;
-        Lut.Data = PrivateData;
     }
 
     // ----------------------------------------------------------- Reverse interpolation

@@ -44,7 +44,7 @@ public class StageMatrixData : IDisposable
 
     public StageMatrixData(ReadOnlySpan<double> @double, ReadOnlySpan<double> offset = default, ArrayPool<double>? pool = null)
     {
-        Double = pool is null
+        this.@double = pool is null
             ? new double[@double.Length]
             : pool.Rent(@double.Length);
         @double.CopyTo(Double);

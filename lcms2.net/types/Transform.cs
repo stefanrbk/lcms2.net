@@ -65,7 +65,7 @@ public class Transform
     public Context? ContextID;
 
     public object? UserData;
-    public FreeManagedUserDataFn? FreeUserData;
+    public FreeUserDataFn? FreeUserData;
 
     public TransformFn? OldXform;
 }

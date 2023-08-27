@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,6 +24,28 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using static lcms2.Lcms2;
-global using static lcms2.Plugin;
-global using static lcms2.testbed.Testbed;
+using System.Diagnostics;
+
+using Microsoft.Extensions.Logging;
+
+using lcms2.state;
+
+namespace lcms2;
+public static partial class Plugin
+{
+    /// <summary>
+    ///     Log an error
+    /// </summary>
+    /// <param name="text">English description of the error in String.Format format</param>
+    [DebuggerStepThrough]
+    public static void cmsSignalError(Context? ContextID, EventId errorCode, string text, params object?[] args)
+    {
+        // Check for the context, if specified go there. If not, go for the global
+        var lhg = GetLogger(ContextID);
+        text = String.Format(text, args);
+        if (text.Length > MaxErrorMessageLen)
+            text = text.Remove(MaxErrorMessageLen);
+
+        lhg.LogError(errorCode, "{ErrorText}", text);
+    }
+}

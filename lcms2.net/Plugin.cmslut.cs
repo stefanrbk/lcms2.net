@@ -24,21 +24,52 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
-using Microsoft.Extensions.Logging;
-
 namespace lcms2;
-
-public static partial class Lcms2
+public static partial class Plugin
 {
-    public delegate void LogErrorHandlerFunction(Context? ContextID, EventId ErrorCode, string Text);
-    public delegate bool SAMPLER16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo);
-    public delegate bool SAMPLERFLOAT(ReadOnlySpan<float> In, Span<float> Out, object? Cargo);
-    internal delegate bool PositionTableEntryFn(TagTypeHandler self, IOHandler io, object? Cargo, uint n, uint SizeOfTag);
+    public static Stage _cmsStageAllocPlaceholder(
+        Context? ContextID,
+        Signature Type,
+        uint InputChannels,
+        uint OutputChannels,
+        StageEvalFn EvalPtr,
+        StageDupElemFn? DupElemPtr,
+        StageFreeElemFn? FreePtr,
+        object? Data)
+    {
+        var ph = new Stage();
+        //if (ph is null) return null;
 
-    internal delegate void FormatterAlphaFn(Span<byte> dst, ReadOnlySpan<byte> src);
+        ph.ContextID = ContextID;
+
+        ph.Type = Type;
+        ph.Implements = Type;  // By default, no clue on what is implementing
+
+        ph.InputChannels = InputChannels;
+        ph.OutputChannels = OutputChannels;
+        ph.EvalPtr = EvalPtr;
+        ph.DupElemPtr = DupElemPtr;
+        ph.FreePtr = FreePtr;
+        ph.Data = Data;
+
+        return ph;
+    }
+
+    // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
+    // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
+    public static void _cmsPipelineSetOptimizationParameters(
+        Pipeline Lut,
+        PipelineEval16Fn Eval16,
+        object? PrivateData,
+        FreeUserDataFn? FreePrivateDataFn,
+        DupUserDataFn? DupPrivateDataFn)
+    {
+        Lut.Eval16Fn = Eval16;
+        Lut.DupDataFn = DupPrivateDataFn;
+        Lut.FreeDataFn = FreePrivateDataFn;
+        Lut.Data = PrivateData;
+    }
 }

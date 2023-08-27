@@ -1143,7 +1143,7 @@ internal static partial class Testbed
     }
 
 
-    private static bool TransformFactory(out TransformFn xformPtr, out object? _1, out FreeManagedUserDataFn? _2, ref Pipeline Lut, ref uint _3, ref uint OutputFormat, ref uint _4)
+    private static bool TransformFactory(out TransformFn xformPtr, out object? _1, out FreeUserDataFn? _2, ref Pipeline Lut, ref uint _3, ref uint OutputFormat, ref uint _4)
 
     {
         _1 = _2 = null;

@@ -41,380 +41,379 @@ namespace lcms2;
 public static partial class Lcms2
 {
     internal static readonly List<(FILE file, int count)> OpenFiles = new();
-    //internal static readonly Dictionary<nuint, (Type type, nuint size, bool freed)> AllocList = new();
     internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = new();
 
     #region lcms2.h
 
-    internal const ushort LCMS_VERSION = 2131;
+    public const ushort LCMS_VERSION = 2131;
 
-    internal const ushort cmsMAX_PATH = 256;
+    public const ushort cmsMAX_PATH = 256;
 
-    internal const double cmsD50X = 0.9642;
-    internal const double cmsD50Y = 1.0;
-    internal const double cmsD50Z = 0.8249;
+    public const double cmsD50X = 0.9642;
+    public const double cmsD50Y = 1.0;
+    public const double cmsD50Z = 0.8249;
 
-    internal const double cmsPERCEPTUAL_BLACK_X = 0.00336;
-    internal const double cmsPERCEPTUAL_BLACK_Y = 0.0034731;
-    internal const double cmsPERCEPTUAL_BLACK_Z = 0.00287;
+    public const double cmsPERCEPTUAL_BLACK_X = 0.00336;
+    public const double cmsPERCEPTUAL_BLACK_Y = 0.0034731;
+    public const double cmsPERCEPTUAL_BLACK_Z = 0.00287;
 
-    internal const uint cmsMagicNumber = 0x61637370;
-    internal const uint lcmsSignature = 0x6c636d73;
+    public const uint cmsMagicNumber = 0x61637370;
+    public const uint lcmsSignature = 0x6c636d73;
 
-    internal const uint cmsSigChromaticityType = 0x6368726D;
-    internal const uint cmsSigColorantOrderType = 0x636C726F;
-    internal const uint cmsSigColorantTableType = 0x636C7274;
-    internal const uint cmsSigCrdInfoType = 0x63726469;
-    internal const uint cmsSigCurveType = 0x63757276;
-    internal const uint cmsSigDataType = 0x64617461;
-    internal const uint cmsSigDictType = 0x64696374;
-    internal const uint cmsSigDateTimeType = 0x6474696D;
-    internal const uint cmsSigDeviceSettingsType = 0x64657673;
-    internal const uint cmsSigLut16Type = 0x6d667432;
-    internal const uint cmsSigLut8Type = 0x6d667431;
-    internal const uint cmsSigLutAtoBType = 0x6d414220;
-    internal const uint cmsSigLutBtoAType = 0x6d424120;
-    internal const uint cmsSigMeasurementType = 0x6D656173;
-    internal const uint cmsSigMultiLocalizedUnicodeType = 0x6D6C7563;
-    internal const uint cmsSigMultiProcessElementType = 0x6D706574;
+    public const uint cmsSigChromaticityType = 0x6368726D;
+    public const uint cmsSigColorantOrderType = 0x636C726F;
+    public const uint cmsSigColorantTableType = 0x636C7274;
+    public const uint cmsSigCrdInfoType = 0x63726469;
+    public const uint cmsSigCurveType = 0x63757276;
+    public const uint cmsSigDataType = 0x64617461;
+    public const uint cmsSigDictType = 0x64696374;
+    public const uint cmsSigDateTimeType = 0x6474696D;
+    public const uint cmsSigDeviceSettingsType = 0x64657673;
+    public const uint cmsSigLut16Type = 0x6d667432;
+    public const uint cmsSigLut8Type = 0x6d667431;
+    public const uint cmsSigLutAtoBType = 0x6d414220;
+    public const uint cmsSigLutBtoAType = 0x6d424120;
+    public const uint cmsSigMeasurementType = 0x6D656173;
+    public const uint cmsSigMultiLocalizedUnicodeType = 0x6D6C7563;
+    public const uint cmsSigMultiProcessElementType = 0x6D706574;
 
     [Obsolete]
-    internal const uint cmsSigNamedColorType = 0x6E636f6C;
+    public const uint cmsSigNamedColorType = 0x6E636f6C;
 
-    internal const uint cmsSigNamedColor2Type = 0x6E636C32;
-    internal const uint cmsSigParametricCurveType = 0x70617261;
-    internal const uint cmsSigProfileSequenceDescType = 0x70736571;
-    internal const uint cmsSigProfileSequenceIdType = 0x70736964;
-    internal const uint cmsSigResponseCurveSet16Type = 0x72637332;
-    internal const uint cmsSigS15Fixed16ArrayType = 0x73663332;
-    internal const uint cmsSigScreeningType = 0x7363726E;
-    internal const uint cmsSigSignatureType = 0x73696720;
-    internal const uint cmsSigTextType = 0x74657874;
-    internal const uint cmsSigTextDescriptionType = 0x64657363;
-    internal const uint cmsSigU16Fixed16ArrayType = 0x75663332;
-    internal const uint cmsSigUcrBgType = 0x62666420;
-    internal const uint cmsSigUInt16ArrayType = 0x75693136;
-    internal const uint cmsSigUInt32ArrayType = 0x75693332;
-    internal const uint cmsSigUInt64ArrayType = 0x75693634;
-    internal const uint cmsSigUInt8ArrayType = 0x75693038;
-    internal const uint cmsSigVcgtType = 0x76636774;
-    internal const uint cmsSigViewingConditionsType = 0x76696577;
-    internal const uint cmsSigXYZType = 0x58595A20;
+    public const uint cmsSigNamedColor2Type = 0x6E636C32;
+    public const uint cmsSigParametricCurveType = 0x70617261;
+    public const uint cmsSigProfileSequenceDescType = 0x70736571;
+    public const uint cmsSigProfileSequenceIdType = 0x70736964;
+    public const uint cmsSigResponseCurveSet16Type = 0x72637332;
+    public const uint cmsSigS15Fixed16ArrayType = 0x73663332;
+    public const uint cmsSigScreeningType = 0x7363726E;
+    public const uint cmsSigSignatureType = 0x73696720;
+    public const uint cmsSigTextType = 0x74657874;
+    public const uint cmsSigTextDescriptionType = 0x64657363;
+    public const uint cmsSigU16Fixed16ArrayType = 0x75663332;
+    public const uint cmsSigUcrBgType = 0x62666420;
+    public const uint cmsSigUInt16ArrayType = 0x75693136;
+    public const uint cmsSigUInt32ArrayType = 0x75693332;
+    public const uint cmsSigUInt64ArrayType = 0x75693634;
+    public const uint cmsSigUInt8ArrayType = 0x75693038;
+    public const uint cmsSigVcgtType = 0x76636774;
+    public const uint cmsSigViewingConditionsType = 0x76696577;
+    public const uint cmsSigXYZType = 0x58595A20;
 
-    internal const uint cmsSigAToB0Tag = 0x41324230;
-    internal const uint cmsSigAToB1Tag = 0x41324231;
-    internal const uint cmsSigAToB2Tag = 0x41324232;
-    internal const uint cmsSigBlueColorantTag = 0x6258595A;
-    internal const uint cmsSigBlueMatrixColumnTag = 0x6258595A;
-    internal const uint cmsSigBlueTRCTag = 0x62545243;
-    internal const uint cmsSigBToA0Tag = 0x42324130;
-    internal const uint cmsSigBToA1Tag = 0x42324131;
-    internal const uint cmsSigBToA2Tag = 0x42324132;
-    internal const uint cmsSigCalibrationDateTimeTag = 0x63616C74;
-    internal const uint cmsSigCharTargetTag = 0x74617267;
-    internal const uint cmsSigChromaticAdaptationTag = 0x63686164;
-    internal const uint cmsSigChromaticityTag = 0x6368726D;
-    internal const uint cmsSigColorantOrderTag = 0x636C726F;
-    internal const uint cmsSigColorantTableTag = 0x636C7274;
-    internal const uint cmsSigColorantTableOutTag = 0x636C6F74;
-    internal const uint cmsSigColorimetricIntentImageStateTag = 0x63696973;
-    internal const uint cmsSigCopyrightTag = 0x63707274;
-    internal const uint cmsSigCrdInfoTag = 0x63726469;
-    internal const uint cmsSigDataTag = 0x64617461;
-    internal const uint cmsSigDateTimeTag = 0x6474696D;
-    internal const uint cmsSigDeviceMfgDescTag = 0x646D6E64;
-    internal const uint cmsSigDeviceModelDescTag = 0x646D6464;
-    internal const uint cmsSigDeviceSettingsTag = 0x64657673;
-    internal const uint cmsSigDToB0Tag = 0x44324230;
-    internal const uint cmsSigDToB1Tag = 0x44324231;
-    internal const uint cmsSigDToB2Tag = 0x44324232;
-    internal const uint cmsSigDToB3Tag = 0x44324233;
-    internal const uint cmsSigBToD0Tag = 0x42324430;
-    internal const uint cmsSigBToD1Tag = 0x42324431;
-    internal const uint cmsSigBToD2Tag = 0x42324432;
-    internal const uint cmsSigBToD3Tag = 0x42324433;
-    internal const uint cmsSigGamutTag = 0x67616D74;
-    internal const uint cmsSigGrayTRCTag = 0x6b545243;
-    internal const uint cmsSigGreenColorantTag = 0x6758595A;
-    internal const uint cmsSigGreenMatrixColumnTag = 0x6758595A;
-    internal const uint cmsSigGreenTRCTag = 0x67545243;
-    internal const uint cmsSigLuminanceTag = 0x6C756d69;
-    internal const uint cmsSigMeasurementTag = 0x6D656173;
-    internal const uint cmsSigMediaBlackPointTag = 0x626B7074;
-    internal const uint cmsSigMediaWhitePointTag = 0x77747074;
-    internal const uint cmsSigNamedColorTag = 0x6E636f6C;
-    internal const uint cmsSigNamedColor2Tag = 0x6E636C32;
-    internal const uint cmsSigOutputResponseTag = 0x72657370;
-    internal const uint cmsSigPerceptualRenderingIntentGamutTag = 0x72696730;
-    internal const uint cmsSigPreview0Tag = 0x70726530;
-    internal const uint cmsSigPreview1Tag = 0x70726531;
-    internal const uint cmsSigPreview2Tag = 0x70726532;
-    internal const uint cmsSigProfileDescriptionTag = 0x64657363;
-    internal const uint cmsSigProfileDescriptionMLTag = 0x6473636d;
-    internal const uint cmsSigProfileSequenceDescTag = 0x70736571;
-    internal const uint cmsSigProfileSequenceIdTag = 0x70736964;
-    internal const uint cmsSigPs2CRD0Tag = 0x70736430;
-    internal const uint cmsSigPs2CRD1Tag = 0x70736431;
-    internal const uint cmsSigPs2CRD2Tag = 0x70736432;
-    internal const uint cmsSigPs2CRD3Tag = 0x70736433;
-    internal const uint cmsSigPs2CSATag = 0x70733273;
-    internal const uint cmsSigPs2RenderingIntentTag = 0x70733269;
-    internal const uint cmsSigRedColorantTag = 0x7258595A;
-    internal const uint cmsSigRedMatrixColumnTag = 0x7258595A;
-    internal const uint cmsSigRedTRCTag = 0x72545243;
-    internal const uint cmsSigSaturationRenderingIntentGamutTag = 0x72696732;
-    internal const uint cmsSigScreeningDescTag = 0x73637264;
-    internal const uint cmsSigScreeningTag = 0x7363726E;
-    internal const uint cmsSigTechnologyTag = 0x74656368;
-    internal const uint cmsSigUcrBgTag = 0x62666420;
-    internal const uint cmsSigViewingCondDescTag = 0x76756564;
-    internal const uint cmsSigViewingConditionsTag = 0x76696577;
-    internal const uint cmsSigVcgtTag = 0x76636774;
-    internal const uint cmsSigMetaTag = 0x6D657461;
-    internal const uint cmsSigArgyllArtsTag = 0x61727473;
+    public const uint cmsSigAToB0Tag = 0x41324230;
+    public const uint cmsSigAToB1Tag = 0x41324231;
+    public const uint cmsSigAToB2Tag = 0x41324232;
+    public const uint cmsSigBlueColorantTag = 0x6258595A;
+    public const uint cmsSigBlueMatrixColumnTag = 0x6258595A;
+    public const uint cmsSigBlueTRCTag = 0x62545243;
+    public const uint cmsSigBToA0Tag = 0x42324130;
+    public const uint cmsSigBToA1Tag = 0x42324131;
+    public const uint cmsSigBToA2Tag = 0x42324132;
+    public const uint cmsSigCalibrationDateTimeTag = 0x63616C74;
+    public const uint cmsSigCharTargetTag = 0x74617267;
+    public const uint cmsSigChromaticAdaptationTag = 0x63686164;
+    public const uint cmsSigChromaticityTag = 0x6368726D;
+    public const uint cmsSigColorantOrderTag = 0x636C726F;
+    public const uint cmsSigColorantTableTag = 0x636C7274;
+    public const uint cmsSigColorantTableOutTag = 0x636C6F74;
+    public const uint cmsSigColorimetricIntentImageStateTag = 0x63696973;
+    public const uint cmsSigCopyrightTag = 0x63707274;
+    public const uint cmsSigCrdInfoTag = 0x63726469;
+    public const uint cmsSigDataTag = 0x64617461;
+    public const uint cmsSigDateTimeTag = 0x6474696D;
+    public const uint cmsSigDeviceMfgDescTag = 0x646D6E64;
+    public const uint cmsSigDeviceModelDescTag = 0x646D6464;
+    public const uint cmsSigDeviceSettingsTag = 0x64657673;
+    public const uint cmsSigDToB0Tag = 0x44324230;
+    public const uint cmsSigDToB1Tag = 0x44324231;
+    public const uint cmsSigDToB2Tag = 0x44324232;
+    public const uint cmsSigDToB3Tag = 0x44324233;
+    public const uint cmsSigBToD0Tag = 0x42324430;
+    public const uint cmsSigBToD1Tag = 0x42324431;
+    public const uint cmsSigBToD2Tag = 0x42324432;
+    public const uint cmsSigBToD3Tag = 0x42324433;
+    public const uint cmsSigGamutTag = 0x67616D74;
+    public const uint cmsSigGrayTRCTag = 0x6b545243;
+    public const uint cmsSigGreenColorantTag = 0x6758595A;
+    public const uint cmsSigGreenMatrixColumnTag = 0x6758595A;
+    public const uint cmsSigGreenTRCTag = 0x67545243;
+    public const uint cmsSigLuminanceTag = 0x6C756d69;
+    public const uint cmsSigMeasurementTag = 0x6D656173;
+    public const uint cmsSigMediaBlackPointTag = 0x626B7074;
+    public const uint cmsSigMediaWhitePointTag = 0x77747074;
+    public const uint cmsSigNamedColorTag = 0x6E636f6C;
+    public const uint cmsSigNamedColor2Tag = 0x6E636C32;
+    public const uint cmsSigOutputResponseTag = 0x72657370;
+    public const uint cmsSigPerceptualRenderingIntentGamutTag = 0x72696730;
+    public const uint cmsSigPreview0Tag = 0x70726530;
+    public const uint cmsSigPreview1Tag = 0x70726531;
+    public const uint cmsSigPreview2Tag = 0x70726532;
+    public const uint cmsSigProfileDescriptionTag = 0x64657363;
+    public const uint cmsSigProfileDescriptionMLTag = 0x6473636d;
+    public const uint cmsSigProfileSequenceDescTag = 0x70736571;
+    public const uint cmsSigProfileSequenceIdTag = 0x70736964;
+    public const uint cmsSigPs2CRD0Tag = 0x70736430;
+    public const uint cmsSigPs2CRD1Tag = 0x70736431;
+    public const uint cmsSigPs2CRD2Tag = 0x70736432;
+    public const uint cmsSigPs2CRD3Tag = 0x70736433;
+    public const uint cmsSigPs2CSATag = 0x70733273;
+    public const uint cmsSigPs2RenderingIntentTag = 0x70733269;
+    public const uint cmsSigRedColorantTag = 0x7258595A;
+    public const uint cmsSigRedMatrixColumnTag = 0x7258595A;
+    public const uint cmsSigRedTRCTag = 0x72545243;
+    public const uint cmsSigSaturationRenderingIntentGamutTag = 0x72696732;
+    public const uint cmsSigScreeningDescTag = 0x73637264;
+    public const uint cmsSigScreeningTag = 0x7363726E;
+    public const uint cmsSigTechnologyTag = 0x74656368;
+    public const uint cmsSigUcrBgTag = 0x62666420;
+    public const uint cmsSigViewingCondDescTag = 0x76756564;
+    public const uint cmsSigViewingConditionsTag = 0x76696577;
+    public const uint cmsSigVcgtTag = 0x76636774;
+    public const uint cmsSigMetaTag = 0x6D657461;
+    public const uint cmsSigArgyllArtsTag = 0x61727473;
 
-    internal const uint cmsSigDigitalCamera = 0x6463616D;
-    internal const uint cmsSigFilmScanner = 0x6673636E;
-    internal const uint cmsSigReflectiveScanner = 0x7273636E;
-    internal const uint cmsSigInkJetPrinter = 0x696A6574;
-    internal const uint cmsSigThermalWaxPrinter = 0x74776178;
-    internal const uint cmsSigElectrophotographicPrinter = 0x6570686F;
-    internal const uint cmsSigElectrostaticPrinter = 0x65737461;
-    internal const uint cmsSigDyeSublimationPrinter = 0x64737562;
-    internal const uint cmsSigPhotographicPaperPrinter = 0x7270686F;
-    internal const uint cmsSigFilmWriter = 0x6670726E;
-    internal const uint cmsSigVideoMonitor = 0x7669646D;
-    internal const uint cmsSigVideoCamera = 0x76696463;
-    internal const uint cmsSigProjectionTelevision = 0x706A7476;
-    internal const uint cmsSigCRTDisplay = 0x43525420;
-    internal const uint cmsSigPMDisplay = 0x504D4420;
-    internal const uint cmsSigAMDisplay = 0x414D4420;
-    internal const uint cmsSigPhotoCD = 0x4B504344;
-    internal const uint cmsSigPhotoImageSetter = 0x696D6773;
-    internal const uint cmsSigGravure = 0x67726176;
-    internal const uint cmsSigOffsetLithography = 0x6F666673;
-    internal const uint cmsSigSilkscreen = 0x73696C6B;
-    internal const uint cmsSigFlexography = 0x666C6578;
-    internal const uint cmsSigMotionPictureFilmScanner = 0x6D706673;
-    internal const uint cmsSigMotionPictureFilmRecorder = 0x6D706672;
-    internal const uint cmsSigDigitalMotionPictureCamera = 0x646D7063;
-    internal const uint cmsSigDigitalCinemaProjector = 0x64636A70;
+    public const uint cmsSigDigitalCamera = 0x6463616D;
+    public const uint cmsSigFilmScanner = 0x6673636E;
+    public const uint cmsSigReflectiveScanner = 0x7273636E;
+    public const uint cmsSigInkJetPrinter = 0x696A6574;
+    public const uint cmsSigThermalWaxPrinter = 0x74776178;
+    public const uint cmsSigElectrophotographicPrinter = 0x6570686F;
+    public const uint cmsSigElectrostaticPrinter = 0x65737461;
+    public const uint cmsSigDyeSublimationPrinter = 0x64737562;
+    public const uint cmsSigPhotographicPaperPrinter = 0x7270686F;
+    public const uint cmsSigFilmWriter = 0x6670726E;
+    public const uint cmsSigVideoMonitor = 0x7669646D;
+    public const uint cmsSigVideoCamera = 0x76696463;
+    public const uint cmsSigProjectionTelevision = 0x706A7476;
+    public const uint cmsSigCRTDisplay = 0x43525420;
+    public const uint cmsSigPMDisplay = 0x504D4420;
+    public const uint cmsSigAMDisplay = 0x414D4420;
+    public const uint cmsSigPhotoCD = 0x4B504344;
+    public const uint cmsSigPhotoImageSetter = 0x696D6773;
+    public const uint cmsSigGravure = 0x67726176;
+    public const uint cmsSigOffsetLithography = 0x6F666673;
+    public const uint cmsSigSilkscreen = 0x73696C6B;
+    public const uint cmsSigFlexography = 0x666C6578;
+    public const uint cmsSigMotionPictureFilmScanner = 0x6D706673;
+    public const uint cmsSigMotionPictureFilmRecorder = 0x6D706672;
+    public const uint cmsSigDigitalMotionPictureCamera = 0x646D7063;
+    public const uint cmsSigDigitalCinemaProjector = 0x64636A70;
 
-    internal const uint cmsSigXYZData = 0x58595A20;
-    internal const uint cmsSigLabData = 0x4C616220;
-    internal const uint cmsSigLuvData = 0x4C757620;
-    internal const uint cmsSigYCbCrData = 0x59436272;
-    internal const uint cmsSigYxyData = 0x59787920;
-    internal const uint cmsSigRgbData = 0x52474220;
-    internal const uint cmsSigGrayData = 0x47524159;
-    internal const uint cmsSigHsvData = 0x48535620;
-    internal const uint cmsSigHlsData = 0x484C5320;
-    internal const uint cmsSigCmykData = 0x434D594B;
-    internal const uint cmsSigCmyData = 0x434D5920;
-    internal const uint cmsSigMCH1Data = 0x4D434831;
-    internal const uint cmsSigMCH2Data = 0x4D434832;
-    internal const uint cmsSigMCH3Data = 0x4D434833;
-    internal const uint cmsSigMCH4Data = 0x4D434834;
-    internal const uint cmsSigMCH5Data = 0x4D434835;
-    internal const uint cmsSigMCH6Data = 0x4D434836;
-    internal const uint cmsSigMCH7Data = 0x4D434837;
-    internal const uint cmsSigMCH8Data = 0x4D434838;
-    internal const uint cmsSigMCH9Data = 0x4D434839;
-    internal const uint cmsSigMCHAData = 0x4D434841;
-    internal const uint cmsSigMCHBData = 0x4D434842;
-    internal const uint cmsSigMCHCData = 0x4D434843;
-    internal const uint cmsSigMCHDData = 0x4D434844;
-    internal const uint cmsSigMCHEData = 0x4D434845;
-    internal const uint cmsSigMCHFData = 0x4D434846;
-    internal const uint cmsSigNamedData = 0x6e6d636c;
-    internal const uint cmsSig1colorData = 0x31434C52;
-    internal const uint cmsSig2colorData = 0x32434C52;
-    internal const uint cmsSig3colorData = 0x33434C52;
-    internal const uint cmsSig4colorData = 0x34434C52;
-    internal const uint cmsSig5colorData = 0x35434C52;
-    internal const uint cmsSig6colorData = 0x36434C52;
-    internal const uint cmsSig7colorData = 0x37434C52;
-    internal const uint cmsSig8colorData = 0x38434C52;
-    internal const uint cmsSig9colorData = 0x39434C52;
-    internal const uint cmsSig10colorData = 0x41434C52;
-    internal const uint cmsSig11colorData = 0x42434C52;
-    internal const uint cmsSig12colorData = 0x43434C52;
-    internal const uint cmsSig13colorData = 0x44434C52;
-    internal const uint cmsSig14colorData = 0x45434C52;
-    internal const uint cmsSig15colorData = 0x46434C52;
-    internal const uint cmsSigLuvKData = 0x4C75764B;
+    public const uint cmsSigXYZData = 0x58595A20;
+    public const uint cmsSigLabData = 0x4C616220;
+    public const uint cmsSigLuvData = 0x4C757620;
+    public const uint cmsSigYCbCrData = 0x59436272;
+    public const uint cmsSigYxyData = 0x59787920;
+    public const uint cmsSigRgbData = 0x52474220;
+    public const uint cmsSigGrayData = 0x47524159;
+    public const uint cmsSigHsvData = 0x48535620;
+    public const uint cmsSigHlsData = 0x484C5320;
+    public const uint cmsSigCmykData = 0x434D594B;
+    public const uint cmsSigCmyData = 0x434D5920;
+    public const uint cmsSigMCH1Data = 0x4D434831;
+    public const uint cmsSigMCH2Data = 0x4D434832;
+    public const uint cmsSigMCH3Data = 0x4D434833;
+    public const uint cmsSigMCH4Data = 0x4D434834;
+    public const uint cmsSigMCH5Data = 0x4D434835;
+    public const uint cmsSigMCH6Data = 0x4D434836;
+    public const uint cmsSigMCH7Data = 0x4D434837;
+    public const uint cmsSigMCH8Data = 0x4D434838;
+    public const uint cmsSigMCH9Data = 0x4D434839;
+    public const uint cmsSigMCHAData = 0x4D434841;
+    public const uint cmsSigMCHBData = 0x4D434842;
+    public const uint cmsSigMCHCData = 0x4D434843;
+    public const uint cmsSigMCHDData = 0x4D434844;
+    public const uint cmsSigMCHEData = 0x4D434845;
+    public const uint cmsSigMCHFData = 0x4D434846;
+    public const uint cmsSigNamedData = 0x6e6d636c;
+    public const uint cmsSig1colorData = 0x31434C52;
+    public const uint cmsSig2colorData = 0x32434C52;
+    public const uint cmsSig3colorData = 0x33434C52;
+    public const uint cmsSig4colorData = 0x34434C52;
+    public const uint cmsSig5colorData = 0x35434C52;
+    public const uint cmsSig6colorData = 0x36434C52;
+    public const uint cmsSig7colorData = 0x37434C52;
+    public const uint cmsSig8colorData = 0x38434C52;
+    public const uint cmsSig9colorData = 0x39434C52;
+    public const uint cmsSig10colorData = 0x41434C52;
+    public const uint cmsSig11colorData = 0x42434C52;
+    public const uint cmsSig12colorData = 0x43434C52;
+    public const uint cmsSig13colorData = 0x44434C52;
+    public const uint cmsSig14colorData = 0x45434C52;
+    public const uint cmsSig15colorData = 0x46434C52;
+    public const uint cmsSigLuvKData = 0x4C75764B;
 
-    internal const uint cmsSigInputClass = 0x73636E72;
-    internal const uint cmsSigDisplayClass = 0x6D6E7472;
-    internal const uint cmsSigOutputClass = 0x70727472;
-    internal const uint cmsSigLinkClass = 0x6C696E6B;
-    internal const uint cmsSigAbstractClass = 0x61627374;
-    internal const uint cmsSigColorSpaceClass = 0x73706163;
-    internal const uint cmsSigNamedColorClass = 0x6e6d636c;
+    public const uint cmsSigInputClass = 0x73636E72;
+    public const uint cmsSigDisplayClass = 0x6D6E7472;
+    public const uint cmsSigOutputClass = 0x70727472;
+    public const uint cmsSigLinkClass = 0x6C696E6B;
+    public const uint cmsSigAbstractClass = 0x61627374;
+    public const uint cmsSigColorSpaceClass = 0x73706163;
+    public const uint cmsSigNamedColorClass = 0x6e6d636c;
 
-    internal const uint cmsSigMacintosh = 0x4150504C;
-    internal const uint cmsSigMicrosoft = 0x4D534654;
-    internal const uint cmsSigSolaris = 0x53554E57;
-    internal const uint cmsSigSGI = 0x53474920;
-    internal const uint cmsSigTaligent = 0x54474E54;
-    internal const uint cmsSigUnices = 0x2A6E6978;
+    public const uint cmsSigMacintosh = 0x4150504C;
+    public const uint cmsSigMicrosoft = 0x4D534654;
+    public const uint cmsSigSolaris = 0x53554E57;
+    public const uint cmsSigSGI = 0x53474920;
+    public const uint cmsSigTaligent = 0x54474E54;
+    public const uint cmsSigUnices = 0x2A6E6978;
 
-    internal const uint cmsSigPerceptualReferenceMediumGamut = 0x70726d67;
+    public const uint cmsSigPerceptualReferenceMediumGamut = 0x70726d67;
 
-    internal const uint cmsSigSceneColorimetryEstimates = 0x73636F65;
-    internal const uint cmsSigSceneAppearanceEstimates = 0x73617065;
-    internal const uint cmsSigFocalPlaneColorimetryEstimates = 0x66706365;
-    internal const uint cmsSigReflectionHardcopyOriginalColorimetry = 0x72686F63;
-    internal const uint cmsSigReflectionPrintOutputColorimetry = 0x72706F63;
+    public const uint cmsSigSceneColorimetryEstimates = 0x73636F65;
+    public const uint cmsSigSceneAppearanceEstimates = 0x73617065;
+    public const uint cmsSigFocalPlaneColorimetryEstimates = 0x66706365;
+    public const uint cmsSigReflectionHardcopyOriginalColorimetry = 0x72686F63;
+    public const uint cmsSigReflectionPrintOutputColorimetry = 0x72706F63;
 
-    internal const uint cmsSigCurveSetElemType = 0x63767374;
-    internal const uint cmsSigMatrixElemType = 0x6D617466;
-    internal const uint cmsSigCLutElemType = 0x636C7574;
+    public const uint cmsSigCurveSetElemType = 0x63767374;
+    public const uint cmsSigMatrixElemType = 0x6D617466;
+    public const uint cmsSigCLutElemType = 0x636C7574;
 
-    internal const uint cmsSigBAcsElemType = 0x62414353;
-    internal const uint cmsSigEAcsElemType = 0x65414353;
+    public const uint cmsSigBAcsElemType = 0x62414353;
+    public const uint cmsSigEAcsElemType = 0x65414353;
 
     // Custom from here, not in the ICC Spec
-    internal const uint cmsSigXYZ2LabElemType = 0x6C327820;
+    public const uint cmsSigXYZ2LabElemType = 0x6C327820;
 
-    internal const uint cmsSigLab2XYZElemType = 0x78326C20;
-    internal const uint cmsSigNamedColorElemType = 0x6E636C20;
-    internal const uint cmsSigLabV2toV4 = 0x32203420;
-    internal const uint cmsSigLabV4toV2 = 0x34203220;
+    public const uint cmsSigLab2XYZElemType = 0x78326C20;
+    public const uint cmsSigNamedColorElemType = 0x6E636C20;
+    public const uint cmsSigLabV2toV4 = 0x32203420;
+    public const uint cmsSigLabV4toV2 = 0x34203220;
 
     // Identities
-    internal const uint cmsSigIdentityElemType = 0x69646E20;
+    public const uint cmsSigIdentityElemType = 0x69646E20;
 
     // Float to floatPCS
-    internal const uint cmsSigLab2FloatPCS = 0x64326C20;
+    public const uint cmsSigLab2FloatPCS = 0x64326C20;
 
-    internal const uint cmsSigFloatPCS2Lab = 0x6C326420;
-    internal const uint cmsSigXYZ2FloatPCS = 0x64327820;
-    internal const uint cmsSigFloatPCS2XYZ = 0x78326420;
-    internal const uint cmsSigClipNegativesElemType = 0x636c7020;
+    public const uint cmsSigFloatPCS2Lab = 0x6C326420;
+    public const uint cmsSigXYZ2FloatPCS = 0x64327820;
+    public const uint cmsSigFloatPCS2XYZ = 0x78326420;
+    public const uint cmsSigClipNegativesElemType = 0x636c7020;
 
-    internal const uint cmsSigFormulaCurveSeg = 0x70617266;
-    internal const uint cmsSigSampledCurveSeg = 0x73616D66;
-    internal const uint cmsSigSegmentedCurve = 0x63757266;
+    public const uint cmsSigFormulaCurveSeg = 0x70617266;
+    public const uint cmsSigSampledCurveSeg = 0x73616D66;
+    public const uint cmsSigSegmentedCurve = 0x63757266;
 
-    internal const uint cmsSigStatusA = 0x53746141;
-    internal const uint cmsSigStatusE = 0x53746145;
-    internal const uint cmsSigStatusI = 0x53746149;
-    internal const uint cmsSigStatusT = 0x53746154;
-    internal const uint cmsSigStatusM = 0x5374614D;
-    internal const uint cmsSigDN = 0x444E2020;
-    internal const uint cmsSigDNP = 0x444E2050;
-    internal const uint cmsSigDNN = 0x444E4E20;
-    internal const uint cmsSigDNNP = 0x444E4E50;
+    public const uint cmsSigStatusA = 0x53746141;
+    public const uint cmsSigStatusE = 0x53746145;
+    public const uint cmsSigStatusI = 0x53746149;
+    public const uint cmsSigStatusT = 0x53746154;
+    public const uint cmsSigStatusM = 0x5374614D;
+    public const uint cmsSigDN = 0x444E2020;
+    public const uint cmsSigDNP = 0x444E2050;
+    public const uint cmsSigDNN = 0x444E4E20;
+    public const uint cmsSigDNNP = 0x444E4E50;
 
-    internal const uint cmsReflective = 0;
-    internal const uint cmsTransparency = 1;
-    internal const uint cmsGlossy = 0;
-    internal const uint cmsMatte = 2;
+    public const uint cmsReflective = 0;
+    public const uint cmsTransparency = 1;
+    public const uint cmsGlossy = 0;
+    public const uint cmsMatte = 2;
 
-    internal const byte cmsMAXCHANNELS = 16;
-
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint PREMUL_SH(uint m) => m << 23;
+    public const byte cmsMAXCHANNELS = 16;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint FLOAT_SH(uint m) => m << 22;
+    public static uint PREMUL_SH(uint m) => m << 23;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint OPTIMIZED_SH(uint m) => m << 21;
+    public static uint FLOAT_SH(uint m) => m << 22;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint COLORSPACE_SH(uint m) => m << 16;
+    public static uint OPTIMIZED_SH(uint m) => m << 21;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint SWAPFIRST_SH(uint m) => m << 14;
+    public static uint COLORSPACE_SH(uint m) => m << 16;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint FLAVOR_SH(uint m) => m << 13;
+    public static uint SWAPFIRST_SH(uint m) => m << 14;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint PLANAR_SH(uint m) => m << 12;
+    public static uint FLAVOR_SH(uint m) => m << 13;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint ENDIAN16_SH(uint m) => m << 11;
+    public static uint PLANAR_SH(uint m) => m << 12;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint DOSWAP_SH(uint m) => m << 10;
+    public static uint ENDIAN16_SH(uint m) => m << 11;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint EXTRA_SH(uint m) => m << 7;
+    public static uint DOSWAP_SH(uint m) => m << 10;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint CHANNELS_SH(uint m) => m << 3;
+    public static uint EXTRA_SH(uint m) => m << 7;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint BYTES_SH(uint m) => m << 0;
+    public static uint CHANNELS_SH(uint m) => m << 3;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_PREMUL(uint m) => (int)(m >> 23) & 1;
+    public static uint BYTES_SH(uint m) => m << 0;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_FLOAT(uint m) => (int)(m >> 22) & 1;
+    public static int T_PREMUL(uint m) => (int)(m >> 23) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_OPTIMIZED(uint m) => (int)(m >> 21) & 1;
+    public static int T_FLOAT(uint m) => (int)(m >> 22) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_COLORSPACE(uint m) => (int)(m >> 16) & 31;
+    public static int T_OPTIMIZED(uint m) => (int)(m >> 21) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_SWAPFIRST(uint m) => (int)(m >> 14) & 1;
+    public static int T_COLORSPACE(uint m) => (int)(m >> 16) & 31;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_FLAVOR(uint m) => (int)(m >> 13) & 1;
+    public static int T_SWAPFIRST(uint m) => (int)(m >> 14) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_PLANAR(uint m) => (int)(m >> 12) & 1;
+    public static int T_FLAVOR(uint m) => (int)(m >> 13) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_ENDIAN16(uint m) => (int)(m >> 11) & 1;
+    public static int T_PLANAR(uint m) => (int)(m >> 12) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_DOSWAP(uint m) => (int)(m >> 10) & 1;
+    public static int T_ENDIAN16(uint m) => (int)(m >> 11) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_EXTRA(uint m) => (int)(m >> 7) & 7;
+    public static int T_DOSWAP(uint m) => (int)(m >> 10) & 1;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_CHANNELS(uint m) => (int)(m >> 3) & 15;
+    public static int T_EXTRA(uint m) => (int)(m >> 7) & 7;
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int T_BYTES(uint m) => (int)(m >> 0) & 7;
+    public static int T_CHANNELS(uint m) => (int)(m >> 3) & 15;
 
-    internal const ushort PT_ANY = 0;
-    internal const ushort PT_GRAY = 3;
-    internal const ushort PT_RGB = 4;
-    internal const ushort PT_CMY = 5;
-    internal const ushort PT_CMYK = 6;
-    internal const ushort PT_YCbCr = 7;
-    internal const ushort PT_YUV = 8;
-    internal const ushort PT_XYZ = 9;
-    internal const ushort PT_Lab = 10;
-    internal const ushort PT_YUVK = 11;
-    internal const ushort PT_HSV = 12;
-    internal const ushort PT_HLS = 13;
-    internal const ushort PT_Yxy = 14;
-    internal const ushort PT_MCH1 = 15;
-    internal const ushort PT_MCH2 = 16;
-    internal const ushort PT_MCH3 = 17;
-    internal const ushort PT_MCH4 = 18;
-    internal const ushort PT_MCH5 = 19;
-    internal const ushort PT_MCH6 = 20;
-    internal const ushort PT_MCH7 = 21;
-    internal const ushort PT_MCH8 = 22;
-    internal const ushort PT_MCH9 = 23;
-    internal const ushort PT_MCH10 = 24;
-    internal const ushort PT_MCH11 = 25;
-    internal const ushort PT_MCH12 = 26;
-    internal const ushort PT_MCH13 = 27;
-    internal const ushort PT_MCH14 = 28;
-    internal const ushort PT_MCH15 = 29;
-    internal const ushort PT_LabV2 = 30;
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int T_BYTES(uint m) => (int)(m >> 0) & 7;
+
+    public const ushort PT_ANY = 0;
+    public const ushort PT_GRAY = 3;
+    public const ushort PT_RGB = 4;
+    public const ushort PT_CMY = 5;
+    public const ushort PT_CMYK = 6;
+    public const ushort PT_YCbCr = 7;
+    public const ushort PT_YUV = 8;
+    public const ushort PT_XYZ = 9;
+    public const ushort PT_Lab = 10;
+    public const ushort PT_YUVK = 11;
+    public const ushort PT_HSV = 12;
+    public const ushort PT_HLS = 13;
+    public const ushort PT_Yxy = 14;
+    public const ushort PT_MCH1 = 15;
+    public const ushort PT_MCH2 = 16;
+    public const ushort PT_MCH3 = 17;
+    public const ushort PT_MCH4 = 18;
+    public const ushort PT_MCH5 = 19;
+    public const ushort PT_MCH6 = 20;
+    public const ushort PT_MCH7 = 21;
+    public const ushort PT_MCH8 = 22;
+    public const ushort PT_MCH9 = 23;
+    public const ushort PT_MCH10 = 24;
+    public const ushort PT_MCH11 = 25;
+    public const ushort PT_MCH12 = 26;
+    public const ushort PT_MCH13 = 27;
+    public const ushort PT_MCH14 = 28;
+    public const ushort PT_MCH15 = 29;
+    public const ushort PT_LabV2 = 30;
 
     public static uint TYPE_GRAY_8 => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1);
     public static uint TYPE_GRAY_8_REV => COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(1) | FLAVOR_SH(1);
@@ -635,157 +634,131 @@ public static partial class Lcms2
     public static uint TYPE_BGRA_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1) | SWAPFIRST_SH(1);
     public static uint TYPE_ABGR_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(2) | DOSWAP_SH(1);
 
-    internal const uint cmsILLUMINANT_TYPE_UNKNOWN = 0x0000000;
-    internal const uint cmsILLUMINANT_TYPE_D50 = 0x0000001;
-    internal const uint cmsILLUMINANT_TYPE_D65 = 0x0000002;
-    internal const uint cmsILLUMINANT_TYPE_D93 = 0x0000003;
-    internal const uint cmsILLUMINANT_TYPE_F2 = 0x0000004;
-    internal const uint cmsILLUMINANT_TYPE_D55 = 0x0000005;
-    internal const uint cmsILLUMINANT_TYPE_A = 0x0000006;
-    internal const uint cmsILLUMINANT_TYPE_E = 0x0000007;
-    internal const uint cmsILLUMINANT_TYPE_F8 = 0x0000008;
+    public const uint cmsILLUMINANT_TYPE_UNKNOWN = 0x0000000;
+    public const uint cmsILLUMINANT_TYPE_D50 = 0x0000001;
+    public const uint cmsILLUMINANT_TYPE_D65 = 0x0000002;
+    public const uint cmsILLUMINANT_TYPE_D93 = 0x0000003;
+    public const uint cmsILLUMINANT_TYPE_F2 = 0x0000004;
+    public const uint cmsILLUMINANT_TYPE_D55 = 0x0000005;
+    public const uint cmsILLUMINANT_TYPE_A = 0x0000006;
+    public const uint cmsILLUMINANT_TYPE_E = 0x0000007;
+    public const uint cmsILLUMINANT_TYPE_F8 = 0x0000008;
 
-    internal static EventId cmsERROR_UNDEFINED = ErrorCodes.Undefined;
-    internal static EventId cmsERROR_FILE = ErrorCodes.File;
-    internal static EventId cmsERROR_RANGE = ErrorCodes.Range;
-    internal static EventId cmsERROR_INTERNAL = ErrorCodes.Internal;
-    internal static EventId cmsERROR_NULL = ErrorCodes.Null;
-    internal static EventId cmsERROR_READ = ErrorCodes.Read;
-    internal static EventId cmsERROR_SEEK = ErrorCodes.Seek;
-    internal static EventId cmsERROR_WRITE = ErrorCodes.Write;
-    internal static EventId cmsERROR_UNKNOWN_EXTENSION = ErrorCodes.UnknownExtension;
-    internal static EventId cmsERROR_COLORSPACE_CHECK = ErrorCodes.ColorspaceCheck;
-    internal static EventId cmsERROR_ALREADY_DEFINED = ErrorCodes.AlreadyDefined;
-    internal static EventId cmsERROR_BAD_SIGNATURE = ErrorCodes.BadSignature;
-    internal static EventId cmsERROR_CORRUPTION_DETECTED = ErrorCodes.CorruptionDetected;
-    internal static EventId cmsERROR_NOT_SUITABLE = ErrorCodes.NotSuitable;
+    public static EventId cmsERROR_UNDEFINED = ErrorCodes.Undefined;
+    public static EventId cmsERROR_FILE = ErrorCodes.File;
+    public static EventId cmsERROR_RANGE = ErrorCodes.Range;
+    public static EventId cmsERROR_INTERNAL = ErrorCodes.Internal;
+    public static EventId cmsERROR_NULL = ErrorCodes.Null;
+    public static EventId cmsERROR_READ = ErrorCodes.Read;
+    public static EventId cmsERROR_SEEK = ErrorCodes.Seek;
+    public static EventId cmsERROR_WRITE = ErrorCodes.Write;
+    public static EventId cmsERROR_UNKNOWN_EXTENSION = ErrorCodes.UnknownExtension;
+    public static EventId cmsERROR_COLORSPACE_CHECK = ErrorCodes.ColorspaceCheck;
+    public static EventId cmsERROR_ALREADY_DEFINED = ErrorCodes.AlreadyDefined;
+    public static EventId cmsERROR_BAD_SIGNATURE = ErrorCodes.BadSignature;
+    public static EventId cmsERROR_CORRUPTION_DETECTED = ErrorCodes.CorruptionDetected;
+    public static EventId cmsERROR_NOT_SUITABLE = ErrorCodes.NotSuitable;
 
-    internal const uint AVG_SURROUND = 1;
-    internal const uint DIM_SURROUND = 2;
-    internal const uint DARK_SURROUND = 3;
-    internal const uint CUTSHEET_SURROUND = 4;
+    public const uint AVG_SURROUND = 1;
+    public const uint DIM_SURROUND = 2;
+    public const uint DARK_SURROUND = 3;
+    public const uint CUTSHEET_SURROUND = 4;
 
-    internal const double D_CALCULATE = -1.0;
+    public const double D_CALCULATE = -1.0;
 
-    internal const uint SAMPLER_INSPECT = 0x01000000;
+    public const uint SAMPLER_INSPECT = 0x01000000;
 
-    internal static readonly byte[] cmsNoLanguage = "\0\0"u8.ToArray();
-    internal static readonly byte[] cmsNoCountry = "\0\0"u8.ToArray();
+    public static readonly byte[] cmsNoLanguage = "\0\0"u8.ToArray();
+    public static readonly byte[] cmsNoCountry = "\0\0"u8.ToArray();
 
-    internal const ushort cmsPRINTER_DEFAULT_SCREENS = 0x0001;
-    internal const ushort cmsFREQUENCE_UNITS_LINES_CM = 0x0000;
-    internal const ushort cmsFREQUENCE_UNITS_LINES_INCH = 0x0002;
+    public const ushort cmsPRINTER_DEFAULT_SCREENS = 0x0001;
+    public const ushort cmsFREQUENCE_UNITS_LINES_CM = 0x0000;
+    public const ushort cmsFREQUENCE_UNITS_LINES_INCH = 0x0002;
 
-    internal const byte cmsSPOT_UNKNOWN = 0;
-    internal const byte cmsSPOT_PRINTER_DEFAULT = 1;
-    internal const byte cmsSPOT_ROUND = 2;
-    internal const byte cmsSPOT_DIAMOND = 3;
-    internal const byte cmsSPOT_ELLIPSE = 4;
-    internal const byte cmsSPOT_LINE = 5;
-    internal const byte cmsSPOT_SQUARE = 6;
-    internal const byte cmsSPOT_CROSS = 7;
+    public const byte cmsSPOT_UNKNOWN = 0;
+    public const byte cmsSPOT_PRINTER_DEFAULT = 1;
+    public const byte cmsSPOT_ROUND = 2;
+    public const byte cmsSPOT_DIAMOND = 3;
+    public const byte cmsSPOT_ELLIPSE = 4;
+    public const byte cmsSPOT_LINE = 5;
+    public const byte cmsSPOT_SQUARE = 6;
+    public const byte cmsSPOT_CROSS = 7;
 
-    internal const uint cmsEmbeddedProfileFalse = 0x00000000;
-    internal const uint cmsEmbeddedProfileTrue = 0x00000001;
-    internal const uint cmsUseAnywhere = 0x00000000;
-    internal const uint cmsUseWithEmbeddedDataOnly = 0x00000002;
+    public const uint cmsEmbeddedProfileFalse = 0x00000000;
+    public const uint cmsEmbeddedProfileTrue = 0x00000001;
+    public const uint cmsUseAnywhere = 0x00000000;
+    public const uint cmsUseWithEmbeddedDataOnly = 0x00000002;
 
-    internal const byte LCMS_USED_AS_INPUT = 0;
-    internal const byte LCMS_USED_AS_OUTPUT = 1;
-    internal const byte LCMS_USED_AS_PROOF = 2;
+    public const byte LCMS_USED_AS_INPUT = 0;
+    public const byte LCMS_USED_AS_OUTPUT = 1;
+    public const byte LCMS_USED_AS_PROOF = 2;
 
-    internal const byte cmsInfoDescription = 0;
-    internal const byte cmsInfoManufacturer = 1;
-    internal const byte cmsInfoModel = 2;
-    internal const byte cmsInfoCopyright = 3;
+    public const byte cmsInfoDescription = 0;
+    public const byte cmsInfoManufacturer = 1;
+    public const byte cmsInfoModel = 2;
+    public const byte cmsInfoCopyright = 3;
 
     // ICC Intents
-    internal const byte INTENT_PERCEPTUAL = 0;
+    public const byte INTENT_PERCEPTUAL = 0;
 
-    internal const byte INTENT_RELATIVE_COLORIMETRIC = 1;
-    internal const byte INTENT_SATURATION = 2;
-    internal const byte INTENT_ABSOLUTE_COLORIMETRIC = 3;
+    public const byte INTENT_RELATIVE_COLORIMETRIC = 1;
+    public const byte INTENT_SATURATION = 2;
+    public const byte INTENT_ABSOLUTE_COLORIMETRIC = 3;
 
     // Non-ICC intents
-    internal const byte INTENT_PRESERVE_K_ONLY_PERCEPTUAL = 10;
+    public const byte INTENT_PRESERVE_K_ONLY_PERCEPTUAL = 10;
 
-    internal const byte INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC = 11;
-    internal const byte INTENT_PRESERVE_K_ONLY_SATURATION = 12;
-    internal const byte INTENT_PRESERVE_K_PLANE_PERCEPTUAL = 13;
-    internal const byte INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC = 14;
-    internal const byte INTENT_PRESERVE_K_PLANE_SATURATION = 15;
+    public const byte INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC = 11;
+    public const byte INTENT_PRESERVE_K_ONLY_SATURATION = 12;
+    public const byte INTENT_PRESERVE_K_PLANE_PERCEPTUAL = 13;
+    public const byte INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC = 14;
+    public const byte INTENT_PRESERVE_K_PLANE_SATURATION = 15;
 
     // Flags
 
-    internal const ushort cmsFLAGS_NOCACHE = 0x0040;
-    internal const ushort cmsFLAGS_NOOPTIMIZE = 0x0100;
-    internal const ushort cmsFLAGS_NULLTRANSFORM = 0x0200;
+    public const ushort cmsFLAGS_NOCACHE = 0x0040;
+    public const ushort cmsFLAGS_NOOPTIMIZE = 0x0100;
+    public const ushort cmsFLAGS_NULLTRANSFORM = 0x0200;
 
     // Proofing flags
-    internal const ushort cmsFLAGS_GAMUTCHECK = 0x1000;
+    public const ushort cmsFLAGS_GAMUTCHECK = 0x1000;
 
-    internal const ushort cmsFLAGS_SOFTPROOFING = 0x4000;
+    public const ushort cmsFLAGS_SOFTPROOFING = 0x4000;
 
     // Misc
-    internal const ushort cmsFLAGS_BLACKPOINTCOMPENSATION = 0x2000;
+    public const ushort cmsFLAGS_BLACKPOINTCOMPENSATION = 0x2000;
 
-    internal const ushort cmsFLAGS_NOWHITEONWHITEFIXUP = 0x0004;
-    internal const ushort cmsFLAGS_HIGHRESPRECALC = 0x0400;
-    internal const ushort cmsFLAGS_LOWRESPRECALC = 0x0800;
+    public const ushort cmsFLAGS_NOWHITEONWHITEFIXUP = 0x0004;
+    public const ushort cmsFLAGS_HIGHRESPRECALC = 0x0400;
+    public const ushort cmsFLAGS_LOWRESPRECALC = 0x0800;
 
     // For devicelink creation
-    internal const ushort cmsFLAGS_8BITS_DEVICELINK = 0x0008;
+    public const ushort cmsFLAGS_8BITS_DEVICELINK = 0x0008;
 
-    internal const ushort cmsFLAGS_GUESSDEVICECLASS = 0x0020;
-    internal const ushort cmsFLAGS_KEEP_SEQUENCE = 0x0080;
+    public const ushort cmsFLAGS_GUESSDEVICECLASS = 0x0020;
+    public const ushort cmsFLAGS_KEEP_SEQUENCE = 0x0080;
 
     // Specific to a particular optimizations
-    internal const ushort cmsFLAGS_FORCE_CLUT = 0x0002;
+    public const ushort cmsFLAGS_FORCE_CLUT = 0x0002;
 
-    internal const ushort cmsFLAGS_CLUT_POST_LINEARIZATION = 0x0001;
-    internal const ushort cmsFLAGS_CLUT_PRE_LINEARIZATION = 0x0010;
+    public const ushort cmsFLAGS_CLUT_POST_LINEARIZATION = 0x0001;
+    public const ushort cmsFLAGS_CLUT_PRE_LINEARIZATION = 0x0010;
 
     // Specific to unbounded mode
-    internal const ushort cmsFLAGS_NONEGATIVES = 0x8000;
+    public const ushort cmsFLAGS_NONEGATIVES = 0x8000;
 
     // Copy alpha channels when transforming
-    internal const uint cmsFLAGS_COPY_ALPHA = 0x04000000;
+    public const uint cmsFLAGS_COPY_ALPHA = 0x04000000;
 
     // Fine-tune control over number of gridpoints
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint cmsFLAGS_GRIDPOINTS(int n) =>
+    public static uint cmsFLAGS_GRIDPOINTS(int n) =>
         (uint)(n & 0xFF) << 16;
 
     // CRD special
-    internal const uint cmsFLAGS_NODEFAULTRESOURCEDEF = 0x01000000;
+    public const uint cmsFLAGS_NODEFAULTRESOURCEDEF = 0x01000000;
 
     #endregion lcms2.h
-
-    #region lcms2_plugin.h
-
-    internal const int VX = 0;
-    internal const int VY = 1;
-    internal const int VZ = 2;
-
-    internal const uint cmsPluginMagicNumber = 0x61637070;              // 'acpp'
-
-    internal const uint cmsPluginMemHandlerSig = 0x6D656D48;            // 'memH'
-    internal const uint cmsPluginInterpolationSig = 0x696E7048;         // 'inpH'
-    internal const uint cmsPluginParametricCurveSig = 0x70617248;       // 'parH'
-    internal const uint cmsPluginFormattersSig = 0x66726D48;            // 'frmH
-    internal const uint cmsPluginTagTypeSig = 0x74797048;               // 'typH'
-    internal const uint cmsPluginTagSig = 0x74616748;                   // 'tagH'
-    internal const uint cmsPluginRenderingIntentSig = 0x696E7448;       // 'intH'
-    internal const uint cmsPluginMultiProcessElementSig = 0x6D706548;   // 'mpeH'
-    internal const uint cmsPluginOptimizationSig = 0x6F707448;          // 'optH'
-    internal const uint cmsPluginTransformSig = 0x7A666D48;             // 'xfmH'
-    internal const uint cmsPluginMutexSig = 0x6D747A48;                 // 'mtxH'
-
-    internal const byte MAX_TYPES_IN_LCMS_PLUGIN = 20;
-
-    internal const byte MAX_INPUT_DIMENSIONS = 15;
-
-    #endregion lcms2_plugin.h
 
     #region lcms2_internal.h
 

@@ -812,45 +812,6 @@ public static partial class Lcms2
         return true;
     }
 
-    internal static void _cmsSetTransformUserData(Transform CMMcargo, object? ptr, FreeManagedUserDataFn? FreePrivateDataFn)
-    {
-        _cmsAssert(CMMcargo);
-        CMMcargo.UserData = ptr;
-        CMMcargo.FreeUserData = FreePrivateDataFn;
-    }
-
-    internal static object? _cmsGetTransformUserData(Transform CMMcargo)
-    {
-        _cmsAssert(CMMcargo);
-        return CMMcargo.UserData;
-    }
-
-    internal static void _cmsGetTransformFormatters16(
-        Transform CMMcargo,
-        out Formatter16In FromInput,
-        out Formatter16Out ToOutput)
-    {
-        _cmsAssert(CMMcargo);
-        FromInput = CMMcargo.FromInput;
-        ToOutput = CMMcargo.ToOutput;
-    }
-
-    internal static void _cmsGetTransformFormattersFloat(
-        Transform CMMcargo,
-        out FormatterFloatIn FromInput,
-        out FormatterFloatOut ToOutput)
-    {
-        _cmsAssert(CMMcargo);
-        FromInput = CMMcargo.FromInputFloat;
-        ToOutput = CMMcargo.ToOutputFloat;
-    }
-
-    internal static uint _cmsGetTransformFlags(Transform CMMcargo)
-    {
-        _cmsAssert(CMMcargo);
-        return CMMcargo.dwOriginalFlags;
-    }
-
     private static Transform? AllocEmptyTransform(
         Context? ContextID,
         Pipeline? lut,

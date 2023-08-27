@@ -37,8 +37,8 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    private const int MaxErrorMessageLen = 1024;
-    private const uint MaxMemoryForAlloc = 1024u * 1024u * 512u;
+    internal const int MaxErrorMessageLen = 1024;
+    internal const uint MaxMemoryForAlloc = 1024u * 1024u * 512u;
 
     //internal static readonly MemPluginChunkType globalMemPluginChunk = new()
     //{
@@ -559,22 +559,6 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     public static void cmsSetLogErrorHandler(ILoggerFactory? factory) =>
         cmsSetLogErrorHandlerTHR(null, factory);
-
-    /// <summary>
-    ///     Log an error
-    /// </summary>
-    /// <param name="text">English description of the error in String.Format format</param>
-    [DebuggerStepThrough]
-    public static void cmsSignalError(Context? ContextID, EventId errorCode, string text, params object?[] args)
-    {
-        // Check for the context, if specified go there. If not, go for the global
-        var lhg = GetLogger(ContextID);
-        text = String.Format(text, args);
-        if (text.Length > MaxErrorMessageLen)
-            text = text.Remove(MaxErrorMessageLen);
-
-        lhg.LogError(errorCode, "{ErrorText}", text);
-    }
 
     /// <summary>
     ///     Utility function to print signatures
