@@ -23,112 +23,103 @@ using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
-using System.Numerics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+
+using S1Fixed14Number = System.Int32;
 
 namespace lcms2.FastFloatPlugin;
 public unsafe static partial class FastFloat
 {
-    private static void FillFirstShaper8MatSSE(Span<float>Table, ToneCurve Curve)
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static S1Fixed14Number DOUBLE_TO_1FIXED14(double x) =>
+        (S1Fixed14Number)Math.Floor((x * 16384.0) + 0.5);
+
+    private static void FillFirstShaper8Mat(Span<S1Fixed14Number>Table, ToneCurve Curve)
     {
         for (var i = 0; i < 256; i++)
         {
             var R = (float)(i / 255.0);
-            Table[i] = cmsEvalToneCurveFloat(Curve, R);
+            Table[i] = DOUBLE_TO_1FIXED14(cmsEvalToneCurveFloat(Curve, R));
         }
     }
 
-    private static void FillSecondShaper8MatSSE(Span<float> Table, ToneCurve Curve)
+    private static void FillSecondShaper8Mat(Span<byte> Table, ToneCurve Curve)
     {
         for (var i = 0; i < 0x4001; i++)
         {
-            var R = (float)(i / 16384.0);
+            var R = i / 16384.0f;
             var Val = cmsEvalToneCurveFloat(Curve, R);
             var w = (int)((Val * 255.0f) + 0.5f);
 
-            w = Math.Max(0, Math.Min(255, w));
+            w = Math.Clamp(w, 0, 255);
 
             Table[i] = (byte)w;
         }
     }
 
-    private static XMatShaperSSEData? Set8MatShaperSSE(Context? ContextID,
-                                                     ReadOnlySpan<ToneCurve> Curve1,
-                                                     MAT3 Mat,
-                                                     VEC3? Off,
-                                                     ReadOnlySpan<ToneCurve> Curve2)
+    private static XMatShaper8Data? Set8MatShaper(Context? ContextID,
+                                                  ReadOnlySpan<ToneCurve> Curve1,
+                                                  MAT3 Mat,
+                                                  VEC3? Off,
+                                                  ReadOnlySpan<ToneCurve> Curve2)
     {
         // Allocate a big chunk of memory to store precomputed tables
-        var p = new XMatShaperSSEData(ContextID);
+        var p = new XMatShaper8Data(ContextID);
 
         // Precompute tables
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1R, 256), Curve1[0]);
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1G, 256), Curve1[1]);
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1B, 256), Curve1[2]);
+        FillFirstShaper8Mat(p.Shaper1R, Curve1[0]);
+        FillFirstShaper8Mat(p.Shaper1G, Curve1[1]);
+        FillFirstShaper8Mat(p.Shaper1B, Curve1[2]);
 
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2R, 0x4001), Curve2[0]);
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2G, 0x4001), Curve2[1]);
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2B, 0x4001), Curve2[2]);
+        FillSecondShaper8Mat(p.Shaper2R, Curve2[0]);
+        FillSecondShaper8Mat(p.Shaper2G, Curve2[1]);
+        FillSecondShaper8Mat(p.Shaper2B, Curve2[2]);
 
-        // Convert matrix to float
-        p.Data->Mat[0] = (float)Mat.X.X;
-        p.Data->Mat[1] = (float)Mat.X.Y;
-        p.Data->Mat[2] = (float)Mat.X.Z;
+        // Convert matrix to nFixed14. Note that those values may take more than 16 bits
+        p.Mat(0, 0) = DOUBLE_TO_1FIXED14(Mat.X.X);
+        p.Mat(0, 1) = DOUBLE_TO_1FIXED14(Mat.X.Y);
+        p.Mat(0, 2) = DOUBLE_TO_1FIXED14(Mat.X.Z);
 
-        p.Data->Mat[3] = (float)Mat.Y.X;
-        p.Data->Mat[4] = (float)Mat.Y.Y;
-        p.Data->Mat[5] = (float)Mat.Y.Z;
+        p.Mat(1, 0) = DOUBLE_TO_1FIXED14(Mat.Y.X);
+        p.Mat(1, 1) = DOUBLE_TO_1FIXED14(Mat.Y.Y);
+        p.Mat(1, 2) = DOUBLE_TO_1FIXED14(Mat.Y.Z);
 
-        p.Data->Mat[6] = (float)Mat.Z.X;
-        p.Data->Mat[7] = (float)Mat.Z.Y;
-        p.Data->Mat[8] = (float)Mat.Z.Z;
+        p.Mat(2, 0) = DOUBLE_TO_1FIXED14(Mat.Z.X);
+        p.Mat(2, 1) = DOUBLE_TO_1FIXED14(Mat.Z.Y);
+        p.Mat(2, 2) = DOUBLE_TO_1FIXED14(Mat.Z.Z);
 
-        // Roundoff
         if (Off is null)
         {
-            p.Data->Mat[(3 * 4) + 0] = 0f;
-            p.Data->Mat[(3 * 4) + 1] = 0f;
-            p.Data->Mat[(3 * 4) + 2] = 0f;
+            p.Mat(3, 0) = DOUBLE_TO_1FIXED14(0.5f);
+            p.Mat(3, 1) = DOUBLE_TO_1FIXED14(0.5f);
+            p.Mat(3, 2) = DOUBLE_TO_1FIXED14(0.5f);
         }
         else
         {
-            p.Data->Mat[(3 * 4) + 0] = (float)Off.Value.X;
-            p.Data->Mat[(3 * 4) + 1] = (float)Off.Value.Y;
-            p.Data->Mat[(3 * 4) + 2] = (float)Off.Value.Z;
+            p.Mat(3, 0) = DOUBLE_TO_1FIXED14(Off.Value.X + 0.5);
+            p.Mat(3, 1) = DOUBLE_TO_1FIXED14(Off.Value.Y + 0.5);
+            p.Mat(3, 2) = DOUBLE_TO_1FIXED14(Off.Value.Z + 0.5);
         }
 
         return p;
     }
 
-    private static void MatShaperXform8SSE(Transform CMMcargo,
-                                           ReadOnlySpan<byte> Input,
-                                           Span<byte> Output,
-                                           uint PixelsPerLine,
-                                           uint LineCount,
-                                           Stride Stride)
+    private static void MatShaperXform8(Transform CMMcargo,
+                                        ReadOnlySpan<byte> Input,
+                                        Span<byte> Output,
+                                        uint PixelsPerLine,
+                                        uint LineCount,
+                                        Stride Stride)
     {
-        if (_cmsGetTransformUserData(CMMcargo) is not XMatShaperSSEData p)
+        if (_cmsGetTransformUserData(CMMcargo) is not XMatShaper8Data p)
             return;
 
         Span<uint> SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
         Span<uint> SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
         Span<uint> DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
         Span<uint> DestIncrements = stackalloc uint[cmsMAXCHANNELS];
-
-        var mat0 = Sse.LoadAlignedVector128(&p.Data->Mat[0 * 4]);
-        var mat1 = Sse.LoadAlignedVector128(&p.Data->Mat[1 * 4]);
-        var mat2 = Sse.LoadAlignedVector128(&p.Data->Mat[2 * 4]);
-        var mat3 = Sse.LoadAlignedVector128(&p.Data->Mat[3 * 4]);
-
-        var zero = Vector128<float>.Zero;
-        var one = Vector128<float>.One;
-        var scale = Vector128.Create((float)0x4000);
-
-        var buffer = stackalloc byte[32];
-        var output_index = (uint*)(((ulong)buffer + 16) & ~(ulong)0xf);
 
         _cmsComputeComponentIncrements(cmsGetTransformInputFormat(CMMcargo), Stride.BytesPerPlaneIn, out _, out var nalpha, SourceStartingOrder, SourceIncrements);
         _cmsComputeComponentIncrements(cmsGetTransformOutputFormat(CMMcargo), Stride.BytesPerPlaneOut, out _, out nalpha, DestStartingOrder, DestIncrements);
@@ -156,27 +147,28 @@ public unsafe static partial class FastFloat
                     ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
                     : default;
 
-            // Prefetch
-            var rvector = Vector128.Create(p.Data->Shaper1R[rin[0]]);
-            var gvector = Vector128.Create(p.Data->Shaper1G[gin[0]]);
-            var bvector = Vector128.Create(p.Data->Shaper1B[bin[0]]);
-
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                var el1 = Sse.Multiply(rvector, mat0);
-                var el2 = Sse.Multiply(gvector, mat1);
-                var el3 = Sse.Multiply(bvector, mat2);
+                // Across first shaper, which also converts to 1.14 fixed point. 16 bits guaranteed.
+                var r = p.Shaper1R[rin[0]];
+                var g = p.Shaper1G[gin[0]];
+                var b = p.Shaper1B[bin[0]];
 
-                var sum = Sse.Add(el1, Sse.Add(el2, Sse.Add(el3, mat3)));
+                // Evaluate the matrix in 1.14 fixed point
+                var l1 = ((p.Mat(0, 0) * r) + (p.Mat(1, 0) * g) + (p.Mat(2, 0) * b) + p.Mat(3, 0)) >> 14;
+                var l2 = ((p.Mat(0, 1) * r) + (p.Mat(1, 1) * g) + (p.Mat(2, 1) * b) + p.Mat(3, 1)) >> 14;
+                var l3 = ((p.Mat(0, 2) * r) + (p.Mat(1, 2) * g) + (p.Mat(2, 2) * b) + p.Mat(3, 2)) >> 14;
 
-                var @out = Sse.Min(Sse.Max(sum, zero), one);
+                // Now we have to clip to 0..1.0 range
+                var ri = Math.Clamp(l1, 0, 0x4000);
+                var gi = Math.Clamp(l2, 0, 0x4000);
+                var bi = Math.Clamp(l3, 0, 0x4000);
 
-                @out = Sse.Multiply(@out, scale);
+                // And across second shaper
 
-                // Rounding and converting to index.
-                // Actually this is a costly instruction that may be blocking performance
-                
-                Vector128.ConvertToInt32(@out).StoreAligned((int*)output_index);
+                rout[0] = p.Shaper2R[ri];
+                gout[0] = p.Shaper2G[gi];
+                bout[0] = p.Shaper2B[bi];
 
                 // Handle alpha
                 if (!ain.IsEmpty)
@@ -186,18 +178,6 @@ public unsafe static partial class FastFloat
                 gin = gin[(int)SourceIncrements[1]..];
                 bin = bin[(int)SourceIncrements[2]..];
                 if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[3]..];
-
-                // Take next value whilst store is being performed
-                if (ii < PixelsPerLine - 1)
-                {
-                    rvector = Vector128.Create(p.Data->Shaper1R[rin[0]]);
-                    gvector = Vector128.Create(p.Data->Shaper1G[gin[0]]);
-                    bvector = Vector128.Create(p.Data->Shaper1B[bin[0]]);
-                }
-
-                rout[0] = p.Data->Shaper2R[output_index[0]];
-                gout[0] = p.Data->Shaper2G[output_index[1]];
-                bout[0] = p.Data->Shaper2B[output_index[2]];
 
                 rout = rout[(int)DestIncrements[0]..];
                 gout = gout[(int)DestIncrements[1]..];
@@ -210,27 +190,24 @@ public unsafe static partial class FastFloat
         }
     }
 
-    private static bool IsSSE2Available() =>
-        Sse2.IsSupported;
-
-    private static bool Optimize8MatrixShaperSSE(out Transform2Fn TransformFn,
-                                                 out object? UserData,
-                                                 out FreeUserDataFn? FreeUserData,
-                                                 ref Pipeline Lut,
-                                                 ref uint InputFormat,
-                                                 ref uint OutputFormat,
-                                                 ref uint dwFlags)
+    private static bool Optimize8MatrixShaper(out Transform2Fn TransformFn,
+                                              out object? UserData,
+                                              out FreeUserDataFn? FreeUserData,
+                                              ref Pipeline Lut,
+                                              ref uint InputFormat,
+                                              ref uint OutputFormat,
+                                              ref uint dwFlags)
     {
         FreeUserData = null;
         UserData = null;
         TransformFn = null!;
 
-        // Check for SSE2 support
-        if (!IsSSE2Available()) return false;
-
-        // Only works on 3 to 3, probably RGB
-        if (!(T_CHANNELS(InputFormat) is 3 && T_CHANNELS(OutputFormat) is 3))
+        // Only works on RGB to RGB and gray to gray
+        if (!((T_CHANNELS(InputFormat) is 3 && T_CHANNELS(OutputFormat) is 3) ||
+              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1) ))
+        {
             return false;
+        }
 
         // Only works on 8 bit input
         if (T_BYTES(InputFormat) is not 1 || T_BYTES(OutputFormat) is not 1)
@@ -241,6 +218,9 @@ public unsafe static partial class FastFloat
         // Seems suitable, proceed
 
         var Src = Lut;
+        Span<double> factor = stackalloc double[1] { 1.0 };
+        var IdentityMat = false;
+        MAT3 res = default;
 
         // Check for shaper-matrix-matrix-shaper structure, that is what this optimizer stands for
         if (!cmsPipelineCheckAndRetrieveStages(Src, cmsSigCurveSetElemType, out var Curve1,
@@ -262,11 +242,24 @@ public unsafe static partial class FastFloat
         if (Data1.Offset is not null)
             return false;
 
-        // Multiply both matrices to get the result
-        var res = new MAT3(Data2.Double) * new MAT3(Data1.Double);
+        if (cmsStageInputChannels(Matrix1) is 1 && cmsStageInputChannels(Matrix2) is 1)
+        {
+            // This is a gray to gray. Just multiply
+            factor[0] = (Data1.Double[0] * Data2.Double[0]) +
+                        (Data1.Double[1] * Data2.Double[1]) +
+                        (Data1.Double[2] * Data2.Double[2]);
 
-        // Now the result is in res + Data2.Offset. Maybe is a plain identity?
-        var IdentityMat = res.IsIdentity && Data2.Offset is null;   // We can get rid of full matrix
+            if (Math.Abs(1 - factor[0]) < (1.0 / 65535.0))
+                IdentityMat = true;
+        }
+        else
+        {
+            // Multiply both matrices to get the result
+            res = new MAT3(Data2.Double) * new MAT3(Data1.Double);
+
+            // Now the result is in res + Data2.Offset. Maybe is a plain identity?
+            IdentityMat = res.IsIdentity && Data2.Offset is null;   // We can get rid of full matrix
+        }
 
         // Allocate an empty LUT
         var Dest = cmsPipelineAlloc(ContextID, nChans, nChans);
@@ -277,7 +270,14 @@ public unsafe static partial class FastFloat
 
         if (!IdentityMat)
         {
-            cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, res, Data2.Offset));
+            if (nChans is 1)
+            {
+                cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 1, 1, factor, Data2.Offset));
+            }
+            else
+            {
+                cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, res, Data2.Offset));
+            }
         }
 
         cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageDup(Curve2));
@@ -298,10 +298,10 @@ public unsafe static partial class FastFloat
                 dwFlags |= cmsFLAGS_NOCACHE;
 
                 // Setup the optimization routines
-                UserData = Set8MatShaperSSE(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
+                UserData = Set8MatShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
                 FreeUserData = FreeDisposable;
 
-                TransformFn = MatShaperXform8SSE;
+                TransformFn = MatShaperXform8;
             }
         }
 
