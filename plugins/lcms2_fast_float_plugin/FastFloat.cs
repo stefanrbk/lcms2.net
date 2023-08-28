@@ -19,6 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
+using lcms2.state;
+
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -205,5 +207,11 @@ public static partial class FastFloat
         var y1 = LutTable[cell1];
 
         return y0 + (y1 - y0) * rest;
+    }
+
+    private static void FreeDisposable(Context? _, object? Data)
+    {
+        if (Data is IDisposable p)
+            p.Dispose();
     }
 }

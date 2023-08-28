@@ -31,12 +31,6 @@ public static partial class FastFloat
     private static S1Fixed15Number DOUBLE_TO_1FIXED15(double x) =>
         (S1Fixed15Number)(x * 0x8000 + 0.5);
 
-    private static void FreeMatShaper(Context? _, object? Data)
-    {
-        if (Data is IDisposable p)
-            p.Dispose();
-    }
-
     private static void FillShaper(Span<ushort> Table, ToneCurve Curve)
     {
         for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
@@ -272,7 +266,7 @@ public static partial class FastFloat
 
             // Setup the optimization routines
             UserData = SetMatShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves, IdentityMat);
-            FreeUserData = FreeMatShaper;
+            FreeUserData = FreeDisposable;
 
             TransformFn = MatShaperXform;
         }
