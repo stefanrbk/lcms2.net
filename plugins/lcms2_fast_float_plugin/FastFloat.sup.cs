@@ -21,12 +21,14 @@
 //---------------------------------------------------------------------------------
 using lcms2.types;
 
+using static lcms2.Plugin;
+
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
     private static bool Floating_Point_Transforms_Dispatcher(out Transform2Fn TransformFn,
                                                              out object? UserData,
-                                                             out FreeUserDataFn? freeUserData,
+                                                             out FreeUserDataFn? FreeUserData,
                                                              ref Pipeline Lut,
                                                              ref uint InputFormat,
                                                              ref uint OutputFormat,
@@ -34,30 +36,34 @@ public static partial class FastFloat
     {
         TransformFn = null!;
         UserData = null;
-        freeUserData = null;
+        FreeUserData = null;
 
         // Softproofing & gamut check does not use plugin, both are activated via following flag.
         if ((dwFlags & cmsFLAGS_SOFTPROOFING) is not 0)
             return false;
 
         // Try to optimize as a set of curves plus a matrix plus a set of curves
-        if (OptimizeMatrixShaper15(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+        if (OptimizeMatrixShaper15(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
         // Try to optimize by joining curves
-        if (Optimize8ByJoiningCurves(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+        if (Optimize8ByJoiningCurves(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
         // Try to use SSE2 to optimize as a set of curves plus a matrix plus a set of curves
-        if (Optimize8MatrixShaperSSE(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+        if (Optimize8MatrixShaperSSE(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
         // Try to optimize as a set of curves plus a matrix plus a set of curves
-        if (Optimize8MatrixShaper(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+        if (Optimize8MatrixShaper(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
         // Try to optimize by joining curves
-        if (OptimizeFloatByJoiningCurves(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+        if (OptimizeFloatByJoiningCurves(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
+        // Try to optimize as a set of curves plus a matrix plus a set of curves
+        if (OptimizeFloatMatrixShaper(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
         return false;
