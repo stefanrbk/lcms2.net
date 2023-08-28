@@ -299,9 +299,10 @@ public unsafe static partial class FastFloat
         cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageDup(Curve2));
 
         {
+            // If identity on matrix, we can further optimize the curves, so call the join curves routine
             if (IdentityMat)
             {
-                //
+                Optimize8ByJoiningCurves(out TransformFn, out UserData, out FreeUserData, ref Dest, ref InputFormat, ref OutputFormat, ref dwFlags);
             }
             else
             {
