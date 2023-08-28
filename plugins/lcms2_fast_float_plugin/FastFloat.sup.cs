@@ -56,6 +56,10 @@ public static partial class FastFloat
         if (Optimize8MatrixShaper(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
+        // Try to optimize by joining curves
+        if (OptimizeFloatByJoiningCurves(out TransformFn, out UserData, out freeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
         return false;
     }
 }
