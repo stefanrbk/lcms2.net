@@ -70,6 +70,10 @@ public static partial class FastFloat
         if (Optimize8BitRGBTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
+        // Try to optimize using prelinearization plus tetrahedral on 16 bit RGB
+        if (Optimize16BitRGBTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
         return false;
     }
 }
