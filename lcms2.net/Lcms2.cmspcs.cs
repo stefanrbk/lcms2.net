@@ -430,7 +430,7 @@ public static partial class Lcms2
                             (Rt * (delta_C / (Sc * Kc)) * (delta_H / (Sh * Kh))));
     }
 
-    internal static uint _cmsReasonableGridpointsByColorspace(Signature Colorspace, uint dwFlags)
+    public static uint _cmsReasonableGridpointsByColorspace(Signature Colorspace, uint dwFlags)
     {
         // Already specified?
         if ((dwFlags & 0x00FF0000) is not 0)

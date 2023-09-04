@@ -66,6 +66,10 @@ public static partial class FastFloat
         if (OptimizeFloatMatrixShaper(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
+        // Try to optimize using prelinearization plus tetrahedral on 8 bit RGB
+        if (Optimize8BitRGBTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
         return false;
     }
 }
