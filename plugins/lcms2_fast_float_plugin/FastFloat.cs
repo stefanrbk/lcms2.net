@@ -115,39 +115,39 @@ public static partial class FastFloat
     internal static uint TYPE_ARGB_16_PLANAR =    (COLORSPACE_SH(PT_RGB)|EXTRA_SH(1)|CHANNELS_SH(3)|BYTES_SH(2)|SWAPFIRST_SH(1)|PLANAR_SH(1));
     internal static uint TYPE_BGRA_16_PLANAR =    (COLORSPACE_SH(PT_RGB)|EXTRA_SH(1)|CHANNELS_SH(3)|BYTES_SH(2)|SWAPFIRST_SH(1)|DOSWAP_SH(1)|PLANAR_SH(1));
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort FROM_8_TO_16(byte rgb) =>
-        (ushort)((rgb << 8) | rgb);
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static ushort FROM_8_TO_16(byte rgb) =>
+    //    (ushort)((rgb << 8) | rgb);
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static byte FROM_16_TO_8(ushort rgb) =>
-        (byte)((((rgb * 65281) + 8388608) >> 24) & 0xFF);
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static byte FROM_16_TO_8(ushort rgb) =>
+    //    (byte)((((rgb * 65281) + 8388608) >> 24) & 0xFF);
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort CHANGE_ENDIAN(ushort w) =>
-        (ushort)((w << 8) | (w >> 8));
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static ushort CHANGE_ENDIAN(ushort w) =>
+    //    (ushort)((w << 8) | (w >> 8));
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort REVERSE_FLAVOR(ushort x) =>
-        (ushort)(0xffff-x);
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static ushort REVERSE_FLAVOR(ushort x) =>
+    //    (ushort)(0xffff-x);
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int FIXED_TO_INT(int x) =>
-        x >> 16;
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static int FIXED_TO_INT(int x) =>
+    //    x >> 16;
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int FIXED_REST_TO_INT(int x) =>
-        x & 0xffff;
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static int FIXED_REST_TO_INT(int x) =>
+    //    x & 0xffff;
 
     private const uint cmsFLAGS_CAN_CHANGE_FORMATTER = 0x02000000;   // Allow change buffer format
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static S15Fixed16Number _cmsToFixedDomain(int a) =>
-        a + ((a + 0x7fff) / 0xffff);
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static S15Fixed16Number _cmsToFixedDomain(int a) =>
+    //    a + ((a + 0x7fff) / 0xffff);
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int _cmsFromFixedDomain(S15Fixed16Number a) =>
-        a - ((a + 0x7fff) >> 16);
+    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //internal static int _cmsFromFixedDomain(S15Fixed16Number a) =>
+    //    a - ((a + 0x7fff) >> 16);
 
     private record _xform_head(uint InputFormat, uint OutputFormat);
 
@@ -159,19 +159,19 @@ public static partial class FastFloat
             ? 0.0f
             : Math.Min(1.0f, v);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    internal static int _cmsQuickFloor(double val)
-    {
-#if CMS_DONT_USE_FAST_FLOOR
-        return (int)Math.Floor(val);
-#else
-        Span<byte> buffer = stackalloc byte[8];
-        const double _lcms_double2fixmagic = 68719476736.0 * 1.5;
-        BitConverter.TryWriteBytes(buffer, val + _lcms_double2fixmagic);
+    //    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    //    internal static int _cmsQuickFloor(double val)
+    //    {
+    //#if CMS_DONT_USE_FAST_FLOOR
+    //        return (int)Math.Floor(val);
+    //#else
+    //        Span<byte> buffer = stackalloc byte[8];
+    //        const double _lcms_double2fixmagic = 68719476736.0 * 1.5;
+    //        BitConverter.TryWriteBytes(buffer, val + _lcms_double2fixmagic);
 
-        return BitConverter.ToInt32(buffer) >> 16;
-#endif
-    }
+    //        return BitConverter.ToInt32(buffer) >> 16;
+    //#endif
+    //    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static ushort _cmsSaturateWord(double d) =>
