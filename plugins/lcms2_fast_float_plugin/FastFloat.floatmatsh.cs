@@ -19,7 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
@@ -29,64 +28,6 @@ using System.Runtime.CompilerServices;
 namespace lcms2.FastFloatPlugin;
 public unsafe static partial class FastFloat
 {
-
-    private static void FillShaperFloatMat(Span<float>Table, ToneCurve Curve)
-    {
-        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
-        {
-            var R = (float)i / (MAX_NODES_IN_CURVE - 1);
-            Table[i] = cmsEvalToneCurveFloat(Curve, R);
-        }
-    }
-
-    private static VXMatShaperFloatData SetFloatMatShaper(Context? ContextID,
-                                                          ReadOnlySpan<ToneCurve> Curve1,
-                                                          MAT3 Mat,
-                                                          VEC3? Off,
-                                                          ReadOnlySpan<ToneCurve> Curve2)
-    {
-        // Allocate a big chunk of memory to store precomputed tables
-        var p = new VXMatShaperFloatData(ContextID);
-
-        // Precompute tables
-        FillShaperFloatMat(p.Shaper1R, Curve1[0]);
-        FillShaperFloatMat(p.Shaper1G, Curve1[1]);
-        FillShaperFloatMat(p.Shaper1B, Curve1[2]);
-
-        FillShaperFloatMat(p.Shaper2R, Curve2[0]);
-        FillShaperFloatMat(p.Shaper2G, Curve2[1]);
-        FillShaperFloatMat(p.Shaper2B, Curve2[2]);
-
-        // Convert matrix to nFixed14. Note that those values may take more than 16 bits
-        p.Mat(0, 0) = (float)Mat.X.X;
-        p.Mat(0, 1) = (float)Mat.X.Y;
-        p.Mat(0, 2) = (float)Mat.X.Z;
-
-        p.Mat(1, 0) = (float)Mat.Y.X;
-        p.Mat(1, 1) = (float)Mat.Y.Y;
-        p.Mat(1, 2) = (float)Mat.Y.Z;
-
-        p.Mat(2, 0) = (float)Mat.Z.X;
-        p.Mat(2, 1) = (float)Mat.Z.Y;
-        p.Mat(2, 2) = (float)Mat.Z.Z;
-
-        for (var i = 0; i < 3; i++)
-        {
-            if (Off is null)
-            {
-                p.UseOff = false;
-                p.Off[i] = 0;
-            }
-            else
-            {
-                p.UseOff = true;
-                p.Off[i] = (float)Off.Value[i];
-            }
-        }
-
-        return p;
-    }
-
     private static void MatShaperFloat(Transform CMMcargo,
                                        ReadOnlySpan<byte> Input,
                                        Span<byte> Output,
@@ -282,7 +223,7 @@ public unsafe static partial class FastFloat
                 dwFlags |= cmsFLAGS_NOCACHE;
 
                 // Setup the optimization routines
-                UserData = SetFloatMatShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
+                UserData = VXMatShaperFloatData.SetShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
                 FreeUserData = FreeDisposable;
 
                 TransformFn = MatShaperFloat;
@@ -293,5 +234,141 @@ public unsafe static partial class FastFloat
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
         Lut = Dest;
         return true;
+    }
+}
+
+file class VXMatShaperFloatData : IDisposable
+{
+    private readonly float[] _mat;
+    private readonly float[] _off;
+
+    private readonly float[] _shaper1R;
+    private readonly float[] _shaper1G;
+    private readonly float[] _shaper1B;
+
+    private readonly float[] _shaper2R;
+    private readonly float[] _shaper2G;
+    private readonly float[] _shaper2B;
+
+    public readonly Context? ContextID;
+    private bool disposedValue;
+
+    public ref float Mat(int a, int b) =>
+        ref _mat[(a * 3) + b];
+
+    public Span<float> Off => _off.AsSpan(..3);
+
+    public Span<float> Shaper1R => _shaper1R.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> Shaper1G => _shaper1G.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> Shaper1B => _shaper1B.AsSpan(..MAX_NODES_IN_CURVE);
+
+    public Span<float> Shaper2R => _shaper2R.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> Shaper2G => _shaper2G.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> Shaper2B => _shaper2B.AsSpan(..MAX_NODES_IN_CURVE);
+
+    public bool UseOff;
+
+    public VXMatShaperFloatData(Context? context)
+    {
+        ContextID = context;
+
+        var pool = Context.GetPool<float>(context);
+
+        _mat = pool.Rent(9);
+        _off = pool.Rent(3);
+
+        _shaper1R = pool.Rent(MAX_NODES_IN_CURVE);
+        _shaper1G = pool.Rent(MAX_NODES_IN_CURVE);
+        _shaper1B = pool.Rent(MAX_NODES_IN_CURVE);
+
+        _shaper2R = pool.Rent(MAX_NODES_IN_CURVE);
+        _shaper2G = pool.Rent(MAX_NODES_IN_CURVE);
+        _shaper2B = pool.Rent(MAX_NODES_IN_CURVE);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var pool = Context.GetPool<float>(ContextID);
+
+                pool.Return(_mat);
+                pool.Return(_off);
+
+                pool.Return(_shaper1R);
+                pool.Return(_shaper1G);
+                pool.Return(_shaper1B);
+
+                pool.Return(_shaper2R);
+                pool.Return(_shaper2G);
+                pool.Return(_shaper2B);
+            }
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public static VXMatShaperFloatData SetShaper(Context? ContextID,
+                                                 ReadOnlySpan<ToneCurve> Curve1,
+                                                 MAT3 Mat,
+                                                 VEC3? Off,
+                                                 ReadOnlySpan<ToneCurve> Curve2)
+    {
+        // Allocate a big chunk of memory to store precomputed tables
+        var p = new VXMatShaperFloatData(ContextID);
+
+        // Precompute tables
+        FillShaperFloatMat(p.Shaper1R, Curve1[0]);
+        FillShaperFloatMat(p.Shaper1G, Curve1[1]);
+        FillShaperFloatMat(p.Shaper1B, Curve1[2]);
+
+        FillShaperFloatMat(p.Shaper2R, Curve2[0]);
+        FillShaperFloatMat(p.Shaper2G, Curve2[1]);
+        FillShaperFloatMat(p.Shaper2B, Curve2[2]);
+
+        // Convert matrix to nFixed14. Note that those values may take more than 16 bits
+        p.Mat(0, 0) = (float)Mat.X.X;
+        p.Mat(0, 1) = (float)Mat.X.Y;
+        p.Mat(0, 2) = (float)Mat.X.Z;
+
+        p.Mat(1, 0) = (float)Mat.Y.X;
+        p.Mat(1, 1) = (float)Mat.Y.Y;
+        p.Mat(1, 2) = (float)Mat.Y.Z;
+
+        p.Mat(2, 0) = (float)Mat.Z.X;
+        p.Mat(2, 1) = (float)Mat.Z.Y;
+        p.Mat(2, 2) = (float)Mat.Z.Z;
+
+        for (var i = 0; i < 3; i++)
+        {
+            if (Off is null)
+            {
+                p.UseOff = false;
+                p.Off[i] = 0;
+            }
+            else
+            {
+                p.UseOff = true;
+                p.Off[i] = (float)Off.Value[i];
+            }
+        }
+
+        return p;
+    }
+
+    private static void FillShaperFloatMat(Span<float> Table, ToneCurve Curve)
+    {
+        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
+        {
+            var R = (float)i / (MAX_NODES_IN_CURVE - 1);
+            Table[i] = cmsEvalToneCurveFloat(Curve, R);
+        }
     }
 }

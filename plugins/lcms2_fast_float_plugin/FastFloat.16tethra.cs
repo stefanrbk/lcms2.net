@@ -19,7 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
@@ -28,9 +27,6 @@ using System.Runtime.CompilerServices;
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    private static Performance16Data Performance16alloc(Context? ContextID, InterpParams<ushort> p) =>
-        new(ContextID, p);
-
     private unsafe static void PerformanceEval16(Transform CMMcargo,
                                                  ReadOnlySpan<byte> Input,
                                                  Span<byte> Output,
@@ -364,16 +360,41 @@ public static partial class FastFloat
         // Set the evaluator
         var data = (StageCLutData<ushort>)cmsStageData(OptimizedCLUTmpe!)!;
 
-        var p16 = Performance16alloc(ContextID, data.Params);
+        var p16 = Performance16Data.Alloc(ContextID, data.Params);
         if (p16 is null) return false;
 
         TransformFn = PerformanceEval16;
         UserData = p16;
-        FreeUserData = null;
+        FreeUserData = FreeDisposable;
         InputFormat |= 0x02000000;
         OutputFormat |= 0x02000000;
         dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
 
         return true;
     }
+}
+
+file class Performance16Data(Context? context, InterpParams<ushort> p) : IDisposable
+{
+    public readonly Context? ContextID = context;
+    public readonly InterpParams<ushort> p = p;     // Tetrahedrical interpolation parameters
+
+    private bool disposedValue;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing) { }
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    public static Performance16Data Alloc(Context? ContextID, InterpParams<ushort> p) =>
+        new(ContextID, p);
 }

@@ -19,7 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.FastFloatPlugin;
@@ -275,70 +275,6 @@ public static partial class FastFloat
         }
     }
 
-    private const double LINEAR_CURVES_EPSILON = 1e-5;
-
-    private static bool AllRGBCurvesAreLinear(CurvesFloatData data)
-    {
-        for (var j = 0; j < MAX_NODES_IN_CURVE; j++)
-        {
-            var expected = (float)j / (MAX_NODES_IN_CURVE - 1);
-
-            if (Math.Abs(data.CurveR[j] - expected) > LINEAR_CURVES_EPSILON ||
-                Math.Abs(data.CurveG[j] - expected) > LINEAR_CURVES_EPSILON ||
-                Math.Abs(data.CurveB[j] - expected) > LINEAR_CURVES_EPSILON)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool KCurveIsLinear(CurvesFloatData data)
-    {
-        for (var j = 0; j < MAX_NODES_IN_CURVE; j++)
-        {
-            var expected = (float)j / (MAX_NODES_IN_CURVE - 1);
-
-            if (Math.Abs(data.CurveR[j] - expected) > LINEAR_CURVES_EPSILON)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static CurvesFloatData ComputeCompositeFloatCurves(uint nChan, Pipeline Src)
-    {
-        Span<float> InFloat = stackalloc float[3];
-        Span<float> OutFloat = stackalloc float[3];
-
-        var Data = new CurvesFloatData(cmsGetPipelineContextID(Src));
-
-        // Create target curves
-        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
-        {
-            for (var j = 0; j < nChan; j++)
-                InFloat[j] = (float)i / (MAX_NODES_IN_CURVE - 1);
-
-            cmsPipelineEvalFloat(InFloat, OutFloat, Src);
-
-            if (nChan is 1)
-            {
-                Data.CurveR[i] = OutFloat[0];
-            }
-            else
-            {
-                Data.CurveR[i] = OutFloat[0];
-                Data.CurveG[i] = OutFloat[1];
-                Data.CurveB[i] = OutFloat[2];
-            }
-        }
-
-        return Data;
-    }
-
     private static bool OptimizeFloatByJoiningCurves(out Transform2Fn TransformFn,
                                                      out object? UserData,
                                                      out FreeUserDataFn? FreeUserData,
@@ -379,7 +315,7 @@ public static partial class FastFloat
 
         // Seems suitable, proceed
 
-        var Data = ComputeCompositeFloatCurves((uint)nChans, Src);
+        var Data = CurvesFloatData.ComputeCompositeFloatCurves((uint)nChans, Src);
 
         dwFlags |= cmsFLAGS_NOCACHE;
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
@@ -389,13 +325,130 @@ public static partial class FastFloat
         // Maybe the curves are linear at the end
         TransformFn =
             nChans is 1
-                ? KCurveIsLinear(Data)
+                ? Data.KCurveIsLinear
                     ? FastFloatGrayIdentity
                     : FastEvaluateFloatGrayCurves
-                : AllRGBCurvesAreLinear(Data)
+                : Data.AllRGBCurvesAreLinear
                     ? FastFloatRGBIdentity
                     : FastEvaluateFloatRGBCurves;
 
         return true;
+    }
+}
+
+file class CurvesFloatData : IDisposable
+{
+    private bool disposedValue;
+    public Context? ContextID;
+    private readonly float[] _curveR;
+    private readonly float[] _curveG;
+    private readonly float[] _curveB;
+
+    public Span<float> CurveR => _curveR.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> CurveG => _curveG.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<float> CurveB => _curveB.AsSpan(..MAX_NODES_IN_CURVE);
+
+    public CurvesFloatData(Context? context)
+    {
+        ContextID = context;
+        var pool = Context.GetPool<float>(context);
+        _curveR = pool.Rent(MAX_NODES_IN_CURVE);
+        _curveG = pool.Rent(MAX_NODES_IN_CURVE);
+        _curveB = pool.Rent(MAX_NODES_IN_CURVE);
+        Array.Clear(_curveR);
+        Array.Clear(_curveG);
+        Array.Clear(_curveB);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var pool = Context.GetPool<float>(ContextID);
+                pool.Return(_curveR);
+                pool.Return(_curveG);
+                pool.Return(_curveB);
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private const double LINEAR_CURVES_EPSILON = 1e-5;
+
+    public bool AllRGBCurvesAreLinear
+    {
+        get
+        {
+            for (var j = 0; j < MAX_NODES_IN_CURVE; j++)
+            {
+                var expected = (float)j / (MAX_NODES_IN_CURVE - 1);
+
+                if (Math.Abs(CurveR[j] - expected) > LINEAR_CURVES_EPSILON ||
+                    Math.Abs(CurveG[j] - expected) > LINEAR_CURVES_EPSILON ||
+                    Math.Abs(CurveB[j] - expected) > LINEAR_CURVES_EPSILON)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    public bool KCurveIsLinear
+    {
+        get
+        {
+            for (var j = 0; j < MAX_NODES_IN_CURVE; j++)
+            {
+                var expected = (float)j / (MAX_NODES_IN_CURVE - 1);
+
+                if (Math.Abs(CurveR[j] - expected) > LINEAR_CURVES_EPSILON)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    public static CurvesFloatData ComputeCompositeFloatCurves(uint nChan, Pipeline Src)
+    {
+        Span<float> InFloat = stackalloc float[3];
+        Span<float> OutFloat = stackalloc float[3];
+
+        var Data = new CurvesFloatData(cmsGetPipelineContextID(Src));
+
+        // Create target curves
+        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
+        {
+            for (var j = 0; j < nChan; j++)
+                InFloat[j] = (float)i / (MAX_NODES_IN_CURVE - 1);
+
+            cmsPipelineEvalFloat(InFloat, OutFloat, Src);
+
+            if (nChan is 1)
+            {
+                Data.CurveR[i] = OutFloat[0];
+            }
+            else
+            {
+                Data.CurveR[i] = OutFloat[0];
+                Data.CurveG[i] = OutFloat[1];
+                Data.CurveB[i] = OutFloat[2];
+            }
+        }
+
+        return Data;
     }
 }

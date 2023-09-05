@@ -19,7 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
@@ -27,49 +26,6 @@ namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
     private const ushort PRELINEARIZATION_POINTS = 4096;
-
-    private static Performance8Data Performance8alloc(Context? ContextID, InterpParams<ushort> p, ReadOnlySpan<ToneCurve> G)
-    {
-        Span<ushort> Input = stackalloc ushort[3];
-
-        var p8 = new Performance8Data(ContextID, p);
-
-        // Since this only works for 8 bit input, values comes always as x * 257
-        // we can safely take msb byte (x << 8 + x)
-        for (var i = 0; i < 256; i++)
-        {
-            if (!G.IsEmpty)
-            {
-                // Get 16-bit representation
-                Input[0] = cmsEvalToneCurve16(G[0], FROM_8_TO_16((byte)i));
-                Input[1] = cmsEvalToneCurve16(G[1], FROM_8_TO_16((byte)i));
-                Input[2] = cmsEvalToneCurve16(G[2], FROM_8_TO_16((byte)i));
-            }
-            else
-            {
-                Input[0] = FROM_8_TO_16((byte)i);
-                Input[1] = FROM_8_TO_16((byte)i);
-                Input[2] = FROM_8_TO_16((byte)i);
-            }
-
-            // Move to 0..1.0 in fixed domain
-            var v1 = _cmsToFixedDomain(Input[0] * (int)p.Domain[0]);
-            var v2 = _cmsToFixedDomain(Input[1] * (int)p.Domain[1]);
-            var v3 = _cmsToFixedDomain(Input[2] * (int)p.Domain[2]);
-
-            // Store the precalculated table of nodes
-            p8.X0[i] = (uint)(p.opta[2] * FIXED_TO_INT(v1));
-            p8.Y0[i] = (uint)(p.opta[1] * FIXED_TO_INT(v2));
-            p8.Z0[i] = (uint)(p.opta[0] * FIXED_TO_INT(v3));
-
-            // Store the precalculated table of offsets
-            p8.rx[i] = (ushort)FIXED_REST_TO_INT(v1);
-            p8.ry[i] = (ushort)FIXED_REST_TO_INT(v2);
-            p8.rz[i] = (ushort)FIXED_REST_TO_INT(v3);
-        }
-
-        return p8;
-    }
 
     private static bool XFormSampler16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo)
     {
@@ -419,7 +375,7 @@ public static partial class FastFloat
         // Set the evaluator
         var data = (StageCLutData<ushort>)cmsStageData(OptimizedCLUTmpe!)!;
 
-        var p8 = Performance8alloc(ContextID, data.Params, Trans);
+        var p8 = Performance8Data.Alloc(ContextID, data.Params, Trans);
         if (p8 is null) goto Error;
 
         // Free resources
@@ -431,7 +387,7 @@ public static partial class FastFloat
         Lut = OptimizedLUT;
         TransformFn = PerformanceEval8;
         UserData = p8;
-        FreeUserData = null;
+        FreeUserData = FreeDisposable;
 
         return true;
 
@@ -466,5 +422,116 @@ public static partial class FastFloat
             tcPool.Return(TransArray);
             tcPool.Return(TransReverseArray);
         }
+    }
+}
+
+file class Performance8Data : IDisposable
+{
+    public readonly Context? ContextID;
+    public readonly InterpParams<ushort> p;     // Tetrahedrical interpolation parameters
+
+    private readonly ushort[] _rx;
+    private readonly ushort[] _ry;
+    private readonly ushort[] _rz;
+
+    private readonly uint[] _X0;  // Precomputed nodes and offsets for 8-bit input data
+    private readonly uint[] _Y0;
+    private readonly uint[] _Z0;
+
+    private bool disposedValue;
+
+    public Span<ushort> rx => _rx.AsSpan(..256);
+    public Span<ushort> ry => _ry.AsSpan(..256);
+    public Span<ushort> rz => _rz.AsSpan(..256);
+
+    public Span<uint> X0 => _X0.AsSpan(..0x4001);
+    public Span<uint> Y0 => _Y0.AsSpan(..0x4001);
+    public Span<uint> Z0 => _Z0.AsSpan(..0x4001);
+
+    public Performance8Data(Context? context, InterpParams<ushort> p)
+    {
+        ContextID = context;
+        this.p = p;
+
+        var ipool = Context.GetPool<uint>(context);
+        var spool = Context.GetPool<ushort>(context);
+
+        _rx = spool.Rent(256);
+        _ry = spool.Rent(256);
+        _rz = spool.Rent(256);
+
+        _X0 = ipool.Rent(256);
+        _Y0 = ipool.Rent(256);
+        _Z0 = ipool.Rent(256);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var ipool = Context.GetPool<uint>(ContextID);
+                var spool = Context.GetPool<ushort>(ContextID);
+
+                spool.Return(_rx);
+                spool.Return(_ry);
+                spool.Return(_rz);
+
+                ipool.Return(_X0);
+                ipool.Return(_Y0);
+                ipool.Return(_Z0);
+            }
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public static Performance8Data Alloc(Context? ContextID, InterpParams<ushort> p, ReadOnlySpan<ToneCurve> G)
+    {
+        Span<ushort> Input = stackalloc ushort[3];
+
+        var p8 = new Performance8Data(ContextID, p);
+
+        // Since this only works for 8 bit input, values comes always as x * 257
+        // we can safely take msb byte (x << 8 + x)
+        for (var i = 0; i < 256; i++)
+        {
+            if (!G.IsEmpty)
+            {
+                // Get 16-bit representation
+                Input[0] = cmsEvalToneCurve16(G[0], FROM_8_TO_16((byte)i));
+                Input[1] = cmsEvalToneCurve16(G[1], FROM_8_TO_16((byte)i));
+                Input[2] = cmsEvalToneCurve16(G[2], FROM_8_TO_16((byte)i));
+            }
+            else
+            {
+                Input[0] = FROM_8_TO_16((byte)i);
+                Input[1] = FROM_8_TO_16((byte)i);
+                Input[2] = FROM_8_TO_16((byte)i);
+            }
+
+            // Move to 0..1.0 in fixed domain
+            var v1 = _cmsToFixedDomain(Input[0] * (int)p.Domain[0]);
+            var v2 = _cmsToFixedDomain(Input[1] * (int)p.Domain[1]);
+            var v3 = _cmsToFixedDomain(Input[2] * (int)p.Domain[2]);
+
+            // Store the precalculated table of nodes
+            p8.X0[i] = (uint)(p.opta[2] * FIXED_TO_INT(v1));
+            p8.Y0[i] = (uint)(p.opta[1] * FIXED_TO_INT(v2));
+            p8.Z0[i] = (uint)(p.opta[0] * FIXED_TO_INT(v3));
+
+            // Store the precalculated table of offsets
+            p8.rx[i] = (ushort)FIXED_REST_TO_INT(v1);
+            p8.ry[i] = (ushort)FIXED_REST_TO_INT(v2);
+            p8.rz[i] = (ushort)FIXED_REST_TO_INT(v3);
+        }
+
+        return p8;
     }
 }

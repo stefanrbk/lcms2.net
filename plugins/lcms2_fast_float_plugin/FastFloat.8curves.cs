@@ -19,10 +19,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
+using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.FastFloatPlugin;
+
 public static partial class FastFloat
 {
     private static void FastEvaluateRGBCurves8(Transform CMMcargo,
@@ -267,39 +268,6 @@ public static partial class FastFloat
         }
     }
 
-    private static bool AllCurvesAreLinear(Curves8Data data)
-    {
-        for (var i = 0; i < 3; i++)
-        {
-            for (var j = 0; j < 256; j++)
-                if (data.Curves(i, j) != j) return false;
-        }
-
-        return true;
-    }
-
-    private static Curves8Data ComputeCompositeCurves(uint nChan, Pipeline Src)
-    {
-        Span<float> InFloat = stackalloc float[3];
-        Span<float> OutFloat = stackalloc float[3];
-
-        var Data = new Curves8Data(cmsGetPipelineContextID(Src));
-
-        // Create target curves
-        for (var i = 0; i < 256; i++)
-        {
-            for (var j = 0; j < nChan; j++)
-                InFloat[j] = (float)(i / 255.0);
-
-            cmsPipelineEvalFloat(InFloat, OutFloat, Src);
-
-            for (var j = 0; j < nChan; j++)
-                Data.Curves(j, i) = FROM_16_TO_8(_cmsSaturateWord(OutFloat[j] * 65535.0));
-        }
-
-        return Data;
-    }
-
     private static bool Optimize8ByJoiningCurves(out Transform2Fn TransformFn,
                                                  out object? UserData,
                                                  out FreeUserDataFn? FreeUserData,
@@ -340,7 +308,7 @@ public static partial class FastFloat
 
         // Seems suitable, proceed
 
-        var Data = ComputeCompositeCurves((uint)nChans, Src);
+        var Data = Curves8Data.ComputeCompositeCurves((uint)nChans, Src);
 
         dwFlags |= cmsFLAGS_NOCACHE;
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
@@ -350,13 +318,84 @@ public static partial class FastFloat
         // Maybe the curves are linear at the end
         TransformFn =
             nChans is 1
-                ? AllCurvesAreLinear(Data)
+                ? Data.AllCurvesAreLinear
                     ? FastGrayIdentity8
                     : FastEvaluateGrayCurves8
-                : AllCurvesAreLinear(Data)
+                : Data.AllCurvesAreLinear
                     ? FastRGBIdentity8
                     : FastEvaluateRGBCurves8;
 
         return true;
+    }
+}
+file class Curves8Data : IDisposable
+{
+    private bool disposedValue;
+    public Context? ContextID;
+    public int nCurves;
+    private readonly byte[] _curves;
+    public ref byte Curves(int a, int b) =>
+        ref _curves[(a * cmsMAXCHANNELS) + b];
+
+    public Curves8Data(Context? context)
+    {
+        ContextID = context;
+        _curves = Context.GetPool<byte>(context).Rent(cmsMAXCHANNELS * 256);
+        Array.Clear(_curves);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                Context.GetPool<byte>(ContextID).Return(_curves);
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public bool AllCurvesAreLinear
+    {
+        get
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                for (var j = 0; j < 256; j++)
+                    if (Curves(i, j) != j) return false;
+            }
+
+            return true;
+        }
+    }
+
+    public static Curves8Data ComputeCompositeCurves(uint nChan, Pipeline Src)
+    {
+        Span<float> InFloat = stackalloc float[3];
+        Span<float> OutFloat = stackalloc float[3];
+
+        var Data = new Curves8Data(cmsGetPipelineContextID(Src));
+
+        // Create target curves
+        for (var i = 0; i < 256; i++)
+        {
+            for (var j = 0; j < nChan; j++)
+                InFloat[j] = (float)(i / 255.0);
+
+            cmsPipelineEvalFloat(InFloat, OutFloat, Src);
+
+            for (var j = 0; j < nChan; j++)
+                Data.Curves(j, i) = FROM_16_TO_8(_cmsSaturateWord(OutFloat[j] * 65535.0));
+        }
+
+        return Data;
     }
 }

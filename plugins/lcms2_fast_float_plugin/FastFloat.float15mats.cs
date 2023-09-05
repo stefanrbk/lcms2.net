@@ -19,7 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
@@ -28,81 +27,6 @@ using S1Fixed15Number = System.Int32;
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    private static S1Fixed15Number DOUBLE_TO_1FIXED15(double x) =>
-        (S1Fixed15Number)(x * 0x8000 + 0.5);
-
-    private static void FillShaper(Span<ushort> Table, ToneCurve Curve)
-    {
-        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
-        {
-            var R = (float)i / (MAX_NODES_IN_CURVE - 1);
-            var y = cmsEvalToneCurveFloat(Curve, R);
-
-            Table[i] = (ushort)DOUBLE_TO_1FIXED15(y);
-        }
-    }
-
-    private static XMatShaperData? SetMatShaper(Context? ContextID,
-                                                ReadOnlySpan<ToneCurve> Curve1,
-                                                MAT3 Mat,
-                                                VEC3? Off,
-                                                ReadOnlySpan<ToneCurve> Curve2,
-                                                bool IdentityMat)
-    {
-        var p = new XMatShaperData(ContextID)
-        {
-            IdentityMat = IdentityMat,
-        };
-
-        p.Shaper1R.Clear();
-        p.Shaper1G.Clear();
-        p.Shaper1B.Clear();
-
-        p.Shaper2R.Clear();
-        p.Shaper2G.Clear();
-        p.Shaper2B.Clear();
-
-        p.Mat.Clear();
-        p.Off.Clear();
-
-        // Precompute tables
-        FillShaper(p.Shaper1R, Curve1[0]);
-        FillShaper(p.Shaper1G, Curve1[1]);
-        FillShaper(p.Shaper1B, Curve1[2]);
-
-        FillShaper(p.Shaper2R, Curve2[0]);
-        FillShaper(p.Shaper2G, Curve2[1]);
-        FillShaper(p.Shaper2B, Curve2[2]);
-
-        // Convert matrix to nFixed14. Note that those values may take more than 16 bits if negative
-        p.Mat[0] = DOUBLE_TO_1FIXED15(Mat.X.X);
-        p.Mat[1] = DOUBLE_TO_1FIXED15(Mat.X.Y);
-        p.Mat[2] = DOUBLE_TO_1FIXED15(Mat.X.Z);
-
-        p.Mat[3] = DOUBLE_TO_1FIXED15(Mat.Y.X);
-        p.Mat[4] = DOUBLE_TO_1FIXED15(Mat.Y.Y);
-        p.Mat[5] = DOUBLE_TO_1FIXED15(Mat.Y.Z);
-
-        p.Mat[6] = DOUBLE_TO_1FIXED15(Mat.Z.X);
-        p.Mat[7] = DOUBLE_TO_1FIXED15(Mat.Z.Y);
-        p.Mat[8] = DOUBLE_TO_1FIXED15(Mat.Z.Z);
-
-        if (Off is null)
-        {
-            p.Off[0] = 0x4000;
-            p.Off[1] = 0x4000;
-            p.Off[2] = 0x4000;
-        }
-        else
-        {
-            p.Off[0] = DOUBLE_TO_1FIXED15(Off.Value.X) + 0x4000;
-            p.Off[1] = DOUBLE_TO_1FIXED15(Off.Value.Y) + 0x4000;
-            p.Off[2] = DOUBLE_TO_1FIXED15(Off.Value.Z) + 0x4000;
-        }
-
-        return p;
-    }
-
     private static void MatShaperXform(Transform CMMcargo,
                                        ReadOnlySpan<byte> Input,
                                        Span<byte> Output,
@@ -265,7 +189,7 @@ public static partial class FastFloat
             dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routines
-            UserData = SetMatShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves, IdentityMat);
+            UserData = XMatShaperData.SetShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves, IdentityMat);
             FreeUserData = FreeDisposable;
 
             TransformFn = MatShaperXform;
@@ -275,5 +199,126 @@ public static partial class FastFloat
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
         Lut = Dest;
         return true;
+    }
+}
+
+file class XMatShaperData(Context? context) : IDisposable
+{
+    private readonly S1Fixed15Number[] _mat = Context.GetPool<S1Fixed15Number>(context).Rent(9);
+    private readonly S1Fixed15Number[] _off = Context.GetPool<S1Fixed15Number>(context).Rent(3);
+    private readonly ushort[] _shapers = Context.GetPool<ushort>(context).Rent(MAX_NODES_IN_CURVE * 6);
+    public Span<S1Fixed15Number> Mat => _mat.AsSpan(..9);
+    public Span<S1Fixed15Number> Off => _off.AsSpan(..9);
+
+    public Span<ushort> Shaper1R => _shapers.AsSpan(..MAX_NODES_IN_CURVE);
+    public Span<ushort> Shaper1G => _shapers.AsSpan(MAX_NODES_IN_CURVE..(MAX_NODES_IN_CURVE * 2));
+    public Span<ushort> Shaper1B => _shapers.AsSpan((MAX_NODES_IN_CURVE * 2)..(MAX_NODES_IN_CURVE * 3));
+
+    public Span<ushort> Shaper2R => _shapers.AsSpan((MAX_NODES_IN_CURVE * 3)..(MAX_NODES_IN_CURVE * 4));
+    public Span<ushort> Shaper2G => _shapers.AsSpan((MAX_NODES_IN_CURVE * 4)..(MAX_NODES_IN_CURVE * 5));
+    public Span<ushort> Shaper2B => _shapers.AsSpan((MAX_NODES_IN_CURVE * 5)..(MAX_NODES_IN_CURVE * 6));
+
+    public bool IdentityMat;
+
+    public Context? ContextID = context;
+    private bool disposedValue;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                var pool = Context.GetPool<S1Fixed15Number>(ContextID);
+
+                pool.Return(_mat);
+                pool.Return(_off);
+
+                Context.GetPool<ushort>(ContextID).Return(_shapers);
+            }
+
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private static S1Fixed15Number DOUBLE_TO_1FIXED15(double x) =>
+        (S1Fixed15Number)(x * 0x8000 + 0.5);
+
+    private static void FillShaper(Span<ushort> Table, ToneCurve Curve)
+    {
+        for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
+        {
+            var R = (float)i / (MAX_NODES_IN_CURVE - 1);
+            var y = cmsEvalToneCurveFloat(Curve, R);
+
+            Table[i] = (ushort)DOUBLE_TO_1FIXED15(y);
+        }
+    }
+
+    public static XMatShaperData? SetShaper(Context? ContextID,
+                                            ReadOnlySpan<ToneCurve> Curve1,
+                                            MAT3 Mat,
+                                            VEC3? Off,
+                                            ReadOnlySpan<ToneCurve> Curve2,
+                                            bool IdentityMat)
+    {
+        var p = new XMatShaperData(ContextID)
+        {
+            IdentityMat = IdentityMat,
+        };
+
+        p.Shaper1R.Clear();
+        p.Shaper1G.Clear();
+        p.Shaper1B.Clear();
+
+        p.Shaper2R.Clear();
+        p.Shaper2G.Clear();
+        p.Shaper2B.Clear();
+
+        p.Mat.Clear();
+        p.Off.Clear();
+
+        // Precompute tables
+        FillShaper(p.Shaper1R, Curve1[0]);
+        FillShaper(p.Shaper1G, Curve1[1]);
+        FillShaper(p.Shaper1B, Curve1[2]);
+
+        FillShaper(p.Shaper2R, Curve2[0]);
+        FillShaper(p.Shaper2G, Curve2[1]);
+        FillShaper(p.Shaper2B, Curve2[2]);
+
+        // Convert matrix to nFixed14. Note that those values may take more than 16 bits if negative
+        p.Mat[0] = DOUBLE_TO_1FIXED15(Mat.X.X);
+        p.Mat[1] = DOUBLE_TO_1FIXED15(Mat.X.Y);
+        p.Mat[2] = DOUBLE_TO_1FIXED15(Mat.X.Z);
+
+        p.Mat[3] = DOUBLE_TO_1FIXED15(Mat.Y.X);
+        p.Mat[4] = DOUBLE_TO_1FIXED15(Mat.Y.Y);
+        p.Mat[5] = DOUBLE_TO_1FIXED15(Mat.Y.Z);
+
+        p.Mat[6] = DOUBLE_TO_1FIXED15(Mat.Z.X);
+        p.Mat[7] = DOUBLE_TO_1FIXED15(Mat.Z.Y);
+        p.Mat[8] = DOUBLE_TO_1FIXED15(Mat.Z.Z);
+
+        if (Off is null)
+        {
+            p.Off[0] = 0x4000;
+            p.Off[1] = 0x4000;
+            p.Off[2] = 0x4000;
+        }
+        else
+        {
+            p.Off[0] = DOUBLE_TO_1FIXED15(Off.Value.X) + 0x4000;
+            p.Off[1] = DOUBLE_TO_1FIXED15(Off.Value.Y) + 0x4000;
+            p.Off[2] = DOUBLE_TO_1FIXED15(Off.Value.Z) + 0x4000;
+        }
+
+        return p;
     }
 }

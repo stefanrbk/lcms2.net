@@ -19,16 +19,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2.FastFloatPlugin.shapers;
 using lcms2.state;
 using lcms2.types;
 
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    private static FloatCLUTData FloatCLUTAlloc(Context? ContextID, InterpParams<float> p) =>
-        new(ContextID, p);
-
     private static bool XFormSamplerFloat(ReadOnlySpan<float> In, Span<float> Out, object? Cargo)
     {
         if (Cargo is not Pipeline c)
@@ -254,7 +250,7 @@ public static partial class FastFloat
         // Set the evaluator
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
-        var pfloat = FloatCLUTAlloc(ContextID, data.Params);
+        var pfloat = FloatCLUTData.Alloc(ContextID, data.Params);
         if (pfloat is null) goto Error;
 
         // And return the obtained LUT
@@ -263,7 +259,7 @@ public static partial class FastFloat
         Lut = OptimizedLUT;
         TransformFn = FloatCLUTEval;
         UserData = pfloat;
-        FreeUserData = null;
+        FreeUserData = FreeDisposable;
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
 
         return true;
@@ -274,4 +270,29 @@ public static partial class FastFloat
 
         return false;
     }
+}
+
+file class FloatCLUTData(Context? context, InterpParams<float> p) : IDisposable
+{
+    public readonly Context? ContextID = context;
+    public readonly InterpParams<float> p = p;     // Tetrahedrical interpolation parameters
+
+    private bool disposedValue;
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing) { }
+            disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    public static FloatCLUTData Alloc(Context? ContextID, InterpParams<float> p) =>
+        new(ContextID, p);
 }
