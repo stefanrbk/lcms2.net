@@ -78,6 +78,10 @@ public static partial class FastFloat
         if (OptimizeCLUTRGBTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
+        // Try to optimize using prelinearization plus tetrahedral on CLut CMYK
+        if (OptimizeCLUTCMYKTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
         return false;
     }
 }
