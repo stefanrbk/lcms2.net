@@ -28,40 +28,72 @@ using System.Runtime.CompilerServices;
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    private static bool XFormSamplerFloatCMYK(ReadOnlySpan<float> In, Span<float> Out, object? Cargo)
+    internal const ushort SIGMOID_POINTS = 1024;
+
+    public static uint TYPE_SIGMOID => 109;
+
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float LinLerp1D(float Value, ReadOnlySpan<float> LutTable)
     {
-        if (Cargo is not Pipeline c)
+        if (Value >= 1.0f)
+        {
+            return LutTable[SIGMOID_POINTS - 1];
+        }
+        else if (Value <= 0)
+        {
+            return LutTable[0];
+        }
+        else
+        {
+            Value *= SIGMOID_POINTS - 1;
+
+            var cell0 = _cmsQuickFloor(Value);
+            var cell1 = cell0 + 1;
+
+            var rest = Value - cell0;
+
+            var y0 = LutTable[cell0];
+            var y1 = LutTable[cell1];
+
+            return y0 + ((y1 - y0) * rest);
+        }
+    }
+
+    private static bool XFormSamplerLab(ReadOnlySpan<float> In, Span<float> Out, object? Cargo)
+    {
+        if (Cargo is not ResamplingContainer container)
             return false;
 
-        cmsPipelineEvalFloat(In, Out, c);
+        Span<float> linearized = stackalloc float[3];
+
+        // Apply inverse sigmoid
+        linearized[0] = In[0];
+        linearized[1] = LinLerp1D(In[1], container.data.sigmoidOut);
+        linearized[2] = LinLerp1D(In[2], container.data.sigmoidOut);
+
+        cmsPipelineEvalFloat(linearized, Out, container.original);
 
         return true;
     }
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float LinearInterpInt(float a, float l, float h) =>
-        ((h - l) * a) + l;
+    private static float fclamp128(float v) =>
+        float.IsNaN(v)
+            ? -128f
+            : Math.Clamp(v, -128, 128);
 
-    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float fclamp100(float v) =>
-        ((v < 1.0e-9f) || float.IsNaN(v))
-            ? 0f
-            : v > 100f
-                ? 100f
-                : v;
-
-    private unsafe static void FloatCMYKCLUTEval(Transform CMMcargo,
-                                                 ReadOnlySpan<byte> Input,
-                                                 Span<byte> Output,
-                                                 uint PixelsPerLine,
-                                                 uint LineCount,
-                                                 Stride Stride)
+    private unsafe static void LabCLUTEval(Transform CMMcargo,
+                                           ReadOnlySpan<byte> Input,
+                                           Span<byte> Output,
+                                           uint PixelsPerLine,
+                                           uint LineCount,
+                                           Stride Stride)
     {
         fixed (byte* OutputPtr = Output)
         {
-            if (_cmsGetTransformUserData(CMMcargo) is not LabCLUTData pcmyk)
+            if (_cmsGetTransformUserData(CMMcargo) is not LabCLUTData pfloat)
                 return;
-            var p = pcmyk.p;
+            var p = pfloat.p;
             var TotalOut = p.nOutputs;
 
             var @out = stackalloc byte*[cmsMAXCHANNELS];
@@ -70,9 +102,6 @@ public static partial class FastFloat
             Span<uint> SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
             Span<uint> DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
             Span<uint> DestIncrements = stackalloc uint[cmsMAXCHANNELS];
-
-            Span<float> Tmp1 = stackalloc float[cmsMAXCHANNELS];
-            Span<float> Tmp2 = stackalloc float[cmsMAXCHANNELS];
 
             var InputFormat = cmsGetTransformInputFormat(CMMcargo);
             var OutputFormat = cmsGetTransformOutputFormat(CMMcargo);
@@ -92,17 +121,16 @@ public static partial class FastFloat
 
                 for (var i = 0; i < LineCount; i++)
                 {
-                    var cin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                    var min = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                    var yin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
-                    var kin = Input[(int)(SourceStartingOrder[3] + strideIn)..];
-                    var ain =
+                    var lin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
+                    var ain = Input[(int)(SourceStartingOrder[1] + strideIn)..];
+                    var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+                    var xin =
                         nalpha is not 0
-                            ? Input[(int)(SourceStartingOrder[4] + strideIn)..]
+                            ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
                             : default;
 
                     var TotalPlusAlpha = TotalOut;
-                    if (!ain.IsEmpty) TotalPlusAlpha++;
+                    if (!xin.IsEmpty) TotalPlusAlpha++;
 
                     for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                     {
@@ -111,37 +139,32 @@ public static partial class FastFloat
 
                     for (var ii = 0; ii < PixelsPerLine; ii++)
                     {
-                        var c = fclamp100(BitConverter.ToSingle(cin)) / 100f;
-                        var m = fclamp100(BitConverter.ToSingle(min)) / 100f;
-                        var y = fclamp100(BitConverter.ToSingle(yin)) / 100f;
-                        var k = fclamp100(BitConverter.ToSingle(kin)) / 100f;
+                        // Decode Lab and go across sigmoids on a*/b*
+                        var l = fclamp100(BitConverter.ToSingle(lin)) / 100f;
 
-                        cin = cin[(int)SourceIncrements[0]..];
-                        min = min[(int)SourceIncrements[1]..];
-                        yin = yin[(int)SourceIncrements[2]..];
-                        kin = kin[(int)SourceIncrements[3]..];
+                        var a = LinLerp1D((fclamp128(BitConverter.ToSingle(ain)) + 128.0f) / 255.0f, pfloat.sigmoidIn);
+                        var b = LinLerp1D((fclamp128(BitConverter.ToSingle(bin)) + 128.0f) / 255.0f, pfloat.sigmoidIn);
 
-                        var pk = c * p.Domain[0];
-                        var px = m * p.Domain[1];
-                        var py = y * p.Domain[2];
-                        var pz = k * p.Domain[3];
+                        lin = lin[(int)SourceIncrements[0]..];
+                        ain = ain[(int)SourceIncrements[1]..];
+                        bin = bin[(int)SourceIncrements[2]..];
 
-                        var k0 = _cmsQuickFloor(pk); var rk = pk - k0;
+                        var px = l * p.Domain[0];
+                        var py = a * p.Domain[1];
+                        var pz = b * p.Domain[2];
+
                         var x0 = _cmsQuickFloor(px); var rx = px - x0;
                         var y0 = _cmsQuickFloor(py); var ry = py - y0;
                         var z0 = _cmsQuickFloor(pz); var rz = pz - z0;
 
-                        var K0 = (int)p.opta[3] * k0;
-                        var K1 = K0 + ((c >= 1.0) ? 0 : (int)p.opta[3]);
-
                         var X0 = (int)p.opta[2] * x0;
-                        var X1 = X0 + ((m >= 1.0) ? 0 : (int)p.opta[2]);
+                        var X1 = X0 + ((l >= 1.0f) ? 0 : (int)p.opta[2]);
 
-                        var Y0 = (int)p.opta[1] * y0;
-                        var Y1 = Y0 + ((y >= 1.0) ? 0 : (int)p.opta[1]);
+                        var Y0 = (int)p.opta[1] * z0;
+                        var Y1 = Y0 + ((a >= 1.0f) ? 0 : (int)p.opta[1]);
 
                         var Z0 = (int)p.opta[0] * z0;
-                        var Z1 = Z0 + ((k >= 1.0) ? 0 : (int)p.opta[0]);
+                        var Z1 = Z0 + ((b >= 1.0f) ? 0 : (int)p.opta[0]);
 
                         int OutChan;
 
@@ -203,83 +226,15 @@ public static partial class FastFloat
                                 c1 = c2 = c3 = 0;
                             }
 
+                            *(float*)@out[OutChan] = c0 + c1 * rx + c2 * ry + c3 * rz;
 
-                            Tmp1[OutChan] = c0 + (c1 * rx) + (c2 * ry) + (c3 * rz);
-                        }
-
-                        LutTable = LutTablePtr + K1;
-
-                        for (OutChan = 0; OutChan < TotalOut; OutChan++)
-                        {
-                            var c0 = DENS(X0, Y0, Z0);
-                            float c1, c2, c3;
-
-                            if (rx >= ry && ry >= rz)
-                            {
-
-                                c1 = DENS(X1, Y0, Z0) - c0;
-                                c2 = DENS(X1, Y1, Z0) - DENS(X1, Y0, Z0);
-                                c3 = DENS(X1, Y1, Z1) - DENS(X1, Y1, Z0);
-
-                            }
-                            else if (rx >= rz && rz >= ry)
-                            {
-
-                                c1 = DENS(X1, Y0, Z0) - c0;
-                                c2 = DENS(X1, Y1, Z1) - DENS(X1, Y0, Z1);
-                                c3 = DENS(X1, Y0, Z1) - DENS(X1, Y0, Z0);
-
-                            }
-                            else if (rz >= rx && rx >= ry)
-                            {
-
-                                c1 = DENS(X1, Y0, Z1) - DENS(X0, Y0, Z1);
-                                c2 = DENS(X1, Y1, Z1) - DENS(X1, Y0, Z1);
-                                c3 = DENS(X0, Y0, Z1) - c0;
-
-                            }
-                            else if (ry >= rx && rx >= rz)
-                            {
-
-                                c1 = DENS(X1, Y1, Z0) - DENS(X0, Y1, Z0);
-                                c2 = DENS(X0, Y1, Z0) - c0;
-                                c3 = DENS(X1, Y1, Z1) - DENS(X1, Y1, Z0);
-
-                            }
-                            else if (ry >= rz && rz >= rx)
-                            {
-
-                                c1 = DENS(X1, Y1, Z1) - DENS(X0, Y1, Z1);
-                                c2 = DENS(X0, Y1, Z0) - c0;
-                                c3 = DENS(X0, Y1, Z1) - DENS(X0, Y1, Z0);
-
-                            }
-                            else if (rz >= ry && ry >= rx)
-                            {
-
-                                c1 = DENS(X1, Y1, Z1) - DENS(X0, Y1, Z1);
-                                c2 = DENS(X0, Y1, Z1) - DENS(X0, Y0, Z1);
-                                c3 = DENS(X0, Y0, Z1) - c0;
-
-                            }
-                            else
-                            {
-                                c1 = c2 = c3 = 0;
-                            }
-
-                            Tmp2[OutChan] = c0 + (c1 * rx) + (c2 * ry) + (c3 * rz);
-                        }
-
-                        for (OutChan = 0; OutChan < p.nOutputs; OutChan++)
-                        {
-                            *(float*)@out[OutChan] = LinearInterpInt(rk, Tmp1[OutChan], Tmp2[OutChan]);
                             @out[OutChan] += DestIncrements[OutChan];
                         }
 
-                        if (!ain.IsEmpty)
+                        if (!xin.IsEmpty)
                         {
-                            *(float*)@out[TotalOut] = BitConverter.ToSingle(ain);
-                            ain = ain[(int)SourceIncrements[4]..];
+                            *(float*)@out[TotalOut] = BitConverter.ToSingle(xin);
+                            xin = xin[(int)SourceIncrements[3]..];
                             @out[TotalOut] += DestIncrements[(int)TotalOut];
                         }
 
@@ -296,13 +251,35 @@ public static partial class FastFloat
         }
     }
 
-    private static bool OptimizeCLUTCMYKTransform(out Transform2Fn TransformFn,
-                                                  out object? UserData,
-                                                  out FreeUserDataFn? FreeUserData,
-                                                  ref Pipeline Lut,
-                                                  ref uint InputFormat,
-                                                  ref uint OutputFormat,
-                                                  ref uint dwFlags)
+    private static int GetGridPoints(uint dwFlags)
+    {
+        // Already specified?
+        if ((dwFlags & 0x00FF0000) is not 0)
+            return (int)((dwFlags >> 16) & 0xff);
+
+        // HighResPrecalc is maximun resolution
+        if ((dwFlags & cmsFLAGS_HIGHRESPRECALC) is not 0)
+        {
+            return 66;
+        }
+        // LowResPrecalc is lower resolution
+        else if ((dwFlags & cmsFLAGS_LOWRESPRECALC) is not 0)
+        {
+            return 33;
+        }
+        else
+        {
+            return 51;
+        }
+    }
+
+    private static bool OptimizeCLUTLabTransform(out Transform2Fn TransformFn,
+                                                 out object? UserData,
+                                                 out FreeUserDataFn? FreeUserData,
+                                                 ref Pipeline Lut,
+                                                 ref uint InputFormat,
+                                                 ref uint OutputFormat,
+                                                 ref uint dwFlags)
     {
         FreeUserData = null;
         UserData = null;
@@ -314,16 +291,16 @@ public static partial class FastFloat
         if (Lut is null)
             return false;
 
-        // This is a lossy optimization! does not apply in floating-point cases
+        // Check for floating point only
         if (T_FLOAT(InputFormat) is 0 || T_FLOAT(OutputFormat) is 0)
             return false;
 
-        // Only on 8-bit
-        if (T_BYTES(InputFormat) is not 4 || T_BYTES(OutputFormat) is not 4)
+        // Only on floats
+        if (T_BYTES(InputFormat) is not sizeof(float) || T_BYTES(OutputFormat) is not sizeof(float))
             return false;
 
-        // Only on CMYK
-        if (T_COLORSPACE(InputFormat) is not PT_CMYK)
+        // Only on Lab
+        if (T_COLORSPACE(InputFormat) is not PT_Lab)
             return false;
 
         // Seems suitable, proceed
@@ -334,30 +311,32 @@ public static partial class FastFloat
         var nGridPoints = _cmsReasonableGridpointsByColorspace(cmsSigRgbData, dwFlags);
 
         // Create the result LUT
-        OptimizedLUT = cmsPipelineAlloc(ContextID, 4, cmsPipelineOutputChannels(OriginalLut));
+        OptimizedLUT = cmsPipelineAlloc(ContextID, 3, cmsPipelineOutputChannels(OriginalLut));
         if (OptimizedLUT is null) goto Error;
 
         // Allocate the CLUT for result
-        var OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 4, cmsPipelineOutputChannels(OriginalLut), null);
+        var OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 3, cmsPipelineOutputChannels(OriginalLut), null);
 
         // Add the CLUT to the destination LUT
         cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtBegin, OptimizedCLUTmpe);
 
-        // Resample the LUT
-        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerFloatCMYK, OriginalLut, SamplerFlag.None)) goto Error;
-
         // Set the evaluator
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
-        var pcmyk = LabCLUTData.Alloc(ContextID, data.Params);
-        if (pcmyk is null) goto Error;
+        var pfloat = LabCLUTData.Alloc(ContextID, data.Params);
+        if (pfloat is null) goto Error;
+
+        var container = new ResamplingContainer(pfloat, OriginalLut);
+
+        // Resample the LUT
+        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerLab, container, SamplerFlag.None)) goto Error;
 
         // And return the obtained LUT
         cmsPipelineFree(OriginalLut);
 
         Lut = OptimizedLUT;
-        TransformFn = FloatCMYKCLUTEval;
-        UserData = pcmyk;
+        TransformFn = LabCLUTEval;
+        UserData = pfloat;
         FreeUserData = FreeDisposable;
         dwFlags &= ~cmsFLAGS_CAN_CHANGE_FORMATTER;
 
@@ -371,18 +350,45 @@ public static partial class FastFloat
     }
 }
 
-file class FloatCMYKData(Context? context, InterpParams<float> p) : IDisposable
+file record ResamplingContainer(LabCLUTData data, Pipeline original);
+
+file class LabCLUTData : IDisposable
 {
-    public readonly Context? ContextID = context;
-    public readonly InterpParams<float> p = p;     // Tetrahedrical interpolation parameters
+    public readonly Context? ContextID;
+    public readonly InterpParams<float> p;     // Tetrahedrical interpolation parameters
+
+    private readonly float[] sIn;
+    private readonly float[] sOut;
+
+    public Span<float> sigmoidIn =>
+        sIn.AsSpan(..SIGMOID_POINTS);
+
+    public Span<float> sigmoidOut =>
+        sOut.AsSpan(..SIGMOID_POINTS);
 
     private bool disposedValue;
+
+    public LabCLUTData(Context? context, InterpParams<float> p)
+    {
+        ContextID = context;
+        this.p = p;
+
+        var pool = Context.GetPool<float>(context);
+
+        sIn = pool.Rent(SIGMOID_POINTS);
+        sOut = pool.Rent(SIGMOID_POINTS);
+    }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing) { }
+            if (disposing)
+            {
+                var pool = Context.GetPool<float>(ContextID);
+                pool.Return(sIn);
+                pool.Return(sOut);
+            }
             disposedValue = true;
         }
     }
@@ -392,6 +398,34 @@ file class FloatCMYKData(Context? context, InterpParams<float> p) : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-    public static LabCLUTData Alloc(Context? ContextID, InterpParams<float> p) =>
-        new(ContextID, p);
+    public static LabCLUTData Alloc(Context? ContextID, InterpParams<float> p)
+    {
+        var fd = new LabCLUTData(ContextID, p);
+
+        tabulateSigmoid(ContextID, +(int)TYPE_SIGMOID, fd.sigmoidIn, SIGMOID_POINTS);
+        tabulateSigmoid(ContextID, -(int)TYPE_SIGMOID, fd.sigmoidOut, SIGMOID_POINTS);
+
+        return fd;
+    }
+
+    private static void tabulateSigmoid(Context? ContextID, int type, Span<float> table, int tablePoints)
+    {
+        ReadOnlySpan<double> sigmoidal_slope = stackalloc double[] { 2.5 };
+
+        table = table[..tablePoints];
+        table.Clear();
+
+        var original = cmsBuildParametricToneCurve(ContextID, type, sigmoidal_slope);
+        if (original is not null)
+        {
+            for (var i = 0; i < tablePoints; i++)
+            {
+                var v = (float)i / (tablePoints - 1);
+
+                table[i] = fclamp(cmsEvalToneCurveFloat(original, v));
+            }
+
+            cmsFreeToneCurve(original);
+        }
+    }
 }

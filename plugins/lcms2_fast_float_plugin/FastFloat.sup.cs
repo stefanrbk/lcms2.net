@@ -82,6 +82,11 @@ public static partial class FastFloat
         if (OptimizeCLUTCMYKTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
 
+        // Try to optimize using prelinearization plus tetrahedral on CLut Lab
+        if (OptimizeCLUTLabTransform(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+            return true;
+
+        // Cannot optimize, use lcms normal process
         return false;
     }
 }
