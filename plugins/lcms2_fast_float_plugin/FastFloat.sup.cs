@@ -19,9 +19,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
+using lcms2.state;
 using lcms2.types;
-
-using static lcms2.Plugin;
 
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
@@ -89,4 +88,15 @@ public static partial class FastFloat
         // Cannot optimize, use lcms normal process
         return false;
     }
+
+    private static List<PluginBase> PluginList = new(2)
+    {
+        new PluginTransform(cmsPluginMagicNumber, REQUIRED_LCMS_VERSION, cmsPluginTransformSig, new() { xform = Floating_Point_Transforms_Dispatcher }),
+        new PluginFormatters(cmsPluginMagicNumber, REQUIRED_LCMS_VERSION, cmsPluginFormattersSig) { FormattersFactoryIn = Formatter_15Bit_Factory_In, FormattersFactoryOut = Formatter_15Bit_Factory_Out }
+    };
+
+    // This is the main plug-in installer.
+    // Using a function to retrieve the plug-in entry point allows us to execute initialization data
+    public static List<PluginBase> cmsFastFloatExtensions() =>
+        PluginList;
 }

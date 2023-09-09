@@ -20,15 +20,16 @@
 //
 //---------------------------------------------------------------------------------
 using lcms2.state;
+using lcms2.types;
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-using S15Fixed16Number = System.Int32;
-
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
+    internal const uint REQUIRED_LCMS_VERSION = 2120;
+
     internal static uint BIT15_SH(uint a) =>           ((a) << 26);
     internal static uint T_BIT15(uint a) =>            (((a)>>26)&1);
     internal static uint DITHER_SH(uint a) =>          ((a) << 27);
@@ -123,9 +124,9 @@ public static partial class FastFloat
     //internal static byte FROM_16_TO_8(ushort rgb) =>
     //    (byte)((((rgb * 65281) + 8388608) >> 24) & 0xFF);
 
-    //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //internal static ushort CHANGE_ENDIAN(ushort w) =>
-    //    (ushort)((w << 8) | (w >> 8));
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ushort CHANGE_ENDIAN(ushort w) =>
+        (ushort)((w << 8) | (w >> 8));
 
     //[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     //internal static ushort REVERSE_FLAVOR(ushort x) =>
@@ -149,7 +150,11 @@ public static partial class FastFloat
     //internal static int _cmsFromFixedDomain(S15Fixed16Number a) =>
     //    a - ((a + 0x7fff) >> 16);
 
-    private record _xform_head(uint InputFormat, uint OutputFormat);
+    private record _xform_head(uint InputFormat, uint OutputFormat)
+    {
+        public static explicit operator _xform_head(Transform t) =>
+            new(t.InputFormat, t.OutputFormat);
+    }
 
     internal const ushort MAX_NODES_IN_CURVE = 0x8001;
 
