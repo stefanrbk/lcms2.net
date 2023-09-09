@@ -89,6 +89,17 @@ public static partial class Lcms2
     public static bool cmsPlugin(PluginBase plugin) =>
         cmsPluginTHR(null, plugin);
 
+    public static bool cmsPlugin(List<PluginBase> Plugins)
+    {
+        foreach (var plugin in Plugins)
+        {
+            if (!cmsPlugin(plugin))
+                return false;
+        }
+
+        return true;
+    }
+
     public static bool cmsPluginTHR(Context? id, List<PluginBase> Plugins)
     {
         foreach (var plugin in Plugins)
