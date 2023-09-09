@@ -151,11 +151,8 @@ public static partial class FastFloat
         }
 
         // Handle size
-        if (channelSize > 1)
-        {
-            for (var i = 0; i < total_chans; i++)
-                ComponentStartingOrder[i] *= BytesPerPlane;
-        }
+        for (var i = 0; i < total_chans; i++)
+            ComponentStartingOrder[i] *= BytesPerPlane;
     }
 
     internal static void _cmsComputeComponentIncrements(uint Format,
