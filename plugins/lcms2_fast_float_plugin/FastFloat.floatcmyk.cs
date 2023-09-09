@@ -59,7 +59,7 @@ public static partial class FastFloat
     {
         fixed (byte* OutputPtr = Output)
         {
-            if (_cmsGetTransformUserData(CMMcargo) is not LabCLUTData pcmyk)
+            if (_cmsGetTransformUserData(CMMcargo) is not FloatCMYKData pcmyk)
                 return;
             var p = pcmyk.p;
             var TotalOut = p.nOutputs;
@@ -349,7 +349,7 @@ public static partial class FastFloat
         // Set the evaluator
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
-        var pcmyk = LabCLUTData.Alloc(ContextID, data.Params);
+        var pcmyk = FloatCMYKData.Alloc(ContextID, data.Params);
         if (pcmyk is null) goto Error;
 
         // And return the obtained LUT
@@ -392,6 +392,6 @@ file class FloatCMYKData(Context? context, InterpParams<float> p) : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-    public static LabCLUTData Alloc(Context? ContextID, InterpParams<float> p) =>
+    public static FloatCMYKData Alloc(Context? ContextID, InterpParams<float> p) =>
         new(ContextID, p);
 }
