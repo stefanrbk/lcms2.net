@@ -5,6 +5,13 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>lcms2.FastFloatPlugin.testbed</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
+    <ProjectReference Include="..\..\Testing\Testbed.csproj" />
+    <ProjectReference Include="..\lcms2_fast_float_plugin\lcms2_fast_float_plugin.csproj" />
+  </ItemGroup>
 
 </Project>
