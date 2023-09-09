@@ -21,3 +21,4 @@
 //---------------------------------------------------------------------------------
 global using static lcms2.FastFloatPlugin.testbed.Testbed;
 global using static lcms2.FastFloatPlugin.FastFloat;
+global using static lcms2.Lcms2;

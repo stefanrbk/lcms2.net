@@ -19,11 +19,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
-using lcms2;
 
 var now = DateTime.Now;
 
-trace("LittleCMS.net FastFloating point extensions testbed - 1.5 {now:MMM d yyyy HH:mm:ss}", now);
+trace("LittleCMS.net FastFloating point extensions testbed - 1.5 {0:MMM d yyyy HH:mm:ss}", now);
 trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
 trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
 
@@ -32,12 +31,14 @@ Console.WriteLine();
 
 using (logger.BeginScope("Installing error logger"))
 {
-    Lcms2.cmsSetLogErrorHandler(BuildDebugLogger());
+    cmsSetLogErrorHandler(BuildDebugLogger());
     trace("Done");
 }
 
 using (logger.BeginScope("Installing plugin"))
 {
-    Lcms2.cmsPlugin(cmsFastFloatExtensions());
+    cmsPlugin(cmsFastFloatExtensions());
     trace("Done");
 }
+
+CheckComputeIncrements();
