@@ -158,12 +158,12 @@ public static partial class FastFloat
         }
     }
 
-    private static void _cmsComputeComponentIncrements(uint Format,
-                                                       uint BytesPerPlane,
-                                                       out uint nChannels,
-                                                       out uint nAlpha,
-                                                       Span<uint> ComponentStartingOrder,
-                                                       Span<uint> ComponentPointerIncrements)
+    internal static void _cmsComputeComponentIncrements(uint Format,
+                                                        uint BytesPerPlane,
+                                                        out uint nChannels,
+                                                        out uint nAlpha,
+                                                        Span<uint> ComponentStartingOrder,
+                                                        Span<uint> ComponentPointerIncrements)
     {
         if (T_PLANAR(Format) is not 0)
         {
