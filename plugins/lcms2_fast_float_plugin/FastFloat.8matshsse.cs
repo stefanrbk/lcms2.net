@@ -23,7 +23,6 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -228,7 +227,7 @@ public unsafe static partial class FastFloat
                 dwFlags |= cmsFLAGS_NOCACHE;
 
                 // Setup the optimization routines
-                UserData = XMatShaperSSEData.SetShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
+                UserData = XMatShaperSSEData.SetShaper(ContextID, mpeC1.TheCurves, res, Data2.Offset is null ? null : new VEC3(Data2.Offset), mpeC2.TheCurves);
                 FreeUserData = FreeDisposable;
 
                 TransformFn = MatShaperXform8SSE;
@@ -297,7 +296,7 @@ file unsafe class XMatShaperSSEData : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static void FillFirstShaper8MatSSE(Span<float> Table, ToneCurve Curve)
+    private static void FillFirstShaper8MatSSE(float* Table, ToneCurve Curve)
     {
         for (var i = 0; i < 256; i++)
         {
@@ -306,7 +305,7 @@ file unsafe class XMatShaperSSEData : IDisposable
         }
     }
 
-    private static void FillSecondShaper8MatSSE(Span<float> Table, ToneCurve Curve)
+    private static void FillSecondShaper8MatSSE(byte* Table, ToneCurve Curve)
     {
         for (var i = 0; i < 0x4001; i++)
         {
@@ -314,7 +313,7 @@ file unsafe class XMatShaperSSEData : IDisposable
             var Val = cmsEvalToneCurveFloat(Curve, R);
             var w = (int)((Val * 255.0f) + 0.5f);
 
-            w = Math.Max(0, Math.Min(255, w));
+            w = Math.Clamp(w, 0, 255);
 
             Table[i] = (byte)w;
         }
@@ -330,13 +329,13 @@ file unsafe class XMatShaperSSEData : IDisposable
         var p = new XMatShaperSSEData(ContextID);
 
         // Precompute tables
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1R, 256), Curve1[0]);
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1G, 256), Curve1[1]);
-        FillFirstShaper8MatSSE(new(p.Data->Shaper1B, 256), Curve1[2]);
+        FillFirstShaper8MatSSE(p.Data->Shaper1R, Curve1[0]);
+        FillFirstShaper8MatSSE(p.Data->Shaper1G, Curve1[1]);
+        FillFirstShaper8MatSSE(p.Data->Shaper1B, Curve1[2]);
 
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2R, 0x4001), Curve2[0]);
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2G, 0x4001), Curve2[1]);
-        FillSecondShaper8MatSSE(new(p.Data->Shaper2B, 0x4001), Curve2[2]);
+        FillSecondShaper8MatSSE(p.Data->Shaper2R, Curve2[0]);
+        FillSecondShaper8MatSSE(p.Data->Shaper2G, Curve2[1]);
+        FillSecondShaper8MatSSE(p.Data->Shaper2B, Curve2[2]);
 
         // Convert matrix to float
         p.Data->Mat[0] = (float)Mat.X.X;
