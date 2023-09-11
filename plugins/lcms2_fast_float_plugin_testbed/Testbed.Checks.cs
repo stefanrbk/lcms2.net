@@ -29,7 +29,29 @@ internal static partial class Testbed
 {
     private struct Scanline_rgb8bits { public byte r, g, b; }
 
+    private struct Scanline_rgba8bits { public byte r, g, b, a; }
+
+    private struct Scanline_cmyk8bits { public byte c, m, y, k; }
+
+    private struct Scanline_rgb16bits { public ushort r, g, b; }
+
+    private struct Scanline_rgba16bits { public ushort r, g, b, a; }
+
+    private struct Scanline_cmyk16bits { public ushort c, m, y, k; }
+
     private struct Scanline_rgb15bits { public ushort r, g, b; }
+
+    private struct Scanline_rgba15bits { public ushort r, g, b, a; }
+
+    private struct Scanline_cmyk15bits { public ushort c, m, y, k; }
+
+    private struct Scanline_rgbFloat { public float r, g, b; }
+
+    private struct Scanline_rgbaFloat { public float r, g, b, a; }
+
+    private struct Scanline_cmykFloat { public float c, m, y, k; }
+
+    private struct Scanline_LabFloat { public float L, a, b; }
 
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
     {
