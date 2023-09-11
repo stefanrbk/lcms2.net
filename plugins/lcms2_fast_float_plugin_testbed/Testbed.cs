@@ -60,6 +60,7 @@ internal static partial class Testbed
     public static void Fail(string message, params object[] args)
     {
         logger.LogError("{msg}", string.Format(message, args));
+        Thread.Sleep(1000);
         Environment.Exit(1);
     }
 

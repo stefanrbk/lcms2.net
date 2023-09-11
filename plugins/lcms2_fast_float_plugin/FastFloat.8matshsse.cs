@@ -55,6 +55,7 @@ public unsafe static partial class FastFloat
         var scale = Vector128.Create((float)0x4000);
 
         var buffer = stackalloc byte[32];
+        new Span<byte>(buffer, 32).Fill(204);
         var output_index = (uint*)(((ulong)buffer + 16) & ~(ulong)0xf);
 
         _cmsComputeComponentIncrements(cmsGetTransformInputFormat(CMMcargo), Stride.BytesPerPlaneIn, out _, out var nalpha, SourceStartingOrder, SourceIncrements);
@@ -102,8 +103,9 @@ public unsafe static partial class FastFloat
 
                 // Rounding and converting to index.
                 // Actually this is a costly instruction that may be blocking performance
-                
-                Vector128.ConvertToInt32(@out).StoreAligned((int*)output_index);
+
+                var outI = Sse2.ConvertToVector128Int32(@out);
+                outI.StoreAligned((int*)output_index);
 
                 // Handle alpha
                 if (nalpha is not 0)
@@ -339,16 +341,16 @@ file unsafe class XMatShaperSSEData : IDisposable
 
         // Convert matrix to float
         p.Data->Mat[0] = (float)Mat.X.X;
-        p.Data->Mat[1] = (float)Mat.X.Y;
-        p.Data->Mat[2] = (float)Mat.X.Z;
+        p.Data->Mat[1] = (float)Mat.Y.X;
+        p.Data->Mat[2] = (float)Mat.Z.X;
 
-        p.Data->Mat[3] = (float)Mat.Y.X;
-        p.Data->Mat[4] = (float)Mat.Y.Y;
-        p.Data->Mat[5] = (float)Mat.Y.Z;
+        p.Data->Mat[4] = (float)Mat.X.Y;
+        p.Data->Mat[5] = (float)Mat.Y.Y;
+        p.Data->Mat[6] = (float)Mat.Z.Y;
 
-        p.Data->Mat[6] = (float)Mat.Z.X;
-        p.Data->Mat[7] = (float)Mat.Z.Y;
-        p.Data->Mat[8] = (float)Mat.Z.Z;
+        p.Data->Mat[8] = (float)Mat.X.Z;
+        p.Data->Mat[9] = (float)Mat.Y.Z;
+        p.Data->Mat[10] = (float)Mat.Z.Z;
 
         // Roundoff
         if (Off is null)
