@@ -22,6 +22,7 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace lcms2.FastFloatPlugin;
@@ -130,10 +131,10 @@ public static partial class FastFloat
                                 Z1 += Y1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c3 -= c2;
                                     c2 -= c1;
                                     c1 -= c0;
@@ -149,10 +150,10 @@ public static partial class FastFloat
                                 Y1 += X1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c2 -= c1;
                                     c1 -= c3;
                                     c3 -= c0;
@@ -168,10 +169,10 @@ public static partial class FastFloat
                                 Y1 += Z1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c2 -= c3;
                                     c3 -= c1;
                                     c1 -= c0;
@@ -190,10 +191,10 @@ public static partial class FastFloat
                                 Z1 += X1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c3 -= c1;
                                     c1 -= c2;
                                     c2 -= c0;
@@ -209,10 +210,10 @@ public static partial class FastFloat
                                 X1 += Z1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c1 -= c3;
                                     c3 -= c2;
                                     c2 -= c0;
@@ -228,10 +229,10 @@ public static partial class FastFloat
                                 X1 += Y1;
                                 for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                                 {
-                                    var c1 = LutTable[X1];
-                                    var c2 = LutTable[Y1];
-                                    var c3 = LutTable[Z1];
-                                    var c0 = *LutTable++;
+                                    var c1 = (int)LutTable[X1];
+                                    var c2 = (int)LutTable[Y1];
+                                    var c3 = (int)LutTable[Z1];
+                                    var c0 = (int)*LutTable++;
                                     c1 -= c2;
                                     c2 -= c3;
                                     c3 -= c0;
@@ -256,13 +257,13 @@ public static partial class FastFloat
                 strideIn += Stride.BytesPerLineIn;
                 strideOut += Stride.BytesPerLineOut;
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 ushort FROM_INPUT(ReadOnlySpan<byte> v)
                 {
                     return in16 ? BitConverter.ToUInt16(v) : FROM_8_TO_16(v[0]);
                 }
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 void TO_OUTPUT(byte* d, ushort v)
                 {
                     if (out16)
@@ -275,13 +276,13 @@ public static partial class FastFloat
                     }
                 }
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 void TO_OUTPUT_16(byte* d, ushort v)
                 {
                     *(ushort*)d = v;
                 }
 
-                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
                 void TO_OUTPUT_8(byte* d, ushort v)
                 {
                     *d = FROM_16_TO_8(v);

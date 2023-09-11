@@ -318,7 +318,41 @@ public static partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(PluginBase? Plugin, object? UserData)
+    public static Context? cmsCreateContext(IEnumerable<PluginBase> Plugins, object? UserData)
+    {
+        // Create the context structure.
+        var ctx = new Context();
+        if (ctx is null) return null; // Something very wrong happened!
+
+        lock (contextPoolHeadMutex)
+            contextPoolHead.Add(ctx);
+
+        ctx.UserData = UserData;
+
+        AllocChunks(ctx, null);
+
+        // Setup the plug-ins
+        foreach (var plugin in Plugins)
+        {
+            if (!cmsPluginTHR(ctx, plugin))
+            {
+                cmsDeleteContext(ctx);
+                return null;
+            }
+        }
+
+        ctx.ErrorLogger.FactoryChanged += ErrorLogger_FactoryChanged;
+
+        return ctx;
+    }
+
+    /// <summary>
+    ///     Creates a new context with optional associated plug-in.
+    /// </summary>
+    /// <param name="UserData">
+    ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
+    /// </param>
+    public static Context? cmsCreateContext(PluginBase? Plugin = null, object? UserData = null)
     {
         //Context fakeContext = new();
 

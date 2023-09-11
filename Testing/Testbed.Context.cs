@@ -183,7 +183,7 @@ internal static partial class Testbed
         }
 
         // Back to create 3 levels of inheritance
-        c1 = cmsCreateContext(null, a);
+        c1 = cmsCreateContext(UserData: a);
         //DebugMemDontCheckThis(c1);
 
         c2 = DupContext(c1, null);

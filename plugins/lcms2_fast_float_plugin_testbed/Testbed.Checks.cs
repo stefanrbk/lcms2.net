@@ -363,6 +363,7 @@ internal static partial class Testbed
         if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
             Fail("Multithreading failure");
 
+        var failed = 0;
         j = 0;
         for (var r = 0; r < 256; r++)
         {
@@ -375,14 +376,15 @@ internal static partial class Testbed
                         !Valid15(buffer15out[j].g, buffer8out[j].g) ||
                         !Valid15(buffer15out[j].b, buffer8out[j].b))
                     {
-                        Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})", buffer8out[(j * 3) + 0], buffer8out[(j * 3) + 1], buffer8out[(j * 3) + 2],
-                            FROM_15_TO_8(buffer15out[j].r), FROM_15_TO_8(buffer15out[j].g), FROM_15_TO_8(buffer15out[j].b));
+                        failed++;
                     }
 
                     j++;
                 }
             }
         }
+        if (failed is not 0)
+            Fail("{0} failed", failed);
 
         cmsDeleteTransform(xform15);
         cmsDeleteTransform(xform8);
@@ -429,7 +431,6 @@ internal static partial class Testbed
         cmsDoTransform(xform15, buffer15in, buffer15out, npixels);
         cmsDoTransform(xform8, buffer8in, buffer8out, npixels);
 
-        var failed = 0;
         j = 0;
         for (var r = 0; r < 256; r++)
         {
@@ -442,16 +443,13 @@ internal static partial class Testbed
                         !Valid15(buffer15out[j].g, buffer8out[j].g) ||
                         !Valid15(buffer15out[j].b, buffer8out[j].b))
                     {
-                        failed++;
+                        Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})", buffer8out[j].r, buffer8out[j].g, buffer8out[j].b,
+                            FROM_15_TO_8(buffer15out[j].r), FROM_15_TO_8(buffer15out[j].g), FROM_15_TO_8(buffer15out[j].b));
                     }
 
                     j++;
                 }
             }
-        }
-        if (failed is not 0)
-        {
-            Fail("{0} failed", failed);
         }
 
         cmsDeleteTransform(xform15);
@@ -481,5 +479,177 @@ internal static partial class Testbed
         }
 
         trace("All 15 bit tests passed");
+    }
+
+    private static void TryAllValues16(Profile profileIn, Profile profileOut, int Intent)
+    {
+        var Raw = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions(), null);
+
+        var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xformRaw is null || xformPlugin is null)
+            Fail("Null transforms on check for float conversions");
+
+        const int npixelsThreaded = 256 * 256;
+        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        var bufferIn = new Scanline_rgba16bits[npixels];
+        var bufferRawOut = new Scanline_rgba16bits[npixels];
+        var bufferPluginOut = new Scanline_rgba16bits[npixels];
+
+        // Same input to both transforms
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    bufferIn[j].r = FROM_8_TO_16((byte)r);
+                    bufferIn[j].g = FROM_8_TO_16((byte)g);
+                    bufferIn[j].b = FROM_8_TO_16((byte)b);
+                    bufferIn[j].a = 0xffff;
+
+                    j++;
+                }
+            }
+        }
+
+        var tasks = new Task[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(o =>
+            {
+                var offset = (int)o!;
+
+                // Different transforms, different output buffers
+                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+            }, i);
+        }
+
+        Task.WaitAll(tasks);
+
+        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+            Fail("Multithreading failure");
+
+        // Lets compare results
+        var failed = 0;
+        j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    if (bufferRawOut[j].r != bufferPluginOut[j].r ||
+                        bufferRawOut[j].g != bufferPluginOut[j].g ||
+                        bufferRawOut[j].b != bufferPluginOut[j].b ||
+                        bufferRawOut[j].a != bufferPluginOut[j].a)
+                    {
+                        failed++;
+                    }
+
+                    j++;
+                }
+            }
+        }
+        if (failed is not 0)
+            Fail("{0} failed", failed);
+
+        cmsDeleteTransform(xformRaw);
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+        cmsDeleteContext(Raw);
+    }
+
+    private static void TryAllValues16NonThreaded(Profile profileIn, Profile profileOut, int Intent)
+    {
+        var Raw = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions(), null);
+
+        var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xformRaw is null || xformPlugin is null)
+            Fail("Null transforms on check for float conversions");
+
+        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
+        var bufferIn = new Scanline_rgba16bits[npixels];
+        var bufferRawOut = new Scanline_rgba16bits[npixels];
+        var bufferPluginOut = new Scanline_rgba16bits[npixels];
+
+        // Same input to both transforms
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        { 
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    bufferIn[j].r = FROM_8_TO_16((byte)r);
+                    bufferIn[j].g = FROM_8_TO_16((byte)g);
+                    bufferIn[j].b = FROM_8_TO_16((byte)b);
+                    bufferIn[j].a = 0xffff;
+
+                    j++;
+                }
+            }
+        }
+
+        // Different transforms, different output buffers
+        cmsDoTransform(xformRaw, bufferIn, bufferRawOut, npixels);
+        cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, npixels);
+
+        // Lets compare results
+        j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    if (bufferRawOut[j].r != bufferPluginOut[j].r ||
+                        bufferRawOut[j].g != bufferPluginOut[j].g ||
+                        bufferRawOut[j].b != bufferPluginOut[j].b ||
+                        bufferRawOut[j].a != bufferPluginOut[j].a)
+                    {
+                        Fail("Conversion failed at [{0} {1} {2} {3}] ({4} {5} {6} {7}) != ({8} {9} {10} {11})",
+                            bufferIn[j].r, bufferIn[j].g, bufferIn[j].b, bufferIn[j].a,
+                            bufferRawOut[j].r, bufferRawOut[j].g, bufferRawOut[j].b, bufferRawOut[j].a,
+                            bufferPluginOut[j].r, bufferPluginOut[j].g, bufferPluginOut[j].b, bufferPluginOut[j].a);
+                    }
+
+                    j++;
+                }
+            }
+        }
+
+        cmsDeleteTransform(xformRaw);
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+        cmsDeleteContext(Raw);
+    }
+
+    public static void CheckAccuracy16Bits()
+    {
+        // CLUT should be as 16 bits or better
+        using (logger.BeginScope("Checking accuracy of 16 bits on CLUT"))
+        {
+            TryAllValues16/*NonThreaded*/(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
+            trace("Passed");
+        }
+
+        trace("All 16 bit tests passed");
     }
 }

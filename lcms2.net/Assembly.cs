@@ -32,3 +32,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Testbed")]
 [assembly: InternalsVisibleTo("UnitTests")]
 [assembly: InternalsVisibleTo("lcms2_fast_float_plugin")]
+[assembly: InternalsVisibleTo("lcms2_fast_float_plugin_testbed")]
