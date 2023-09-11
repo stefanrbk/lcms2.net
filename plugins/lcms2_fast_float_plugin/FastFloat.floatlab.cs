@@ -161,7 +161,7 @@ public static partial class FastFloat
                         var X0 = (int)p.opta[2] * x0;
                         var X1 = X0 + ((l >= 1.0f) ? 0 : (int)p.opta[2]);
 
-                        var Y0 = (int)p.opta[1] * z0;
+                        var Y0 = (int)p.opta[1] * y0;
                         var Y1 = Y0 + ((a >= 1.0f) ? 0 : (int)p.opta[1]);
 
                         var Z0 = (int)p.opta[0] * z0;
@@ -309,7 +309,7 @@ public static partial class FastFloat
         var OriginalLut = Lut;
 
         var ContextID = cmsGetPipelineContextID(OriginalLut);
-        var nGridPoints = _cmsReasonableGridpointsByColorspace(cmsSigRgbData, dwFlags);
+        var nGridPoints = (uint)GetGridPoints(dwFlags);
 
         // Create the result LUT
         OptimizedLUT = cmsPipelineAlloc(ContextID, 3, cmsPipelineOutputChannels(OriginalLut));

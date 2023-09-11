@@ -652,4 +652,202 @@ internal static partial class Testbed
 
         trace("All 16 bit tests passed");
     }
+
+    // CheckUncommonValues
+
+    // lab8toLab
+
+    // CheckToEncodedLab
+
+    // CheckToFloatLab
+
+    // ValidFloat
+
+    // TryAllValuesFloat
+
+    // TryAllValuesFloatAlpha
+
+    // Valid16Float
+
+    // TryAllValuesFloatVs16
+
+    // CheckChangeFormat
+
+    // ValidInt
+
+    // CheckLab2Roundtrip
+
+    // CheckConversionFloat
+
+    // ValidFloat2
+
+    private static float distance(ReadOnlySpan<float> rgb1, ReadOnlySpan<float> rgb2)
+    {
+        var dr = rgb2[0] - rgb1[0];
+        var dg = rgb2[1] - rgb1[1];
+        var db = rgb2[2] - rgb1[2];
+
+        return (dr * dr) + (dg * dg) + (db * db);
+    }
+
+    public static void CheckLab2RGB()
+    {
+        var hLab = cmsCreateLab4Profile(null)!;
+        var hRGB = cmsOpenProfileFromMem(TestProfiles.test3)!;
+        var noPlugin = cmsCreateContext();
+
+        var hXformNoPlugin = cmsCreateTransformTHR(noPlugin, hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
+        var hXformPlugin = cmsCreateTransform(hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
+
+        using (logger.BeginScope("Checking Lab -> RGB"))
+        {
+            var tasks = new Task<float>[2][];
+            tasks[0] = new Task<float>[97];
+            tasks[1] = new Task<float>[20];
+            for (var i = 0; i < 97; i++)
+            {
+                tasks[0][i] = Task.Factory.StartNew(o =>
+                {
+                    var L = (int)o!;
+
+                    Span<float> Lab = stackalloc float[3];
+                    Span<float> RGB = stackalloc float[3];
+                    Span<float> RGB2 = stackalloc float[3];
+
+                    var maxInside = 0f;
+
+                    for (var a = -30; a < +30; a++)
+                    {
+                        for (var b = -30; b < +30; b++)
+                        {
+                            Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                            cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                            cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+
+                            var d = distance(RGB, RGB2);
+                            if (d > maxInside)
+                                maxInside = d;
+                        }
+                    }
+
+                    return maxInside;
+                }, i+4);
+            }
+
+            for (var i = 0; i < 20; i++)
+            {
+                tasks[1][i] = Task.Factory.StartNew(o =>
+                {
+                    var L = ((int)o! * 5) + 1;
+
+                    Span<float> Lab = stackalloc float[3];
+                    Span<float> RGB = stackalloc float[3];
+                    Span<float> RGB2 = stackalloc float[3];
+
+                    var maxOutside = 0f;
+
+                    for (var a = -100; a < +100; a += 5)
+                    {
+                        for (var b = -100; b < +100; b += 5)
+                        {
+                            Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                            cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                            cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+
+                            var d = distance(RGB, RGB2);
+                            if (d > maxOutside)
+                                maxOutside = d;
+                        }
+                    }
+
+                    return maxOutside;
+                }, i);
+            }
+
+            Task.WaitAll(tasks[0]);
+            Task.WaitAll(tasks[1]);
+
+            if (tasks[0].Select(t => t.IsCompletedSuccessfully).Contains(false) ||
+                tasks[1].Select(t => t.IsCompletedSuccessfully).Contains(false))
+            {
+                foreach (var t in tasks[0].Where(t => !t.IsCompletedSuccessfully))
+                {
+                    logger.LogError(t.Exception, "Multithreading failure");
+                }
+                Thread.Sleep(1000);
+                Environment.Exit(1);
+            }
+
+            var maxInside = tasks[0].Select(t => t.Result).Max();
+            var maxOutside = tasks[1].Select(t => t.Result).Max();
+
+            trace("Max distance: Inside gamut {0}, Outside gamut {1}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
+        }
+
+        cmsDeleteTransform(hXformNoPlugin);
+        cmsDeleteTransform(hXformPlugin);
+
+        cmsDeleteContext(noPlugin);
+    }
+
+    public static void CheckLab2RGBNonThreaded()
+    {
+        var hLab = cmsCreateLab4Profile(null)!;
+        var hRGB = cmsOpenProfileFromMem(TestProfiles.test3)!;
+        var noPlugin = cmsCreateContext();
+
+        var hXformNoPlugin = cmsCreateTransformTHR(noPlugin, hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
+        var hXformPlugin = cmsCreateTransform(hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
+
+        Span<float> Lab = stackalloc float[3];
+        Span<float> RGB = stackalloc float[3];
+        Span<float> RGB2 = stackalloc float[3];
+
+        var maxInside = 0f;
+        var maxOutside = 0f;
+
+        using (logger.BeginScope("Checking Lab -> RGB"))
+        {
+            for (var L = 4; L <= 100; L++)
+            {
+                for (var a = -30; a < +30; a++)
+                {
+                    for (var b = -30; b < +30; b++)
+                    {
+                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+
+                        var d = distance(RGB, RGB2);
+                        if (d > maxInside)
+                            maxInside = d;
+                    }
+                }
+            }
+
+            for (var L = 1; L <= 100; L += 5)
+            {
+                for (var a = -100; a < +100; a += 5)
+                {
+                    for (var b = -100; b < +100; b += 5)
+                    {
+                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+
+                        var d = distance(RGB, RGB2);
+                        if (d > maxOutside)
+                            maxOutside = d;
+                    }
+                }
+            }
+
+            trace("Max distance: Inside gamut {0}, Outside gamut {1}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
+        }
+
+        cmsDeleteTransform(hXformNoPlugin);
+        cmsDeleteTransform(hXformPlugin);
+
+        cmsDeleteContext(noPlugin);
+    }
 }

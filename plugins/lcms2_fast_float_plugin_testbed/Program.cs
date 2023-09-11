@@ -50,4 +50,7 @@ Check15bitsConversion();
 // 16 bit functionality
 CheckAccuracy16Bits();
 
+// Lab to whatever
+CheckLab2RGB();
+
 Thread.Sleep(10);
