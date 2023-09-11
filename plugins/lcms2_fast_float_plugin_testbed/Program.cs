@@ -46,3 +46,5 @@ CheckComputeIncrements();
 // 15 bit functionality
 CheckFormatters15();
 Check15bitsConversion();
+
+Thread.Sleep(10);
