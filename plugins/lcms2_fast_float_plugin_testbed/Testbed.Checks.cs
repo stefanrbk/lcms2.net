@@ -27,6 +27,10 @@ using Microsoft.Extensions.Logging;
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
+    private struct Scanline_rgb8bits { public byte r, g, b; }
+
+    private struct Scanline_rgb15bits { public ushort r, g, b; }
+
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
     {
         Span<ushort> Values = stackalloc ushort[cmsMAXCHANNELS];
@@ -147,6 +151,7 @@ internal static partial class Testbed
 
         return true;
     }
+
     public static void CheckComputeIncrements()
     {
         using (logger.BeginScope("Check compute increments"))
@@ -290,11 +295,12 @@ internal static partial class Testbed
         if (xform15 is null || xform8 is null)
             Fail("Null transforms on check for 15 bit conversions");
 
-        const int npixels = 256 * 256;  // All RGB cube in 8 bits
-        var buffer8in = new byte[npixels * 256 * 3];
-        var buffer8out = new byte[npixels * 256 * 3];
-        var buffer15in = new ushort[npixels * 256 * 3];
-        var buffer15out = new ushort[npixels * 256 * 3];
+        const int npixelsThreaded = 256 * 256;
+        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        var buffer8in = new Scanline_rgb8bits[npixels];
+        var buffer8out = new Scanline_rgb8bits[npixels];
+        var buffer15in = new Scanline_rgb15bits[npixels];
+        var buffer15out = new Scanline_rgb15bits[npixels];
 
         // Fill input values for 8 and 15 bits
         var j = 0;
@@ -304,13 +310,13 @@ internal static partial class Testbed
             {
                 for (var b = 0; b < 256; b++)
                 {
-                    buffer8in[(j * 3) + 0] = (byte)r;
-                    buffer8in[(j * 3) + 1] = (byte)g;
-                    buffer8in[(j * 3) + 2] = (byte)b;
+                    buffer8in[j].r = (byte)r;
+                    buffer8in[j].g = (byte)g;
+                    buffer8in[j].b = (byte)b;
 
-                    buffer15in[(j * 3) + 0] = FROM_8_TO_15((byte)r);
-                    buffer15in[(j * 3) + 1] = FROM_8_TO_15((byte)g);
-                    buffer15in[(j * 3) + 2] = FROM_8_TO_15((byte)b);
+                    buffer15in[j].r = FROM_8_TO_15((byte)r);
+                    buffer15in[j].g = FROM_8_TO_15((byte)g);
+                    buffer15in[j].b = FROM_8_TO_15((byte)b);
 
                     j++;
                 }
@@ -325,8 +331,8 @@ internal static partial class Testbed
             {
                 var offset = (int)o!;
 
-                cmsDoTransform(xform15, buffer15in.AsSpan((offset * npixels * 3)..), buffer15out.AsSpan((offset * npixels * 3)..), npixels);
-                cmsDoTransform(xform8, buffer8in.AsSpan((offset * npixels * 3)..), buffer8out.AsSpan((offset * npixels * 3)..), npixels);
+                cmsDoTransform(xform15, buffer15in.AsSpan((offset * npixelsThreaded)..), buffer15out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                cmsDoTransform(xform8, buffer8in.AsSpan((offset * npixelsThreaded)..), buffer8out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
             }, i);
         }
 
@@ -343,12 +349,12 @@ internal static partial class Testbed
                 for (var b = 0; b < 256; b++)
                 {
                     // Check the results
-                    if (!Valid15(buffer15out[(j * 3) + 0], buffer8out[(j * 3) + 0]) ||
-                        !Valid15(buffer15out[(j * 3) + 1], buffer8out[(j * 3) + 1]) ||
-                        !Valid15(buffer15out[(j * 3) + 2], buffer8out[(j * 3) + 2]))
+                    if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
+                        !Valid15(buffer15out[j].g, buffer8out[j].g) ||
+                        !Valid15(buffer15out[j].b, buffer8out[j].b))
                     {
                         Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})", buffer8out[(j * 3) + 0], buffer8out[(j * 3) + 1], buffer8out[(j * 3) + 2],
-                            FROM_15_TO_8(buffer15out[(j * 3) + 0]), FROM_15_TO_8(buffer15out[(j * 3) + 1]), FROM_15_TO_8(buffer15out[(j * 3) + 2]));
+                            FROM_15_TO_8(buffer15out[j].r), FROM_15_TO_8(buffer15out[j].g), FROM_15_TO_8(buffer15out[j].b));
                     }
 
                     j++;
@@ -360,7 +366,7 @@ internal static partial class Testbed
         cmsDeleteTransform(xform8);
     }
 
-    private static void TryAllValues152(Profile profileIn, Profile profileOut, int Intent)
+    private static void TryAllValues15NonThreaded(Profile profileIn, Profile profileOut, int Intent)
     {
         var xform15 = cmsCreateTransform(profileIn, TYPE_RGB_15, profileOut, TYPE_RGB_15, (uint)Intent, cmsFLAGS_NOCACHE);
         var xform8 = cmsCreateTransform(profileIn, TYPE_RGB_8, profileOut, TYPE_RGB_8, (uint)Intent, cmsFLAGS_NOCACHE);
@@ -374,8 +380,8 @@ internal static partial class Testbed
         const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
         var buffer8in = new Scanline_rgb8bits[npixels];
         var buffer8out = new Scanline_rgb8bits[npixels];
-        var buffer15in = new Scanline_rgb15bits[npixels * 3];
-        var buffer15out = new Scanline_rgb15bits[npixels * 3];
+        var buffer15in = new Scanline_rgb15bits[npixels];
+        var buffer15out = new Scanline_rgb15bits[npixels];
 
         // Fill input values for 8 and 15 bits
         var j = 0;
@@ -451,15 +457,7 @@ internal static partial class Testbed
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
             trace("Passed");
         }
-    }
 
-    private struct Scanline_rgb8bits
-    {
-        public byte r, g, b;
-    }
-
-    private struct Scanline_rgb15bits
-    {
-        public ushort r, g, b;
+        trace("All 15 bit tests passed");
     }
 }
