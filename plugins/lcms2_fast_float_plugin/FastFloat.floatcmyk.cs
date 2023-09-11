@@ -92,17 +92,18 @@ public static partial class FastFloat
 
                 for (var i = 0; i < LineCount; i++)
                 {
-                    var cin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                    var min = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                    var yin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
-                    var kin = Input[(int)(SourceStartingOrder[3] + strideIn)..];
+                    var cin = (int)(SourceStartingOrder[0] + strideIn);
+                    var min = (int)(SourceStartingOrder[1] + strideIn);
+                    var yin = (int)(SourceStartingOrder[2] + strideIn);
+                    var kin = (int)(SourceStartingOrder[3] + strideIn);
                     var ain =
                         nalpha is not 0
-                            ? Input[(int)(SourceStartingOrder[4] + strideIn)..]
+                            ? (int)(SourceStartingOrder[4] + strideIn)
                             : default;
 
                     var TotalPlusAlpha = TotalOut;
-                    if (!ain.IsEmpty) TotalPlusAlpha++;
+                    if (nalpha is not 0)
+                        TotalPlusAlpha++;
 
                     for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                     {
@@ -111,15 +112,15 @@ public static partial class FastFloat
 
                     for (var ii = 0; ii < PixelsPerLine; ii++)
                     {
-                        var c = fclamp100(BitConverter.ToSingle(cin)) / 100f;
-                        var m = fclamp100(BitConverter.ToSingle(min)) / 100f;
-                        var y = fclamp100(BitConverter.ToSingle(yin)) / 100f;
-                        var k = fclamp100(BitConverter.ToSingle(kin)) / 100f;
+                        var c = fclamp100(BitConverter.ToSingle(Input[cin..])) / 100f;
+                        var m = fclamp100(BitConverter.ToSingle(Input[min..])) / 100f;
+                        var y = fclamp100(BitConverter.ToSingle(Input[yin..])) / 100f;
+                        var k = fclamp100(BitConverter.ToSingle(Input[kin..])) / 100f;
 
-                        cin = cin[(int)SourceIncrements[0]..];
-                        min = min[(int)SourceIncrements[1]..];
-                        yin = yin[(int)SourceIncrements[2]..];
-                        kin = kin[(int)SourceIncrements[3]..];
+                        cin += (int)SourceIncrements[0];
+                        min += (int)SourceIncrements[1];
+                        yin += (int)SourceIncrements[2];
+                        kin += (int)SourceIncrements[3];
 
                         var pk = c * p.Domain[0];
                         var px = m * p.Domain[1];
@@ -276,10 +277,10 @@ public static partial class FastFloat
                             @out[OutChan] += DestIncrements[OutChan];
                         }
 
-                        if (!ain.IsEmpty)
+                        if (nalpha is not 0)
                         {
-                            *(float*)@out[TotalOut] = BitConverter.ToSingle(ain);
-                            ain = ain[(int)SourceIncrements[4]..];
+                            *(float*)@out[TotalOut] = BitConverter.ToSingle(Input[ain..]);
+                            ain += (int)SourceIncrements[4];
                             @out[TotalOut] += DestIncrements[(int)TotalOut];
                         }
 
@@ -335,7 +336,8 @@ public static partial class FastFloat
 
         // Create the result LUT
         OptimizedLUT = cmsPipelineAlloc(ContextID, 4, cmsPipelineOutputChannels(OriginalLut));
-        if (OptimizedLUT is null) goto Error;
+        if (OptimizedLUT is null)
+            goto Error;
 
         // Allocate the CLUT for result
         var OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 4, cmsPipelineOutputChannels(OriginalLut), null);
@@ -344,13 +346,15 @@ public static partial class FastFloat
         cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtBegin, OptimizedCLUTmpe);
 
         // Resample the LUT
-        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerFloatCMYK, OriginalLut, SamplerFlag.None)) goto Error;
+        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerFloatCMYK, OriginalLut, SamplerFlag.None))
+            goto Error;
 
         // Set the evaluator
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
         var pcmyk = FloatCMYKData.Alloc(ContextID, data.Params);
-        if (pcmyk is null) goto Error;
+        if (pcmyk is null)
+            goto Error;
 
         // And return the obtained LUT
         cmsPipelineFree(OriginalLut);

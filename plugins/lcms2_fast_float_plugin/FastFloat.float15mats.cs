@@ -52,28 +52,28 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
                 // Across first shaper, which also converts to 1.15 fixed point.
-                var r = p.Shaper1R[rin[0]];
-                var g = p.Shaper1G[gin[0]];
-                var b = p.Shaper1B[bin[0]];
+                var r = p.Shaper1R[BitConverter.ToUInt16(Input[rin..])];
+                var g = p.Shaper1G[BitConverter.ToUInt16(Input[gin..])];
+                var b = p.Shaper1B[BitConverter.ToUInt16(Input[bin..])];
 
                 var (l1, l2, l3) =
                     p.IdentityMat
@@ -84,28 +84,30 @@ public static partial class FastFloat
                             ((p.Mat[(2 * 3) + 0] * r) + (p.Mat[(2 * 3) + 1] * g) + (p.Mat[(2 * 3) + 2] * b) + p.Off[2]) >> 15);
 
                 // Now we have to clip to 0..1.0 range
-                var ri = (uint)Math.Max(0, Math.Min(l1, 0x8000));
-                var gi = (uint)Math.Max(0, Math.Min(l1, 0x8000));
-                var bi = (uint)Math.Max(0, Math.Min(l1, 0x8000));
+                var ri = (uint)Math.Clamp(l1, 0, 0x8000);
+                var gi = (uint)Math.Clamp(l2, 0, 0x8000);
+                var bi = (uint)Math.Clamp(l3, 0, 0x8000);
 
                 // And across second shaper
-                BitConverter.TryWriteBytes(rout, p.Shaper2R[(int)ri]);
-                BitConverter.TryWriteBytes(gout, p.Shaper2G[(int)gi]);
-                BitConverter.TryWriteBytes(bout, p.Shaper2B[(int)bi]);
+                BitConverter.TryWriteBytes(Output[rout..], p.Shaper2R[(int)ri]);
+                BitConverter.TryWriteBytes(Output[gout..], p.Shaper2G[(int)gi]);
+                BitConverter.TryWriteBytes(Output[bout..], p.Shaper2B[(int)bi]);
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    ain[..2].CopyTo(aout);
+                if (nalpha is not 0)
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToUInt16(Input[ain..]));
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[3]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[3];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[3]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[3];
             }
 
             strideIn += Stride.BytesPerLineIn;
@@ -168,7 +170,8 @@ public static partial class FastFloat
 
         // Allocate an empty LUT
         var Dest = cmsPipelineAlloc(ContextID, nChans, nChans);
-        if (Dest is null) return false;
+        if (Dest is null)
+            return false;
 
         // Assemble the new LUT
         cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageDup(Curve1));

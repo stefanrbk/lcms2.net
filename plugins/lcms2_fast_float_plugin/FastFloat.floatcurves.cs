@@ -50,42 +50,42 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                BitConverter.TryWriteBytes(rout, flerp(Data.CurveR, BitConverter.ToSingle(rin)));
-                BitConverter.TryWriteBytes(gout, flerp(Data.CurveR, BitConverter.ToSingle(gin)));
-                BitConverter.TryWriteBytes(bout, flerp(Data.CurveR, BitConverter.ToSingle(bin)));
+                BitConverter.TryWriteBytes(Output[rout..], flerp(Data.CurveR, BitConverter.ToSingle(Input[rin..])));
+                BitConverter.TryWriteBytes(Output[gout..], flerp(Data.CurveR, BitConverter.ToSingle(Input[gin..])));
+                BitConverter.TryWriteBytes(Output[bout..], flerp(Data.CurveR, BitConverter.ToSingle(Input[bin..])));
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
+                if (nalpha is not 0)
                 {
-                    BitConverter.TryWriteBytes(aout, BitConverter.ToSingle(ain));
-                    ain = ain[(int)SourceIncrements[3]..];
-                    aout = aout[(int)DestIncrements[3]..];
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
+                    ain += (int)SourceIncrements[3];
+                    aout += (int)DestIncrements[3];
                 }
             }
 
@@ -116,42 +116,42 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                BitConverter.TryWriteBytes(rout, BitConverter.ToSingle(rin));
-                BitConverter.TryWriteBytes(gout, BitConverter.ToSingle(gin));
-                BitConverter.TryWriteBytes(bout, BitConverter.ToSingle(bin));
+                BitConverter.TryWriteBytes(Output[rout..], BitConverter.ToSingle(Input[rin..]));
+                BitConverter.TryWriteBytes(Output[gout..], BitConverter.ToSingle(Input[gin..]));
+                BitConverter.TryWriteBytes(Output[bout..], BitConverter.ToSingle(Input[bin..]));
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
+                if (nalpha is not 0)
                 {
-                    BitConverter.TryWriteBytes(aout, BitConverter.ToSingle(ain));
-                    ain = ain[(int)SourceIncrements[3]..];
-                    aout = aout[(int)DestIncrements[3]..];
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
+                    ain += (int)SourceIncrements[3];
+                    aout += (int)DestIncrements[3];
                 }
             }
 
@@ -185,32 +185,32 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var kin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var kout = Output[(int)(DestStartingOrder[0] + strideOut)..];
+            var kin = (int)(SourceStartingOrder[0] + strideIn);
+            var kout = (int)(DestStartingOrder[0] + strideOut);
 
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[1] + strideIn)..]
+                    ? (int)(SourceStartingOrder[1] + strideIn)
                     : default;
 
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[1] + strideOut)..]
+                    ? (int)(SourceStartingOrder[1] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                BitConverter.TryWriteBytes(kout, flerp(Data.CurveR, BitConverter.ToSingle(kin)));
+                BitConverter.TryWriteBytes(Output[kout..], flerp(Data.CurveR, BitConverter.ToSingle(Input[kin..])));
 
-                kin = kin[(int)SourceIncrements[0]..];
-                kout = kout[(int)DestIncrements[0]..];
+                kin += (int)SourceIncrements[0];
+                kout += (int)DestIncrements[0];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
+                if (nalpha is not 0)
                 {
-                    BitConverter.TryWriteBytes(aout, BitConverter.ToSingle(ain));
-                    ain = ain[(int)SourceIncrements[1]..];
-                    aout = aout[(int)DestIncrements[1]..];
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
+                    ain += (int)SourceIncrements[1];
+                    aout += (int)DestIncrements[1];
                 }
             }
 
@@ -241,32 +241,32 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var kin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var kout = Output[(int)(DestStartingOrder[0] + strideOut)..];
+            var kin = (int)(SourceStartingOrder[0] + strideIn);
+            var kout = (int)(DestStartingOrder[0] + strideOut);
 
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[1] + strideIn)..]
+                    ? (int)(SourceStartingOrder[1] + strideIn)
                     : default;
 
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[1] + strideOut)..]
+                    ? (int)(SourceStartingOrder[1] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                BitConverter.TryWriteBytes(kout, BitConverter.ToSingle(kin));
+                BitConverter.TryWriteBytes(Output[kout..], BitConverter.ToSingle(Input[kin..]));
 
-                kin = kin[(int)SourceIncrements[0]..];
-                kout = kout[(int)DestIncrements[0]..];
+                kin += (int)SourceIncrements[0];
+                kout += (int)DestIncrements[0];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
+                if (nalpha is not 0)
                 {
-                    BitConverter.TryWriteBytes(aout, BitConverter.ToSingle(ain));
-                    ain = ain[(int)SourceIncrements[1]..];
-                    aout = aout[(int)DestIncrements[1]..];
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
+                    ain += (int)SourceIncrements[1];
+                    aout += (int)DestIncrements[1];
                 }
             }
 

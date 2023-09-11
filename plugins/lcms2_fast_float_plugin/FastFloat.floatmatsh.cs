@@ -22,9 +22,6 @@
 using lcms2.state;
 using lcms2.types;
 
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-
 namespace lcms2.FastFloatPlugin;
 public unsafe static partial class FastFloat
 {
@@ -53,27 +50,27 @@ public unsafe static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                var r = flerp(p.Shaper1R, rin[0]);
-                var g = flerp(p.Shaper1G, gin[0]);
-                var b = flerp(p.Shaper1B, bin[0]);
+                var r = flerp(p.Shaper1R, BitConverter.ToSingle(Input[rin..]));
+                var g = flerp(p.Shaper1G, BitConverter.ToSingle(Input[gin..]));
+                var b = flerp(p.Shaper1B, BitConverter.ToSingle(Input[bin..]));
 
                 var l1 = (p.Mat(0, 0) * r) + (p.Mat(1, 0) * g) + (p.Mat(2, 0) * b);
                 var l2 = (p.Mat(0, 1) * r) + (p.Mat(1, 1) * g) + (p.Mat(2, 1) * b);
@@ -86,23 +83,23 @@ public unsafe static partial class FastFloat
                     l3 += p.Off[2];
                 }
 
-                BitConverter.TryWriteBytes(rout, flerp(p.Shaper2R, l1));
-                BitConverter.TryWriteBytes(gout, flerp(p.Shaper2G, l2));
-                BitConverter.TryWriteBytes(bout, flerp(p.Shaper2B, l3));
+                BitConverter.TryWriteBytes(Output[rout..], flerp(p.Shaper2R, l1));
+                BitConverter.TryWriteBytes(Output[gout..], flerp(p.Shaper2G, l2));
+                BitConverter.TryWriteBytes(Output[bout..], flerp(p.Shaper2B, l3));
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
 
-                if (!ain.IsEmpty)
+                if (nalpha is not 0)
                 {
-                    BitConverter.TryWriteBytes(aout, BitConverter.ToSingle(ain));
-                    ain = ain[(int)SourceIncrements[3]..];
-                    aout = aout[(int)DestIncrements[3]..];
+                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
+                    ain += (int)SourceIncrements[3];
+                    aout += (int)DestIncrements[3];
                 }
             }
 
@@ -188,7 +185,8 @@ public unsafe static partial class FastFloat
 
         // Allocate an empty LUT
         var Dest = cmsPipelineAlloc(ContextID, nChans, nChans);
-        if (Dest is null) return false;
+        if (Dest is null)
+            return false;
 
         // Assemble the new LUT
         cmsPipelineInsertStage(Dest, StageLoc.AtBegin, cmsStageDup(Curve1));

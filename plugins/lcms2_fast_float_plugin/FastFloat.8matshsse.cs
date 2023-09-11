@@ -68,26 +68,26 @@ public unsafe static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             // Prefetch
-            var rvector = Vector128.Create(p.Data->Shaper1R[rin[0]]);
-            var gvector = Vector128.Create(p.Data->Shaper1G[gin[0]]);
-            var bvector = Vector128.Create(p.Data->Shaper1B[bin[0]]);
+            var rvector = Vector128.Create(p.Data->Shaper1R[Input[rin]]);
+            var gvector = Vector128.Create(p.Data->Shaper1G[Input[gin]]);
+            var bvector = Vector128.Create(p.Data->Shaper1B[Input[bin]]);
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
@@ -107,30 +107,32 @@ public unsafe static partial class FastFloat
                 Vector128.ConvertToInt32(@out).StoreAligned((int*)output_index);
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    aout[0] = ain[0];
+                if (nalpha is not 0)
+                    Output[aout] = Input[ain];
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[3]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[3];
 
                 // Take next value whilst store is being performed
                 if (ii < PixelsPerLine - 1)
                 {
-                    rvector = Vector128.Create(p.Data->Shaper1R[rin[0]]);
-                    gvector = Vector128.Create(p.Data->Shaper1G[gin[0]]);
-                    bvector = Vector128.Create(p.Data->Shaper1B[bin[0]]);
+                    rvector = Vector128.Create(p.Data->Shaper1R[Input[rin]]);
+                    gvector = Vector128.Create(p.Data->Shaper1G[Input[gin]]);
+                    bvector = Vector128.Create(p.Data->Shaper1B[Input[bin]]);
                 }
 
-                rout[0] = p.Data->Shaper2R[output_index[0]];
-                gout[0] = p.Data->Shaper2G[output_index[1]];
-                bout[0] = p.Data->Shaper2B[output_index[2]];
+                Output[rout] = p.Data->Shaper2R[output_index[0]];
+                Output[gout] = p.Data->Shaper2G[output_index[1]];
+                Output[bout] = p.Data->Shaper2B[output_index[2]];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[3]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[3];
             }
 
             strideIn += Stride.BytesPerLineIn;

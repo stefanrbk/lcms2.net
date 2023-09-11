@@ -70,16 +70,17 @@ public static partial class FastFloat
             var strideOut = 0u;
             for (var i = 0; i < LineCount; i++)
             {
-                var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+                var rin = (int)(SourceStartingOrder[0] + strideIn);
+                var gin = (int)(SourceStartingOrder[1] + strideIn);
+                var bin = (int)(SourceStartingOrder[2] + strideIn);
                 var ain =
                     nalpha is not 0
-                        ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                        ? (int)(SourceStartingOrder[3] + strideIn)
                         : default;
 
                 var TotalPlusAlpha = TotalOut;
-                if (!ain.IsEmpty) TotalPlusAlpha++;
+                if (nalpha is not 0)
+                    TotalPlusAlpha++;
 
                 for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                 {
@@ -88,13 +89,13 @@ public static partial class FastFloat
 
                 for (var ii = 0; ii < PixelsPerLine; ii++)
                 {
-                    var r = rin[0];
-                    var g = gin[0];
-                    var b = bin[0];
+                    var r = Input[rin];
+                    var g = Input[gin];
+                    var b = Input[bin];
 
-                    rin = rin[(int)SourceIncrements[0]..];
-                    gin = gin[(int)SourceIncrements[1]..];
-                    bin = bin[(int)SourceIncrements[2]..];
+                    rin += (int)SourceIncrements[0];
+                    gin += (int)SourceIncrements[1];
+                    bin += (int)SourceIncrements[2];
 
                     var X0 = (int)p8.X0[r];
                     var Y0 = (int)p8.Y0[g];
@@ -167,10 +168,10 @@ public static partial class FastFloat
                         @out[OutChan] += DestIncrements[OutChan];
                     }
 
-                    if (!ain.IsEmpty)
+                    if (nalpha is not 0)
                     {
-                        *@out[TotalOut] = ain[0];
-                        ain = ain[(int)SourceIncrements[3]..];
+                        *@out[TotalOut] = Input[ain];
+                        ain += (int)SourceIncrements[3];
                         @out[TotalOut] += DestIncrements[(int)TotalOut];
                     }
                 }
@@ -194,9 +195,12 @@ public static partial class FastFloat
             if (Table16[i] is 0xffff) Poles++;
         }
 
-        if (Zeros is 1 && Poles is 1) return false; // For linear tables
-        if (Zeros > (nEntries / 4)) return true;    // Degenerated, mostly zeros
-        if (Poles > (nEntries / 4)) return true;    // Degenerated, mostly poles
+        if (Zeros is 1 && Poles is 1)
+            return false;               // For linear tables
+        if (Zeros > (nEntries / 4))
+            return true;                // Degenerated, mostly zeros
+        if (Poles > (nEntries / 4))
+            return true;                // Degenerated, mostly poles
 
         return false;
     }
@@ -338,25 +342,29 @@ public static partial class FastFloat
         }
 
         // If it is not suitable, just quit
-        if (!isSuitable) goto Error;
+        if (!isSuitable)
+            goto Error;
 
         // Invert curves if possible
         var inputChannels = cmsPipelineInputChannels(OriginalLut);
         for (var t = 0; t < inputChannels; t++)
         {
             TransReverse[t] = cmsReverseToneCurveEx(PRELINEARIZATION_POINTS, Trans[t])!;
-            if (TransReverse[t] is null) goto Error;
+            if (TransReverse[t] is null)
+                goto Error;
         }
 
         // Now inset the reversed curves at the beginning of the transform
         LutPlusCurves = cmsPipelineDup(OriginalLut);
-        if (LutPlusCurves is null) goto Error;
+        if (LutPlusCurves is null)
+            goto Error;
 
         cmsPipelineInsertStage(LutPlusCurves, StageLoc.AtBegin, cmsStageAllocToneCurves(ContextID, 3, TransReverse));
 
         // Create the result LUT
         OptimizedLUT = cmsPipelineAlloc(ContextID, 3, cmsPipelineOutputChannels(OriginalLut));
-        if (OptimizedLUT is null) goto Error;
+        if (OptimizedLUT is null)
+            goto Error;
 
         var OptimizedPrelinMpe = cmsStageAllocToneCurves(ContextID, 3, Trans);
 
@@ -370,13 +378,15 @@ public static partial class FastFloat
         cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtEnd, OptimizedCLUTmpe);
 
         // Resample the LUT
-        if (!cmsStageSampleCLut16bit(OptimizedCLUTmpe, XFormSampler16, LutPlusCurves, SamplerFlag.None)) goto Error;
+        if (!cmsStageSampleCLut16bit(OptimizedCLUTmpe, XFormSampler16, LutPlusCurves, SamplerFlag.None))
+            goto Error;
 
         // Set the evaluator
         var data = (StageCLutData<ushort>)cmsStageData(OptimizedCLUTmpe!)!;
 
         var p8 = Performance8Data.Alloc(ContextID, data.Params, Trans);
-        if (p8 is null) goto Error;
+        if (p8 is null)
+            goto Error;
 
         // Free resources
         freeResources();

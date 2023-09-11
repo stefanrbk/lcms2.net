@@ -65,16 +65,17 @@ public static partial class FastFloat
             var strideOut = 0u;
             for (var i = 0; i < LineCount; i++)
             {
-                var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+                var rin = (int)(SourceStartingOrder[0] + strideIn);
+                var gin = (int)(SourceStartingOrder[1] + strideIn);
+                var bin = (int)(SourceStartingOrder[2] + strideIn);
                 var ain =
                     nalpha is not 0
-                        ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                        ? (int)(SourceStartingOrder[3] + strideIn)
                         : default;
 
                 var TotalPlusAlpha = TotalOut;
-                if (!ain.IsEmpty) TotalPlusAlpha++;
+                if (nalpha is not 0)
+                    TotalPlusAlpha++;
 
                 for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                 {
@@ -83,13 +84,13 @@ public static partial class FastFloat
 
                 for (var ii = 0; ii < PixelsPerLine; ii++)
                 {
-                    var r = FROM_INPUT(rin);
-                    var g = FROM_INPUT(gin);
-                    var b = FROM_INPUT(bin);
+                    var r = FROM_INPUT(Input[rin..]);
+                    var g = FROM_INPUT(Input[gin..]);
+                    var b = FROM_INPUT(Input[bin..]);
 
-                    rin = rin[(int)SourceIncrements[0]..];
-                    gin = gin[(int)SourceIncrements[1]..];
-                    bin = bin[(int)SourceIncrements[2]..];
+                    rin += (int)SourceIncrements[0];
+                    gin += (int)SourceIncrements[1];
+                    bin += (int)SourceIncrements[2];
 
                     var fx = _cmsToFixedDomain(r * (int)p.Domain[0]);
                     var fy = _cmsToFixedDomain(g * (int)p.Domain[1]);
@@ -242,11 +243,11 @@ public static partial class FastFloat
                             }
                         }
 
-                        if (!ain.IsEmpty)
+                        if (nalpha is not 0)
                         {
-                            var res16 = BitConverter.ToUInt16(ain);
+                            var res16 = BitConverter.ToUInt16(Input[ain..]);
                             TO_OUTPUT(@out[TotalOut], res16);
-                            ain = ain[(int)SourceIncrements[3]..];
+                            ain += (int)SourceIncrements[3];
                             @out[TotalOut] += DestIncrements[(int)TotalOut];
                         }
                     }
@@ -303,7 +304,6 @@ public static partial class FastFloat
 
         Span<float> In = stackalloc float[cmsMAXCHANNELS];
         Span<float> Out = stackalloc float[cmsMAXCHANNELS];
-        Pipeline? OptimizedLUT = null, LutPlusCurves = null;
 
         // For empty transforms, do nothing
         if (Lut is null)

@@ -121,16 +121,17 @@ public static partial class FastFloat
 
                 for (var i = 0; i < LineCount; i++)
                 {
-                    var lin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                    var ain = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                    var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+                    var lin = (int)(SourceStartingOrder[0] + strideIn);
+                    var ain = (int)(SourceStartingOrder[1] + strideIn);
+                    var bin = (int)(SourceStartingOrder[2] + strideIn);
                     var xin =
                         nalpha is not 0
-                            ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                            ? (int)(SourceStartingOrder[3] + strideIn)
                             : default;
 
                     var TotalPlusAlpha = TotalOut;
-                    if (!xin.IsEmpty) TotalPlusAlpha++;
+                    if (nalpha is not 0)
+                        TotalPlusAlpha++;
 
                     for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                     {
@@ -140,14 +141,14 @@ public static partial class FastFloat
                     for (var ii = 0; ii < PixelsPerLine; ii++)
                     {
                         // Decode Lab and go across sigmoids on a*/b*
-                        var l = fclamp100(BitConverter.ToSingle(lin)) / 100f;
+                        var l = fclamp100(BitConverter.ToSingle(Input[lin..])) / 100f;
 
-                        var a = LinLerp1D((fclamp128(BitConverter.ToSingle(ain)) + 128.0f) / 255.0f, pfloat.sigmoidIn);
-                        var b = LinLerp1D((fclamp128(BitConverter.ToSingle(bin)) + 128.0f) / 255.0f, pfloat.sigmoidIn);
+                        var a = LinLerp1D((fclamp128(BitConverter.ToSingle(Input[ain..])) + 128.0f) / 255.0f, pfloat.sigmoidIn);
+                        var b = LinLerp1D((fclamp128(BitConverter.ToSingle(Input[bin..])) + 128.0f) / 255.0f, pfloat.sigmoidIn);
 
-                        lin = lin[(int)SourceIncrements[0]..];
-                        ain = ain[(int)SourceIncrements[1]..];
-                        bin = bin[(int)SourceIncrements[2]..];
+                        lin += (int)SourceIncrements[0];
+                        ain += (int)SourceIncrements[1];
+                        bin += (int)SourceIncrements[2];
 
                         var px = l * p.Domain[0];
                         var py = a * p.Domain[1];
@@ -231,10 +232,10 @@ public static partial class FastFloat
                             @out[OutChan] += DestIncrements[OutChan];
                         }
 
-                        if (!xin.IsEmpty)
+                        if (nalpha is not 0)
                         {
-                            *(float*)@out[TotalOut] = BitConverter.ToSingle(xin);
-                            xin = xin[(int)SourceIncrements[3]..];
+                            *(float*)@out[TotalOut] = BitConverter.ToSingle(Input[xin..]);
+                            xin += (int)SourceIncrements[3];
                             @out[TotalOut] += DestIncrements[(int)TotalOut];
                         }
 
@@ -324,12 +325,14 @@ public static partial class FastFloat
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
         var pfloat = LabCLUTData.Alloc(ContextID, data.Params);
-        if (pfloat is null) goto Error;
+        if (pfloat is null)
+            goto Error;
 
         var container = new ResamplingContainer(pfloat, OriginalLut);
 
         // Resample the LUT
-        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerLab, container, SamplerFlag.None)) goto Error;
+        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerLab, container, SamplerFlag.None))
+            goto Error;
 
         // And return the obtained LUT
         cmsPipelineFree(OriginalLut);

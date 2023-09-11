@@ -51,41 +51,43 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                rout[0] = Data.Curves(0, rin[0]);
-                gout[0] = Data.Curves(1, gin[0]);
-                bout[0] = Data.Curves(2, bin[0]);
+                Output[rout] = Data.Curves(0, Input[rin]);
+                Output[gout] = Data.Curves(1, Input[gin]);
+                Output[bout] = Data.Curves(2, Input[bin]);
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    aout[0] = ain[0];
+                if (nalpha is not 0)
+                    Output[aout] = Input[ain];
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[3]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[3];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[3]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[3];
             }
 
             strideIn += Stride.BytesPerLineIn;
@@ -115,41 +117,43 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-            var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-            var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+            var rin = (int)(SourceStartingOrder[0] + strideIn);
+            var gin = (int)(SourceStartingOrder[1] + strideIn);
+            var bin = (int)(SourceStartingOrder[2] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                    ? (int)(SourceStartingOrder[3] + strideIn)
                     : default;
 
-            var rout = Output[(int)(DestStartingOrder[0] + strideOut)..];
-            var gout = Output[(int)(DestStartingOrder[1] + strideOut)..];
-            var bout = Output[(int)(DestStartingOrder[2] + strideOut)..];
+            var rout = (int)(DestStartingOrder[0] + strideOut);
+            var gout = (int)(DestStartingOrder[1] + strideOut);
+            var bout = (int)(DestStartingOrder[2] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[3] + strideOut)..]
+                    ? (int)(SourceStartingOrder[3] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                rout[0] = rin[0];
-                gout[0] = gin[0];
-                bout[0] = bin[0];
+                Output[rout] = Input[rin];
+                Output[gout] = Input[gin];
+                Output[bout] = Input[bin];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    aout[0] = ain[0];
+                if (nalpha is not 0)
+                    Output[aout] = Input[ain];
 
-                rin = rin[(int)SourceIncrements[0]..];
-                gin = gin[(int)SourceIncrements[1]..];
-                bin = bin[(int)SourceIncrements[2]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[3]..];
+                rin += (int)SourceIncrements[0];
+                gin += (int)SourceIncrements[1];
+                bin += (int)SourceIncrements[2];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[3];
 
-                rout = rout[(int)DestIncrements[0]..];
-                gout = gout[(int)DestIncrements[1]..];
-                bout = bout[(int)DestIncrements[2]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[3]..];
+                rout += (int)DestIncrements[0];
+                gout += (int)DestIncrements[1];
+                bout += (int)DestIncrements[2];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[3];
             }
 
             strideIn += Stride.BytesPerLineIn;
@@ -182,31 +186,33 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var gin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
+            var gin = (int)(SourceStartingOrder[0] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[1] + strideIn)..]
+                    ? (int)(SourceStartingOrder[1] + strideIn)
                     : default;
 
-            var gout = Output[(int)(DestStartingOrder[0] + strideOut)..];
+            var gout = (int)(DestStartingOrder[0] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[1] + strideOut)..]
+                    ? (int)(SourceStartingOrder[1] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                gout[0] = Data.Curves(0, gin[0]);
+                Output[gout] = Data.Curves(0, Input[gin]);
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    aout[0] = ain[0];
+                if (nalpha is not 0)
+                    Output[aout] = Input[ain];
 
-                gin = gin[(int)SourceIncrements[0]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[1]..];
+                gin += (int)SourceIncrements[0];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[1];
 
-                gout = gout[(int)DestIncrements[0]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[1]..];
+                gout += (int)DestIncrements[0];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[1];
             }
 
             strideIn += Stride.BytesPerLineIn;
@@ -236,31 +242,33 @@ public static partial class FastFloat
         var strideOut = 0u;
         for (var i = 0; i < LineCount; i++)
         {
-            var gin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
+            var gin = (int)(SourceStartingOrder[0] + strideIn);
             var ain =
                 nalpha is not 0
-                    ? Input[(int)(SourceStartingOrder[1] + strideIn)..]
+                    ? (int)(SourceStartingOrder[1] + strideIn)
                     : default;
 
-            var gout = Output[(int)(DestStartingOrder[0] + strideOut)..];
+            var gout = (int)(DestStartingOrder[0] + strideOut);
             var aout =
                 nalpha is not 0
-                    ? Output[(int)(SourceStartingOrder[1] + strideOut)..]
+                    ? (int)(SourceStartingOrder[1] + strideOut)
                     : default;
 
             for (var ii = 0; ii < PixelsPerLine; ii++)
             {
-                gout[0] = gin[0];
+                Output[gout] = Input[gin];
 
                 // Handle alpha
-                if (!ain.IsEmpty)
-                    aout[0] = ain[0];
+                if (nalpha is not 0)
+                    Output[aout] = Input[ain];
 
-                gin = gin[(int)SourceIncrements[0]..];
-                if (!ain.IsEmpty) ain = ain[(int)SourceIncrements[1]..];
+                gin += (int)SourceIncrements[0];
+                if (nalpha is not 0)
+                    ain += (int)SourceIncrements[1];
 
-                gout = gout[(int)DestIncrements[0]..];
-                if (!aout.IsEmpty) aout = aout[(int)DestIncrements[1]..];
+                gout += (int)DestIncrements[0];
+                if (nalpha is not 0)
+                    aout += (int)DestIncrements[1];
             }
 
             strideIn += Stride.BytesPerLineIn;
@@ -335,7 +343,7 @@ file class Curves8Data : IDisposable
     public int nCurves;
     private readonly byte[] _curves;
     public ref byte Curves(int a, int b) =>
-        ref _curves[(a * cmsMAXCHANNELS) + b];
+        ref _curves[(a * 256) + b];
 
     public Curves8Data(Context? context)
     {

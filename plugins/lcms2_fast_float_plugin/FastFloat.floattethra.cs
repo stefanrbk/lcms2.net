@@ -71,16 +71,16 @@ public static partial class FastFloat
 
                 for (var i = 0; i < LineCount; i++)
                 {
-                    var rin = Input[(int)(SourceStartingOrder[0] + strideIn)..];
-                    var gin = Input[(int)(SourceStartingOrder[1] + strideIn)..];
-                    var bin = Input[(int)(SourceStartingOrder[2] + strideIn)..];
+                    var rin = (int)(SourceStartingOrder[0] + strideIn);
+                    var gin = (int)(SourceStartingOrder[1] + strideIn);
+                    var bin = (int)(SourceStartingOrder[2] + strideIn);
                     var ain =
                         nalpha is not 0
-                            ? Input[(int)(SourceStartingOrder[3] + strideIn)..]
+                            ? (int)(SourceStartingOrder[3] + strideIn)
                             : default;
 
                     var TotalPlusAlpha = TotalOut;
-                    if (!ain.IsEmpty) TotalPlusAlpha++;
+                    if (nalpha is not 0) TotalPlusAlpha++;
 
                     for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
                     {
@@ -89,13 +89,13 @@ public static partial class FastFloat
 
                     for (var ii = 0; ii < PixelsPerLine; ii++)
                     {
-                        var r = fclamp(BitConverter.ToSingle(rin));
-                        var g = fclamp(BitConverter.ToSingle(gin));
-                        var b = fclamp(BitConverter.ToSingle(bin));
+                        var r = fclamp(BitConverter.ToSingle(Input[rin..]));
+                        var g = fclamp(BitConverter.ToSingle(Input[gin..]));
+                        var b = fclamp(BitConverter.ToSingle(Input[bin..]));
 
-                        rin = rin[(int)SourceIncrements[0]..];
-                        gin = gin[(int)SourceIncrements[1]..];
-                        bin = bin[(int)SourceIncrements[2]..];
+                        rin += (int)SourceIncrements[0];
+                        gin += (int)SourceIncrements[1];
+                        bin += (int)SourceIncrements[2];
 
                         var px = r * p.Domain[0];
                         var py = g * p.Domain[1];
@@ -182,10 +182,10 @@ public static partial class FastFloat
                             }
                         }
 
-                        if (!ain.IsEmpty)
+                        if (nalpha is not 0)
                         {
-                            *(float*)@out[TotalOut] = BitConverter.ToSingle(ain);
-                            ain = ain[(int)SourceIncrements[3]..];
+                            *(float*)@out[TotalOut] = BitConverter.ToSingle(Input[ain..]);
+                            ain += (int)SourceIncrements[3];
                             @out[TotalOut] += DestIncrements[(int)TotalOut];
                         }
                     }
@@ -236,7 +236,8 @@ public static partial class FastFloat
 
         // Create the result LUT
         OptimizedLUT = cmsPipelineAlloc(ContextID, 3, cmsPipelineOutputChannels(OriginalLut));
-        if (OptimizedLUT is null) goto Error;
+        if (OptimizedLUT is null)
+            goto Error;
 
         // Allocate the CLUT for result
         var OptimizedCLUTmpe = cmsStageAllocCLutFloat(ContextID, nGridPoints, 3, cmsPipelineOutputChannels(OriginalLut), null);
@@ -245,13 +246,15 @@ public static partial class FastFloat
         cmsPipelineInsertStage(OptimizedLUT, StageLoc.AtBegin, OptimizedCLUTmpe);
 
         // Resample the LUT
-        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerFloat, OriginalLut, SamplerFlag.None)) goto Error;
+        if (!cmsStageSampleCLutFloat(OptimizedCLUTmpe, XFormSamplerFloat, OriginalLut, SamplerFlag.None))
+            goto Error;
 
         // Set the evaluator
         var data = (StageCLutData<float>)cmsStageData(OptimizedCLUTmpe!)!;
 
         var pfloat = FloatCLUTData.Alloc(ContextID, data.Params);
-        if (pfloat is null) goto Error;
+        if (pfloat is null)
+            goto Error;
 
         // And return the obtained LUT
         cmsPipelineFree(OriginalLut);
