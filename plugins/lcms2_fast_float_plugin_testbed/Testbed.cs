@@ -34,6 +34,16 @@ internal static partial class Testbed
     public static readonly ILogger logger = factory.CreateLogger<Program>();
     private static readonly List<(string name, int time)> testTimes = new();
 
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ushort FROM_8_TO_15(byte x8) =>
+        (ushort)(((ulong)x8 << 15) / 0xFF);
+
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static byte FROM_15_TO_8(ushort x8) =>
+        (byte)((((ulong)x8 * 0xFF) + 0x4000) >> 15);
+
+    internal const double EPSILON_FLOAT_TESTS = 5e-3;
+
     public static ILoggerFactory BuildDebugLogger()
     {
         return LoggerFactory.Create(builder =>

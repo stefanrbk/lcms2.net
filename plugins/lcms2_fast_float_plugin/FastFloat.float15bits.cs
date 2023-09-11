@@ -304,7 +304,7 @@ public static partial class FastFloat
         return Buffer[T_EXTRA(info.OutputFormat)..];
     }
 
-    private static FormatterIn Formatter_15Bit_Factory_In(uint Type, uint dwFlags)
+    internal static FormatterIn Formatter_15Bit_Factory_In(uint Type, uint dwFlags)
     {
         FormatterIn Result = default;
 
@@ -374,7 +374,7 @@ public static partial class FastFloat
         return Result;
     }
 
-    private static FormatterOut Formatter_15Bit_Factory_Out(uint Type, uint dwFlags)
+    internal static FormatterOut Formatter_15Bit_Factory_Out(uint Type, uint dwFlags)
     {
         FormatterOut Result = default;
 

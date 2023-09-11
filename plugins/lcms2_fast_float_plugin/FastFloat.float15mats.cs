@@ -192,7 +192,7 @@ public static partial class FastFloat
             dwFlags |= cmsFLAGS_NOCACHE;
 
             // Setup the optimization routines
-            UserData = XMatShaperData.SetShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves, IdentityMat);
+            UserData = XMatShaperData.SetShaper(ContextID, mpeC1.TheCurves, res, Data2.Offset is null ? default : new VEC3(Data2.Offset), mpeC2.TheCurves, IdentityMat);
             FreeUserData = FreeDisposable;
 
             TransformFn = MatShaperXform;
@@ -205,7 +205,9 @@ public static partial class FastFloat
     }
 }
 
-file class XMatShaperData(Context? context) : IDisposable
+//file
+public
+    class XMatShaperData(Context? context) : IDisposable
 {
     private readonly S1Fixed15Number[] _mat = Context.GetPool<S1Fixed15Number>(context).Rent(9);
     private readonly S1Fixed15Number[] _off = Context.GetPool<S1Fixed15Number>(context).Rent(3);

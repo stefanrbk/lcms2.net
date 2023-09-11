@@ -19,11 +19,102 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
+using lcms2.state;
+using lcms2.types;
+
 using Microsoft.Extensions.Logging;
 
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
+    private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
+    {
+        Span<ushort> Values = stackalloc ushort[cmsMAXCHANNELS];
+        Span<byte> Buffer = stackalloc byte[1024];
+
+        var info = new _xform_head(Type, Type);
+
+        // Get functions to go back and forth
+        var f = Formatter_15Bit_Factory_In(Type, (uint)PackFlags.Ushort);
+        var b = Formatter_15Bit_Factory_Out(Type, (uint)PackFlags.Ushort);
+
+        if (f.Fmt16 is null || b.Fmt16 is null)
+        {
+            Fail("No formatter for {s}", Text);
+            return;
+        }
+
+        var nChannels = T_CHANNELS(Type);
+        var bytes = T_BYTES(Type);
+
+        for (var j = 0; j < 5; j++)
+        {
+            for (var i = 0; i < nChannels; i++)
+            {
+                Values[i] = (ushort)((i + j) << 1);
+            }
+
+            b.Fmt16((Transform)info, Values, Buffer, 1);
+            Values.Clear();
+            f.Fmt16((Transform)info, Values, Buffer, 1);
+
+            for (var i = 0; i < nChannels; i++)
+            {
+                if (Values[i] != ((i + j) << 1))
+                {
+                    Fail("{0} failed", Text);
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void CheckFormatters15()
+    {
+        C(nameof(TYPE_GRAY_15));
+        C(nameof(TYPE_GRAY_15_REV));
+        C(nameof(TYPE_GRAY_15_SE));
+        C(nameof(TYPE_GRAYA_15));
+        C(nameof(TYPE_GRAYA_15_SE));
+        C(nameof(TYPE_GRAYA_15_PLANAR));
+        C(nameof(TYPE_RGB_15));
+        C(nameof(TYPE_RGB_15_PLANAR));
+        C(nameof(TYPE_RGB_15_SE));
+        C(nameof(TYPE_BGR_15));
+        C(nameof(TYPE_BGR_15_PLANAR));
+        C(nameof(TYPE_BGR_15_SE));
+        C(nameof(TYPE_RGBA_15));
+        C(nameof(TYPE_RGBA_15_PLANAR));
+        C(nameof(TYPE_RGBA_15_SE));
+        C(nameof(TYPE_ARGB_15));
+        C(nameof(TYPE_ABGR_15));
+        C(nameof(TYPE_ABGR_15_PLANAR));
+        C(nameof(TYPE_ABGR_15_SE));
+        C(nameof(TYPE_BGRA_15));
+        C(nameof(TYPE_BGRA_15_SE));
+        C(nameof(TYPE_YMC_15));
+        C(nameof(TYPE_CMY_15));
+        C(nameof(TYPE_CMY_15_PLANAR));
+        C(nameof(TYPE_CMY_15_SE));
+        C(nameof(TYPE_CMYK_15));
+        C(nameof(TYPE_CMYK_15_REV));
+        C(nameof(TYPE_CMYK_15_PLANAR));
+        C(nameof(TYPE_CMYK_15_SE));
+        C(nameof(TYPE_KYMC_15));
+        C(nameof(TYPE_KYMC_15_SE));
+        C(nameof(TYPE_KCMY_15));
+        C(nameof(TYPE_KCMY_15_REV));
+        C(nameof(TYPE_KCMY_15_SE));
+
+        static void C(string a)
+        {
+            var field = typeof(FastFloat).GetProperty(a) ?? typeof(Lcms2).GetProperty(a);
+            var value = (uint)field!.GetValue(null)!;
+
+            CheckSingleFormatter15(null, value, a);
+        }
+    }
+
     private static bool checkSingleComputeIncrements(uint Format, uint planeStride, uint ExpectedChannels, uint ExpectedAlpha, params uint[] args)
     {
         Span<uint> ComponentStartingOrder = stackalloc uint[cmsMAXCHANNELS];
@@ -56,7 +147,7 @@ internal static partial class Testbed
 
         return true;
     }
-    public static bool CheckComputeIncrements()
+    public static void CheckComputeIncrements()
     {
         using (logger.BeginScope("Check compute increments"))
         {
@@ -148,8 +239,6 @@ internal static partial class Testbed
             CHECK(nameof(TYPE_BGR_16_PLANAR), 100, 3, 0, /**/ 200, 100, 0,       /**/ 2, 2, 2);
             CHECK(nameof(TYPE_BGRA_16_PLANAR), 100, 3, 1, /**/ 200, 100, 0, 300,  /**/ 2, 2, 2, 2);
             CHECK(nameof(TYPE_ABGR_16_PLANAR), 100, 3, 1, /**/ 300, 200, 100, 0,  /**/ 2, 2, 2, 2);
-
-            return true;
         }
 
         static bool CHECK(string frm, uint plane, uint chans, uint alpha, params uint[] args)
@@ -166,6 +255,135 @@ internal static partial class Testbed
                 }
                 return true;
             }
+        }
+    }
+
+    private static bool Valid15(ushort a, byte b) =>
+        Math.Abs(FROM_15_TO_8(a) - b) <= 2;
+
+    private static void Check15bitMacros()
+    {
+        using (logger.BeginScope("Checking 15 bit <=> 8 bit conversions"))
+        {
+
+            for (var i = 0; i < 256; i++)
+            {
+                var n = FROM_8_TO_15((byte)i);
+                var m = FROM_15_TO_8(n);
+
+                if (m != i)
+                    Fail("Failed on {0} (->{1}->{2})", i, n, m);
+            }
+
+            trace("Passed");
+        }
+    }
+
+    private static void TryAllValues15(Profile profileIn, Profile profileOut, int Intent)
+    {
+        var xform15 = cmsCreateTransform(profileIn, TYPE_RGB_15, profileOut, TYPE_RGB_15, (uint)Intent, cmsFLAGS_NOCACHE);
+        var xform8 = cmsCreateTransform(profileIn, TYPE_RGB_8, profileOut, TYPE_RGB_8, (uint)Intent, cmsFLAGS_NOCACHE);
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xform15 is null || xform8 is null)
+            Fail("Null transforms on check for 15 bit conversions");
+
+        const int npixels = 256 * 256;  // All RGB cube in 8 bits
+        var buffer8in = new byte[npixels * 256 * 3];
+        var buffer8out = new byte[npixels * 256 * 3];
+        var buffer15in = new ushort[npixels * 256 * 3];
+        var buffer15out = new ushort[npixels * 256 * 3];
+
+        // Fill input values for 8 and 15 bits
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for ( var b = 0; b < 256; b++)
+                {
+                    buffer8in[(j * 3) + 0] = (byte)r;
+                    buffer8in[(j * 3) + 1] = (byte)g;
+                    buffer8in[(j * 3) + 2] = (byte)b;
+
+                    buffer15in[(j * 3) + 0] = FROM_8_TO_15((byte)r);
+                    buffer15in[(j * 3) + 1] = FROM_8_TO_15((byte)g);
+                    buffer15in[(j * 3) + 2] = FROM_8_TO_15((byte)b);
+
+                    j++;
+                }
+            }
+        }
+
+        var tasks = new Task[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(o =>
+            {
+                var offset = (int)o!;
+
+                cmsDoTransform(xform15, buffer15in.AsSpan((offset * npixels * 3)..), buffer15out.AsSpan((offset * npixels * 3)..), npixels);
+                cmsDoTransform(xform8, buffer8in.AsSpan((offset * npixels * 3)..), buffer8out.AsSpan((offset * npixels * 3)..), npixels);
+            }, i);
+        }
+
+        Task.WaitAll(tasks);
+
+        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+            Fail("Multithreading failure");
+
+        //cmsDoTransform(xform15, buffer15in, buffer15out, npixels * 256);
+        //cmsDoTransform(xform8, buffer8in, buffer8out, npixels * 256);
+
+        j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    // Check the results
+                    if (!Valid15(buffer15out[(j * 3) + 0], buffer8out[(j * 3) + 0]) ||
+                        !Valid15(buffer15out[(j * 3) + 1], buffer8out[(j * 3) + 1]) ||
+                        !Valid15(buffer15out[(j * 3) + 2], buffer8out[(j * 3) + 2]))
+                    {
+                        Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})", buffer8out[(j * 3) + 0], buffer8out[(j * 3) + 1], buffer8out[(j * 3) + 2],
+                            FROM_15_TO_8(buffer15out[(j * 3) + 0]), FROM_15_TO_8(buffer15out[(j * 3) + 1]), FROM_15_TO_8(buffer15out[(j * 3) + 2]));
+                        //failed++;
+                    }
+
+                    j++;
+                }
+            }
+        }
+
+        cmsDeleteTransform(xform15);
+        cmsDeleteTransform(xform8);
+    }
+
+    public static void Check15bitsConversion()
+    {
+        Check15bitMacros();
+
+        using (logger.BeginScope("Checking accuracy of 15 bits on CLUT"))
+        {
+            TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
+            trace("Passed");
+        }
+
+        using (logger.BeginScope("Checking accuracy of 15 bits on same profile"))
+        {
+            TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+            trace("Passed");
+        }
+
+        using (logger.BeginScope("Checking accuracy of 15 bits on Matrix"))
+        {
+            TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+            trace("Passed");
         }
     }
 }

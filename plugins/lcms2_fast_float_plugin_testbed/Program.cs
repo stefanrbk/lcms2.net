@@ -42,3 +42,7 @@ using (logger.BeginScope("Installing plugin"))
 }
 
 CheckComputeIncrements();
+
+// 15 bit functionality
+CheckFormatters15();
+Check15bitsConversion();

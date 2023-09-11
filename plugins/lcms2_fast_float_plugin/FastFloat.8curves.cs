@@ -378,7 +378,8 @@ file class Curves8Data : IDisposable
             for (var i = 0; i < 3; i++)
             {
                 for (var j = 0; j < 256; j++)
-                    if (Curves(i, j) != j) return false;
+                    if (Curves(i, j) != j) 
+                        return false;
             }
 
             return true;

@@ -150,10 +150,12 @@ public static partial class FastFloat
     //internal static int _cmsFromFixedDomain(S15Fixed16Number a) =>
     //    a - ((a + 0x7fff) >> 16);
 
-    private record _xform_head(uint InputFormat, uint OutputFormat)
+    internal record _xform_head(uint InputFormat, uint OutputFormat)
     {
         public static explicit operator _xform_head(Transform t) =>
             new(t.InputFormat, t.OutputFormat);
+        public static explicit operator Transform(_xform_head t) =>
+            new() { InputFormat = t.InputFormat, OutputFormat = t.OutputFormat };
     }
 
     internal const ushort MAX_NODES_IN_CURVE = 0x8001;

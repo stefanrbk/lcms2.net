@@ -22,6 +22,8 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Diagnostics;
+
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
@@ -112,6 +114,7 @@ public static partial class FastFloat
                     // These are the 6 Tetrahedral
                     for (var OutChan = 0; OutChan < TotalOut;  OutChan++)
                     {
+                        [DebuggerStepThrough]
                         int DENS(int i, int j, int k, Span<ushort> table)
                         {
                             return table[i + j + k + OutChan];
@@ -144,7 +147,7 @@ public static partial class FastFloat
                             c2 = DENS(X0, Y1, Z0, LutTable) - c0;
                             c3 = DENS(X1, Y1, Z1, LutTable) - DENS(X1, Y1, Z0, LutTable);
                         }
-                        else if (rx >= rz && rz >= ry)
+                        else if (ry >= rz && rz >= rx)
                         {
                             c1 = DENS(X1, Y1, Z1, LutTable) - DENS(X0, Y1, Z1, LutTable);
                             c2 = DENS(X0, Y1, Z0, LutTable) - c0;
@@ -470,9 +473,9 @@ file class Performance8Data : IDisposable
         _ry = spool.Rent(256);
         _rz = spool.Rent(256);
 
-        _X0 = ipool.Rent(256);
-        _Y0 = ipool.Rent(256);
-        _Z0 = ipool.Rent(256);
+        _X0 = ipool.Rent(0x4001);
+        _Y0 = ipool.Rent(0x4001);
+        _Z0 = ipool.Rent(0x4001);
     }
 
     protected virtual void Dispose(bool disposing)
