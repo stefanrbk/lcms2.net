@@ -53,4 +53,7 @@ CheckAccuracy16Bits();
 // Lab to whatever
 CheckLab2RGB();
 
+// Change format
+CheckChangeFormat();
+
 Thread.Sleep(10);

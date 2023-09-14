@@ -27,31 +27,33 @@ using Microsoft.Extensions.Logging;
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
-    private struct Scanline_rgb8bits { public byte r, g, b; }
+    private struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
 
-    private struct Scanline_rgba8bits { public byte r, g, b, a; }
+    private struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk8bits { public byte c, m, y, k; }
+    private struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgb16bits { public ushort r, g, b; }
+    private struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_rgba16bits { public ushort r, g, b, a; }
+    private struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk16bits { public ushort c, m, y, k; }
+    private struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgb15bits { public ushort r, g, b; }
+    private struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
 
-    private struct Scanline_rgba15bits { public ushort r, g, b, a; }
+    private struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_cmyk15bits { public ushort c, m, y, k; }
+    private struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_rgbFloat { public float r, g, b; }
+    private struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgbaFloat { public float r, g, b, a; }
+    private struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
 
-    private struct Scanline_cmykFloat { public float c, m, y, k; }
+    private struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_LabFloat { public float L, a, b; }
+    private struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
+
+    private struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
 
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
     {
@@ -671,7 +673,34 @@ internal static partial class Testbed
 
     // TryAllValuesFloatVs16
 
-    // CheckChangeFormat
+    public static void CheckChangeFormat()
+    {
+        var rgb8 = new Scanline_rgb8bits(10, 120, 40);
+        var rgb16 = new Scanline_rgb16bits(10 * 257, 120 * 257, 40 * 257);
+
+        using (logger.BeginScope("Checking change format feature"))
+        {
+            var hsRGB = cmsCreate_sRGBProfile()!;
+            var hLab = cmsCreateLab4Profile(null)!;
+
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_16, hLab, TYPE_Lab_16, INTENT_PERCEPTUAL, 0)!;
+
+            cmsCloseProfile(hsRGB);
+            cmsCloseProfile(hLab);
+
+            cmsDoTransform(xform, rgb16, out Scanline_Lab16bits lab16_1, 1);
+
+            cmsChangeBuffersFormat(xform, TYPE_RGB_8, TYPE_Lab_16);
+
+            cmsDoTransform(xform, rgb8, out Scanline_Lab16bits lab16_2, 1);
+            cmsDeleteTransform(xform);
+
+            if (!lab16_1.Equals(lab16_2))
+                Fail("Change format failed!");
+
+            trace("Passed");
+        }
+    }
 
     // ValidInt
 
