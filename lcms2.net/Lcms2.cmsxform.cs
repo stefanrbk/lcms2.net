@@ -858,7 +858,7 @@ public static partial class Lcms2
 
                     if (Plugin.OldXform)
                     {
-                        if (Plugin.OldFactory(out p.OldXform, out p.UserData, out p.FreeUserData, ref p.Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+                        if (Plugin.OldFactory(out p.OldXform, out p.UserData, out p.FreeUserData, ref p.Lut, ref p.InputFormat, ref p.OutputFormat, ref p.dwOriginalFlags))
                         {
                             p.xform = _cmsTransform2toTransformAdaptor;
                             return p;
@@ -866,7 +866,7 @@ public static partial class Lcms2
                     }
                     else
                     {
-                        if (Plugin.Factory(out p.xform, out p.UserData, out p.FreeUserData, ref p.Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+                        if (Plugin.Factory(out p.xform, out p.UserData, out p.FreeUserData, ref p.Lut, ref p.InputFormat, ref p.OutputFormat, ref p.dwOriginalFlags))
                         {
                             // Last plugin in the declaration order takes control. We just keep
                             // the original parameters as a logging.
