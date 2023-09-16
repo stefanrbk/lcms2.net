@@ -24,6 +24,8 @@ using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
+using System;
+
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
@@ -663,7 +665,8 @@ internal static partial class Testbed
 
     // CheckToFloatLab
 
-    // ValidFloat
+    private static bool ValidFloat(float a, float b) =>
+        MathF.Abs(a - b) < EPSILON_FLOAT_TESTS;
 
     // TryAllValuesFloat
 
@@ -878,5 +881,157 @@ internal static partial class Testbed
         cmsDeleteTransform(hXformPlugin);
 
         cmsDeleteContext(noPlugin);
+    }
+
+    public static void CheckSoftProofing()
+    {
+        using (logger.BeginScope("Check soft proofing and gamut check"))
+        {
+            var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
+            var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
+            var noPlugin = cmsCreateContext();
+
+            var xformNoPlugin = cmsCreateProofingTransformTHR(noPlugin, hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
+            var xformPlugin = cmsCreateProofingTransform(hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
+
+            cmsCloseProfile(hRGB1);
+            cmsCloseProfile(hRGB2);
+
+            const int npixelsThreaded = 256 * 256;
+            const int Mb = npixelsThreaded * 256;
+            var In = new Scanline_rgbFloat[Mb];
+            var Out1 = new Scanline_rgbFloat[Mb];
+            var Out2 = new Scanline_rgbFloat[Mb];
+
+            var j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        In[j].r = r / 255.0f;
+                        In[j].g = g / 255.0f;
+                        In[j].b = b / 255.0f;
+                        j++;
+                    }
+                }
+            }
+
+            var tasks = new Task[256];
+
+            for (var i = 0; i < 256; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(o =>
+                {
+                    var offset = (int)o!;
+
+                    // Different transforms, different output buffers
+                    cmsDoTransform(xformNoPlugin, In.AsSpan((offset * npixelsThreaded)..), Out1.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                    cmsDoTransform(xformPlugin, In.AsSpan((offset * npixelsThreaded)..), Out2.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                }, i);
+            }
+
+            Task.WaitAll(tasks);
+
+            if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+                Fail("Multithreading failure");
+
+            var failed = 0;
+            j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        // Check for same values
+                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
+                            !ValidFloat(Out1[j].g, Out2[j].g) ||
+                            !ValidFloat(Out1[j].b, Out2[j].b))
+                        {
+                            failed++;
+                        }
+                        j++;
+                    }
+                }
+            }
+            if (failed is not 0)
+                Fail("{0} failed", failed);
+
+            cmsDeleteTransform(xformNoPlugin);
+            cmsDeleteTransform(xformPlugin);
+
+            cmsDeleteContext(noPlugin);
+
+            trace("Passed");
+        }
+    }
+
+    public static void CheckSoftProofingNonThreaded()
+    {
+        using (logger.BeginScope("Check soft proofing and gamut check"))
+        {
+            var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
+            var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
+            var noPlugin = cmsCreateContext();
+
+            var xformNoPlugin = cmsCreateProofingTransformTHR(noPlugin, hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
+            var xformPlugin = cmsCreateProofingTransform(hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
+
+            cmsCloseProfile(hRGB1);
+            cmsCloseProfile(hRGB2);
+
+            var Mb = 256 * 256 * 256;
+            var In = new Scanline_rgbFloat[Mb];
+            var Out1 = new Scanline_rgbFloat[Mb];
+            var Out2 = new Scanline_rgbFloat[Mb];
+
+            var j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        In[j].r = r / 255.0f;
+                        In[j].g = g / 255.0f;
+                        In[j].b = b / 255.0f;
+                        j++;
+                    }
+                }
+            }
+
+            cmsDoTransform(xformNoPlugin, In, Out1, (uint)Mb);
+            cmsDoTransform(xformPlugin, In, Out2, (uint)Mb);
+
+            j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        // Check for same values
+                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
+                            !ValidFloat(Out1[j].g, Out2[j].g) ||
+                            !ValidFloat(Out1[j].b, Out2[j].b))
+                        {
+                            Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})",
+                                Out1[j].r, Out1[j].g, Out1[j].b,
+                                Out2[j].r, Out2[j].g, Out2[j].b);
+                        }
+                        j++;
+                    }
+                }
+            }
+
+            cmsDeleteTransform(xformNoPlugin);
+            cmsDeleteTransform(xformPlugin);
+
+            cmsDeleteContext(noPlugin);
+
+            trace("Passed");
+        }
     }
 }

@@ -56,4 +56,7 @@ CheckLab2RGB();
 // Change format
 CheckChangeFormat();
 
+// Soft proofing
+CheckSoftProofing();
+
 Thread.Sleep(10);
