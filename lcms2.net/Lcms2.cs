@@ -1868,30 +1868,4 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static void remove(string path) =>
         File.Delete(path);
-
-    internal static void LogArrayPoolUsage(Context? context)
-    {
-        var logger = GetLogger(context);
-        logger.LogInformation("Array Buffer Counts");
-        foreach (var b in Context.GetBufferPoolCounts(context)
-                                 .OrderBy(b => b.type.Name))
-        {
-            logger.LogInformation("\t{type}", b.type.Name);
-            foreach (var (bufferSize, rentCount, maxRent, allocCount, maxAlloc) in b.Item2)
-            {
-                if (rentCount > 0)
-                {
-                    logger.LogWarning("\t\t{{\"bufferSize\": {bufferSize}, \"rentCount\": {rentCount}, " +
-                        "\"maxRent\": {maxRent}, \"allocCount\": {allocCount}, \"maxAlloc\": {maxAlloc}}}",
-                        bufferSize, rentCount, maxRent, allocCount, maxAlloc);
-                }
-                else
-                {
-                    logger.LogInformation("\t\t{{\"bufferSize\": {bufferSize}, \"rentCount\": {rentCount}, " +
-                        "\"maxRent\": {maxRent}, \"allocCount\": {allocCount}, \"maxAlloc\": {maxAlloc}}}",
-                        bufferSize, rentCount, maxRent, allocCount, maxAlloc);
-                }
-            }
-        }
-    }
 }

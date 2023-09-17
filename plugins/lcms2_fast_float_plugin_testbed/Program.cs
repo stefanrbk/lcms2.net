@@ -63,4 +63,6 @@ CheckSoftProofing();
 CheckConversionFloat();
 trace("All floating point tests passed");
 
+SpeedTest8();
+
 Thread.Sleep(10);

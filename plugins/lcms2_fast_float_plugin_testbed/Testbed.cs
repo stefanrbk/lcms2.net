@@ -20,6 +20,7 @@
 //
 //---------------------------------------------------------------------------------
 using lcms2.testbed;
+using lcms2.types;
 
 using Microsoft.Extensions.Logging;
 
@@ -70,4 +71,44 @@ internal static partial class Testbed
         logger.LogError(eventId, "{msg}", string.Format(message, args));
         Environment.Exit(1);
     }
+
+    private static Profile CreateCurves()
+    {
+        var Gamma = cmsBuildGamma(null, 1.1)!;
+        var Transfer = new ToneCurve[3] { Gamma, Gamma, Gamma };
+
+        var h = cmsCreateLinearizationDeviceLink(cmsSigRgbData, Transfer);
+
+        cmsFreeToneCurve(Gamma);
+
+        return h!;
+    }
+
+    private static Profile loadProfile(string name)
+    {
+        if (name.StartsWith('*'))
+        {
+            if (name == "*lab")
+            {
+                return cmsCreateLab4Profile(null)!;
+            }
+            else if (name == "*xyz")
+            {
+                return cmsCreateXYZProfile()!;
+            }
+            else if (name == "*curves")
+            {
+                return CreateCurves();
+            }
+            else
+            {
+                Fail("Unknown builtin '{0}'", name);
+            }
+        }
+
+        return cmsOpenProfileFromFile(name, "r")!;
+    }
+
+    private static Profile loadProfile(Memory<byte> mem) =>
+        cmsOpenProfileFromMem(mem)!;
 }

@@ -1380,7 +1380,7 @@ internal static partial class Testbed
             var maxInside = tasks[0].Select(t => t.Result).Max();
             var maxOutside = tasks[1].Select(t => t.Result).Max();
 
-            trace("Max distance: Inside gamut {0}, Outside gamut {1}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
+            trace("Max distance: Inside gamut {0:F6}, Outside gamut {1:F6}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
         }
 
         cmsDeleteTransform(hXformNoPlugin);
