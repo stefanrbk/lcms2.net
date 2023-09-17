@@ -20,10 +20,22 @@ internal static partial class Testbed
 
     private delegate TimeSpan perf_fn(Context? ct, Profile profileIn, Profile profileOut);
 
-    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Memory<byte> inICC, Memory<byte> outICC, long sz, TimeSpan prev)
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, string inICC, Memory<byte> outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Memory<byte> inICC, string outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, string inICC, string outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Memory<byte> inICC, Memory<byte> outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Profile inICC, Profile outICC, long sz, TimeSpan prev)
     {
-        var profileIn = loadProfile(inICC);
-        var profileOut = loadProfile(outICC);
+        var profileIn = inICC;
+        var profileOut = outICC;
 
         var n = fn(ct, profileIn, profileOut);
 
@@ -111,7 +123,7 @@ internal static partial class Testbed
         Thread.Sleep(10);
         Console.WriteLine();
 
-        TimeSpan t0;
+        TimeSpan t0, t1, t2, t3;
 
         using (logger.BeginScope("8bit performance tests"))
         {
@@ -120,6 +132,9 @@ internal static partial class Testbed
                 trace("P E R F O R M A N C E   T E S T S   8 B I T S  (D E F A U L T)");
 
                 t0 = Performance("8 bits on CLUT profiles", SpeedTest8bitsRGB, noPlugin, TestProfiles.test5, TestProfiles.test3, size_rgb8bits, default);
+                t1 = Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, noPlugin, TestProfiles.test5, TestProfiles.test0, size_rgb8bits, default);
+                t2 = Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, noPlugin, TestProfiles.test0, TestProfiles.test0, size_rgb8bits, default);
+                t3 = Performance("8 bits on curves", SpeedTest8bitsRGB, noPlugin, "*curves", "*curves", size_rgb8bits, default);
             }
 
             Thread.Sleep(10);
@@ -132,7 +147,12 @@ internal static partial class Testbed
                 trace("P E R F O R M A N C E   T E S T S   8 B I T S  (P L U G I N)");
 
                 Performance("8 bits on CLUT profiles", SpeedTest8bitsRGB, null, TestProfiles.test5, TestProfiles.test3, size_rgb8bits, t0);
+                Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test5, TestProfiles.test0, size_rgb8bits, t1);
+                Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test0, TestProfiles.test0, size_rgb8bits, t2);
+                Performance("8 bits on curves", SpeedTest8bitsRGB, null, "*curves", "*curves", size_rgb8bits, t3);
             }
         }
+
+        cmsDeleteContext(noPlugin);
     }
 }
