@@ -72,9 +72,9 @@ public unsafe static partial class FastFloat
                 var g = flerp(p.Shaper1G, BitConverter.ToSingle(Input[gin..]));
                 var b = flerp(p.Shaper1B, BitConverter.ToSingle(Input[bin..]));
 
-                var l1 = (p.Mat(0, 0) * r) + (p.Mat(1, 0) * g) + (p.Mat(2, 0) * b);
-                var l2 = (p.Mat(0, 1) * r) + (p.Mat(1, 1) * g) + (p.Mat(2, 1) * b);
-                var l3 = (p.Mat(0, 2) * r) + (p.Mat(1, 2) * g) + (p.Mat(2, 2) * b);
+                var l1 = (p.Mat(0, 0) * r) + (p.Mat(0, 1) * g) + (p.Mat(0, 2) * b);
+                var l2 = (p.Mat(1, 0) * r) + (p.Mat(1, 1) * g) + (p.Mat(1, 2) * b);
+                var l3 = (p.Mat(2, 0) * r) + (p.Mat(2, 1) * g) + (p.Mat(2, 2) * b);
 
                 if (p.UseOff)
                 {
@@ -221,7 +221,7 @@ public unsafe static partial class FastFloat
                 dwFlags |= cmsFLAGS_NOCACHE;
 
                 // Setup the optimization routines
-                UserData = VXMatShaperFloatData.SetShaper(ContextID, mpeC1.TheCurves, res, new VEC3(Data2.Offset), mpeC2.TheCurves);
+                UserData = VXMatShaperFloatData.SetShaper(ContextID, mpeC1.TheCurves, res, Data2.Offset is null ? null : new VEC3(Data2.Offset), mpeC2.TheCurves);
                 FreeUserData = FreeDisposable;
 
                 TransformFn = MatShaperFloat;

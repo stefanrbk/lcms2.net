@@ -290,11 +290,11 @@ public static partial class FastFloat
         var Src = Lut;
 
         // Apply only to floating-point cases
-        if (T_FLOAT(InputFormat) is not 0 || T_FLOAT(OutputFormat) is not 0)
+        if (T_FLOAT(InputFormat) is 0 || T_FLOAT(OutputFormat) is 0)
             return false;
 
         // Only on 8-bit
-        if (T_BYTES(InputFormat) is not 1 || T_BYTES(OutputFormat) is not 1)
+        if (T_BYTES(InputFormat) is not 4 || T_BYTES(OutputFormat) is not 4)
             return false;
 
         // Curves need same channels on input and output (despite extra channels may differ)

@@ -318,7 +318,7 @@ public static partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(IEnumerable<PluginBase> Plugins, object? UserData)
+    public static Context? cmsCreateContext(IEnumerable<PluginBase> Plugins, object? UserData = null)
     {
         // Create the context structure.
         var ctx = new Context();

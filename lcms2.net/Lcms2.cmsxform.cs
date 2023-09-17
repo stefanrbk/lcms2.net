@@ -655,16 +655,16 @@ public static partial class Lcms2
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
-                if (memcmp<ushort>(wIn, Cache.CacheIn) is 0)
+                if (memcmp(wIn.AsSpan(..cmsMAXCHANNELS), Cache.CacheIn.AsSpan(..cmsMAXCHANNELS)) is 0)
                 {
-                    memcpy<ushort>(wOut, Cache.CacheOut);
+                    memcpy(wOut.AsSpan(..cmsMAXCHANNELS), Cache.CacheOut.AsSpan(..cmsMAXCHANNELS));
                 }
                 else
                 {
                     p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
 
-                    memcpy<ushort>(Cache.CacheIn, wIn);
-                    memcpy<ushort>(Cache.CacheOut, wOut);
+                    memcpy(Cache.CacheIn.AsSpan(..cmsMAXCHANNELS), wIn.AsSpan(..cmsMAXCHANNELS));
+                    memcpy(Cache.CacheOut.AsSpan(..cmsMAXCHANNELS), wOut.AsSpan(..cmsMAXCHANNELS));
                 }
 
                 output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
@@ -676,6 +676,8 @@ public static partial class Lcms2
 
         ReturnArray(pool, wIn);
         ReturnArray(pool, wOut);
+        ReturnArray(pool, Cache.CacheIn);
+        ReturnArray(pool, Cache.CacheOut);
     }
 
     private static void CachedXFORMGamutCheck(
@@ -717,16 +719,16 @@ public static partial class Lcms2
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
-                if (memcmp(wIn, Cache.CacheIn) is 0)
+                if (memcmp(wIn.AsSpan(..cmsMAXCHANNELS), Cache.CacheIn.AsSpan(..cmsMAXCHANNELS)) is 0)
                 {
-                    memcpy(wOut, Cache.CacheOut);
+                    memcpy(wOut.AsSpan(..cmsMAXCHANNELS), Cache.CacheOut.AsSpan(..cmsMAXCHANNELS));
                 }
                 else
                 {
                     TransformOnePixelWithGamutCheck(p, wIn, wOut);
 
-                    memcpy(Cache.CacheIn, wIn);
-                    memcpy(Cache.CacheOut, wOut);
+                    memcpy(Cache.CacheIn.AsSpan(..cmsMAXCHANNELS), wIn.AsSpan(..cmsMAXCHANNELS));
+                    memcpy(Cache.CacheOut.AsSpan(..cmsMAXCHANNELS), wOut.AsSpan(..cmsMAXCHANNELS));
                 }
 
                 output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
@@ -738,6 +740,8 @@ public static partial class Lcms2
 
         ReturnArray(pool, wIn);
         ReturnArray(pool, wOut);
+        ReturnArray(pool, Cache.CacheIn);
+        ReturnArray(pool, Cache.CacheOut);
     }
 
     internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>

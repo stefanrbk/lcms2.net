@@ -387,11 +387,12 @@ internal static partial class Testbed
                 }
             }
         }
-        if (failed is not 0)
-            Fail("{0} failed", failed);
 
         cmsDeleteTransform(xform15);
         cmsDeleteTransform(xform8);
+
+        if (failed is not 0)
+            Fail("{0} failed", failed);
     }
 
     private static void TryAllValues15NonThreaded(Profile profileIn, Profile profileOut, int Intent)
@@ -657,24 +658,478 @@ internal static partial class Testbed
         trace("All 16 bit tests passed");
     }
 
-    // CheckUncommonValues
+    private class sub
+    {
+        public uint Int { get; set; }
+        public float subnormal
+        {
+            get => BitConverter.UInt32BitsToSingle(Int);
+            set => Int = BitConverter.SingleToUInt32Bits(value);
+        }
+    }
+    private static void CheckUncommonValues(Profile profileIn, Profile profileOut, int Intent)
+    {
+        var sub_pos = new sub();
+        var sub_neg = new sub();
 
-    // lab8toLab
+        const uint npixels = 100;
 
-    // CheckToEncodedLab
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions());
 
-    // CheckToFloatLab
+        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, 0);
+
+        sub_pos.Int = 0x00000002;
+        sub_neg.Int = 0x80000002;
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xformPlugin is null)
+            Fail("Null transform");
+
+        var bufferIn = new Scanline_rgbFloat[npixels];
+        var bufferPluginOut = new Scanline_rgbFloat[npixels];
+
+        for (var i = 0; i < npixels; i++)
+        {
+            bufferIn[i].r = (float)((i / 40.0) - 0.5);
+            bufferIn[i].r = (float)((i / 20.0) - 0.5);
+            bufferIn[i].r = (float)((i / 60.0) - 0.5);
+        }
+
+        cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, npixels);
+
+        bufferIn[0].r = float.NaN;
+        bufferIn[0].g = float.NaN;
+        bufferIn[0].b = float.NaN;
+
+        bufferIn[1].r = float.PositiveInfinity;
+        bufferIn[1].g = float.PositiveInfinity;
+        bufferIn[1].b = float.PositiveInfinity;
+
+        bufferIn[2].r = sub_pos.subnormal;
+        bufferIn[2].g = sub_pos.subnormal;
+        bufferIn[2].b = sub_pos.subnormal;
+
+        bufferIn[3].r = sub_neg.subnormal;
+        bufferIn[3].g = sub_neg.subnormal;
+        bufferIn[3].b = sub_neg.subnormal;
+
+        cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, 4);
+
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+
+        trace("Passed");
+    }
+
+    private static CIELab lab8toLab(ReadOnlySpan<byte> lab8)
+    {
+        Span<ushort> lab16 = stackalloc ushort[3]
+        {
+            FROM_8_TO_16(lab8[0]),
+            FROM_8_TO_16(lab8[1]),
+            FROM_8_TO_16(lab8[2])
+        };
+
+        return cmsLabEncoded2Float(lab16);
+    }
+
+    private static void CheckToEncodedLab()
+    {
+        using (logger.BeginScope("Lab encoding"))
+        {
+            var Plugin = cmsCreateContext(cmsFastFloatExtensions());
+            var Raw = cmsCreateContext();
+
+            var hsRGB = cmsCreate_sRGBProfile()!;
+            var hLab = cmsCreateLab4Profile(null)!;
+
+            var xform_plugin = cmsCreateTransformTHR(Plugin, hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_8, INTENT_PERCEPTUAL, 0)!;
+            var xform = cmsCreateTransformTHR(Raw, hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_8, INTENT_PERCEPTUAL, 0)!;
+
+            Span<byte> rgb = stackalloc byte[3];
+            Span<byte> lab1 = stackalloc byte[3];
+            Span<byte> lab2 = stackalloc byte[3];
+
+            var err = 0.0;
+            var maxErr = 0.0;
+
+            for (var r = 0; r < 256; r += 5)
+            {
+                for (var g = 0; g < 256; g += 5)
+                {
+                    for (var b = 0; b < 256; b += 5)
+                    {
+                        rgb[0] = (byte)r; rgb[1] = (byte)g; rgb[2] = (byte)b;
+
+                        cmsDoTransform(xform_plugin, rgb, lab1, 1);
+                        cmsDoTransform(xform, rgb, lab2, 1);
+
+                        var Lab1 = lab8toLab(lab1);
+                        var Lab2 = lab8toLab(lab2);
+
+                        err = cmsDeltaE(Lab1, Lab2);
+                        if (err > maxErr)
+                            maxErr = err;
+
+                        if (err > 0.1)
+                        {
+                            trace("Error on lab encoded ({0}, {1}, {2}) <> ({3}, {4}, {5})",
+                                Lab1.L, Lab1.a, Lab1.b, Lab2.L, Lab2.a, Lab2.b);
+                        }
+                    }
+                }
+            }
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(hsRGB); cmsCloseProfile(hLab);
+            cmsDeleteContext(Raw);
+            cmsDeleteContext(Plugin);
+
+            if (maxErr > 0.1)
+                Fail("Failed");
+            else
+                trace("Passed");
+        }
+    }
+
+    private static void CheckToFloatLab()
+    {
+        using (logger.BeginScope("Float Lab encoding"))
+        {
+            var Plugin = cmsCreateContext(cmsFastFloatExtensions());
+            var Raw = cmsCreateContext();
+
+            var hsRGB = cmsCreate_sRGBProfile()!;
+            var hLab = cmsCreateLab4Profile(null)!;
+
+            var xform_plugin = cmsCreateTransformTHR(Plugin, hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+            var xform = cmsCreateTransformTHR(Raw, hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_DBL, INTENT_PERCEPTUAL, 0)!;
+
+            Span<byte> rgb = stackalloc byte[3];
+
+            var err = 0.0;
+            var maxErr = 0.0;
+
+            for (var r = 0; r < 256; r += 10)
+            {
+                for (var g = 0; g < 256; g += 10)
+                {
+                    for (var b = 0; b < 256; b += 10)
+                    {
+                        rgb[0] = (byte)r; rgb[1] = (byte)g; rgb[2] = (byte)b;
+
+                        cmsDoTransform(xform_plugin, rgb, out CIELab Lab1, 1);
+                        cmsDoTransform(xform, rgb, out CIELab Lab2, 1);
+
+                        err = cmsDeltaE(Lab1, Lab2);
+                        if (err > maxErr)
+                            maxErr = err;
+
+                        if (err > 0.1)
+                        {
+                            trace("Error on lab encoded ({0}, {1}, {2}) <> ({3}, {4}, {5})",
+                                Lab1.L, Lab1.a, Lab1.b, Lab2.L, Lab2.a, Lab2.b);
+                        }
+                    }
+                }
+            }
+
+            cmsDeleteTransform(xform);
+            cmsCloseProfile(hsRGB); cmsCloseProfile(hLab);
+            cmsDeleteContext(Raw);
+            cmsDeleteContext(Plugin);
+
+            if (maxErr > 0.1)
+                Fail("Failed");
+            else
+                trace("Passed");
+        }
+    }
 
     private static bool ValidFloat(float a, float b) =>
         MathF.Abs(a - b) < EPSILON_FLOAT_TESTS;
 
-    // TryAllValuesFloat
+    private static void TryAllValuesFloat(Profile profileIn, Profile profileOut, int Intent)
+    {
+        var Raw = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions());
 
-    // TryAllValuesFloatAlpha
+        const int npixelsThreaded = 256 * 256;
+        const int npixels = npixelsThreaded * 256;
 
-    // Valid16Float
+        var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
 
-    // TryAllValuesFloatVs16
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xformRaw is null || xformPlugin is null)
+            Fail("Null transform");
+
+        var bufferIn = new Scanline_rgbFloat[npixels];
+        var bufferRawOut = new Scanline_rgbFloat[npixels];
+        var bufferPluginOut = new Scanline_rgbFloat[npixels];
+
+        // Same input to both transforms
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    bufferIn[j].r = r / 255.0f;
+                    bufferIn[j].g = g / 255.0f;
+                    bufferIn[j].b = b / 255.0f;
+
+                    j++;
+                }
+            }
+        }
+
+        var tasks = new Task[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(o =>
+            {
+                var offset = (int)o!;
+
+                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+            }, i);
+        }
+
+        Task.WaitAll(tasks);
+
+        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+            Fail("Multithreading failure");
+
+        // Lets compare results
+        var failed = 0;
+        j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b))
+                    {
+                        failed++;
+                    }
+
+                    j++;
+                }
+            }
+        }
+
+        cmsDeleteTransform(xformRaw);
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+        cmsDeleteContext(Raw);
+
+        if (failed > 0)
+            Fail("{0} failed", failed);
+        trace("Passed");
+    }
+
+    private static void TryAllValuesFloatAlpha(Profile profileIn, Profile profileOut, int Intent, bool copyAlpha)
+    {
+        var Raw = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions());
+
+        const int npixelsThreaded = 256 * 256;
+        const int npixels = npixelsThreaded * 256;
+        var flags = cmsFLAGS_NOCACHE | (copyAlpha ? cmsFLAGS_COPY_ALPHA : 0);
+
+        var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_FLT, profileOut, TYPE_RGBA_FLT, (uint)Intent, flags);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGBA_FLT, profileOut, TYPE_RGBA_FLT, (uint)Intent, flags);
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (xformRaw is null || xformPlugin is null)
+            Fail("Null transform");
+
+        var bufferIn = new Scanline_rgbaFloat[npixels];
+        var bufferRawOut = new Scanline_rgbaFloat[npixels];
+        var bufferPluginOut = new Scanline_rgbaFloat[npixels];
+
+        // Same input to both transforms
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    bufferIn[j].r = r / 255.0f;
+                    bufferIn[j].g = g / 255.0f;
+                    bufferIn[j].b = b / 255.0f;
+                    bufferIn[j].a = 1.0f;
+
+                    j++;
+                }
+            }
+        }
+
+        var tasks = new Task[256];
+
+        for (var i = 0; i < 256; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(o =>
+            {
+                var offset = (int)o!;
+
+                // Different transforms, different output buffers
+                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+            }, i);
+        }
+
+        Task.WaitAll(tasks);
+
+        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+            Fail("Multithreading failure");
+
+        // Lets compare results
+        var failed = 0;
+        j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b) ||
+                        !ValidFloat(bufferRawOut[j].a, bufferPluginOut[j].a))
+                    {
+                        failed++;
+                    }
+
+                    j++;
+                }
+            }
+        }
+
+        cmsDeleteTransform(xformRaw);
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+        cmsDeleteContext(Raw);
+
+        if (failed > 0)
+            Fail("{0} failed", failed);
+        trace("Passed");
+    }
+
+    private static bool Valid16Float(ushort a, float b) =>
+        MathF.Abs(((float)a / 0xFFFF) - b) < EPSILON_FLOAT_TESTS;
+
+    private static void TryAllValuesFloatVs16(Profile profileIn, Profile profileOut, int Intent)
+    {
+        using (logger.BeginScope("Check float vs 16 conversions"))
+        {
+            const int npixelsThreaded = 256 * 256;
+            const int npixels = npixelsThreaded * 256;
+
+            var xformRaw = cmsCreateTransform(profileIn, TYPE_RGB_16, profileOut, TYPE_RGB_16, (uint)Intent, cmsFLAGS_NOCACHE);
+            var xformPlugin = cmsCreateTransform(profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
+
+            cmsCloseProfile(profileIn);
+            cmsCloseProfile(profileOut);
+
+            if (xformRaw is null || xformPlugin is null)
+                Fail("Null transform");
+
+            var bufferIn = new Scanline_rgbFloat[npixels];
+            var bufferIn16 = new Scanline_rgb16bits[npixels];
+            var bufferFloatOut = new Scanline_rgbFloat[npixels];
+            var buffer16Out = new Scanline_rgb16bits[npixels];
+
+            // Fill two equivalent input buffers
+            var j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        bufferIn[j].r = r / 255.0f;
+                        bufferIn[j].g = g / 255.0f;
+                        bufferIn[j].b = b / 255.0f;
+
+                        bufferIn16[j].r = FROM_8_TO_16((uint)r);
+                        bufferIn16[j].g = FROM_8_TO_16((uint)g);
+                        bufferIn16[j].b = FROM_8_TO_16((uint)b);
+
+                        j++;
+                    }
+                }
+            }
+
+            var tasks = new Task[256];
+
+            for (var i = 0; i < 256; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(o =>
+                {
+                    var offset = (int)o!;
+
+                    cmsDoTransform(xformRaw, bufferIn16.AsSpan((offset * npixelsThreaded)..), buffer16Out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                    cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferFloatOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
+                }, i);
+            }
+
+            Task.WaitAll(tasks);
+
+            if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
+                Fail("Multithreading failure");
+
+            var failed = 0;
+
+            // Different transforms, different output buffers
+            cmsDoTransform(xformRaw, bufferIn16, buffer16Out, npixels);
+            cmsDoTransform(xformPlugin, bufferIn, bufferFloatOut, npixels);
+
+            // Lets compare results
+            j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        // Check for same values
+                        if (!Valid16Float(buffer16Out[j].r, bufferFloatOut[j].r) ||
+                            !Valid16Float(buffer16Out[j].g, bufferFloatOut[j].g) ||
+                            !Valid16Float(buffer16Out[j].b, bufferFloatOut[j].b))
+                        {
+                            failed++;
+                        }
+
+                        j++;
+                    }
+                }
+            }
+
+            cmsDeleteTransform(xformRaw);
+            cmsDeleteTransform(xformPlugin);
+
+            if (failed is not 0)
+                Fail("{0} failed", failed);
+            trace("Passed");
+        }
+    }
 
     public static void CheckChangeFormat()
     {
@@ -705,13 +1160,125 @@ internal static partial class Testbed
         }
     }
 
-    // ValidInt
+    private static bool ValidInt(ushort a, ushort b) =>
+        Math.Abs(a - b) <= 32;
 
-    // CheckLab2Roundtrip
+    private static void CheckLab2Roundtrip()
+    {
+        using (logger.BeginScope("Check lab2 roudtrip"))
+        {
+            const uint npixels = 256 * 256 * 256;
 
-    // CheckConversionFloat
+            var hsRGB = cmsCreate_sRGBProfile()!;
+            var hLab = cmsCreateLab2Profile(null)!;
 
-    // ValidFloat2
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_8, hLab, TYPE_Lab_8, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_BLACKPOINTCOMPENSATION)!;
+            var xform2 = cmsCreateTransform(hLab, TYPE_Lab_8, hsRGB, TYPE_RGB_8, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE | cmsFLAGS_BLACKPOINTCOMPENSATION)!;
+
+            cmsCloseProfile(hsRGB);
+            cmsCloseProfile(hLab);
+
+            var In = new Scanline_rgb8bits[npixels];
+            var Out = new Scanline_rgb8bits[npixels];
+            Span<byte> lab = stackalloc byte[(int)npixels * 3];
+
+            var j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        In[j].r = (byte)r;
+                        In[j].g = (byte)g;
+                        In[j].b = (byte)b;
+
+                        j++;
+                    }
+                }
+            }
+
+            // Different transforms, different output buffers
+            cmsDoTransform(xform, In, lab, npixels);
+            cmsDoTransform(xform2, lab, Out, npixels);
+
+            // Lets compare results
+            j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        // Check for same values
+                        if (!Valid16Float(In[j].r, Out[j].r) ||
+                            !Valid16Float(In[j].g, Out[j].g) ||
+                            !Valid16Float(In[j].b, Out[j].b))
+                        {
+                            Fail("Conversion failed at ({0}, {1}, {2}) != ({3}, {4}, {5})",
+                                In[j].r, In[j].g, In[j].b,
+                                Out[j].r, Out[j].g, Out[j].b);
+                        }
+
+                        j++;
+                    }
+                }
+            }
+
+            cmsDeleteTransform(xform);
+            cmsDeleteTransform(xform2);
+
+            trace("Passed");
+        }
+    }
+
+    public static void CheckConversionFloat()
+    {
+        using (logger.BeginScope("Crash test"))
+        {
+            using (logger.BeginScope("Part 1"))
+                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, false);
+
+            using (logger.BeginScope("Part 2"))
+                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
+        }
+
+        using (logger.BeginScope("Crash (II) test"))
+        {
+            using (logger.BeginScope("Part 1"))
+                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, false);
+
+            using (logger.BeginScope("Part 2"))
+                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
+        }
+
+        using (logger.BeginScope("Crash (III) test"))
+        {
+            using (logger.BeginScope("Part 1"))
+                CheckUncommonValues(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
+
+            using (logger.BeginScope("Part 2"))
+                CheckUncommonValues(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+        }
+
+        using (logger.BeginScope("Check conversion to Lab"))
+        {
+            CheckToEncodedLab();
+            CheckToFloatLab();
+        }
+
+        using (logger.BeginScope("Check accuracy on Matrix-shaper"))
+            TryAllValuesFloat(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+
+        using (logger.BeginScope("Check accuracy of CLUT"))
+            TryAllValuesFloatVs16(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
+
+        using (logger.BeginScope("Check accuracy on same profile"))
+        {
+            TryAllValuesFloatVs16(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+            TryAllValuesFloat(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
+        }
+    }
 
     private static float distance(ReadOnlySpan<float> rgb1, ReadOnlySpan<float> rgb2)
     {

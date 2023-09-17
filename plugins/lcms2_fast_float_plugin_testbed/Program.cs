@@ -59,4 +59,8 @@ CheckChangeFormat();
 // Soft proofing
 CheckSoftProofing();
 
+// Floating point functionality
+CheckConversionFloat();
+trace("All floating point tests passed");
+
 Thread.Sleep(10);
