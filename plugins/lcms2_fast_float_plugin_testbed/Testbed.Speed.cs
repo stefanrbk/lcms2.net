@@ -14,12 +14,12 @@ internal static partial class Testbed
             var profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
             var profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
 
-            var n1 = fn1(ct1, profileIn, profileOut);
+            var n1 = MPixSec(fn1(ct1, profileIn, profileOut).TotalMilliseconds);
 
             profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
             profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
 
-            var n2 = fn2(ct2, profileIn, profileOut);
+            var n2 = MPixSec(fn2(ct2, profileIn, profileOut).TotalMilliseconds);
 
             trace("{1} MPixel/sec. (16 bit)\t{2} MPixel/sec. (float)", Title, n1, n2);
         }
@@ -659,4 +659,79 @@ internal static partial class Testbed
 
         cmsDeleteContext(noPlugin);
     }
+
+    private static TimeSpan SpeedTestFloatByUsing16BitsRGB(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var xform16 = cmsCreateTransform(profileIn, TYPE_RGB_16, profileOut, TYPE_RGB_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_rgbFloat[Mb];
+        var tmp16 = new Scanline_rgb16bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].r = r / 255.0f;
+                    In[j].g = g / 255.0f;
+                    In[j].b = b / 255.0f;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        for (j = 0; j < 256 * 256 * 256; j++)
+        {
+            tmp16[j].r = (ushort)Math.Floor(In[j].r * 65535.0 + 0.5);
+            tmp16[j].g = (ushort)Math.Floor(In[j].g * 65535.0 + 0.5);
+            tmp16[j].b = (ushort)Math.Floor(In[j].b * 65535.0 + 0.5);
+
+            j++; // TODO: why is this in the original?
+        }
+
+        cmsDoTransform(xform16, tmp16, tmp16, (uint)Mb);
+
+        for (j = 0; j < 256 * 256 * 256; j++)
+        {
+            In[j].r = (float)(tmp16[j].r / 65535.0);
+            In[j].g = (float)(tmp16[j].g / 65535.0);
+            In[j].b = (float)(tmp16[j].b / 65535.0);
+
+            j++; // TODO: why is this in the original?
+        }
+
+        atime.Stop();
+
+        cmsDeleteTransform(xform16);
+
+        return atime.Elapsed;
+    }
+
+    public static void ComparativeFloatVs16bits()
+    {
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        using (logger.BeginScope("Performance comparison"))
+        {
+            trace("C O M P A R A T I V E  converting to 16 bit vs. using float plug-in.\nvalues given in MegaPixels per second.");
+
+            Comparative("Floating point on CLUT profiles",          SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test3);
+            Comparative("Floating point on Matrix-Shaper profiles", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test0);
+            Comparative("Floating point on same Matrix-Shaper",     SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test0, TestProfiles.test0);
+            Comparative("Floating point on curves",                 SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, default, default);
+        }
+    }
+
 }
