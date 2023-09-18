@@ -25,3 +25,11 @@ jobs:
       #run: dotnet test --no-build --verbosity normal
     - name: Run Testbed
       run: dotnet run --project Testing --checks
+    - name: Build Fast Float Plugin
+      run: dotnet build lcms2.net/plugins/lcms2_fast_float_plugin/lcms2_fast_float_plugin.csproj --no-restore
+    - name: Build Fast Float Plugin Testbed
+      run: dotnet build lcms2.net/plugins/lcms2_fast_float_plugin_testbed/lcms2_fast_float_plugin_testbed.csproj --no-restore
+    #- name: Test
+      #run: dotnet test --no-build --verbosity normal
+    - name: Run Fast Float Plugin Testbed
+      run: dotnet run --project plugins/lcms2_fast_float_plugin_testbed
