@@ -34,43 +34,49 @@ internal static partial class Testbed
 
     private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Profile inICC, Profile outICC, long sz, TimeSpan prev)
     {
-        var profileIn = inICC;
-        var profileOut = outICC;
-
-        var n = fn(ct, profileIn, profileOut);
-
-        var prevMPix = MPixSec(prev.TotalMilliseconds);
-        var nMPix = MPixSec(n.TotalMilliseconds);
-        if (prevMPix > 0.0)
+        using (logger.BeginScope(Title))
         {
-            var imp = nMPix / prevMPix;
-            if (imp > 1)
-                trace("{0}: {1:F2} MPixel/sec. {2:F2} MByte/sec. (x {3:F1})", Title, nMPix, nMPix * sz, imp);
+            var profileIn = inICC;
+            var profileOut = outICC;
+
+            var n = fn(ct, profileIn, profileOut);
+
+            var prevMPix = MPixSec(prev.TotalMilliseconds);
+            var nMPix = MPixSec(n.TotalMilliseconds);
+            if (prevMPix > 0.0)
+            {
+                var imp = nMPix / prevMPix;
+                if (imp > 1)
+                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.\t(x {3:F1})", Title, nMPix, nMPix * sz, imp);
+                else
+                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+
+            }
             else
-                trace("{0}: {1:F2} MPixel/sec. {2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+            {
+                trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+            }
 
+            return n;
         }
-        else
-        {
-            trace("{0}: {1:F2} MPixel/sec. {2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
-        }
-
-        return n;
     }
 
     private static void ComparativeCt(Context? ct1, Context? ct2, string Title, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC)
     {
-        var profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
-        var profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
+        using (logger.BeginScope(Title))
+        {
+            var profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
+            var profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
 
-        var n1 = fn1(ct1, profileIn, profileOut);
+            var n1 = fn1(ct1, profileIn, profileOut);
 
-        profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
-        profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
+            profileIn = inICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(inICC)!;
+            profileOut = outICC.IsEmpty ? CreateCurves() : cmsOpenProfileFromMem(outICC)!;
 
-        var n2 = fn2(ct2, profileIn, profileOut);
+            var n2 = fn2(ct2, profileIn, profileOut);
 
-        trace("{0}: {1} MPixel/sec. (16 bit) {2} MPixel/sec. (float)", Title, n1, n2);
+            trace("{1} MPixel/sec. (16 bit)\t{2} MPixel/sec. (float)", Title, n1, n2);
+        }
     }
 
     private static void Comparative(string Title, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC) =>
