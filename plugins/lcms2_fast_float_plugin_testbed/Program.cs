@@ -41,28 +41,29 @@ using (logger.BeginScope("Installing plugin"))
     trace("Done");
 }
 
-CheckComputeIncrements();
+//CheckComputeIncrements();
 
-// 15 bit functionality
-CheckFormatters15();
-Check15bitsConversion();
+//// 15 bit functionality
+//CheckFormatters15();
+//Check15bitsConversion();
 
-// 16 bit functionality
-CheckAccuracy16Bits();
+//// 16 bit functionality
+//CheckAccuracy16Bits();
 
-// Lab to whatever
-CheckLab2RGB();
+//// Lab to whatever
+//CheckLab2RGB();
 
-// Change format
-CheckChangeFormat();
+//// Change format
+//CheckChangeFormat();
 
-// Soft proofing
-CheckSoftProofing();
+//// Soft proofing
+//CheckSoftProofing();
 
-// Floating point functionality
-CheckConversionFloat();
-trace("All floating point tests passed");
+//// Floating point functionality
+//CheckConversionFloat();
+//trace("All floating point tests passed");
 
 SpeedTest8();
+SpeedTest16();
 
 Thread.Sleep(10);

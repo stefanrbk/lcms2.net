@@ -115,6 +115,85 @@ internal static partial class Testbed
         return atime.Elapsed;
     }
 
+    private static TimeSpan SpeedTest16bitsRGB(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGB_16, profileOut, TYPE_RGB_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_rgb16bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].r = FROM_8_TO_16((uint)r);
+                    In[j].g = FROM_8_TO_16((uint)g);
+                    In[j].b = FROM_8_TO_16((uint)b);
+                                
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private static TimeSpan SpeedTest16bitsCMYK(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_CMYK_16, profileOut, TYPE_CMYK_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_cmyk16bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].c = (ushort)r;
+                    In[j].m = (ushort)g;
+                    In[j].y = (ushort)b;
+                    In[j].k = (ushort)r;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
     public static void SpeedTest8()
     {
         var size_rgb8bits = Unsafe.SizeOf<Scanline_rgb8bits>();
@@ -125,7 +204,7 @@ internal static partial class Testbed
 
         TimeSpan t0, t1, t2, t3;
 
-        using (logger.BeginScope("8bit performance tests"))
+        using (logger.BeginScope("8 bit performance"))
         {
             using (logger.BeginScope("Default"))
             {
@@ -150,6 +229,50 @@ internal static partial class Testbed
                 Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test5, TestProfiles.test0, size_rgb8bits, t1);
                 Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test0, TestProfiles.test0, size_rgb8bits, t2);
                 Performance("8 bits on curves", SpeedTest8bitsRGB, null, "*curves", "*curves", size_rgb8bits, t3);
+            }
+        }
+
+        cmsDeleteContext(noPlugin);
+    }
+
+    public static void SpeedTest16()
+    {
+        var size_rgb16bits = Unsafe.SizeOf<Scanline_rgb16bits>();
+        var size_cmyk16bits = Unsafe.SizeOf<Scanline_cmyk16bits>();
+
+        var noPlugin = cmsCreateContext();
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        TimeSpan t0, t1, t2, t3, t4;
+
+        using (logger.BeginScope("16 bit performance"))
+        {
+            using (logger.BeginScope("Default"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   1 6  B I T S  (D E F A U L T)");
+
+                t0 = Performance("16 bits on CLUT profiles",          SpeedTest16bitsRGB,  noPlugin, TestProfiles.test5, TestProfiles.test3, size_rgb16bits,  default);
+                t1 = Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB,  noPlugin, TestProfiles.test5, TestProfiles.test0, size_rgb16bits,  default);
+                t2 = Performance("16 bits on same Matrix-Shaper",     SpeedTest16bitsRGB,  noPlugin, TestProfiles.test0, TestProfiles.test0, size_rgb16bits,  default);
+                t3 = Performance("16 bits on curves",                 SpeedTest16bitsRGB,  noPlugin, "*curves",     "*curves",   size_rgb16bits,  default);
+                t4 = Performance("16 bits on CMYK CLUT profiles",     SpeedTest16bitsCMYK, noPlugin, TestProfiles.test1, TestProfiles.test2, size_cmyk16bits, default);
+            }
+
+            Thread.Sleep(10);
+            Console.WriteLine();
+
+            // Note that context null has the plug-in installed
+
+            using (logger.BeginScope("Plugin"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   1 6  B I T S  (P L U G I N)");
+
+                Performance("16 bits on CLUT profiles",          SpeedTest16bitsRGB,  null, TestProfiles.test5, TestProfiles.test3, size_rgb16bits,  t0);
+                Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB,  null, TestProfiles.test5, TestProfiles.test0, size_rgb16bits,  t1);
+                Performance("16 bits on same Matrix-Shaper",     SpeedTest16bitsRGB,  null, TestProfiles.test0, TestProfiles.test0, size_rgb16bits,  t2);
+                Performance("16 bits on curves",                 SpeedTest16bitsRGB,  null, "*curves",     "*curves",   size_rgb16bits,  t3);
+                Performance("16 bits on CMYK CLUT profiles",     SpeedTest16bitsCMYK, null, TestProfiles.test1, TestProfiles.test2, size_cmyk16bits, t4);
             }
         }
 
