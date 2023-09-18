@@ -655,16 +655,16 @@ public static partial class Lcms2
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
-                if (memcmp<ushort>(wIn, Cache.CacheIn) is 0)
+                if (memcmp(wIn.AsSpan(..cmsMAXCHANNELS), Cache.CacheIn.AsSpan(..cmsMAXCHANNELS)) is 0)
                 {
-                    memcpy<ushort>(wOut, Cache.CacheOut);
+                    memcpy(wOut.AsSpan(..cmsMAXCHANNELS), Cache.CacheOut.AsSpan(..cmsMAXCHANNELS));
                 }
                 else
                 {
                     p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
 
-                    memcpy<ushort>(Cache.CacheIn, wIn);
-                    memcpy<ushort>(Cache.CacheOut, wOut);
+                    memcpy(Cache.CacheIn.AsSpan(..cmsMAXCHANNELS), wIn.AsSpan(..cmsMAXCHANNELS));
+                    memcpy(Cache.CacheOut.AsSpan(..cmsMAXCHANNELS), wOut.AsSpan(..cmsMAXCHANNELS));
                 }
 
                 output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
@@ -676,6 +676,8 @@ public static partial class Lcms2
 
         ReturnArray(pool, wIn);
         ReturnArray(pool, wOut);
+        ReturnArray(pool, Cache.CacheIn);
+        ReturnArray(pool, Cache.CacheOut);
     }
 
     private static void CachedXFORMGamutCheck(
@@ -717,16 +719,16 @@ public static partial class Lcms2
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
-                if (memcmp(wIn, Cache.CacheIn) is 0)
+                if (memcmp(wIn.AsSpan(..cmsMAXCHANNELS), Cache.CacheIn.AsSpan(..cmsMAXCHANNELS)) is 0)
                 {
-                    memcpy(wOut, Cache.CacheOut);
+                    memcpy(wOut.AsSpan(..cmsMAXCHANNELS), Cache.CacheOut.AsSpan(..cmsMAXCHANNELS));
                 }
                 else
                 {
                     TransformOnePixelWithGamutCheck(p, wIn, wOut);
 
-                    memcpy(Cache.CacheIn, wIn);
-                    memcpy(Cache.CacheOut, wOut);
+                    memcpy(Cache.CacheIn.AsSpan(..cmsMAXCHANNELS), wIn.AsSpan(..cmsMAXCHANNELS));
+                    memcpy(Cache.CacheOut.AsSpan(..cmsMAXCHANNELS), wOut.AsSpan(..cmsMAXCHANNELS));
                 }
 
                 output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
@@ -738,6 +740,8 @@ public static partial class Lcms2
 
         ReturnArray(pool, wIn);
         ReturnArray(pool, wOut);
+        ReturnArray(pool, Cache.CacheIn);
+        ReturnArray(pool, Cache.CacheOut);
     }
 
     internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>
@@ -812,45 +816,6 @@ public static partial class Lcms2
         return true;
     }
 
-    internal static void _cmsSetTransformUserData(Transform CMMcargo, object? ptr, FreeManagedUserDataFn? FreePrivateDataFn)
-    {
-        _cmsAssert(CMMcargo);
-        CMMcargo.UserData = ptr;
-        CMMcargo.FreeUserData = FreePrivateDataFn;
-    }
-
-    internal static object? _cmsGetTransformUserData(Transform CMMcargo)
-    {
-        _cmsAssert(CMMcargo);
-        return CMMcargo.UserData;
-    }
-
-    internal static void _cmsGetTransformFormatters16(
-        Transform CMMcargo,
-        out Formatter16In FromInput,
-        out Formatter16Out ToOutput)
-    {
-        _cmsAssert(CMMcargo);
-        FromInput = CMMcargo.FromInput;
-        ToOutput = CMMcargo.ToOutput;
-    }
-
-    internal static void _cmsGetTransformFormattersFloat(
-        Transform CMMcargo,
-        out FormatterFloatIn FromInput,
-        out FormatterFloatOut ToOutput)
-    {
-        _cmsAssert(CMMcargo);
-        FromInput = CMMcargo.FromInputFloat;
-        ToOutput = CMMcargo.ToOutputFloat;
-    }
-
-    internal static uint _cmsGetTransformFlags(Transform CMMcargo)
-    {
-        _cmsAssert(CMMcargo);
-        return CMMcargo.dwOriginalFlags;
-    }
-
     private static Transform? AllocEmptyTransform(
         Context? ContextID,
         Pipeline? lut,
@@ -897,7 +862,7 @@ public static partial class Lcms2
 
                     if (Plugin.OldXform)
                     {
-                        if (Plugin.OldFactory(out p.OldXform, out p.UserData, out p.FreeUserData, ref p.Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+                        if (Plugin.OldFactory(out p.OldXform, out p.UserData, out p.FreeUserData, ref p.Lut, ref p.InputFormat, ref p.OutputFormat, ref p.dwOriginalFlags))
                         {
                             p.xform = _cmsTransform2toTransformAdaptor;
                             return p;
@@ -905,7 +870,7 @@ public static partial class Lcms2
                     }
                     else
                     {
-                        if (Plugin.Factory(out p.xform, out p.UserData, out p.FreeUserData, ref p.Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
+                        if (Plugin.Factory(out p.xform, out p.UserData, out p.FreeUserData, ref p.Lut, ref p.InputFormat, ref p.OutputFormat, ref p.dwOriginalFlags))
                         {
                             // Last plugin in the declaration order takes control. We just keep
                             // the original parameters as a logging.

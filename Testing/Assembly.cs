@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,6 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using static lcms2.Lcms2;
-global using static lcms2.Plugin;
-global using static lcms2.testbed.Testbed;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("lcms2_fast_float_plugin_testbed")]

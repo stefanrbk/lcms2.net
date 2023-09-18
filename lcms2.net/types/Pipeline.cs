@@ -38,8 +38,8 @@ public class Pipeline(Context? contextID, uint inputChans, uint outputChans, Pip
 
     internal PipelineEval16Fn Eval16Fn = eval16;
     internal PipelineEvalFloatFn EvalFloatFn = evalFloat;
-    internal FreeManagedUserDataFn? FreeDataFn;
-    internal DupManagedUserDataFn? DupDataFn;
+    internal FreeUserDataFn? FreeDataFn;
+    internal DupUserDataFn? DupDataFn;
 
     internal Context? ContextID = contextID;
     internal bool SaveAs8Bits;

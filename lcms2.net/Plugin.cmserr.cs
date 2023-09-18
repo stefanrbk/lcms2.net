@@ -24,51 +24,28 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using System.Buffers;
 using System.Diagnostics;
 
-namespace lcms2.state;
+using Microsoft.Extensions.Logging;
 
-[DebuggerStepThrough]
-public class Context
+using lcms2.state;
+
+namespace lcms2;
+public static partial class Plugin
 {
-    private readonly List<object> BufferPools = new();
-    //internal MemPluginChunkType DefaultMemoryManager;
-    internal object? UserData;
-    internal LogErrorChunkType ErrorLogger;
-    internal AlarmCodesChunkType AlarmCodes;
-    internal AdaptationStateChunkType AdaptationState;
-    //internal MemPluginChunkType MemPlugin;
-    internal InterpPluginChunkType InterpPlugin;
-    internal CurvesPluginChunkType CurvesPlugin;
-    internal FormattersPluginChunkType FormattersPlugin;
-    internal TagTypePluginChunkType TagTypePlugin;
-    internal TagPluginChunkType TagPlugin;
-    internal IntentsPluginChunkType IntentsPlugin;
-    internal TagTypePluginChunkType MPEPlugin;
-    internal OptimizationPluginChunkType OptimizationPlugin;
-    internal TransformPluginChunkType TransformPlugin;
-    internal MutexPluginChunkType MutexPlugin;
-
-    public ArrayPool<T> GetBufferPool<T>()
+    /// <summary>
+    ///     Log an error
+    /// </summary>
+    /// <param name="text">English description of the error in String.Format format</param>
+    [DebuggerStepThrough]
+    public static void cmsSignalError(Context? ContextID, EventId errorCode, string text, params object?[] args)
     {
-        lock (BufferPools)
-        {
-            foreach (var pool in BufferPools)
-            {
-                if (pool is ArrayPool<T> foundPool)
-                    return foundPool;
-            }
+        // Check for the context, if specified go there. If not, go for the global
+        var lhg = GetLogger(ContextID);
+        text = String.Format(text, args);
+        if (text.Length > MaxErrorMessageLen)
+            text = text.Remove(MaxErrorMessageLen);
 
-            var newPool = ArrayPool<T>.Create();
-
-            BufferPools.Add(newPool);
-
-            return newPool;
-        }
+        lhg.LogError(errorCode, "{ErrorText}", text);
     }
-
-    public static ArrayPool<T> GetPool<T>(Context? context) =>
-        _cmsGetContext(context).GetBufferPool<T>();
 }

@@ -25,8 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 global using static lcms2.Lcms2;
+global using static lcms2.Plugin;
 
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Testbed")]
 [assembly: InternalsVisibleTo("UnitTests")]
+[assembly: InternalsVisibleTo("lcms2_fast_float_plugin")]
+[assembly: InternalsVisibleTo("lcms2_fast_float_plugin_testbed")]

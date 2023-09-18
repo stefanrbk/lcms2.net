@@ -380,7 +380,7 @@ public static partial class Lcms2
         return false;
     }
 
-    private static Pipeline? DefaultICCintents(
+    internal static Pipeline? DefaultICCintents(
         Context? ContextID,
         uint nProfiles,
         ReadOnlySpan<uint> TheIntents,
@@ -504,16 +504,6 @@ public static partial class Lcms2
         if (Result is not null) cmsPipelineFree(Result);
         return null;
     }
-
-    internal static Pipeline? _cmsDefaultICCintents(
-        Context? ContextID,
-        uint nProfiles,
-        ReadOnlySpan<uint> TheIntents,
-        Profile[] Profiles,
-        ReadOnlySpan<bool> BPC,
-        ReadOnlySpan<double> AdaptationStates,
-        uint dwFlags) =>
-        DefaultICCintents(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
 
     private static uint TranslateNonICCIntents(uint Intent) =>
         Intent switch

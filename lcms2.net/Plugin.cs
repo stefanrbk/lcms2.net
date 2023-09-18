@@ -24,21 +24,29 @@
 //
 //---------------------------------------------------------------------------------
 //
-
-using lcms2.io;
-using lcms2.state;
-using lcms2.types;
-
-using Microsoft.Extensions.Logging;
-
 namespace lcms2;
-
-public static partial class Lcms2
+public static partial class Plugin
 {
-    public delegate void LogErrorHandlerFunction(Context? ContextID, EventId ErrorCode, string Text);
-    public delegate bool SAMPLER16(ReadOnlySpan<ushort> In, Span<ushort> Out, object? Cargo);
-    public delegate bool SAMPLERFLOAT(ReadOnlySpan<float> In, Span<float> Out, object? Cargo);
-    internal delegate bool PositionTableEntryFn(TagTypeHandler self, IOHandler io, object? Cargo, uint n, uint SizeOfTag);
+    public const int VX = 0;
+    public const int VY = 1;
+    public const int VZ = 2;
 
-    internal delegate void FormatterAlphaFn(Span<byte> dst, ReadOnlySpan<byte> src);
+    public const uint cmsPluginMagicNumber = 0x61637070;              // 'acpp'
+
+    public const uint cmsPluginMemHandlerSig = 0x6D656D48;            // 'memH'
+    public const uint cmsPluginInterpolationSig = 0x696E7048;         // 'inpH'
+    public const uint cmsPluginParametricCurveSig = 0x70617248;       // 'parH'
+    public const uint cmsPluginFormattersSig = 0x66726D48;            // 'frmH
+    public const uint cmsPluginTagTypeSig = 0x74797048;               // 'typH'
+    public const uint cmsPluginTagSig = 0x74616748;                   // 'tagH'
+    public const uint cmsPluginRenderingIntentSig = 0x696E7448;       // 'intH'
+    public const uint cmsPluginMultiProcessElementSig = 0x6D706548;   // 'mpeH'
+    public const uint cmsPluginOptimizationSig = 0x6F707448;          // 'optH'
+    public const uint cmsPluginTransformSig = 0x7A666D48;             // 'xfmH'
+    public const uint cmsPluginMutexSig = 0x6D747A48;                 // 'mtxH'
+
+    public const byte MAX_TYPES_IN_LCMS_PLUGIN = 20;
+
+    public const byte MAX_INPUT_DIMENSIONS = 15;
+
 }
