@@ -415,4 +415,248 @@ internal static partial class Testbed
 
         cmsDeleteContext(noPlugin);
     }
+
+    private static TimeSpan SpeedTestFloatRGB(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var inFormatter = 0u;
+        switch ((uint)cmsGetColorSpace(profileIn))
+        {
+            case cmsSigRgbData: inFormatter = TYPE_RGB_FLT; break;
+            case cmsSigLabData: inFormatter = TYPE_Lab_FLT; break;
+
+            default:
+                Fail("Invalid colorspace");
+                break;
+        }
+
+        var outFormatter = 0u;
+        switch ((uint)cmsGetColorSpace(profileOut))
+        {
+            case cmsSigRgbData: outFormatter = TYPE_RGB_FLT; break;
+            case cmsSigLabData: outFormatter = TYPE_Lab_FLT; break;
+            case cmsSigXYZData: outFormatter = TYPE_XYZ_FLT; break;
+
+            default:
+                Fail("Invalid colorspace");
+                break;
+        }
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, inFormatter, profileOut, outFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        if (inFormatter == TYPE_RGB_FLT)
+        {
+            var Mb = 256 * 256 * 256;
+            var fill = new Scanline_rgbFloat[Mb];
+
+            var j = 0;
+            for (var r = 0; r < 256; r++)
+            {
+                for (var g = 0; g < 256; g++)
+                {
+                    for (var b = 0; b < 256; b++)
+                    {
+                        fill[j].r = r / 255.0f;
+                        fill[j].g = g / 255.0f;
+                        fill[j].b = b / 255.0f;
+
+                        j++;
+                    }
+                }
+            }
+
+            var atime = Stopwatch.StartNew();
+
+            cmsDoTransform(lcmsxform, fill, fill, (uint)Mb);
+
+            atime.Stop();
+
+            cmsDeleteTransform(lcmsxform);
+
+            return atime.Elapsed;
+        }
+        else
+        {
+            var Mb = 100 * 256 * 256;
+            var fill = new Scanline_LabFloat[Mb];
+
+            var j = 0;
+            for (var L = 0; L < 100; L++)
+            {
+                for (var a = -127.0f; a < 127.0f; a++)
+                {
+                    for (var b = -127.0f; b < 127.0f; b++)
+                    {
+                        fill[j].L = L;
+                        fill[j].a = a;
+                        fill[j].b = b;
+
+                        j++;
+                    }
+                }
+            }
+
+            var atime = Stopwatch.StartNew();
+
+            cmsDoTransform(lcmsxform, fill, fill, (uint)Mb);
+
+            atime.Stop();
+
+            cmsDeleteTransform(lcmsxform);
+
+            return atime.Elapsed;
+        }
+    }
+
+    private static TimeSpan SpeedTestFloatCMYK(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_CMYK_FLT, profileOut, TYPE_CMYK_FLT, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 64 * 64 * 64 * 64;
+        var In = new Scanline_cmykFloat[Mb];
+
+        var j = 0;
+        for (var c = 0; c < 256; c += 4)
+        {
+            for (var m = 0; m < 256; m += 4)
+            {
+                for (var y = 0; y < 256; y += 4)
+                {
+                    for (var k = 0; k < 256; k += 4)
+                    {
+                        In[j].c = (ushort)c;
+                        In[j].m = (ushort)m;
+                        In[j].y = (ushort)y;
+                        In[j].k = (ushort)k;
+
+                        j++;
+                    }
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private static TimeSpan SpeedTestFloatLab(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        if ((uint)cmsGetColorSpace(profileIn) is not cmsSigLabData)
+            Fail("Invalid colorspace");
+
+        var outFormatter = 0u;
+        switch ((uint)cmsGetColorSpace(profileOut))
+        {
+            case cmsSigRgbData: outFormatter = TYPE_RGB_FLT; break;
+            case cmsSigLabData: outFormatter = TYPE_Lab_FLT; break;
+            case cmsSigXYZData: outFormatter = TYPE_XYZ_FLT; break;
+
+            default:
+                Fail("Invalid colorspace");
+                break;
+        }
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_Lab_FLT, profileOut, outFormatter, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 100 * 256 * 256;
+        var fill = new Scanline_LabFloat[Mb];
+
+        var j = 0;
+        for (var L = 0; L < 100; L++)
+        {
+            for (var a = -127.0f; a < 127.0f; a++)
+            {
+                for (var b = -127.0f; b < 127.0f; b++)
+                {
+                    fill[j].L = L;
+                    fill[j].a = a;
+                    fill[j].b = b;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, fill, fill, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    public static void SpeedTestFloat()
+    {
+        var size_rgbFloat = Unsafe.SizeOf<Scanline_rgbFloat>();
+        var size_cmykFloat = Unsafe.SizeOf<Scanline_cmykFloat>();
+        var size_LabFloat = Unsafe.SizeOf<Scanline_LabFloat>();
+
+        var noPlugin = cmsCreateContext();
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        TimeSpan t0, t1, t2, t3, t4, t5, t6, t7;
+
+        using (logger.BeginScope("Floating point performance"))
+        {
+            using (logger.BeginScope("Default"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   F L O A T  (D E F A U L T)");
+
+                t0 = Performance("Floating point on CLUT profiles",          SpeedTestFloatRGB,  noPlugin, TestProfiles.test5, TestProfiles.test3, size_rgbFloat, default);
+                t1 = Performance("Floating point on Matrix-Shaper profiles", SpeedTestFloatRGB,  noPlugin, TestProfiles.test5, TestProfiles.test0, size_rgbFloat, default);
+                t2 = Performance("Floating point on same Matrix-Shaper",     SpeedTestFloatRGB,  noPlugin, TestProfiles.test0, TestProfiles.test0, size_rgbFloat, default);
+                t3 = Performance("Floating point on curves",                 SpeedTestFloatRGB,  noPlugin, "*curves", "*curves", size_rgbFloat, default);
+                t4 = Performance("Floating point on RGB->Lab",               SpeedTestFloatRGB,  noPlugin, TestProfiles.test5, "*lab", size_rgbFloat, default);
+                t5 = Performance("Floating point on RGB->XYZ",               SpeedTestFloatRGB,  noPlugin, TestProfiles.test3, "*xyz", size_rgbFloat, default);
+                t6 = Performance("Floating point on CMYK->CMYK",             SpeedTestFloatCMYK, noPlugin, TestProfiles.test1, TestProfiles.test2, size_cmykFloat, default);
+                t7 = Performance("Floating point on Lab->RGB",               SpeedTestFloatLab,  noPlugin, "*lab", TestProfiles.test3, size_LabFloat, default);
+            }
+
+            Thread.Sleep(10);
+            Console.WriteLine();
+
+            // Note that context null has the plug-in installed
+
+            using (logger.BeginScope("Plugin"))
+            {
+                trace("P E R F O R M A N C E   T E S T S  F L O A T  (P L U G I N)");
+
+                Performance("Floating point on CLUT profiles",          SpeedTestFloatRGB,  null, TestProfiles.test5, TestProfiles.test3, size_rgbFloat, t0);
+                Performance("Floating point on Matrix-Shaper profiles", SpeedTestFloatRGB,  null, TestProfiles.test5, TestProfiles.test0, size_rgbFloat, t1);
+                Performance("Floating point on same Matrix-Shaper",     SpeedTestFloatRGB,  null, TestProfiles.test0, TestProfiles.test0, size_rgbFloat, t2);
+                Performance("Floating point on curves",                 SpeedTestFloatRGB,  null, "*curves",     "*curves", size_rgbFloat, t3);
+                Performance("Floating point on RGB->Lab",               SpeedTestFloatRGB,  null, TestProfiles.test5, "*lab", size_rgbFloat, t4);
+                Performance("Floating point on RGB->XYZ",               SpeedTestFloatRGB,  null, TestProfiles.test3, "*xyz", size_rgbFloat, t5);
+                Performance("Floating point on CMYK->CMYK",             SpeedTestFloatCMYK, null, TestProfiles.test1, TestProfiles.test2, size_cmykFloat, t6);
+                Performance("Floating point on Lab->RGB",               SpeedTestFloatLab,  null, "*lab",        TestProfiles.test3, size_LabFloat, t7);
+            }
+        }
+
+        cmsDeleteContext(noPlugin);
+    }
 }

@@ -148,14 +148,14 @@ internal static partial class Testbed
             {
                 var imp = nMPix / prevMPix;
                 if (imp > 1)
-                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.\t(x {3:F1})", Title, nMPix, nMPix * sz, imp);
+                    trace("{1:F2} MPixel/sec. \t{2:F2} MByte/sec. \t(x {3:F1})", Title, nMPix, nMPix * sz, imp);
                 else
-                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+                    trace("{1:F2} MPixel/sec. \t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
 
             }
             else
             {
-                trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+                trace("{1:F2} MPixel/sec. \t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
             }
 
             return n;
