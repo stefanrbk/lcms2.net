@@ -871,4 +871,76 @@ internal static partial class Testbed
         cmsDeleteContext(NoPlugin);
         cmsDeleteContext(Plugin);
     }
+
+    public static void TestGrayTransformPerformance()
+    {
+        using (logger.BeginScope("Gray conversion using two gray profiles"))
+        {
+            var gamma18 = cmsBuildGamma(null, 1.8)!;
+            var gamma22 = cmsBuildGamma(null, 2.2)!;
+
+            var profileIn = cmsCreateGrayProfile(null, gamma18)!;
+            var profileOut = cmsCreateGrayProfile(null, gamma22)!;
+
+            cmsFreeToneCurve(gamma18);
+            cmsFreeToneCurve(gamma22);
+
+            var lcmsxform = cmsCreateTransform(profileIn, TYPE_GRAY_FLT | EXTRA_SH(1), profileOut, TYPE_GRAY_FLT | EXTRA_SH(1), INTENT_PERCEPTUAL, 0)!;
+            cmsCloseProfile(profileIn);
+            cmsCloseProfile(profileOut);
+
+            var pixels = 256 * 256 * 256;
+            var Mb = pixels * 2;
+            var In = new float[Mb];
+
+            for (var j = 0; j < Mb; j++)
+                In[j] = j % 256 / 255.0f;
+
+            var atime = Stopwatch.StartNew();
+
+            cmsDoTransform(lcmsxform, In, In, (uint)pixels);
+
+            atime.Stop();
+
+            cmsDeleteTransform(lcmsxform);
+
+            trace("{0:F2} MPixels/Sec.", MPixSec(atime.Elapsed.TotalMilliseconds));
+        }
+    }
+
+    public static void TestGrayTransformPerformance1()
+    {
+        using (logger.BeginScope("Gray conversion using two devicelinks"))
+        {
+            var gamma18 = new ToneCurve[] { cmsBuildGamma(null, 1.8)! };
+            var gamma22 = new ToneCurve[] { cmsBuildGamma(null, 2.2)! };
+
+            var profileIn = cmsCreateLinearizationDeviceLink(cmsSigGrayData, gamma18)!;
+            var profileOut = cmsCreateLinearizationDeviceLink(cmsSigGrayData, gamma22)!;
+
+            cmsFreeToneCurve(gamma18[0]);
+            cmsFreeToneCurve(gamma22[0]);
+
+            var lcmsxform = cmsCreateTransform(profileIn, TYPE_GRAY_FLT, profileOut, TYPE_GRAY_FLT, INTENT_PERCEPTUAL, 0)!;
+            cmsCloseProfile(profileIn);
+            cmsCloseProfile(profileOut);
+
+            var pixels = 256 * 256 * 256;
+            var Mb = pixels;
+            var In = new float[Mb];
+
+            for (var j = 0; j < pixels; j++)
+                In[j] = j % 256 / 255.0f;
+
+            var atime = Stopwatch.StartNew();
+
+            cmsDoTransform(lcmsxform, In, In, (uint)pixels);
+
+            atime.Stop();
+
+            cmsDeleteTransform(lcmsxform);
+
+            trace("{0:F2} MPixels/Sec.", MPixSec(atime.Elapsed.TotalMilliseconds));
+        }
+    }
 }

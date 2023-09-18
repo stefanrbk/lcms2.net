@@ -71,4 +71,17 @@ SpeedTestFloat();
 ComparativeFloatVs16bits();
 ComparativeLineStride8bits();
 
+using (logger.BeginScope("Gray performance"))
+{
+    Thread.Sleep(10);
+    Console.WriteLine();
+
+    trace("F L O A T   G R A Y   conversions performance.");
+
+    TestGrayTransformPerformance();
+    TestGrayTransformPerformance1();
+}
+
+trace("All tests passed!");
+
 Thread.Sleep(10);
