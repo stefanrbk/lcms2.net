@@ -65,5 +65,6 @@ using (logger.BeginScope("Installing plugin"))
 
 SpeedTest8();
 SpeedTest16();
+SpeedTest15();
 
 Thread.Sleep(10);

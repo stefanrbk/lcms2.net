@@ -67,6 +67,165 @@ internal static partial class Testbed
         return atime.Elapsed;
     }
 
+    private static TimeSpan SpeedTest8bitsRGBA(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGBA_8, profileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_rgba8bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].r = (byte)r;
+                    In[j].g = (byte)g;
+                    In[j].b = (byte)b;
+                    In[j].a = 0;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private static TimeSpan SpeedTest15bitsRGB(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGB_15, profileOut, TYPE_RGB_15, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_rgb15bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].r = (ushort)r;
+                    In[j].g = (ushort)g;
+                    In[j].b = (ushort)b;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private static TimeSpan SpeedTest15bitsRGBA(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGBA_15, profileOut, TYPE_RGBA_15, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_rgba15bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].r = (ushort)r;
+                    In[j].g = (ushort)g;
+                    In[j].b = (ushort)b;
+                    In[j].a = 0;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private static TimeSpan SpeedTest15bitsCMYK(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_CMYK_15, profileOut, TYPE_CMYK_15, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = 256 * 256 * 256;
+        var In = new Scanline_cmyk15bits[Mb];
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In[j].c = (ushort)r;
+                    In[j].m = (ushort)g;
+                    In[j].y = (ushort)b;
+                    In[j].k = 0;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransform(lcmsxform, In, In, (uint)Mb);
+
+        atime.Stop();
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
     private static TimeSpan SpeedTest16bitsRGB(Context? ct, Profile profileIn, Profile profileOut)
     {
         if (profileIn is null || profileOut is null)
@@ -181,6 +340,32 @@ internal static partial class Testbed
                 Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test5, TestProfiles.test0, size_rgb8bits, t1);
                 Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, null, TestProfiles.test0, TestProfiles.test0, size_rgb8bits, t2);
                 Performance("8 bits on curves", SpeedTest8bitsRGB, null, "*curves", "*curves", size_rgb8bits, t3);
+            }
+        }
+
+        cmsDeleteContext(noPlugin);
+    }
+
+    public static void SpeedTest15()
+    {
+        var size_rgb15bits = Unsafe.SizeOf<Scanline_rgb15bits>();
+        var size_cmyk15bits = Unsafe.SizeOf<Scanline_cmyk15bits>();
+
+        var noPlugin = cmsCreateContext();
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        using (logger.BeginScope("15 bit performance"))
+        {
+            using (logger.BeginScope("Plugin"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   1 5  B I T S  (P L U G I N)");
+
+                Performance("15 bits on CLUT profiles", SpeedTest15bitsRGB, null, TestProfiles.test5, TestProfiles.test3, size_rgb15bits, default);
+                Performance("15 bits on Matrix-Shaper profiles", SpeedTest15bitsRGB, null, TestProfiles.test5, TestProfiles.test0, size_rgb15bits, default);
+                Performance("15 bits on same Matrix-Shaper", SpeedTest15bitsRGB, null, TestProfiles.test0, TestProfiles.test0, size_rgb15bits, default);
+                Performance("15 bits on curves", SpeedTest15bitsRGB, null, "*curves", "*curves", size_rgb15bits, default);
+                Performance("15 bits on CMYK CLUT profiles", SpeedTest15bitsCMYK, null, TestProfiles.test1, TestProfiles.test2, size_cmyk15bits, default);
             }
         }
 
