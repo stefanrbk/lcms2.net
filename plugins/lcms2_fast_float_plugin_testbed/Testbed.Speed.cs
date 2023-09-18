@@ -3,11 +3,12 @@ using lcms2.types;
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
-    private static void ComparativeCt(Context? ct1, Context? ct2, string Title, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC)
+    private static void ComparativeCt(Context? ct1, Context? ct2, string Title, string lbl1, string lbl2, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC)
     {
         using (logger.BeginScope(Title))
         {
@@ -21,12 +22,12 @@ internal static partial class Testbed
 
             var n2 = MPixSec(fn2(ct2, profileIn, profileOut).TotalMilliseconds);
 
-            trace("{1} MPixel/sec. (16 bit)\t{2} MPixel/sec. (float)", Title, n1, n2);
+            trace("({2}) {0:F2} MPixel/sec. \t({3}) {1:F2} MPixel/sec.", n1, n2, lbl1, lbl2);
         }
     }
 
-    private static void Comparative(string Title, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC) =>
-        ComparativeCt(null, null, Title, fn1, fn2, inICC, outICC);
+    private static void Comparative(string Title, string lbl1, string lbl2, perf_fn fn1, perf_fn fn2, Memory<byte> inICC, Memory<byte> outICC) =>
+        ComparativeCt(null, null, Title, lbl1, lbl2, fn1, fn2, inICC, outICC);
 
     private static TimeSpan SpeedTest8bitsRGB(Context? ct, Profile profileIn, Profile profileOut)
     {
@@ -727,11 +728,147 @@ internal static partial class Testbed
         {
             trace("C O M P A R A T I V E  converting to 16 bit vs. using float plug-in.\nvalues given in MegaPixels per second.");
 
-            Comparative("Floating point on CLUT profiles",          SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test3);
-            Comparative("Floating point on Matrix-Shaper profiles", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test0);
-            Comparative("Floating point on same Matrix-Shaper",     SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test0, TestProfiles.test0);
-            Comparative("Floating point on curves",                 SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, default, default);
+            Comparative("Floating point on CLUT profiles",          "16 bit", "float", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test3);
+            Comparative("Floating point on Matrix-Shaper profiles", "16 bit", "float", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test5, TestProfiles.test0);
+            Comparative("Floating point on same Matrix-Shaper",     "16 bit", "float", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, TestProfiles.test0, TestProfiles.test0);
+            Comparative("Floating point on curves",                 "16 bit", "float", SpeedTestFloatByUsing16BitsRGB, SpeedTestFloatRGB, default, default);
         }
     }
 
+    private unsafe struct line
+    {
+        private fixed byte _pixels[256 * 256 * 4];
+        private fixed byte padding[4];
+
+        public Scanline_rgba8bits* pixels(int a, int b)
+        {
+            fixed (void* ptr = _pixels)
+            return &((Scanline_rgba8bits*)ptr)[a * 256 + b];
+        }
+    }
+
+    private unsafe struct big_bitmap
+    {
+        private fixed byte _line[256*(256*256*4+4)];
+
+        public line* line(int i)
+        {
+            fixed (void* ptr = _line)
+                return &((line*)ptr)[i];
+        }
+    }
+
+    private unsafe static TimeSpan SpeedTest8bitDoTransform(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGBA_8, profileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = Unsafe.SizeOf<big_bitmap>();
+
+        var In = (big_bitmap*)NativeMemory.Alloc((nuint)Mb);
+        var Out = (big_bitmap*)NativeMemory.Alloc((nuint)Mb);
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In->line(r)->pixels(g, b)->r = (byte)r;
+                    In->line(r)->pixels(g, b)->g = (byte)g;
+                    In->line(r)->pixels(g, b)->b = (byte)b;
+                    In->line(r)->pixels(g, b)->a = 0;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        for (j = 0; j < 256; j++)
+            cmsDoTransform(lcmsxform, new Span<Scanline_rgba8bits>(In->line(j)->pixels(0, 0),256*256), new Span<Scanline_rgba8bits>(Out->line(j)->pixels(0, 0), 256 * 256), 256*256);
+
+        atime.Stop();
+
+        NativeMemory.Free(In);
+        NativeMemory.Free(Out);
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    private unsafe static TimeSpan SpeedTest8bitLineStride(Context? ct, Profile profileIn, Profile profileOut)
+    {
+        if (profileIn is null || profileOut is null)
+            Fail("Unable to open profiles");
+
+        var lcmsxform = cmsCreateTransformTHR(ct, profileIn, TYPE_RGBA_8, profileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        var Mb = Unsafe.SizeOf<big_bitmap>();
+
+        var In = (big_bitmap*)NativeMemory.Alloc((nuint)Mb);
+        var Out = (big_bitmap*)NativeMemory.Alloc((nuint)Mb);
+
+        var j = 0;
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    In->line(r)->pixels(g, b)->r = (byte)r;
+                    In->line(r)->pixels(g, b)->g = (byte)g;
+                    In->line(r)->pixels(g, b)->b = (byte)b;
+                    In->line(r)->pixels(g, b)->a = 0;
+
+                    j++;
+                }
+            }
+        }
+
+        var atime = Stopwatch.StartNew();
+
+        cmsDoTransformLineStride(lcmsxform, new Span<byte>(In, sizeof(big_bitmap)), new Span<byte>(Out, sizeof(big_bitmap)), 256 * 256, 256, (uint)sizeof(line), (uint)sizeof(line), 0, 0);
+
+        atime.Stop();
+
+        NativeMemory.Free(In);
+        NativeMemory.Free(Out);
+
+        cmsDeleteTransform(lcmsxform);
+
+        return atime.Elapsed;
+    }
+
+    public static void ComparativeLineStride8bits()
+    {
+        var NoPlugin = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsFastFloatExtensions());
+
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        using (logger.BeginScope("cmsDoTransform vs cmsDoTransformLineStride"))
+        {
+            trace("C O M P A R A T I V E cmsDoTransform() vs. cmsDoTransformLineStride()\nvalues given in MegaPixels per second.");
+
+            ComparativeCt(NoPlugin, Plugin, "CLUT profiles", "cmsDoTransform", "cmsDoTransformLineStride", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, TestProfiles.test5, TestProfiles.test3);
+            ComparativeCt(NoPlugin, Plugin, "CLUT 16 bits", "cmsDoTransform", "cmsDoTransformLineStride", SpeedTest16bitsRGB, SpeedTest16bitsRGB, TestProfiles.test5, TestProfiles.test3);
+            ComparativeCt(NoPlugin, Plugin, "Matrix-Shaper", "cmsDoTransform", "cmsDoTransformLineStride", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, TestProfiles.test5, TestProfiles.test0);
+            ComparativeCt(NoPlugin, Plugin, "same Matrix-Shaper", "cmsDoTransform", "cmsDoTransformLineStride", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, TestProfiles.test0, TestProfiles.test0);
+            ComparativeCt(NoPlugin, Plugin, "curves", "cmsDoTransform", "cmsDoTransformLineStride", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, default, default);
+        }
+
+        cmsDeleteContext(NoPlugin);
+        cmsDeleteContext(Plugin);
+    }
 }

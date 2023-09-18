@@ -69,5 +69,6 @@ SpeedTest15();
 SpeedTestFloat();
 
 ComparativeFloatVs16bits();
+ComparativeLineStride8bits();
 
 Thread.Sleep(10);
