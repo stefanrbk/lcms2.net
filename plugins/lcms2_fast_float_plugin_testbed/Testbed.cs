@@ -19,6 +19,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
+using lcms2.state;
 using lcms2.testbed;
 using lcms2.types;
 
@@ -111,4 +112,54 @@ internal static partial class Testbed
 
     private static Profile loadProfile(Memory<byte> mem) =>
         cmsOpenProfileFromMem(mem)!;
+
+    private static double MPixSec(double diff)
+    {
+        var seconds = diff / 1000;
+        return 256.0 * 256.0 * 256.0 / (1024.0 * 1024.0 * seconds);
+    }
+
+    private delegate TimeSpan perf_fn(Context? ct, Profile profileIn, Profile profileOut);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, string inICC, Memory<byte> outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Memory<byte> inICC, string outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, string inICC, string outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Memory<byte> inICC, Memory<byte> outICC, long sz, TimeSpan prev) =>
+        Performance(Title, fn, ct, loadProfile(inICC), loadProfile(outICC), sz, prev);
+
+    private static TimeSpan Performance(string Title, perf_fn fn, Context? ct, Profile inICC, Profile outICC, long sz, TimeSpan prev)
+    {
+        using (logger.BeginScope(Title))
+        {
+            var profileIn = inICC;
+            var profileOut = outICC;
+
+            var n = fn(ct, profileIn, profileOut);
+
+            var prevMPix = MPixSec(prev.TotalMilliseconds);
+            var nMPix = MPixSec(n.TotalMilliseconds);
+            if (prevMPix > 0.0)
+            {
+                var imp = nMPix / prevMPix;
+                if (imp > 1)
+                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.\t(x {3:F1})", Title, nMPix, nMPix * sz, imp);
+                else
+                    trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+
+            }
+            else
+            {
+                trace("{1:F2} MPixel/sec.\t{2:F2} MByte/sec.", Title, nMPix, nMPix * sz);
+            }
+
+            return n;
+        }
+    }
+
 }
