@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------------
+﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
 //  Copyright (c) 1998-2022 Marti Maria Saguer
@@ -24,11 +24,18 @@
 //
 //---------------------------------------------------------------------------------
 
-global using NUnit.Framework;
+namespace lcms2.tests;
+internal static class TestHelpers
+{
+    public static void CheckFixed15_16(string? title, double @in, double @out) =>
+        CheckValue(title, @in, @out, 1.0 / 65535.0);
 
-global using static lcms2.Lcms2;
-global using static lcms2.tests.TestHelpers;
+    public static void CheckValue(string? title, double @in, double @out, double max) =>
+        Assert.That(@in, Is.EqualTo(@out).Within(max), title);
 
-using System.Diagnostics.CodeAnalysis;
+    public static void CheckWord(string? title, ushort @in, ushort @out) =>
+        Assert.That(@in, Is.EqualTo(@out), title);
 
-[assembly: ExcludeFromCodeCoverage]
+    public static void CheckWord(string? title, ushort @in, ushort @out, ushort maxErr) =>
+        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), title);
+}
