@@ -24,52 +24,16 @@
 //
 //---------------------------------------------------------------------------------
 //
-using lcms2.state;
+using lcms2.types;
 
-namespace lcms2.types;
+namespace lcms2.state;
 
-public class Transform
+internal class ParallelizationPluginChunkType(int maxWorkers, int workerFlags, Transform2Fn schedulerFn) : ICloneable
 {
-    public uint InputFormat, OutputFormat;
+    public int MaxWorkers = maxWorkers;
+    public int WorkerFlags = workerFlags;
+    public Transform2Fn SchedulerFn = schedulerFn;
 
-    public Transform2Fn xform;
-
-    public Formatter16In FromInput;
-    public Formatter16Out ToOutput;
-
-    public FormatterFloatIn FromInputFloat;
-    public FormatterFloatOut ToOutputFloat;
-
-    public Cache Cache;
-
-    public Pipeline? Lut;
-
-    public Pipeline? GamutCheck;
-
-    public NamedColorList InputColorant;
-    public NamedColorList OutputColorant;
-
-    public Signature EntryColorSpace;
-    public Signature ExitColorSpace;
-
-    public CIEXYZ EntryWhitePoint;
-    public CIEXYZ ExitWhitePoint;
-
-    public Sequence Sequence;
-
-    public uint dwOriginalFlags;
-    public double AdaptationState;
-
-    public uint RenderingIntent;
-
-    public Context? ContextID;
-
-    public object? UserData;
-    public FreeUserDataFn? FreeUserData;
-
-    public TransformFn? OldXform;
-
-    public Transform2Fn? Worker;
-    public int MaxWorkers;
-    public uint WorkerFlags;
+    public object Clone() =>
+        new ParallelizationPluginChunkType(MaxWorkers, WorkerFlags, SchedulerFn);
 }

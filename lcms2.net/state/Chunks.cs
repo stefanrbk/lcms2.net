@@ -46,6 +46,7 @@ internal enum Chunks
     OptimizationPlugin,
     TransformPlugin,
     MutexPlugin,
+    ParallelizationPlugin,
 
     Max
 }
