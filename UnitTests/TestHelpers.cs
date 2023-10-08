@@ -62,6 +62,8 @@ internal static class TestHelpers
     public static byte[]? FakeCMYKProfile;
     public static byte[]? BrightnessProfile;
 
+    public static DateTime? TestStart;
+
     public static Profile? Create_AboveRGB()
     {
         var Curve = new ToneCurve[3];

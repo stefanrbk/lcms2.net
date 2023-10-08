@@ -6,6 +6,9 @@ public static class TestSetup
     [OneTimeSetUp]
     public static void Setup()
     {
+        var now = DateTime.UtcNow;
+        TestStart = new(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second);
+
         OneVirtual(cmsCreate_sRGBProfile(), ref sRGBProfile);
         OneVirtual(Create_AboveRGB(), ref aRGBProfile);
         OneVirtual(Create_Gray22(), ref GrayProfile);
