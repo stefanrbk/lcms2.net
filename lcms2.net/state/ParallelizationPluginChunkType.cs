@@ -23,16 +23,14 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 //---------------------------------------------------------------------------------
-//
-using lcms2.types;
 
 namespace lcms2.state;
 
-internal class ParallelizationPluginChunkType(int maxWorkers, int workerFlags, Transform2Fn schedulerFn) : ICloneable
+internal class ParallelizationPluginChunkType(int maxWorkers, int workerFlags, Transform2Fn? schedulerFn) : ICloneable
 {
     public int MaxWorkers = maxWorkers;
     public int WorkerFlags = workerFlags;
-    public Transform2Fn SchedulerFn = schedulerFn;
+    public Transform2Fn? SchedulerFn = schedulerFn;
 
     public object Clone() =>
         new ParallelizationPluginChunkType(MaxWorkers, WorkerFlags, SchedulerFn);
