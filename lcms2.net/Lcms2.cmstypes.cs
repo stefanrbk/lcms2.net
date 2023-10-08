@@ -82,6 +82,7 @@ public static partial class Lcms2
         new(cmsMonacoBrokenCurveType, Type_Curve_Read, Type_Curve_Write, ToneCurve_Dup, ToneCurve_Free, null, 0),
         new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Sequence_Dup, Sequence_Free, null, 0),
         new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0),
+        new(cmsSigcicpType, Type_VideoSignal_Read, Type_VideoSignal_Write, Type_VideoSignal_Dup, null, null, 0),
         new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0));
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
@@ -152,6 +153,7 @@ public static partial class Lcms2
         new(cmsSigMetaTag, 1, new Signature[] { cmsSigDictType, }, null),
         new(cmsSigProfileSequenceIdTag, 1, new Signature[] { cmsSigProfileSequenceIdType, }, null),
         new(cmsSigProfileDescriptionMLTag, 1, new Signature[] { cmsSigMultiLocalizedUnicodeType, }, null),
+        new(cmsSigcicpTag, 1, new Signature[] { cmsSigcicpType }, null),
         new(cmsSigArgyllArtsTag, 9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null));
 
     internal static readonly TagPluginChunkType TagPluginChunk = new();
@@ -1407,7 +1409,11 @@ public static partial class Lcms2
             Block = GetArray<char>(self.ContextID, NumOfWchar);
             //if (Block is null) goto Error;
             //var tmpBlock = stackalloc char[(int)NumOfWchar];
-            if (!_cmsReadWCharArray(io, NumOfWchar, Block)) goto Error;
+            if (!_cmsReadWCharArray(io, NumOfWchar, Block))
+            {
+                //_cmsFree(self.ContextID, Block);
+                goto Error;
+            }
             //new Span<char>(tmpBlock, (int)NumOfWchar).CopyTo(Block.AsSpan()[..(int)NumOfWchar]);
         }
 
@@ -1748,14 +1754,27 @@ public static partial class Lcms2
         // That should be all
         if (mpe is not null)
         {
-            cmsSignalError(mpe.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT8");
+            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT8");
             return false;
         }
 
-        var clutPoints = (clut?.Params.nSamples[0]) ?? 0u;
+        var clutPoints =  0u;
+        if (clut is not null)
+        {
+            // Lut8 only allows same CLUT points in all dimensions
+            clutPoints = clut.Params.nSamples[0];
+            for (var i = 1; i < cmsPipelineInputChannels(NewLut); i++)
+            {
+                if (clut.Params.nSamples[i] != clutPoints)
+                {
+                    cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT8");
+                    return false;
+                }
+            }
+        }
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)cmsPipelineInputChannels(NewLut))) return false;
+        if (!_cmsWriteUInt8Number(io, (byte)cmsPipelineOutputChannels(NewLut))) return false;
         if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
         if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
 
@@ -1838,10 +1857,10 @@ public static partial class Lcms2
     {
         _cmsAssert(Tables);
 
-        var nEntries = Tables.TheCurves[0].nEntries;
-
         for (var i = 0; i < Tables.nCurves; i++)
         {
+            var nEntries = Tables.TheCurves[i].nEntries;
+
             // Usual case of identity curves
             for (var j = 0; j < nEntries; j++)
                 if (!_cmsWriteUInt16Number(io, Tables.TheCurves[i].Table16[j])) return false;
@@ -1967,14 +1986,27 @@ public static partial class Lcms2
         // That should be all
         if (mpe is not null)
         {
-            cmsSignalError(mpe.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT16");
+            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT16");
             return false;
         }
 
         var InputChannels = cmsPipelineInputChannels(NewLut);
         var OutputChannels = cmsPipelineOutputChannels(NewLut);
 
-        var clutPoints = (clut?.Params.nSamples[0]) ?? 0u;
+        var clutPoints = 0u;
+        if (clut is not null)
+        {
+            // Lut16 only allows same CLUT points in all dimensions
+            clutPoints = clut.Params.nSamples[0];
+            for (var i = 1; i < cmsPipelineInputChannels(NewLut); i++)
+            {
+                if (clut.Params.nSamples[i] != clutPoints)
+                {
+                    cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT16");
+                    return false;
+                }
+            }
+        }
 
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
         if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
@@ -2905,7 +2937,7 @@ public static partial class Lcms2
         return ReadEmbeddedText(self, io, out seq.Description, SizeOfTag);
     }
 
-    private static Sequence? Type_ProfileSequenceId_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint SizeOfTag)
+    private static Sequence? Type_ProfileSequenceId_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _1)
     {
         nItems = 0;
 
@@ -2914,7 +2946,6 @@ public static partial class Lcms2
 
         // Get table count
         if (!_cmsReadUInt32Number(io, out var Count)) return null;
-        SizeOfTag -= sizeof(uint);
 
         // Allocate an empty structure
         var OutSeq = cmsAllocProfileSequenceDescription(self.ContextID, Count);
@@ -3099,7 +3130,7 @@ public static partial class Lcms2
 
     #region CrdInfo
 
-    private static bool ReadCountAndSting(TagTypeHandler self, IOHandler io, Mlu mlu, ref uint SizeOfTag, ReadOnlySpan<byte> Section)
+    private static bool ReadCountAndString(TagTypeHandler self, IOHandler io, Mlu mlu, ref uint SizeOfTag, ReadOnlySpan<byte> Section)
     {
         var ps = "PS"u8;
 
@@ -3131,7 +3162,7 @@ public static partial class Lcms2
         return true;
     }
 
-    private static bool WriteCountAndSting(TagTypeHandler self, IOHandler io, Mlu mlu, ReadOnlySpan<byte> Section)
+    private static bool WriteCountAndString(TagTypeHandler self, IOHandler io, Mlu mlu, ReadOnlySpan<byte> Section)
     {
         var ps = "PS"u8;
 
@@ -3168,11 +3199,11 @@ public static partial class Lcms2
         var mlu = cmsMLUalloc(self.ContextID, 5);
         if (mlu is null) return null;
 
-        if (!ReadCountAndSting(self, io, mlu, ref SizeOfTag, nm)) goto Error;
-        if (!ReadCountAndSting(self, io, mlu, ref SizeOfTag, n0)) goto Error;
-        if (!ReadCountAndSting(self, io, mlu, ref SizeOfTag, n1)) goto Error;
-        if (!ReadCountAndSting(self, io, mlu, ref SizeOfTag, n2)) goto Error;
-        if (!ReadCountAndSting(self, io, mlu, ref SizeOfTag, n3)) goto Error;
+        if (!ReadCountAndString(self, io, mlu, ref SizeOfTag, nm)) goto Error;
+        if (!ReadCountAndString(self, io, mlu, ref SizeOfTag, n0)) goto Error;
+        if (!ReadCountAndString(self, io, mlu, ref SizeOfTag, n1)) goto Error;
+        if (!ReadCountAndString(self, io, mlu, ref SizeOfTag, n2)) goto Error;
+        if (!ReadCountAndString(self, io, mlu, ref SizeOfTag, n3)) goto Error;
 
         nItems = 1;
         return mlu;
@@ -3192,11 +3223,11 @@ public static partial class Lcms2
 
         if (Ptr is not Mlu mlu) return false;
 
-        if (!WriteCountAndSting(self, io, mlu, nm)) return false;
-        if (!WriteCountAndSting(self, io, mlu, n0)) return false;
-        if (!WriteCountAndSting(self, io, mlu, n1)) return false;
-        if (!WriteCountAndSting(self, io, mlu, n2)) return false;
-        if (!WriteCountAndSting(self, io, mlu, n3)) return false;
+        if (!WriteCountAndString(self, io, mlu, nm)) return false;
+        if (!WriteCountAndString(self, io, mlu, n0)) return false;
+        if (!WriteCountAndString(self, io, mlu, n1)) return false;
+        if (!WriteCountAndString(self, io, mlu, n2)) return false;
+        if (!WriteCountAndString(self, io, mlu, n3)) return false;
 
         return true;
     }
@@ -4095,6 +4126,50 @@ public static partial class Lcms2
         cmsDictFree(Ptr as Dictionary);
 
     #endregion Dictionary
+
+    #region cicp VideoSignalType
+
+    private static Box<VideoSignalType>? Type_VideoSignal_Read(TagTypeHandler _1, IOHandler io, out uint nItems, uint SizeOfTag)
+    {
+        nItems = 0;
+
+        if (SizeOfTag is not 8)
+            return null;
+
+        if (!_cmsReadUInt32Number(io, out _))
+            return null;
+
+        var cicp = new VideoSignalType();
+
+        if (!_cmsReadUInt8Number(io, out cicp.ColourPrimaries)) return null;
+        if (!_cmsReadUInt8Number(io, out cicp.TransferCharacteristics)) return null;
+        if (!_cmsReadUInt8Number(io, out cicp.MatrixCoefficients)) return null;
+        if (!_cmsReadUInt8Number(io, out cicp.VideoFullRangeFlag)) return null;
+
+        nItems = 1;
+        return new(cicp);
+    }
+
+    private static bool Type_VideoSignal_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2)
+    {
+        if (Ptr is not VideoSignalType cicp)
+            return false;
+
+        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.ColourPrimaries)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.TransferCharacteristics)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.MatrixCoefficients)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.VideoFullRangeFlag)) return false;
+
+        return true;
+    }
+
+    private static Box<VideoSignalType>? Type_VideoSignal_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
+        Ptr is Box<VideoSignalType> sc
+            ? new(sc)
+            : null;
+
+    #endregion
 
     #region Generic
 
