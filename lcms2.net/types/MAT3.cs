@@ -27,12 +27,14 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace lcms2.types;
 
-[DebuggerStepThrough, StructLayout(LayoutKind.Explicit)]
-public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
+[/*DebuggerStepThrough, */StructLayout(LayoutKind.Explicit)]
+public struct MAT3(VEC3 x, VEC3 y, VEC3 z) : IEquatable<MAT3>
 {
     [FieldOffset(0)]
     public VEC3 X = x;
@@ -198,4 +200,67 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
             (X.X * vec.X) + (X.Y * vec.Y) + (X.Z * vec.Z),
             (Y.X * vec.X) + (Y.Y * vec.Y) + (Y.Z * vec.Z),
             (Z.X * vec.X) + (Z.Y * vec.Y) + (Z.Z * vec.Z));
+
+    public bool Equals(MAT3 other)
+    {
+        if (Vector512.IsHardwareAccelerated)
+        {
+            var v1 = Unsafe.As<double, Vector512<double>>(ref X.X);
+            var v2 = Unsafe.As<double, Vector512<double>>(ref other.X.X);
+            var v3 = Vector512.EqualsAll(v1, v2);
+            return v3 && Z.Z == other.Z.Z;
+        }
+        if (Vector256.IsHardwareAccelerated)
+        {
+            var v11 = Unsafe.As<double, Vector256<double>>(ref X.X);
+            var v12 = Unsafe.As<double, Vector256<double>>(ref Y.Y);
+            var v21 = Unsafe.As<double, Vector256<double>>(ref other.X.X);
+            var v22 = Unsafe.As<double, Vector256<double>>(ref other.Y.Y);
+            var v31 = Vector256.Equals(v11, v21);
+            var v32 = Vector256.Equals(v12, v22);
+            var v4 = v31 & v32;
+            var v5 = Vector256.EqualsAll(v4, Vector256<double>.One);
+            return v5 && Z.Z == other.Z.Z;
+        }
+        return
+            X.Equals(other.X) &&
+            Y.Equals(other.Y) &&
+            Z.Equals(other.Z);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(MAT3 other, double tolerance)
+    {
+        if (Vector512.IsHardwareAccelerated)
+        {
+            var v1 = Unsafe.As<double, Vector512<double>>(ref X.X);
+            var v2 = Unsafe.As<double, Vector512<double>>(ref other.X.X);
+            var v3 = Vector512.Create(tolerance);
+            var v4 = v1 - v2;
+            var v5 = Vector512.Abs(v4);
+            return
+                Vector512.LessThanOrEqualAll(v5, v3) &&
+                Math.Abs(Z.Z - other.Z.Z) <= tolerance;
+        }
+        if (Vector256.IsHardwareAccelerated)
+        {
+            var v11 = Unsafe.As<double, Vector256<double>>(ref X.X);
+            var v12 = Unsafe.As<double, Vector256<double>>(ref Y.Y);
+            var v21 = Unsafe.As<double, Vector256<double>>(ref other.X.X);
+            var v22 = Unsafe.As<double, Vector256<double>>(ref other.Y.Y);
+            var v3 = Vector256.Create(tolerance);
+            var v41 = v11 - v21;
+            var v42 = v12 - v22;
+            var v51 = Vector256.Abs(v41);
+            var v52 = Vector256.Abs(v42);
+            return
+                Vector256.LessThanOrEqualAll(v51, v3) &&
+                Vector256.LessThanOrEqualAll(v52, v3) &&
+                Math.Abs(Z.Z - other.Z.Z) <= tolerance;
+        }
+        return
+            X.Equals(other.X, tolerance) &&
+            Y.Equals(other.Y, tolerance) &&
+            Z.Equals(other.Z, tolerance);
+    }
 }
