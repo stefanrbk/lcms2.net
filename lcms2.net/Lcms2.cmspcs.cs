@@ -601,6 +601,7 @@ public static partial class Lcms2
             _ => 0,
         };
 
+    [Obsolete("Deprecated, use cmsChannelsOfColorSpace instead")]
     public static uint cmsChannelsOf(Signature Colorspace) =>
         (uint)Colorspace switch
         {
