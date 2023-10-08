@@ -25,9 +25,13 @@
 //---------------------------------------------------------------------------------
 //
 
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+
 namespace lcms2.types;
 
-public struct CIEXYZ(double x, double y, double z)
+public struct CIEXYZ(double x, double y, double z) : IEquatable<CIEXYZ>
 {
     public double X = x;
     public double Y = y;
@@ -41,4 +45,41 @@ public struct CIEXYZ(double x, double y, double z)
 
     public readonly bool IsNaN =>
         AsVec.IsNaN;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(CIEXYZ other)
+    {
+        if (Vector256.IsHardwareAccelerated)
+        {
+            var vec1 = (X, Y, Z, 0.0);
+            var vec2 = (other.X, other.Y, other.Z, 0.0);
+            var v1 = Unsafe.As<(double, double, double, double), Vector256<double>>(ref vec1);
+            var v2 = Unsafe.As<(double, double, double, double), Vector256<double>>(ref vec2);
+            return v1.Equals(v2);
+        }
+        return
+            X == other.X &&
+            Y == other.Y &&
+            Z == other.Z;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Equals(CIEXYZ other, double tolerance)
+    {
+        if (Vector256.IsHardwareAccelerated)
+        {
+            var vec1 = (X, Y, Z, 0.0);
+            var vec2 = (other.X, other.Y, other.Z, 0.0);
+            var v1 = Unsafe.As<(double, double, double, double), Vector256<double>>(ref vec1);
+            var v2 = Unsafe.As<(double, double, double, double), Vector256<double>>(ref vec2);
+            var v3 = Vector256.Create(tolerance);
+            var v4 = v1 - v2;
+            var v5 = Vector256.Abs(v4);
+            return Vector256.LessThanOrEqualAll(v5, v3);
+        }
+        return
+            Math.Abs(X - other.X) <= tolerance &&
+            Math.Abs(Y - other.Y) <= tolerance &&
+            Math.Abs(Z - other.Z) <= tolerance;
+    }
 }
