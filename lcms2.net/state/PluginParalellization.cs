@@ -23,31 +23,14 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 //---------------------------------------------------------------------------------
-//
-namespace lcms2;
-public static partial class Plugin
+
+using lcms2.types;
+
+namespace lcms2.state;
+
+public class PluginParalellization(Signature sig, uint expectedVersion, Signature type, int maxWorkers, uint workerFlags, Transform2Fn schedulerFn) : PluginBase(sig, expectedVersion, type)
 {
-    public const int VX = 0;
-    public const int VY = 1;
-    public const int VZ = 2;
-
-    public const uint cmsPluginMagicNumber = 0x61637070;              // 'acpp'
-
-    public const uint cmsPluginMemHandlerSig = 0x6D656D48;            // 'memH'
-    public const uint cmsPluginInterpolationSig = 0x696E7048;         // 'inpH'
-    public const uint cmsPluginParametricCurveSig = 0x70617248;       // 'parH'
-    public const uint cmsPluginFormattersSig = 0x66726D48;            // 'frmH
-    public const uint cmsPluginTagTypeSig = 0x74797048;               // 'typH'
-    public const uint cmsPluginTagSig = 0x74616748;                   // 'tagH'
-    public const uint cmsPluginRenderingIntentSig = 0x696E7448;       // 'intH'
-    public const uint cmsPluginMultiProcessElementSig = 0x6D706548;   // 'mpeH'
-    public const uint cmsPluginOptimizationSig = 0x6F707448;          // 'optH'
-    public const uint cmsPluginTransformSig = 0x7A666D48;             // 'xfmH'
-    public const uint cmsPluginMutexSig = 0x6D747A48;                 // 'mtxH'
-    public const uint cmsPluginParalellizationSig = 0x70726c48;       // 'prlH'
-
-    public const byte MAX_TYPES_IN_LCMS_PLUGIN = 20;
-
-    public const byte MAX_INPUT_DIMENSIONS = 15;
-
+    public int MaxWorkers = maxWorkers;
+    public uint WorkerFlags = workerFlags;
+    public Transform2Fn SchedulerFn = schedulerFn;
 }

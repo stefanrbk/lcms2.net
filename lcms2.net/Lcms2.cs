@@ -875,6 +875,8 @@ public static partial class Lcms2
 
     internal const uint cmsFLAGS_CAN_CHANGE_FORMATTER = 0x02000000;
 
+    internal const int cmsGuess_MAX_WORKERS = -1;
+
 #endregion lcms2_internal.h
 
     static Lcms2()
