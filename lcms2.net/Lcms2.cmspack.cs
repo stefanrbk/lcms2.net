@@ -2666,7 +2666,7 @@ public static partial class Lcms2
             return 0;
 
         // Create a fake formatter for result
-        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);
+        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH((uint)nOutputChans);
     }
 
     public static uint cmsFormatterForPCSOfProfile(Profile Profile, uint nBytes, bool lIsFloat)
