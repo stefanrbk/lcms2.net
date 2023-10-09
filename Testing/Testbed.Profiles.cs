@@ -825,6 +825,10 @@ internal static partial class Testbed
                         goto Error;
                     }
                 }
+
+                using (logger.BeginScope("cicp Video Signal Type"))
+                    if (!Check_cicp(Pass, h))
+                        goto Error;
             }
 
             if (Pass == 1)
@@ -1849,6 +1853,37 @@ internal static partial class Testbed
                 if (cmsReadRawTag(hProfile, (Signature)0x31323334, Buffer, 7) is 0) return false;
 
                 if (Buffer.AsSpan(..7).SequenceCompareTo("data123"u8) != 0) return false;
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool Check_cicp(int Pass, Profile hProfile)
+    {
+        switch (Pass)
+        {
+            case 1:
+                var s = new VideoSignalType()
+                {
+                    ColourPrimaries = 1,
+                    TransferCharacteristics = 13,
+                    MatrixCoefficients = 0,
+                    VideoFullRangeFlag = 1
+                };
+                return cmsWriteTag(hProfile, cmsSigcicpTag, s);
+
+            case 2:
+                if (cmsReadTag(hProfile, cmsSigcicpTag) is not Box<VideoSignalType> vs)
+                    return false;
+                var v = vs.Value;
+
+                if (v.ColourPrimaries is not 1) return false;
+                if (v.TransferCharacteristics is not 13) return false;
+                if (v.MatrixCoefficients is not 0) return false;
+                if (v.VideoFullRangeFlag is not 1) return false;
+
                 return true;
 
             default:

@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 
 var now = DateTime.Now;
 
-logger.LogInformation("LittleCMS.net {version:#.##} test bed {now:MMM d yyyy HH:mm:ss}", LCMS_VERSION / 1000.0, now);
+logger.LogInformation("LittleCMS.net {version:#.##} test bed {now:MMM d yyyy HH:mm:ss}", cmsGetEncodedCMMversion() / 1000.0, now);
 
 Thread.Sleep(10);
 Console.WriteLine();
@@ -282,7 +282,7 @@ if (doCheckTests)
         Check("Parametric curve on Rec709", CheckParametricRec709);
         Check("Floating Point sampled curve with non-zero start", CheckFloatSamples);
         Check("Floating Point segmented curve with short sampled segment", CheckFloatSegments);
-        Check("Read RAW portions", CheckReadRAW);
+        Check("Read RAW tags", CheckReadRAW);
         Check("Check MetaTag", CheckMeta);
         Check("Null transform on floats", CheckFloatNULLxform);
         Check("Set free a tag", CheckRemoveTag);
@@ -296,6 +296,7 @@ if (doCheckTests)
         Check("sRGB round-trips", Check_sRGB_Rountrips);
         Check("Gamma space detection", CheckGammaSpaceDetection);
         Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
+        Check("Corrupted built-in by using cmsWriteRawTag", CheckInducedCorruption);
     }
 }
 

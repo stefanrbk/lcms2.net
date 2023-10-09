@@ -787,7 +787,7 @@ internal static partial class Testbed
         ptr = cmsReadTag(h, SigInt) as Box<uint>;
         if (ptr == null)
         {
-            logger.LogWarning("Read tag/conext switching failed (2)");
+            logger.LogWarning("Read tag/context switching failed (2)");
             return false;
         }
 
@@ -861,7 +861,6 @@ internal static partial class Testbed
         Context? cpy = null;
         Context? cpy2 = null;
         Profile? h = null;
-        const uint myTag = 1234;
         bool rc = false;
         byte[]? data = null;
         Span<float> In = stackalloc float[3];
@@ -969,7 +968,7 @@ internal static partial class Testbed
         pipe = cmsReadTag(h, cmsSigDToB3Tag) as Pipeline;
         if (pipe == null)
         {
-            logger.LogWarning("Read tag/conext switching failed (2)");
+            logger.LogWarning("Read tag/context switching failed (2)");
             return false;
         }
 
