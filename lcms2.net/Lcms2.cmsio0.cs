@@ -570,7 +570,7 @@ public static partial class Lcms2
                     var LocalTypeHandler = (TagTypeHandler)TypeHandler.Clone();
                     LocalTypeHandler.ContextID = Icc.ContextID;    // As an aditional parameter
                     LocalTypeHandler.ICCVersion = Icc.Version;
-                    LocalTypeHandler.FreePtr(LocalTypeHandler, tag.TagObject);
+                    LocalTypeHandler.FreePtr?.Invoke(LocalTypeHandler, tag.TagObject);
                     tag.TagObject = null;
                 }
             }
