@@ -24,4 +24,8 @@ namespace lcms2.ThreadedPlugin;
 public static partial class Threaded
 {
     internal const uint REQUIRED_LCMS_VERSION = 2140;
+
+    public const uint LCMW2_THREADED_VERSION = 1000;
+
+    public const int CMS_THREADED_GUESS_MAX_THREADS = -1;
 }
