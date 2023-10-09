@@ -391,7 +391,6 @@ public static partial class Lcms2
 
             default:
                 //_cmsFree(ContextID, iohandler);
-                cmsSignalError(ContextID, ErrorCodes.File, $"Unknown access mode '{AccessMode}'");
                 return null;
         }
 
@@ -470,6 +469,9 @@ public static partial class Lcms2
         //Icc.TagCount = 0;
 
         // Set default version
+        Icc.Version = 0x02100000;
+
+        // Set default device class
         Icc.Version = 0x02100000;
 
         // Set creation date/time
@@ -609,6 +611,26 @@ public static partial class Lcms2
     public static bool cmsIsTag(Profile Icc, Signature sig) =>
         _cmsSearchTag(Icc, sig, false) >= 0;
 
+    private static bool CompatibleTypes(TagDescriptor? desc1, TagDescriptor? desc2)
+    {
+        if (desc1 is null || desc2 is null)
+            return false;
+
+        if (desc1.SupportedTypes.Length != desc2.SupportedTypes.Length)
+            return false;
+
+        if (desc1.ElemCount != desc2.ElemCount)
+            return false;
+
+        for (var i = 0; i < desc1.SupportedTypes.Length; i++)
+        {
+            if (desc1.SupportedTypes[i] != desc2.SupportedTypes[i])
+                return false;
+        }
+
+        return true;
+    }
+
     [DebuggerStepThrough]
     private static uint _validatedVersion(uint DWord)
     {
@@ -626,6 +648,20 @@ public static partial class Lcms2
 
         return BitConverter.ToUInt32(pByte);
     }
+
+    private static bool validDeviceClass(Signature cl) =>
+        (uint)cl switch
+        {
+            0 => true,
+            cmsSigInputClass => true,
+            cmsSigDisplayClass => true,
+            cmsSigOutputClass => true,
+            cmsSigLinkClass => true,
+            cmsSigAbstractClass => true,
+            cmsSigColorSpaceClass => true,
+            cmsSigNamedColorClass => true,
+            _ => false
+        };
 
     [DebuggerStepThrough]
     internal static bool _cmsReadHeader(Profile Icc)
@@ -667,6 +703,18 @@ public static partial class Lcms2
         Icc.attributes = _cmsAdjustEndianess64(Header.attributes);
         Icc.Version = _cmsAdjustEndianess32(_validatedVersion(Header.version));
 
+        if (Icc.Version > 0x5000000)
+        {
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported profile version '0x{0:x}'", Icc.Version);
+            return false;
+        }
+
+        if (!validDeviceClass(Icc.DeviceClass))
+        {
+            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported device class '0x{0:x}'", (uint)Icc.DeviceClass);
+            return false;
+        }
+
         // Get size as reported in header
         var HeaderSize = _cmsAdjustEndianess32(Header.size);
 
@@ -698,6 +746,7 @@ public static partial class Lcms2
             if (!_cmsReadUInt32Number(io, out Tag.size)) return false;
 
             // Perform some sanity check. Offset + size should fall inside file.
+            if (Tag.size is 0 || Tag.offset is 0) continue;
             if (Tag.offset + Tag.size > HeaderSize ||
                 Tag.offset + Tag.size < Tag.offset)
             {
@@ -719,7 +768,12 @@ public static partial class Lcms2
                 if ((Icc.Tags[j].Offset == Tag.offset) &&
                     (Icc.Tags[j].Size == Tag.size))
                 {
-                    linked = Icc.Tags[j].Name;
+                    // Check types.
+                    if (CompatibleTypes(_cmsGetTagDescriptor(Icc.ContextID, Icc.Tags[j].Name),
+                                        _cmsGetTagDescriptor(Icc.ContextID, Tag.sig)))
+                    {
+                        linked = Icc.Tags[j].Name;
+                    }
                 }
             }
 
@@ -731,6 +785,19 @@ public static partial class Lcms2
                 Size = size,
                 Linked = linked
             });
+        }
+
+        for (var i = 0; i < Icc.Tags.Count; i++)
+        {
+            for (var j = 0; j < Icc.Tags.Count; j++)
+            {
+                // Tags cannot be duplicate
+                if ((i != j) && (Icc.Tags[i].Name == Icc.Tags[j].Name))
+                {
+                    cmsSignalError(Icc.ContextID, cmsERROR_RANGE, "Duplicate tag found");
+                    return false;
+                }
+            }
         }
 
         return true;
@@ -1428,6 +1495,12 @@ public static partial class Lcms2
         if (TagSize < 8) goto Error;
 
         var io = Icc.IOHandler;
+
+        if (io is null)     // This is a built-in profile that has been manipulated, abort early
+        {
+            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, "Corrupted built-in profile");
+            goto Error;
+        }
         // Seek to its location
         if (io?.Seek(io, Offset) != true)
             goto Error;
@@ -1612,6 +1685,10 @@ public static partial class Lcms2
     {
         var Icc = Profile;
 
+        // Sanity check
+        if (!data.IsEmpty && BufferSize is 0)
+            return 0;
+
         if (!_cmsLockMutex(Icc.ContextID, Icc.UserMutex)) return 0;
 
         // Search for given tag in ICC profile directory
@@ -1630,7 +1707,7 @@ public static partial class Lcms2
             if (!data.IsEmpty)
             {
                 if (BufferSize < TagSize)
-                    TagSize = BufferSize;
+                    goto Error;
 
                 if (Icc.IOHandler?.Seek(Icc.IOHandler, Offset) != true) goto Error;
                 if (Icc.IOHandler.Read(Icc.IOHandler, data.Span, 1, TagSize) is 0) goto Error;
@@ -1651,7 +1728,7 @@ public static partial class Lcms2
             {
                 var TagSize = tag.Size;
                 if (BufferSize < TagSize)
-                    TagSize = BufferSize;
+                    goto Error;
 
                 ((byte[])tag.TagObject).AsSpan(..(int)TagSize).CopyTo(data.Span);
                 //memmove(data, (BoxPtrVoid)Icc.TagPtrs[i], TagSize);
@@ -1665,7 +1742,7 @@ public static partial class Lcms2
         }
 
         // Already read, or previously set by cmsWriteTag(). We need to serialize that
-        // data to raw in order to maintain consistency.
+        // data to raw to get something that makes sense.
 
         _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
         var Object = cmsReadTag(Icc, sig);
