@@ -35,15 +35,14 @@ public static partial class Threaded
         ap.worker(s.CMMcargo, s.InputBuffer.Span, s.OutputBuffer.Span, s.PixelsPerLine, s.LineCount, s.Stride);
     }
 
-    internal static int _cmsThrCreateWorker(Context _1, Transform2Fn worker, WorkSlice param)
+    internal static Task _cmsThrCreateWorker(Context? _1, Transform2Fn worker, WorkSlice param)
     {
         var p = new ThreadAdaptorParam(worker, param);
 
-        var err = Task.Run(() => thread_adaptor(p));
-        return err.Id;
+        return Task.Run(() => thread_adaptor(p));
     }
 
-    internal static void _cmsThrJoinWorker(Context _1, Task hWorker) =>
+    internal static void _cmsThrJoinWorker(Context? _1, Task hWorker) =>
         hWorker.Wait();
 
     internal static int _cmsThrIdealThreadCount() =>

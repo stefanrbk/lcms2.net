@@ -1,0 +1,99 @@
+﻿//---------------------------------------------------------------------------------
+//
+//  Little Color Management System, multithreaded extensions
+//  Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved
+//                     2023 Stefan Kewatt, all rights reserved
+//
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//---------------------------------------------------------------------------------
+
+using lcms2.state;
+using lcms2.types;
+
+namespace lcms2.ThreadedPlugin;
+public static partial class Threaded
+{
+    internal static void _cmsThrScheduler(Transform CMMcargo,
+                                          ReadOnlyMemory<byte> InputBuffer,
+                                          Memory<byte> OutputBuffer,
+                                          uint PixelsPerLine,
+                                          uint LineCount,
+                                          Stride Stride)
+    {
+        var ContextID = cmsGetTransformContextID(CMMcargo);
+        var worker = _cmsGetTransformWorker(CMMcargo);
+        var MaxWorkers = _cmsGetTransformMaxWorkers(CMMcargo);
+
+        // flags are not actually being used
+        // uint flags = _cmsGetTransformWorkerFlags(CMMcargo);
+
+        var FixedStride = Stride;
+
+        // Count the number of threads needed for this job. MaxWorkers is the upper limit or -1 to auto
+        var nSlices = _cmsThrCountSlices(CMMcargo, MaxWorkers, PixelsPerLine, LineCount, FixedStride);
+
+        // Abort early if no threaded code
+        if (nSlices <= 1)
+        {
+            worker?.Invoke(CMMcargo, InputBuffer.Span, OutputBuffer.Span, PixelsPerLine, LineCount, Stride);
+            return;
+        }
+
+        // Setup master thread
+        var master = new WorkSlice
+        {
+            CMMcargo = CMMcargo,
+            InputBuffer = InputBuffer,
+            OutputBuffer = OutputBuffer,
+            PixelsPerLine = PixelsPerLine,
+            LineCount = LineCount,
+            Stride = FixedStride
+        };
+
+        // Create memory for the slices
+        var slices = Context.GetPool<WorkSlice>(ContextID).Rent((int)nSlices);
+        var handles = Context.GetPool<Task>(ContextID).Rent((int)nSlices);
+
+        // slices and handles cannot be null, so not implementing the failure path!
+
+        // All seems ok so far
+        if (_cmsThrSplitWork(master, (int)nSlices, slices))
+        {
+            // Work is split. Create threads
+            for (var i = 1; i < nSlices; i++)
+            {
+                handles[i] = _cmsThrCreateWorker(ContextID, worker, slices[i]);
+            }
+
+            // Do our portion of work
+            worker(CMMcargo, slices[0].InputBuffer.Span, slices[0].OutputBuffer.Span, slices[0].PixelsPerLine, slices[0].LineCount, slices[0].Stride);
+
+            // Wait until all threads are finished
+            for (var i = 1; i < nSlices; i++)
+            {
+                _cmsThrJoinWorker(ContextID, handles[i]);
+            }
+        }
+        else
+        {
+            // Not able to split the work, so don't thread
+            worker(CMMcargo, InputBuffer.Span, OutputBuffer.Span, PixelsPerLine, LineCount, Stride);
+        }
+
+        ReturnArray(ContextID, slices);
+        ReturnArray(ContextID, handles);
+    }
+}
