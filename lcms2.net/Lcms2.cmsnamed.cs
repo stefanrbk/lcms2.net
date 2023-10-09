@@ -552,12 +552,12 @@ public static partial class Lcms2
 
     public static NamedColorList? cmsAllocNamedColorList(Context? ContextID, uint n, uint ColorantCount, ReadOnlySpan<byte> Prefix, ReadOnlySpan<byte> Suffix)
     {
-        //var v = _cmsMallocZero<NamedColorList>(ContextID);
+        if (ColorantCount > cmsMAXCHANNELS)
+            return null;
 
-        //if (v is null) return null;
         var v = new NamedColorList(ContextID)
         {
-            List = null,
+            List = null!,
             nColors = 0,
             ContextID = ContextID
         };
