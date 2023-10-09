@@ -67,4 +67,22 @@ public static partial class Plugin
         _cmsAssert(CMMcargo);
         return CMMcargo.dwOriginalFlags;
     }
+
+    public static Transform2Fn? _cmsGetTransformWorker(Transform CMMcargo)
+    {
+        _cmsAssert(CMMcargo);
+        return CMMcargo.Worker;
+    }
+
+    public static int _cmsGetTransformMaxWorkers(Transform CMMcargo)
+    {
+        _cmsAssert(CMMcargo);
+        return CMMcargo.MaxWorkers;
+    }
+
+    public static uint _cmsGetTransformWorkerFlags(Transform CMMcargo)
+    {
+        _cmsAssert(CMMcargo);
+        return CMMcargo.WorkerFlags;
+    }
 }
