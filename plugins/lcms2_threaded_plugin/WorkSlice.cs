@@ -20,8 +20,17 @@
 //
 //---------------------------------------------------------------------------------
 
+using lcms2.types;
+
 namespace lcms2.ThreadedPlugin;
-public static partial class Threaded
+public class WorkSlice
 {
-    internal const uint REQUIRED_LCMS_VERSION = 2140;
+    public Transform CMMcargo;
+
+    public ReadOnlyMemory<byte> InputBuffer;
+    public Memory<byte> OutputBuffer;
+
+    public uint PixelsPerLine;
+    public uint LineCount;
+    public Stride Stride;
 }
