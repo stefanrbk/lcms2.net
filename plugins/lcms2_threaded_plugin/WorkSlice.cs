@@ -23,7 +23,7 @@
 using lcms2.types;
 
 namespace lcms2.ThreadedPlugin;
-public class WorkSlice
+public class WorkSlice : ICloneable
 {
     public Transform CMMcargo;
 
@@ -33,4 +33,15 @@ public class WorkSlice
     public uint PixelsPerLine;
     public uint LineCount;
     public Stride Stride;
+
+    public object Clone() =>
+        new WorkSlice()
+        {
+            CMMcargo = CMMcargo,
+            InputBuffer = InputBuffer,
+            OutputBuffer = OutputBuffer,
+            PixelsPerLine = PixelsPerLine,
+            LineCount = LineCount,
+            Stride = Stride
+        };
 }
