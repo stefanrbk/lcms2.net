@@ -26,9 +26,9 @@ using lcms2.types;
 namespace lcms2.ThreadedPlugin;
 public static partial class Threaded
 {
-    internal static void _cmsThrScheduler(Transform CMMcargo,
-                                          ReadOnlyMemory<byte> InputBuffer,
-                                          Memory<byte> OutputBuffer,
+    internal unsafe static void _cmsThrScheduler(Transform CMMcargo,
+                                          ReadOnlySpan<byte> InputBuffer,
+                                          Span<byte> OutputBuffer,
                                           uint PixelsPerLine,
                                           uint LineCount,
                                           Stride Stride)
@@ -48,52 +48,64 @@ public static partial class Threaded
         // Abort early if no threaded code
         if (nSlices <= 1)
         {
-            worker?.Invoke(CMMcargo, InputBuffer.Span, OutputBuffer.Span, PixelsPerLine, LineCount, Stride);
+            worker?.Invoke(CMMcargo, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, Stride);
             return;
         }
 
-        // Setup master thread
-        var master = new WorkSlice
+        fixed (byte* inBuf = InputBuffer)
         {
-            CMMcargo = CMMcargo,
-            InputBuffer = InputBuffer,
-            OutputBuffer = OutputBuffer,
-            PixelsPerLine = PixelsPerLine,
-            LineCount = LineCount,
-            Stride = FixedStride
-        };
-
-        // Create memory for the slices
-        var slices = Context.GetPool<WorkSlice>(ContextID).Rent((int)nSlices);
-        var handles = Context.GetPool<Task>(ContextID).Rent((int)nSlices);
-
-        // slices and handles cannot be null, so not implementing the failure path!
-
-        // All seems ok so far
-        if (_cmsThrSplitWork(master, (int)nSlices, slices))
-        {
-            // Work is split. Create threads
-            for (var i = 1; i < nSlices; i++)
+            fixed (byte* outBuf = OutputBuffer)
             {
-                handles[i] = _cmsThrCreateWorker(ContextID, worker, slices[i]);
-            }
+                // Setup master thread
+                var master = new WorkSlice
+                {
+                    CMMcargo = CMMcargo,
+                    InputBuffer = inBuf,
+                    OutputBuffer = outBuf,
+                    PixelsPerLine = PixelsPerLine,
+                    LineCount = LineCount,
+                    Stride = FixedStride
+                };
 
-            // Do our portion of work
-            worker(CMMcargo, slices[0].InputBuffer.Span, slices[0].OutputBuffer.Span, slices[0].PixelsPerLine, slices[0].LineCount, slices[0].Stride);
+                // Create memory for the slices
+                var slices = Context.GetPool<WorkSlice>(ContextID).Rent((int)nSlices);
+                var handles = Context.GetPool<Task>(ContextID).Rent((int)nSlices);
 
-            // Wait until all threads are finished
-            for (var i = 1; i < nSlices; i++)
-            {
-                _cmsThrJoinWorker(ContextID, handles[i]);
+                // slices and handles cannot be null, so not implementing the failure path!
+
+                // All seems ok so far
+                if (_cmsThrSplitWork(master, (int)nSlices, slices))
+                {
+                    // Work is split. Create threads
+                    for (var i = 1; i < nSlices; i++)
+                    {
+                        handles[i] = _cmsThrCreateWorker(ContextID, worker, slices[i]);
+                    }
+
+                    // Do our portion of work
+                    worker(
+                        CMMcargo,
+                        new(slices[0].InputBuffer, slices[0].InputBufferLength),
+                        new(slices[0].OutputBuffer, slices[0].OutputBufferLength),
+                        slices[0].PixelsPerLine,
+                        slices[0].LineCount,
+                        slices[0].Stride);
+
+                    // Wait until all threads are finished
+                    for (var i = 1; i < nSlices; i++)
+                    {
+                        _cmsThrJoinWorker(ContextID, handles[i]);
+                    }
+                }
+                else
+                {
+                    // Not able to split the work, so don't thread
+                    worker(CMMcargo, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, Stride);
+                }
+
+                ReturnArray(ContextID, slices);
+                ReturnArray(ContextID, handles);
             }
         }
-        else
-        {
-            // Not able to split the work, so don't thread
-            worker(CMMcargo, InputBuffer.Span, OutputBuffer.Span, PixelsPerLine, LineCount, Stride);
-        }
-
-        ReturnArray(ContextID, slices);
-        ReturnArray(ContextID, handles);
     }
 }

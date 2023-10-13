@@ -25,32 +25,14 @@ using lcms2.state;
 namespace lcms2.ThreadedPlugin;
 public static partial class Threaded
 {
-    private record ThreadAdaptorParam(Transform2Fn worker, WorkSlice param);
+    public static readonly PluginParalellization Plugin = new(
+        cmsPluginMagicNumber, REQUIRED_LCMS_VERSION, cmsPluginParalellizationSig, CMS_THREADED_GUESS_MAX_THREADS, 0, _cmsThrScheduler);
 
-    private unsafe static void thread_adaptor(object p)
+    public static PluginBase cmsThreadedExtensions(int max_threads, uint flags)
     {
-        var ap = (ThreadAdaptorParam)p;
-        var s = ap.param;
+        Plugin.MaxWorkers = max_threads;
+        Plugin.WorkerFlags = flags;
 
-        ap.worker(
-            s.CMMcargo,
-            new(s.InputBuffer, s.InputBufferLength),
-            new(s.OutputBuffer, s.OutputBufferLength),
-            s.PixelsPerLine,
-            s.LineCount,
-            s.Stride);
+        return Plugin;
     }
-
-    internal static Task _cmsThrCreateWorker(Context? _1, Transform2Fn worker, WorkSlice param)
-    {
-        var p = new ThreadAdaptorParam(worker, param);
-
-        return Task.Run(() => thread_adaptor(p));
-    }
-
-    internal static void _cmsThrJoinWorker(Context? _1, Task hWorker) =>
-        hWorker.Wait();
-
-    internal static int _cmsThrIdealThreadCount() =>
-        Environment.ProcessorCount;
 }

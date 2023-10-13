@@ -23,12 +23,15 @@
 using lcms2.types;
 
 namespace lcms2.ThreadedPlugin;
-public class WorkSlice : ICloneable
+public unsafe class WorkSlice : ICloneable
 {
     public Transform CMMcargo;
 
-    public ReadOnlyMemory<byte> InputBuffer;
-    public Memory<byte> OutputBuffer;
+    public byte* InputBuffer;
+    public byte* OutputBuffer;
+
+    public int InputBufferLength;
+    public int OutputBufferLength;
 
     public uint PixelsPerLine;
     public uint LineCount;

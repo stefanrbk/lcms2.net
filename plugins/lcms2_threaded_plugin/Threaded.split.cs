@@ -108,7 +108,7 @@ public static partial class Threaded
         return WorkerCount;
     }
 
-    private static void SlicePerLines(WorkSlice master, int nslices, int LinesPerSlice, Span<WorkSlice> slices)
+    private unsafe static void SlicePerLines(WorkSlice master, int nslices, int LinesPerSlice, Span<WorkSlice> slices)
     {
         var TotalLines = master.LineCount;
 
@@ -121,18 +121,26 @@ public static partial class Threaded
 
             slices[i] = (WorkSlice)master.Clone();
 
-            slices[i].InputBuffer = PtrInput[(i * LinesPerSlice * (int)master.Stride.BytesPerLineIn)..];
-            slices[i].OutputBuffer = PtrOutput[(i * LinesPerSlice * (int)master.Stride.BytesPerLineOut)..];
+            slices[i].InputBufferLength = LinesPerSlice * (int)master.Stride.BytesPerLineIn;
+            slices[i].OutputBufferLength = LinesPerSlice * (int)master.Stride.BytesPerLineOut;
+
+            slices[i].InputBuffer = PtrInput + (i * slices[i].InputBufferLength);
+            slices[i].OutputBuffer = PtrOutput + (i * slices[i].OutputBufferLength);
 
             slices[i].LineCount = lines;
             TotalLines -= lines;
         }
 
         // Add left lines because rounding
-        if (!slices.IsEmpty) slices[nslices - 1].LineCount += TotalLines;
+        if (!slices.IsEmpty)
+        {
+            slices[nslices - 1].LineCount += TotalLines;
+            slices[nslices - 1].InputBufferLength += (int)(TotalLines * master.Stride.BytesPerLineIn);
+            slices[nslices - 1].OutputBufferLength += (int)(TotalLines * master.Stride.BytesPerLineOut);
+        }
     }
 
-    private static void SlicePerPixels(WorkSlice master, int nslices, int PixelsPerSlice,  Span<WorkSlice> slices)
+    private unsafe static void SlicePerPixels(WorkSlice master, int nslices, int PixelsPerSlice,  Span<WorkSlice> slices)
     {
         var TotalPixels = master.PixelsPerLine; // As this works on one line only
 
@@ -148,15 +156,23 @@ public static partial class Threaded
 
             slices[i] = (WorkSlice)master.Clone();
 
-            slices[i].InputBuffer = PtrInput[(i * PixelsPerSlice * (int)PixelSpacingIn)..];
-            slices[i].OutputBuffer = PtrOutput[(i * PixelsPerSlice * (int)PixelSpacingOut)..];
+            slices[i].InputBufferLength = PixelsPerSlice * (int)PixelSpacingIn;
+            slices[i].OutputBufferLength = PixelsPerSlice * (int)PixelSpacingOut;
+
+            slices[i].InputBuffer = PtrInput + (i * slices[i].InputBufferLength);
+            slices[i].OutputBuffer = PtrOutput + (i * slices[i].OutputBufferLength);
             slices[i].PixelsPerLine = pixels;
 
             TotalPixels -= pixels;
         }
 
         // Add left pixels because rounding
-        if (!slices.IsEmpty) slices[nslices - 1].PixelsPerLine += TotalPixels;
+        if (!slices.IsEmpty)
+        {
+            slices[nslices - 1].PixelsPerLine += TotalPixels;
+            slices[nslices - 1].InputBufferLength += (int)(TotalPixels * PixelSpacingIn);
+            slices[nslices - 1].OutputBufferLength += (int)(TotalPixels * PixelSpacingOut);
+        }
     }
 
     internal static bool _cmsThrSplitWork(WorkSlice master, int nslices, Span<WorkSlice> slices)
