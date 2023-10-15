@@ -89,7 +89,7 @@ internal static partial class Testbed
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    private static void fflush()
+    public static void fflush()
     {
         Console.Out.Flush();
         Console.Error.Flush();

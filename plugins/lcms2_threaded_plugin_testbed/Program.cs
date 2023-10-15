@@ -2,7 +2,7 @@
 //
 //  Little Color Management System, multithreaded extensions
 //  Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved
-//                     2023 Stefan Kewatt, all rights reserved
+//                2022-2023 Stefan Kewatt, all rights reserved
 //
 //
 // This program is free software: you can redistribute it and/or modify
@@ -20,4 +20,40 @@
 //
 //---------------------------------------------------------------------------------
 
-Console.WriteLine("Hello!");
+var now = DateTime.Now;
+
+trace("LittleCMS.net Multithreaded extensions testbed - 1.1 {0:MMM d yyyy HH:mm:ss}", now);
+trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
+trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
+
+fflush();
+Console.WriteLine();
+
+using (logger.BeginScope("Installing error logger"))
+{
+    cmsSetLogErrorHandler(BuildDebugLogger());
+    trace("Done");
+}
+
+using (logger.BeginScope("Installing plugin"))
+{
+    cmsPlugin(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0));
+    trace("Done");
+}
+
+// Change format
+CheckChangeFormat();
+
+// Accuracy
+CheckAccuracy8Bits();
+
+// Check speed
+
+
+cmsUnregisterPlugins();
+
+Console.WriteLine();
+trace("All tests passed OK");
+fflush();
+
+return 0;

@@ -11,13 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
-    <ProjectReference Include="..\..\Testing\Testbed.csproj" />
-    <ProjectReference Include="..\lcms2_threaded_plugin\lcms2_threaded_plugin.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="TestProfiles.Designer.cs">
+    <Compile Include="..\test_profiles\TestProfiles.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>TestProfiles.resx</DependentUpon>
@@ -25,14 +19,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="TestProfiles.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+    <EmbeddedResource Include="..\test_profiles\TestProfiles.resx" Link="TestProfiles.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Test Profiles\" />
+    <ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
+    <ProjectReference Include="..\..\Testing\Testbed.csproj" />
+    <ProjectReference Include="..\lcms2_threaded_plugin\lcms2_threaded_plugin.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="TestProfiles.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
