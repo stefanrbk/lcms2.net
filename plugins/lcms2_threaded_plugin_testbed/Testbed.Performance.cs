@@ -287,7 +287,7 @@ internal static partial class Testbed
 
         var sz = Unsafe.SizeOf<Scanline_rgb8bits>();
 
-        using (logger.BeginScope("Multithreaded performance"))
+        using (logger.BeginScope("Multithreaded performance (8 bit)"))
         {
             using (logger.BeginScope("Default"))
             {
@@ -323,7 +323,7 @@ internal static partial class Testbed
         var sz = Unsafe.SizeOf<Scanline_rgb16bits>();
         var szCmyk = Unsafe.SizeOf<Scanline_cmyk16bits>();
 
-        using (logger.BeginScope("Multithreaded performance"))
+        using (logger.BeginScope("Multithreaded performance (16 bit)"))
         {
             using (logger.BeginScope("Default"))
             {
@@ -352,4 +352,147 @@ internal static partial class Testbed
         }
     }
 
+    private unsafe struct padded_line
+    {
+        private fixed byte _pixels[256 * 256 * 4];
+        private fixed byte padding[4];
+
+        public Scanline_rgba8bits* pixels(int a, int b)
+        {
+            fixed (void* ptr = _pixels)
+                return &((Scanline_rgba8bits*)ptr)[a * 256 + b];
+        }
+    }
+
+    private unsafe struct big_bitmap
+    {
+        private fixed byte _line[256 * (256 * 256 * 4 + 4)];
+
+        public padded_line* line(int i)
+        {
+            fixed (void* ptr = _line)
+                return &((padded_line*)ptr)[i];
+        }
+    }
+
+    private unsafe static double SpeedTest8bitDoTransform(Context? ct, Profile? ProfileIn, Profile? ProfileOut)
+    {
+        if (ProfileIn is null || ProfileOut is null)
+            Fail("Unable to open profiles");
+
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(ProfileIn);
+        cmsCloseProfile(ProfileOut);
+
+        // Our test bitmap is 256 x 256 padded lines
+        var Mb = Unsafe.SizeOf<big_bitmap>();
+
+        var In = new big_bitmap();
+        var Out = new big_bitmap();
+
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    var ptr = In.line(r)->pixels(g, b);
+                    ptr->r = (byte)r;
+                    ptr->g = (byte)g;
+                    ptr->b = (byte)b;
+                    ptr->a = 0;
+                }
+            }
+        }
+
+        MeasureTimeStart();
+
+        for (var j = 0; j < 256; j++)
+        {
+            var inLine = In.line(j);
+            var outLine = Out.line(j);
+
+            cmsDoTransform(
+                xform,
+                Unsafe.AsRef<Scanline_rgba8bits>(inLine->pixels(0, 0)),
+                out Unsafe.AsRef<Scanline_rgba8bits>(outLine->pixels(0, 0)),
+                256 * 256);
+        }
+
+        var diff = MeasureTimeStop();
+
+        cmsDeleteTransform(xform);
+
+        return MPixSec(diff);
+    }
+
+    private unsafe static double SpeedTest8bitLineStride(Context? ct, Profile? ProfileIn, Profile? ProfileOut)
+    {
+        if (ProfileIn is null || ProfileOut is null)
+            Fail("Unable to open profiles");
+
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        cmsCloseProfile(ProfileIn);
+        cmsCloseProfile(ProfileOut);
+
+        // Our test bitmap is 256 x 256 padded lines
+        var Mb = Unsafe.SizeOf<big_bitmap>();
+
+        var In = new big_bitmap();
+        var Out = new big_bitmap();
+
+        for (var r = 0; r < 256; r++)
+        {
+            for (var g = 0; g < 256; g++)
+            {
+                for (var b = 0; b < 256; b++)
+                {
+                    var ptr = In.line(r)->pixels(g, b);
+                    ptr->r = (byte)r;
+                    ptr->g = (byte)g;
+                    ptr->b = (byte)b;
+                    ptr->a = 0;
+                }
+            }
+        }
+
+        MeasureTimeStart();
+
+        cmsDoTransformLineStride(
+            xform,
+            In,
+            out Out,
+            256 * 256,
+            256,
+            (uint)Unsafe.SizeOf<padded_line>(),
+            (uint)Unsafe.SizeOf<padded_line>(),
+            0,
+            0);
+
+        var diff = MeasureTimeStop();
+
+        cmsDeleteTransform(xform);
+
+        return MPixSec(diff);
+    }
+
+    public static void ComparativeLineStride8bits()
+    {
+        var noPlugin = cmsCreateContext();
+        var Plugin = cmsCreateContext(cmsThreadedExtensions(CMS_THREADED_GUESS_MAX_THREADS, 0), null);
+
+        using (logger.BeginScope("Multithreaded performance (comparisons)"))
+        {
+            trace("C O M P A R A T I V E cmsDoTransform() vs. cmsDoTransformLineStride()");
+
+            ComparativeCt(noPlugin, Plugin, "CLUT profiles", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, "test5", "test3");
+            ComparativeCt(noPlugin, Plugin, "CLUT 16 bits", SpeedTest16bitsRGB, SpeedTest16bitsRGB, "test5", "test3");
+            ComparativeCt(noPlugin, Plugin, "Matrix-Shaper", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, "test5", "test0");
+            ComparativeCt(noPlugin, Plugin, "same Matrix-Shaper", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, "test0", "test0");
+            ComparativeCt(noPlugin, Plugin, "curves", SpeedTest8bitDoTransform, SpeedTest8bitLineStride, "", "");
+
+            cmsDeleteContext(Plugin);
+            cmsDeleteContext(noPlugin);
+        }
+    }
 }
