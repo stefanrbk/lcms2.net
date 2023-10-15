@@ -496,7 +496,10 @@ public static partial class Lcms2
         //Context fakeContext = new();
 
         if (ctx is null)
+        {
+            cmsUnregisterPlugins();
             return;
+        }
 
         //fakeContext.DefaultMemoryManager = ctx.DefaultMemoryManager;
 
