@@ -693,6 +693,10 @@ public static partial class Lcms2
 
     public static ToneCurve? cmsBuildTabulatedToneCurveFloat(Context? ContextID, uint nEntries, float[] values)
     {
+        // Do some housekeeping
+        if (nEntries is 0 || values is null)
+            return null;
+
         var pool = Context.GetPool<CurveSegment>(ContextID);
         var dPool = Context.GetPool<double>(ContextID);
         var Seg = pool.Rent(3);
