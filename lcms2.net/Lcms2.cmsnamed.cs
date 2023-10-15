@@ -387,9 +387,12 @@ public static partial class Lcms2
         //if (len is not null) *len = v->Len;
 
         //return (char*)((byte*)mlu->MemPool + v->StrWCharOffset);
+        if (v.StrWOffsetInBytes + v.LenInBytes > mlu.PoolSizeInBytes)
+            return null;
+
         var result = mlu.MemPool.AsSpan();
 
-        return TrimBuffer(mlu.MemPool.AsSpan()[((int)v.StrWOffsetInBytes / sizeof(char))..][..((int)v.LenInBytes / sizeof(char))]);
+        return TrimBuffer(result[((int)v.StrWOffsetInBytes / sizeof(char))..][..((int)v.LenInBytes / sizeof(char))]);
     }
 
     public static uint cmsMLUgetASCII(
