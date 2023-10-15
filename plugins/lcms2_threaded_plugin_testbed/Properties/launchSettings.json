@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
+    },
+    "Check Tests": {
+      "commandName": "Project"
+    },
+    "Speed Tests": {
+      "commandName": "Project",
+      "commandLineArgs": "-c -s"
+    }
+  }
+}

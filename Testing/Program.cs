@@ -37,6 +37,9 @@ Console.WriteLine();
 
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
 
+if (cliResult is null)
+    return 0;
+
 var exhaustive = cliResult.Value.DoExhaustive;
 var doSpeedTests = cliResult.Value.DoSpeed;
 var noCheckTests = cliResult.Value.NoChecks;
