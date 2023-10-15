@@ -51,7 +51,6 @@ internal static partial class Testbed
 
     public static double MaxErr = 0;
     public static readonly object MaxErrLock = new();
-    public static double AllowedErr = FIXED_PRECISION_15_16;
 
     public static readonly int SIZE_OF_MEM_HEADER = 16;
 

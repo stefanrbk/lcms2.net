@@ -298,7 +298,7 @@ internal static partial class Testbed
         // Values
         CIELab Lab;
         Span<ushort> PCS = stackalloc ushort[3];
-        Span<ushort> Colorant = stackalloc ushort[4];
+        Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
 
         // Set profile class
         cmsSetProfileVersion(hProfile, 4.3);

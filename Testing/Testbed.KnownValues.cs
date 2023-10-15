@@ -270,8 +270,10 @@ internal static partial class Testbed
     internal static bool CheckCMYKPerceptual() =>
         CheckCMYK(INTENT_PERCEPTUAL, TestProfiles.test1, TestProfiles.test2);
 
+#if false
     internal static bool CheckCMYKRelCol() =>
         CheckCMYK(INTENT_RELATIVE_COLORIMETRIC, TestProfiles.test1, TestProfiles.test2);
+#endif
 
     internal static bool CheckProofingXFORMFloat()
     {

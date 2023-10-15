@@ -211,6 +211,7 @@ internal static partial class Testbed
         return rc;
     }
 
+#if false
     private static ToneCurve GammaTableLinear(uint nEntries, bool Dir)
     {
         var g = cmsBuildTabulatedToneCurve16(DbgThread(), nEntries, null);
@@ -227,6 +228,7 @@ internal static partial class Testbed
 
         return g;
     }
+#endif
 
     public static bool CheckJointCurvesDescending()
     {
