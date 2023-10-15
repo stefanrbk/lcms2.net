@@ -1701,6 +1701,15 @@ public static partial class Lcms2
             var Data1 = (StageMatrixData)cmsStageData(Matrix1!)!;
             var Data2 = (StageMatrixData)cmsStageData(Matrix2!)!;
 
+            // Only RGB to RGB
+            if (Matrix1.InputChannels is not 3 ||
+                Matrix1.OutputChannels is not 3 ||
+                Matrix2.InputChannels is not 3 ||
+                Matrix2.OutputChannels is not 3)
+            {
+                return false;
+            }
+
             // Input offset should be zero
             if (Data1.Offset is not null) return false;
 
