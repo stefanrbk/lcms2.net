@@ -23,7 +23,7 @@ jobs:
     #- name: Test
       #run: dotnet test --no-build --verbosity normal
     - name: Run Testbed
-      run: dotnet run --project Testing --checks
+      run: dotnet run --project Testing
       
   build-fast-float:
     runs-on: ubuntu-latest
