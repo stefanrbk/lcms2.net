@@ -829,6 +829,10 @@ public static partial class Lcms2
                 return false;
         }
 
+        // Extended intents are not strictly CLUT-based
+        if (Intent > INTENT_ABSOLUTE_COLORIMETRIC)
+            return false;
+
         return cmsIsTag(Profile, TagTable[Intent]);
     }
 
