@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System, fast floating point extensions
-//  Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved
+//  Copyright (c) 1998-2023 Marti Maria Saguer, all rights reserved
 //  Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved
 //
 //
@@ -28,7 +28,7 @@ var doSpeedTests = cliResult.Value.DoSpeed;
 var noCheckTests = cliResult.Value.NoChecks;
 
 trace("LittleCMS.net FastFloating point extensions testbed - 1.5 {0:MMM d yyyy HH:mm:ss}", now);
-trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
+trace("Copyright (c) 1998-2023 Marti Maria Saguer, all rights reserved");
 trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
 
 Thread.Sleep(10);

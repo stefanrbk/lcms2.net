@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -24,167 +24,167 @@
 //
 //---------------------------------------------------------------------------------
 //
-global using unsafe Context = lcms2.state.Context_struct*;
+//global using unsafe Context = lcms2.state.Context_struct*;
 
-using lcms2.state;
-using lcms2.types;
+//using lcms2.state;
+//using lcms2.types;
 
-using System.Runtime.InteropServices;
+//using System.Runtime.InteropServices;
 
-namespace lcms2.tests;
+//namespace lcms2.tests;
 
-public static unsafe class Globals
-{
-    public const string FixedTest = "Fixed Test";
-    public const double FloatPrecision = 1E-5;
-    public const string RandomTest = "Random Test";
-    public const double S15Fixed16Precision = 1.0 / 65535.0;
-    public const double U8Fixed8Precision = 1.0 / 255.0;
-    public static readonly PluginMemHandler* DebugMemHandler;
-    internal static uint thread;
-    private static object memVarsMutex = new();
-    internal static uint TotalMemory;
-    internal static uint MaxAllocated;
-    internal static uint SingleHit;
+//public static unsafe class Globals
+//{
+//    public const string FixedTest = "Fixed Test";
+//    public const double FloatPrecision = 1E-5;
+//    public const string RandomTest = "Random Test";
+//    public const double S15Fixed16Precision = 1.0 / 65535.0;
+//    public const double U8Fixed8Precision = 1.0 / 255.0;
+//    public static readonly PluginMemHandler* DebugMemHandler;
+//    internal static uint thread;
+//    private static object memVarsMutex = new();
+//    internal static uint TotalMemory;
+//    internal static uint MaxAllocated;
+//    internal static uint SingleHit;
 
-    static Globals()
-    {
-        DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
+//    static Globals()
+//    {
+//        DebugMemHandler = (PluginMemHandler*)allocZeroed(sizeof(PluginMemHandler));
 
-        DebugMemHandler->@base.Magic = cmsPluginMagicNumber;
-        DebugMemHandler->@base.ExpectedVersion = 2060;
-        DebugMemHandler->@base.Type = cmsPluginMemHandlerSig;
+//        DebugMemHandler->@base.Magic = cmsPluginMagicNumber;
+//        DebugMemHandler->@base.ExpectedVersion = 2060;
+//        DebugMemHandler->@base.Type = cmsPluginMemHandlerSig;
 
-        DebugMemHandler->MallocPtr = DebugMalloc;
-        DebugMemHandler->FreePtr = DebugFree;
-        DebugMemHandler->ReallocPtr = DebugRealloc;
-    }
+//        DebugMemHandler->MallocPtr = DebugMalloc;
+//        DebugMemHandler->FreePtr = DebugFree;
+//        DebugMemHandler->ReallocPtr = DebugRealloc;
+//    }
 
-    public static Context DbgThread() =>
-        (Context)(void*)((byte*)null + (Interlocked.Increment(ref thread) % 0xff0));
+//    public static Context DbgThread() =>
+//        (Context)(void*)((byte*)null + (Interlocked.Increment(ref thread) % 0xff0));
 
-    private static void* DebugMalloc(Context ContextID, uint size)
-    {
-        if (size <= 0)
-            Assert.Fail("malloc requested with zero bytes");
+//    private static void* DebugMalloc(Context ContextID, uint size)
+//    {
+//        if (size <= 0)
+//            Assert.Fail("malloc requested with zero bytes");
 
-        lock (memVarsMutex)
-        {
-            TotalMemory += size;
+//        lock (memVarsMutex)
+//        {
+//            TotalMemory += size;
 
-            if (TotalMemory > MaxAllocated)
-                MaxAllocated = TotalMemory;
+//            if (TotalMemory > MaxAllocated)
+//                MaxAllocated = TotalMemory;
 
-            if (size > SingleHit) SingleHit = size;
-        }
+//            if (size > SingleHit) SingleHit = size;
+//        }
 
-        try
-        {
-            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock));
+//        try
+//        {
+//            var blk = (MemoryBlock*)alloc(size + (uint)sizeof(MemoryBlock));
 
-            blk->KeepSize = size;
-            blk->WhoAllocated = ContextID;
-            blk->DontCheck = 0;
+//            blk->KeepSize = size;
+//            blk->WhoAllocated = ContextID;
+//            blk->DontCheck = 0;
 
-            return (byte*)blk + (uint)sizeof(MemoryBlock);
-        }
-        catch
-        {
-            return null;
-        }
-    }
+//            return (byte*)blk + (uint)sizeof(MemoryBlock);
+//        }
+//        catch
+//        {
+//            return null;
+//        }
+//    }
 
-    private static void DebugFree(Context ContextID, void* Ptr)
-    {
-        if (Ptr is null)
-            Assert.Fail("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
+//    private static void DebugFree(Context ContextID, void* Ptr)
+//    {
+//        if (Ptr is null)
+//            Assert.Fail("NULL free (which is a no-op in C, but may be a clue of something going wrong)");
 
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
-        TotalMemory -= blk->KeepSize;
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//        TotalMemory -= blk->KeepSize;
 
-        if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
-            Assert.Fail($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
+//        if (blk->WhoAllocated != ContextID && blk->DontCheck is 0)
+//            Assert.Fail($"Trying to free memory allocated by a different thread\nAllocated by Context at\t{(ulong)blk->WhoAllocated}\nFreed by Context at\t{(ulong)ContextID}");
 
-        free(blk);
-    }
+//        free(blk);
+//    }
 
-    private static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
-    {
-        var NewPtr = DebugMalloc(ContextID, NewSize);
-        if (Ptr is null) return NewPtr;
+//    private static void* DebugRealloc(Context ContextID, void* Ptr, uint NewSize)
+//    {
+//        var NewPtr = DebugMalloc(ContextID, NewSize);
+//        if (Ptr is null) return NewPtr;
 
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
-        var max_sz = blk->KeepSize > NewSize ? NewSize : blk->KeepSize;
-        NativeMemory.Copy(Ptr, NewPtr, max_sz);
-        DebugFree(ContextID, Ptr);
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//        var max_sz = blk->KeepSize > NewSize ? NewSize : blk->KeepSize;
+//        NativeMemory.Copy(Ptr, NewPtr, max_sz);
+//        DebugFree(ContextID, Ptr);
 
-        return NewPtr;
-    }
+//        return NewPtr;
+//    }
 
-    private static string MemStr(uint size) =>
-        size switch
-        {
-            > 1024 * 1024 => $"{size / (1024 * 1024)} Mb",
-            > 1024 => $"{size / 1024} Kb",
-            _ => $"{size} bytes",
-        };
+//    private static string MemStr(uint size) =>
+//        size switch
+//        {
+//            > 1024 * 1024 => $"{size / (1024 * 1024)} Mb",
+//            > 1024 => $"{size / 1024} Kb",
+//            _ => $"{size} bytes",
+//        };
 
-    public static void TestMemoryLeaks(bool ok)
-    {
-        if (TotalMemory > 0)
-            Console.WriteLine($"Ok, but {MemStr(TotalMemory)} are left!");
-    }
+//    public static void TestMemoryLeaks(bool ok)
+//    {
+//        if (TotalMemory > 0)
+//            Console.WriteLine($"Ok, but {MemStr(TotalMemory)} are left!");
+//    }
 
-    public static void DebugMemDontCheckThis(void* Ptr)
-    {
-        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
+//    public static void DebugMemDontCheckThis(void* Ptr)
+//    {
+//        var blk = (MemoryBlock*)((byte*)Ptr - (uint)sizeof(MemoryBlock));
 
-        blk->DontCheck = 1;
-    }
+//        blk->DontCheck = 1;
+//    }
 
-    public static Context WatchDogContext(void* usr)
-    {
-        var ctx = cmsCreateContext(DebugMemHandler, usr);
+//    public static Context WatchDogContext(void* usr)
+//    {
+//        var ctx = cmsCreateContext(DebugMemHandler, usr);
 
-        if (ctx is null)
-            Assert.Fail("Unable to create memory managed context");
+//        if (ctx is null)
+//            Assert.Fail("Unable to create memory managed context");
 
-        DebugMemDontCheckThis(ctx);
-        return ctx;
-    }
+//        DebugMemDontCheckThis(ctx);
+//        return ctx;
+//    }
 
-    public static void IsGoodDouble(string message, double actual, double expected, double delta) =>
-            Assert.That(actual, Is.EqualTo(expected).Within(delta), message);
+//    public static void IsGoodDouble(string message, double actual, double expected, double delta) =>
+//            Assert.That(actual, Is.EqualTo(expected).Within(delta), message);
 
-    public static void IsGoodFixed15_16(string message, double @in, double @out, object @lock, ref double maxErr) =>
-        IsGoodVal(message, @in, @out, S15Fixed16Precision, @lock, ref maxErr);
+//    public static void IsGoodFixed15_16(string message, double @in, double @out, object @lock, ref double maxErr) =>
+//        IsGoodVal(message, @in, @out, S15Fixed16Precision, @lock, ref maxErr);
 
-    public static void IsGoodFixed15_16(string message, double @in, double @out) =>
-        IsGoodVal(message, @in, @out, S15Fixed16Precision);
+//    public static void IsGoodFixed15_16(string message, double @in, double @out) =>
+//        IsGoodVal(message, @in, @out, S15Fixed16Precision);
 
-    public static void IsGoodFixed8_8(string message, double @in, double @out, object @lock, ref double maxErr) =>
-        IsGoodVal(message, @in, @out, U8Fixed8Precision, @lock, ref maxErr);
+//    public static void IsGoodFixed8_8(string message, double @in, double @out, object @lock, ref double maxErr) =>
+//        IsGoodVal(message, @in, @out, U8Fixed8Precision, @lock, ref maxErr);
 
-    public static void IsGoodVal(string message, double @in, double @out, double max, object @lock, ref double maxErr)
-    {
-        var err = Math.Abs(@in - @out);
+//    public static void IsGoodVal(string message, double @in, double @out, double max, object @lock, ref double maxErr)
+//    {
+//        var err = Math.Abs(@in - @out);
 
-        lock (@lock)
-            if (err > maxErr) maxErr = err;
+//        lock (@lock)
+//            if (err > maxErr) maxErr = err;
 
-        Assert.That(@in, Is.EqualTo(@out).Within(max), message);
-    }
+//        Assert.That(@in, Is.EqualTo(@out).Within(max), message);
+//    }
 
-    public static void IsGoodVal(string message, double @in, double @out, double max)
-    {
-        var err = Math.Abs(@in - @out);
+//    public static void IsGoodVal(string message, double @in, double @out, double max)
+//    {
+//        var err = Math.Abs(@in - @out);
 
-        Assert.That(@in, Is.EqualTo(@out).Within(max), message);
-    }
+//        Assert.That(@in, Is.EqualTo(@out).Within(max), message);
+//    }
 
-    public static void IsGoodWord(string message, ushort @in, ushort @out, ushort maxErr = 0) =>
-        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), message);
+//    public static void IsGoodWord(string message, ushort @in, ushort @out, ushort maxErr = 0) =>
+//        Assert.That(@in, Is.EqualTo(@out).Within(maxErr), message);
 
-    public static double Sqr(double v) =>
-        v * v;
-}
+//    public static double Sqr(double v) =>
+//        v * v;
+//}
