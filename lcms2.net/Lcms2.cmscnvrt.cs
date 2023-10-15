@@ -233,11 +233,11 @@ public static partial class Lcms2
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
         {
 
-            _cmsReadMediaWhitePoint(out var WhitePointIn, Profiles[i - 1]);
-            _cmsReadCHAD(out var ChromaticAdaptationMatrixIn, Profiles[i - 1]);
+            if (!_cmsReadMediaWhitePoint(out var WhitePointIn, Profiles[i - 1])) return false;
+            if (!_cmsReadCHAD(out var ChromaticAdaptationMatrixIn, Profiles[i - 1])) return false;
 
-            _cmsReadMediaWhitePoint(out var WhitePointOut, Profiles[i]);
-            _cmsReadCHAD(out var ChromaticAdaptationMatrixOut, Profiles[i]);
+            if (!_cmsReadMediaWhitePoint(out var WhitePointOut, Profiles[i])) return false;
+            if (!_cmsReadCHAD(out var ChromaticAdaptationMatrixOut, Profiles[i])) return false;
 
             m = ComputeAbsoluteIntent(AdaptationState, WhitePointIn, ChromaticAdaptationMatrixIn, WhitePointOut, ChromaticAdaptationMatrixOut);
             if (m.IsNaN)
