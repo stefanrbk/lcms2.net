@@ -267,8 +267,8 @@ public static partial class FastFloat
         if (T_COLORSPACE(InputFormat) is not PT_RGB)
             return false;
 
-        // This optimization only works on RGB8->RGB8 or RGB8->CMYK8
-        if (T_COLORSPACE(OutputFormat) is not PT_RGB and not PT_CMYK)
+        // This optimization only works on RGB8->RGB8
+        if (T_COLORSPACE(OutputFormat) is not PT_RGB)
             return false;
 
         // Seems suitable, proceed
@@ -357,7 +357,7 @@ public static partial class FastFloat
                 goto Error;
         }
 
-        // Now inset the reversed curves at the beginning of the transform
+        // Now insert the reversed curves at the beginning of the transform
         LutPlusCurves = cmsPipelineDup(OriginalLut);
         if (LutPlusCurves is null)
             goto Error;
