@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -1700,6 +1700,15 @@ public static partial class Lcms2
             // Get both matrices
             var Data1 = (StageMatrixData)cmsStageData(Matrix1!)!;
             var Data2 = (StageMatrixData)cmsStageData(Matrix2!)!;
+
+            // Only RGB to RGB
+            if (Matrix1.InputChannels is not 3 ||
+                Matrix1.OutputChannels is not 3 ||
+                Matrix2.InputChannels is not 3 ||
+                Matrix2.OutputChannels is not 3)
+            {
+                return false;
+            }
 
             // Input offset should be zero
             if (Data1.Offset is not null) return false;

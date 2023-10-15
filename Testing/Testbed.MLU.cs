@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -298,7 +298,7 @@ internal static partial class Testbed
         // Values
         CIELab Lab;
         Span<ushort> PCS = stackalloc ushort[3];
-        Span<ushort> Colorant = stackalloc ushort[4];
+        Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
 
         // Set profile class
         cmsSetProfileVersion(hProfile, 4.3);

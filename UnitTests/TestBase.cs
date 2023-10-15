@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -27,7 +27,7 @@
 //---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022      Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -51,17 +51,17 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.state;
-using lcms2.types;
+//using lcms2.state;
+//using lcms2.types;
 
-namespace lcms2.tests;
+//namespace lcms2.tests;
 
-public abstract unsafe class TestBase
-{
-    [SetUp]
-    public virtual void SetUp() =>
-        cmsSetLogErrorHandler(Logger);
+//public abstract unsafe class TestBase
+//{
+//    [SetUp]
+//    public virtual void SetUp() =>
+//        cmsSetLogErrorHandler(Logger);
 
-    private static void Logger(Context _, ErrorCode errorCode, string message) =>
-        Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), errorCode)}: {message}");
-}
+//    private static void Logger(Context _, ErrorCode errorCode, string message) =>
+//        Console.WriteLine($"ErrorCode.{Enum.GetName(typeof(ErrorCode), errorCode)}: {message}");
+//}

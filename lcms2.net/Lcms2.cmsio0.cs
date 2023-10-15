@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -1707,7 +1707,7 @@ public static partial class Lcms2
             if (!data.IsEmpty)
             {
                 if (BufferSize < TagSize)
-                    goto Error;
+                    TagSize = BufferSize;
 
                 if (Icc.IOHandler?.Seek(Icc.IOHandler, Offset) != true) goto Error;
                 if (Icc.IOHandler.Read(Icc.IOHandler, data.Span, 1, TagSize) is 0) goto Error;
@@ -1720,7 +1720,7 @@ public static partial class Lcms2
             return tag.Size;
         }
 
-        // The data has been already read, or written. But wait! maybe the user chose to save as
+        // The data has been already read, or written. But wait! maybe the user choose to save as
         // raw data. In this case, return the raw data directly
         if (tag.SaveAsRaw)
         {
@@ -1728,7 +1728,7 @@ public static partial class Lcms2
             {
                 var TagSize = tag.Size;
                 if (BufferSize < TagSize)
-                    goto Error;
+                    TagSize = BufferSize;
 
                 ((byte[])tag.TagObject).AsSpan(..(int)TagSize).CopyTo(data.Span);
                 //memmove(data, (BoxPtrVoid)Icc.TagPtrs[i], TagSize);

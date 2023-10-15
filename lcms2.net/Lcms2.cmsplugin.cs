@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -496,7 +496,10 @@ public static partial class Lcms2
         //Context fakeContext = new();
 
         if (ctx is null)
+        {
+            cmsUnregisterPlugins();
             return;
+        }
 
         //fakeContext.DefaultMemoryManager = ctx.DefaultMemoryManager;
 

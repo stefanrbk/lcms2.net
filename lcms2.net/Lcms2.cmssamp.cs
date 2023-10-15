@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -97,9 +97,10 @@ public static partial class Lcms2
         // Convert black to Lab
         cmsDoTransform(xform, Black, Lab, 1);
 
-        // Force it to be neutral, clip to max. L* of 50
+        // Force it to be neutral, check for inconsistencies
         Lab[0].a = Lab[0].b = 0;
-        Lab[0].L = Math.Clamp(Lab[0].L, 0, 50);
+        if (Lab[0].L is > 50 or < 0)
+            Lab[0].L = 0;
 
         // Free the resources
         cmsDeleteTransform(xform);

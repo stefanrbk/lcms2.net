@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -270,8 +270,10 @@ internal static partial class Testbed
     internal static bool CheckCMYKPerceptual() =>
         CheckCMYK(INTENT_PERCEPTUAL, TestProfiles.test1, TestProfiles.test2);
 
+#if false
     internal static bool CheckCMYKRelCol() =>
         CheckCMYK(INTENT_RELATIVE_COLORIMETRIC, TestProfiles.test1, TestProfiles.test2);
+#endif
 
     internal static bool CheckProofingXFORMFloat()
     {

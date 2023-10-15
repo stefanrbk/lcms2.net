@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -211,6 +211,7 @@ internal static partial class Testbed
         return rc;
     }
 
+#if false
     private static ToneCurve GammaTableLinear(uint nEntries, bool Dir)
     {
         var g = cmsBuildTabulatedToneCurve16(DbgThread(), nEntries, null);
@@ -227,6 +228,7 @@ internal static partial class Testbed
 
         return g;
     }
+#endif
 
     public static bool CheckJointCurvesDescending()
     {

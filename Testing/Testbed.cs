@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2022 Marti Maria Saguer
+//  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -51,7 +51,6 @@ internal static partial class Testbed
 
     public static double MaxErr = 0;
     public static readonly object MaxErrLock = new();
-    public static double AllowedErr = FIXED_PRECISION_15_16;
 
     public static readonly int SIZE_OF_MEM_HEADER = 16;
 
