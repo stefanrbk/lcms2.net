@@ -1377,6 +1377,12 @@ public static partial class Lcms2
             if (!_cmsReadUInt32Number(io, out var Len)) goto Error;
             if (!_cmsReadUInt32Number(io, out var Offset)) goto Error;
 
+            // Offset MUST be even because it indexes a block of utf16 chars. 
+            // Tricky profiles that uses odd positions will not work anyway
+            // because the whole utf16 block is previously converted to wchar_t 
+            // and sizeof this type may be of 4 bytes. On Linux systems, for example.
+            if ((Offset & 1) is not 0) goto Error;
+
             // Check for overflow
             if (Offset < (SizeOfHeader + 8)) goto Error;
             if (((Offset + Len) < Len) || ((Offset + Len) > SizeOfTag + 8)) goto Error;
@@ -1404,9 +1410,12 @@ public static partial class Lcms2
         }
         else
         {
+            // Make sure this is an even utf16 size.
+            if ((SizeOfTag & 1) is not 0) goto Error;
             //Block = _cmsMalloc<char>(self.ContextID, SizeOfTag);
             NumOfWchar = SizeOfTag / sizeof(char);
             Block = GetArray<char>(self.ContextID, NumOfWchar);
+            Array.Clear(Block);
             //if (Block is null) goto Error;
             //var tmpBlock = stackalloc char[(int)NumOfWchar];
             if (!_cmsReadWCharArray(io, NumOfWchar, Block))
