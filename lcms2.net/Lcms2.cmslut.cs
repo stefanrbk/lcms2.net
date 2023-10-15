@@ -436,7 +436,7 @@ public static partial class Lcms2
         for (rv = 1; b > 0; b--)
         {
             var dim = Dims[(int)b - 1];
-            if (dim == 0) return 0;  // Error
+            if (dim <= 1) return 0;  // Error
 
             rv *= dim;
 

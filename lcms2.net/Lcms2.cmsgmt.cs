@@ -302,7 +302,7 @@ public static partial class Lcms2
 
         var ColorSpace = cmsGetColorSpace(hGamut);
 
-        var nChannels = cmsChannelsOf(ColorSpace);
+        var nChannels = (uint)cmsChannelsOfColorSpace(ColorSpace);
         var nGridpoints = _cmsReasonableGridpointsByColorspace(ColorSpace, cmsFLAGS_HIGHRESPRECALC);
         var dwFormat = CHANNELS_SH(nChannels) | BYTES_SH(2);
 
@@ -407,6 +407,9 @@ public static partial class Lcms2
 
         // Create a fake formatter for result
         var dwFormatter = cmsFormatterForColorspaceOfProfile(Profile, 4, true);
+
+        // Unsupported color space?
+        if (dwFormatter is 0) return 0;
 
         bp.Value.nOutputChans = (uint)T_CHANNELS(dwFormatter);
         bp.Value.MaxTAC = 0;  // Initial TAC is 0
@@ -529,6 +532,8 @@ public static partial class Lcms2
 
         var ContextID = cmsGetProfileContextID(Profile);
         var hXYZ = cmsCreateXYZProfileTHR(ContextID);
+        if (hXYZ is null)
+            return -1;
         var xform = cmsCreateTransformTHR(ContextID, Profile, TYPE_RGB_16, hXYZ, TYPE_XYZ_DBL, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOOPTIMIZE);
 
         if (xform is null)  // If not RGB or forward direction is not supported, regret with the previous error

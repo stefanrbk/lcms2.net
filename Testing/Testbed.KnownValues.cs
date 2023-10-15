@@ -1152,7 +1152,7 @@ internal static partial class Testbed
 
     internal static bool CheckReadRAW()
     {
-        var buffer = new byte[4];
+        var buffer = new byte[37009];
         using (logger.BeginScope("RAW read on on-disk"))
         {
             var hProfile = cmsOpenProfileFromMem(TestProfiles.test1);
@@ -1160,12 +1160,12 @@ internal static partial class Testbed
             if (hProfile is null)
                 return false;
 
-            var tag_size = cmsReadRawTag(hProfile, cmsSigGamutTag, buffer, 4);
             var tag_size1 = cmsReadRawTag(hProfile, cmsSigGamutTag, null, 0);
+            var tag_size = cmsReadRawTag(hProfile, cmsSigGamutTag, buffer, 37009);
 
             cmsCloseProfile(hProfile);
 
-            if (tag_size is not 4)
+            if (tag_size is not 37009)
                 return false;
 
             if (tag_size1 is not 37009)
@@ -1175,12 +1175,12 @@ internal static partial class Testbed
         using (logger.BeginScope("RAW read on in-memory created profiles"))
         {
             var hProfile = cmsCreate_sRGBProfile()!;
-            var tag_size = cmsReadRawTag(hProfile, cmsSigGreenColorantTag, buffer, 4);
             var tag_size1 = cmsReadRawTag(hProfile, cmsSigGreenColorantTag, null, 0);
+            var tag_size = cmsReadRawTag(hProfile, cmsSigGreenColorantTag, buffer, 20);
 
             cmsCloseProfile(hProfile);
 
-            if (tag_size is not 4)
+            if (tag_size is not 20)
                 return false;
             if (tag_size1 is not 20)
                 return false;
@@ -1462,7 +1462,7 @@ internal static partial class Testbed
         }
 
         var srcCS = cmsGetColorSpace(srcProfile);
-        var nSrcComponents = cmsChannelsOf(srcCS);
+        var nSrcComponents = (uint)cmsChannelsOfColorSpace(srcCS);
 
         var srcFormat = srcCS == cmsSigLabData
             ? COLORSPACE_SH(PT_Lab) | CHANNELS_SH(nSrcComponents) | BYTES_SH(0)
@@ -1686,5 +1686,23 @@ internal static partial class Testbed
         return false;
     }
 
+    internal static bool CheckInducedCorruption()
+    {
+        var garbage = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+        var hsrgb = cmsCreate_sRGBProfile()!;
+        var hLab = cmsCreateLab4Profile(null);
 
+        cmsSetLogErrorHandler(BuildNullLogger());
+        cmsWriteRawTag(hsrgb, cmsSigBlueColorantTag, garbage, (uint)garbage.Length);
+
+        var xform0 = cmsCreateTransform(hsrgb, TYPE_RGB_16, hLab, TYPE_Lab_16, INTENT_RELATIVE_COLORIMETRIC, 0);
+
+        if (xform0 is not null) cmsDeleteTransform(xform0);
+
+        cmsCloseProfile(hsrgb);
+        cmsCloseProfile(hLab);
+
+        cmsSetLogErrorHandler(BuildDebugLogger());
+        return true;
+    }
 }

@@ -670,8 +670,11 @@ public static partial class Lcms2
             if (SwapEndian)
                 v = CHANGE_ENDIAN((ushort)v);
 
-            v = (v << 16) / alpha_factor;
-            if (v > 0xFFFF) v = 0xFFFF;
+            if (alpha_factor > 0)
+            {
+                v = (v << 16) / alpha_factor;
+                if (v > 0xFFFF) v = 0xFFFF;
+            }
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
@@ -740,8 +743,11 @@ public static partial class Lcms2
             if (SwapEndian)
                 v = CHANGE_ENDIAN((ushort)v);
 
-            v = (v << 16) / alpha_factor;
-            if (v > 0xFFFF) v = 0xFFFF;
+            if (alpha_factor > 0)
+            {
+                v = (v << 16) / alpha_factor;
+                if (v > 0xFFFF) v = 0xFFFF;
+            }
 
             wIn[index] = Reverse ? REVERSE_FLAVOR_16((ushort)v) : (ushort)v;
 
@@ -2612,6 +2618,9 @@ public static partial class Lcms2
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
 
+        if (T_CHANNELS(Type) is 0)
+            return default;
+
         foreach (var f in ctx.FactoryInList)
         {
             var fn = f(Type, (uint)dwFlags);
@@ -2625,6 +2634,9 @@ public static partial class Lcms2
     internal static FormatterOut _cmsGetFormatterOut(Context? ContextID, uint Type, PackFlags dwFlags)
     {
         var ctx = _cmsGetContext(ContextID).FormattersPlugin;
+
+        if (T_CHANNELS(Type) is 0)
+            return default;
 
         foreach (var f in ctx.FactoryOutList)
         {
@@ -2646,11 +2658,15 @@ public static partial class Lcms2
     {
         var ColorSpace = cmsGetColorSpace(Profile);
         var ColorSpaceBits = (uint)_cmsLCMScolorSpace(ColorSpace);
-        var nOutputChans = cmsChannelsOf(ColorSpace);
+        var nOutputChans = cmsChannelsOfColorSpace(ColorSpace);
         var Float = lIsFloat ? 1u : 0;
 
+        // Unsupported color space?
+        if (nOutputChans < 0)
+            return 0;
+
         // Create a fake formatter for result
-        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);
+        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH((uint)nOutputChans);
     }
 
     public static uint cmsFormatterForPCSOfProfile(Profile Profile, uint nBytes, bool lIsFloat)
@@ -2660,6 +2676,10 @@ public static partial class Lcms2
         var ColorSpaceBits = (uint)_cmsLCMScolorSpace(ColorSpace);
         var nOutputChans = cmsChannelsOf(ColorSpace);
         var Float = lIsFloat ? 1u : 0;
+
+        // Unsupported color space?
+        if (nOutputChans < 0)
+            return 0;
 
         // Create a fake formatter for result
         return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);

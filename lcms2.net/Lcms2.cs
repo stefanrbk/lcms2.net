@@ -45,7 +45,7 @@ public static partial class Lcms2
 
     #region lcms2.h
 
-    public const ushort LCMS_VERSION = 2131;
+    public const ushort LCMS_VERSION = 2140;
 
     public const ushort cmsMAX_PATH = 256;
 
@@ -61,6 +61,7 @@ public static partial class Lcms2
     public const uint lcmsSignature = 0x6c636d73;
 
     public const uint cmsSigChromaticityType = 0x6368726D;
+    public const uint cmsSigcicpType = 0x63696370;
     public const uint cmsSigColorantOrderType = 0x636C726F;
     public const uint cmsSigColorantTableType = 0x636C7274;
     public const uint cmsSigCrdInfoType = 0x63726469;
@@ -170,6 +171,7 @@ public static partial class Lcms2
     public const uint cmsSigViewingConditionsTag = 0x76696577;
     public const uint cmsSigVcgtTag = 0x76636774;
     public const uint cmsSigMetaTag = 0x6D657461;
+    public const uint cmsSigcicpTag = 0x63696370;
     public const uint cmsSigArgyllArtsTag = 0x61727473;
 
     public const uint cmsSigDigitalCamera = 0x6463616D;
@@ -872,6 +874,8 @@ public static partial class Lcms2
     internal const byte MAX_TABLE_TAG = 100;
 
     internal const uint cmsFLAGS_CAN_CHANGE_FORMATTER = 0x02000000;
+
+    internal const int cmsGuess_MAX_WORKERS = -1;
 
 #endregion lcms2_internal.h
 

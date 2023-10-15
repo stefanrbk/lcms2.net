@@ -30,28 +30,22 @@ using Microsoft.Extensions.Logging;
 
 var now = DateTime.Now;
 
-logger.LogInformation("LittleCMS.net {version:#.##} test bed {now:MMM d yyyy HH:mm:ss}", LCMS_VERSION / 1000.0, now);
+logger.LogInformation("LittleCMS.net {version:#.##} test bed {now:MMM d yyyy HH:mm:ss}", cmsGetEncodedCMMversion() / 1000.0, now);
 
 Thread.Sleep(10);
 Console.WriteLine();
 
-//Thread.Sleep(2000);
-
 var cliResult = CommandLine.Parser.Default.ParseArguments<CliOptions>(args);
+
+if (cliResult is null)
+    return 0;
 
 var exhaustive = cliResult.Value.DoExhaustive;
 var doSpeedTests = cliResult.Value.DoSpeed;
-var doCheckTests = cliResult.Value.DoChecks;
-var doPluginTests = cliResult.Value.DoPlugins;
+var noCheckTests = cliResult.Value.NoChecks;
+var noPluginTests = cliResult.Value.NoPlugins;
 var doZooTests = cliResult.Value.DoZoo;
 timeTests = cliResult.Value.TimeTests;
-
-//if (args.Length is 0 && HasConsole)
-//    exhaustive = CheckExhaustive();
-
-//doCheckTests = false;
-doSpeedTests = true;
-timeTests = true;
 
 if (exhaustive)
 {
@@ -76,13 +70,13 @@ using (logger.BeginScope("Basic operations"))
     Check("D50 roundtrip", CheckD50Roundtrip);
 }
 //Create utility profiles
-if (doCheckTests || doSpeedTests)
+if (!noCheckTests || doSpeedTests)
 {
     using (logger.BeginScope("Profiles"))
         Check("Creation of test profiles", CreateTestProfiles);
 }
 
-if (doCheckTests)
+if (!noCheckTests)
 {
     using (logger.BeginScope("Forward 1D interpolation"))
     {
@@ -282,7 +276,7 @@ if (doCheckTests)
         Check("Parametric curve on Rec709", CheckParametricRec709);
         Check("Floating Point sampled curve with non-zero start", CheckFloatSamples);
         Check("Floating Point segmented curve with short sampled segment", CheckFloatSegments);
-        Check("Read RAW portions", CheckReadRAW);
+        Check("Read RAW tags", CheckReadRAW);
         Check("Check MetaTag", CheckMeta);
         Check("Null transform on floats", CheckFloatNULLxform);
         Check("Set free a tag", CheckRemoveTag);
@@ -296,10 +290,11 @@ if (doCheckTests)
         Check("sRGB round-trips", Check_sRGB_Rountrips);
         Check("Gamma space detection", CheckGammaSpaceDetection);
         Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
+        Check("Corrupted built-in by using cmsWriteRawTag", CheckInducedCorruption);
     }
 }
 
-if (doPluginTests)
+if (!noPluginTests)
 {
     using (logger.BeginScope("Plugin tests"))
     {
@@ -334,7 +329,7 @@ if (doZooTests)
 cmsUnregisterPlugins();
 
 // Cleanup
-if (doCheckTests || doSpeedTests)
+if (!noCheckTests || doSpeedTests)
     RemoveTestProfiles();
 
 //LogArrayPoolUsage(null);

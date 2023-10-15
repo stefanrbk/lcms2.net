@@ -99,7 +99,7 @@ public static partial class Lcms2
 
         // Force it to be neutral, clip to max. L* of 50
         Lab[0].a = Lab[0].b = 0;
-        Lab[0].L = cmsmin(Lab[0].L, 50);
+        Lab[0].L = Math.Clamp(Lab[0].L, 0, 50);
 
         // Free the resources
         cmsDeleteTransform(xform);
@@ -221,6 +221,7 @@ public static partial class Lcms2
 
         if (Math.Abs(a) < 1e-10)
         {
+            if (Math.Abs(b) < 1e-10) return 0;
             return cmsmin(0, cmsmax(50, -c / b));
         }
         else
@@ -232,6 +233,8 @@ public static partial class Lcms2
             }
             else
             {
+                if (Math.Abs(a) < 1e-10) return 0;
+
                 var rt = (-b + Math.Sqrt(d)) / (2 * a);
                 return cmsmax(0, cmsmin(50, rt));
             }

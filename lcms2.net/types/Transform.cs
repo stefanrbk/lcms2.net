@@ -68,4 +68,8 @@ public class Transform
     public FreeUserDataFn? FreeUserData;
 
     public TransformFn? OldXform;
+
+    public Transform2Fn? Worker;
+    public int MaxWorkers;
+    public uint WorkerFlags;
 }

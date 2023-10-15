@@ -44,6 +44,7 @@ public static partial class Plugin
     public const uint cmsPluginOptimizationSig = 0x6F707448;          // 'optH'
     public const uint cmsPluginTransformSig = 0x7A666D48;             // 'xfmH'
     public const uint cmsPluginMutexSig = 0x6D747A48;                 // 'mtxH'
+    public const uint cmsPluginParalellizationSig = 0x70726c48;       // 'prlH'
 
     public const byte MAX_TYPES_IN_LCMS_PLUGIN = 20;
 

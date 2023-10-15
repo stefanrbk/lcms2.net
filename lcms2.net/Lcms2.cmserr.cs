@@ -693,4 +693,44 @@ public static partial class Lcms2
 
         ptr?.UnlockFn?.Invoke(context, mutex);
     }
+
+    private static readonly ParallelizationPluginChunkType globalParallelizationPluginChunk = new(0, 0, null);
+
+    private static readonly ParallelizationPluginChunkType ParallelizationChunk = new(0, 0, null);
+
+    internal static void _cmsAllocParallelizationPluginChunk(Context ctx, in Context? src)
+    {
+        _cmsAssert(ctx);
+
+        var from = src is not null
+            ? src.ParallelizationPlugin
+            : ParallelizationChunk;
+
+        ctx.ParallelizationPlugin = (ParallelizationPluginChunkType)from.Clone();
+    }
+
+    internal static bool _cmsRegisterParallelizationPlugin(Context? context, PluginBase? data)
+    {
+        var Plugin = (PluginParalellization?)data;
+        var ctx = _cmsGetContext(context).ParallelizationPlugin;
+
+        if (data is null)
+        {
+            // Mo parallelization routines
+            ctx.MaxWorkers = 0;
+            ctx.WorkerFlags = 0;
+            ctx.SchedulerFn = null;
+
+            return true;
+        }
+
+        // Callback is required
+        if (Plugin!.SchedulerFn is null) return false;
+
+        ctx.MaxWorkers = Plugin.MaxWorkers;
+        ctx.WorkerFlags = (int)Plugin.WorkerFlags;
+        ctx.SchedulerFn = Plugin.SchedulerFn;
+
+        return true;
+    }
 }

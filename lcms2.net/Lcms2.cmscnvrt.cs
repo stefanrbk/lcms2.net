@@ -486,7 +486,7 @@ public static partial class Lcms2
         {
             if ((uint)ColorSpaceOut is cmsSigGrayData or cmsSigRgbData or cmsSigCmykData)
             {
-                var clip = _cmsStageClipNegatives(Result.ContextID, cmsChannelsOf(ColorSpaceOut));
+                var clip = _cmsStageClipNegatives(Result.ContextID, (uint)cmsChannelsOfColorSpace(ColorSpaceOut));
                 if (clip is null) goto Error;
 
                 if (!cmsPipelineInsertStage(Result, StageLoc.AtEnd, clip))

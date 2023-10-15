@@ -104,7 +104,7 @@ public static partial class Lcms2
         if (hICC is null)       // can't allocate
             return null;
 
-        cmsSetProfileVersion(hICC, 4.3);
+        cmsSetProfileVersion(hICC, 4.4);
 
         cmsSetDeviceClass(hICC, cmsSigDisplayClass);
         cmsSetColorSpace(hICC, cmsSigRgbData);
@@ -223,7 +223,7 @@ public static partial class Lcms2
         if (hICC is null)       // can't allocate
             return null;
 
-        cmsSetProfileVersion(hICC, 4.3);
+        cmsSetProfileVersion(hICC, 4.4);
 
         cmsSetDeviceClass(hICC, cmsSigDisplayClass);
         cmsSetColorSpace(hICC, cmsSigGrayData);
@@ -266,7 +266,7 @@ public static partial class Lcms2
         var hICC = cmsCreateProfilePlaceholder(ContextID);
         if (hICC is null) return null;
 
-        cmsSetProfileVersion(hICC, 4.3);
+        cmsSetProfileVersion(hICC, 4.4);
 
         cmsSetDeviceClass(hICC, cmsSigLinkClass);
         cmsSetColorSpace(hICC, ColorSpace);
@@ -275,7 +275,7 @@ public static partial class Lcms2
         cmsSetHeaderRenderingIntent(hICC, INTENT_PERCEPTUAL);
 
         // Set up channels
-        var nChannels = cmsChannelsOf(ColorSpace);
+        var nChannels = (uint)cmsChannelsOfColorSpace(ColorSpace);
 
         // Creates a Pipeline with prelinearization step only
         var Pipeline = cmsPipelineAlloc(ContextID, nChannels, nChannels);
@@ -362,7 +362,7 @@ public static partial class Lcms2
         if (hICC is null)          // can't allocate
             return null;
 
-        cmsSetProfileVersion(hICC, 4.3);
+        cmsSetProfileVersion(hICC, 4.4);
 
         cmsSetDeviceClass(hICC, cmsSigLinkClass);
         cmsSetColorSpace(hICC, ColorSpace);
@@ -374,7 +374,7 @@ public static partial class Lcms2
         var LUT = cmsPipelineAlloc(ContextID, 4, 4);
         if (LUT is null) goto Error;
 
-        var nChannels = cmsChannelsOf(ColorSpace);
+        var nChannels = (uint)cmsChannelsOfColorSpace(ColorSpace);
 
         var CLUT = cmsStageAllocCLut16bit(ContextID, 17, nChannels, nChannels, null);
         if (CLUT is null) goto Error;
@@ -458,7 +458,7 @@ public static partial class Lcms2
         var Profile = cmsCreateRGBProfileTHR(ContextID, WhitePoint is null ? D50xyY : WhitePoint, null, null);
         if (Profile is null) return null;
 
-        cmsSetProfileVersion(Profile, 4.3);
+        cmsSetProfileVersion(Profile, 4.4);
 
         cmsSetDeviceClass(Profile, cmsSigAbstractClass);
         cmsSetColorSpace(Profile, cmsSigLabData);
@@ -497,7 +497,7 @@ public static partial class Lcms2
         var Profile = cmsCreateRGBProfileTHR(ContextID, D50xyY, null, null);
         if (Profile is null) return null;
 
-        cmsSetProfileVersion(Profile, 4.3);
+        cmsSetProfileVersion(Profile, 4.4);
 
         cmsSetDeviceClass(Profile, cmsSigAbstractClass);
         cmsSetColorSpace(Profile, cmsSigXYZData);
@@ -712,7 +712,7 @@ public static partial class Lcms2
         var Profile = cmsCreateProfilePlaceholder(ContextID);
         if (Profile is null) return null;
 
-        cmsSetProfileVersion(Profile, 4.3);
+        cmsSetProfileVersion(Profile, 4.4);
 
         if (!SetTextTags(Profile, "NULL profile build-in")) goto Error;
 
@@ -809,7 +809,8 @@ public static partial class Lcms2
 
         // Make sure we have proper formatters
         cmsChangeBuffersFormat(xform, TYPE_NAMED_COLOR_INDEX,
-            FLOAT_SH(0) | COLORSPACE_SH((uint)_cmsLCMScolorSpace(v.ExitColorSpace)) | BYTES_SH(2) | CHANNELS_SH(cmsChannelsOf(v.ExitColorSpace)));
+            FLOAT_SH(0) | COLORSPACE_SH((uint)_cmsLCMScolorSpace(v.ExitColorSpace)) |
+            BYTES_SH(2) | CHANNELS_SH((uint)cmsChannelsOfColorSpace(v.ExitColorSpace)));
 
         // Apply the transform to colorants.
         for (i[0] = 0; i[0] < nColors; i[0]++)
@@ -939,8 +940,8 @@ public static partial class Lcms2
         FixColorSpaces(Profile, xform.EntryColorSpace, xform.ExitColorSpace, dwFlags);
 
         // Optimize the LUT and precalculate a devicelink
-        var ChansIn = cmsChannelsOf(xform.EntryColorSpace);
-        var ChansOut = cmsChannelsOf(xform.ExitColorSpace);
+        var ChansIn = (uint)cmsChannelsOfColorSpace(xform.EntryColorSpace);
+        var ChansOut = (uint)cmsChannelsOfColorSpace(xform.ExitColorSpace);
 
         var ColorSpaceBitsIn = _cmsLCMScolorSpace(xform.EntryColorSpace);
         var ColorSpaceBitsOut = _cmsLCMScolorSpace(xform.ExitColorSpace);

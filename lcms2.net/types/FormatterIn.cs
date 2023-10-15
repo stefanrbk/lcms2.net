@@ -32,8 +32,8 @@ namespace lcms2.types;
 public struct FormatterIn
 {
     [FieldOffset(0)]
-    public Formatter16In Fmt16;
+    public Formatter16In? Fmt16;
 
     [FieldOffset(0)]
-    public FormatterFloatIn FmtFloat;
+    public FormatterFloatIn? FmtFloat;
 }

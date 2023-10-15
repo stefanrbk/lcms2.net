@@ -601,7 +601,16 @@ public static partial class Lcms2
             _ => 0,
         };
 
-    public static uint cmsChannelsOf(Signature Colorspace) =>
+    [Obsolete("Deprecated, use cmsChannelsOfColorSpace instead")]
+    public static uint cmsChannelsOf(Signature Colorspace)
+    {
+        var n = cmsChannelsOfColorSpace(Colorspace);
+        if (n < 0)
+            return 3;
+        return (uint)n;
+    }
+
+    public static int cmsChannelsOfColorSpace(Signature Colorspace) =>
         (uint)Colorspace switch
         {
             cmsSigMCH1Data or
@@ -646,6 +655,6 @@ public static partial class Lcms2
             cmsSig14colorData => 14,
             cmsSigMCHFData or
             cmsSig15colorData => 15,
-            _ => 3,
+            _ => -1,
         };
 }

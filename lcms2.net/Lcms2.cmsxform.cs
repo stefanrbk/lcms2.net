@@ -28,11 +28,8 @@
 using lcms2.state;
 using lcms2.types;
 
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-
-using static lcms2.types.TagTypeHandler;
 
 namespace lcms2;
 
@@ -816,6 +813,24 @@ public static partial class Lcms2
         return true;
     }
 
+    private static void ParalellizeIfSuitable(Transform p)
+    {
+        var ctx = _cmsGetContext(p.ContextID).ParallelizationPlugin;
+
+        _cmsAssert(p);
+        if (ctx?.SchedulerFn is not null)
+        {
+            p.Worker = p.xform;
+            p.xform = ctx.SchedulerFn;
+            p.MaxWorkers = ctx.MaxWorkers;
+            p.WorkerFlags = (uint)ctx.WorkerFlags;
+        }
+    }
+    private static ReadOnlySpan<byte> UnrollNothing(Transform _1, Span<ushort> _2, ReadOnlySpan<byte> accum, uint _3) =>
+        accum;
+    private static Span<byte> PackNothing(Transform _1, ReadOnlySpan<ushort> _2, Span<byte> output, uint _3) =>
+        output;
+
     private static Transform? AllocEmptyTransform(
         Context? ContextID,
         Pipeline? lut,
@@ -898,6 +913,7 @@ public static partial class Lcms2
                             //    p.xform = _cmsTransform2toTransformAdaptor;
                             //}
 
+                            ParalellizeIfSuitable(p);
                             return p;
                         }
                     }
@@ -930,10 +946,11 @@ public static partial class Lcms2
         }
         else
         {
+            // Formats are intended to be changed before use
             if (InputFormat is 0 && OutputFormat is 0)
             {
-                p.FromInput = null!;
-                p.ToOutput = null!;
+                p.FromInput = UnrollNothing;
+                p.ToOutput = PackNothing;
                 dwFlags |= cmsFLAGS_CAN_CHANGE_FORMATTER;
             }
             else
@@ -968,6 +985,7 @@ public static partial class Lcms2
         p.dwOriginalFlags = dwFlags;
         p.ContextID = ContextID;
         p.UserData = null;
+        ParalellizeIfSuitable(p);
         return p;
     }
 
@@ -1115,8 +1133,8 @@ public static partial class Lcms2
         }
 
         // Check channel count
-        if ((cmsChannelsOf(EntryColorSpace) != cmsPipelineInputChannels(Lut)) ||
-            (cmsChannelsOf(ExitColorSpace) != cmsPipelineOutputChannels(Lut)))
+        if (((uint)cmsChannelsOfColorSpace(EntryColorSpace) != cmsPipelineInputChannels(Lut)) ||
+            ((uint)cmsChannelsOfColorSpace(ExitColorSpace) != cmsPipelineOutputChannels(Lut)))
         {
             cmsPipelineFree(Lut);
             cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Channel count douesn't match. Profile is corrupted");

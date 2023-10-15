@@ -352,8 +352,8 @@ public static partial class Lcms2
                 break;
 
             // IEC 61966-3
-            // Y = (aX + b)^Gamma | X ≤ -b/a
-            // Y = c              | else
+            // Y = (aX + b)^Gamma + c | X ≤ -b/a
+            // Y = c                  | else
             case 3:
 
                 if (Abs(Params[1]) < MATRIX_DET_TOLERANCE)
@@ -385,7 +385,8 @@ public static partial class Lcms2
             // X = -b/a              | Y < c
             case -3:
 
-                if (Abs(Params[1]) < MATRIX_DET_TOLERANCE)
+                if (Abs(Params[0]) < MATRIX_DET_TOLERANCE ||
+                    Abs(Params[1]) < MATRIX_DET_TOLERANCE)
                 {
                     val = 0;
                 }
@@ -507,7 +508,8 @@ public static partial class Lcms2
             // X = ((Y - c) ^1/Gamma - b) / a
             case -6:
 
-                if (Abs(Params[1]) < MATRIX_DET_TOLERANCE)
+                if (Abs(Params[0]) < MATRIX_DET_TOLERANCE ||
+                    Abs(Params[1]) < MATRIX_DET_TOLERANCE)
                 {
                     val = 0;
                 }
@@ -1278,6 +1280,9 @@ public static partial class Lcms2
                 n++;
             }
         }
+
+        // We need enough valid samples
+        if (n <= 1) return -1.0;
 
         // Take a look on SD to see if gamma isn't exponential at all
         var Std = Sqrt(((n * sum2) - (sum * sum)) / (n * (n - 1)));

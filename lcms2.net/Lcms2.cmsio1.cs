@@ -327,7 +327,6 @@ public static partial class Lcms2
             var Lut = cmsPipelineAlloc(ContextID, 0, 0);
             if (Lut is null)
             {
-                cmsFreeNamedColorList(nc);
                 return null;
             }
 
@@ -738,7 +737,6 @@ public static partial class Lcms2
 
         Error:
             cmsPipelineFree(Lut);
-            cmsFreeNamedColorList(nc);
             return null;
         }
 

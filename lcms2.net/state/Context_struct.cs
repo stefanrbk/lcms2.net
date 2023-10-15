@@ -50,6 +50,7 @@ public class Context
     internal OptimizationPluginChunkType OptimizationPlugin;
     internal TransformPluginChunkType TransformPlugin;
     internal MutexPluginChunkType MutexPlugin;
+    internal ParallelizationPluginChunkType ParallelizationPlugin;
 
     public ArrayPool<T> GetBufferPool<T>()
     {

@@ -173,6 +173,10 @@ public static partial class Lcms2
                     if (!_cmsRegisterMutexPlugin(id, Plugin)) return false;
                     break;
 
+                case cmsPluginParalellizationSig:
+                    if (!_cmsRegisterParallelizationPlugin(id, Plugin)) return false;
+                    break;
+
                 default:
                     cmsSignalError(id, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{Plugin.Type}'");
                     return false;
@@ -255,6 +259,7 @@ public static partial class Lcms2
         _cmsRegisterOptimizationPlugin(context, null);
         _cmsRegisterTransformPlugin(context, null);
         _cmsRegisterMutexPlugin(context, null);
+        _cmsRegisterParallelizationPlugin(context, null);
     }
 
     //internal static PluginMemHandler? _cmsFindMemoryPlugin(PluginBase? PluginBundle)
@@ -292,6 +297,7 @@ public static partial class Lcms2
         _cmsAllocOptimizationPluginChunk(ctx, src);
         _cmsAllocTransformPluginChunk(ctx, src);
         _cmsAllocMutexPluginChunk(ctx, src);
+        _cmsAllocParallelizationPluginChunk(ctx, src);
 
         //static void PrintContext(Context ctx, string name)
         //{
