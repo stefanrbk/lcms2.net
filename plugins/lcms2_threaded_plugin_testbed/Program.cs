@@ -24,10 +24,7 @@ var now = DateTime.Now;
 
 trace("LittleCMS.net Multithreaded extensions testbed - 1.1 {0:MMM d yyyy HH:mm:ss}", now);
 trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
-trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
-
-fflush();
-Console.WriteLine();
+trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved\n");
 
 using (logger.BeginScope("Installing error logger"))
 {
@@ -46,9 +43,10 @@ CheckChangeFormat();
 
 // Accuracy
 CheckAccuracy8Bits();
+CheckAccuracy16Bits();
 
 // Check speed
-
+SpeedTest8();
 
 cmsUnregisterPlugins();
 
