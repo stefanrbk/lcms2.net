@@ -190,6 +190,13 @@ public static partial class Lcms2
         var ConeSourceRGB = Chad.Eval(ConeSourceXYZ);
         var ConeDestRGB = Chad.Eval(ConeDestXYZ);
 
+        if ((Math.Abs(ConeSourceRGB.X) < MATRIX_DET_TOLERANCE) ||
+            (Math.Abs(ConeSourceRGB.Y) < MATRIX_DET_TOLERANCE) ||
+            (Math.Abs(ConeSourceRGB.Z) < MATRIX_DET_TOLERANCE))
+        {
+            return MAT3.NaN;
+        }
+
         // Build matrix
         var Cone = new MAT3(
             x: new(ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0),
