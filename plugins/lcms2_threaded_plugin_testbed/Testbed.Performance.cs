@@ -333,7 +333,7 @@ internal static partial class Testbed
                 t[1] = Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB, noPlugin, "test5", "test0", sz, 0);
                 t[2] = Performance("16 bits on same Matrix-Shaper profile", SpeedTest16bitsRGB, noPlugin, "test0", "test0", sz, 0);
                 t[3] = Performance("16 bits on curves", SpeedTest16bitsRGB, noPlugin, "*curves", "*curves", sz, 0);
-                t[4] = Performance("16 bits CMYK CLUT profiles", SpeedTest16bitsRGB, noPlugin, "test1", "test2", szCmyk, 0);
+                t[4] = Performance("16 bits CMYK CLUT profiles", SpeedTest16bitsCMYK, noPlugin, "test1", "test2", szCmyk, 0);
             }
 
             // Note that context null has the plugin installed
@@ -345,7 +345,7 @@ internal static partial class Testbed
                 Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB, null, "test5", "test0", sz, t[1]);
                 Performance("16 bits on same Matrix-Shaper profile", SpeedTest16bitsRGB, null, "test0", "test0", sz, t[2]);
                 Performance("16 bits on curves", SpeedTest16bitsRGB, null, "*curves", "*curves", sz, t[3]);
-                Performance("16 bits on CMYK CLUT profiles", SpeedTest16bitsRGB, null, "test1", "test2", szCmyk, t[4]);
+                Performance("16 bits on CMYK CLUT profiles", SpeedTest16bitsCMYK, null, "test1", "test2", szCmyk, t[4]);
             }
 
             cmsDeleteContext(noPlugin);
