@@ -47,6 +47,7 @@ CheckAccuracy16Bits();
 
 // Check speed
 SpeedTest8();
+SpeedTest16();
 
 cmsUnregisterPlugins();
 

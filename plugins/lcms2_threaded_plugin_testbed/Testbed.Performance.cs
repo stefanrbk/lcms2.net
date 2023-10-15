@@ -291,26 +291,65 @@ internal static partial class Testbed
         {
             using (logger.BeginScope("Default"))
             {
-                trace("P E R F O R M A N C E   T E S T S   8 B I T S  (D E F A U L T)");
+                trace("P E R F O R M A N C E   T E S T S   8  B I T S  (D E F A U L T)");
 
                 t[0] = Performance("8 bits on CLUT profiles", SpeedTest8bitsRGB, noPlugin, "test5", "test3", sz, 0);
-                t[1] = Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, noPlugin, "test5", "test0", sz, 0);
-                t[2] = Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, noPlugin, "test0", "test0", sz, 0);
+                t[1] = Performance("8 bits on Matrix-Shaper profiles", SpeedTest8bitsRGB, noPlugin, "test5", "test0", sz, 0);
+                t[2] = Performance("8 bits on same Matrix-Shaper profile", SpeedTest8bitsRGB, noPlugin, "test0", "test0", sz, 0);
                 t[3] = Performance("8 bits on curves", SpeedTest8bitsRGB, noPlugin, "*curves", "*curves", sz, 0);
             }
 
             // Note that context null has the plugin installed
             using (logger.BeginScope("Plugin"))
             {
-                trace("P E R F O R M A N C E   T E S T S   8 B I T S  (P L U G I N)");
+                trace("P E R F O R M A N C E   T E S T S   8  B I T S  (P L U G I N)");
 
                 Performance("8 bits on CLUT profiles", SpeedTest8bitsRGB, null, "test5", "test3", sz, t[0]);
-                Performance("8 bits on Matrix-Shaper", SpeedTest8bitsRGB, null, "test5", "test0", sz, t[1]);
-                Performance("8 bits on same Matrix-Shaper", SpeedTest8bitsRGB, null, "test0", "test0", sz, t[2]);
+                Performance("8 bits on Matrix-Shaper profiles", SpeedTest8bitsRGB, null, "test5", "test0", sz, t[1]);
+                Performance("8 bits on same Matrix-Shaper profile", SpeedTest8bitsRGB, null, "test0", "test0", sz, t[2]);
                 Performance("8 bits on curves", SpeedTest8bitsRGB, null, "*curves", "*curves", sz, t[3]);
             }
 
             cmsDeleteContext(noPlugin);
         }
     }
+
+    public static void SpeedTest16()
+    {
+        var noPlugin = cmsCreateContext();
+
+        var t = new double[10];
+
+        var sz = Unsafe.SizeOf<Scanline_rgb16bits>();
+        var szCmyk = Unsafe.SizeOf<Scanline_cmyk16bits>();
+
+        using (logger.BeginScope("Multithreaded performance"))
+        {
+            using (logger.BeginScope("Default"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   1 6  B I T S  (D E F A U L T)");
+
+                t[0] = Performance("16 bits on CLUT profiles", SpeedTest16bitsRGB, noPlugin, "test5", "test3", sz, 0);
+                t[1] = Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB, noPlugin, "test5", "test0", sz, 0);
+                t[2] = Performance("16 bits on same Matrix-Shaper profile", SpeedTest16bitsRGB, noPlugin, "test0", "test0", sz, 0);
+                t[3] = Performance("16 bits on curves", SpeedTest16bitsRGB, noPlugin, "*curves", "*curves", sz, 0);
+                t[4] = Performance("16 bits CMYK CLUT profiles", SpeedTest16bitsRGB, noPlugin, "test1", "test2", szCmyk, 0);
+            }
+
+            // Note that context null has the plugin installed
+            using (logger.BeginScope("Plugin"))
+            {
+                trace("P E R F O R M A N C E   T E S T S   1 6  B I T S  (P L U G I N)");
+
+                Performance("16 bits on CLUT profiles", SpeedTest16bitsRGB, null, "test5", "test3", sz, t[0]);
+                Performance("16 bits on Matrix-Shaper profiles", SpeedTest16bitsRGB, null, "test5", "test0", sz, t[1]);
+                Performance("16 bits on same Matrix-Shaper profile", SpeedTest16bitsRGB, null, "test0", "test0", sz, t[2]);
+                Performance("16 bits on curves", SpeedTest16bitsRGB, null, "*curves", "*curves", sz, t[3]);
+                Performance("16 bits on CMYK CLUT profiles", SpeedTest16bitsRGB, null, "test1", "test2", szCmyk, t[4]);
+            }
+
+            cmsDeleteContext(noPlugin);
+        }
+    }
+
 }
