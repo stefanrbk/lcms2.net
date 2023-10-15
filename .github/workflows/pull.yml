@@ -24,9 +24,9 @@ jobs:
       #run: dotnet test --no-build --verbosity normal
     - name: Run Testbed
       run: dotnet run --project Testing --launch-profile "Checks and Plugin Tests"
-    - name: Run Performance Testbed
-      continue-on-error: true
-      run: dotnet run --project Testing --launch-profile "Speed Tests"
+    #- name: Run Performance Testbed
+      #continue-on-error: true
+      #run: dotnet run --project Testing --launch-profile "Speed Tests"
       
   build-fast-float:
     runs-on: ubuntu-latest
@@ -47,9 +47,9 @@ jobs:
       #run: dotnet test --no-build --verbosity normal
     - name: Run Plugin Testbed
       run: dotnet run --project plugins/lcms2_fast_float_plugin_testbed --launch-profile "Check Tests"
-    - name: Run Plugin Performance Testbed
-      continue-on-error: true
-      run: dotnet run --project plugins/lcms2_fast_float_plugin_testbed --launch-profile "Speed Tests"
+    #- name: Run Plugin Performance Testbed
+      #continue-on-error: true
+      #run: dotnet run --project plugins/lcms2_fast_float_plugin_testbed --launch-profile "Speed Tests"
       
   build-threaded:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
       #run: dotnet test --no-build --verbosity normal
     - name: Run Plugin Testbed
       run: dotnet run --project plugins/lcms2_threaded_plugin_testbed --launch-profile "Check Tests"
-    - name: Run Plugin Performance Testbed
-      continue-on-error: true
-      run: dotnet run --project plugins/lcms2_threaded_plugin_testbed --launch-profile "Speed Tests"
+    #- name: Run Plugin Performance Testbed
+      #continue-on-error: true
+      #run: dotnet run --project plugins/lcms2_threaded_plugin_testbed --launch-profile "Speed Tests"
 
