@@ -22,6 +22,11 @@
 
 var now = DateTime.Now;
 
+var cliResult = CommandLine.Parser.Default.ParseArguments<lcms2.ThreadedPlugin.testbed.CliOptions>(args);
+
+var doSpeedTests = cliResult.Value.DoSpeed;
+var noCheckTests = cliResult.Value.NoChecks;
+
 trace("LittleCMS.net Multithreaded extensions testbed - 1.1 {0:MMM d yyyy HH:mm:ss}", now);
 trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
 trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved\n");
@@ -38,17 +43,23 @@ using (logger.BeginScope("Installing plugin"))
     trace("Done");
 }
 
-// Change format
-CheckChangeFormat();
+if (!noCheckTests)
+{
+    // Change format
+    CheckChangeFormat();
 
-// Accuracy
-CheckAccuracy8Bits();
-CheckAccuracy16Bits();
+    // Accuracy
+    CheckAccuracy8Bits();
+    CheckAccuracy16Bits();
+}
 
-// Check speed
-SpeedTest8();
-SpeedTest16();
-ComparativeLineStride8bits();
+if (doSpeedTests)
+{
+    // Check speed
+    SpeedTest8();
+    SpeedTest16();
+    ComparativeLineStride8bits();
+}
 
 cmsUnregisterPlugins();
 

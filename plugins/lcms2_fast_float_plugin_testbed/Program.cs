@@ -22,6 +22,11 @@
 
 var now = DateTime.Now;
 
+var cliResult = CommandLine.Parser.Default.ParseArguments<lcms2.FastFloatPlugin.testbed.CliOptions>(args);
+
+var doSpeedTests = cliResult.Value.DoSpeed;
+var noCheckTests = cliResult.Value.NoChecks;
+
 trace("LittleCMS.net FastFloating point extensions testbed - 1.5 {0:MMM d yyyy HH:mm:ss}", now);
 trace("Copyright (c) 1998-2022 Marti Maria Saguer, all rights reserved");
 trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
@@ -41,45 +46,51 @@ using (logger.BeginScope("Installing plugin"))
     trace("Done");
 }
 
-CheckComputeIncrements();
-
-// 15 bit functionality
-CheckFormatters15();
-Check15bitsConversion();
-
-// 16 bit functionality
-CheckAccuracy16Bits();
-
-// Lab to whatever
-CheckLab2RGB();
-
-// Change format
-CheckChangeFormat();
-
-// Soft proofing
-CheckSoftProofing();
-
-// Floating point functionality
-CheckConversionFloat();
-trace("All floating point tests passed");
-
-SpeedTest8();
-SpeedTest16();
-SpeedTest15();
-SpeedTestFloat();
-
-ComparativeFloatVs16bits();
-ComparativeLineStride8bits();
-
-using (logger.BeginScope("Gray performance"))
+if (!noCheckTests)
 {
-    Thread.Sleep(10);
-    Console.WriteLine();
+    CheckComputeIncrements();
 
-    trace("F L O A T   G R A Y   conversions performance.");
+    // 15 bit functionality
+    CheckFormatters15();
+    Check15bitsConversion();
 
-    TestGrayTransformPerformance();
-    TestGrayTransformPerformance1();
+    // 16 bit functionality
+    CheckAccuracy16Bits();
+
+    // Lab to whatever
+    CheckLab2RGB();
+
+    // Change format
+    CheckChangeFormat();
+
+    // Soft proofing
+    CheckSoftProofing();
+
+    // Floating point functionality
+    CheckConversionFloat();
+    trace("All floating point tests passed");
+}
+
+if (doSpeedTests)
+{
+    SpeedTest8();
+    SpeedTest16();
+    SpeedTest15();
+    SpeedTestFloat();
+
+    ComparativeFloatVs16bits();
+    ComparativeLineStride8bits();
+
+    using (logger.BeginScope("Gray performance"))
+    {
+        Thread.Sleep(10);
+        Console.WriteLine();
+
+        trace("F L O A T   G R A Y   conversions performance.");
+
+        TestGrayTransformPerformance();
+        TestGrayTransformPerformance1();
+    }
 }
 
 trace("All tests passed!");

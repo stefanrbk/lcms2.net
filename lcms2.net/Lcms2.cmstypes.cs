@@ -4152,14 +4152,14 @@ public static partial class Lcms2
 
     private static bool Type_VideoSignal_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2)
     {
-        if (Ptr is not VideoSignalType cicp)
+        if (Ptr is not Box<VideoSignalType> cicp)
             return false;
 
         if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.ColourPrimaries)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.TransferCharacteristics)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.MatrixCoefficients)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.VideoFullRangeFlag)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.Value.ColourPrimaries)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.Value.TransferCharacteristics)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.Value.MatrixCoefficients)) return false;
+        if (!_cmsWriteUInt8Number(io, cicp.Value.VideoFullRangeFlag)) return false;
 
         return true;
     }

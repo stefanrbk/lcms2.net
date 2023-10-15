@@ -1872,7 +1872,7 @@ internal static partial class Testbed
                     MatrixCoefficients = 0,
                     VideoFullRangeFlag = 1
                 };
-                return cmsWriteTag(hProfile, cmsSigcicpTag, s);
+                return cmsWriteTag(hProfile, cmsSigcicpTag, new Box<VideoSignalType>(s));
 
             case 2:
                 if (cmsReadTag(hProfile, cmsSigcicpTag) is not Box<VideoSignalType> vs)
