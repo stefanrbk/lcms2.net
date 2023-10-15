@@ -24,6 +24,7 @@ using lcms2.state;
 using lcms2.types;
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace lcms2.ThreadedPlugin.testbed;
 internal static partial class Testbed
@@ -387,8 +388,8 @@ internal static partial class Testbed
         // Our test bitmap is 256 x 256 padded lines
         var Mb = Unsafe.SizeOf<big_bitmap>();
 
-        var In = new big_bitmap();
-        var Out = new big_bitmap();
+        var In = (big_bitmap*)NativeMemory.AllocZeroed((nuint)Mb);
+        var Out = (big_bitmap*)NativeMemory.AllocZeroed((nuint)Mb);
 
         for (var r = 0; r < 256; r++)
         {
@@ -396,7 +397,7 @@ internal static partial class Testbed
             {
                 for (var b = 0; b < 256; b++)
                 {
-                    var ptr = In.line(r)->pixels(g, b);
+                    var ptr = In->line(r)->pixels(g, b);
                     ptr->r = (byte)r;
                     ptr->g = (byte)g;
                     ptr->b = (byte)b;
@@ -409,17 +410,20 @@ internal static partial class Testbed
 
         for (var j = 0; j < 256; j++)
         {
-            var inLine = In.line(j);
-            var outLine = Out.line(j);
+            var inLine = In->line(j);
+            var outLine = Out->line(j);
 
             cmsDoTransform(
                 xform,
-                Unsafe.AsRef<Scanline_rgba8bits>(inLine->pixels(0, 0)),
-                out Unsafe.AsRef<Scanline_rgba8bits>(outLine->pixels(0, 0)),
+                new ReadOnlySpan<Scanline_rgba8bits>(inLine, 256 * 256),
+                new Span<Scanline_rgba8bits>(outLine, 256 * 256),
                 256 * 256);
         }
 
         var diff = MeasureTimeStop();
+
+        NativeMemory.Free(In);
+        NativeMemory.Free(Out);
 
         cmsDeleteTransform(xform);
 
@@ -438,8 +442,8 @@ internal static partial class Testbed
         // Our test bitmap is 256 x 256 padded lines
         var Mb = Unsafe.SizeOf<big_bitmap>();
 
-        var In = new big_bitmap();
-        var Out = new big_bitmap();
+        var In = (big_bitmap*)NativeMemory.AllocZeroed((nuint)Mb);
+        var Out = (big_bitmap*)NativeMemory.AllocZeroed((nuint)Mb);
 
         for (var r = 0; r < 256; r++)
         {
@@ -447,7 +451,7 @@ internal static partial class Testbed
             {
                 for (var b = 0; b < 256; b++)
                 {
-                    var ptr = In.line(r)->pixels(g, b);
+                    var ptr = In->line(r)->pixels(g, b);
                     ptr->r = (byte)r;
                     ptr->g = (byte)g;
                     ptr->b = (byte)b;
@@ -460,8 +464,8 @@ internal static partial class Testbed
 
         cmsDoTransformLineStride(
             xform,
-            In,
-            out Out,
+            new ReadOnlySpan<big_bitmap>(In, 1),
+            new Span<big_bitmap>(Out, 1),
             256 * 256,
             256,
             (uint)Unsafe.SizeOf<padded_line>(),
@@ -472,6 +476,9 @@ internal static partial class Testbed
         var diff = MeasureTimeStop();
 
         cmsDeleteTransform(xform);
+
+        NativeMemory.Free(In);
+        NativeMemory.Free(Out);
 
         return MPixSec(diff);
     }
