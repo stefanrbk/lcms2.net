@@ -45,7 +45,7 @@ public static partial class Lcms2
 
     #region lcms2.h
 
-    public const ushort LCMS_VERSION = 2150;
+    public const ushort LCMS_VERSION = 2160;
 
     public const ushort cmsMAX_PATH = 256;
 
