@@ -194,7 +194,7 @@ public static partial class Lcms2
         if (Cargo is not Box<GamutChain> t)
             return false;
 
-        // Assume in-gamut by default.
+        // Assume in-gamut by default. NEVER READ, USED FOR DEBUG PURPOSES.
         var ErrorRatio = 1.0;
 
         // Convert input to Lab
