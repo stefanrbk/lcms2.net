@@ -246,7 +246,12 @@ public static partial class Lcms2
         p.InterpParams = _cmsComputeInterpParams(ContextID, p.nEntries, 1, 1, p.Table16.AsMemory(), LerpFlag.Ushort);
         if (p.InterpParams is not null)
             return p;
-        Error:
+
+        for (var i = 0; i < nSegments; i++)
+        {
+            if (p.Segments is not null && p.Segments[i].SampledPoints is not null)
+                ReturnArray(ContextID, p.Segments[i].SampledPoints);
+        }
         if (p.SegInterp is not null) ReturnArray(ipPool, p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
         if (p.Segments is not null) ReturnArray(ContextID, p.Segments);
         if (p.Evals is not null) ReturnArray(ContextID, p.Evals);
@@ -499,10 +504,12 @@ public static partial class Lcms2
 
                 e = (Params[1] * R) + Params[2];
 
-                val = e < 0
-                    ? Params[3]
-                    : Pow(e, Params[0]) + Params[3];
-
+                val = Params[0] == 1.0
+                    // On gamma 1.0, don't clamp
+                    ? e + Params[3]
+                    : e < 0
+                        ? Params[3]
+                        : Pow(e, Params[0]) + Params[3];
                 break;
 
             // X = ((Y - c) ^1/Gamma - b) / a
@@ -1298,6 +1305,7 @@ public static partial class Lcms2
 
     public static ref CurveSegment cmsGetToneCurveSegment(int n, ToneCurve t)
     {
-        throw new NotImplementedException();
+        if (n < 0 || n >= (int)t.nSegments) return ref Unsafe.NullRef<CurveSegment>();
+        return ref t.Segments[n];
     }
 }
