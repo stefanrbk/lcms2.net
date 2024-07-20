@@ -182,7 +182,7 @@ public static partial class Lcms2
         return FormattersAlpha[in_n, out_n];
     }
 
-    private static void ComputeIncrementsForChunky(uint Format, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
+    private static bool ComputeIncrementsForChunky(uint Format, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
         Span<uint> channels = stackalloc uint[cmsMAXCHANNELS];
         var extra = T_EXTRA(Format);
@@ -193,7 +193,7 @@ public static partial class Lcms2
 
         // Sanity check
         if (total_chans is <= 0 or >= cmsMAXCHANNELS)
-            return;
+            return false;
 
         //memset(channels, 0, cmsMAXCHANNELS * sizeof(uint));
 
@@ -223,9 +223,11 @@ public static partial class Lcms2
 
         for (var i = 0; i < extra; i++)
             ComponentStartingOrder[i] = channels[i + nchannels];
+
+        return true;
     }
 
-    private static void ComputeIncrementsForPlanar(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
+    private static bool ComputeIncrementsForPlanar(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
         Span<uint> channels = stackalloc uint[cmsMAXCHANNELS];
         var extra = T_EXTRA(Format);
@@ -235,7 +237,7 @@ public static partial class Lcms2
 
         // Sanity check
         if (total_chans is <= 0 or >= cmsMAXCHANNELS)
-            return;
+            return false;
 
         //memset(channels, 0, cmsMAXCHANNELS * sizeof(uint));
 
@@ -262,17 +264,19 @@ public static partial class Lcms2
 
         for (var i = 0; i < extra; i++)
             ComponentStartingOrder[i] = channels[i + (int)nchannels];
+
+        return true;
     }
 
-    private static void ComputeComponentIncrements(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
+    private static bool ComputeComponentIncrements(uint Format, uint BytesPerPlane, Span<uint> ComponentStartingOrder, Span<uint> ComponentPointerIncrements)
     {
         if (T_PLANAR(Format) is not 0)
         {
-            ComputeIncrementsForPlanar(Format, BytesPerPlane, ComponentStartingOrder, ComponentPointerIncrements);
+            return ComputeIncrementsForPlanar(Format, BytesPerPlane, ComponentStartingOrder, ComponentPointerIncrements);
         }
         else
         {
-            ComputeIncrementsForChunky(Format, ComponentStartingOrder, ComponentPointerIncrements);
+            return ComputeIncrementsForChunky(Format, ComponentStartingOrder, ComponentPointerIncrements);
         }
     }
 
@@ -300,17 +304,19 @@ public static partial class Lcms2
         if (nExtra is 0) return;
 
         // Compute the increments
-        ComputeComponentIncrements(p.InputFormat, Stride.BytesPerPlaneIn, SourceStartingOrder, SourceIncrements);
-        ComputeComponentIncrements(p.OutputFormat, Stride.BytesPerPlaneOut, DestStartingOrder, DestIncrements);
+        if (!ComputeComponentIncrements(p.InputFormat, Stride.BytesPerPlaneIn, SourceStartingOrder, SourceIncrements))
+            return;
+        if (!ComputeComponentIncrements(p.OutputFormat, Stride.BytesPerPlaneOut, DestStartingOrder, DestIncrements))
+            return;
 
         // Check for conversions 8, 16, half, float, double
         var copyValueFn = _cmsGetFormatterAlpha(p.ContextID, p.InputFormat, p.OutputFormat);
         if (copyValueFn is null) return;
 
-        if (nExtra is 1)    // Optivized routine for copying a single extra channel quickly
+        if (nExtra is 1)    // Optimized routine for copying a single extra channel quickly
         {
-            var SourceStrideIncrement = 0u;
-            var DestStrideIncrement = 0u;
+            nuint SourceStrideIncrement = 0;
+            nuint DestStrideIncrement = 0;
 
             // The loop itself
             for (var i = 0; i < LineCount; i++)
@@ -335,8 +341,8 @@ public static partial class Lcms2
         {
             Span<int> SourcePtr = stackalloc int[cmsMAXCHANNELS];
             Span<int> DestPtr = stackalloc int[cmsMAXCHANNELS];
-            Span<uint> SourceStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
-            Span<uint> DestStrideIncrements = stackalloc uint[cmsMAXCHANNELS];
+            Span<nuint> SourceStrideIncrements = stackalloc nuint[cmsMAXCHANNELS];
+            Span<nuint> DestStrideIncrements = stackalloc nuint[cmsMAXCHANNELS];
 
             //memset(SourceStrideIncrements, 0, sizeof(uint) * cmsMAXCHANNELS);
             //memset(DestStrideIncrements, 0, sizeof(uint) * cmsMAXCHANNELS);
