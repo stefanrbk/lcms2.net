@@ -26,6 +26,7 @@
 //
 using lcms2.cgats;
 using lcms2.state;
+using lcms2.types;
 
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -2262,5 +2263,15 @@ public static partial class Lcms2
             strncpy(it8.DoubleFormatter, Formatter, MAXID);
 
         it8.DoubleFormatter[MAXID - 1] = 0;
+    }
+
+    public static Profile? cmsCreateDeviceLinkFromCubeFileTHR(Context? context, string FileName)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static Profile? cmsCreateDeviceLinkFromCubeFile(string FileName)
+    {
+        throw new NotImplementedException();
     }
 }

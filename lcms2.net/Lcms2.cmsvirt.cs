@@ -569,6 +569,11 @@ public static partial class Lcms2
         return null;
     }
 
+    public static Profile? cmsCreateOkLabProfile(Context? ContextID)
+    {
+        throw new NotImplementedException();
+    }
+
     public static Profile? cmsCreate_sRGBProfile() =>
         cmsCreate_sRGBProfileTHR(null);
 

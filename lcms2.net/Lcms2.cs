@@ -100,6 +100,7 @@ public static partial class Lcms2
     public const uint cmsSigVcgtType = 0x76636774;
     public const uint cmsSigViewingConditionsType = 0x76696577;
     public const uint cmsSigXYZType = 0x58595A20;
+    public const uint cmsSigMHC2Type = 0x4D484332;
 
     public const uint cmsSigAToB0Tag = 0x41324230;
     public const uint cmsSigAToB1Tag = 0x41324231;
@@ -173,6 +174,7 @@ public static partial class Lcms2
     public const uint cmsSigMetaTag = 0x6D657461;
     public const uint cmsSigcicpTag = 0x63696370;
     public const uint cmsSigArgyllArtsTag = 0x61727473;
+    public const uint cmsSigMHC2Tag = 0x4D484332;
 
     public const uint cmsSigDigitalCamera = 0x6463616D;
     public const uint cmsSigFilmScanner = 0x6673636E;
@@ -623,6 +625,7 @@ public static partial class Lcms2
     public static uint TYPE_RGB_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0);
     public static uint TYPE_BGR_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | DOSWAP_SH(1);
     public static uint TYPE_CMYK_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(0);
+    public static uint TYPE_OKLAB_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_MCH3) | CHANNELS_SH(3) | BYTES_SH(0);
 
     // IEEE 754-2008 "half"
     public static uint TYPE_GRAY_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
@@ -672,6 +675,7 @@ public static partial class Lcms2
 
     public static readonly byte[] cmsNoLanguage = "\0\0"u8.ToArray();
     public static readonly byte[] cmsNoCountry = "\0\0"u8.ToArray();
+    public static readonly byte[] cmsV2Unicode = "\xff\xff"u8.ToArray();
 
     public const ushort cmsPRINTER_DEFAULT_SCREENS = 0x0001;
     public const ushort cmsFREQUENCE_UNITS_LINES_CM = 0x0000;

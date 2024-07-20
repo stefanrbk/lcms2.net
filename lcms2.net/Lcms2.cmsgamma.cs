@@ -1296,12 +1296,8 @@ public static partial class Lcms2
             : sum / n;   // The mean
     }
 
-    public static Span<double> cmsGetToneCurveParams(ToneCurve t)
+    public static ref CurveSegment cmsGetToneCurveSegment(int n, ToneCurve t)
     {
-        _cmsAssert(t);
-
-        return t.nSegments is 1
-            ? t.Segments[0].Params.AsSpan(..10)
-            : null;
+        throw new NotImplementedException();
     }
 }

@@ -953,4 +953,9 @@ public static partial class Lcms2
 
         return cmsMLUgetASCII(mlu, LanguageCode, CountryCode, Buffer);
     }
+
+    public static uint cmsGetProfileInfoUTF8(Profile Profile, InfoType Info, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, Span<byte> Buffer)
+    {
+        throw new NotImplementedException();
+    }
 }

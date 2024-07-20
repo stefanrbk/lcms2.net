@@ -270,6 +270,11 @@ public static partial class Lcms2
         return AddMLUBlock(mlu, WideString, Lang, Cntry);
     }
 
+    public static bool cmsMLUsetUTF8(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> UTF8String)
+    {
+        throw new NotImplementedException();
+    }
+
     public static Mlu? cmsMLUdup(Mlu? mlu)
     {
         // Duplicating a null obtains a null
@@ -479,6 +484,15 @@ public static partial class Lcms2
         //Buffer[StrLen / sizeof(char)] = (char)0;
         Wide.CopyTo(Buffer[..(int)WideLen]);
         return WideLen;
+    }
+
+    public static uint cmsMLUgetUTF8(
+        Mlu? mlu,
+        ReadOnlySpan<byte> LanguageCode,
+        ReadOnlySpan<byte> CountryCode,
+        Span<byte> Buffer)
+    {
+        throw new NotImplementedException();
     }
 
     public static bool cmsMLUgetTranslation(
