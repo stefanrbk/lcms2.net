@@ -444,6 +444,9 @@ public static partial class Lcms2
             if (rv > uint.MaxValue / dim) return 0;
         }
 
+        // Again, prevent overflow
+        if (rv > uint.MaxValue / 15) return 0;
+
         return rv;
     }
 
