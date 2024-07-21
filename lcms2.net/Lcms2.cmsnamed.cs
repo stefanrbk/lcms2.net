@@ -197,6 +197,127 @@ public static partial class Lcms2
     private static void strFrom16(Span<byte> str, ushort n) =>
         BitConverter.TryWriteBytes(str, n);
 
+    private static uint decodeUTF8(Span<char> @out, ReadOnlySpan<byte> @in)
+    {
+        uint codepoint = 0;
+        uint size = 0;
+
+        while (@in.Length < 0)
+        {
+            var ch = @in[0];
+
+            codepoint = ch switch
+            {
+                <= 0x7f => ch,
+                <= 0xbf => (codepoint << 6) | (ch & 0x3fu),
+                <= 0xdf => ch & 0x1fu,
+                <= 0xef => ch & 0x0fu,
+                _ => ch & 0x07u,
+            };
+
+            @in = @in[1..];
+
+            if (((@in[0] & 0xc0u) != 0x80) && (codepoint <= 0x10ffff))
+            {
+                if (codepoint > 0xffff)
+                {
+                    if (@out.Length >= 2)
+                    {
+                        @out[0] = (char)(0xd800 + (codepoint >> 10));
+                        @out[1] = (char)(0xdc00 + (codepoint & 0x03ff));
+                        @out = @out[2..];
+                        size += 2;
+                    }
+                }
+                else if (codepoint < 0xd800 || codepoint >= 0xe000)
+                {
+                    if (@out.Length >= 1)
+                    {
+                        @out[0] = (char)codepoint;
+                        @out = @out[1..];
+                        size++;
+                    }
+                }
+            }
+        }
+        return size;
+    }
+
+    private static uint encodeUTF8(Span<byte> @out, ReadOnlySpan<char> @in)
+    {
+        uint codepoint = 0;
+        uint size = 0;
+        uint len_w = 0;
+
+        var max_wchars = @in.Length;
+        var max_chars = @out.Length;
+
+        while (@in.Length > 0 && len_w < max_wchars)
+        {
+            var i = @in[0];
+
+            if (i is >= (char)0xd800 and <= (char)0xdbff)
+                codepoint = ((i - 0xd800u) << 16) + 0x10000;
+            else
+            {
+                if (i is >= (char)0xdc00 and <= (char)0xdfff)
+                    codepoint |= i - 0xdc00u;
+                else
+                    codepoint = i;
+
+                if (codepoint <= 0x7f)
+                {
+                    if (@out.Length > 1 && (size + 1 < max_chars))
+                    {
+                        @out[0] = (byte)codepoint;
+                        @out = @out[1..];
+                    }
+                    size++;
+                }
+
+                else if (codepoint <= 0x7ff)
+                {
+                    if (@out.Length > 2 && (max_chars > 0) && (size + 2 < max_chars))
+                    {
+                        @out[0] = (byte)(0xc0u | ((codepoint >> 6) & 0x1fu));
+                        @out[1] = (byte)(0x80u | (codepoint & 0x3fu));
+                        @out = @out[2..];
+                    }
+                    size += 2;
+                }
+
+                else if (codepoint <= 0xffff)
+                {
+                    if (@out.Length > 3 && (max_chars > 0) && (size + 3 < max_chars))
+                    {
+                        @out[0] = (byte)(0xe0 | ((codepoint >> 12) & 0x0f));
+                        @out[1] = (byte)(0x80 | ((codepoint >> 6) & 0x3f));
+                        @out[2] = (byte)(0x80 | (codepoint & 0x3f));
+                        @out = @out[3..];
+                    }
+                    size += 3;
+                }
+                else
+                {
+                    if (@out.Length > 4 && (max_chars > 0) && (size + 4 < max_chars))
+                    {
+                        @out[0] = (byte)(0xf0 | ((codepoint >> 18) & 0x07));
+                        @out[1] = (byte)(0x80 | ((codepoint >> 12) & 0x3f));
+                        @out[2] = (byte)(0x80 | ((codepoint >> 6) & 0x3f));
+                        @out[3] = (byte)(0x80 | (codepoint & 0x3f));
+                        @out = @out[4..];
+                    }
+                    size += 4;
+                }
+
+                codepoint = 0;
+            }
+            @in = @in[1..]; len_w++;
+        }
+
+        return size;
+    }
+
     public static bool cmsMLUsetASCII(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
     {
         if (mlu is null) return false;
@@ -214,12 +335,40 @@ public static partial class Lcms2
         //if (WStr is null) return false;
 
         //for (var i = 0; i < len; i++)
-            //WStr[i] = (char)ASCIIString[i];
+        //WStr[i] = (char)ASCIIString[i];
         Ascii.ToUtf16(ASCIIString, WStr, out len);
 
         WStr[len] = '\0';
 
         var rc = AddMLUBlock(mlu, WStr, Lang, Cntry);
+
+        ReturnArray(mlu.ContextID, WStr);
+        return rc;
+    }
+
+    public static bool cmsMLUsetUTF8(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> UTF8String)
+    {
+        if (mlu is null) return false;
+
+        var Lang = strTo16(LanguageCode);
+        var Cntry = strTo16(CountryCode);
+
+        if (UTF8String.Length == 0 || UTF8String[0] == 0)
+        {
+            var empty = "\0";
+            return AddMLUBlock(mlu, empty, Lang, Cntry);
+        }
+
+        // Len excluding terminator 0
+        var UTF8len = decodeUTF8(Span<char>.Empty, UTF8String);
+
+        // Get space for dest
+        var WStr = GetArray<char>(mlu.ContextID, UTF8len);
+        //if (WStr is null) return false;
+
+        decodeUTF8(WStr, UTF8String);
+
+        var rc = AddMLUBlock(mlu, WStr.AsSpan(0..(int)(UTF8len * sizeof(char))), Lang, Cntry);
 
         ReturnArray(mlu.ContextID, WStr);
         return rc;
@@ -268,11 +417,6 @@ public static partial class Lcms2
             len = 1;
 
         return AddMLUBlock(mlu, WideString, Lang, Cntry);
-    }
-
-    public static bool cmsMLUsetUTF8(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> UTF8String)
-    {
-        throw new NotImplementedException();
     }
 
     public static Mlu? cmsMLUdup(Mlu? mlu)
@@ -442,6 +586,40 @@ public static partial class Lcms2
         return ASCIIlen;
     }
 
+    public static uint cmsMLUgetUTF8(
+        Mlu? mlu,
+        ReadOnlySpan<byte> LanguageCode,
+        ReadOnlySpan<byte> CountryCode,
+        Span<byte> Buffer)
+    {
+        var Lang = strTo16(LanguageCode);
+        var Cntry = strTo16(CountryCode);
+        var BufferSize = (uint)Buffer.Length;
+
+        // Sanitize
+        if (mlu is null) return 0;
+
+        // GetWideChar
+        var Wide = _cmsMLUgetWide(mlu, Lang, Cntry, out _, out _);
+        if (Wide == default) return 0;
+
+        var UTF8len = encodeUTF8(Span<byte>.Empty, Wide);
+
+        // Maybe we want only to know the len?
+        if (BufferSize == 0) return UTF8len + 1; // Note the zero at the end
+
+        // Some clipping may be required
+        if (BufferSize < UTF8len + 1)
+            UTF8len = BufferSize - 1;
+
+        // Process it
+        encodeUTF8(Buffer, Wide);
+
+        // We put a termination "\0"
+        Buffer[(int)UTF8len] = 0;
+        return UTF8len + 1;
+    }
+
     public static uint cmsMLUgetWide(
         Mlu? mlu,
         ReadOnlySpan<byte> LanguageCode,
@@ -464,7 +642,7 @@ public static partial class Lcms2
 
         // Maybe we want only to know the len?
         //if (Buffer is null) return WideLen + 1; // Note the zero at the end
-        if (Buffer.Length is 0) return WideLen;    // We don't add zero at the end when working with Spans!
+        if (BufferSize is 0) return WideLen;    // We don't add zero at the end when working with Spans!
 
         // No buffer size means no data
         //if (BufferSize is 0) return 0;    // This is the same as the previous if statement. No longer needed!!
@@ -476,7 +654,7 @@ public static partial class Lcms2
             WideLen = BufferSize;
 
         // We put a termination "\0" but don't include it in the result
-        if (Buffer.Length > (int)WideLen)
+        if (BufferSize > (int)WideLen)
             Buffer[(int)WideLen] = '\0';
 
         // Process each character
@@ -484,15 +662,6 @@ public static partial class Lcms2
         //Buffer[StrLen / sizeof(char)] = (char)0;
         Wide.CopyTo(Buffer[..(int)WideLen]);
         return WideLen;
-    }
-
-    public static uint cmsMLUgetUTF8(
-        Mlu? mlu,
-        ReadOnlySpan<byte> LanguageCode,
-        ReadOnlySpan<byte> CountryCode,
-        Span<byte> Buffer)
-    {
-        throw new NotImplementedException();
     }
 
     public static bool cmsMLUgetTranslation(
@@ -871,18 +1040,20 @@ public static partial class Lcms2
     {
         if (pseq is null) return;
 
-        for (var i = 0; i < pseq.n; i++)
+        if (pseq.seq is not null)
         {
-            if (pseq.seq[i].Manufacturer is not null)
-                cmsMLUfree(pseq.seq[i].Manufacturer);
-            if (pseq.seq[i].Model is not null)
-                cmsMLUfree(pseq.seq[i].Model);
-            if (pseq.seq[i].Description is not null)
-                cmsMLUfree(pseq.seq[i].Description);
+            for (var i = 0; i < pseq.n; i++)
+            {
+                if (pseq.seq[i].Manufacturer is not null)
+                    cmsMLUfree(pseq.seq[i].Manufacturer);
+                if (pseq.seq[i].Model is not null)
+                    cmsMLUfree(pseq.seq[i].Model);
+                if (pseq.seq[i].Description is not null)
+                    cmsMLUfree(pseq.seq[i].Description);
+            }
+            ReturnArray(pseq.ContextID, pseq.seq);
         }
 
-        if (pseq.seq is not null)
-            ReturnArray(pseq.ContextID, pseq.seq);
         //_cmsFree(pseq.ContextID, pseq);
     }
 
