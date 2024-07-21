@@ -474,6 +474,25 @@ public static partial class Lcms2
         // Set default device class
         Icc.Version = 0x02100000;
 
+        // Set default CMM (that's me!)
+        Icc.CMM = lcmsSignature;
+
+        // Set default creator
+        // Created by LittleCMS (that's me!)
+        Icc.creator = lcmsSignature;
+
+        // Set default platform
+        Icc.platform = Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32S => cmsSigMicrosoft,
+            PlatformID.Win32Windows => cmsSigMicrosoft,
+            PlatformID.Win32NT => cmsSigMicrosoft,
+            PlatformID.WinCE => cmsSigMicrosoft,
+            PlatformID.Unix => cmsSigUnices,
+            PlatformID.MacOSX => cmsSigMacintosh,
+            _ => throw new NotImplementedException(),
+        };
+
         // Set creation date/time
         if (!_cmsGetTime(out Icc.Created))
             return null;
@@ -483,9 +502,9 @@ public static partial class Lcms2
 
         // Return the handle
         return Icc;
-    //Error:
-    //    _cmsFree(ContextID, Icc);
-    //    return null;
+        //Error:
+        //    _cmsFree(ContextID, Icc);
+        //    return null;
     }
 
     [DebuggerStepThrough]
@@ -690,12 +709,14 @@ public static partial class Lcms2
         }
 
         // Adjust endianness of the used parameters
+        Icc.CMM = new(_cmsAdjustEndianess32(Header.cmmId));
         Icc.DeviceClass = new(_cmsAdjustEndianess32(Header.deviceClass));
         Icc.ColorSpace = new(_cmsAdjustEndianess32(Header.colorSpace));
         Icc.PCS = new(_cmsAdjustEndianess32(Header.pcs));
 
         Icc.RenderingIntent = _cmsAdjustEndianess32(Header.renderingIntent);
-        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags)); ;
+        Icc.platform = _cmsAdjustEndianess32(Header.platform);
+        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags));
         Icc.manufacturer = _cmsAdjustEndianess32(Header.manufacturer);
         Icc.model = _cmsAdjustEndianess32(Header.model);
         Icc.creator = _cmsAdjustEndianess32(Header.creator);
@@ -813,7 +834,7 @@ public static partial class Lcms2
         TagEntry Tag = new();
 
         Header.size = _cmsAdjustEndianess32(UsedSpace);
-        Header.cmmId = new(_cmsAdjustEndianess32(lcmsSignature));
+        Header.cmmId = new(_cmsAdjustEndianess32(Icc.CMM));
         Header.version = _cmsAdjustEndianess32(Icc.Version);
 
         Header.deviceClass = new(_cmsAdjustEndianess32(Icc.DeviceClass));
@@ -824,7 +845,7 @@ public static partial class Lcms2
         _cmsEncodeDateTimeNumber(out Header.date, Icc.Created);
 
         Header.magic = new(_cmsAdjustEndianess32(cmsMagicNumber));
-        Header.manufacturer = new(_cmsAdjustEndianess32(Environment.OSVersion.Platform is PlatformID.Win32NT ? cmsSigMicrosoft : cmsSigMacintosh));
+        Header.platform = new(_cmsAdjustEndianess32(Icc.platform));
 
         Header.flags = _cmsAdjustEndianess32(Icc.flags);
         Header.manufacturer = new(_cmsAdjustEndianess32(Icc.manufacturer));
@@ -839,9 +860,8 @@ public static partial class Lcms2
         Header.illuminant.X = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.X));
         Header.illuminant.Y = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
         Header.illuminant.Z = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
-
-        // Created by LittleCMS (that's me!)
-        Header.creator = new(_cmsAdjustEndianess32(lcmsSignature));
+        
+        Header.creator = new(_cmsAdjustEndianess32(Icc.creator));
 
         //memset(&Header.reserved, 0, 28);
 
