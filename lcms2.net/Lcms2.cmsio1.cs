@@ -956,6 +956,10 @@ public static partial class Lcms2
 
     public static uint cmsGetProfileInfoUTF8(Profile Profile, InfoType Info, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, Span<byte> Buffer)
     {
-        throw new NotImplementedException();
+        var mlu = GetInfo(Profile, Info);
+        if (mlu is null)
+            return 0;
+
+        return cmsMLUgetUTF8(mlu, LanguageCode, CountryCode, Buffer);
     }
 }
