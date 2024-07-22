@@ -1189,16 +1189,23 @@ public static partial class Lcms2
 
             // Feed input with a gray ramp
             for (var t = 0; t < OriginalLut.InputChannels; t++)
-                Trans[t].Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
+            {
+                var curve = Trans[t];
+                if (curve.Table16 is not null)
+                    curve.Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
+            }
         }
 
         // Slope-limit the obtained curves
         for (var t = 0; t < OriginalLut.InputChannels; t++)
             SlopeLimiting(Trans[t]);
 
-        // Check for validity
+        // Check for validity.
         var lIsSuitable = true;
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
+        // lIsLinear is here for debug purposes
         var lIsLinear = true;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
         for (var t = 0; (lIsSuitable && (t < OriginalLut.InputChannels)); t++)
         {
             // Exclude if already linear
@@ -1732,6 +1739,8 @@ public static partial class Lcms2
                  cmsSigCurveSetElemType, out Curve2))
         {
             var Data = (StageMatrixData)cmsStageData(Matrix1!)!;
+
+            if (Matrix1.InputChannels != 3 || Matrix1.OutputChannels != 3) return false;
 
             // Copy the matrix to our result
             //memcpy(&res, (MAT3*)Data.Double);
