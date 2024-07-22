@@ -229,6 +229,9 @@ public static partial class Lcms2
     new(     TYPE_Lab_FLT,                                                ANYPLANAR|ANYEXTRA,   PackLabFloatFromFloat),
     new(     TYPE_XYZ_FLT,                                                ANYPLANAR|ANYEXTRA,   PackXYZFloatFromFloat),
 
+    new(     TYPE_LabV2_8,                                                ANYPLANAR|ANYEXTRA,   PackEncodedBytesLabV2FromFloat),
+    new(     TYPE_LabV2_16,                                               ANYPLANAR|ANYEXTRA,   PackEncodedWordsLabV2FromFloat),
+
     new(     TYPE_Lab_DBL,                                                ANYPLANAR|ANYEXTRA,   PackLabDoubleFromFloat),
     new(     TYPE_XYZ_DBL,                                                ANYPLANAR|ANYEXTRA,   PackXYZDoubleFromFloat),
 
@@ -236,6 +239,10 @@ public static partial class Lcms2
                              ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackFloatsFromFloat ),
     new(     FLOAT_SH(1)|BYTES_SH(0), ANYPLANAR|
                              ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackDoublesFromFloat ),
+    new(     BYTES_SH(2), ANYPLANAR|
+                             ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackWordsFromFloat ),
+    new(     BYTES_SH(1), ANYPLANAR|
+                             ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackBytesFromFloat ),
     new(     FLOAT_SH(1)|BYTES_SH(2),
                              ANYFLAVOR|ANYSWAPFIRST|ANYSWAP|ANYEXTRA|ANYCHANNELS|ANYSPACE,   PackHalfFromFloat ),
 };
@@ -654,8 +661,9 @@ public static partial class Lcms2
         var SwapFirst = T_SWAPFIRST(info.InputFormat) is not 0;
         var ExtraFirst = DoSwap ^ SwapFirst;
 
-        var alpha = (uint)(ExtraFirst ? accum[0] : accum[nChan - 1]);
-        var alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(alpha));
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        var alpha = ExtraFirst ? acc[0] : acc[nChan];
+        var alpha_factor = (uint)_cmsToFixedDomain(alpha);
 
         var ptr = 0;
 
@@ -727,8 +735,9 @@ public static partial class Lcms2
         var ExtraFirst = DoSwap ^ SwapFirst;
         var Init = accum;
 
-        var alpha = (ushort)(ExtraFirst ? accum[0] : accum[(nChan - 1) * (int)Stride]);
-        var alpha_factor = (uint)_cmsToFixedDomain(FROM_8_TO_16(alpha));
+        var acc = MemoryMarshal.Cast<byte, ushort>(accum);
+        var alpha = ExtraFirst ? acc[0] : acc[nChan * (int)Stride / 2];
+        var alpha_factor = (uint)_cmsToFixedDomain(alpha);
 
         var ptr = 0;
 
@@ -1033,6 +1042,7 @@ public static partial class Lcms2
         };
 
     [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint PixelSize(uint Format)
     {
         var fmt_bytes = (uint)T_BYTES(Format);
@@ -2216,6 +2226,65 @@ public static partial class Lcms2
         return output[(sizeof(float) * (Planar ? 1 : (nChan + Extra)))..];
     }
 
+    private static Span<byte> PackBytesFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
+    {
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
+        var ExtraFirst = DoSwap ^ SwapFirst;
+        var swap1 = output;
+        var start = 0;
+
+        if (ExtraFirst)
+            start = Extra;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = DoSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index] * 65535.0;
+
+            if (Reverse)
+                v = 65535.0 - v;
+
+            output[(i + start) * (Planar ? (int)Stride : 1)] = FROM_16_TO_8(_cmsQuickSaturateWord(v));
+        }
+
+        if (Extra is 0 && SwapFirst)
+            PackSwapFirst(swap1, nChan);
+
+        return output[(sizeof(byte) * (Planar ? 1 : (nChan + Extra)))..];
+    }
+
+    private static Span<byte> PackWordsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
+    {
+        var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
+        var ExtraFirst = DoSwap ^ SwapFirst;
+        var o = MemoryMarshal.Cast<byte, ushort>(output);
+        var swap1 = o;
+        var start = 0;
+
+        Stride /= PixelSize(info.OutputFormat);
+
+        if (ExtraFirst)
+            start = Extra;
+
+        for (var i = 0; i < nChan; i++)
+        {
+            var index = DoSwap ? (nChan - i - 1) : i;
+
+            var v = wOut[index] * 65535.0;
+
+            if (Reverse)
+                v = 65535.0 - v;
+
+            o[(i + start) * (Planar ? (int)Stride : 1)] = _cmsQuickSaturateWord(v);
+        }
+
+        if (Extra is 0 && SwapFirst)
+            PackSwapFirst(swap1, nChan);
+
+        return output[(sizeof(ushort) * (Planar ? 1 : (nChan + Extra)))..];
+    }
+
     private static Span<byte> PackFloatsFromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
     {
         var (nChan, DoSwap, Reverse, SwapFirst, Extra, Planar, _, SwapEndian) = T_BREAK(info.OutputFormat);
@@ -2301,6 +2370,70 @@ public static partial class Lcms2
             Out[2] = (float)((wOut[2] * 255.0) - 128.0);
 
             return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(float))..];
+        }
+    }
+
+    private static Span<byte> PackEncodedBytesLabV2FromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
+    {
+        CIELab Lab;
+        Span<ushort> wlab = stackalloc ushort[3];
+
+        Lab.L = wOut[0] * 100.0;
+        Lab.a = (wOut[1] * 255.0) - 128.0;
+        Lab.b = (wOut[2] * 255.0) - 128.0;
+
+        cmsFloat2LabEncoded(wlab, Lab);
+
+        if (T_PLANAR(info.OutputFormat) is not 0)
+        {
+            Stride /= PixelSize(info.OutputFormat);
+
+            output[0] = (byte)(wlab[0] >> 8);
+            output[(int)Stride] = (byte)(wlab[1] >> 8);
+            output[(int)Stride * 2] = (byte)(wlab[2] >> 8);
+
+            return output[1..];
+        }
+        else
+        {
+            output[0] = (byte)(wlab[0] >> 8);
+            output[1] = (byte)(wlab[1] >> 8);
+            output[2] = (byte)(wlab[2] >> 8);
+
+            return output[(3 + T_EXTRA(info.OutputFormat))..];
+        }
+    }
+
+    private static Span<byte> PackEncodedWordsLabV2FromFloat(Transform info, ReadOnlySpan<float> wOut, Span<byte> output, uint Stride)
+    {
+        CIELab Lab;
+        Span<ushort> wlab = stackalloc ushort[3];
+
+        var Out = MemoryMarshal.Cast<byte, ushort>(output);
+
+        Lab.L = wOut[0] * 100.0;
+        Lab.a = (wOut[1] * 255.0) - 128.0;
+        Lab.b = (wOut[2] * 255.0) - 128.0;
+
+        cmsFloat2LabEncoded(wlab, Lab);
+
+        if (T_PLANAR(info.OutputFormat) is not 0)
+        {
+            Stride /= PixelSize(info.OutputFormat);
+
+            Out[0] = wlab[0];
+            Out[(int)Stride] = wlab[1];
+            Out[(int)Stride * 2] = wlab[2];
+
+            return output[1..];
+        }
+        else
+        {
+            Out[0] = wlab[0];
+            Out[1] = wlab[1];
+            Out[2] = wlab[2];
+
+            return output[((3 + T_EXTRA(info.OutputFormat)) * sizeof(ushort))..];
         }
     }
 
@@ -2674,7 +2807,7 @@ public static partial class Lcms2
         var ColorSpace = cmsGetPCS(Profile);
 
         var ColorSpaceBits = (uint)_cmsLCMScolorSpace(ColorSpace);
-        var nOutputChans = cmsChannelsOf(ColorSpace);
+        var nOutputChans = cmsChannelsOfColorSpace(ColorSpace);
         var Float = lIsFloat ? 1u : 0;
 
         // Unsupported color space?
@@ -2682,6 +2815,6 @@ public static partial class Lcms2
             return 0;
 
         // Create a fake formatter for result
-        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH(nOutputChans);
+        return FLOAT_SH(Float) | COLORSPACE_SH(ColorSpaceBits) | BYTES_SH(nBytes) | CHANNELS_SH((uint)nOutputChans);
     }
 }
