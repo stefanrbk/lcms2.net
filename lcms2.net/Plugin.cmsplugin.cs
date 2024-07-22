@@ -380,13 +380,8 @@ public static partial class Plugin
     }
 
     [DebuggerStepThrough]
-    public static double _cms8Fixed8toDouble(ushort fixed8)
-    {
-        var lsb = (byte)(fixed8 & 0xff);
-        var msb = (byte)((fixed8 >> 8) & 0xff);
-
-        return msb + (lsb / 255.0);
-    }
+    public static double _cms8Fixed8toDouble(ushort fixed8) =>
+        fixed8 / 256.0;
 
     [DebuggerStepThrough]
     public static ushort _cmsDoubleTo8Fixed8(double val)
@@ -396,19 +391,8 @@ public static partial class Plugin
     }
 
     [DebuggerStepThrough]
-    public static double _cms15Fixed16toDouble(S15Fixed16Number fix32)
-    {
-        var sign = fix32 < 0 ? -1 : 1;
-        fix32 = Math.Abs(fix32);
-
-        var whole = (ushort)((fix32 >> 16) & 0xffff);
-        var fracPart = (ushort)(fix32 & 0xffff);
-
-        var mid = fracPart / 65536.0;
-        var floater = whole + mid;
-
-        return sign * floater;
-    }
+    public static double _cms15Fixed16toDouble(S15Fixed16Number fix32) =>
+        fix32 / 65536.0;
 
     [DebuggerStepThrough]
     public static S15Fixed16Number _cmsDoubleTo15Fixed16(double v) =>
