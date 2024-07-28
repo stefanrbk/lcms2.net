@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -29,7 +55,6 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -83,7 +108,8 @@ public static partial class Lcms2
         new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Sequence_Dup, Sequence_Free, null, 0),
         new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0),
         new(cmsSigcicpType, Type_VideoSignal_Read, Type_VideoSignal_Write, Type_VideoSignal_Dup, null, null, 0),
-        new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0));
+        new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0),
+        new(cmsSigMHC2Type, Type_MHC2_Read, Type_MHC2_Write, Type_MHC2_Dup, Type_MHC2_Free, null, 0));
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
 
@@ -154,7 +180,8 @@ public static partial class Lcms2
         new(cmsSigProfileSequenceIdTag, 1, new Signature[] { cmsSigProfileSequenceIdType, }, null),
         new(cmsSigProfileDescriptionMLTag, 1, new Signature[] { cmsSigMultiLocalizedUnicodeType, }, null),
         new(cmsSigcicpTag, 1, new Signature[] { cmsSigcicpType }, null),
-        new(cmsSigArgyllArtsTag, 9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null));
+        new(cmsSigArgyllArtsTag, 9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null),
+        new(cmsSigMHC2Tag, 1, new Signature[] { cmsSigMHC2Type }, null));
 
     internal static readonly TagPluginChunkType TagPluginChunk = new();
 
@@ -776,7 +803,7 @@ public static partial class Lcms2
     Error2:
         if (Text is not null) ReturnArray(self.ContextID, Text);
 
-    Error1:
+        Error1:
         if (mlu is not null) cmsMLUfree(mlu);
 
         return null;
@@ -904,7 +931,7 @@ public static partial class Lcms2
             return null;
 
         // All seems Ok, allocate the container
-        var mlu = cmsMLUalloc(self.ContextID, 1);
+        var mlu = cmsMLUalloc(self.ContextID, 2);
         if (mlu is null)
             return null;
 
@@ -938,7 +965,10 @@ public static partial class Lcms2
             goto Done;
         SizeOfTag -= 2u * sizeof(uint);
 
-        if (SizeOfTag < UnicodeCount * sizeof(ushort))
+        if (UnicodeCount == 0 || SizeOfTag < UnicodeCount * sizeof(ushort))
+            goto Done;
+
+        if (!_cmsReadWCharArray(io, UnicodeCode, out var UnicodeString))
             goto Done;
 
         Span<byte> Dummy = stackalloc byte[sizeof(ushort)];
@@ -951,7 +981,7 @@ public static partial class Lcms2
         SizeOfTag -= UnicodeCount * sizeof(ushort);
 
         // Skip ScriptCode code if present. Some buggy profiles does have less
-        // data that stricttly required. We need to skip it as this type may come
+        // data that strictly required. We need to skip it as this type may come
         // embedded in other types.
 
         if (SizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
@@ -1021,7 +1051,7 @@ public static partial class Lcms2
 
             // Get both representations.
             cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
-            cmsMLUgetWide(mlu, cmsNoLanguage, cmsNoCountry, Wide);
+            cmsMLUgetWide(mlu, cmsV2Unicode, cmsV2Unicode, Wide);
         }
 
         // Tell the real text len including the null terminator and padding
@@ -1073,7 +1103,7 @@ public static partial class Lcms2
             goto Error;
 
         // possibly add pad at the end of tag
-        if (len_aligned - len_tag_requirement > 0 &&!io.Write(io, len_aligned - len_tag_requirement, Filler))
+        if (len_aligned - len_tag_requirement > 0 && !io.Write(io, len_aligned - len_tag_requirement, Filler))
             goto Error;
 
         rc = true;
@@ -1377,9 +1407,9 @@ public static partial class Lcms2
             if (!_cmsReadUInt32Number(io, out var Len)) goto Error;
             if (!_cmsReadUInt32Number(io, out var Offset)) goto Error;
 
-            // Offset MUST be even because it indexes a block of utf16 chars. 
+            // Offset MUST be even because it indexes a block of utf16 chars.
             // Tricky profiles that uses odd positions will not work anyway
-            // because the whole utf16 block is previously converted to wchar_t 
+            // because the whole utf16 block is previously converted to wchar_t
             // and sizeof this type may be of 4 bytes. On Linux systems, for example.
             if ((Offset & 1) is not 0) goto Error;
 
@@ -1565,7 +1595,7 @@ public static partial class Lcms2
 
         if (Temp is not null) ReturnArray(ContextID, Temp);
 
-    Error2:
+        Error2:
         ReturnArray(pool, Tables);
         return false;
     }
@@ -1732,8 +1762,11 @@ public static partial class Lcms2
 
         // Disassemble the LUT into components.
         var mpe = NewLut.Elements;
-        if (mpe is null)
+        if (mpe is null)    // Should never be empty. Corrupted?
+        {
+            cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, "empty LUT8 is not supported");
             return false;
+        }
 
         if (mpe.Type == cmsSigMatrixElemType)
         {
@@ -1767,7 +1800,7 @@ public static partial class Lcms2
             return false;
         }
 
-        var clutPoints =  0u;
+        var clutPoints = 0u;
         if (clut is not null)
         {
             // Lut8 only allows same CLUT points in all dimensions
@@ -2222,7 +2255,7 @@ public static partial class Lcms2
     }
 
     private static Pipeline? Type_LUTA2B_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _1)
-    {    
+    {
         Pipeline? NewLUT = null;
 
         nItems = 0;
@@ -2319,8 +2352,8 @@ public static partial class Lcms2
             // If this is a table-based curve, use curve type even on V4
             var CurrentType = Type;
 
-            if ((Curves[i].nSegments is 0) ||
-                ((Curves[i].nSegments is 2) && (Curves[i].Segments[1].Type is 0)) ||
+            if ((Curves[i].nSegments is 0) ||                                           // 16 bits tabulated
+                ((Curves[i].nSegments is 3) && (Curves[i].Segments[1].Type is 0)) ||    // Floating-point tabulated
                 Curves[i].Segments[0].Type < 0)
             {
                 CurrentType = cmsSigCurveType;
@@ -2771,7 +2804,7 @@ public static partial class Lcms2
 
     private static bool Type_NamedColor_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        Span< byte> prefix = stackalloc byte[33];
+        Span<byte> prefix = stackalloc byte[33];
         Span<byte> suffix = stackalloc byte[33];
         Span<byte> Root = stackalloc byte[cmsMAX_PATH];
         Span<ushort> PCS = stackalloc ushort[3];
@@ -3969,11 +4002,13 @@ public static partial class Lcms2
         }
 
         var Before = io.Tell(io);
-        e.Offsets[i] = Before - BaseOffset;
+        if (e.Offsets is not null)
+            e.Offsets[i] = Before - BaseOffset;
 
         if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
-        e.Sizes[i] = io.Tell(io) - Before;
+        if (e.Sizes is not null)
+            e.Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
@@ -4178,7 +4213,202 @@ public static partial class Lcms2
             ? new(sc)
             : null;
 
-    #endregion
+    #endregion cicp VideoSignalType
+
+    #region Microsoft's MHC2
+
+    private static void SetIdentity(Span<double> XYZ2XYZmatrix)
+    {
+        XYZ2XYZmatrix[0] = 1.0; XYZ2XYZmatrix[1] = 0.0; XYZ2XYZmatrix[2] = 0.0; XYZ2XYZmatrix[3] = 0.0;
+        XYZ2XYZmatrix[4] = 0.0; XYZ2XYZmatrix[5] = 1.0; XYZ2XYZmatrix[6] = 0.0; XYZ2XYZmatrix[7] = 0.0;
+        XYZ2XYZmatrix[8] = 0.0; XYZ2XYZmatrix[9] = 0.0; XYZ2XYZmatrix[10] = 1.0; XYZ2XYZmatrix[11] = 0.0;
+    }
+
+    private static bool CloseEnough(double a, double b) =>
+        Math.Abs(b - a) < (1.0 / 65535.0);
+
+    private static bool IsIdentity(ReadOnlySpan<double> XYZ2XYZmatrix)
+    {
+        Span<double> Identity = stackalloc double[12];
+
+        SetIdentity(Identity);
+
+        for (var i = 0; i < 12; i++)
+        {
+            if (!CloseEnough(XYZ2XYZmatrix[i], Identity[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void Type_MHC2_Free(TagTypeHandler self, object? Ptr)
+    {
+        if (Ptr is not Box<MHC2> mhc2)
+            return;
+
+        var pool = self.ContextID!.GetBufferPool<double>();
+
+        if (mhc2.Value.redCurve is not null)
+        {
+            ReturnArray(pool, mhc2.Value.redCurve);
+            mhc2.Value.redCurve = null!;
+        }
+        if (mhc2.Value.greenCurve is not null)
+        {
+            ReturnArray(pool, mhc2.Value.greenCurve);
+            mhc2.Value.greenCurve = null!;
+        }
+        if (mhc2.Value.blueCurve is not null)
+        {
+            ReturnArray(pool, mhc2.Value.blueCurve);
+            mhc2.Value.blueCurve = null!;
+        }
+    }
+
+    private static Box<MHC2>? Type_MHC2_Dup(TagTypeHandler self, object? Ptr, uint _1)
+    {
+        if (Ptr is not Box<MHC2> org) return null;
+
+        var mhc2 = org.Value;
+
+        mhc2.redCurve = _cmsDupMem<double>(self.ContextID, mhc2.redCurve, mhc2.entries);
+        mhc2.greenCurve = _cmsDupMem<double>(self.ContextID, mhc2.greenCurve, mhc2.entries);
+        mhc2.blueCurve = _cmsDupMem<double>(self.ContextID, mhc2.blueCurve, mhc2.entries);
+
+        return new(mhc2);
+    }
+
+    private static bool WriteDoubles(IOHandler io, uint n, ReadOnlySpan<double> Values)
+    {
+        for (var i = 0; i < n; i++)
+        {
+            if (!_cmsWrite15Fixed16Number(io, Values[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool Type_MHC2_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2)
+    {
+        uint MatrixOffset;
+
+        if (Ptr is not Box<MHC2> mhc2)
+            return false;
+
+        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+
+        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!_cmsWriteUInt32Number(io, mhc2.Value.entries)) return false;
+
+        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.minLuminance)) return false;
+        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.peakLuminance)) return false;
+
+        var TablesOffsetPos = io.Tell(io);
+
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Matrix
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve R
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve G
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve B
+
+        if (IsIdentity(mhc2.Value.matrix))
+        {
+            MatrixOffset = 0;
+        }
+        else
+        {
+            MatrixOffset = io.Tell(io) - BaseOffset;
+            if (!WriteDoubles(io, 3 * 4, mhc2.Value.matrix))
+                return false;
+        }
+
+        var OffsetRedTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.redCurve)) return false;
+        var OffsetGreenTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.greenCurve)) return false;
+        var OffsetBlueTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.blueCurve)) return false;
+
+        if (!io.Seek(io, TablesOffsetPos)) return false;
+
+        if (!_cmsWriteUInt32Number(io, MatrixOffset)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetRedTable)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetGreenTable)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetBlueTable)) return false;
+
+        return true;
+    }
+
+    private static bool ReadDoublesAt(IOHandler io, uint At, uint n, Span<double> Values)
+    {
+        var CurrentPos = io.Tell(io);
+
+        if (!io.Seek(io, At)) return false;
+
+        for (var i = 0; i < n; i++)
+        {
+            if (!_cmsRead15Fixed16Number(io, out Values[i]))
+                return false;
+        }
+
+        if (!io.Seek(io, CurrentPos)) return false;
+
+        return true;
+    }
+
+    private static Box<MHC2>? Type_MHC2_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _1)
+    {
+        MHC2 mhc2 = new();
+
+        nItems = 0;
+
+        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+
+        if (!_cmsReadUInt32Number(io, out _)) return null;
+
+        if (!_cmsReadUInt32Number(io, out mhc2.entries)) goto Error;
+
+        if (mhc2.entries > 4096) goto Error;
+
+        var pool = self.ContextID!.GetBufferPool<double>();
+        mhc2.redCurve = pool.Rent((int)mhc2.entries);
+        mhc2.greenCurve = pool.Rent((int)mhc2.entries);
+        mhc2.blueCurve = pool.Rent((int)mhc2.entries);
+
+        mhc2.matrix = new double[3 * 4];
+
+        if (!_cmsRead15Fixed16Number(io, out mhc2.minLuminance)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out mhc2.peakLuminance)) goto Error;
+
+        if (!_cmsReadUInt32Number(io, out var MatrixOffset)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetRedTable)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetGreenTable)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetBlueTable)) goto Error;
+
+        if (MatrixOffset is 0)
+            SetIdentity(mhc2.matrix);
+        else
+        {
+            if (!ReadDoublesAt(io, BaseOffset + MatrixOffset, 3 * 4, mhc2.matrix)) goto Error;
+        }
+
+        if (!ReadDoublesAt(io, BaseOffset + OffsetRedTable, mhc2.entries, mhc2.redCurve)) goto Error;
+        if (!ReadDoublesAt(io, BaseOffset + OffsetGreenTable, mhc2.entries, mhc2.greenCurve)) goto Error;
+        if (!ReadDoublesAt(io, BaseOffset + OffsetBlueTable, mhc2.entries, mhc2.blueCurve)) goto Error;
+
+        // Success
+        nItems = 1;
+        return new(mhc2);
+
+    Error:
+        Type_MHC2_Free(self, new Box<MHC2>(mhc2));
+        return null;
+    }
+
+    #endregion Microsoft's MHC2
 
     #region Generic
 
@@ -4547,8 +4777,8 @@ public static partial class Lcms2
         if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
         if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
 
-        if (InputChans is 0) goto Error;
-        if (OutputChans is 0) goto Error;
+        if (InputChans is 0 || InputChans >= cmsMAXCHANNELS) goto Error;
+        if (OutputChans is 0 || OutputChans >= cmsMAXCHANNELS) goto Error;
 
         if (io.Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
 
