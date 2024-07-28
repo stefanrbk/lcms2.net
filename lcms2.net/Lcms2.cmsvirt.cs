@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -352,10 +378,10 @@ public static partial class Lcms2
             return null;
         }
 
-        if (Limit is < 0 or > 400)
+        if (Limit is < 1 or > 400)
         {
             cmsSignalError(ContextID, cmsERROR_RANGE, "InkLimiting: Limit should be between 0..400");
-            Limit = Math.Max(0, Math.Min(400, Limit));
+            Limit = Math.Max(1, Math.Min(400, Limit));
         }
 
         var hICC = cmsCreateProfilePlaceholder(ContextID);
@@ -569,13 +595,118 @@ public static partial class Lcms2
         return null;
     }
 
-    public static Profile? cmsCreateOkLabProfile(Context? ContextID)
-    {
-        throw new NotImplementedException();
-    }
-
     public static Profile? cmsCreate_sRGBProfile() =>
         cmsCreate_sRGBProfileTHR(null);
+
+    public static Profile? cmsCreate_OkLabProfile(Context? ctx)
+    {
+        var XYZPCS = _cmsStageNormalizeFromXyzFloat(ctx);
+        var PCSXYZ = _cmsStageNormalizeToXYZFloat(ctx);
+
+        double[] M_D65_D50 = [
+             1.047886, 0.022919, -0.050216,
+             0.029582, 0.990484, -0.017079,
+            -0.009252, 0.015073,  0.751678];
+
+        double[] M_D50_D65 = [
+             0.955512609517083, -0.023073214184645,  0.063308961782107,
+            -0.028324949364887,  1.009942432477107,  0.021054814890112,
+             0.012328875695483, -0.020535835374141,  1.330713916450354];
+
+        var D65toD50 = cmsStageAllocMatrix(ctx, 3, 3, M_D65_D50, null);
+        var D50toD65 = cmsStageAllocMatrix(ctx, 3, 3, M_D50_D65, null);
+
+        double[] M_D65_LMS = [
+            0.8189330101, 0.3618667424, -0.1288597137,
+            0.0329845436, 0.9293118715,  0.0361456387,
+            0.0482003018, 0.2643662691,  0.6338517070];
+
+        double[] M_LMS_D65 = [
+             1.227013851103521, -0.557799980651822,  0.281256148966468,
+            -0.040580178423281,  1.112256869616830, -0.071676678665601,
+            -0.076381284505707, -0.421481978418013,  1.586163220440795];
+
+        var D65toLMS = cmsStageAllocMatrix(ctx, 3, 3, M_D65_LMS, null);
+        var LMStoD65 = cmsStageAllocMatrix(ctx, 3, 3, M_LMS_D65, null);
+
+        var CubeRoot = cmsBuildGamma(ctx, 1.0 / 3.0);
+        if (CubeRoot is null)
+            return null;
+        var Cube = cmsBuildGamma(ctx, 3.0);
+        if (Cube is null)
+            return null;
+
+        ToneCurve[] Roots = [CubeRoot, CubeRoot, CubeRoot];
+        ToneCurve[] Cubes = [Cube, Cube, Cube];
+
+        var NonLinearityFw = cmsStageAllocToneCurves(ctx, 3, Roots);
+        var NonLinearityRv = cmsStageAllocToneCurves(ctx, 3, Cubes);
+
+        double[] M_LMSprime_OkLab = [
+            0.2104542553,  0.7936177850, -0.0040720468,
+            1.9779984951, -2.4285922050,  0.4505937099,
+            0.0259040371,  0.7827717662, -0.8086757660];
+
+        double[] M_OkLab_LMSprime = [
+            0.999999998450520,  0.396337792173768,  0.215803758060759,
+            1.000000008881761, -0.105561342323656, -0.063854174771706,
+            1.000000054672411, -0.089484182094966, -1.291485537864092];
+
+        var LMSprime_OkLab = cmsStageAllocMatrix(ctx, 3, 3, M_LMSprime_OkLab, null);
+        var OkLab_LMSprime = cmsStageAllocMatrix(ctx, 3, 3, M_OkLab_LMSprime, null);
+
+        var AToB = cmsPipelineAlloc(ctx, 3, 3);
+        var BToA = cmsPipelineAlloc(ctx, 3, 3);
+
+        var hProfile = cmsCreateProfilePlaceholder(ctx);
+        if (hProfile is null)            // can't allocate
+            goto error;
+
+        cmsSetProfileVersion(hProfile, 4.4);
+
+        cmsSetDeviceClass(hProfile, cmsSigColorSpaceClass);
+        cmsSetColorSpace(hProfile, cmsSig3colorData);
+        cmsSetPCS(hProfile, cmsSigXYZData);
+
+        cmsSetHeaderRenderingIntent(hProfile, INTENT_RELATIVE_COLORIMETRIC);
+
+        /**
+        * Conversion PCS (XYZ/D50) to OkLab
+        */
+        if (!cmsPipelineInsertStage(BToA, StageLoc.AtEnd, PCSXYZ)) goto error;
+        if (!cmsPipelineInsertStage(BToA, StageLoc.AtEnd, D50toD65)) goto error;
+        if (!cmsPipelineInsertStage(BToA, StageLoc.AtEnd, D65toLMS)) goto error;
+        if (!cmsPipelineInsertStage(BToA, StageLoc.AtEnd, NonLinearityFw)) goto error;
+        if (!cmsPipelineInsertStage(BToA, StageLoc.AtEnd, LMSprime_OkLab)) goto error;
+
+        if (!cmsWriteTag(hProfile, cmsSigBToA0Tag, BToA)) goto error;
+
+        if (!cmsPipelineInsertStage(AToB, StageLoc.AtEnd, OkLab_LMSprime)) goto error;
+        if (!cmsPipelineInsertStage(AToB, StageLoc.AtEnd, NonLinearityRv)) goto error;
+        if (!cmsPipelineInsertStage(AToB, StageLoc.AtEnd, LMStoD65)) goto error;
+        if (!cmsPipelineInsertStage(AToB, StageLoc.AtEnd, D65toD50)) goto error;
+        if (!cmsPipelineInsertStage(AToB, StageLoc.AtEnd, XYZPCS)) goto error;
+
+        if (!cmsWriteTag(hProfile, cmsSigAToB0Tag, AToB)) goto error;
+
+        cmsPipelineFree(BToA);
+        cmsPipelineFree(AToB);
+
+        cmsFreeToneCurve(CubeRoot);
+        cmsFreeToneCurve(Cube);
+
+        return hProfile;
+
+    error:
+        cmsPipelineFree(BToA);
+        cmsPipelineFree(AToB);
+
+        cmsFreeToneCurve(CubeRoot);
+        cmsFreeToneCurve(Cube);
+        cmsCloseProfile(hProfile);
+
+        return null;
+    }
 
     private struct BCHSWADJUSTS
     {
@@ -878,7 +1009,7 @@ public static partial class Lcms2
 
         for (n = 0, mpe = Lut.Elements; mpe is not null; mpe = mpe.Next, n++)
         {
-            if (n > Tab.nTypes) return false;
+            if (n >= Tab.nTypes) return false;
             if (cmsStageType(mpe) != Tab.MpeTypes[n]) return false;
         }
 
@@ -907,6 +1038,9 @@ public static partial class Lcms2
         var ContextID = cmsGetTransformContextID(hTransform);
 
         _cmsAssert(hTransform);
+
+        // Check if the pipeline holding is valid
+        if (xform.Lut is null) return null;
 
         // Get the first mpe to check for named color
         var mpe = cmsPipelineGetPtrToFirstStage(xform.Lut);
