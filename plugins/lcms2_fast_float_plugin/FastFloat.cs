@@ -192,14 +192,13 @@ public static partial class FastFloat
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static float flerp(ReadOnlySpan<float> LutTable, float v)
     {
-        if ((v < 1.0e-9f) || float.IsNaN(v))
+        if (float.IsNaN(v))
         {
             return LutTable[0];
         }
-        else
+        else if (v is < 1.0e-9f or >= 1.0f)
         {
-            if (v >= 1.0)
-                return LutTable[MAX_NODES_IN_CURVE - 1];
+            return v;
         }
 
         v *= MAX_NODES_IN_CURVE - 1;
