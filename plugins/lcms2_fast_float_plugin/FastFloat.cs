@@ -28,7 +28,7 @@ using System.Runtime.CompilerServices;
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    internal const uint REQUIRED_LCMS_VERSION = 2120;
+    internal const uint REQUIRED_LCMS_VERSION = 2160;
 
     internal static uint BIT15_SH(uint a) =>           ((a) << 26);
     internal static uint T_BIT15(uint a) =>            (((a)>>26)&1);
