@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -178,6 +204,26 @@ internal static partial class Testbed
         return rc;
     }
 
+    // Check UTF8 encoding
+    public static bool CheckMLU_UTF8()
+    {
+        var rc = true;
+        Span<byte> buf = stackalloc byte[256];
+        var mlu = cmsMLUalloc(DbgThread(), 0);
+
+        cmsMLUsetWide(mlu, "en"u8.ToArray(), "US"u8.ToArray(), "\x3b2\x14b");
+
+        cmsMLUgetUTF8(mlu, "en"u8.ToArray(), "US"u8.ToArray(), buf);
+        if (strcmp(buf, [0xce, 0xb2, 0xc5, 0x8b]) != 0)
+            rc = false;
+
+        if (!rc)
+            logger.LogWarning("Unexpected string '{0}'", SpanToString(buf));
+
+        cmsMLUfree(mlu);
+        return rc;
+    }
+
     // A lightweight test of named color structures.
     public static bool CheckNamedColorList()
     {
@@ -197,8 +243,6 @@ internal static partial class Testbed
 
         for (i = 0; i < 4096; i++)
         {
-
-
             PCS[0] = PCS[1] = PCS[2] = (ushort)i;
             Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(4096 - i);
 
@@ -208,13 +252,11 @@ internal static partial class Testbed
 
         for (i = 0; i < 4096; i++)
         {
-
             CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
             if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
-
 
             for (j = 0; j < 3; j++)
             {
@@ -223,7 +265,7 @@ internal static partial class Testbed
 
             for (j = 0; j < 4; j++)
             {
-                if (CheckColorant[j] != Colorant[j]) { rc = false;logger.LogWarning("Invalid Colorant"); goto Error; };
+                if (CheckColorant[j] != Colorant[j]) { rc = false; logger.LogWarning("Invalid Colorant"); goto Error; };
             }
 
             if (strcmp(Name, CheckName) != 0)
@@ -244,33 +286,30 @@ internal static partial class Testbed
         h = cmsOpenProfileFromFileTHR(DbgThread(), "namedcol.icc", "r");
         nc2 = (cmsReadTag(h, cmsSigNamedColor2Tag) is NamedColorList box) ? box : null;
 
-        if (cmsNamedColorCount(nc2) != 4096) { rc = false;logger.LogWarning("Invalid count"); goto Error; }
+        if (cmsNamedColorCount(nc2) != 4096) { rc = false; logger.LogWarning("Invalid count"); goto Error; }
 
         i = cmsNamedColorIndex(nc2, "#123"u8);
-        if (i != 123) { rc = false;logger.LogWarning("Invalid index"); goto Error; }
-
+        if (i != 123) { rc = false; logger.LogWarning("Invalid index"); goto Error; }
 
         for (i = 0; i < 4096; i++)
         {
-
             CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
             CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(4096 - i);
 
             sprintf(CheckName, "#{0}", i);
             if (!cmsNamedColorInfo(nc2, (uint)i, Name, null, null, PCS, Colorant)) { rc = false; goto Error; }
 
-
             for (j = 0; j < 3; j++)
             {
-                if (CheckPCS[j] != PCS[j]) { rc = false;logger.LogWarning("Invalid PCS"); goto Error; }
+                if (CheckPCS[j] != PCS[j]) { rc = false; logger.LogWarning("Invalid PCS"); goto Error; }
             }
 
             for (j = 0; j < 4; j++)
             {
-                if (CheckColorant[j] != Colorant[j]) { rc = false;logger.LogWarning("Invalid Colorant"); goto Error; };
+                if (CheckColorant[j] != Colorant[j]) { rc = false; logger.LogWarning("Invalid Colorant"); goto Error; };
             }
 
-            if (strcmp(Name, CheckName) != 0) { rc = false;logger.LogWarning("Invalid Name"); goto Error; };
+            if (strcmp(Name, CheckName) != 0) { rc = false; logger.LogWarning("Invalid Name"); goto Error; };
         }
 
         cmsCloseProfile(h);
@@ -280,8 +319,6 @@ internal static partial class Testbed
         if (nc != null) cmsFreeNamedColorList(nc);
         return rc;
     }
-
-
 
     // For educational purposes ONLY. No error checking is performed!
     public static bool CreateNamedColorProfile()
@@ -319,7 +356,6 @@ internal static partial class Testbed
 
         // Set the media white point
         cmsWriteTag(hProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ));
-
 
         // Populate one value, Colorant = CMYK values in 16 bits, PCS[] = Encoded Lab values (in V2 format!!)
         Lab.L = 50; Lab.a = 10; Lab.b = -10;
