@@ -48,8 +48,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var rin = (int)(SourceStartingOrder[0] + strideIn);
@@ -206,8 +206,7 @@ public static partial class FastFloat
 }
 
 //file
-public
-    class XMatShaperData(Context? context) : IDisposable
+public class XMatShaperData(Context? context) : IDisposable
 {
     private readonly S1Fixed15Number[] _mat = Context.GetPool<S1Fixed15Number>(context).Rent(9);
     private readonly S1Fixed15Number[] _off = Context.GetPool<S1Fixed15Number>(context).Rent(3);
