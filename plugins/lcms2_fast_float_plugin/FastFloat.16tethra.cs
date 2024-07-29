@@ -62,8 +62,8 @@ public static partial class FastFloat
             if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
                 nalpha = 0;
 
-            var strideIn = 0u;
-            var strideOut = 0u;
+            nuint strideIn = 0;
+            nuint strideOut = 0;
             for (var i = 0; i < LineCount; i++)
             {
                 var rin = (int)(SourceStartingOrder[0] + strideIn);
