@@ -41,6 +41,16 @@ public static partial class FastFloat
         if ((dwFlags & cmsFLAGS_SOFTPROOFING) is not 0)
             return false;
 
+        // Special flags for reversing are not supported
+        if (T_FLAVOR(InputFormat) is not 0 || T_FLAVOR(OutputFormat) is not 0) return false;
+
+        // Check consistency for alpha channel copy
+        if ((dwFlags & cmsFLAGS_COPY_ALPHA) is not 0)
+        {
+            if (T_EXTRA(InputFormat) != T_EXTRA(OutputFormat)) return false;
+            if (T_PREMUL(InputFormat) is not 0 || T_PREMUL(OutputFormat) is not 0) return false;
+        }
+
         // Try to optimize as a set of curves plus a matrix plus a set of curves
         if (OptimizeMatrixShaper15(out TransformFn, out UserData, out FreeUserData, ref Lut, ref InputFormat, ref OutputFormat, ref dwFlags))
             return true;
