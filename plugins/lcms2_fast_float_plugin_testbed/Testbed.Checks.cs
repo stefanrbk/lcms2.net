@@ -1232,8 +1232,29 @@ internal static partial class Testbed
         }
     }
 
+    public static void CheckAlphaDetect()
+    {
+        cmsSetLogErrorHandler(BuildNullLogger());
+
+        var hsRGB = cmsCreate_sRGBProfile()!;
+
+        var xform = cmsCreateTransform(hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+        cmsCloseProfile(hsRGB);
+
+        if (xform is not null)
+        {
+            cmsSetLogErrorHandler(BuildDebugLogger());
+            Fail("Copy alpha with mismatched channels should not succeed");
+        }
+
+        cmsSetLogErrorHandler(BuildDebugLogger());
+    }
+
     public static void CheckConversionFloat()
     {
+        using (logger.BeginScope("Check alpha detection"))
+            CheckAlphaDetect();
+
         using (logger.BeginScope("Crash test"))
         {
             using (logger.BeginScope("Part 1"))
@@ -1599,6 +1620,38 @@ internal static partial class Testbed
             cmsDeleteContext(noPlugin);
 
             trace("Passed");
+        }
+    }
+
+    public static void CheckPremultiplied()
+    {
+        ReadOnlySpan<byte> BGRA8 = [255, 192, 160, 128];
+        Span<byte> bgrA8_1 = stackalloc byte[4];
+        Span<byte> bgrA8_2 = stackalloc byte[4];
+
+        var srgb1 = cmsCreate_sRGBProfile();
+        var srgb2 = cmsCreate_sRGBProfile();
+
+        var noPlugin = cmsCreateContext();
+
+        var xform1 = cmsCreateTransformTHR(noPlugin, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+        var xform2 = cmsCreateTransform(srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+
+        cmsCloseProfile(srgb1);
+        cmsCloseProfile(srgb2);
+
+        cmsDoTransform(xform1, BGRA8, bgrA8_1, 1);
+        cmsDoTransform(xform2, BGRA8, bgrA8_2, 1);
+
+        cmsDeleteTransform(xform1);
+        cmsDeleteTransform(xform2);
+
+        for (var i = 0; i < 4; i++)
+        {
+            if (bgrA8_1[i] != bgrA8_2[i])
+            {
+                Fail("Premultiplied failed at ({0} {1} {2}) != ({3} {4} {5})", bgrA8_1[0], bgrA8_1[1], bgrA8_1[2], bgrA8_2[0], bgrA8_2[1], bgrA8_2[2]);
+            }
         }
     }
 }

@@ -54,6 +54,13 @@ internal static partial class Testbed
                 .AddTestBedFormatter(options => { options.IncludeScopes = true; options.SingleLine = true; }));
     }
 
+    public static ILoggerFactory BuildNullLogger()
+    {
+        return LoggerFactory.Create(builder =>
+            builder
+                .SetMinimumLevel(LogLevel.None));
+    }
+
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void trace(string frm, params object[] args) =>
         logger.LogInformation("{frm}", string.Format(frm, args));

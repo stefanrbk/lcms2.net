@@ -50,6 +50,8 @@ if (!noCheckTests)
 {
     CheckComputeIncrements();
 
+    CheckPremultiplied();
+
     // 15 bit functionality
     CheckFormatters15();
     Check15bitsConversion();
