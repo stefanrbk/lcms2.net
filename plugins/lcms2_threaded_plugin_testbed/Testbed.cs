@@ -33,6 +33,8 @@ using System.Runtime.CompilerServices;
 namespace lcms2.ThreadedPlugin.testbed;
 internal static partial class Testbed
 {
+    const uint FLAGS = cmsFLAGS_NOOPTIMIZE;
+
     public static readonly ILoggerFactory factory = BuildDebugLogger();
     public static readonly ILogger logger = factory.CreateLogger<Program>();
 
