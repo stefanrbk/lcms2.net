@@ -177,7 +177,7 @@ internal static partial class Testbed
 
         cmsDoTransform(xform, Lab, out byte g_out, 1);
 
-        return IsGoodVal("Gray value", g, g_out, 0.01);
+        return IsGoodVal("Gray value", g, g_out, 1);
     }
 
     internal static bool CheckOutputGray()

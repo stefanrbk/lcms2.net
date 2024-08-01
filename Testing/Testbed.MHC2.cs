@@ -62,7 +62,7 @@ internal static partial class Testbed
     }
 
     private static bool CloseEnough(double a, double b) =>
-        Math.Abs(b - 1) < (1.0 / 65535.0);
+        Math.Abs(b - a) < (1.0 / 65535.0);
 
     private static bool IsOriginalMHC2Matrix(ReadOnlySpan<double> matrix)
     {

@@ -414,7 +414,7 @@ internal static partial class Testbed
     // This is a very big test that checks every single tag
     public static bool CheckProfileCreation()
     {
-        Profile h;
+        Profile? h;
         int Pass;
 
         using (logger.BeginScope("Profile setup"))

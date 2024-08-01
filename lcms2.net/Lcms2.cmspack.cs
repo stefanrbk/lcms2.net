@@ -2415,7 +2415,7 @@ public static partial class Lcms2
         Lab.a = (wOut[1] * 255.0) - 128.0;
         Lab.b = (wOut[2] * 255.0) - 128.0;
 
-        cmsFloat2LabEncoded(wlab, Lab);
+        cmsFloat2LabEncodedV2(wlab, Lab);
 
         if (T_PLANAR(info.OutputFormat) is not 0)
         {
