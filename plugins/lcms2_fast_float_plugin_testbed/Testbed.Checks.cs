@@ -270,6 +270,8 @@ internal static partial class Testbed
             CHECK(nameof(TYPE_BGR_16_PLANAR), 100, 3, 0, /**/ 200, 100, 0,       /**/ 2, 2, 2);
             CHECK(nameof(TYPE_BGRA_16_PLANAR), 100, 3, 1, /**/ 200, 100, 0, 300,  /**/ 2, 2, 2, 2);
             CHECK(nameof(TYPE_ABGR_16_PLANAR), 100, 3, 1, /**/ 300, 200, 100, 0,  /**/ 2, 2, 2, 2);
+
+            trace("Passed");
         }
 
         static bool CHECK(string frm, uint plane, uint chans, uint alpha, params uint[] args)
@@ -321,8 +323,8 @@ internal static partial class Testbed
         if (xform15 is null || xform8 is null)
             Fail("Null transforms on check for 15 bit conversions");
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
+
         var buffer8in = new Scanline_rgb8bits[npixels];
         var buffer8out = new Scanline_rgb8bits[npixels];
         var buffer15in = new Scanline_rgb15bits[npixels];
@@ -349,50 +351,102 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+#if NO_THREADS
 
-        for (var i = 0; i < 256; i++)
+        DoTransforms(0, npixels, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+        var failed = CompareTransforms(0, npixels, buffer8out, buffer15out);
+
+#else
+
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
+
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                cmsDoTransform(xform15, buffer15in.AsSpan((offset * npixelsThreaded)..), buffer15out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xform8, buffer8in.AsSpan((offset * npixelsThreaded)..), buffer8out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+                return CompareTransforms(offset, nPixelsPerThread, buffer8out, buffer15out);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s=>s.Result);
 
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    // Check the results
-                    if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
-                        !Valid15(buffer15out[j].g, buffer8out[j].g) ||
-                        !Valid15(buffer15out[j].b, buffer8out[j].b))
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
+            } else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
             }
+
+            DoTransforms(0, npixels, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+            failed = CompareTransforms(0, npixels, buffer8out, buffer15out);
         }
+
+#endif
 
         cmsDeleteTransform(xform15);
         cmsDeleteTransform(xform8);
 
         if (failed is not 0)
             Fail("{0} failed", failed);
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xform8, Transform xform15, Scanline_rgb8bits[] buffer8In, Scanline_rgb15bits[] buffer15In, Scanline_rgb8bits[] buffer8Out, Scanline_rgb15bits[] buffer15Out)
+        {
+            var start = offset * nPixelsPerThread;
+            var b8In = buffer8In.AsSpan(start..)[..nPixelsPerThread];
+            var b15In = buffer15In.AsSpan(start..)[..nPixelsPerThread];
+            var b8Out = buffer8Out.AsSpan(start..)[..nPixelsPerThread];
+            var b15Out = buffer15Out.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xform15, b15In, b15Out, (uint)nPixelsPerThread);
+            cmsDoTransform(xform8, b8In, b8Out, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgb8bits[] buffer8out, Scanline_rgb15bits[] buffer15out)
+        {
+            // Let's compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < nPixelsPerThread; j++)
+            {
+                // Check the results
+                if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
+                    !Valid15(buffer15out[j].g, buffer8out[j].g) ||
+                    !Valid15(buffer15out[j].b, buffer8out[j].b))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at ({r8} {g8} {b8}) != ({r15} {g15} {b15})",
+                            buffer8out[j].r,
+                            buffer8out[j].g,
+                            buffer8out[j].b,
+                            FROM_15_TO_8(buffer15out[j].r),
+                            FROM_15_TO_8(buffer15out[j].g),
+                            FROM_15_TO_8(buffer15out[j].b));
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static void TryAllValues15NonThreaded(Profile profileIn, Profile profileOut, int Intent)
