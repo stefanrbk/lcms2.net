@@ -11,6 +11,10 @@
     <Configurations>Debug;Release;Debug (Single Threaded)</Configurations>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Single Threaded)|AnyCPU'">
+    <DefineConstants>$(DefineConstants);NO_THREADS</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
     <ProjectReference Include="..\..\Testing\Testbed.csproj" />
