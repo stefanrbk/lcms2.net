@@ -27,6 +27,7 @@ using Microsoft.Extensions.Logging;
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace lcms2.FastFloatPlugin.testbed;
@@ -59,6 +60,24 @@ internal static partial class Testbed
         return LoggerFactory.Create(builder =>
             builder
                 .SetMinimumLevel(LogLevel.None));
+    }
+
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T LargestPowerOf2<T>(T value) where T : IBinaryInteger<T>
+    {
+        if (value < T.One)
+        {
+            return T.Zero;
+        }
+
+        var res = T.One;
+
+        while (res <= value)
+        {
+            res <<= 1;
+        }
+
+        return res >> 1;
     }
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
