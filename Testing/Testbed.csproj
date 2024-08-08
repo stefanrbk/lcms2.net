@@ -9,7 +9,7 @@
 
     <RootNamespace>lcms2.testbed</RootNamespace>
 
-    <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor)</Configurations>
+    <Configurations>Debug;Release;Debug (No Fast Floor);Release (No Fast Floor);Debug (Single Threaded)</Configurations>
 
     <IsPublishable>False</IsPublishable>
 
@@ -31,6 +31,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Single Threaded)|AnyCPU'">
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 

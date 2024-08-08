@@ -8,6 +8,7 @@
     <RootNamespace>lcms2.ThreadedPlugin.testbed</RootNamespace>
     <LangVersion>preview</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Configurations>Debug;Release;Debug (Single Threaded)</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
