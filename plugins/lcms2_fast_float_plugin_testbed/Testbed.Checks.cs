@@ -425,7 +425,7 @@ internal static partial class Testbed
             var end = (offset + 1) * nPixelsPerThread;
 
             var failed = 0;
-            for (var j = start; j < nPixelsPerThread; j++)
+            for (var j = start; j < end; j++)
             {
                 // Check the results
                 if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
