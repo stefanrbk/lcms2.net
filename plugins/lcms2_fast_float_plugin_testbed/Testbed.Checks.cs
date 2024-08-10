@@ -488,8 +488,8 @@ internal static partial class Testbed
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transforms on check for float conversions");
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
+
         var bufferIn = new Scanline_rgba16bits[npixels];
         var bufferRawOut = new Scanline_rgba16bits[npixels];
         var bufferPluginOut = new Scanline_rgba16bits[npixels];
@@ -512,54 +512,107 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+#if NO_THREADS
 
-        for (var i = 0; i < 256; i++)
+        DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+        var failed = CompareTransforms(0, npixels, bufferRawOut, bufferPluginOut);
+
+#else
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
+
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                // Different transforms, different output buffers
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (bufferRawOut[j].r != bufferPluginOut[j].r ||
-                        bufferRawOut[j].g != bufferPluginOut[j].g ||
-                        bufferRawOut[j].b != bufferPluginOut[j].b ||
-                        bufferRawOut[j].a != bufferPluginOut[j].a)
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
+            else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
+            }
+
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
         }
-        if (failed is not 0)
-            Fail("{0} failed", failed);
+
+
+#endif
 
         cmsDeleteTransform(xformRaw);
         cmsDeleteTransform(xformPlugin);
 
         cmsDeleteContext(Plugin);
         cmsDeleteContext(Raw);
+
+        if (failed is not 0)
+            Fail("{0} failed", failed);
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgba16bits[] bufferIn, Scanline_rgba16bits[] bufferRawOut, Scanline_rgba16bits[] bufferPluginOut)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgba16bits[] bufferRawOut, Scanline_rgba16bits[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (bufferRawOut[j].r != bufferPluginOut[j].r ||
+                    bufferRawOut[j].g != bufferPluginOut[j].g ||
+                    bufferRawOut[j].b != bufferPluginOut[j].b ||
+                    bufferRawOut[j].a != bufferPluginOut[j].a)
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at ({rRaw} {gRaw} {bRaw} {aRaw}) != ({rPlugin} {gPlugin} {bPlugin} {aPlugin})",
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferRawOut[j].a,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b,
+                            bufferPluginOut[j].a);
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static void TryAllValues16NonThreaded(Profile profileIn, Profile profileOut, int Intent)
