@@ -1152,6 +1152,9 @@ internal static partial class Testbed
 
         using (logger.BeginScope("Checking change format feature"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var hsRGB = cmsCreate_sRGBProfile()!;
             var hLab = cmsCreateLab4Profile(null)!;
 
@@ -1171,6 +1174,10 @@ internal static partial class Testbed
                 Fail("Change format failed!");
 
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
     }
 
