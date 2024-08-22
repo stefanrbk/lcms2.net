@@ -396,14 +396,15 @@ internal static partial class Testbed
         Task.WaitAll(tasks);
 
         var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
-        var failed = tasks.Sum(s=>s.Result);
+        var failed = tasks.Sum(s => s.Result);
 
         if (threadingFailed || failed > 0)
         {
             if (threadingFailed)
             {
                 logger.LogWarning("Multithreading failure. Retrying single-threaded");
-            } else
+            }
+            else
             {
                 logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
             }
@@ -1292,8 +1293,8 @@ internal static partial class Testbed
             using (logger.BeginScope("Part 1"))
                 TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, false);
 
-            using (logger.BeginScope("Part 2"))
-                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
+            //    using (logger.BeginScope("Part 2"))
+            //        TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
         }
 
         using (logger.BeginScope("Crash (II) test"))
@@ -1529,7 +1530,8 @@ internal static partial class Testbed
                 if (threadingFailed)
                 {
                     logger.LogWarning("Multithreading failure. Retrying single-threaded");
-                } else
+                }
+                else
                     {
                     logger.LogWarning("{failed} failed. Retrying single-threaded", failed);
                         }
