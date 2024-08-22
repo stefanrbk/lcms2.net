@@ -51,7 +51,11 @@ internal static partial class Testbed
     {
         return LoggerFactory.Create(builder =>
             builder
+#if DEBUG
+                .SetMinimumLevel(LogLevel.Debug)
+#else
                 .SetMinimumLevel(LogLevel.Information)
+#endif
                 .AddTestBedFormatter(options => { options.IncludeScopes = true; options.SingleLine = true; }));
     }
 
