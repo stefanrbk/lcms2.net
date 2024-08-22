@@ -872,9 +872,6 @@ internal static partial class Testbed
         var Raw = cmsCreateContext();
         var Plugin = cmsCreateContext(cmsFastFloatExtensions());
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;
-
         var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
         var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
 
@@ -883,6 +880,8 @@ internal static partial class Testbed
 
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transform");
+
+        const int npixels = 256 * 256 * 256;
 
         var bufferIn = new Scanline_rgbFloat[npixels];
         var bufferRawOut = new Scanline_rgbFloat[npixels];
@@ -905,44 +904,46 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
 
-        for (var i = 0; i < 256; i++)
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
                 var offset = (int)o!;
 
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+        }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
+            }
+            else
                 {
-                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
-                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
-                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b))
-                    {
-                        failed++;
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
                     }
 
-                    j++;
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
                 }
-            }
-        }
 
         cmsDeleteTransform(xformRaw);
         cmsDeleteTransform(xformPlugin);
@@ -953,15 +954,53 @@ internal static partial class Testbed
         if (failed > 0)
             Fail("{0} failed", failed);
         trace("Passed");
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgbFloat[] bufferIn, Scanline_rgbFloat[] bufferRawOut, Scanline_rgbFloat[] bufferPluginOut)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
+    }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferRawOut, Scanline_rgbFloat[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                    !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                    !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at position [{j}]: ({rRaw} {gRaw} {bRaw}) != ({rPlugin} {gPlugin} {bPlugin})",
+                            j,
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b);
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static void TryAllValuesFloatAlpha(Profile profileIn, Profile profileOut, int Intent, bool copyAlpha)
     {
         var Raw = cmsCreateContext();
         var Plugin = cmsCreateContext(cmsFastFloatExtensions());
-
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;
         var flags = cmsFLAGS_NOCACHE | (copyAlpha ? cmsFLAGS_COPY_ALPHA : 0);
 
         var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_FLT, profileOut, TYPE_RGBA_FLT, (uint)Intent, flags);
@@ -972,6 +1011,8 @@ internal static partial class Testbed
 
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transform");
+
+        const int npixels = 256 * 256 * 256;
 
         var bufferIn = new Scanline_rgbaFloat[npixels];
         var bufferRawOut = new Scanline_rgbaFloat[npixels];
@@ -995,45 +1036,45 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
 
-        for (var i = 0; i < 256; i++)
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
                 var offset = (int)o!;
 
-                // Different transforms, different output buffers
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
-                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
-                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b) ||
-                        !ValidFloat(bufferRawOut[j].a, bufferPluginOut[j].a))
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
+            }
+            else
                     {
-                        failed++;
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
                     }
 
-                    j++;
-                }
-            }
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
         }
 
         cmsDeleteTransform(xformRaw);
@@ -1045,6 +1086,50 @@ internal static partial class Testbed
         if (failed > 0)
             Fail("{0} failed", failed);
         trace("Passed");
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgbaFloat[] bufferIn, Scanline_rgbaFloat[] bufferRawOut, Scanline_rgbaFloat[] bufferPluginOut)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbaFloat[] bufferRawOut, Scanline_rgbaFloat[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                    !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                    !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b) ||
+                    !ValidFloat(bufferRawOut[j].a, bufferPluginOut[j].a))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at position [{j}]: ({rRaw} {gRaw} {bRaw} {aRaw}) != ({rPlugin} {gPlugin} {bPlugin} {aPlugin})",
+                            j,
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferRawOut[j].a,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b,
+                            bufferPluginOut[j].a);
+    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static bool Valid16Float(ushort a, float b) =>
