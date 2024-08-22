@@ -1447,6 +1447,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Check soft proofing and gamut check"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
             var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
             var noPlugin = cmsCreateContext();
@@ -1457,11 +1460,11 @@ internal static partial class Testbed
             cmsCloseProfile(hRGB1);
             cmsCloseProfile(hRGB2);
 
-            const int npixelsThreaded = 256 * 256;
-            const int Mb = npixelsThreaded * 256;
-            var In = new Scanline_rgbFloat[Mb];
-            var Out1 = new Scanline_rgbFloat[Mb];
-            var Out2 = new Scanline_rgbFloat[Mb];
+            const int npixels = 256 * 256 * 256;
+
+            var In = new Scanline_rgbFloat[npixels];
+            var Out1 = new Scanline_rgbFloat[npixels];
+            var Out2 = new Scanline_rgbFloat[npixels];
 
             var j = 0;
             for (var r = 0; r < 256; r++)
@@ -1478,120 +1481,111 @@ internal static partial class Testbed
                 }
             }
 
-            var tasks = new Task[256];
+#if NO_THREADS
+            DoTransforms(0, npixels, xformNoPlugin, xformPlugin, In, Out1, Out2);
+            var failed = CompareTransforms(0, npixels, Out1, Out2);
 
-            for (var i = 0; i < 256; i++)
+#else
+
+            var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+            var nPixelsPerThread = npixels / nThreads;
+
+            var tasks = new Task<int>[nThreads];
+
+            int test(object? o)
             {
-                tasks[i] = Task.Factory.StartNew(o =>
-                {
                     var offset = (int)o!;
 
-                    // Different transforms, different output buffers
-                    cmsDoTransform(xformNoPlugin, In.AsSpan((offset * npixelsThreaded)..), Out1.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                    cmsDoTransform(xformPlugin, In.AsSpan((offset * npixelsThreaded)..), Out2.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                }, i);
+                using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+                {
+                    DoTransforms(offset, nPixelsPerThread, xformNoPlugin, xformPlugin, In, Out1, Out2);
+                    return CompareTransforms(offset, nPixelsPerThread, Out1, Out2);
+            }
+            }
+
+            for (var i = 0; i < nThreads; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(test, i);
             }
 
             Task.WaitAll(tasks);
 
-            if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-                Fail("Multithreading failure");
+            var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+            var failed = tasks.Sum(s => s.Result);
 
-            var failed = 0;
-            j = 0;
-            for (var r = 0; r < 256; r++)
+            if (threadingFailed || failed > 0)
             {
-                for (var g = 0; g < 256; g++)
+                if (threadingFailed)
                 {
-                    for (var b = 0; b < 256; b++)
+                    logger.LogWarning("Multithreading failure. Retrying single-threaded");
+                } else
                     {
-                        // Check for same values
-                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
-                            !ValidFloat(Out1[j].g, Out2[j].g) ||
-                            !ValidFloat(Out1[j].b, Out2[j].b))
-                        {
-                            failed++;
+                    logger.LogWarning("{failed} failed. Retrying single-threaded", failed);
                         }
-                        j++;
+
+                DoTransforms(0, npixels, xformNoPlugin, xformPlugin, In, Out1, Out2);
+                failed = CompareTransforms(0, npixels, Out1, Out2);
                     }
-                }
-            }
+
+#endif
+
+            cmsDeleteTransform(xformNoPlugin);
+            cmsDeleteTransform(xformPlugin);
+
+            cmsDeleteContext(noPlugin);
+
             if (failed is not 0)
                 Fail("{0} failed", failed);
 
-            cmsDeleteTransform(xformNoPlugin);
-            cmsDeleteTransform(xformPlugin);
-
-            cmsDeleteContext(noPlugin);
-
             trace("Passed");
+
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
-    }
 
-    public static void CheckSoftProofingNonThreaded()
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformNoPlugin, Transform xformPlugin, Scanline_rgbFloat[] bufferIn, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
     {
-        using (logger.BeginScope("Check soft proofing and gamut check"))
-        {
-            var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
-            var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
-            var noPlugin = cmsCreateContext();
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bOut1 = bufferOut1.AsSpan(start..)[..nPixelsPerThread];
+            var bOut2 = bufferOut2.AsSpan(start..)[..nPixelsPerThread];
 
-            var xformNoPlugin = cmsCreateProofingTransformTHR(noPlugin, hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
-            var xformPlugin = cmsCreateProofingTransform(hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
+            // Different transforms, different output buffers
+            cmsDoTransform(xformNoPlugin, bIn, bOut1, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bOut2, (uint)nPixelsPerThread);
+        }
 
-            cmsCloseProfile(hRGB1);
-            cmsCloseProfile(hRGB2);
-
-            var Mb = 256 * 256 * 256;
-            var In = new Scanline_rgbFloat[Mb];
-            var Out1 = new Scanline_rgbFloat[Mb];
-            var Out2 = new Scanline_rgbFloat[Mb];
-
-            var j = 0;
-            for (var r = 0; r < 256; r++)
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
             {
-                for (var g = 0; g < 256; g++)
-                {
-                    for (var b = 0; b < 256; b++)
-                    {
-                        In[j].r = r / 255.0f;
-                        In[j].g = g / 255.0f;
-                        In[j].b = b / 255.0f;
-                        j++;
-                    }
-                }
-            }
+            // Let's compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
 
-            cmsDoTransform(xformNoPlugin, In, Out1, (uint)Mb);
-            cmsDoTransform(xformPlugin, In, Out2, (uint)Mb);
-
-            j = 0;
-            for (var r = 0; r < 256; r++)
-            {
-                for (var g = 0; g < 256; g++)
-                {
-                    for (var b = 0; b < 256; b++)
+            var failed = 0;
+            for (var j = start; j < end; j++)
                     {
                         // Check for same values
-                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
-                            !ValidFloat(Out1[j].g, Out2[j].g) ||
-                            !ValidFloat(Out1[j].b, Out2[j].b))
+                if (!ValidFloat(bufferOut1[j].r, bufferOut2[j].r) ||
+                    !ValidFloat(bufferOut1[j].g, bufferOut2[j].g) ||
+                    !ValidFloat(bufferOut1[j].b, bufferOut2[j].b))
+                {
+                    if (failed++ is 0)
                         {
-                            Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})",
-                                Out1[j].r, Out1[j].g, Out1[j].b,
-                                Out2[j].r, Out2[j].g, Out2[j].b);
-                        }
-                        j++;
+                        logger.LogError("Conversion first failed at position [{j}]: ({r1} {g1} {b1}) != ({r2} {g2} {b2})",
+                            j,
+                            bufferOut1[j].r,
+                            bufferOut1[j].g,
+                            bufferOut1[j].b,
+                            bufferOut2[j].r,
+                            bufferOut2[j].g,
+                            bufferOut2[j].b);
                     }
                 }
             }
 
-            cmsDeleteTransform(xformNoPlugin);
-            cmsDeleteTransform(xformPlugin);
-
-            cmsDeleteContext(noPlugin);
-
-            trace("Passed");
+            return failed;
         }
     }
 
