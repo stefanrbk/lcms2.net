@@ -1255,6 +1255,11 @@ internal static partial class Testbed
 
     public static void CheckAlphaDetect()
     {
+        using (logger.BeginScope("Check copy alpha with mismatched channels"))
+        {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
         cmsSetLogErrorHandler(BuildNullLogger());
 
         var hsRGB = cmsCreate_sRGBProfile()!;
@@ -1269,6 +1274,12 @@ internal static partial class Testbed
         }
 
         cmsSetLogErrorHandler(BuildDebugLogger());
+            trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
+    }
     }
 
     public static void CheckConversionFloat()
