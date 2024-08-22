@@ -25,6 +25,7 @@ using lcms2.types;
 using Microsoft.Extensions.Logging;
 
 using System;
+using System.Diagnostics;
 
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
@@ -182,6 +183,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Check compute increments"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             CHECK(nameof(TYPE_GRAY_8), 0, 1, 0, /**/ 0,    /**/ 1);
             CHECK(nameof(TYPE_GRAYA_8), 0, 1, 1, /**/ 0, 1, /**/ 2, 2);
             CHECK(nameof(TYPE_AGRAY_8), 0, 1, 1, /**/ 1, 0, /**/ 2, 2);
@@ -272,6 +276,10 @@ internal static partial class Testbed
             CHECK(nameof(TYPE_ABGR_16_PLANAR), 100, 3, 1, /**/ 300, 200, 100, 0,  /**/ 2, 2, 2, 2);
 
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         static bool CHECK(string frm, uint plane, uint chans, uint alpha, params uint[] args)
@@ -298,7 +306,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Checking 15 bit <=> 8 bit conversions"))
         {
-
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             for (var i = 0; i < 256; i++)
             {
                 var n = FROM_8_TO_15((byte)i);
@@ -309,6 +319,10 @@ internal static partial class Testbed
             }
 
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
     }
 
@@ -453,22 +467,46 @@ internal static partial class Testbed
     {
         Check15bitMacros();
 
+#if DEBUG
+        var timer = new Stopwatch();
+#endif
         using (logger.BeginScope("Checking accuracy of 15 bits on CLUT"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         using (logger.BeginScope("Checking accuracy of 15 bits on same profile"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         using (logger.BeginScope("Checking accuracy of 15 bits on Matrix"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         trace("All 15 bit tests passed");
@@ -620,8 +658,15 @@ internal static partial class Testbed
         // CLUT should be as 16 bits or better
         using (logger.BeginScope("Checking accuracy of 16 bits on CLUT"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             TryAllValues16(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         trace("All 16 bit tests passed");
@@ -1290,6 +1335,9 @@ internal static partial class Testbed
 
         using (logger.BeginScope("Checking Lab -> RGB"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var tasks = new Task<float>[2][];
             tasks[0] = new Task<float>[97];
             tasks[1] = new Task<float>[20];
