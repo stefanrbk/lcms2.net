@@ -28,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lcms2_threaded_plugin", "pl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lcms2_threaded_plugin_testbed", "plugins\lcms2_threaded_plugin_testbed\lcms2_threaded_plugin_testbed.csproj", "{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "plugins\lcms2_fast_float_plugin_unit_tests\UnitTests.csproj", "{822E8447-28E5-4F5A-A0D6-C1114A27123B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fast Float UnitTests", "plugins\lcms2_fast_float_plugin_unit_tests\Fast Float UnitTests.csproj", "{822E8447-28E5-4F5A-A0D6-C1114A27123B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
