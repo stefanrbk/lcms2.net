@@ -85,6 +85,21 @@ internal static partial class Testbed
     }
 
     [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void LogTimer(Stopwatch timer)
+    {
+        var elapsed = timer.Elapsed;
+        var ms = new TimeSpan(TimeSpan.TicksPerMillisecond);
+        var s = new TimeSpan(TimeSpan.TicksPerSecond);
+
+        if (elapsed >= s)
+            logger.LogDebug("{time} sec", elapsed.TotalSeconds);
+        else if (elapsed >= ms)
+            logger.LogDebug("{time} ms", elapsed.TotalMilliseconds);
+        else
+            logger.LogDebug("{time} ns", elapsed.TotalNanoseconds);
+    }
+
+    [DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void trace(string frm, params object[] args) =>
         logger.LogInformation("{frm}", string.Format(frm, args));
 
