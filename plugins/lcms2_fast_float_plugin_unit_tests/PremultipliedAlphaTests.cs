@@ -1,4 +1,6 @@
 ﻿namespace lcms2.FastFloatPlugin.tests;
+
+[Parallelizable(ParallelScope.All)]
 public class PremultipliedAlphaTests
 {
     [Test]

@@ -4,6 +4,8 @@ using lcms2.types;
 using System.Resources;
 
 namespace lcms2.FastFloatPlugin.tests;
+
+[Parallelizable(ParallelScope.All)]
 public class _15BitTests
 {
     private readonly Context _ctx = cmsCreateContext()!;
