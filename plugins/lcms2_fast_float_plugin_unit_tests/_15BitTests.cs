@@ -69,7 +69,9 @@ public class _15BitTests
         });
     }
 
-    [TestCase(nameof(TestProfiles.test5), nameof(TestProfiles.test3), INTENT_PERCEPTUAL, Description = nameof(INTENT_PERCEPTUAL))]
+    [TestCase(nameof(TestProfiles.test5), nameof(TestProfiles.test3), INTENT_PERCEPTUAL, Description = "CLUT accuracy")]
+    [TestCase(nameof(TestProfiles.test0), nameof(TestProfiles.test0), INTENT_PERCEPTUAL, Description = "Same profile accuracy")]
+    [TestCase(nameof(TestProfiles.test0), nameof(TestProfiles.test5), INTENT_PERCEPTUAL, Description = "Matrix accuracy")]
     public void TestConversionsOnAll15BitValues(string profileInName, string profileOutName, int Intent)
     {
         var resources = new ResourceManager("lcms2.FastFloatPlugin.tests.TestProfiles", typeof(_15BitTests).Assembly);
