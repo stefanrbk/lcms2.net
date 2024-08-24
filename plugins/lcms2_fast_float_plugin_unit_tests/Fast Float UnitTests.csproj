@@ -32,6 +32,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\lcms2_fast_float_plugin\lcms2_fast_float_plugin.csproj" />
+		<ProjectReference Include="..\lcms2_fast_float_plugin_testbed\lcms2_fast_float_plugin_testbed.csproj" />
 	</ItemGroup>
 
 </Project>
