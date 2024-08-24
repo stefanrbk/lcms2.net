@@ -45,6 +45,21 @@ public class _15BitTests
         });
     }
 
+    [Test]
+    public void TestInternal15BitMacrosReturnProperValuesAfterRoundTrip()
+    {
+        Assert.Multiple(() =>
+        {
+            for (var i = 0; i < 256; i++)
+            {
+                var n = FROM_8_TO_15((byte)i);
+                var m = FROM_15_TO_8(n);
+
+                Assert.That(m, Is.EqualTo(i));
+            }
+        });
+    }
+
     internal static object[] Test15BitFormattersReturnInputsAfterRoundTripCases =
     {
         nameof(TYPE_GRAY_15),
