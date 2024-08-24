@@ -35,4 +35,19 @@
 		<ProjectReference Include="..\lcms2_fast_float_plugin_testbed\lcms2_fast_float_plugin_testbed.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Compile Update="TestProfiles.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>TestProfiles.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="TestProfiles.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
 </Project>
