@@ -30,33 +30,33 @@ using System.Diagnostics;
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
-    private struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
+    internal struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
 
-    private struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
+    internal struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
+    internal struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
+    internal struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
+    internal struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
+    internal struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
+    internal struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
 
-    private struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
+    internal struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
+    internal struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
+    internal struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
+    internal struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
 
-    private struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
+    internal struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
+    internal struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
+    internal struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
 
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
     {
