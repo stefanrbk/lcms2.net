@@ -18,12 +18,13 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
 		<PackageReference Include="NSubstitute" Version="5.1.0" />
-		<PackageReference Include="NUnit" Version="4.1.0" />
+		<PackageReference Include="NUnit" Version="4.2.1" />
 		<PackageReference Include="NUnit.Analyzers" Version="4.3.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+		<PackageReference Include="System.Resources.Extensions" Version="8.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -36,18 +37,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Update="TestProfiles.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>TestProfiles.resx</DependentUpon>
-		</Compile>
+	  <Compile Update="TestProfiles.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>TestProfiles.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Update="TestProfiles.resx">
-			<Generator>ResXFileCodeGenerator</Generator>
-			<LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
-		</EmbeddedResource>
+	  <EmbeddedResource Update="TestProfiles.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 </Project>
