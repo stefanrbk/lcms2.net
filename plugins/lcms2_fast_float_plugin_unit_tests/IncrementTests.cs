@@ -1,6 +1,6 @@
 ﻿namespace lcms2.FastFloatPlugin.tests;
 
-[Parallelizable(ParallelScope.All)]
+//[Parallelizable(ParallelScope.All)]
 public class IncrementTests
 {
     [TestCaseSource(nameof(TestComputeIncrementsMatchExpectedValuesCases))]
