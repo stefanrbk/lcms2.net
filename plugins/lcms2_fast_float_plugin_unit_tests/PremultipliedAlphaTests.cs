@@ -26,8 +26,8 @@ public class PremultipliedAlphaTests
         var bgrA8_1 = new byte[4];
         var bgrA8_2 = new byte[4];
 
-        var srgb1 = cmsCreate_sRGBProfile();
-        var srgb2 = cmsCreate_sRGBProfile();
+        var srgb1 = cmsCreate_sRGBProfileTHR(_pluginCtx);
+        var srgb2 = cmsCreate_sRGBProfileTHR(_pluginCtx);
 
         var xform1 = cmsCreateTransformTHR(_rawCtx, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
         var xform2 = cmsCreateTransformTHR(_pluginCtx, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
