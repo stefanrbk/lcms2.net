@@ -881,7 +881,7 @@ public static partial class Lcms2
 
     internal const int cmsGuess_MAX_WORKERS = -1;
 
-#endregion lcms2_internal.h
+    #endregion lcms2_internal.h
 
     static Lcms2()
     {
@@ -949,7 +949,7 @@ public static partial class Lcms2
         //fixed (TagTypePluginChunkType* plugin = &TagTypePluginChunk)
         //    globalTagTypePluginChunk = dup(plugin);
 
-        
+
         //fixed (TagPluginChunkType* plugin = &TagPluginChunk)
         //    globalTagPluginChunk = dup(plugin);
 
@@ -1521,7 +1521,7 @@ public static partial class Lcms2
         Span<byte> last = null;
         var i = 0;
 
-        while(i < str.Length && str[i] is not 0)
+        while (i < str.Length && str[i] is not 0)
         {
             if (str[i++] == c)
                 last = str;
@@ -1593,7 +1593,7 @@ public static partial class Lcms2
     //    for (var i = 0; i < len; i++) str[i] = (char)format[i];
     //    var formatStr = new string(str);
 
-        
+
     //    return snprintf(buffer, count, formatStr, args);
     //}
 
@@ -1775,7 +1775,7 @@ public static partial class Lcms2
 
         return 0;
     }
-    
+
     internal static FILE? fopen(string filename, string mode)
     {
         Stream stream;
@@ -1865,12 +1865,16 @@ public static partial class Lcms2
     {
         context = _cmsGetContext(context);
 
-        if (loggers.TryGetValue(context.ErrorLogger, out var logger))
-            return logger;
+        lock (loggers)
+        {
+            if (loggers.TryGetValue(context.ErrorLogger, out var logger))
+                return logger;
 
-        logger = context.ErrorLogger.Factory.CreateLogger("Lcms2");
-        loggers.Add(context.ErrorLogger, logger);
-        return logger;
+            logger = context.ErrorLogger.Factory.CreateLogger("Lcms2");
+            loggers.Add(context.ErrorLogger, logger);
+
+            return logger;
+        }
     }
 
     [DebuggerStepThrough]
