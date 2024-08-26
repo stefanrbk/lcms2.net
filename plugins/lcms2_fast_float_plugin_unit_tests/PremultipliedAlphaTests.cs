@@ -1,8 +1,24 @@
-﻿namespace lcms2.FastFloatPlugin.tests;
+﻿using lcms2.state;
+
+namespace lcms2.FastFloatPlugin.tests;
 
 //[Parallelizable(ParallelScope.All)]
 public class PremultipliedAlphaTests
 {
+    private readonly Context _pluginCtx = cmsCreateContext()!;
+    private readonly Context _rawCtx = cmsCreateContext()!;
+
+    [SetUp]
+    public void Setup() =>
+        cmsPluginTHR(_pluginCtx, cmsFastFloatExtensions());
+
+    [TearDown]
+    public void Cleanup()
+    {
+        cmsDeleteContext(_rawCtx);
+        cmsDeleteContext(_pluginCtx);
+    }
+
     [Test]
     public void TestPremultipliedAlphaParity()
     {
@@ -13,10 +29,8 @@ public class PremultipliedAlphaTests
         var srgb1 = cmsCreate_sRGBProfile();
         var srgb2 = cmsCreate_sRGBProfile();
 
-        var noPlugin = cmsCreateContext();
-
-        var xform1 = cmsCreateTransformTHR(noPlugin, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
-        var xform2 = cmsCreateTransform(srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+        var xform1 = cmsCreateTransformTHR(_rawCtx, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+        var xform2 = cmsCreateTransformTHR(_pluginCtx, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
 
         cmsCloseProfile(srgb1);
         cmsCloseProfile(srgb2);

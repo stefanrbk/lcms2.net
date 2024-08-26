@@ -14,6 +14,11 @@ public class _15BitTests
     public void Setup() =>
         cmsPluginTHR(_ctx, cmsFastFloatExtensions());
 
+    [TearDown]
+    public void Cleanup() =>
+        cmsDeleteContext(_ctx);
+
+
     [TestCaseSource(nameof(Test15BitFormattersReturnInputsAfterRoundTripCases))]
     public void Test15BitFormattersReturnInputsAfterRoundTrip(string a)
     {
