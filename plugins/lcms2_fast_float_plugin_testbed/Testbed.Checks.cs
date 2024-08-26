@@ -30,32 +30,46 @@ using System.Diagnostics;
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
     internal struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
 
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
     internal struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
 
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
     internal struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
 
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
     internal struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
     internal struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
     internal struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
+    [DebuggerDisplay("[L: {L}, a: {a}, b: {b}]")]
     internal struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
 
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
     internal struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
     internal struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
     internal struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
+    [DebuggerDisplay("[r: {r:F6}, g: {g:F6}, b: {b:F6}]")]
     internal struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
 
+    [DebuggerDisplay("[r: {r:F6}, g: {g:F6}, b: {b:F6}, a: {a:F6}]")]
     internal struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
 
+    [DebuggerDisplay("[c: {c:F6}, m: {m:F6}, y: {y:F6}, k: {k:F6}]")]
     internal struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
 
+    [DebuggerDisplay("[L: {L:F6}, a: {a:F6}, b: {b:F6}]")]
     internal struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
 
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
@@ -911,13 +925,13 @@ internal static partial class Testbed
 
         int test(object? o)
         {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
             using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
             {
                 DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
                 return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
-        }
+            }
         }
 
         for (var i = 0; i < nThreads; i++)
@@ -937,13 +951,13 @@ internal static partial class Testbed
                 logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
             else
-                {
+            {
                 logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
-                    }
+            }
 
             DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
             failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
-                }
+        }
 
         cmsDeleteTransform(xformRaw);
         cmsDeleteTransform(xformPlugin);
@@ -964,7 +978,7 @@ internal static partial class Testbed
 
             cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
             cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
-    }
+        }
 
         static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferRawOut, Scanline_rgbFloat[] bufferPluginOut)
         {
@@ -1043,7 +1057,7 @@ internal static partial class Testbed
 
         int test(object? o)
         {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
             using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
             {
@@ -1069,9 +1083,9 @@ internal static partial class Testbed
                 logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
             else
-                    {
+            {
                 logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
-                    }
+            }
 
             DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
             failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
@@ -1124,7 +1138,7 @@ internal static partial class Testbed
                             bufferPluginOut[j].g,
                             bufferPluginOut[j].b,
                             bufferPluginOut[j].a);
-    }
+                    }
                 }
             }
 
@@ -1346,26 +1360,26 @@ internal static partial class Testbed
 #if DEBUG
             var timer = Stopwatch.StartNew();
 #endif
-        cmsSetLogErrorHandler(BuildNullLogger());
+            cmsSetLogErrorHandler(BuildNullLogger());
 
-        var hsRGB = cmsCreate_sRGBProfile()!;
+            var hsRGB = cmsCreate_sRGBProfile()!;
 
-        var xform = cmsCreateTransform(hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
-        cmsCloseProfile(hsRGB);
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+            cmsCloseProfile(hsRGB);
 
-        if (xform is not null)
-        {
+            if (xform is not null)
+            {
+                cmsSetLogErrorHandler(BuildDebugLogger());
+                Fail("Copy alpha with mismatched channels should not succeed");
+            }
+
             cmsSetLogErrorHandler(BuildDebugLogger());
-            Fail("Copy alpha with mismatched channels should not succeed");
-        }
-
-        cmsSetLogErrorHandler(BuildDebugLogger());
             trace("Passed");
 #if DEBUG
             timer.Stop();
             LogTimer(timer);
 #endif
-    }
+        }
     }
 
     public static void CheckConversionFloat()
@@ -1591,13 +1605,13 @@ internal static partial class Testbed
 
             int test(object? o)
             {
-                    var offset = (int)o!;
+                var offset = (int)o!;
 
                 using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
                 {
                     DoTransforms(offset, nPixelsPerThread, xformNoPlugin, xformPlugin, In, Out1, Out2);
                     return CompareTransforms(offset, nPixelsPerThread, Out1, Out2);
-            }
+                }
             }
 
             for (var i = 0; i < nThreads; i++)
@@ -1617,13 +1631,13 @@ internal static partial class Testbed
                     logger.LogWarning("Multithreading failure. Retrying single-threaded");
                 }
                 else
-                    {
+                {
                     logger.LogWarning("{failed} failed. Retrying single-threaded", failed);
-                        }
+                }
 
                 DoTransforms(0, npixels, xformNoPlugin, xformPlugin, In, Out1, Out2);
                 failed = CompareTransforms(0, npixels, Out1, Out2);
-                    }
+            }
 
 #endif
 
@@ -1644,7 +1658,7 @@ internal static partial class Testbed
         }
 
         static void DoTransforms(int offset, int nPixelsPerThread, Transform xformNoPlugin, Transform xformPlugin, Scanline_rgbFloat[] bufferIn, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
-    {
+        {
             var start = offset * nPixelsPerThread;
             var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
             var bOut1 = bufferOut1.AsSpan(start..)[..nPixelsPerThread];
@@ -1656,21 +1670,21 @@ internal static partial class Testbed
         }
 
         static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
-            {
+        {
             // Let's compare results
             var start = offset * nPixelsPerThread;
             var end = (offset + 1) * nPixelsPerThread;
 
             var failed = 0;
             for (var j = start; j < end; j++)
-                    {
-                        // Check for same values
+            {
+                // Check for same values
                 if (!ValidFloat(bufferOut1[j].r, bufferOut2[j].r) ||
                     !ValidFloat(bufferOut1[j].g, bufferOut2[j].g) ||
                     !ValidFloat(bufferOut1[j].b, bufferOut2[j].b))
                 {
                     if (failed++ is 0)
-                        {
+                    {
                         logger.LogError("Conversion first failed at position [{j}]: ({r1} {g1} {b1}) != ({r2} {g2} {b2})",
                             j,
                             bufferOut1[j].r,
