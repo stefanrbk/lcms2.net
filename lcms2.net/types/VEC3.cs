@@ -25,13 +25,11 @@
 //---------------------------------------------------------------------------------
 //
 
-using lcms2.types;
-
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace lcms2;
+namespace lcms2.types;
 
 [DebuggerStepThrough, StructLayout(LayoutKind.Explicit)]
 public struct VEC3(double x, double y, double z)
@@ -51,7 +49,7 @@ public struct VEC3(double x, double y, double z)
 
     internal readonly double[] AsArray(ArrayPool<double>? pool = null)
     {
-        var result = (pool is not null)
+        var result = pool is not null
             ? pool.Rent(3)
             : new double[3];
 
@@ -113,15 +111,15 @@ public struct VEC3(double x, double y, double z)
 
     public readonly VEC3 Cross(VEC3 other) =>
         new(
-            (Y * other.Z) - (other.Y * Z),
-            (Z * other.X) - (other.Z * X),
-            (X * other.Y) - (other.X * Y));
+            Y * other.Z - other.Y * Z,
+            Z * other.X - other.Z * X,
+            X * other.Y - other.X * Y);
 
     public readonly double Dot(VEC3 other) =>
-        (X * other.X) + (Y * other.Y) + (Z * other.Z);
+        X * other.X + Y * other.Y + Z * other.Z;
 
     public readonly double Length =>
-        Math.Sqrt((X * X) + (Y * Y) + (Z * Z));
+        Math.Sqrt(X * X + Y * Y + Z * Z);
 
     public readonly double Distance(VEC3 other) =>
         (this - other).Length;
