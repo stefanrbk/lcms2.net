@@ -5,14 +5,14 @@ namespace lcms2.FastFloatPlugin.tests;
 //[Parallelizable(ParallelScope.All)]
 public class PremultipliedAlphaTests
 {
-    private readonly Context _pluginCtx = cmsCreateContext()!;
-    private readonly Context _rawCtx = cmsCreateContext()!;
+    private static readonly Context _pluginCtx = cmsCreateContext()!;
+    private static readonly Context _rawCtx = cmsCreateContext()!;
 
-    [SetUp]
+    [OneTimeSetUp]
     public void Setup() =>
         cmsPluginTHR(_pluginCtx, cmsFastFloatExtensions());
 
-    [TearDown]
+    [OneTimeTearDown]
     public void Cleanup()
     {
         cmsDeleteContext(_rawCtx);

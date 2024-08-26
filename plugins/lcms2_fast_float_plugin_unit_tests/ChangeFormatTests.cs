@@ -3,13 +3,13 @@
 namespace lcms2.FastFloatPlugin.tests;
 public class ChangeFormatTests
 {
-    private readonly Context _ctx = cmsCreateContext()!;
+    private static readonly Context _ctx = cmsCreateContext()!;
 
-    [SetUp]
+    [OneTimeSetUp]
     public void Setup() =>
         cmsPluginTHR(_ctx, cmsFastFloatExtensions());
 
-    [TearDown]
+    [OneTimeTearDown]
     public void Cleanup() =>
         cmsDeleteContext(_ctx);
 
