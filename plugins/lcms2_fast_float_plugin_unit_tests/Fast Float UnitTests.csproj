@@ -37,18 +37,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="TestProfiles.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>TestProfiles.resx</DependentUpon>
-	  </Compile>
+		<Compile Update="TestProfiles.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>TestProfiles.resx</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Update="TestProfiles.resx">
-	    <Generator>ResXFileCodeGenerator</Generator>
-	    <LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
+		<EmbeddedResource Update="TestProfiles.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
 	</ItemGroup>
 
 </Project>

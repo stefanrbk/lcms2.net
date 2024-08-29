@@ -879,7 +879,7 @@ internal static partial class Testbed
 
         cmsWriteTag(identityProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ));
 
-        var identity = MAT3.Identity.AsArray(Context.GetPool<double>(null));
+        var identity = MAT3.Identity.AsArray(/*Context.GetPool<double>(null)*/);
 
         // build forward transform.... (RGB to PCS)
         var forward = cmsPipelineAlloc(ctx, 3, 3);
@@ -1103,7 +1103,8 @@ internal static partial class Testbed
 
     internal static bool CheckFloatSamples()
     {
-        var y = GetArray<float>(null, kNumPoints);
+        //var y = GetArray<float>(null, kNumPoints);
+        var y = new float[kNumPoints];
 
         for (var i = 0; i < kNumPoints; i++)
             y[i] = StraightLine((float)i / (kNumPoints - 1));

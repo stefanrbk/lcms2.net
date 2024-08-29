@@ -216,7 +216,7 @@ public static partial class Lcms2
         if (iohandler.stream is not FILEMEM ResData)
             return false;
 
-        if (ResData.FreeBlockOnClose && ResData.Array is not null) ReturnArray(iohandler.ContextID, ResData.Array);
+        //if (ResData.FreeBlockOnClose && ResData.Array is not null) ReturnArray(iohandler.ContextID, ResData.Array);
 
         //_cmsFree(iohandler.ContextID, ResData);
         //_cmsFree(iohandler.ContextID, iohandler);
@@ -258,7 +258,8 @@ public static partial class Lcms2
                 //fm->Size = size;
                 //fm->Pointer = 0;
 
-                fm = new FILEMEM(_cmsGetContext(ContextID).GetBufferPool<byte>().Rent((int)size), size, 0);
+                //fm = new FILEMEM(_cmsGetContext(ContextID).GetBufferPool<byte>().Rent((int)size), size, 0);
+                fm = new FILEMEM(new byte[size], size, 0);
                 (Buffer.Span[..(int)size]).CopyTo(fm.Block.Span);
                 iohandler.reportedSize = size;
 
@@ -1180,7 +1181,7 @@ public static partial class Lcms2
 
     private static bool SaveTags(Profile Icc, Profile? FileOrig)
     {
-        var pool = Context.GetPool<byte>(Icc.ContextID);
+        //var pool = Context.GetPool<byte>(Icc.ContextID);
 
         var io = Icc.IOHandler;
         if (io is null) return false;
@@ -1214,21 +1215,22 @@ public static partial class Lcms2
 
                     //Mem = _cmsMalloc(Icc.ContextID, TagSize, typeof(byte));
                     //if (Mem is null) return false;
-                    var Mem = pool.Rent((int)TagSize);
+                    //var Mem = pool.Rent((int)TagSize);
+                    var Mem = new byte[TagSize];
 
                     if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1)
                     {
-                        ReturnArray(Icc.ContextID, Mem);
+                        //ReturnArray(Icc.ContextID, Mem);
                         return false;
                     }
 
                     if (!io.Write(io, TagSize, Mem))
                     {
-                        ReturnArray(Icc.ContextID, Mem);
+                        //ReturnArray(Icc.ContextID, Mem);
                         return false;
                     }
 
-                    ReturnArray(Icc.ContextID, Mem);
+                    //ReturnArray(Icc.ContextID, Mem);
 
                     Tag.Size = io.UsedSpace - Begin;
 
@@ -1444,12 +1446,12 @@ public static partial class Lcms2
                 LocalTypeHandler.ICCVersion = Icc.Version;
                 LocalTypeHandler.FreePtr?.Invoke(LocalTypeHandler, tag.TagObject);
             }
-            else
-            {
-                if (tag.TagObject is byte[] ptr)
-                    ReturnArray(Icc.ContextID, ptr);
-                //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
-            }
+            //else
+            //{
+            //    if (tag.TagObject is byte[] ptr)
+            //        ReturnArray(Icc.ContextID, ptr);
+            //    //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
+            //}
         }
     }
 

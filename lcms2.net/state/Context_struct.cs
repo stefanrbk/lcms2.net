@@ -33,7 +33,7 @@ namespace lcms2.state;
 [DebuggerStepThrough]
 public class Context
 {
-    private readonly List<object> BufferPools = new();
+    //private readonly List<object> BufferPools = new();
     //internal MemPluginChunkType DefaultMemoryManager;
     internal object? UserData;
     internal LogErrorChunkType ErrorLogger;
@@ -52,24 +52,24 @@ public class Context
     internal MutexPluginChunkType MutexPlugin;
     internal ParallelizationPluginChunkType ParallelizationPlugin;
 
-    public ArrayPool<T> GetBufferPool<T>()
-    {
-        lock (BufferPools)
-        {
-            foreach (var pool in BufferPools)
-            {
-                if (pool is ArrayPool<T> foundPool)
-                    return foundPool;
-            }
+    //public ArrayPool<T> GetBufferPool<T>()
+    //{
+    //    lock (BufferPools)
+    //    {
+    //        foreach (var pool in BufferPools)
+    //        {
+    //            if (pool is ArrayPool<T> foundPool)
+    //                return foundPool;
+    //        }
 
-            var newPool = ArrayPool<T>.Create();
+    //        var newPool = ArrayPool<T>.Create();
 
-            BufferPools.Add(newPool);
+    //        BufferPools.Add(newPool);
 
-            return newPool;
-        }
-    }
+    //        return newPool;
+    //    }
+    //}
 
-    public static ArrayPool<T> GetPool<T>(Context? context) =>
-        _cmsGetContext(context).GetBufferPool<T>();
+    //public static ArrayPool<T> GetPool<T>(Context? context) =>
+    //    _cmsGetContext(context).GetBufferPool<T>();
 }

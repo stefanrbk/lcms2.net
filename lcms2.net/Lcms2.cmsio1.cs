@@ -157,7 +157,7 @@ public static partial class Lcms2
     {
         ToneCurve[]? LabCurves = null;
         var ContextID = cmsGetProfileContextID(Profile);
-        var pool = Context.GetPool<ToneCurve>(ContextID);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
 
         if (cmsReadTag(Profile, cmsSigGrayTRCTag) is not ToneCurve GrayTRC)
             return null;
@@ -165,7 +165,8 @@ public static partial class Lcms2
         var Lut = cmsPipelineAlloc(ContextID, 1, 3);
         if (Lut is null) goto Error;
 
-        LabCurves = pool.Rent(3);
+        //LabCurves = pool.Rent(3);
+        LabCurves = new ToneCurve[3];
         LabCurves[0] = GrayTRC;
 
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
@@ -197,12 +198,12 @@ public static partial class Lcms2
             }
         }
 
-        ReturnArray(pool, LabCurves);
+        //ReturnArray(pool, LabCurves);
         return Lut;
 
     Error:
-        if (LabCurves is not null)
-            ReturnArray(pool, LabCurves);
+        //if (LabCurves is not null)
+        //    ReturnArray(pool, LabCurves);
 
         cmsPipelineFree(Lut);
         return null;
@@ -215,10 +216,11 @@ public static partial class Lcms2
         double[]? MatArray = null;
 
         var ContextID = cmsGetProfileContextID(Profile);
-        var tcPool = Context.GetPool<ToneCurve>(ContextID);
-        var dPool = Context.GetPool<double>(ContextID);
+        //var tcPool = Context.GetPool<ToneCurve>(ContextID);
+        //var dPool = Context.GetPool<double>(ContextID);
 
-        ToneCurve[] Shapes = tcPool.Rent(3);
+        //ToneCurve[] Shapes = tcPool.Rent(3);
+        var Shapes = new ToneCurve[3];
 
         if (!ReadIccMatrixRGB2XYZ(out var Mat, Profile))
             goto Error;
@@ -245,7 +247,7 @@ public static partial class Lcms2
         if (Lut is null)
             goto Error;
 
-        MatArray = Mat.Value.AsArray(dPool);
+        MatArray = Mat.Value.AsArray(/*dPool*/);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, Shapes)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, MatArray, null)))
         {
@@ -261,15 +263,15 @@ public static partial class Lcms2
             goto Error;
         }
 
-        ReturnArray(tcPool, Shapes);
-        ReturnArray(dPool, MatArray);
+        //ReturnArray(tcPool, Shapes);
+        //ReturnArray(dPool, MatArray);
         return Lut;
 
     Error:
-        if (Shapes is not null)
-            ReturnArray(tcPool, Shapes);
-        if (MatArray is not null)
-            ReturnArray(dPool, MatArray);
+        //if (Shapes is not null)
+        //    ReturnArray(tcPool, Shapes);
+        //if (MatArray is not null)
+        //    ReturnArray(dPool, MatArray);
         cmsPipelineFree(Lut);
         return null;
     }
@@ -418,8 +420,9 @@ public static partial class Lcms2
         var Lut = cmsPipelineAlloc(ContextID, 3, 1);
         if (Lut is null) goto Error1;
 
-        var pool = Context.GetPool<ToneCurve>(ContextID);
-        var rev = pool.Rent(1);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
+        //var rev = pool.Rent(1);
+        var rev = new ToneCurve[1];
 
         if ((uint)cmsGetPCS(Profile) is cmsSigLabData)
         {
@@ -435,12 +438,12 @@ public static partial class Lcms2
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 1, rev)))
             goto Error2;
 
-        ReturnArray(pool, rev);
+        //ReturnArray(pool, rev);
         cmsFreeToneCurve(RevGrayTRC);
         return Lut;
 
     Error2:
-        ReturnArray(pool, rev);
+        //ReturnArray(pool, rev);
         cmsPipelineFree(Lut);
     Error1:
         cmsFreeToneCurve(RevGrayTRC);
@@ -507,15 +510,15 @@ public static partial class Lcms2
                 goto Error2;
         }
 
-        var pool = _cmsGetContext(Lut.ContextID).GetBufferPool<double>();
-        var InvArray = Inv.AsArray(pool);
+        //var pool = _cmsGetContext(Lut.ContextID).GetBufferPool<double>();
+        var InvArray = Inv.AsArray(/*pool*/);
         if (!cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocMatrix(ContextID, 3, 3, InvArray, null)) ||
             !cmsPipelineInsertStage(Lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, 3, InvShapesTriple)))
         {
-            ReturnArray(pool, InvArray);
+            //ReturnArray(pool, InvArray);
             goto Error2;
         }
-        ReturnArray(pool, InvArray);
+        //ReturnArray(pool, InvArray);
 
         cmsFreeToneCurveTriple(InvShapesTriple);
         return Lut;
@@ -886,7 +889,7 @@ public static partial class Lcms2
         return true;
     }
 
-    private static Mlu? GetMLUFromProfile(Profile h, Signature sig) => 
+    private static Mlu? GetMLUFromProfile(Profile h, Signature sig) =>
         (cmsReadTag(h, sig) is Mlu mlu)
             ? cmsMLUdup(mlu)
             : null;

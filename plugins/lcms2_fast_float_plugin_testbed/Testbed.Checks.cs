@@ -1360,6 +1360,12 @@ internal static partial class Testbed
 #if DEBUG
             var timer = Stopwatch.StartNew();
 #endif
+            //var ctx = cmsCreateContext(cmsFastFloatExtensions());
+            //cmsSetLogErrorHandlerTHR(ctx, BuildNullLogger());
+
+            //var hsRGB = cmsCreate_sRGBProfileTHR(ctx)!;
+
+            //var xform = cmsCreateTransformTHR(ctx, hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
             cmsSetLogErrorHandler(BuildNullLogger());
 
             var hsRGB = cmsCreate_sRGBProfile()!;
@@ -1369,11 +1375,10 @@ internal static partial class Testbed
 
             if (xform is not null)
             {
-                cmsSetLogErrorHandler(BuildDebugLogger());
                 Fail("Copy alpha with mismatched channels should not succeed");
             }
 
-            cmsSetLogErrorHandler(BuildDebugLogger());
+            //cmsDeleteContext(ctx);
             trace("Passed");
 #if DEBUG
             timer.Stop();
@@ -1392,8 +1397,8 @@ internal static partial class Testbed
             using (logger.BeginScope("Part 1"))
                 TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, false);
 
-            //    using (logger.BeginScope("Part 2"))
-            //        TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
+            using (logger.BeginScope("Part 2"))
+                TryAllValuesFloatAlpha(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL, true);
         }
 
         using (logger.BeginScope("Crash (II) test"))

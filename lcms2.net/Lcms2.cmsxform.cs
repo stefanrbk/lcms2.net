@@ -148,8 +148,8 @@ public static partial class Lcms2
     {
         _cmsAssert(p);
 
-        ReturnArray(p.ContextID, p.Cache.CacheIn);
-        ReturnArray(p.ContextID, p.Cache.CacheOut);
+        //ReturnArray(p.ContextID, p.Cache.CacheIn);
+        //ReturnArray(p.ContextID, p.Cache.CacheOut);
 
         cmsPipelineFree(p.GamutCheck);
 
@@ -412,9 +412,11 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<float>(p.ContextID);
-        float[] fIn = pool.Rent(cmsMAXCHANNELS);
-        float[] fOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<float>(p.ContextID);
+        //float[] fIn = pool.Rent(cmsMAXCHANNELS);
+        //float[] fOut = pool.Rent(cmsMAXCHANNELS);
+        var fIn = new float[cmsMAXCHANNELS];
+        var fOut = new float[cmsMAXCHANNELS];
         Span<float> OutOfGamut = stackalloc float[1];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
@@ -467,8 +469,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, fIn);
-        ReturnArray(pool, fOut);
+        //ReturnArray(pool, fIn);
+        //ReturnArray(pool, fOut);
     }
 
     private static void NullFloatXFORM(
@@ -479,8 +481,9 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<float>(p.ContextID);
-        var fIn = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<float>(p.ContextID);
+        //var fIn = pool.Rent(cmsMAXCHANNELS);
+        var fIn = new float[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
@@ -503,7 +506,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, fIn);
+        //ReturnArray(pool, fIn);
     }
 
     private static void NullXFORM(
@@ -514,8 +517,8 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
@@ -538,7 +541,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
+        //ReturnArray(pool, wIn);
     }
 
     private static void PrecalculatedXFORM(
@@ -549,9 +552,9 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
@@ -578,8 +581,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
     }
 
     private static void TransformOnePixelWithGamutCheck(Transform p, ReadOnlySpan<ushort> wIn, Span<ushort> wOut)
@@ -608,9 +611,9 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
@@ -635,8 +638,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
     }
 
     private static void CachedXFORM(
@@ -647,13 +650,13 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
         Cache Cache = new()
         {
-            CacheIn = pool.Rent(cmsMAXCHANNELS),
-            CacheOut = pool.Rent(cmsMAXCHANNELS)
+            CacheIn = new ushort[cmsMAXCHANNELS],
+            CacheOut = new ushort[cmsMAXCHANNELS]
         };
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
@@ -697,10 +700,10 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
-        ReturnArray(pool, Cache.CacheIn);
-        ReturnArray(pool, Cache.CacheOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
+        //ReturnArray(pool, Cache.CacheIn);
+        //ReturnArray(pool, Cache.CacheOut);
     }
 
     private static void CachedXFORMGamutCheck(
@@ -711,13 +714,13 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
         Cache Cache = new()
         {
-            CacheIn = pool.Rent(cmsMAXCHANNELS),
-            CacheOut = pool.Rent(cmsMAXCHANNELS)
+            CacheIn = new ushort[cmsMAXCHANNELS],
+            CacheOut = new ushort[cmsMAXCHANNELS]
         };
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
@@ -761,10 +764,10 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
-        ReturnArray(pool, Cache.CacheIn);
-        ReturnArray(pool, Cache.CacheOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
+        //ReturnArray(pool, Cache.CacheIn);
+        //ReturnArray(pool, Cache.CacheOut);
     }
 
     internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>
@@ -868,7 +871,7 @@ public static partial class Lcms2
         ref uint dwFlags)
     {
         var ctx = _cmsGetContext(ContextID).TransformPlugin;
-        var pool = Context.GetPool<ushort>(ContextID);
+        //var pool = Context.GetPool<ushort>(ContextID);
 
         // Allocate needed memory
         //var p = _cmsMallocZero<Transform>(ContextID);
@@ -882,8 +885,8 @@ public static partial class Lcms2
         //p.Lut = lut;
 
         var p = new Transform() { Lut = lut };
-        p.Cache.CacheIn = pool.Rent(cmsMAXCHANNELS);
-        p.Cache.CacheOut = pool.Rent(cmsMAXCHANNELS);
+        p.Cache.CacheIn = new ushort[cmsMAXCHANNELS];
+        p.Cache.CacheOut = new ushort[cmsMAXCHANNELS];
 
         // Let's see if any plug-in wants to do the transform by itself
         if (p.Lut is not null)

@@ -86,7 +86,7 @@ public static partial class Lcms2
         }
 
         sp.alpha = _cmsAtan2(a, b);
-        sp.theta = _cmsAtan2(Sqrt(a*a + b*b), L);
+        sp.theta = _cmsAtan2(Sqrt(a * a + b * b), L);
 
         return sp;
     }
@@ -170,7 +170,7 @@ public static partial class Lcms2
                 tN = e;
                 tD = c;
             }
-            else if(sN > sD)    // sc > 1 => the s=1 edge is visible
+            else if (sN > sD)    // sc > 1 => the s=1 edge is visible
             {
                 sN = sD;
                 tN = e + b;
@@ -222,11 +222,12 @@ public static partial class Lcms2
     {
         //var gbd = _cmsMallocZero<GBD>(ContextID);
         //if (gbd is null) return null;
-        var pool = Context.GetPool<GBDPoint>(ContextID);
+        //var pool = Context.GetPool<GBDPoint>(ContextID);
         var gbd = new GBD
         {
             ContextID = ContextID,
-            Gamut = pool.Rent(SECTORS * SECTORS)
+            //Gamut = pool.Rent(SECTORS * SECTORS)
+            Gamut = new GBDPoint[SECTORS * SECTORS]
         };
         //gbd.Gamut = _cmsCalloc<GBDPoint>(gbd->ContextID, SECTORS * SECTORS);
         //if (gbd.Gamut is null)
@@ -240,12 +241,12 @@ public static partial class Lcms2
 
     public static void cmsGBDFree(GBD? gbd)
     {
-        if (gbd is not null)
-        {
-            if (gbd.Gamut is null)
-                ReturnArray(gbd.ContextID, gbd.Gamut);
-            //_cmsFree(gbd.ContextID, hGBD);
-        }
+        //if (gbd is not null)
+        //{
+        //    if (gbd.Gamut is null)
+        //        ReturnArray(gbd.ContextID, gbd.Gamut);
+        //    //_cmsFree(gbd.ContextID, hGBD);
+        //}
     }
 
     private static ref GBDPoint GetPoint(GBD gbd, CIELab Lab, out Spherical sp)
@@ -271,7 +272,7 @@ public static partial class Lcms2
         // On which sector it falls?
         QuantizeToSector(sp, out var alpha, out var theta);
 
-        if (alpha is < 0 or >= SECTORS || theta is <0 or >= SECTORS)
+        if (alpha is < 0 or >= SECTORS || theta is < 0 or >= SECTORS)
         {
             cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "quadrant out of range");
             //return null;
@@ -398,10 +399,10 @@ public static partial class Lcms2
                 var templ = ToSpherical(temp);
 
                 if (templ.r > closel.r &&
-                    templ.theta >= (theta*180.0/SECTORS) &&
-                    templ.theta <= ((theta+1)*180.0/SECTORS) &&
-                    templ.alpha >= (alpha*360.0/SECTORS) &&
-                    templ.alpha <= ((alpha+1)*360.0/SECTORS))
+                    templ.theta >= (theta * 180.0 / SECTORS) &&
+                    templ.theta <= ((theta + 1) * 180.0 / SECTORS) &&
+                    templ.alpha >= (alpha * 360.0 / SECTORS) &&
+                    templ.alpha <= ((alpha + 1) * 360.0 / SECTORS))
                 {
                     closel = templ;
                 }

@@ -130,7 +130,7 @@ public unsafe static partial class FastFloat
 
         // Only works on RGB to RGB and gray to gray
         if (!((T_CHANNELS(InputFormat) is 3 && T_CHANNELS(OutputFormat) is 3) ||
-              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1) ))
+              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1)))
         {
             return false;
         }
@@ -268,39 +268,49 @@ file class XMatShaper8Data : IDisposable
     {
         ContextID = context;
 
-        var ipool = Context.GetPool<S1Fixed14Number>(context);
-        var bpool = Context.GetPool<byte>(context);
+        //var ipool = Context.GetPool<S1Fixed14Number>(context);
+        //var bpool = Context.GetPool<byte>(context);
 
-        _mat = ipool.Rent(16);
+        //_mat = ipool.Rent(16);
 
-        _shaper1R = ipool.Rent(256);
-        _shaper1G = ipool.Rent(256);
-        _shaper1B = ipool.Rent(256);
+        //_shaper1R = ipool.Rent(256);
+        //_shaper1G = ipool.Rent(256);
+        //_shaper1B = ipool.Rent(256);
 
-        _shaper2R = bpool.Rent(0x4001);
-        _shaper2G = bpool.Rent(0x4001);
-        _shaper2B = bpool.Rent(0x4001);
+        //_shaper2R = bpool.Rent(0x4001);
+        //_shaper2G = bpool.Rent(0x4001);
+        //_shaper2B = bpool.Rent(0x4001);
+
+        _mat = new S1Fixed14Number[16];
+
+        _shaper1R = new S1Fixed14Number[256];
+        _shaper1G = new S1Fixed14Number[256];
+        _shaper1B = new S1Fixed14Number[256];
+
+        _shaper2R = new byte[0x4001];
+        _shaper2G = new byte[0x4001];
+        _shaper2B = new byte[0x4001];
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var ipool = Context.GetPool<S1Fixed14Number>(ContextID);
-                var bpool = Context.GetPool<byte>(ContextID);
+            //if (disposing)
+            //{
+            //    var ipool = Context.GetPool<S1Fixed14Number>(ContextID);
+            //    var bpool = Context.GetPool<byte>(ContextID);
 
-                ipool.Return(_mat);
+            //    ipool.Return(_mat);
 
-                ipool.Return(_shaper1R);
-                ipool.Return(_shaper1G);
-                ipool.Return(_shaper1B);
+            //    ipool.Return(_shaper1R);
+            //    ipool.Return(_shaper1G);
+            //    ipool.Return(_shaper1B);
 
-                bpool.Return(_shaper2R);
-                bpool.Return(_shaper2G);
-                bpool.Return(_shaper2B);
-            }
+            //    bpool.Return(_shaper2R);
+            //    bpool.Return(_shaper2G);
+            //    bpool.Return(_shaper2B);
+            //}
             disposedValue = true;
         }
     }

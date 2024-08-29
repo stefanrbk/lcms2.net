@@ -32,10 +32,13 @@ public class SoftProofingTests
         cmsCloseProfile(hRGB2);
 
         uint nPixels = 256 * 256 * 4;
-
-        var In = (Scanline_rgbFloat[])oIn;
+        var rawIn = (float[][])oIn;
+        var In = new Scanline_rgbFloat[nPixels];
         var Out1 = new Scanline_rgbFloat[nPixels];
         var Out2 = new Scanline_rgbFloat[nPixels];
+
+        for (var j = 0; j < nPixels; j++)
+            In[j] = new(rawIn[j][0], rawIn[j][1], rawIn[j][2]);
 
         cmsDoTransform(xformNoPlugin, In, Out1, nPixels);
         cmsDoTransform(xformPlugin, In, Out2, nPixels);
@@ -46,9 +49,9 @@ public class SoftProofingTests
             {
                 Assert.Multiple(() =>
                 {
-                    Assert.That(ValidFloat(Out2[j].r, Out1[j].r));
-                    Assert.That(ValidFloat(Out2[j].g, Out1[j].g));
-                    Assert.That(ValidFloat(Out2[j].b, Out1[j].b));
+                    Assert.That(Out2[j].r, Is.EqualTo(Out1[j].r).Within(EPSILON_FLOAT_TESTS));
+                    Assert.That(Out2[j].g, Is.EqualTo(Out1[j].g).Within(EPSILON_FLOAT_TESTS));
+                    Assert.That(Out2[j].b, Is.EqualTo(Out1[j].b).Within(EPSILON_FLOAT_TESTS));
                 });
             }
         });
@@ -57,19 +60,16 @@ public class SoftProofingTests
         cmsDeleteTransform(xformPlugin);
     }
 
-    private static bool ValidFloat(float a, float b) =>
-        MathF.Abs(a - b) < EPSILON_FLOAT_TESTS;
-
     internal static IEnumerable<object> TestSoftProofingTransformParityCaseGenerator()
     {
         var rand = TestContext.CurrentContext.Random;
 
-        var values = new Scanline_rgbFloat[256 * 256 * 4];
+        var values = new float[256 * 256 * 4][];
 
         for (var i = 0; i < 16; i++)
         {
             for (var j = 0; j < values.Length; j++)
-                values[j] = new(rand.NextFloat(), rand.NextFloat(), rand.NextFloat());
+                values[j] = [rand.Next(0, 255) / 255f, rand.Next(0, 255) / 255f, rand.Next(0, 255) / 255f];
             yield return values;
         }
 
@@ -78,7 +78,7 @@ public class SoftProofingTests
         for (var i = 0; i < 16; i++)
         {
             for (var j = 0; j < values.Length; j++)
-                values[j] = new(rand.NextFloat(), rand.NextFloat(), rand.NextFloat());
+                values[j] = [rand.Next(0, 255) / 255f, rand.Next(0, 255) / 255f, rand.Next(0, 255) / 255f];
             yield return values;
         }
     }

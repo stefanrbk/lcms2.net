@@ -126,7 +126,7 @@ public unsafe static partial class FastFloat
 
         // Only works on RGB to RGB and gray to gray
         if (!((T_CHANNELS(InputFormat) is 3 && T_CHANNELS(OutputFormat) is 3) ||
-              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1) ))
+              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1)))
         {
             return false;
         }
@@ -270,39 +270,50 @@ file class VXMatShaperFloatData : IDisposable
     {
         ContextID = context;
 
-        var pool = Context.GetPool<float>(context);
+        //var pool = Context.GetPool<float>(context);
 
-        _mat = pool.Rent(9);
-        _off = pool.Rent(3);
+        //_mat = pool.Rent(9);
+        //_off = pool.Rent(3);
 
-        _shaper1R = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper1G = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper1B = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper1R = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper1G = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper1B = pool.Rent(MAX_NODES_IN_CURVE);
 
-        _shaper2R = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper2G = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper2B = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper2R = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper2G = pool.Rent(MAX_NODES_IN_CURVE);
+        //_shaper2B = pool.Rent(MAX_NODES_IN_CURVE);
+
+        _mat = new float[9];
+        _off = new float[3];
+
+        _shaper1R = new float[MAX_NODES_IN_CURVE];
+        _shaper1G = new float[MAX_NODES_IN_CURVE];
+        _shaper1B = new float[MAX_NODES_IN_CURVE];
+
+        _shaper2R = new float[MAX_NODES_IN_CURVE];
+        _shaper2G = new float[MAX_NODES_IN_CURVE];
+        _shaper2B = new float[MAX_NODES_IN_CURVE];
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var pool = Context.GetPool<float>(ContextID);
+            //if (disposing)
+            //{
+            //    var pool = Context.GetPool<float>(ContextID);
 
-                pool.Return(_mat);
-                pool.Return(_off);
+            //    pool.Return(_mat);
+            //    pool.Return(_off);
 
-                pool.Return(_shaper1R);
-                pool.Return(_shaper1G);
-                pool.Return(_shaper1B);
+            //    pool.Return(_shaper1R);
+            //    pool.Return(_shaper1G);
+            //    pool.Return(_shaper1B);
 
-                pool.Return(_shaper2R);
-                pool.Return(_shaper2G);
-                pool.Return(_shaper2B);
-            }
+            //    pool.Return(_shaper2R);
+            //    pool.Return(_shaper2G);
+            //    pool.Return(_shaper2B);
+            //}
             disposedValue = true;
         }
     }

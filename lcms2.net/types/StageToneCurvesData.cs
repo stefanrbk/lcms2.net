@@ -35,17 +35,18 @@ public class StageToneCurvesData(Context? context, uint numCurves) : IDisposable
 {
     private readonly Context? ctx = context;
     public uint nCurves = numCurves;
-    public ToneCurve[] TheCurves = Context.GetPool<ToneCurve>(context).Rent((int)numCurves);
+    //public ToneCurve[] TheCurves = Context.GetPool<ToneCurve>(context).Rent((int)numCurves);
+    public ToneCurve[] TheCurves = new ToneCurve[numCurves];
     private bool disposedValue;
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                ReturnArray(ctx, TheCurves); TheCurves = null!;
-            }
+            //if (disposing)
+            //{
+            //    ReturnArray(ctx, TheCurves); TheCurves = null!;
+            //}
 
             disposedValue = true;
         }

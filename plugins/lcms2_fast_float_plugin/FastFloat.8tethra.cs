@@ -112,7 +112,7 @@ public static partial class FastFloat
                     var Z1 = Z0 + ((rz is 0) ? 0 : (int)p.opta[0]);
 
                     // These are the 6 Tetrahedral
-                    for (var OutChan = 0; OutChan < TotalOut;  OutChan++)
+                    for (var OutChan = 0; OutChan < TotalOut; OutChan++)
                     {
                         [DebuggerStepThrough]
                         int DENS(int i, int j, int k, Span<ushort> table)
@@ -278,30 +278,36 @@ public static partial class FastFloat
         var ContextID = cmsGetPipelineContextID(OriginalLut);
         var nGridPoints = _cmsReasonableGridpointsByColorspace(cmsSigRgbData, dwFlags);
 
-        var tcPool = Context.GetPool<ToneCurve>(ContextID);
-        var uaPool = Context.GetPool<ushort[]>(ContextID);
-        var usPool = Context.GetPool<ushort>(ContextID);
+        //var tcPool = Context.GetPool<ToneCurve>(ContextID);
+        //var uaPool = Context.GetPool<ushort[]>(ContextID);
+        //var usPool = Context.GetPool<ushort>(ContextID);
 
-        var TransArray = tcPool.Rent(cmsMAXCHANNELS);
+        //var TransArray = tcPool.Rent(cmsMAXCHANNELS);
+        var TransArray = new ToneCurve[cmsMAXCHANNELS];
         var Trans = TransArray.AsSpan(..cmsMAXCHANNELS);
 
-        var TransReverseArray = tcPool.Rent(cmsMAXCHANNELS);
+        //var TransReverseArray = tcPool.Rent(cmsMAXCHANNELS);
+        var TransReverseArray = new ToneCurve[cmsMAXCHANNELS];
         var TransReverse = TransReverseArray.AsSpan(..cmsMAXCHANNELS);
 
-        var MyTableArray = uaPool.Rent(3);
+        //var MyTableArray = uaPool.Rent(3);
+        var MyTableArray = new ushort[3][];
         var MyTable = MyTableArray.AsSpan(..3);
 
         // Empty gamma containers
-        Trans.Clear();
-        TransReverse.Clear();
+        //Trans.Clear();
+        //TransReverse.Clear();
 
-        MyTable[0] = usPool.Rent(PRELINEARIZATION_POINTS);
-        MyTable[1] = usPool.Rent(PRELINEARIZATION_POINTS);
-        MyTable[2] = usPool.Rent(PRELINEARIZATION_POINTS);
+        //MyTable[0] = usPool.Rent(PRELINEARIZATION_POINTS);
+        //MyTable[1] = usPool.Rent(PRELINEARIZATION_POINTS);
+        //MyTable[2] = usPool.Rent(PRELINEARIZATION_POINTS);
+        MyTable[0] = new ushort[PRELINEARIZATION_POINTS];
+        MyTable[1] = new ushort[PRELINEARIZATION_POINTS];
+        MyTable[2] = new ushort[PRELINEARIZATION_POINTS];
 
-        Array.Clear(MyTable[0]);
-        Array.Clear(MyTable[1]);
-        Array.Clear(MyTable[2]);
+        //Array.Clear(MyTable[0]);
+        //Array.Clear(MyTable[1]);
+        //Array.Clear(MyTable[2]);
 
         // Populate the curves
 
@@ -328,7 +334,7 @@ public static partial class FastFloat
             Trans[t] = cmsBuildTabulatedToneCurve16(ContextID, PRELINEARIZATION_POINTS, MyTable[t])!;
             if (Trans[t] is null) goto Error;
 
-            usPool.Return(MyTable[t]);
+            //usPool.Return(MyTable[t]);
             MyTable[t] = null!;
         }
 
@@ -423,7 +429,7 @@ public static partial class FastFloat
 
                 if (MyTableArray[t] is not null)
                 {
-                    usPool.Return(MyTableArray[t]);
+                    //usPool.Return(MyTableArray[t]);
                     MyTableArray[t] = null!;
                 }
             }
@@ -431,9 +437,9 @@ public static partial class FastFloat
             if (LutPlusCurves is not null)
                 cmsPipelineFree(LutPlusCurves);
 
-            uaPool.Return(MyTableArray);
-            tcPool.Return(TransArray);
-            tcPool.Return(TransReverseArray);
+            //uaPool.Return(MyTableArray);
+            //tcPool.Return(TransArray);
+            //tcPool.Return(TransReverseArray);
         }
     }
 }
@@ -466,35 +472,44 @@ file class Performance8Data : IDisposable
         ContextID = context;
         this.p = p;
 
-        var ipool = Context.GetPool<uint>(context);
-        var spool = Context.GetPool<ushort>(context);
+        //var ipool = Context.GetPool<uint>(context);
+        //var spool = Context.GetPool<ushort>(context);
 
-        _rx = spool.Rent(256);
-        _ry = spool.Rent(256);
-        _rz = spool.Rent(256);
+        //_rx = spool.Rent(256);
+        //_ry = spool.Rent(256);
+        //_rz = spool.Rent(256);
 
-        _X0 = ipool.Rent(0x4001);
-        _Y0 = ipool.Rent(0x4001);
-        _Z0 = ipool.Rent(0x4001);
+        //_X0 = ipool.Rent(0x4001);
+        //_Y0 = ipool.Rent(0x4001);
+        //_Z0 = ipool.Rent(0x4001);
+
+        _rx = new ushort[256];
+        _ry = new ushort[256];
+        _rz = new ushort[256];
+
+        _X0 = new uint[0x4001];
+        _Y0 = new uint[0x4001];
+        _Z0 = new uint[0x4001];
+
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var ipool = Context.GetPool<uint>(ContextID);
-                var spool = Context.GetPool<ushort>(ContextID);
+            //if (disposing)
+            //{
+            //    var ipool = Context.GetPool<uint>(ContextID);
+            //    var spool = Context.GetPool<ushort>(ContextID);
 
-                spool.Return(_rx);
-                spool.Return(_ry);
-                spool.Return(_rz);
+            //    spool.Return(_rx);
+            //    spool.Return(_ry);
+            //    spool.Return(_rz);
 
-                ipool.Return(_X0);
-                ipool.Return(_Y0);
-                ipool.Return(_Z0);
-            }
+            //    ipool.Return(_X0);
+            //    ipool.Return(_Y0);
+            //    ipool.Return(_Z0);
+            //}
             disposedValue = true;
         }
     }

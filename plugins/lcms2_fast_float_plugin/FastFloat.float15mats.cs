@@ -208,11 +208,14 @@ public static partial class FastFloat
 //file
 public class XMatShaperData(Context? context) : IDisposable
 {
-    private readonly S1Fixed15Number[] _mat = Context.GetPool<S1Fixed15Number>(context).Rent(9);
-    private readonly S1Fixed15Number[] _off = Context.GetPool<S1Fixed15Number>(context).Rent(3);
-    private readonly ushort[] _shapers = Context.GetPool<ushort>(context).Rent(MAX_NODES_IN_CURVE * 6);
+    //private readonly S1Fixed15Number[] _mat = Context.GetPool<S1Fixed15Number>(context).Rent(9);
+    //private readonly S1Fixed15Number[] _off = Context.GetPool<S1Fixed15Number>(context).Rent(3);
+    //private readonly ushort[] _shapers = Context.GetPool<ushort>(context).Rent(MAX_NODES_IN_CURVE * 6);
+    private readonly S1Fixed15Number[] _mat = new S1Fixed15Number[9];
+    private readonly S1Fixed15Number[] _off = new S1Fixed15Number[3];
+    private readonly ushort[] _shapers = new ushort[MAX_NODES_IN_CURVE * 6];
     public Span<S1Fixed15Number> Mat => _mat.AsSpan(..9);
-    public Span<S1Fixed15Number> Off => _off.AsSpan(..9);
+    public Span<S1Fixed15Number> Off => _off.AsSpan(..3);
 
     public Span<ushort> Shaper1R => _shapers.AsSpan(..MAX_NODES_IN_CURVE);
     public Span<ushort> Shaper1G => _shapers.AsSpan(MAX_NODES_IN_CURVE..(MAX_NODES_IN_CURVE * 2));
@@ -231,15 +234,15 @@ public class XMatShaperData(Context? context) : IDisposable
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var pool = Context.GetPool<S1Fixed15Number>(ContextID);
+            //if (disposing)
+            //{
+            //    var pool = Context.GetPool<S1Fixed15Number>(ContextID);
 
-                pool.Return(_mat);
-                pool.Return(_off);
+            //    pool.Return(_mat);
+            //    pool.Return(_off);
 
-                Context.GetPool<ushort>(ContextID).Return(_shapers);
-            }
+            //    Context.GetPool<ushort>(ContextID).Return(_shapers);
+            //}
 
             disposedValue = true;
         }

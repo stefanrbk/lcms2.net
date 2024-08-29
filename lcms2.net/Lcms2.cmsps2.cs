@@ -321,11 +321,15 @@ public static partial class Lcms2
             FixWhite = fixWhite;
             ColorSpace = colorSpace;
 
-            var pool = Context.GetPool<byte>(m.ContextID);
-            this.preMaj = pool.Rent(preMaj.Length);
-            this.postMaj = pool.Rent(postMaj.Length);
-            this.preMin = pool.Rent(preMin.Length);
-            this.postMin = pool.Rent(postMin.Length);
+            //var pool = Context.GetPool<byte>(m.ContextID);
+            //this.preMaj = pool.Rent(preMaj.Length);
+            //this.postMaj = pool.Rent(postMaj.Length);
+            //this.preMin = pool.Rent(preMin.Length);
+            //this.postMin = pool.Rent(postMin.Length);
+            this.preMaj = new byte[preMaj.Length];
+            this.postMaj = new byte[postMaj.Length];
+            this.preMin = new byte[preMin.Length];
+            this.postMin = new byte[postMin.Length];
 
             preMaj.CopyTo(this.preMaj);
             postMaj.CopyTo(this.postMaj);
@@ -894,8 +898,9 @@ public static partial class Lcms2
             return false;
         }
 
-        var pool = Context.GetPool<byte>(NamedColorList.ContextID);
-        var ColorName = pool.Rent(cmsMAX_PATH);
+        //var pool = Context.GetPool<byte>(NamedColorList.ContextID);
+        //var ColorName = pool.Rent(cmsMAX_PATH);
+        var ColorName = new byte[cmsMAX_PATH];
 
         _cmsIOPrintf(m, "<<\n");
         _cmsIOPrintf(m, "(colorlistcomment) (Named color CSA)\n");

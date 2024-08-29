@@ -143,11 +143,11 @@ public static partial class Lcms2
         uint nSegments, ReadOnlySpan<CurveSegment> Segments,
         ReadOnlySpan<ushort> Values)
     {
-        var csPool = Context.GetPool<CurveSegment>(ContextID);
-        var ipPool = Context.GetPool<InterpParams<float>>(ContextID);
-        var pcePool = Context.GetPool<ParametricCurveEvaluator>(ContextID);
-        var dPool = Context.GetPool<double>(ContextID);
-        var fPool = Context.GetPool<float>(ContextID);
+        //var csPool = Context.GetPool<CurveSegment>(ContextID);
+        //var ipPool = Context.GetPool<InterpParams<float>>(ContextID);
+        //var pcePool = Context.GetPool<ParametricCurveEvaluator>(ContextID);
+        //var dPool = Context.GetPool<double>(ContextID);
+        //var fPool = Context.GetPool<float>(ContextID);
 
         // We allow huge tables, which are then restricted for smoothing operations
         if (nEntries > 65530)
@@ -177,13 +177,15 @@ public static partial class Lcms2
         {
             //p->Segments = _cmsCalloc<CurveSegment>(ContextID, nSegments);
             //if (p->Segments is null) goto Error;
-            p.Segments = csPool.Rent((int)nSegments);
-            Array.Clear(p.Segments);
+            //p.Segments = csPool.Rent((int)nSegments);
+            //Array.Clear(p.Segments);
+            p.Segments = new CurveSegment[nSegments];
 
             //p.Evals = (ParametricCurveEvaluator*)_cmsCalloc<nint>(ContextID, nSegments);
             //if (p.Evals is null) goto Error;
-            p.Evals = pcePool.Rent((int)nSegments);
-            Array.Clear(p.Evals);
+            //p.Evals = pcePool.Rent((int)nSegments);
+            //Array.Clear(p.Evals);
+            p.Evals = new ParametricCurveEvaluator[nSegments];
         }
 
         p.nSegments = nSegments;
@@ -198,8 +200,9 @@ public static partial class Lcms2
         {
             //p->Table16 = _cmsCalloc<ushort>(ContextID, nEntries);
             //if (p->Table16 is null) goto Error;
-            p.Table16 = Context.GetPool<ushort>(ContextID).Rent((int)nEntries);
-            Array.Clear(p.Table16);
+            //p.Table16 = Context.GetPool<ushort>(ContextID).Rent((int)nEntries);
+            //Array.Clear(p.Table16);
+            p.Table16 = new ushort[nEntries];
         }
 
         p.nEntries = nEntries;
@@ -209,7 +212,7 @@ public static partial class Lcms2
         {
             for (var i = 0; i < nEntries; i++)
             {
-                p.Table16[i] = Values[i];
+                p.Table16![i] = Values[i];
             }
         }
 
@@ -218,8 +221,9 @@ public static partial class Lcms2
         if (!Segments.IsEmpty && (nSegments > 0))
         {
             //p->SegInterp = _cmsCalloc2<InterpParams>(ContextID, nSegments);
-            p.SegInterp = ipPool.Rent((int)nSegments);
-            Array.Clear(p.SegInterp);
+            //p.SegInterp = ipPool.Rent((int)nSegments);
+            //Array.Clear(p.SegInterp);
+            p.SegInterp = new InterpParams<float>[nSegments];
 
             for (var i = 0; i < nSegments; i++)
             {
@@ -247,15 +251,15 @@ public static partial class Lcms2
         if (p.InterpParams is not null)
             return p;
 
-        for (var i = 0; i < nSegments; i++)
-        {
-            if (p.Segments is not null && p.Segments[i].SampledPoints is not null)
-                ReturnArray(ContextID, p.Segments[i].SampledPoints);
-        }
-        if (p.SegInterp is not null) ReturnArray(ipPool, p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
-        if (p.Segments is not null) ReturnArray(ContextID, p.Segments);
-        if (p.Evals is not null) ReturnArray(ContextID, p.Evals);
-        if (p.Table16 is not null) ReturnArray(ContextID, p.Table16);
+        //for (var i = 0; i < nSegments; i++)
+        //{
+        //    if (p.Segments is not null && p.Segments[i].SampledPoints is not null)
+        //        ReturnArray(ContextID, p.Segments[i].SampledPoints);
+        //}
+        //if (p.SegInterp is not null) ReturnArray(ipPool, p.SegInterp!); //_cmsFree(ContextID, p->SegInterp);
+        //if (p.Segments is not null) ReturnArray(ContextID, p.Segments);
+        //if (p.Evals is not null) ReturnArray(ContextID, p.Evals);
+        //if (p.Table16 is not null) ReturnArray(ContextID, p.Table16);
         //_cmsFree(ContextID, p);
         return null;
     }
@@ -704,9 +708,10 @@ public static partial class Lcms2
         if (nEntries is 0 || values is null)
             return null;
 
-        var pool = Context.GetPool<CurveSegment>(ContextID);
-        var dPool = Context.GetPool<double>(ContextID);
-        var Seg = pool.Rent(3);
+        //var pool = Context.GetPool<CurveSegment>(ContextID);
+        //var dPool = Context.GetPool<double>(ContextID);
+        //var Seg = pool.Rent(3);
+        var Seg = new CurveSegment[3];
 
         // A segmented tone curve should have function segments in the first and last positions
         // Initialize segmented curve part up to 0 to constant value = samples[0]
@@ -714,7 +719,8 @@ public static partial class Lcms2
         Seg[0].x1 = 0f;
         Seg[0].Type = 6;
 
-        Seg[0].Params = dPool.Rent(10);
+        //Seg[0].Params = dPool.Rent(10);
+        Seg[0].Params = new double[10];
         Seg[0].Params[0] = 1;
         Seg[0].Params[1] = 0;
         Seg[0].Params[2] = 0;
@@ -734,7 +740,8 @@ public static partial class Lcms2
         Seg[2].x1 = PLUS_INF;
         Seg[2].Type = 6;
 
-        Seg[2].Params = dPool.Rent(10);
+        //Seg[2].Params = dPool.Rent(10);
+        Seg[2].Params = new double[10];
         Seg[2].Params[0] = 1;
         Seg[2].Params[1] = 0;
         Seg[2].Params[2] = 0;
@@ -742,17 +749,18 @@ public static partial class Lcms2
         Seg[2].Params[4] = 0;
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 3, Seg);
-        ReturnArray(dPool, Seg[0].Params);
-        ReturnArray(dPool, Seg[2].Params);
-        ReturnArray(pool, Seg);
+        //ReturnArray(dPool, Seg[0].Params);
+        //ReturnArray(dPool, Seg[2].Params);
+        //ReturnArray(pool, Seg);
         return result;
     }
 
     public static ToneCurve? cmsBuildParametricToneCurve(Context? ContextID, int Type, ReadOnlySpan<double> Params)
     {
-        var pool = Context.GetPool<CurveSegment>(ContextID);
-        var dPool = Context.GetPool<double>(ContextID);
-        var Seg = pool.Rent(1);
+        //var pool = Context.GetPool<CurveSegment>(ContextID);
+        //var dPool = Context.GetPool<double>(ContextID);
+        //var Seg = pool.Rent(1);
+        var Seg = new CurveSegment[1];
         ref var Seg0 = ref Seg[0];
 
         var c = GetParametricCurveByType(ContextID, Type, out var Pos);
@@ -765,7 +773,8 @@ public static partial class Lcms2
             return null;
         }
 
-        Seg0.Params = dPool.Rent(10);
+        //Seg0.Params = dPool.Rent(10);
+        Seg0.Params = new double[10];
         Array.Clear(Seg0.Params);
         Seg0.x0 = MINUS_INF;
         Seg0.x1 = PLUS_INF;
@@ -775,8 +784,8 @@ public static partial class Lcms2
         memcpy(Seg0.Params, Params, size);
 
         var result = cmsBuildSegmentedToneCurve(ContextID, 1, Seg);
-        ReturnArray(dPool, Seg0.Params);
-        ReturnArray(pool, Seg);
+        //ReturnArray(dPool, Seg0.Params);
+        //ReturnArray(pool, Seg);
         return result;
     }
 
@@ -794,28 +803,28 @@ public static partial class Lcms2
 
         _cmsFreeInterpParams(Curve.InterpParams);
 
-        if (Curve.Table16 is not null)
-            ReturnArray(ContextID, Curve.Table16);
+        //if (Curve.Table16 is not null)
+        //    ReturnArray(ContextID, Curve.Table16);
 
         if (Curve.Segments is not null)
         {
             for (var i = 0; i < Curve.nSegments; i++)
             {
-                if (Curve.Segments[i].SampledPoints is not null)
-                    ReturnArray(ContextID, Curve.Segments[i].SampledPoints);
+                //if (Curve.Segments[i].SampledPoints is not null)
+                //    ReturnArray(ContextID, Curve.Segments[i].SampledPoints);
 
-                ReturnArray(ContextID, Curve.Segments[i].Params);
+                //ReturnArray(ContextID, Curve.Segments[i].Params);
 
                 if (Curve.SegInterp[i] is not null)
                     _cmsFreeInterpParams(Curve.SegInterp[i]);
             }
 
-            ReturnArray(ContextID, Curve.Segments);
-            ReturnArray(ContextID, Curve.SegInterp);
+            //ReturnArray(ContextID, Curve.Segments);
+            //ReturnArray(ContextID, Curve.SegInterp);
         }
 
-        if (Curve.Evals is not null)
-            ReturnArray(ContextID, Curve.Evals);
+        //if (Curve.Evals is not null)
+        //    ReturnArray(ContextID, Curve.Evals);
 
         //_cmsFree(ContextID, Curve);
     }
@@ -850,7 +859,8 @@ public static partial class Lcms2
 
         //Res = _cmsCalloc<float>(ContextID, nResultingPoints);
         //if (Res is null) goto Error;
-        Res = Context.GetPool<float>(ContextID).Rent((int)nResultingPoints);
+        //Res = Context.GetPool<float>(ContextID).Rent((int)nResultingPoints);
+        Res = new float[nResultingPoints];
 
         // Iterate
         for (var i = 0; i < nResultingPoints; i++)
@@ -864,7 +874,7 @@ public static partial class Lcms2
         @out = cmsBuildTabulatedToneCurveFloat(ContextID, nResultingPoints, Res);
 
     Error:
-        if (Res is not null) ReturnArray(ContextID, Res);
+        //if (Res is not null) ReturnArray(ContextID, Res);
         if (Yreversed is not null) cmsFreeToneCurve(Yreversed);
 
         return @out;
@@ -991,18 +1001,22 @@ public static partial class Lcms2
         //float* c, d, e;
         bool st;
 
-        var pool = Context.GetPool<float>(ContextID);
+        //var pool = Context.GetPool<float>(ContextID);
 
         //c = _cmsCalloc<float>(ContextID, maxNodesInCurve);
         //d = _cmsCalloc<float>(ContextID, maxNodesInCurve);
         //e = _cmsCalloc<float>(ContextID, maxNodesInCurve);
-        var c = pool.Rent(maxNodesInCurve);
-        var d = pool.Rent(maxNodesInCurve);
-        var e = pool.Rent(maxNodesInCurve);
+        //var c = pool.Rent(maxNodesInCurve);
+        //var d = pool.Rent(maxNodesInCurve);
+        //var e = pool.Rent(maxNodesInCurve);
 
-        Array.Clear(c);
-        Array.Clear(d);
-        Array.Clear(e);
+        //Array.Clear(c);
+        //Array.Clear(d);
+        //Array.Clear(e);
+
+        var c = new float[maxNodesInCurve];
+        var d = new float[maxNodesInCurve];
+        var e = new float[maxNodesInCurve];
 
         if (c is not null && d is not null && e is not null)
         {
@@ -1045,9 +1059,9 @@ public static partial class Lcms2
             st = false;
         }
 
-        if (c is not null) ReturnArray(ContextID, c);
-        if (d is not null) ReturnArray(ContextID, d);
-        if (e is not null) ReturnArray(ContextID, e);
+        //if (c is not null) ReturnArray(ContextID, c);
+        //if (d is not null) ReturnArray(ContextID, d);
+        //if (e is not null) ReturnArray(ContextID, e);
 
         return st;
     }
@@ -1066,7 +1080,7 @@ public static partial class Lcms2
 
         var ContextID = Tab.InterpParams.ContextID;
 
-        var pool = Context.GetPool<float>(ContextID);
+        //var pool = Context.GetPool<float>(ContextID);
 
         if (cmsIsToneCurveLinear(Tab)) // Only non-linear curves need smoothing
             return SuccessStatus;
@@ -1082,13 +1096,17 @@ public static partial class Lcms2
         //w = _cmsCalloc<float>(ContextID, nItems + 1);
         //y = _cmsCalloc<float>(ContextID, nItems + 1);
         //z = _cmsCalloc<float>(ContextID, nItems + 1);
-        var w = pool.Rent((int)nItems + 1);
-        var y = pool.Rent((int)nItems + 1);
-        var z = pool.Rent((int)nItems + 1);
+        //var w = pool.Rent((int)nItems + 1);
+        //var y = pool.Rent((int)nItems + 1);
+        //var z = pool.Rent((int)nItems + 1);
 
-        Array.Clear(w);
-        Array.Clear(y);
-        Array.Clear(z);
+        //Array.Clear(w);
+        //Array.Clear(y);
+        //Array.Clear(z);
+
+        var w = new float[nItems + 1];
+        var y = new float[nItems + 1];
+        var z = new float[nItems + 1];
 
         //if (w is null || y is null || z is null) // Ensure no memory allocation failure
         //{
@@ -1157,10 +1175,10 @@ public static partial class Lcms2
         }
 
     Done:
-        if (z is not null) ReturnArray(ContextID, z);
-        if (y is not null) ReturnArray(ContextID, y);
+        //if (z is not null) ReturnArray(ContextID, z);
+        //if (y is not null) ReturnArray(ContextID, y);
 
-        if (w is not null) ReturnArray(ContextID, w);
+        //if (w is not null) ReturnArray(ContextID, w);
 
         return SuccessStatus;
     }

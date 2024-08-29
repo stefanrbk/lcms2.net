@@ -78,7 +78,8 @@ public static partial class Lcms2
         // Reallocate the pool
         var NewPtr = (mlu.MemPool is not null)
             ? _cmsRealloc(mlu.ContextID, mlu.MemPool, size)
-            : GetArray<char>(mlu.ContextID, size);
+            //: GetArray<char>(mlu.ContextID, size);
+            : new char[size];
         if (NewPtr is null) return false;
 
         mlu.MemPool = NewPtr;
@@ -331,7 +332,8 @@ public static partial class Lcms2
         if (len is 0)
             len = 1;
 
-        var WStr = GetArray<char>(mlu.ContextID, (uint)len + 1);
+        //var WStr = GetArray<char>(mlu.ContextID, (uint)len + 1);
+        var WStr = new char[len + 1];
         //if (WStr is null) return false;
 
         //for (var i = 0; i < len; i++)
@@ -342,7 +344,7 @@ public static partial class Lcms2
 
         var rc = AddMLUBlock(mlu, WStr, Lang, Cntry);
 
-        ReturnArray(mlu.ContextID, WStr);
+        //ReturnArray(mlu.ContextID, WStr);
         return rc;
     }
 
@@ -363,14 +365,15 @@ public static partial class Lcms2
         var UTF8len = decodeUTF8(Span<char>.Empty, UTF8String);
 
         // Get space for dest
-        var WStr = GetArray<char>(mlu.ContextID, UTF8len);
+        //var WStr = GetArray<char>(mlu.ContextID, UTF8len);
+        var WStr = new char[UTF8len];
         //if (WStr is null) return false;
 
         decodeUTF8(WStr, UTF8String);
 
         var rc = AddMLUBlock(mlu, WStr.AsSpan(0..(int)(UTF8len * sizeof(char))), Lang, Cntry);
 
-        ReturnArray(mlu.ContextID, WStr);
+        //ReturnArray(mlu.ContextID, WStr);
         return rc;
     }
 
@@ -445,7 +448,8 @@ public static partial class Lcms2
         {
             // It is not empty
             //NewMlu.MemPool = _cmsMalloc(mlu.ContextID, mlu.PoolUsedInBytes);
-            NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
+            //NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
+            NewMlu.MemPool = new char[mlu.PoolUsedInBytes];
             if (NewMlu.MemPool is null) goto Error;
         }
 
@@ -471,7 +475,7 @@ public static partial class Lcms2
         {
             //if (mlu.Entries is not null) _cmsFree(mlu.ContextID, mlu.Entries);
             mlu.Entries.Clear();
-            if (mlu.MemPool is not null) ReturnArray(mlu.ContextID, mlu.MemPool);
+            //if (mlu.MemPool is not null) ReturnArray(mlu.ContextID, mlu.MemPool);
 
             mlu.MemPool = null;
             mlu.ContextID = null;
@@ -702,7 +706,7 @@ public static partial class Lcms2
         // Keep a maximum color lists can grow, 100k entries seems reasonable
         if (size > 1024 * 100)
         {
-            ReturnArray(v.ContextID, v.List);
+            //ReturnArray(v.ContextID, v.List);
             v.List = null!;
             return false;
         }
@@ -710,12 +714,13 @@ public static partial class Lcms2
         //var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * _sizeof<NamedColor>());
         //if (NewPtr is null) return false;
 
-        var pool = Context.GetPool<NamedColor>(v.ContextID);
-        var NewPtr = pool.Rent((int)size);
+        //var pool = Context.GetPool<NamedColor>(v.ContextID);
+        //var NewPtr = pool.Rent((int)size);
+        var NewPtr = new NamedColor[size];
         v.List.AsSpan(..(int)v.Allocated).CopyTo(NewPtr);
 
-        if (v.List is not null)
-            ReturnArray(pool, v.List);
+        //if (v.List is not null)
+        //    ReturnArray(pool, v.List);
         v.List = NewPtr;
 
         v.Allocated = size;
@@ -793,13 +798,16 @@ public static partial class Lcms2
         memmove(NewNC.Suffix.AsSpan(), v.Suffix, 33);
         NewNC.ColorantCount = v.ColorantCount;
         //memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
-        var bPool = Context.GetPool<byte>(v.ContextID);
-        var uPool = Context.GetPool<ushort>(v.ContextID);
+        //var bPool = Context.GetPool<byte>(v.ContextID);
+        //var uPool = Context.GetPool<ushort>(v.ContextID);
         for (var i = 0; i < v.nColors; i++)
         {
-            var name = bPool.Rent(cmsMAX_PATH - 1);
-            var deviceColorant = uPool.Rent((int)v.ColorantCount);
-            var pcs = uPool.Rent(3);
+            //var name = bPool.Rent(cmsMAX_PATH - 1);
+            //var deviceColorant = uPool.Rent((int)v.ColorantCount);
+            //var pcs = uPool.Rent(3);
+            var name = new byte[cmsMAX_PATH - 1];
+            var deviceColorant = new ushort[v.ColorantCount];
+            var pcs = new ushort[3];
 
             for (var j = 0; j < v.ColorantCount; j++)
                 deviceColorant[j] = v.List![i].DeviceColorant[j];
@@ -845,19 +853,22 @@ public static partial class Lcms2
         if (NamedColorList.nColors + 1 > NamedColorList.Allocated && !GrowNamedColorList(NamedColorList))
             return false;
 
-        var bPool = Context.GetPool<byte>(NamedColorList.ContextID);
-        var uPool = Context.GetPool<ushort>(NamedColorList.ContextID);
+        //var bPool = Context.GetPool<byte>(NamedColorList.ContextID);
+        //var uPool = Context.GetPool<ushort>(NamedColorList.ContextID);
 
         var idx = NamedColorList.nColors;
-        var deviceColorant = uPool.Rent((int)NamedColorList.ColorantCount);
+        //var deviceColorant = uPool.Rent((int)NamedColorList.ColorantCount);
+        var deviceColorant = new ushort[NamedColorList.ColorantCount];
         for (var i = 0; i < NamedColorList.ColorantCount; i++)
             deviceColorant[i] = Colorant.IsEmpty ? (ushort)0 : Colorant[i];
 
-        var pcs = uPool.Rent(3);
+        //var pcs = uPool.Rent(3);
+        var pcs = new ushort[3];
         for (var i = 0; i < 3; i++)
             pcs[i] = PCS.IsEmpty ? (ushort)0 : PCS[i];
 
-        var name = bPool.Rent(cmsMAX_PATH - 1);
+        //var name = bPool.Rent(cmsMAX_PATH - 1);
+        var name = new byte[cmsMAX_PATH];
         if (!Name.IsEmpty)
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
@@ -1008,12 +1019,13 @@ public static partial class Lcms2
 
         //var Seq = _cmsMallocZero<Sequence>(ContextID);
         //if (Seq is null) return null;
-        var pool = Context.GetPool<ProfileSequenceDescription>(ContextID);
+        //var pool = Context.GetPool<ProfileSequenceDescription>(ContextID);
         var Seq = new Sequence
         {
             ContextID = ContextID,
             //Seq.seq = _cmsCalloc<ProfileSequenceDescription>(ContextID, n);
-            seq = pool.Rent((int)n),
+            //seq = pool.Rent((int)n),
+            seq = new ProfileSequenceDescription[n],
             n = n
         };
 
@@ -1051,7 +1063,7 @@ public static partial class Lcms2
                 if (pseq.seq[i].Description is not null)
                     cmsMLUfree(pseq.seq[i].Description);
             }
-            ReturnArray(pseq.ContextID, pseq.seq);
+            //ReturnArray(pseq.ContextID, pseq.seq);
         }
 
         //_cmsFree(pseq.ContextID, pseq);
@@ -1063,12 +1075,13 @@ public static partial class Lcms2
 
         //var NewSeq = _cmsMalloc<Sequence>(pseq->ContextID);
         //if (NewSeq is null) return null;
-        var pool = Context.GetPool<ProfileSequenceDescription>(pseq.ContextID);
+        //var pool = Context.GetPool<ProfileSequenceDescription>(pseq.ContextID);
         var NewSeq = new Sequence
         {
             //NewSeq.seq = _cmsCalloc<ProfileSequenceDescription>(pseq.ContextID, pseq.n);
             //if (NewSeq.seq is null) goto Error;
-            seq = pool.Rent((int)pseq.n),
+            //seq = pool.Rent((int)pseq.n),
+            seq = new ProfileSequenceDescription[pseq.n],
 
             ContextID = pseq.ContextID,
             n = pseq.n
@@ -1093,9 +1106,9 @@ public static partial class Lcms2
 
         return NewSeq;
 
-    Error:
-        cmsFreeProfileSequenceDescription(NewSeq);
-        return null;
+        //Error:
+        //    cmsFreeProfileSequenceDescription(NewSeq);
+        //    return null;
     }
 
     public static Dictionary cmsDictAlloc(Context? ContextID) =>

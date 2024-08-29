@@ -375,22 +375,24 @@ file class LabCLUTData : IDisposable
         ContextID = context;
         this.p = p;
 
-        var pool = Context.GetPool<float>(context);
+        //var pool = Context.GetPool<float>(context);
 
-        sIn = pool.Rent(SIGMOID_POINTS);
-        sOut = pool.Rent(SIGMOID_POINTS);
+        //sIn = pool.Rent(SIGMOID_POINTS);
+        //sOut = pool.Rent(SIGMOID_POINTS);
+        sIn = new float[SIGMOID_POINTS];
+        sOut = new float[SIGMOID_POINTS];
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var pool = Context.GetPool<float>(ContextID);
-                pool.Return(sIn);
-                pool.Return(sOut);
-            }
+            //if (disposing)
+            //{
+            //    var pool = Context.GetPool<float>(ContextID);
+            //    pool.Return(sIn);
+            //    pool.Return(sOut);
+            //}
             disposedValue = true;
         }
     }

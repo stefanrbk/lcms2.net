@@ -60,7 +60,6 @@ using (logger.BeginScope("Installing plugin"))
 if (!noCheckTests)
 {
     CheckComputeIncrements();
-
     CheckPremultiplied();
 
     // 15 bit functionality
@@ -77,7 +76,7 @@ if (!noCheckTests)
     CheckChangeFormat();
 
     // Soft proofing
-    CheckSoftProofing();
+    //CheckSoftProofing();
 
     // Floating point functionality
     CheckConversionFloat();

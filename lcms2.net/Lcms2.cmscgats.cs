@@ -433,7 +433,7 @@ public static partial class Lcms2
                     if (Char.ToUpper((char)it8.ch) is 'X')
                     {
                         NextCh(it8);
-                        while(Char.IsAsciiHexDigit((char)it8.ch))
+                        while (Char.IsAsciiHexDigit((char)it8.ch))
                         {
                             it8.ch = Char.ToUpper((char)it8.ch);
                             var j = (it8.ch is >= 'A' and <= 'F')
@@ -520,7 +520,7 @@ public static partial class Lcms2
             }
             else
             {
-                switch(it8.ch)
+                switch (it8.ch)
                 {
                     // EOF marker -- ignore it
                     case '\x1a':
@@ -589,7 +589,8 @@ public static partial class Lcms2
             {
                 //FileNest = it8.FileStack[it8.IncludeSP + 1] = AllocChunk<FILECTX>(it8);
                 FileNest = it8.FileStack[it8.IncludeSP + 1] = new();
-                FileNest.FileName = Context.GetPool<byte>(it8.ContextID).Rent(cmsMAX_PATH);
+                //FileNest.FileName = Context.GetPool<byte>(it8.ContextID).Rent(cmsMAX_PATH);
+                FileNest.FileName = new byte[cmsMAX_PATH];
             }
 
             //if (BuildAbsolutePath(StringPtr(it8->str), it8->FileStack[it8->IncludeSP]->FileName, FileNest->FileName, cmsMAX_PATH - 1) is false)
@@ -660,7 +661,7 @@ public static partial class Lcms2
             case SYMBOL.SSTRING:
                 //strncpy(Buffer, StringPtr(it8.str), max);
                 strncpy(Buffer, it8.str.ToString(), max);
-                Buffer[(int)max-1] = 0;
+                Buffer[(int)max - 1] = 0;
                 break;
             default:
                 return SynError(it8, ErrorTitle);
@@ -683,25 +684,23 @@ public static partial class Lcms2
 
     public static void cmsIT8Free(object? hIT8)
     {
-        var it8 = hIT8 as IT8;
+        //if (hIT8 is not IT8 it8)
+        return;
 
-        if (it8 is null)
-            return;
+        //if (it8.MemorySink is not null)
+        //{
+        //    foreach (var p in it8.MemorySink)
+        //    //{
+        //    //    n = p->Next;
+        //    //    if (p->Ptr is not null) _cmsFree(it8->ContextID, p->Ptr);
+        //        ReturnArray(it8.ContextID, p);
+        //    //}
+        //}
 
-        if (it8.MemorySink is not null)
-        {
-            foreach (var p in it8.MemorySink)
-            //{
-            //    n = p->Next;
-            //    if (p->Ptr is not null) _cmsFree(it8->ContextID, p->Ptr);
-                ReturnArray(it8.ContextID, p);
-            //}
-        }
+        //if (it8.MemoryBlock is not null)
+        //    ReturnArray(it8.ContextID, it8.MemoryBlock);
 
-        if (it8.MemoryBlock is not null)
-            ReturnArray(it8.ContextID, it8.MemoryBlock);
-
-        ReturnArray(it8.ContextID, it8.DoubleFormatter);
+        //ReturnArray(it8.ContextID, it8.DoubleFormatter);
 
         //_cmsFree(it8->ContextID, it8);
     }
@@ -761,7 +760,8 @@ public static partial class Lcms2
     {
         var Size = strlen(str)/* + sizeof(byte)*/;
 
-        var ptr = Context.GetPool<byte>(it8.ContextID).Rent((int)Size); //(byte*)AllocChunk(it8, (uint)Size);
+        //var ptr = Context.GetPool<byte>(it8.ContextID).Rent((int)Size); //(byte*)AllocChunk(it8, (uint)Size);
+        var ptr = new byte[Size];
         str.CopyTo(ptr); //if (ptr is not null) memcpy(ptr, str, Size - (nint)sizeof(byte));
 
         return ptr;
@@ -769,11 +769,13 @@ public static partial class Lcms2
 
     private static bool IsAvailableOnList(KEYVALUE? p, ReadOnlySpan<byte> Key, ReadOnlySpan<byte> Subkey, out KEYVALUE LastPtr)
     {
-        /*if (LastPtr is not null)*/ LastPtr = p!;
+        /*if (LastPtr is not null)*/
+        LastPtr = p!;
 
         for (; p is not null; p = p.Next!)
         {
-            /*if (LastPtr is not null)*/ LastPtr = p;
+            /*if (LastPtr is not null)*/
+            LastPtr = p;
 
             if ((char)Key[0] is not '#')    // Comments are ignored
             {
@@ -792,7 +794,8 @@ public static partial class Lcms2
         {
             if (p.Subkey is null) continue;
 
-            /*if (LastPtr is not null)*/ LastPtr = p;
+            /*if (LastPtr is not null)*/
+            LastPtr = p;
 
             if (cmsstrcasecmp(Subkey, p.Subkey) is 0)
                 return true;
@@ -911,11 +914,13 @@ public static partial class Lcms2
         {
             //it8->Tab = _cmsCalloc<TABLE>(ContextID, MAXTABLES);
             //if (it8->Tab is null) goto Error;
-            Tab = Context.GetPool<TABLE>(ContextID).Rent(MAXID),
+            //Tab = Context.GetPool<TABLE>(ContextID).Rent(MAXID),
+            Tab = new TABLE[MAXID],
 
             //it8->FileStack = _cmsCalloc2<FILECTX>(ContextID, MAXINCLUDE);
             //if (it8->FileStack is null) goto Error;
-            FileStack = Context.GetPool<FILECTX>(ContextID).Rent(MAXID)
+            //FileStack = Context.GetPool<FILECTX>(ContextID).Rent(MAXID)
+            FileStack = new FILECTX[MAXID],
         };
 
         AllocTable(it8);
@@ -946,7 +951,8 @@ public static partial class Lcms2
         //it8.id = StringAlloc(it8, MAXSTR);
         //it8.str = StringAlloc(it8, MAXSTR);
 
-        it8.DoubleFormatter = Context.GetPool<byte>(ContextID).Rent(MAXID);
+        //it8.DoubleFormatter = Context.GetPool<byte>(ContextID).Rent(MAXID);
+        it8.DoubleFormatter = new byte[MAXID];
         strcpy(it8.DoubleFormatter, DEFAULT_DBL_FORMAT);
         cmsIT8SetSheetType(it8, "CGATS.17");
 
@@ -960,11 +966,11 @@ public static partial class Lcms2
 
         return it8;
 
-    //Error:
-    //    if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
-    //    if (it8 is not null) _cmsFree(ContextID, it8);
+        //Error:
+        //    if (it8->Tab is not null) _cmsFree(ContextID, it8->Tab);
+        //    if (it8 is not null) _cmsFree(ContextID, it8);
 
-    //    return null;
+        //    return null;
     }
 
     public static byte[]? cmsIT8GetSheetType(object? hIT8) =>
@@ -1081,7 +1087,8 @@ public static partial class Lcms2
             t.nSamples = 10;
         }
 
-        t.DataFormat = Context.GetPool<byte[]>(it8.ContextID).Rent(t.nSamples + 1); //t->DataFormat = AllocChunk2<byte>(it8, (uint)t->nSamples + 1);
+        //t.DataFormat = Context.GetPool<byte[]>(it8.ContextID).Rent(t.nSamples + 1); //t->DataFormat = AllocChunk2<byte>(it8, (uint)t->nSamples + 1);
+        t.DataFormat = new byte[t.nSamples + 1][];
         if (t.DataFormat is null)
             SynError(it8, "AllocateDataFormat: Unable to allocate dataFormat array"u8);
     }
@@ -1149,14 +1156,15 @@ public static partial class Lcms2
         t.nSamples = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_FIELDS"u8));
         t.nPatches = satoi(cmsIT8GetProperty(it8, "NUMBER_OF_SETS"u8));
 
-        if (t.nSamples is <0 or > 0x7ffe || t.nPatches is <0 or > 0x7ffe)
+        if (t.nSamples is < 0 or > 0x7ffe || t.nPatches is < 0 or > 0x7ffe)
         {
             SynError(it8, "AllocateDataSet: too much data"u8);
         }
         else
         {
             //t->Data = AllocChunk2<byte>(it8, ((uint)t->nSamples + 1) * ((uint)t->nPatches + 1));
-            t.Data = Context.GetPool<byte[]>(it8.ContextID).Rent((t.nSamples + 1) * (t.nPatches + 1));
+            //t.Data = Context.GetPool<byte[]>(it8.ContextID).Rent((t.nSamples + 1) * (t.nPatches + 1));
+            t.Data = new byte[(t.nSamples + 1) * (t.nPatches + 1)][];
             if (t.Data is null)
                 SynError(it8, "AllocateDataSet: Unable to allocate data array"u8);
         }
@@ -1325,7 +1333,7 @@ public static partial class Lcms2
     {
         var t = GetTable(it8);
 
-        if ( t.Data is null) return;
+        if (t.Data is null) return;
 
         WriteStr(fp, "BEGIN_DATA\n"u8);
 
@@ -1429,9 +1437,9 @@ public static partial class Lcms2
         InSymbol(it8);      // Eats "BEGIN_DATA_FORMAT"
         CheckEOLN(it8);
 
-        while (it8.sy is not SYMBOL.SEND_DATA_FORMAT 
-                     and not SYMBOL.SEOLN 
-                     and not SYMBOL.SEOF 
+        while (it8.sy is not SYMBOL.SEND_DATA_FORMAT
+                     and not SYMBOL.SEOLN
+                     and not SYMBOL.SEOF
                      and not SYMBOL.SSYNERROR)
         {
             if (it8.sy is not SYMBOL.SIDENT)
@@ -1489,7 +1497,7 @@ public static partial class Lcms2
                     case SYMBOL.SSTRING:
                         //if (!SetData(it8, iSet, iField, StringPtr(it8->str)))
                         if (!SetData(it8, iSet, iField, Encoding.ASCII.GetBytes(it8.str.ToString())))
-                                return false;
+                            return false;
                         break;
                     default:
                         if (!GetVal(it8, Buffer, 255, "Sample data expected"))
@@ -1524,9 +1532,9 @@ public static partial class Lcms2
         Span<byte> Buffer = stackalloc byte[MAXSTR];
         KEYVALUE? Key;
 
-        while (it8.sy is not SYMBOL.SEOF 
-                      and not SYMBOL.SSYNERROR 
-                      and not SYMBOL.SBEGIN_DATA_FORMAT 
+        while (it8.sy is not SYMBOL.SEOF
+                      and not SYMBOL.SSYNERROR
+                      and not SYMBOL.SBEGIN_DATA_FORMAT
                       and not SYMBOL.SBEGIN_DATA)
         {
             switch (it8.sy)
@@ -1563,7 +1571,7 @@ public static partial class Lcms2
 
                     if (Key?.WriteAs is not WRITEMODE.WRITE_PAIR)
                     {
-                        AddToList(it8, ref GetTable(it8).HeaderList, VarName, null, Buffer, 
+                        AddToList(it8, ref GetTable(it8).HeaderList, VarName, null, Buffer,
                             (it8.sy is SYMBOL.SSTRING) ? WRITEMODE.WRITE_STRINGIFY : WRITEMODE.WRITE_UNCOOKED);
                     }
                     else
@@ -1861,7 +1869,8 @@ public static partial class Lcms2
         if (hIT8 is not IT8 it8) return null;
 
         //var it8 = (IT8*)hIT8;
-        it8.MemoryBlock = GetArray<byte>(ContextID, len + 1);
+        //it8.MemoryBlock = GetArray<byte>(ContextID, len + 1);
+        it8.MemoryBlock = new byte[len + 1];
         //if (it8.MemoryBlock is null)
         //{
         //    cmsIT8Free(hIT8);
@@ -1883,7 +1892,7 @@ public static partial class Lcms2
         CookPointers(it8);
         it8.nTable = 0;
 
-        ReturnArray(ContextID, it8.MemoryBlock);
+        //ReturnArray(ContextID, it8.MemoryBlock);
         it8.MemoryBlock = null;
 
         return hIT8;
@@ -1962,7 +1971,8 @@ public static partial class Lcms2
             n++;
 
         //var Props = AllocChunk2<byte>(it8, n);
-        var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
+        //var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
+        var Props = new byte[n][];
 
         // Pass#2 - Fill pointers
         n = 0;
@@ -1997,7 +2007,8 @@ public static partial class Lcms2
         }
 
         //var Props = AllocChunk2<byte>(it8, n);
-        var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
+        //var Props = Context.GetPool<byte[]>(it8.ContextID).Rent((int)n);
+        var Props = new byte[n][];
 
         // Pass#2 - Fill pointers
         n = 0;

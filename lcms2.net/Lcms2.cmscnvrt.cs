@@ -286,9 +286,9 @@ public static partial class Lcms2
 
     private static bool AddConversion(Pipeline Result, Signature InPCS, Signature OutPCS, MAT3 m, VEC3 off)
     {
-        var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
-        var m_as_dbl = m.AsArray(pool);
-        var off_as_dbl = off.AsArray(pool);
+        //var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
+        var m_as_dbl = m.AsArray(/*pool*/);
+        var off_as_dbl = off.AsArray(/*pool*/);
 
         // Handle PCS mismatches. A specialized stage is added to the LUT in such case
         switch ((uint)InPCS)
@@ -350,13 +350,13 @@ public static partial class Lcms2
                 break;
         }
 
-        ReturnArray(pool, m_as_dbl);
-        ReturnArray(pool, off_as_dbl);
+        //ReturnArray(pool, m_as_dbl);
+        //ReturnArray(pool, off_as_dbl);
 
         return true;
     Error:
-        ReturnArray(pool, m_as_dbl);
-        ReturnArray(pool, off_as_dbl);
+        //ReturnArray(pool, m_as_dbl);
+        //ReturnArray(pool, off_as_dbl);
 
         return false;
     }

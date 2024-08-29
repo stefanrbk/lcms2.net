@@ -99,7 +99,8 @@ public static partial class Lcms2
 
         //var SampledPoints = _cmsCalloc<float>(ContextID, nPoints);
         //if (SampledPoints is null) goto Error;
-        var SampledPoints = Context.GetPool<float>(ContextID).Rent((int)nPoints);
+        //var SampledPoints = Context.GetPool<float>(ContextID).Rent((int)nPoints);
+        var SampledPoints = new float[nPoints];
 
         for (var i = 0; i < nPoints; i++)
         {
@@ -114,9 +115,9 @@ public static partial class Lcms2
 
         @out = cmsBuildTabulatedToneCurveFloat(ContextID, nPoints, SampledPoints);
 
-    Error:
+        //Error:
         cmsDeleteTransform(xform);
-        if (SampledPoints is not null) ReturnArray(ContextID, SampledPoints);
+        //if (SampledPoints is not null) ReturnArray(ContextID, SampledPoints);
 
         return @out;
     }
@@ -393,10 +394,11 @@ public static partial class Lcms2
 
     public static double cmsDetectTAC(Profile Profile)
     {
-        var pool = Context.GetPool<float>(Profile.ContextID);
+        //var pool = Context.GetPool<float>(Profile.ContextID);
         Box<TACestimator> bp = new(new()
         {
-            MaxInput = pool.Rent(cmsMAXCHANNELS)
+            //MaxInput = pool.Rent(cmsMAXCHANNELS)
+            MaxInput = new float[cmsMAXCHANNELS]
         });
         Span<uint> GridPoints = stackalloc uint[MAX_INPUT_DIMENSIONS];
         var ContextID = cmsGetProfileContextID(Profile);
@@ -435,7 +437,7 @@ public static partial class Lcms2
             bp.Value.MaxTAC = 0;
 
         cmsDeleteTransform(bp.Value.hRoundTrip);
-        ReturnArray(pool, bp.Value.MaxInput);
+        //ReturnArray(pool, bp.Value.MaxInput);
 
         // Results in %
         return bp.Value.MaxTAC;
@@ -521,7 +523,7 @@ public static partial class Lcms2
         Span<Rgb<ushort>> rgb = stackalloc Rgb<ushort>[256];
         Span<CIEXYZ> XYZ = stackalloc CIEXYZ[256];
         //var Y_normalized = stackalloc float[256];
-        var pool = Context.GetPool<float>(Profile.ContextID);
+        //var pool = Context.GetPool<float>(Profile.ContextID);
 
         if ((uint)cmsGetColorSpace(Profile) is not cmsSigRgbData)
             return -1;
@@ -550,12 +552,13 @@ public static partial class Lcms2
         cmsDeleteTransform(xform);
         cmsCloseProfile(hXYZ);
 
-        var Y_normalized = pool.Rent(256);
+        //var Y_normalized = pool.Rent(256);
+        var Y_normalized = new float[256];
         for (var i = 0; i < 256; i++)
             Y_normalized[i] = (float)XYZ[i].Y;
 
         var Y_curve = cmsBuildTabulatedToneCurveFloat(ContextID, 256, Y_normalized);
-        ReturnArray(pool, Y_normalized);
+        //ReturnArray(pool, Y_normalized);
         if (Y_curve is null)
             return -1;
 

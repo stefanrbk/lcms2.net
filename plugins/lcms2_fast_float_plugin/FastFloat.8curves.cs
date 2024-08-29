@@ -348,18 +348,19 @@ file class Curves8Data : IDisposable
     public Curves8Data(Context? context)
     {
         ContextID = context;
-        _curves = Context.GetPool<byte>(context).Rent(cmsMAXCHANNELS * 256);
-        Array.Clear(_curves);
+        //_curves = Context.GetPool<byte>(context).Rent(cmsMAXCHANNELS * 256);
+        //Array.Clear(_curves);
+        _curves = new byte[cmsMAXCHANNELS * 256];
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                Context.GetPool<byte>(ContextID).Return(_curves);
-            }
+            //if (disposing)
+            //{
+            //    Context.GetPool<byte>(ContextID).Return(_curves);
+            //}
 
             disposedValue = true;
         }
@@ -378,7 +379,7 @@ file class Curves8Data : IDisposable
             for (var i = 0; i < 3; i++)
             {
                 for (var j = 0; j < 256; j++)
-                    if (Curves(i, j) != j) 
+                    if (Curves(i, j) != j)
                         return false;
             }
 

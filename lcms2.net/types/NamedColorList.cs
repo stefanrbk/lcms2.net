@@ -47,10 +47,12 @@ public class NamedColorList : IDisposable
     {
         ContextID = contextID;
 
-        var pool = Context.GetPool<byte>(contextID);
+        //var pool = Context.GetPool<byte>(contextID);
 
-        Prefix = pool.Rent(33);
-        Suffix = pool.Rent(33);
+        //Prefix = pool.Rent(33);
+        //Suffix = pool.Rent(33);
+        Prefix = new byte[33];
+        Suffix = new byte[33];
 
         List = null!;   // shhhh, it will get set by GrowNamedColorList()... for now...
     }
@@ -59,17 +61,17 @@ public class NamedColorList : IDisposable
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var bPool = Context.GetPool<byte>(ContextID);
-                var ncPool = Context.GetPool<NamedColor>(ContextID);
+            //if (disposing)
+            //{
+            //    var bPool = Context.GetPool<byte>(ContextID);
+            //    var ncPool = Context.GetPool<NamedColor>(ContextID);
 
-                ReturnArray(bPool, Prefix);
-                ReturnArray(bPool, Suffix);
+            //    ReturnArray(bPool, Prefix);
+            //    ReturnArray(bPool, Suffix);
 
-                if (List is not null)
-                    ReturnArray(ncPool, List);
-            }
+            //    if (List is not null)
+            //        ReturnArray(ncPool, List);
+            //}
 
             disposedValue = true;
         }

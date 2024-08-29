@@ -123,7 +123,7 @@ public static partial class Lcms2
     {
         CIEXYZ WhitePointXYZ;
         MAT3 CHAD;
-        var pool = Context.GetPool<double>(ContextID);
+        //var pool = Context.GetPool<double>(ContextID);
         double[] chad;
 
         var hICC = cmsCreateProfilePlaceholder(ContextID);
@@ -164,10 +164,10 @@ public static partial class Lcms2
             CHAD = _cmsAdaptationMatrix(null, WhitePointXYZ, D50XYZ);
 
             // This is a V4 tag, but many CMM does read and understand it no matter which version
-            chad = CHAD.AsArray(pool);
+            chad = CHAD.AsArray(/*pool*/);
             if (!cmsWriteTag(hICC, cmsSigChromaticAdaptationTag, chad))
-                goto Error2;
-            ReturnArray(pool, chad);
+                goto Error/*2*/;
+            //ReturnArray(pool, chad);
 
             if (Primaries is not null)
             {
@@ -230,8 +230,8 @@ public static partial class Lcms2
 
         return hICC;
 
-    Error2:
-        ReturnArray(pool, chad);
+    //Error2:
+    //    ReturnArray(pool, chad);
     Error:
         if (hICC is not null)
             cmsCloseProfile(hICC);
@@ -571,8 +571,9 @@ public static partial class Lcms2
             Green = new() { x = 0.3000, y = 0.6000, Y = 1.0 },
             Blue = new() { x = 0.1500, y = 0.0600, Y = 1.0 },
         };
-        var pool = Context.GetPool<ToneCurve>(ContextID);
-        ToneCurve[] Gamma22 = pool.Rent(3);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
+        //ToneCurve[] Gamma22 = pool.Rent(3);
+        var Gamma22 = new ToneCurve[3];
 
         // cmsWhitePointFromTemp(&D65, 6504);
         Gamma22[0] = Gamma22[1] = Gamma22[2] = Build_sRGBGamma(ContextID)!;
@@ -591,7 +592,7 @@ public static partial class Lcms2
         return hsRGB;
 
     Error:
-        ReturnArray(pool, Gamma22);
+        //ReturnArray(pool, Gamma22);
         return null;
     }
 
@@ -843,7 +844,7 @@ public static partial class Lcms2
         ToneCurve[]? EmptyTab = null;
         Pipeline? LUT = null;
 
-        var pool = Context.GetPool<ToneCurve>(ContextID);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
 
         var Profile = cmsCreateProfilePlaceholder(ContextID);
         if (Profile is null) return null;
@@ -860,7 +861,8 @@ public static partial class Lcms2
         LUT = cmsPipelineAlloc(ContextID, 3, 1);
         if (LUT is null) goto Error;
 
-        EmptyTab = pool.Rent(3);
+        //EmptyTab = pool.Rent(3);
+        EmptyTab = new ToneCurve[3];
         EmptyTab[0] = EmptyTab[1] = EmptyTab[2] = cmsBuildTabulatedToneCurve16(ContextID, 2, Zero)!;
         var PostLin = cmsStageAllocToneCurves(ContextID, 3, EmptyTab);
         var OutLin = cmsStageAllocToneCurves(ContextID, 1, EmptyTab);
@@ -878,13 +880,13 @@ public static partial class Lcms2
         if (!cmsWriteTag(Profile, cmsSigBToA0Tag, LUT)) goto Error;
         if (!cmsWriteTag(Profile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ))) goto Error;
 
-        ReturnArray(pool, EmptyTab);
+        //ReturnArray(pool, EmptyTab);
         cmsPipelineFree(LUT);
         return Profile;
 
     Error:
-        if (EmptyTab is not null)
-            ReturnArray(pool, EmptyTab);
+        //if (EmptyTab is not null)
+        //    ReturnArray(pool, EmptyTab);
         if (LUT is not null)
             cmsPipelineFree(LUT);
         if (Profile is not null)
