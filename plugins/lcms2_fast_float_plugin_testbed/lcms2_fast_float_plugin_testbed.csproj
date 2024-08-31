@@ -16,6 +16,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
 		<ProjectReference Include="..\..\Testing\Testbed.csproj" />
 		<ProjectReference Include="..\lcms2_fast_float_plugin\lcms2_fast_float_plugin.csproj" />
