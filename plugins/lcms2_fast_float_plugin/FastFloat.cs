@@ -192,6 +192,18 @@ public static partial class FastFloat
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static float flerp(ReadOnlySpan<float> LutTable, float v)
     {
+        unsafe
+        {
+            fixed (float* p = LutTable)
+            {
+                return flerp(p, v);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal unsafe static float flerp(float* LutTable, float v)
+    {
         if (float.IsNaN(v))
         {
             return LutTable[0];
