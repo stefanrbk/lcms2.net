@@ -95,4 +95,70 @@ public class FloatConversionTests
             }
         });
     }
+
+    //[TestCase("test5", "test3", INTENT_PERCEPTUAL)]
+    //[TestCase("test5", "test0", INTENT_PERCEPTUAL)]
+    public void TestAllUncommonFloatValueTransformParity(string profileInName, string profileOutName, int Intent)
+    {
+        var sub_pos = new Sub();
+        var sub_neg = new Sub();
+
+        const uint nPixels = 100;
+
+        var resources = new ResourceManager("lcms2.FastFloatPlugin.tests.TestProfiles", typeof(FloatConversionTests).Assembly);
+
+        var profileIn = cmsOpenProfileFromMemTHR(_pluginCtx, (byte[])resources.GetObject(profileInName)!)!;
+        var profileOut = cmsOpenProfileFromMemTHR(_pluginCtx, (byte[])resources.GetObject(profileOutName)!)!;
+
+        var xformPlugin = cmsCreateTransformTHR(_pluginCtx, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, 0)!;
+
+        cmsCloseProfile(profileIn);
+        cmsCloseProfile(profileOut);
+
+        sub_pos.Int = 0x00000002;
+        sub_neg.Int = 0x80000002;
+
+        Assert.That(xformPlugin, Is.Not.Null);
+
+        var bufferIn = new Scanline_rgbFloat[nPixels];
+        var bufferOut = new Scanline_rgbFloat[nPixels];
+
+        for (var i = 0; i < nPixels; i++)
+        {
+            bufferIn[i].r = (i / 40f) - 0.5f;
+            bufferIn[i].g = (i / 20f) - 0.5f;
+            bufferIn[i].b = (i / 60f) - 0.5f;
+        }
+
+        cmsDoTransform(xformPlugin, bufferIn, bufferOut, nPixels);
+
+        bufferIn[0].r = float.NaN;
+        bufferIn[0].g = float.NaN;
+        bufferIn[0].b = float.NaN;
+
+        bufferIn[1].r = float.PositiveInfinity;
+        bufferIn[1].g = float.PositiveInfinity;
+        bufferIn[1].b = float.PositiveInfinity;
+
+        bufferIn[2].r = sub_pos.Subnormal;
+        bufferIn[2].g = sub_pos.Subnormal;
+        bufferIn[2].b = sub_pos.Subnormal;
+
+        bufferIn[3].r = sub_neg.Subnormal;
+        bufferIn[3].g = sub_neg.Subnormal;
+        bufferIn[3].b = sub_neg.Subnormal;
+
+        cmsDoTransform(xformPlugin, bufferIn, bufferOut, 4);
+
+        cmsDeleteTransform(xformPlugin);
+    }
+    private class Sub
+    {
+        public uint Int { get; set; }
+        public float Subnormal
+        {
+            get => BitConverter.UInt32BitsToSingle(Int);
+            set => Int = BitConverter.SingleToUInt32Bits(value);
+        }
+    }
 }
