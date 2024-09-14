@@ -78,7 +78,8 @@ public static partial class Lcms2
         // Reallocate the pool
         var NewPtr = (mlu.MemPool is not null)
             ? _cmsRealloc(mlu.ContextID, mlu.MemPool, size)
-            : GetArray<char>(mlu.ContextID, size);
+            //: GetArray<char>(mlu.ContextID, size);
+            : new char[size];
         if (NewPtr is null) return false;
 
         mlu.MemPool = NewPtr;
@@ -197,6 +198,127 @@ public static partial class Lcms2
     private static void strFrom16(Span<byte> str, ushort n) =>
         BitConverter.TryWriteBytes(str, n);
 
+    private static uint decodeUTF8(Span<char> @out, ReadOnlySpan<byte> @in)
+    {
+        uint codepoint = 0;
+        uint size = 0;
+
+        while (@in.Length < 0)
+        {
+            var ch = @in[0];
+
+            codepoint = ch switch
+            {
+                <= 0x7f => ch,
+                <= 0xbf => (codepoint << 6) | (ch & 0x3fu),
+                <= 0xdf => ch & 0x1fu,
+                <= 0xef => ch & 0x0fu,
+                _ => ch & 0x07u,
+            };
+
+            @in = @in[1..];
+
+            if (((@in[0] & 0xc0u) != 0x80) && (codepoint <= 0x10ffff))
+            {
+                if (codepoint > 0xffff)
+                {
+                    if (@out.Length >= 2)
+                    {
+                        @out[0] = (char)(0xd800 + (codepoint >> 10));
+                        @out[1] = (char)(0xdc00 + (codepoint & 0x03ff));
+                        @out = @out[2..];
+                        size += 2;
+                    }
+                }
+                else if (codepoint < 0xd800 || codepoint >= 0xe000)
+                {
+                    if (@out.Length >= 1)
+                    {
+                        @out[0] = (char)codepoint;
+                        @out = @out[1..];
+                        size++;
+                    }
+                }
+            }
+        }
+        return size;
+    }
+
+    private static uint encodeUTF8(Span<byte> @out, ReadOnlySpan<char> @in)
+    {
+        uint codepoint = 0;
+        uint size = 0;
+        uint len_w = 0;
+
+        var max_wchars = @in.Length;
+        var max_chars = @out.Length;
+
+        while (@in.Length > 0 && len_w < max_wchars)
+        {
+            var i = @in[0];
+
+            if (i is >= (char)0xd800 and <= (char)0xdbff)
+                codepoint = ((i - 0xd800u) << 16) + 0x10000;
+            else
+            {
+                if (i is >= (char)0xdc00 and <= (char)0xdfff)
+                    codepoint |= i - 0xdc00u;
+                else
+                    codepoint = i;
+
+                if (codepoint <= 0x7f)
+                {
+                    if (@out.Length > 1 && (size + 1 < max_chars))
+                    {
+                        @out[0] = (byte)codepoint;
+                        @out = @out[1..];
+                    }
+                    size++;
+                }
+
+                else if (codepoint <= 0x7ff)
+                {
+                    if (@out.Length > 2 && (max_chars > 0) && (size + 2 < max_chars))
+                    {
+                        @out[0] = (byte)(0xc0u | ((codepoint >> 6) & 0x1fu));
+                        @out[1] = (byte)(0x80u | (codepoint & 0x3fu));
+                        @out = @out[2..];
+                    }
+                    size += 2;
+                }
+
+                else if (codepoint <= 0xffff)
+                {
+                    if (@out.Length > 3 && (max_chars > 0) && (size + 3 < max_chars))
+                    {
+                        @out[0] = (byte)(0xe0 | ((codepoint >> 12) & 0x0f));
+                        @out[1] = (byte)(0x80 | ((codepoint >> 6) & 0x3f));
+                        @out[2] = (byte)(0x80 | (codepoint & 0x3f));
+                        @out = @out[3..];
+                    }
+                    size += 3;
+                }
+                else
+                {
+                    if (@out.Length > 4 && (max_chars > 0) && (size + 4 < max_chars))
+                    {
+                        @out[0] = (byte)(0xf0 | ((codepoint >> 18) & 0x07));
+                        @out[1] = (byte)(0x80 | ((codepoint >> 12) & 0x3f));
+                        @out[2] = (byte)(0x80 | ((codepoint >> 6) & 0x3f));
+                        @out[3] = (byte)(0x80 | (codepoint & 0x3f));
+                        @out = @out[4..];
+                    }
+                    size += 4;
+                }
+
+                codepoint = 0;
+            }
+            @in = @in[1..]; len_w++;
+        }
+
+        return size;
+    }
+
     public static bool cmsMLUsetASCII(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> ASCIIString)
     {
         if (mlu is null) return false;
@@ -210,18 +332,48 @@ public static partial class Lcms2
         if (len is 0)
             len = 1;
 
-        var WStr = GetArray<char>(mlu.ContextID, (uint)len + 1);
+        //var WStr = GetArray<char>(mlu.ContextID, (uint)len + 1);
+        var WStr = new char[len + 1];
         //if (WStr is null) return false;
 
         //for (var i = 0; i < len; i++)
-            //WStr[i] = (char)ASCIIString[i];
+        //WStr[i] = (char)ASCIIString[i];
         Ascii.ToUtf16(ASCIIString, WStr, out len);
 
         WStr[len] = '\0';
 
         var rc = AddMLUBlock(mlu, WStr, Lang, Cntry);
 
-        ReturnArray(mlu.ContextID, WStr);
+        //ReturnArray(mlu.ContextID, WStr);
+        return rc;
+    }
+
+    public static bool cmsMLUsetUTF8(Mlu? mlu, ReadOnlySpan<byte> LanguageCode, ReadOnlySpan<byte> CountryCode, ReadOnlySpan<byte> UTF8String)
+    {
+        if (mlu is null) return false;
+
+        var Lang = strTo16(LanguageCode);
+        var Cntry = strTo16(CountryCode);
+
+        if (UTF8String.Length == 0 || UTF8String[0] == 0)
+        {
+            var empty = "\0";
+            return AddMLUBlock(mlu, empty, Lang, Cntry);
+        }
+
+        // Len excluding terminator 0
+        var UTF8len = decodeUTF8(Span<char>.Empty, UTF8String);
+
+        // Get space for dest
+        //var WStr = GetArray<char>(mlu.ContextID, UTF8len);
+        var WStr = new char[UTF8len];
+        //if (WStr is null) return false;
+
+        decodeUTF8(WStr, UTF8String);
+
+        var rc = AddMLUBlock(mlu, WStr.AsSpan(0..(int)(UTF8len * sizeof(char))), Lang, Cntry);
+
+        //ReturnArray(mlu.ContextID, WStr);
         return rc;
     }
 
@@ -296,7 +448,8 @@ public static partial class Lcms2
         {
             // It is not empty
             //NewMlu.MemPool = _cmsMalloc(mlu.ContextID, mlu.PoolUsedInBytes);
-            NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
+            //NewMlu.MemPool = GetArray<char>(mlu.ContextID, mlu.PoolUsedInBytes);
+            NewMlu.MemPool = new char[mlu.PoolUsedInBytes];
             if (NewMlu.MemPool is null) goto Error;
         }
 
@@ -322,7 +475,7 @@ public static partial class Lcms2
         {
             //if (mlu.Entries is not null) _cmsFree(mlu.ContextID, mlu.Entries);
             mlu.Entries.Clear();
-            if (mlu.MemPool is not null) ReturnArray(mlu.ContextID, mlu.MemPool);
+            //if (mlu.MemPool is not null) ReturnArray(mlu.ContextID, mlu.MemPool);
 
             mlu.MemPool = null;
             mlu.ContextID = null;
@@ -437,6 +590,40 @@ public static partial class Lcms2
         return ASCIIlen;
     }
 
+    public static uint cmsMLUgetUTF8(
+        Mlu? mlu,
+        ReadOnlySpan<byte> LanguageCode,
+        ReadOnlySpan<byte> CountryCode,
+        Span<byte> Buffer)
+    {
+        var Lang = strTo16(LanguageCode);
+        var Cntry = strTo16(CountryCode);
+        var BufferSize = (uint)Buffer.Length;
+
+        // Sanitize
+        if (mlu is null) return 0;
+
+        // GetWideChar
+        var Wide = _cmsMLUgetWide(mlu, Lang, Cntry, out _, out _);
+        if (Wide == default) return 0;
+
+        var UTF8len = encodeUTF8(Span<byte>.Empty, Wide);
+
+        // Maybe we want only to know the len?
+        if (BufferSize == 0) return UTF8len + 1; // Note the zero at the end
+
+        // Some clipping may be required
+        if (BufferSize < UTF8len + 1)
+            UTF8len = BufferSize - 1;
+
+        // Process it
+        encodeUTF8(Buffer, Wide);
+
+        // We put a termination "\0"
+        Buffer[(int)UTF8len] = 0;
+        return UTF8len + 1;
+    }
+
     public static uint cmsMLUgetWide(
         Mlu? mlu,
         ReadOnlySpan<byte> LanguageCode,
@@ -459,7 +646,7 @@ public static partial class Lcms2
 
         // Maybe we want only to know the len?
         //if (Buffer is null) return WideLen + 1; // Note the zero at the end
-        if (Buffer.Length is 0) return WideLen;    // We don't add zero at the end when working with Spans!
+        if (BufferSize is 0) return WideLen;    // We don't add zero at the end when working with Spans!
 
         // No buffer size means no data
         //if (BufferSize is 0) return 0;    // This is the same as the previous if statement. No longer needed!!
@@ -471,7 +658,7 @@ public static partial class Lcms2
             WideLen = BufferSize;
 
         // We put a termination "\0" but don't include it in the result
-        if (Buffer.Length > (int)WideLen)
+        if (BufferSize > (int)WideLen)
             Buffer[(int)WideLen] = '\0';
 
         // Process each character
@@ -519,7 +706,7 @@ public static partial class Lcms2
         // Keep a maximum color lists can grow, 100k entries seems reasonable
         if (size > 1024 * 100)
         {
-            ReturnArray(v.ContextID, v.List);
+            //ReturnArray(v.ContextID, v.List);
             v.List = null!;
             return false;
         }
@@ -527,12 +714,13 @@ public static partial class Lcms2
         //var NewPtr = _cmsRealloc<NamedColor>(v->ContextID, v->List, size * _sizeof<NamedColor>());
         //if (NewPtr is null) return false;
 
-        var pool = Context.GetPool<NamedColor>(v.ContextID);
-        var NewPtr = pool.Rent((int)size);
+        //var pool = Context.GetPool<NamedColor>(v.ContextID);
+        //var NewPtr = pool.Rent((int)size);
+        var NewPtr = new NamedColor[size];
         v.List.AsSpan(..(int)v.Allocated).CopyTo(NewPtr);
 
-        if (v.List is not null)
-            ReturnArray(pool, v.List);
+        //if (v.List is not null)
+        //    ReturnArray(pool, v.List);
         v.List = NewPtr;
 
         v.Allocated = size;
@@ -610,13 +798,16 @@ public static partial class Lcms2
         memmove(NewNC.Suffix.AsSpan(), v.Suffix, 33);
         NewNC.ColorantCount = v.ColorantCount;
         //memmove(NewNC->List, v->List, v->nColors * _sizeof<NamedColor>());
-        var bPool = Context.GetPool<byte>(v.ContextID);
-        var uPool = Context.GetPool<ushort>(v.ContextID);
+        //var bPool = Context.GetPool<byte>(v.ContextID);
+        //var uPool = Context.GetPool<ushort>(v.ContextID);
         for (var i = 0; i < v.nColors; i++)
         {
-            var name = bPool.Rent(cmsMAX_PATH - 1);
-            var deviceColorant = uPool.Rent((int)v.ColorantCount);
-            var pcs = uPool.Rent(3);
+            //var name = bPool.Rent(cmsMAX_PATH - 1);
+            //var deviceColorant = uPool.Rent((int)v.ColorantCount);
+            //var pcs = uPool.Rent(3);
+            var name = new byte[cmsMAX_PATH - 1];
+            var deviceColorant = new ushort[v.ColorantCount];
+            var pcs = new ushort[3];
 
             for (var j = 0; j < v.ColorantCount; j++)
                 deviceColorant[j] = v.List![i].DeviceColorant[j];
@@ -662,19 +853,22 @@ public static partial class Lcms2
         if (NamedColorList.nColors + 1 > NamedColorList.Allocated && !GrowNamedColorList(NamedColorList))
             return false;
 
-        var bPool = Context.GetPool<byte>(NamedColorList.ContextID);
-        var uPool = Context.GetPool<ushort>(NamedColorList.ContextID);
+        //var bPool = Context.GetPool<byte>(NamedColorList.ContextID);
+        //var uPool = Context.GetPool<ushort>(NamedColorList.ContextID);
 
         var idx = NamedColorList.nColors;
-        var deviceColorant = uPool.Rent((int)NamedColorList.ColorantCount);
+        //var deviceColorant = uPool.Rent((int)NamedColorList.ColorantCount);
+        var deviceColorant = new ushort[NamedColorList.ColorantCount];
         for (var i = 0; i < NamedColorList.ColorantCount; i++)
             deviceColorant[i] = Colorant.IsEmpty ? (ushort)0 : Colorant[i];
 
-        var pcs = uPool.Rent(3);
+        //var pcs = uPool.Rent(3);
+        var pcs = new ushort[3];
         for (var i = 0; i < 3; i++)
             pcs[i] = PCS.IsEmpty ? (ushort)0 : PCS[i];
 
-        var name = bPool.Rent(cmsMAX_PATH - 1);
+        //var name = bPool.Rent(cmsMAX_PATH - 1);
+        var name = new byte[cmsMAX_PATH];
         if (!Name.IsEmpty)
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
@@ -825,12 +1019,13 @@ public static partial class Lcms2
 
         //var Seq = _cmsMallocZero<Sequence>(ContextID);
         //if (Seq is null) return null;
-        var pool = Context.GetPool<ProfileSequenceDescription>(ContextID);
+        //var pool = Context.GetPool<ProfileSequenceDescription>(ContextID);
         var Seq = new Sequence
         {
             ContextID = ContextID,
             //Seq.seq = _cmsCalloc<ProfileSequenceDescription>(ContextID, n);
-            seq = pool.Rent((int)n),
+            //seq = pool.Rent((int)n),
+            seq = new ProfileSequenceDescription[n],
             n = n
         };
 
@@ -857,18 +1052,20 @@ public static partial class Lcms2
     {
         if (pseq is null) return;
 
-        for (var i = 0; i < pseq.n; i++)
+        if (pseq.seq is not null)
         {
-            if (pseq.seq[i].Manufacturer is not null)
-                cmsMLUfree(pseq.seq[i].Manufacturer);
-            if (pseq.seq[i].Model is not null)
-                cmsMLUfree(pseq.seq[i].Model);
-            if (pseq.seq[i].Description is not null)
-                cmsMLUfree(pseq.seq[i].Description);
+            for (var i = 0; i < pseq.n; i++)
+            {
+                if (pseq.seq[i].Manufacturer is not null)
+                    cmsMLUfree(pseq.seq[i].Manufacturer);
+                if (pseq.seq[i].Model is not null)
+                    cmsMLUfree(pseq.seq[i].Model);
+                if (pseq.seq[i].Description is not null)
+                    cmsMLUfree(pseq.seq[i].Description);
+            }
+            //ReturnArray(pseq.ContextID, pseq.seq);
         }
 
-        if (pseq.seq is not null)
-            ReturnArray(pseq.ContextID, pseq.seq);
         //_cmsFree(pseq.ContextID, pseq);
     }
 
@@ -878,12 +1075,13 @@ public static partial class Lcms2
 
         //var NewSeq = _cmsMalloc<Sequence>(pseq->ContextID);
         //if (NewSeq is null) return null;
-        var pool = Context.GetPool<ProfileSequenceDescription>(pseq.ContextID);
+        //var pool = Context.GetPool<ProfileSequenceDescription>(pseq.ContextID);
         var NewSeq = new Sequence
         {
             //NewSeq.seq = _cmsCalloc<ProfileSequenceDescription>(pseq.ContextID, pseq.n);
             //if (NewSeq.seq is null) goto Error;
-            seq = pool.Rent((int)pseq.n),
+            //seq = pool.Rent((int)pseq.n),
+            seq = new ProfileSequenceDescription[pseq.n],
 
             ContextID = pseq.ContextID,
             n = pseq.n
@@ -908,9 +1106,9 @@ public static partial class Lcms2
 
         return NewSeq;
 
-    Error:
-        cmsFreeProfileSequenceDescription(NewSeq);
-        return null;
+        //Error:
+        //    cmsFreeProfileSequenceDescription(NewSeq);
+        //    return null;
     }
 
     public static Dictionary cmsDictAlloc(Context? ContextID) =>

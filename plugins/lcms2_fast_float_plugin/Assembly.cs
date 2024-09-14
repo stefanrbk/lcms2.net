@@ -31,3 +31,4 @@ global using static lcms2.FastFloatPlugin.FastFloat;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("lcms2_fast_float_plugin_testbed")]
+[assembly: InternalsVisibleTo("Fast Float UnitTests")]

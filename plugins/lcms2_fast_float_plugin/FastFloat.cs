@@ -28,7 +28,7 @@ using System.Runtime.CompilerServices;
 namespace lcms2.FastFloatPlugin;
 public static partial class FastFloat
 {
-    internal const uint REQUIRED_LCMS_VERSION = 2120;
+    internal const uint REQUIRED_LCMS_VERSION = 2160;
 
     internal static uint BIT15_SH(uint a) =>           ((a) << 26);
     internal static uint T_BIT15(uint a) =>            (((a)>>26)&1);
@@ -192,14 +192,25 @@ public static partial class FastFloat
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     internal static float flerp(ReadOnlySpan<float> LutTable, float v)
     {
-        if ((v < 1.0e-9f) || float.IsNaN(v))
+        unsafe
+        {
+            fixed (float* p = LutTable)
+            {
+                return flerp(p, v);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
+    internal unsafe static float flerp(float* LutTable, float v)
+    {
+        if (float.IsNaN(v))
         {
             return LutTable[0];
         }
-        else
+        else if (v is < 1.0e-9f or >= 1.0f)
         {
-            if (v >= 1.0)
-                return LutTable[MAX_NODES_IN_CURVE - 1];
+            return v;
         }
 
         v *= MAX_NODES_IN_CURVE - 1;

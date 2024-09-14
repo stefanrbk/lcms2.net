@@ -46,12 +46,12 @@ internal readonly struct MD5 : IDisposable
 
     public MD5(Context? context)
     {
-        var uiPool = Context.GetPool<uint>(context);
-        var bPool = Context.GetPool<byte>(context);
+        //var uiPool = Context.GetPool<uint>(context);
+        //var bPool = Context.GetPool<byte>(context);
 
-        _buf = uiPool.Rent(4);
-        _bits = uiPool.Rent(2);
-        _in = bPool.Rent(64);
+        _buf = new uint[4];
+        _bits = new uint[2];
+        _in = new byte[64];
 
         ContextID = context;
 
@@ -238,12 +238,12 @@ internal readonly struct MD5 : IDisposable
 
     public readonly void Dispose()
     {
-        var uiPool = Context.GetPool<uint>(ContextID);
-        var bPool = Context.GetPool<byte>(ContextID);
+        //var uiPool = Context.GetPool<uint>(ContextID);
+        //var bPool = Context.GetPool<byte>(ContextID);
 
-        ReturnArray(uiPool, _buf);
-        ReturnArray(uiPool, _bits);
-        ReturnArray(bPool, _in);
+        //ReturnArray(uiPool, _buf);
+        //ReturnArray(uiPool, _bits);
+        //ReturnArray(bPool, _in);
 
         GC.SuppressFinalize(this);
     }

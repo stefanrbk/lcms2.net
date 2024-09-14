@@ -127,7 +127,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGB_8, ProfileOut, TYPE_RGB_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGB_8, ProfileOut, TYPE_RGB_8, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 
@@ -166,7 +166,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 
@@ -206,7 +206,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGB_16, ProfileOut, TYPE_RGB_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGB_16, ProfileOut, TYPE_RGB_16, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 
@@ -245,7 +245,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_CMYK_16, ProfileOut, TYPE_CMYK_16, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_CMYK_16, ProfileOut, TYPE_CMYK_16, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 
@@ -381,7 +381,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 
@@ -435,7 +435,7 @@ internal static partial class Testbed
         if (ProfileIn is null || ProfileOut is null)
             Fail("Unable to open profiles");
 
-        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, cmsFLAGS_NOCACHE)!;
+        var xform = cmsCreateTransformTHR(ct, ProfileIn, TYPE_RGBA_8, ProfileOut, TYPE_RGBA_8, INTENT_PERCEPTUAL, FLAGS | cmsFLAGS_NOCACHE)!;
         cmsCloseProfile(ProfileIn);
         cmsCloseProfile(ProfileOut);
 

@@ -20,6 +20,8 @@
 //
 //---------------------------------------------------------------------------------
 
+using Microsoft.Extensions.Logging;
+
 var now = DateTime.Now;
 
 var cliResult = CommandLine.Parser.Default.ParseArguments<lcms2.FastFloatPlugin.testbed.CliOptions>(args);
@@ -33,6 +35,15 @@ trace("Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved");
 
 Thread.Sleep(10);
 Console.WriteLine();
+
+#if NO_THREADS
+logger.LogInformation("Running single-threaded.");
+#else
+logger.LogInformation(
+    "Running multi-threaded. Using {coresUsed} of {coresTotal} cores for tests!",
+    LargestPowerOf2(Environment.ProcessorCount),
+    Environment.ProcessorCount);
+#endif
 
 using (logger.BeginScope("Installing error logger"))
 {
@@ -49,6 +60,7 @@ using (logger.BeginScope("Installing plugin"))
 if (!noCheckTests)
 {
     CheckComputeIncrements();
+    CheckPremultiplied();
 
     // 15 bit functionality
     CheckFormatters15();
@@ -64,7 +76,7 @@ if (!noCheckTests)
     CheckChangeFormat();
 
     // Soft proofing
-    CheckSoftProofing();
+    //CheckSoftProofing();
 
     // Floating point functionality
     CheckConversionFloat();

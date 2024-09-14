@@ -47,8 +47,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var rin = (int)(SourceStartingOrder[0] + strideIn);
@@ -113,8 +113,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var rin = (int)(SourceStartingOrder[0] + strideIn);
@@ -182,8 +182,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var gin = (int)(SourceStartingOrder[0] + strideIn);
@@ -238,8 +238,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var gin = (int)(SourceStartingOrder[0] + strideIn);
@@ -348,18 +348,19 @@ file class Curves8Data : IDisposable
     public Curves8Data(Context? context)
     {
         ContextID = context;
-        _curves = Context.GetPool<byte>(context).Rent(cmsMAXCHANNELS * 256);
-        Array.Clear(_curves);
+        //_curves = Context.GetPool<byte>(context).Rent(cmsMAXCHANNELS * 256);
+        //Array.Clear(_curves);
+        _curves = new byte[cmsMAXCHANNELS * 256];
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                Context.GetPool<byte>(ContextID).Return(_curves);
-            }
+            //if (disposing)
+            //{
+            //    Context.GetPool<byte>(ContextID).Return(_curves);
+            //}
 
             disposedValue = true;
         }
@@ -378,7 +379,7 @@ file class Curves8Data : IDisposable
             for (var i = 0; i < 3; i++)
             {
                 for (var j = 0; j < 256; j++)
-                    if (Curves(i, j) != j) 
+                    if (Curves(i, j) != j)
                         return false;
             }
 

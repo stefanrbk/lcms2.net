@@ -36,74 +36,78 @@ public static partial class FastFloat
     }
 
     private unsafe static void FloatCLUTEval(Transform CMMcargo,
-                                             ReadOnlySpan<byte> Input,
-                                             Span<byte> Output,
+                                             ReadOnlySpan<byte> In,
+                                             Span<byte> Out,
                                              uint PixelsPerLine,
                                              uint LineCount,
                                              Stride Stride)
     {
-        fixed (byte* OutputPtr = Output)
+        fixed (byte* Input = In, Output = Out)
         {
             if (_cmsGetTransformUserData(CMMcargo) is not FloatCLUTData pfloat)
                 return;
+
             var p = pfloat.p;
             var TotalOut = p.nOutputs;
 
-            var @out = stackalloc byte*[cmsMAXCHANNELS];
-
-            Span<uint> SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-            Span<uint> SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
-            Span<uint> DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-            Span<uint> DestIncrements = stackalloc uint[cmsMAXCHANNELS];
-
-            _cmsComputeComponentIncrements(cmsGetTransformInputFormat(CMMcargo), Stride.BytesPerPlaneIn, out _, out var nalpha, SourceStartingOrder, SourceIncrements);
-            _cmsComputeComponentIncrements(cmsGetTransformOutputFormat(CMMcargo), Stride.BytesPerPlaneOut, out _, out nalpha, DestStartingOrder, DestIncrements);
-
-            if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
-                nalpha = 0;
-
-            var strideIn = 0u;
-            var strideOut = 0u;
-
-            fixed (float* LutTablePtr = p.Table.Span)
+            fixed (float* _LutTable = p.Table.Span)
             {
-                var LutTable = LutTablePtr;
+                var LutTable = _LutTable;
 
+                var @out = stackalloc byte*[cmsMAXCHANNELS];
+
+                var SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+                var SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
+                var DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+                var DestIncrements = stackalloc uint[cmsMAXCHANNELS];
+
+                var InputFormat = cmsGetTransformInputFormat(CMMcargo);
+                var OutputFormat = cmsGetTransformOutputFormat(CMMcargo);
+
+                _cmsComputeComponentIncrements(InputFormat, Stride.BytesPerPlaneIn, out _, out var nalpha, new(SourceStartingOrder, cmsMAXCHANNELS), new(SourceIncrements, cmsMAXCHANNELS));
+                _cmsComputeComponentIncrements(OutputFormat, Stride.BytesPerPlaneOut, out _, out nalpha, new(DestStartingOrder, cmsMAXCHANNELS), new(DestIncrements, cmsMAXCHANNELS));
+
+                if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
+                    nalpha = 0;
+
+                nuint strideIn = 0;
+                nuint strideOut = 0;
+                
                 for (var i = 0; i < LineCount; i++)
                 {
-                    var rin = (int)(SourceStartingOrder[0] + strideIn);
-                    var gin = (int)(SourceStartingOrder[1] + strideIn);
-                    var bin = (int)(SourceStartingOrder[2] + strideIn);
+                    var rin = Input + SourceStartingOrder[0] + strideIn;
+                    var gin = Input + SourceStartingOrder[1] + strideIn;
+                    var bin = Input + SourceStartingOrder[2] + strideIn;
                     var ain =
                         nalpha is not 0
-                            ? (int)(SourceStartingOrder[3] + strideIn)
+                            ? Input + SourceStartingOrder[3] + strideIn
                             : default;
 
                     var TotalPlusAlpha = TotalOut;
                     if (nalpha is not 0) TotalPlusAlpha++;
 
-                    for (var OutChan = 0; OutChan < TotalPlusAlpha; OutChan++)
+                    for (var ii = 0; ii < TotalPlusAlpha; ii++)
                     {
-                        @out[OutChan] = OutputPtr + DestStartingOrder[OutChan] + strideOut;
+                        @out[ii] = Output + DestStartingOrder[ii] + strideOut;
                     }
 
                     for (var ii = 0; ii < PixelsPerLine; ii++)
                     {
-                        var r = fclamp(BitConverter.ToSingle(Input[rin..]));
-                        var g = fclamp(BitConverter.ToSingle(Input[gin..]));
-                        var b = fclamp(BitConverter.ToSingle(Input[bin..]));
+                        var r = fclamp(*(float*)rin);
+                        var g = fclamp(*(float*)gin);
+                        var b = fclamp(*(float*)bin);
 
-                        rin += (int)SourceIncrements[0];
-                        gin += (int)SourceIncrements[1];
-                        bin += (int)SourceIncrements[2];
+                        rin += SourceIncrements[0];
+                        gin += SourceIncrements[1];
+                        bin += SourceIncrements[2];
 
                         var px = r * p.Domain[0];
                         var py = g * p.Domain[1];
                         var pz = b * p.Domain[2];
 
-                        var x0 = _cmsQuickFloor(px); var rx = px - x0;
-                        var y0 = _cmsQuickFloor(py); var ry = py - y0;
-                        var z0 = _cmsQuickFloor(pz); var rz = pz - z0;
+                        var x0 = (int)MathF.Floor(px); var rx = px - x0;
+                        var y0 = (int)MathF.Floor(py); var ry = py - y0;
+                        var z0 = (int)MathF.Floor(pz); var rz = pz - z0;
 
                         var X0 = (int)p.opta[2] * x0;
                         var X1 = X0 + ((rx >= 1.0) ? 0 : (int)p.opta[2]);
@@ -182,11 +186,11 @@ public static partial class FastFloat
                             }
                         }
 
-                        if (nalpha is not 0)
+                        if (ain is not null)
                         {
-                            *(float*)@out[TotalOut] = BitConverter.ToSingle(Input[ain..]);
-                            ain += (int)SourceIncrements[3];
-                            @out[TotalOut] += DestIncrements[(int)TotalOut];
+                            *(float*)@out[TotalOut] = *(float*)ain;
+                            ain += SourceIncrements[3];
+                            @out[TotalOut] += DestIncrements[TotalOut];
                         }
                     }
                 }

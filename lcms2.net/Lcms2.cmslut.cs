@@ -172,7 +172,7 @@ public static partial class Lcms2
                 : null
             : null;
 
-    private static void EvaluateCurves( ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
+    private static void EvaluateCurves(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
     {
         if (mpe.Data is not StageToneCurvesData Data || Data.TheCurves is null)
             return;
@@ -202,7 +202,7 @@ public static partial class Lcms2
             }
         }
 
-        ReturnArray(ContextID, Data.TheCurves);
+        //ReturnArray(ContextID, Data.TheCurves);
     }
 
     private static object? CurveSetDup(Stage mpe)
@@ -293,7 +293,7 @@ public static partial class Lcms2
             if (Data.Offset is not null)
                 Tmp += Data.Offset[i];
 
-             Out[i] = (float)Tmp;
+            Out[i] = (float)Tmp;
         }
 
         // Output in 0..1.0 domain
@@ -303,13 +303,13 @@ public static partial class Lcms2
     {
         if (mpe.Data is not StageMatrixData Data)
             return null;
-        var pool = _cmsGetContext(mpe.ContextID).GetBufferPool<double>();
+        //var pool = _cmsGetContext(mpe.ContextID).GetBufferPool<double>();
 
         var sz = (int)(mpe.InputChannels * mpe.OutputChannels);
 
         var NewElem = Data.Offset is not null
-            ? new StageMatrixData(Data.Double.AsSpan()[..sz], Data.Offset.AsSpan()[..(int)mpe.OutputChannels], pool)
-            : new StageMatrixData(Data.Double.AsSpan()[..sz], default, pool);
+            ? new StageMatrixData(Data.Double.AsSpan()[..sz], Data.Offset.AsSpan()[..(int)mpe.OutputChannels]/*, pool*/)
+            : new StageMatrixData(Data.Double.AsSpan()[..sz], default/*, pool*/);
 
         //if (NewElem is null) return null;
 
@@ -333,28 +333,28 @@ public static partial class Lcms2
 
     public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, MAT3 Matrix, VEC3 Offset)
     {
-        var pool = Context.GetPool<double>(ContextID);
+        //var pool = Context.GetPool<double>(ContextID);
 
-        var mat = Matrix.AsArray(pool);
-        var off = Offset.AsArray(pool);
+        var mat = Matrix.AsArray(/*pool*/);
+        var off = Offset.AsArray(/*pool*/);
 
         var result = cmsStageAllocMatrix(ContextID, Rows, Cols, mat, off);
 
-        pool.Return(mat);
-        pool.Return(off);
+        //pool.Return(mat);
+        //pool.Return(off);
 
         return result;
     }
 
     public static Stage? cmsStageAllocMatrix(Context? ContextID, uint Rows, uint Cols, MAT3 Matrix, ReadOnlySpan<double> Offset)
     {
-        var pool = Context.GetPool<double>(ContextID);
+        //var pool = Context.GetPool<double>(ContextID);
 
-        var mat = Matrix.AsArray(pool);
+        var mat = Matrix.AsArray(/*pool*/);
 
         var result = cmsStageAllocMatrix(ContextID, Rows, Cols, mat, Offset);
 
-        pool.Return(mat);
+        //pool.Return(mat);
 
         return result;
     }
@@ -374,10 +374,10 @@ public static partial class Lcms2
 
         //var NewElem = new StageMatrixData();
         //if (NewElem is null) goto Error;
-        var pool = Context.GetPool<double>(ContextID);
+        //var pool = Context.GetPool<double>(ContextID);
         var NewElem = Offset.Length >= Rows
-            ? new StageMatrixData(Matrix, Offset[..(int)Rows], pool)
-            : new StageMatrixData(Matrix, default, pool);
+            ? new StageMatrixData(Matrix, Offset[..(int)Rows]/*, pool*/)
+            : new StageMatrixData(Matrix, default/*, pool*/);
 
         NewMPE.Data = NewElem;
 
@@ -398,9 +398,9 @@ public static partial class Lcms2
 
         return NewMPE;
 
-    //Error:
-    //    cmsStageFree(NewMPE);
-    //    return null;
+        //Error:
+        //    cmsStageFree(NewMPE);
+        //    return null;
     }
 
     private static void EvaluateCLUTfloat(ReadOnlySpan<float> In, Span<float> Out, Stage mpe)
@@ -444,6 +444,9 @@ public static partial class Lcms2
             if (rv > uint.MaxValue / dim) return 0;
         }
 
+        // Again, prevent overflow
+        if (rv > uint.MaxValue / 15) return 0;
+
         return rv;
     }
 
@@ -451,7 +454,7 @@ public static partial class Lcms2
     {
         if (mpe.Data is StageCLutData<float> DataF)
         {
-            var pool = Context.GetPool<float>(mpe.ContextID);
+            //var pool = Context.GetPool<float>(mpe.ContextID);
 
             var NewElem = new StageCLutData<float>
             {
@@ -465,7 +468,8 @@ public static partial class Lcms2
                 //NewElem.Tab = _cmsDupMem<float>(mpe.ContextID, Data.TFloat, Data.nEntries);
                 //if (NewElem.Tab is null)
                 //    goto Error;
-                NewElem.Tab = pool.Rent((int)DataF.nEntries);
+                //NewElem.Tab = pool.Rent((int)DataF.nEntries);
+                NewElem.Tab = new float[DataF.nEntries];
                 DataF.TFloat.CopyTo(NewElem.TFloat);
             }
 
@@ -483,7 +487,7 @@ public static partial class Lcms2
         }
         if (mpe.Data is StageCLutData<ushort> Data)
         {
-            var pool = Context.GetPool<ushort>(mpe.ContextID);
+            //var pool = Context.GetPool<ushort>(mpe.ContextID);
 
             var NewElem = new StageCLutData<ushort>
             {
@@ -495,7 +499,8 @@ public static partial class Lcms2
                 //NewElem.Tab = _cmsDupMem<ushort>(mpe.ContextID, Data.T, Data.nEntries);
                 //if (NewElem.Tab is null)
                 //    goto Error;
-                NewElem.Tab = pool.Rent((int)Data.nEntries);
+                //NewElem.Tab = pool.Rent((int)Data.nEntries);
+                NewElem.Tab = new ushort[Data.nEntries];
                 Data.TUshort.CopyTo(NewElem.TUshort);
             }
 
@@ -527,7 +532,7 @@ public static partial class Lcms2
 
         if (mpe.Data is StageCLutData<float> DataF)
         {
-            ReturnArray(mpe.ContextID, DataF.Tab);
+            //ReturnArray(mpe.ContextID, DataF.Tab);
             DataF.Tab = null;
 
             _cmsFreeInterpParams(DataF.Params);
@@ -535,7 +540,7 @@ public static partial class Lcms2
 
         if (mpe.Data is StageCLutData<ushort> DataU)
         {
-            ReturnArray(mpe.ContextID, DataU.Tab);
+            //ReturnArray(mpe.ContextID, DataU.Tab);
             DataU.Tab = null;
 
             _cmsFreeInterpParams(DataU.Params);
@@ -580,8 +585,9 @@ public static partial class Lcms2
         }
 
         //NewElem.Tab = _cmsCalloc<ushort>(ContextID, n);
-        NewElem.Tab = Context.GetPool<ushort>(ContextID).Rent((int)n);
-        Array.Clear(NewElem.Tab);
+        //NewElem.Tab = Context.GetPool<ushort>(ContextID).Rent((int)n);
+        //Array.Clear(NewElem.Tab);
+        NewElem.Tab = new ushort[n];
         //if (NewElem.Tab is null)
         //{
         //    cmsStageFree(NewMPE);
@@ -688,7 +694,8 @@ public static partial class Lcms2
         //    cmsStageFree(NewMPE);
         //    return null;
         //}
-        NewElem.Tab = Context.GetPool<float>(ContextID).Rent((int)n);
+        //NewElem.Tab = Context.GetPool<float>(ContextID).Rent((int)n);
+        NewElem.Tab = new float[n];
 
         if (!Table.IsEmpty)
         {
@@ -938,8 +945,9 @@ public static partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabV2ToV4curves(Context? ContextID)
     {
-        var pool = Context.GetPool<ToneCurve>(ContextID);
-        ToneCurve[] LabTable = pool.Rent(3);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
+        //ToneCurve[] LabTable = pool.Rent(3);
+        var LabTable = new ToneCurve[3];
 
         LabTable[0] = cmsBuildTabulatedToneCurve16(ContextID, 258, null)!;
         LabTable[1] = cmsBuildTabulatedToneCurve16(ContextID, 258, null)!;
@@ -950,7 +958,7 @@ public static partial class Lcms2
             if (LabTable[j] is null)
             {
                 cmsFreeToneCurveTriple(LabTable);
-                ReturnArray(pool, LabTable);
+                //ReturnArray(pool, LabTable);
                 return null;
             }
 
@@ -966,7 +974,7 @@ public static partial class Lcms2
 
         var mpe = cmsStageAllocToneCurves(ContextID, 3, LabTable);
         cmsFreeToneCurveTriple(LabTable);
-        ReturnArray(pool, LabTable);
+        //ReturnArray(pool, LabTable);
 
         if (mpe is null) return null;
         mpe.Implements = cmsSigLabV2toV4;
@@ -1111,8 +1119,9 @@ public static partial class Lcms2
 
     internal static Stage? _cmsStageAllocLabPrelin(Context? ContextID)
     {
-        var pool = Context.GetPool<ToneCurve>(ContextID);
-        ToneCurve?[] LabTable = pool.Rent(3);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
+        //ToneCurve?[] LabTable = pool.Rent(3);
+        var LabTable = new ToneCurve?[3];
         Span<double> Params = stackalloc double[1] { 2.4 };
 
         LabTable[0] = cmsBuildGamma(ContextID, 1.0);
@@ -1379,7 +1388,7 @@ public static partial class Lcms2
         return NewLUT;
     }
 
-    public static bool cmsPipelineInsertStage(Pipeline? lut, StageLoc loc, [NotNullWhen(true)]Stage? mpe)
+    public static bool cmsPipelineInsertStage(Pipeline? lut, StageLoc loc, [NotNullWhen(true)] Stage? mpe)
     {
         Stage? Anterior = null, pt;
 

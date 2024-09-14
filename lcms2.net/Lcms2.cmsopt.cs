@@ -70,28 +70,34 @@ public static partial class Lcms2
             ContextID = context;
             p = @params;
 
-            var usPool = Context.GetPool<ushort>(context);
-            var uiPool = Context.GetPool<uint>(context);
+            //var usPool = Context.GetPool<ushort>(context);
+            //var uiPool = Context.GetPool<uint>(context);
 
-            _rx = usPool.Rent(256);
-            _ry = usPool.Rent(256);
-            _rz = usPool.Rent(256);
-            _x0 = uiPool.Rent(256);
-            _y0 = uiPool.Rent(256);
-            _z0 = uiPool.Rent(256);
+            //_rx = usPool.Rent(256);
+            //_ry = usPool.Rent(256);
+            //_rz = usPool.Rent(256);
+            //_x0 = uiPool.Rent(256);
+            //_y0 = uiPool.Rent(256);
+            //_z0 = uiPool.Rent(256);
+            _rx = new ushort[256];
+            _ry = new ushort[256];
+            _rz = new ushort[256];
+            _x0 = new uint[256];
+            _y0 = new uint[256];
+            _z0 = new uint[256];
         }
 
         public void Dispose()
         {
-            var usPool = Context.GetPool<ushort>(ContextID);
-            var uiPool = Context.GetPool<uint>(ContextID);
+            //var usPool = Context.GetPool<ushort>(ContextID);
+            //var uiPool = Context.GetPool<uint>(ContextID);
 
-            ReturnArray(usPool, _rx);
-            ReturnArray(usPool, _ry);
-            ReturnArray(usPool, _rz);
-            ReturnArray(uiPool, _x0);
-            ReturnArray(uiPool, _y0);
-            ReturnArray(uiPool, _z0);
+            //ReturnArray(usPool, _rx);
+            //ReturnArray(usPool, _ry);
+            //ReturnArray(usPool, _rz);
+            //ReturnArray(uiPool, _x0);
+            //ReturnArray(uiPool, _y0);
+            //ReturnArray(uiPool, _z0);
 
             GC.SuppressFinalize(this);
         }
@@ -149,26 +155,32 @@ public static partial class Lcms2
             nInputs = numInputs;
             nOutputs = numOutputs;
 
-            var ifPool = Context.GetPool<InterpFn<ushort>>(context);
-            var ipPool = Context.GetPool<InterpParams<ushort>>(context);
+            //var ifPool = Context.GetPool<InterpFn<ushort>>(context);
+            //var ipPool = Context.GetPool<InterpParams<ushort>>(context);
 
-            evalCurveIn16 = ifPool.Rent((int)numInputs);
-            paramsCurveIn16 = ipPool.Rent((int)numInputs);
+            //evalCurveIn16 = ifPool.Rent((int)numInputs);
+            //paramsCurveIn16 = ipPool.Rent((int)numInputs);
 
-            evalCurveOut16 = ifPool.Rent((int)numOutputs);
-            paramsCurveOut16 = ipPool.Rent((int)numOutputs);
+            //evalCurveOut16 = ifPool.Rent((int)numOutputs);
+            //paramsCurveOut16 = ipPool.Rent((int)numOutputs);
+
+            evalCurveIn16 = new InterpFn<ushort>[numInputs];
+            paramsCurveIn16 = new InterpParams<ushort>[numInputs];
+
+            evalCurveOut16 = new InterpFn<ushort>[numOutputs];
+            paramsCurveOut16 = new InterpParams<ushort>[numOutputs];
         }
 
         public void Dispose()
         {
-            var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
-            var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
+            //var ifPool = Context.GetPool<InterpFn<ushort>>(ContextID);
+            //var ipPool = Context.GetPool<InterpParams<ushort>>(ContextID);
 
-            ReturnArray(ifPool, evalCurveIn16);
-            ReturnArray(ipPool, paramsCurveIn16);
+            //ReturnArray(ifPool, evalCurveIn16);
+            //ReturnArray(ipPool, paramsCurveIn16);
 
-            ReturnArray(ifPool, evalCurveOut16);
-            ReturnArray(ipPool, paramsCurveOut16);
+            //ReturnArray(ifPool, evalCurveOut16);
+            //ReturnArray(ipPool, paramsCurveOut16);
 
             GC.SuppressFinalize(this);
         }
@@ -199,19 +211,28 @@ public static partial class Lcms2
         public readonly Context? ContextID = context;
 
         // from 0..255 to 1.14 (0.0...1.0)
-        private readonly int[] shaper1R = Context.GetPool<int>(context).Rent(256);
-        private readonly int[] shaper1G = Context.GetPool<int>(context).Rent(256);
-        private readonly int[] shaper1B = Context.GetPool<int>(context).Rent(256);
+        //private readonly int[] shaper1R = Context.GetPool<int>(context).Rent(256);
+        //private readonly int[] shaper1G = Context.GetPool<int>(context).Rent(256);
+        //private readonly int[] shaper1B = Context.GetPool<int>(context).Rent(256);
+        private readonly int[] shaper1R = new int[256];
+        private readonly int[] shaper1G = new int[256];
+        private readonly int[] shaper1B = new int[256];
+
 
         // n.14 to n.14 (needs a saturation after that)
-        private readonly int[] mat = Context.GetPool<int>(context).Rent(3 * 3);
+        //private readonly int[] mat = Context.GetPool<int>(context).Rent(3 * 3);
+        private readonly int[] mat = new int[3 * 3];
 
-        private readonly int[] off = Context.GetPool<int>(context).Rent(3);
+        //private readonly int[] off = Context.GetPool<int>(context).Rent(3);
+        private readonly int[] off = new int[3];
 
         // 1.14 to 0..255
-        private readonly ushort[] shaper2R = Context.GetPool<ushort>(context).Rent(16385);
-        private readonly ushort[] shaper2G = Context.GetPool<ushort>(context).Rent(16385);
-        private readonly ushort[] shaper2B = Context.GetPool<ushort>(context).Rent(16385);
+        //private readonly ushort[] shaper2R = Context.GetPool<ushort>(context).Rent(16385);
+        //private readonly ushort[] shaper2G = Context.GetPool<ushort>(context).Rent(16385);
+        //private readonly ushort[] shaper2B = Context.GetPool<ushort>(context).Rent(16385);
+        private readonly ushort[] shaper2R = new ushort[16385];
+        private readonly ushort[] shaper2G = new ushort[16385];
+        private readonly ushort[] shaper2B = new ushort[16385];
 
         public Span<int> Shaper1R => shaper1R.AsSpan(..256);
         public Span<int> Shaper1G => shaper1G.AsSpan(..256);
@@ -244,19 +265,19 @@ public static partial class Lcms2
 
         public void Dispose()
         {
-            var iPool = Context.GetPool<int>(ContextID);
-            var usPool = Context.GetPool<ushort>(ContextID);
+            //var iPool = Context.GetPool<int>(ContextID);
+            //var usPool = Context.GetPool<ushort>(ContextID);
 
-            ReturnArray(iPool, shaper1R);
-            ReturnArray(iPool, shaper1G);
-            ReturnArray(iPool, shaper1B);
+            //ReturnArray(iPool, shaper1R);
+            //ReturnArray(iPool, shaper1G);
+            //ReturnArray(iPool, shaper1B);
 
-            ReturnArray(iPool, mat);
-            ReturnArray(iPool, off);
+            //ReturnArray(iPool, mat);
+            //ReturnArray(iPool, off);
 
-            ReturnArray(usPool, shaper2R);
-            ReturnArray(usPool, shaper2G);
-            ReturnArray(usPool, shaper2B);
+            //ReturnArray(usPool, shaper2R);
+            //ReturnArray(usPool, shaper2G);
+            //ReturnArray(usPool, shaper2B);
 
             GC.SuppressFinalize(this);
         }
@@ -405,10 +426,10 @@ public static partial class Lcms2
                 {
                     // We can not get rid of full matrix
                     var ctx = _cmsGetContext(Lut.ContextID);
-                    var pool = ctx.GetBufferPool<double>();
-                    var resArray = res.AsArray(pool);
+                    //var pool = ctx.GetBufferPool<double>();
+                    var resArray = res.AsArray(/*pool*/);
                     var Multmat = cmsStageAllocMatrix(Lut.ContextID, 3, 3, resArray, null);
-                    ReturnArray(pool, resArray);
+                    //ReturnArray(pool, resArray);
                     if (Multmat is null) return false;
 
                     // Recover the chain
@@ -1122,7 +1143,7 @@ public static partial class Lcms2
 
     private static bool OptimizeByComputingLinearization(ref Pipeline Lut, uint Intent, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags)
     {
-        var pool = Context.GetPool<ToneCurve>(Lut.ContextID);
+        //var pool = Context.GetPool<ToneCurve>(Lut.ContextID);
         Span<float> In = stackalloc float[cmsMAXCHANNELS];
         Span<float> Out = stackalloc float[cmsMAXCHANNELS];
         Pipeline? OptimizedLUT = null, LutPlusCurves = null;
@@ -1155,8 +1176,10 @@ public static partial class Lcms2
         // Empty gamma containers
         //memset(Trans, 0, _sizeof<nint>() * cmsMAXCHANNELS);
         //memset(TransReverse, 0, _sizeof<nint>() * cmsMAXCHANNELS);
-        ToneCurve[] Trans = pool.Rent(cmsMAXCHANNELS);
-        ToneCurve[] TransReverse = pool.Rent(cmsMAXCHANNELS);
+        //ToneCurve[] Trans = pool.Rent(cmsMAXCHANNELS);
+        //ToneCurve[] TransReverse = pool.Rent(cmsMAXCHANNELS);
+        var Trans = new ToneCurve[cmsMAXCHANNELS];
+        var TransReverse = new ToneCurve[cmsMAXCHANNELS];
 
         // If the last stage of the original lut are curves, and those curves are
         // degenerated, it is likely the transform is squeezing and clipping
@@ -1189,16 +1212,23 @@ public static partial class Lcms2
 
             // Feed input with a gray ramp
             for (var t = 0; t < OriginalLut.InputChannels; t++)
-                Trans[t].Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
+            {
+                var curve = Trans[t];
+                if (curve.Table16 is not null)
+                    curve.Table16[i] = _cmsQuickSaturateWord(Out[t] * 65535.0);
+            }
         }
 
         // Slope-limit the obtained curves
         for (var t = 0; t < OriginalLut.InputChannels; t++)
             SlopeLimiting(Trans[t]);
 
-        // Check for validity
+        // Check for validity.
         var lIsSuitable = true;
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
+        // lIsLinear is here for debug purposes
         var lIsLinear = true;
+#pragma warning restore CS0219 // Variable is assigned but its value is never used
         for (var t = 0; (lIsSuitable && (t < OriginalLut.InputChannels)); t++)
         {
             // Exclude if already linear
@@ -1290,8 +1320,8 @@ public static partial class Lcms2
 
         cmsPipelineFree(OriginalLut);
         Lut = OptimizedLUT;
-        ReturnArray(pool, TransReverse);
-        ReturnArray(pool, Trans);
+        //ReturnArray(pool, TransReverse);
+        //ReturnArray(pool, Trans);
         return true;
 
     Error:
@@ -1300,8 +1330,8 @@ public static partial class Lcms2
             if (Trans[t] is not null) cmsFreeToneCurve(Trans[t]);
             if (TransReverse[t] is not null) cmsFreeToneCurve(TransReverse[t]);
         }
-        ReturnArray(pool, TransReverse);
-        ReturnArray(pool, Trans);
+        //ReturnArray(pool, TransReverse);
+        //ReturnArray(pool, Trans);
 
         if (LutPlusCurves is not null) cmsPipelineFree(LutPlusCurves);
         if (OptimizedLUT is not null) cmsPipelineFree(OptimizedLUT);
@@ -1383,13 +1413,13 @@ public static partial class Lcms2
 
         return c16;
 
-    //Error2:
-    //    for (var j = 0; j < i; j++)
-    //        _cmsFree(ContextID, c16->Curves[j]);
-    //    _cmsFree(ContextID, c16->Curves);
-    //Error1:
-    //    _cmsFree(ContextID, c16);
-    //    return null;
+        //Error2:
+        //    for (var j = 0; j < i; j++)
+        //        _cmsFree(ContextID, c16->Curves[j]);
+        //    _cmsFree(ContextID, c16->Curves);
+        //Error1:
+        //    _cmsFree(ContextID, c16);
+        //    return null;
     }
 
     private static void FastEvaluateCurves8(ReadOnlySpan<ushort> In, Span<ushort> Out, object? D)
@@ -1450,8 +1480,9 @@ public static partial class Lcms2
         //// Create target curves
         //GammaTables = _cmsCalloc2<ToneCurve>(Src.ContextID, Src.InputChannels);
         //if (GammaTables is null) goto Error;
-        var pool = Context.GetPool<ToneCurve>(Src.ContextID);
-        ToneCurve[] GammaTables = pool.Rent((int)Src.InputChannels);
+        //var pool = Context.GetPool<ToneCurve>(Src.ContextID);
+        //ToneCurve[] GammaTables = pool.Rent((int)Src.InputChannels);
+        var GammaTables = new ToneCurve[Src.InputChannels];
 
         for (var i = 0; i < Src.InputChannels; i++)
         {
@@ -1482,7 +1513,7 @@ public static partial class Lcms2
 
         if (GammaTables is not null)
         {
-            ReturnArray(Src.ContextID, GammaTables);
+            //ReturnArray(Src.ContextID, GammaTables);
             GammaTables = null!;
         }
 
@@ -1534,7 +1565,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < Src.InputChannels; i++)
             cmsFreeToneCurve(GammaTables?[i]);
-        ReturnArray(Src.ContextID, GammaTables);
+        //ReturnArray(Src.ContextID, GammaTables);
 
         if (ObtainedCurves is not null)
             cmsStageFree(ObtainedCurves);
@@ -1733,6 +1764,8 @@ public static partial class Lcms2
         {
             var Data = (StageMatrixData)cmsStageData(Matrix1!)!;
 
+            if (Matrix1.InputChannels != 3 || Matrix1.OutputChannels != 3) return false;
+
             // Copy the matrix to our result
             //memcpy(&res, (MAT3*)Data.Double);
             res = new(Data.Double);
@@ -1761,14 +1794,14 @@ public static partial class Lcms2
 
         if (!IdentityMat)
         {
-            var pool = _cmsGetContext(Src.ContextID).GetBufferPool<double>();
-            var resArray = res.AsArray(pool);
+            //var pool = _cmsGetContext(Src.ContextID).GetBufferPool<double>();
+            var resArray = res.AsArray(/*pool*/);
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest.ContextID, 3, 3, resArray, Offset)))
             {
-                ReturnArray(pool, resArray);
+                //ReturnArray(pool, resArray);
                 goto Error;
             }
-            ReturnArray(pool, resArray);
+            //ReturnArray(pool, resArray);
         }
 
         // If identity on matrix, we can further optimize the curves, so call the join curves routine

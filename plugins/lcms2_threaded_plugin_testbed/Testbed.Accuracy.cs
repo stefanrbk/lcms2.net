@@ -39,7 +39,7 @@ internal static partial class Testbed
             var hsRGB = cmsCreate_sRGBProfile()!;
             var hLab = cmsCreateLab4Profile(null)!;
 
-            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_16, hLab, TYPE_Lab_16, INTENT_PERCEPTUAL, 0)!;
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_16, hLab, TYPE_Lab_16, INTENT_PERCEPTUAL, FLAGS)!;
 
             cmsCloseProfile(hsRGB);
             cmsCloseProfile(hLab);
@@ -68,8 +68,8 @@ internal static partial class Testbed
 
         const int npixels = 256 * 256 * 256;
 
-        var xformRaw = cmsCreateTransformTHR(Raw, hlcmsProfileIn, TYPE_RGBA_8, hlcmsProfileOut, TYPE_RGBA_8, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
-        var xformPlugin = cmsCreateTransformTHR(Plugin, hlcmsProfileIn, TYPE_RGBA_8, hlcmsProfileOut, TYPE_RGBA_8, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformRaw = cmsCreateTransformTHR(Raw, hlcmsProfileIn, TYPE_RGBA_8, hlcmsProfileOut, TYPE_RGBA_8, (uint)Intent, FLAGS | cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, hlcmsProfileIn, TYPE_RGBA_8, hlcmsProfileOut, TYPE_RGBA_8, (uint)Intent, FLAGS | cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
 
         cmsCloseProfile(hlcmsProfileIn);
         cmsCloseProfile(hlcmsProfileOut);
@@ -152,8 +152,8 @@ internal static partial class Testbed
 
         const int npixels = 256 * 256 * 256;
 
-        var xformRaw = cmsCreateTransformTHR(Raw, hlcmsProfileIn, TYPE_RGBA_16, hlcmsProfileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
-        var xformPlugin = cmsCreateTransformTHR(Plugin, hlcmsProfileIn, TYPE_RGBA_16, hlcmsProfileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformRaw = cmsCreateTransformTHR(Raw, hlcmsProfileIn, TYPE_RGBA_16, hlcmsProfileOut, TYPE_RGBA_16, (uint)Intent, FLAGS | cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
+        var xformPlugin = cmsCreateTransformTHR(Plugin, hlcmsProfileIn, TYPE_RGBA_16, hlcmsProfileOut, TYPE_RGBA_16, (uint)Intent, FLAGS | cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
 
         cmsCloseProfile(hlcmsProfileIn);
         cmsCloseProfile(hlcmsProfileOut);

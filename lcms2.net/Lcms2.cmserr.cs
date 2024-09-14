@@ -266,15 +266,15 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static T** _cmsMallocZero2<T>(Context? ContextID) where T : struct =>
     //    (T**)_cmsMallocZero(ContextID, _sizeof<nint>(), typeof(T*));
-    [DebuggerStepThrough]
-    internal static T[] GetArray<T>(Context? ContextID, uint count) where T : struct
-    {
-        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
-        var array = pool.Rent((int)count);
-        Array.Clear(array);
+    //[DebuggerStepThrough]
+    //internal static T[] GetArray<T>(Context? ContextID, uint count) where T : struct
+    //{
+    //    var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+    //    var array = pool.Rent((int)count);
+    //    Array.Clear(array);
 
-        return array;
-    }
+    //    return array;
+    //}
     //[DebuggerStepThrough]
     //internal static void* _cmsCalloc(Context? ContextID, uint num, uint size, Type type)
     //{
@@ -301,13 +301,15 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static T[] _cmsRealloc<T>(Context? ContextID, T[] array, uint count) where T : struct
     {
-        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        //var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
 
-        var newBuffer = pool.Rent((int)count);
+        //var newBuffer = pool.Rent((int)count);
+
+        var newBuffer = new T[count];
 
         array.AsSpan().CopyTo(newBuffer.AsSpan()[..array.Length]);
 
-        ReturnArray(pool, array);
+        //ReturnArray(pool, array);
 
         return newBuffer;
     }
@@ -316,26 +318,26 @@ public static partial class Lcms2
     //internal static T* _cmsRealloc<T>(Context? ContextID, void* Ptr, uint size) where T : struct =>
     //    (T*)_cmsRealloc(ContextID, Ptr, size);
 
-    [DebuggerStepThrough]
-    internal static void ReturnArray<T>(ArrayPool<T> pool, T[]? array)
-    {
-        if (array is not null)
-        {
-            if (typeof(T).IsByRef)
-            {
-                for (var i = 0; i < array.Length; i++)
-                    array[i] = default!;
-            }
-            pool.Return(array);
-        }
-    }
+    //[DebuggerStepThrough]
+    //internal static void ReturnArray<T>(ArrayPool<T> pool, T[]? array)
+    //{
+    //    if (array is not null)
+    //    {
+    //        if (typeof(T).IsByRef)
+    //        {
+    //            for (var i = 0; i < array.Length; i++)
+    //                array[i] = default!;
+    //        }
+    //        pool.Return(array);
+    //    }
+    //}
 
-    [DebuggerStepThrough]
-    internal static void ReturnArray<T>(Context? ContextID, T[]? array)
-    {
-        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
-        ReturnArray(pool, array);
-    }
+    //[DebuggerStepThrough]
+    //internal static void ReturnArray<T>(Context? ContextID, T[]? array)
+    //{
+    //    var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+    //    ReturnArray(pool, array);
+    //}
 
     //[DebuggerStepThrough]
     //internal static void _cmsFree(Context? ContextID, void* Ptr)
@@ -361,8 +363,9 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static T[] _cmsDupMem<T>(Context? ContextID, ReadOnlySpan<T> Org, uint num) where T : struct
     {
-        var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
-        var array = pool.Rent((int)num);
+        //var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        //var array = pool.Rent((int)num);
+        var array = new T[num];
 
         Org[..(int)num].CopyTo(array.AsSpan()[..(int)num]);
 

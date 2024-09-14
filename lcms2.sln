@@ -28,9 +28,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lcms2_threaded_plugin", "pl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lcms2_threaded_plugin_testbed", "plugins\lcms2_threaded_plugin_testbed\lcms2_threaded_plugin_testbed.csproj", "{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fast Float UnitTests", "plugins\lcms2_fast_float_plugin_unit_tests\Fast Float UnitTests.csproj", "{822E8447-28E5-4F5A-A0D6-C1114A27123B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug (No Fast Floor)|Any CPU = Debug (No Fast Floor)|Any CPU
+		Debug (Single Threaded)|Any CPU = Debug (Single Threaded)|Any CPU
 		Debug|Any CPU = Debug|Any CPU
 		Release (No Fast Floor)|Any CPU = Release (No Fast Floor)|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -38,6 +41,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug (No Fast Floor)|Any CPU
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug (No Fast Floor)|Any CPU
+		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug (Single Threaded)|Any CPU.Build.0 = Debug|Any CPU
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release (No Fast Floor)|Any CPU
@@ -46,6 +51,8 @@ Global
 		{F5BAE097-0023-4597-9B02-E558E2007330}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug (No Fast Floor)|Any CPU
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug (No Fast Floor)|Any CPU
+		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug (Single Threaded)|Any CPU
+		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug (Single Threaded)|Any CPU.Build.0 = Debug (Single Threaded)|Any CPU
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release (No Fast Floor)|Any CPU
@@ -54,6 +61,8 @@ Global
 		{0EE45BD4-6535-4EA5-AC3E-14D8F00904FE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug (Single Threaded)|Any CPU.Build.0 = Debug|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
@@ -62,6 +71,8 @@ Global
 		{CFD6B1B8-9FC4-4E7E-AC2C-A314726095BE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug (Single Threaded)|Any CPU.Build.0 = Debug|Any CPU
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
@@ -70,6 +81,8 @@ Global
 		{7E64803D-930E-4BF4-A211-38A399C6C24E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug (Single Threaded)|Any CPU
+		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug (Single Threaded)|Any CPU.Build.0 = Debug (Single Threaded)|Any CPU
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
@@ -78,6 +91,8 @@ Global
 		{653D1596-6FD5-4F55-82E3-988C0D447568}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug (Single Threaded)|Any CPU.Build.0 = Debug|Any CPU
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
@@ -86,12 +101,24 @@ Global
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug (Single Threaded)|Any CPU
+		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug (Single Threaded)|Any CPU.Build.0 = Debug (Single Threaded)|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Release (No Fast Floor)|Any CPU.Build.0 = Release|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug (No Fast Floor)|Any CPU.ActiveCfg = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug (No Fast Floor)|Any CPU.Build.0 = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug (Single Threaded)|Any CPU.ActiveCfg = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug (Single Threaded)|Any CPU.Build.0 = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Release (No Fast Floor)|Any CPU.ActiveCfg = Release|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Release (No Fast Floor)|Any CPU.Build.0 = Release|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,6 +130,7 @@ Global
 		{417A7ADD-8032-4A1A-BB6D-EB617486B86D} = {46625FA1-F485-4063-B42F-75C89DDBE0A7}
 		{E7EB8736-DBC6-4A64-AFCB-DC06EAEAA4B0} = {417A7ADD-8032-4A1A-BB6D-EB617486B86D}
 		{FA7BD1CA-49F7-44F7-9C59-41FABD081E9B} = {417A7ADD-8032-4A1A-BB6D-EB617486B86D}
+		{822E8447-28E5-4F5A-A0D6-C1114A27123B} = {A629438E-5EFD-4EE8-B433-9E4C01E6E068}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D1DB2C89-83A9-4522-BC47-0AEE534D7000}

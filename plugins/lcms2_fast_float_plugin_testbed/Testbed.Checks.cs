@@ -25,37 +25,52 @@ using lcms2.types;
 using Microsoft.Extensions.Logging;
 
 using System;
+using System.Diagnostics;
 
 namespace lcms2.FastFloatPlugin.testbed;
 internal static partial class Testbed
 {
-    private struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
+    internal struct Scanline_rgb8bits(byte r, byte g, byte b) { public byte r = r, g = g, b = b; }
 
-    private struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
+    internal struct Scanline_rgba8bits(byte r, byte g, byte b, byte a) { public byte r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
+    internal struct Scanline_cmyk8bits(byte c, byte m, byte y, byte k) { public byte c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
+    internal struct Scanline_rgb16bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
+    internal struct Scanline_rgba16bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
+    internal struct Scanline_cmyk16bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
+    [DebuggerDisplay("[L: {L}, a: {a}, b: {b}]")]
+    internal struct Scanline_Lab16bits(ushort L, ushort a, ushort b) { public ushort L = L, a = a, b = b; }
 
-    private struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}]")]
+    internal struct Scanline_rgb15bits(ushort r, ushort g, ushort b) { public ushort r = r, g = g, b = b; }
 
-    private struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
+    [DebuggerDisplay("[r: {r}, g: {g}, b: {b}, a: {a}]")]
+    internal struct Scanline_rgba15bits(ushort r, ushort g, ushort b, ushort a) { public ushort r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
+    [DebuggerDisplay("[c: {c}, m: {m}, y: {y}, k: {k}]")]
+    internal struct Scanline_cmyk15bits(ushort c, ushort m, ushort y, ushort k) { public ushort c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
+    [DebuggerDisplay("[r: {r:F6}, g: {g:F6}, b: {b:F6}]")]
+    internal struct Scanline_rgbFloat(float r, float g, float b) { public float r = r, g = g, b = b; }
 
-    private struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
+    [DebuggerDisplay("[r: {r:F6}, g: {g:F6}, b: {b:F6}, a: {a:F6}]")]
+    internal struct Scanline_rgbaFloat(float r, float g, float b, float a) { public float r = r, g = g, b = b, a = a; }
 
-    private struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
+    [DebuggerDisplay("[c: {c:F6}, m: {m:F6}, y: {y:F6}, k: {k:F6}]")]
+    internal struct Scanline_cmykFloat(float c, float m, float y, float k) { public float c = c, m = m, y = y, k = k; }
 
-    private struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
+    [DebuggerDisplay("[L: {L:F6}, a: {a:F6}, b: {b:F6}]")]
+    internal struct Scanline_LabFloat(float L, float a, float b) { public float L = L, a = a, b = b; }
 
     private static void CheckSingleFormatter15(Context? _, uint Type, string Text)
     {
@@ -182,6 +197,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Check compute increments"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             CHECK(nameof(TYPE_GRAY_8), 0, 1, 0, /**/ 0,    /**/ 1);
             CHECK(nameof(TYPE_GRAYA_8), 0, 1, 1, /**/ 0, 1, /**/ 2, 2);
             CHECK(nameof(TYPE_AGRAY_8), 0, 1, 1, /**/ 1, 0, /**/ 2, 2);
@@ -270,6 +288,12 @@ internal static partial class Testbed
             CHECK(nameof(TYPE_BGR_16_PLANAR), 100, 3, 0, /**/ 200, 100, 0,       /**/ 2, 2, 2);
             CHECK(nameof(TYPE_BGRA_16_PLANAR), 100, 3, 1, /**/ 200, 100, 0, 300,  /**/ 2, 2, 2, 2);
             CHECK(nameof(TYPE_ABGR_16_PLANAR), 100, 3, 1, /**/ 300, 200, 100, 0,  /**/ 2, 2, 2, 2);
+
+            trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         static bool CHECK(string frm, uint plane, uint chans, uint alpha, params uint[] args)
@@ -296,7 +320,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Checking 15 bit <=> 8 bit conversions"))
         {
-
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             for (var i = 0; i < 256; i++)
             {
                 var n = FROM_8_TO_15((byte)i);
@@ -307,6 +333,10 @@ internal static partial class Testbed
             }
 
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
     }
 
@@ -321,8 +351,8 @@ internal static partial class Testbed
         if (xform15 is null || xform8 is null)
             Fail("Null transforms on check for 15 bit conversions");
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
+
         var buffer8in = new Scanline_rgb8bits[npixels];
         var buffer8out = new Scanline_rgb8bits[npixels];
         var buffer15in = new Scanline_rgb15bits[npixels];
@@ -349,138 +379,149 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+#if NO_THREADS
 
-        for (var i = 0; i < 256; i++)
+        DoTransforms(0, npixels, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+        var failed = CompareTransforms(0, npixels, buffer8out, buffer15out);
+
+#else
+
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
+
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                cmsDoTransform(xform15, buffer15in.AsSpan((offset * npixelsThreaded)..), buffer15out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xform8, buffer8in.AsSpan((offset * npixelsThreaded)..), buffer8out.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+                return CompareTransforms(offset, nPixelsPerThread, buffer8out, buffer15out);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    // Check the results
-                    if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
-                        !Valid15(buffer15out[j].g, buffer8out[j].g) ||
-                        !Valid15(buffer15out[j].b, buffer8out[j].b))
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
+            else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
+            }
+
+            DoTransforms(0, npixels, xform8, xform15, buffer8in, buffer15in, buffer8out, buffer15out);
+            failed = CompareTransforms(0, npixels, buffer8out, buffer15out);
         }
+
+#endif
 
         cmsDeleteTransform(xform15);
         cmsDeleteTransform(xform8);
 
         if (failed is not 0)
             Fail("{0} failed", failed);
-    }
 
-    private static void TryAllValues15NonThreaded(Profile profileIn, Profile profileOut, int Intent)
-    {
-        var xform15 = cmsCreateTransform(profileIn, TYPE_RGB_15, profileOut, TYPE_RGB_15, (uint)Intent, cmsFLAGS_NOCACHE);
-        var xform8 = cmsCreateTransform(profileIn, TYPE_RGB_8, profileOut, TYPE_RGB_8, (uint)Intent, cmsFLAGS_NOCACHE);
-
-        cmsCloseProfile(profileIn);
-        cmsCloseProfile(profileOut);
-
-        if (xform15 is null || xform8 is null)
-            Fail("Null transforms on check for 15 bit conversions");
-
-        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
-        var buffer8in = new Scanline_rgb8bits[npixels];
-        var buffer8out = new Scanline_rgb8bits[npixels];
-        var buffer15in = new Scanline_rgb15bits[npixels];
-        var buffer15out = new Scanline_rgb15bits[npixels];
-
-        // Fill input values for 8 and 15 bits
-        var j = 0;
-        for (var r = 0; r < 256; r++)
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xform8, Transform xform15, Scanline_rgb8bits[] buffer8In, Scanline_rgb15bits[] buffer15In, Scanline_rgb8bits[] buffer8Out, Scanline_rgb15bits[] buffer15Out)
         {
-            for (var g = 0; g < 256; g++)
-            {
-                for ( var b = 0; b < 256; b++)
-                {
-                    buffer8in[j].r = (byte)r;
-                    buffer8in[j].g = (byte)g;
-                    buffer8in[j].b = (byte)b;
+            var start = offset * nPixelsPerThread;
+            var b8In = buffer8In.AsSpan(start..)[..nPixelsPerThread];
+            var b15In = buffer15In.AsSpan(start..)[..nPixelsPerThread];
+            var b8Out = buffer8Out.AsSpan(start..)[..nPixelsPerThread];
+            var b15Out = buffer15Out.AsSpan(start..)[..nPixelsPerThread];
 
-                    buffer15in[j].r = FROM_8_TO_15((byte)r);
-                    buffer15in[j].g = FROM_8_TO_15((byte)g);
-                    buffer15in[j].b = FROM_8_TO_15((byte)b);
-
-                    j++;
-                }
-            }
+            cmsDoTransform(xform15, b15In, b15Out, (uint)nPixelsPerThread);
+            cmsDoTransform(xform8, b8In, b8Out, (uint)nPixelsPerThread);
         }
 
-        cmsDoTransform(xform15, buffer15in, buffer15out, npixels);
-        cmsDoTransform(xform8, buffer8in, buffer8out, npixels);
-
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgb8bits[] buffer8out, Scanline_rgb15bits[] buffer15out)
         {
-            for (var g = 0; g < 256; g++)
+            // Let's compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
             {
-                for (var b = 0; b < 256; b++)
+                // Check the results
+                if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
+                    !Valid15(buffer15out[j].g, buffer8out[j].g) ||
+                    !Valid15(buffer15out[j].b, buffer8out[j].b))
                 {
-                    // Check the results
-                    if (!Valid15(buffer15out[j].r, buffer8out[j].r) ||
-                        !Valid15(buffer15out[j].g, buffer8out[j].g) ||
-                        !Valid15(buffer15out[j].b, buffer8out[j].b))
+                    if (failed++ is 0)
                     {
-                        Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})", buffer8out[j].r, buffer8out[j].g, buffer8out[j].b,
-                            FROM_15_TO_8(buffer15out[j].r), FROM_15_TO_8(buffer15out[j].g), FROM_15_TO_8(buffer15out[j].b));
+                        logger.LogError("Conversion first failed at ({r8} {g8} {b8}) != ({r15} {g15} {b15})",
+                            buffer8out[j].r,
+                            buffer8out[j].g,
+                            buffer8out[j].b,
+                            FROM_15_TO_8(buffer15out[j].r),
+                            FROM_15_TO_8(buffer15out[j].g),
+                            FROM_15_TO_8(buffer15out[j].b));
                     }
-
-                    j++;
                 }
             }
-        }
 
-        cmsDeleteTransform(xform15);
-        cmsDeleteTransform(xform8);
+            return failed;
+        }
     }
 
     public static void Check15bitsConversion()
     {
         Check15bitMacros();
 
+#if DEBUG
+        var timer = new Stopwatch();
+#endif
         using (logger.BeginScope("Checking accuracy of 15 bits on CLUT"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         using (logger.BeginScope("Checking accuracy of 15 bits on same profile"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test0)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         using (logger.BeginScope("Checking accuracy of 15 bits on Matrix"))
         {
+#if DEBUG
+            timer.Restart();
+#endif
             TryAllValues15(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test0)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         trace("All 15 bit tests passed");
@@ -500,8 +541,8 @@ internal static partial class Testbed
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transforms on check for float conversions");
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;  // All RGB cube in 8 bits
+        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
+
         var bufferIn = new Scanline_rgba16bits[npixels];
         var bufferRawOut = new Scanline_rgba16bits[npixels];
         var bufferPluginOut = new Scanline_rgba16bits[npixels];
@@ -524,126 +565,107 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+#if NO_THREADS
 
-        for (var i = 0; i < 256; i++)
+        DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+        var failed = CompareTransforms(0, npixels, bufferRawOut, bufferPluginOut);
+
+#else
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
+
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                // Different transforms, different output buffers
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (bufferRawOut[j].r != bufferPluginOut[j].r ||
-                        bufferRawOut[j].g != bufferPluginOut[j].g ||
-                        bufferRawOut[j].b != bufferPluginOut[j].b ||
-                        bufferRawOut[j].a != bufferPluginOut[j].a)
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
+            else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
+            }
+
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
         }
+
+
+#endif
+
+        cmsDeleteTransform(xformRaw);
+        cmsDeleteTransform(xformPlugin);
+
+        cmsDeleteContext(Plugin);
+        cmsDeleteContext(Raw);
+
         if (failed is not 0)
             Fail("{0} failed", failed);
 
-        cmsDeleteTransform(xformRaw);
-        cmsDeleteTransform(xformPlugin);
-
-        cmsDeleteContext(Plugin);
-        cmsDeleteContext(Raw);
-    }
-
-    private static void TryAllValues16NonThreaded(Profile profileIn, Profile profileOut, int Intent)
-    {
-        var Raw = cmsCreateContext();
-        var Plugin = cmsCreateContext(cmsFastFloatExtensions(), null);
-
-        var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
-        var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGBA_16, profileOut, TYPE_RGBA_16, (uint)Intent, cmsFLAGS_NOCACHE | cmsFLAGS_COPY_ALPHA);
-
-        cmsCloseProfile(profileIn);
-        cmsCloseProfile(profileOut);
-
-        if (xformRaw is null || xformPlugin is null)
-            Fail("Null transforms on check for float conversions");
-
-        const int npixels = 256 * 256 * 256;  // All RGB cube in 8 bits
-        var bufferIn = new Scanline_rgba16bits[npixels];
-        var bufferRawOut = new Scanline_rgba16bits[npixels];
-        var bufferPluginOut = new Scanline_rgba16bits[npixels];
-
-        // Same input to both transforms
-        var j = 0;
-        for (var r = 0; r < 256; r++)
-        { 
-            for (var g = 0; g < 256; g++)
-            {
-                for (var b = 0; b < 256; b++)
-                {
-                    bufferIn[j].r = FROM_8_TO_16((byte)r);
-                    bufferIn[j].g = FROM_8_TO_16((byte)g);
-                    bufferIn[j].b = FROM_8_TO_16((byte)b);
-                    bufferIn[j].a = 0xffff;
-
-                    j++;
-                }
-            }
-        }
-
-        // Different transforms, different output buffers
-        cmsDoTransform(xformRaw, bufferIn, bufferRawOut, npixels);
-        cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, npixels);
-
-        // Lets compare results
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgba16bits[] bufferIn, Scanline_rgba16bits[] bufferRawOut, Scanline_rgba16bits[] bufferPluginOut)
         {
-            for (var g = 0; g < 256; g++)
-            {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (bufferRawOut[j].r != bufferPluginOut[j].r ||
-                        bufferRawOut[j].g != bufferPluginOut[j].g ||
-                        bufferRawOut[j].b != bufferPluginOut[j].b ||
-                        bufferRawOut[j].a != bufferPluginOut[j].a)
-                    {
-                        Fail("Conversion failed at [{0} {1} {2} {3}] ({4} {5} {6} {7}) != ({8} {9} {10} {11})",
-                            bufferIn[j].r, bufferIn[j].g, bufferIn[j].b, bufferIn[j].a,
-                            bufferRawOut[j].r, bufferRawOut[j].g, bufferRawOut[j].b, bufferRawOut[j].a,
-                            bufferPluginOut[j].r, bufferPluginOut[j].g, bufferPluginOut[j].b, bufferPluginOut[j].a);
-                    }
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
 
-                    j++;
-                }
-            }
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
         }
 
-        cmsDeleteTransform(xformRaw);
-        cmsDeleteTransform(xformPlugin);
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgba16bits[] bufferRawOut, Scanline_rgba16bits[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
 
-        cmsDeleteContext(Plugin);
-        cmsDeleteContext(Raw);
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (bufferRawOut[j].r != bufferPluginOut[j].r ||
+                    bufferRawOut[j].g != bufferPluginOut[j].g ||
+                    bufferRawOut[j].b != bufferPluginOut[j].b ||
+                    bufferRawOut[j].a != bufferPluginOut[j].a)
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at ({rRaw} {gRaw} {bRaw} {aRaw}) != ({rPlugin} {gPlugin} {bPlugin} {aPlugin})",
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferRawOut[j].a,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b,
+                            bufferPluginOut[j].a);
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     public static void CheckAccuracy16Bits()
@@ -651,8 +673,15 @@ internal static partial class Testbed
         // CLUT should be as 16 bits or better
         using (logger.BeginScope("Checking accuracy of 16 bits on CLUT"))
         {
-            TryAllValues16/*NonThreaded*/(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
+            TryAllValues16(cmsOpenProfileFromMem(TestProfiles.test5)!, cmsOpenProfileFromMem(TestProfiles.test3)!, INTENT_PERCEPTUAL);
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         trace("All 16 bit tests passed");
@@ -693,8 +722,8 @@ internal static partial class Testbed
         for (var i = 0; i < npixels; i++)
         {
             bufferIn[i].r = (float)((i / 40.0) - 0.5);
-            bufferIn[i].r = (float)((i / 20.0) - 0.5);
-            bufferIn[i].r = (float)((i / 60.0) - 0.5);
+            bufferIn[i].g = (float)((i / 20.0) - 0.5);
+            bufferIn[i].b = (float)((i / 60.0) - 0.5);
         }
 
         cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, npixels);
@@ -857,9 +886,6 @@ internal static partial class Testbed
         var Raw = cmsCreateContext();
         var Plugin = cmsCreateContext(cmsFastFloatExtensions());
 
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;
-
         var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
         var xformPlugin = cmsCreateTransformTHR(Plugin, profileIn, TYPE_RGB_FLT, profileOut, TYPE_RGB_FLT, (uint)Intent, cmsFLAGS_NOCACHE);
 
@@ -868,6 +894,8 @@ internal static partial class Testbed
 
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transform");
+
+        const int npixels = 256 * 256 * 256;
 
         var bufferIn = new Scanline_rgbFloat[npixels];
         var bufferRawOut = new Scanline_rgbFloat[npixels];
@@ -890,43 +918,45 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
 
-        for (var i = 0; i < 256; i++)
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
-                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
-                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b))
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
+            else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
+            }
+
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
         }
 
         cmsDeleteTransform(xformRaw);
@@ -938,15 +968,53 @@ internal static partial class Testbed
         if (failed > 0)
             Fail("{0} failed", failed);
         trace("Passed");
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgbFloat[] bufferIn, Scanline_rgbFloat[] bufferRawOut, Scanline_rgbFloat[] bufferPluginOut)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferRawOut, Scanline_rgbFloat[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                    !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                    !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at position [{j}]: ({rRaw} {gRaw} {bRaw}) != ({rPlugin} {gPlugin} {bPlugin})",
+                            j,
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b);
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static void TryAllValuesFloatAlpha(Profile profileIn, Profile profileOut, int Intent, bool copyAlpha)
     {
         var Raw = cmsCreateContext();
         var Plugin = cmsCreateContext(cmsFastFloatExtensions());
-
-        const int npixelsThreaded = 256 * 256;
-        const int npixels = npixelsThreaded * 256;
         var flags = cmsFLAGS_NOCACHE | (copyAlpha ? cmsFLAGS_COPY_ALPHA : 0);
 
         var xformRaw = cmsCreateTransformTHR(Raw, profileIn, TYPE_RGBA_FLT, profileOut, TYPE_RGBA_FLT, (uint)Intent, flags);
@@ -957,6 +1025,8 @@ internal static partial class Testbed
 
         if (xformRaw is null || xformPlugin is null)
             Fail("Null transform");
+
+        const int npixels = 256 * 256 * 256;
 
         var bufferIn = new Scanline_rgbaFloat[npixels];
         var bufferRawOut = new Scanline_rgbaFloat[npixels];
@@ -980,45 +1050,45 @@ internal static partial class Testbed
             }
         }
 
-        var tasks = new Task[256];
+        var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+        var nPixelsPerThread = npixels / nThreads;
 
-        for (var i = 0; i < 256; i++)
+        var tasks = new Task<int>[nThreads];
+
+        int test(object? o)
         {
-            tasks[i] = Task.Factory.StartNew(o =>
-            {
-                var offset = (int)o!;
+            var offset = (int)o!;
 
-                // Different transforms, different output buffers
-                cmsDoTransform(xformRaw, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferRawOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                cmsDoTransform(xformPlugin, bufferIn.AsSpan((offset * npixelsThreaded)..), bufferPluginOut.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-            }, i);
+            using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+            {
+                DoTransforms(offset, nPixelsPerThread, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+                return CompareTransforms(offset, nPixelsPerThread, bufferRawOut, bufferPluginOut);
+            }
+        }
+
+        for (var i = 0; i < nThreads; i++)
+        {
+            tasks[i] = Task.Factory.StartNew(test, i);
         }
 
         Task.WaitAll(tasks);
 
-        if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-            Fail("Multithreading failure");
+        var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+        var failed = tasks.Sum(s => s.Result);
 
-        // Lets compare results
-        var failed = 0;
-        j = 0;
-        for (var r = 0; r < 256; r++)
+        if (threadingFailed || failed > 0)
         {
-            for (var g = 0; g < 256; g++)
+            if (threadingFailed)
             {
-                for (var b = 0; b < 256; b++)
-                {
-                    if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
-                        !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
-                        !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b) ||
-                        !ValidFloat(bufferRawOut[j].a, bufferPluginOut[j].a))
-                    {
-                        failed++;
-                    }
-
-                    j++;
-                }
+                logger.LogWarning("Multithreading failure. Retrying single-threaded");
             }
+            else
+            {
+                logger.LogWarning("{failed} failed. Retyring single-threaded", failed);
+            }
+
+            DoTransforms(0, npixels, xformRaw, xformPlugin, bufferIn, bufferRawOut, bufferPluginOut);
+            failed = CompareTransforms(0, npixels, bufferIn, bufferPluginOut);
         }
 
         cmsDeleteTransform(xformRaw);
@@ -1030,6 +1100,50 @@ internal static partial class Testbed
         if (failed > 0)
             Fail("{0} failed", failed);
         trace("Passed");
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformRaw, Transform xformPlugin, Scanline_rgbaFloat[] bufferIn, Scanline_rgbaFloat[] bufferRawOut, Scanline_rgbaFloat[] bufferPluginOut)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bRawOut = bufferRawOut.AsSpan(start..)[..nPixelsPerThread];
+            var bPluginOut = bufferPluginOut.AsSpan(start..)[..nPixelsPerThread];
+
+            cmsDoTransform(xformRaw, bIn, bRawOut, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bPluginOut, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbaFloat[] bufferRawOut, Scanline_rgbaFloat[] bufferPluginOut)
+        {
+            // Lets compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                if (!ValidFloat(bufferRawOut[j].r, bufferPluginOut[j].r) ||
+                    !ValidFloat(bufferRawOut[j].g, bufferPluginOut[j].g) ||
+                    !ValidFloat(bufferRawOut[j].b, bufferPluginOut[j].b) ||
+                    !ValidFloat(bufferRawOut[j].a, bufferPluginOut[j].a))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at position [{j}]: ({rRaw} {gRaw} {bRaw} {aRaw}) != ({rPlugin} {gPlugin} {bPlugin} {aPlugin})",
+                            j,
+                            bufferRawOut[j].r,
+                            bufferRawOut[j].g,
+                            bufferRawOut[j].b,
+                            bufferRawOut[j].a,
+                            bufferPluginOut[j].r,
+                            bufferPluginOut[j].g,
+                            bufferPluginOut[j].b,
+                            bufferPluginOut[j].a);
+                    }
+                }
+            }
+
+            return failed;
+        }
     }
 
     private static bool Valid16Float(ushort a, float b) =>
@@ -1138,6 +1252,9 @@ internal static partial class Testbed
 
         using (logger.BeginScope("Checking change format feature"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var hsRGB = cmsCreate_sRGBProfile()!;
             var hLab = cmsCreateLab4Profile(null)!;
 
@@ -1157,6 +1274,10 @@ internal static partial class Testbed
                 Fail("Change format failed!");
 
             trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
     }
 
@@ -1232,8 +1353,45 @@ internal static partial class Testbed
         }
     }
 
+    public static void CheckAlphaDetect()
+    {
+        using (logger.BeginScope("Check copy alpha with mismatched channels"))
+        {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
+            //var ctx = cmsCreateContext(cmsFastFloatExtensions());
+            //cmsSetLogErrorHandlerTHR(ctx, BuildNullLogger());
+
+            //var hsRGB = cmsCreate_sRGBProfileTHR(ctx)!;
+
+            //var xform = cmsCreateTransformTHR(ctx, hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+            cmsSetLogErrorHandler(BuildNullLogger());
+
+            var hsRGB = cmsCreate_sRGBProfile()!;
+
+            var xform = cmsCreateTransform(hsRGB, TYPE_RGB_FLT, hsRGB, TYPE_RGBA_FLT, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+            cmsCloseProfile(hsRGB);
+
+            if (xform is not null)
+            {
+                Fail("Copy alpha with mismatched channels should not succeed");
+            }
+
+            //cmsDeleteContext(ctx);
+            trace("Passed");
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
+        }
+    }
+
     public static void CheckConversionFloat()
     {
+        using (logger.BeginScope("Check alpha detection"))
+            CheckAlphaDetect();
+
         using (logger.BeginScope("Crash test"))
         {
             using (logger.BeginScope("Part 1"))
@@ -1300,67 +1458,75 @@ internal static partial class Testbed
 
         using (logger.BeginScope("Checking Lab -> RGB"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var tasks = new Task<float>[2][];
             tasks[0] = new Task<float>[97];
             tasks[1] = new Task<float>[20];
+
+            float test1(object? o)
+            {
+                var L = (int)o!;
+
+                Span<float> Lab = stackalloc float[3];
+                Span<float> RGB = stackalloc float[3];
+                Span<float> RGB2 = stackalloc float[3];
+
+                var maxInside = 0f;
+
+                for (var a = -30; a < +30; a++)
+                {
+                    for (var b = -30; b < +30; b++)
+                    {
+                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+
+                        var d = distance(RGB, RGB2);
+                        if (d > maxInside)
+                            maxInside = d;
+                    }
+                }
+
+                return maxInside;
+            }
+
             for (var i = 0; i < 97; i++)
             {
-                tasks[0][i] = Task.Factory.StartNew(o =>
+                tasks[0][i] = Task.Factory.StartNew(test1, i + 4);
+            }
+
+            float test2(object? o)
+            {
+                var L = ((int)o! * 5) + 1;
+
+                Span<float> Lab = stackalloc float[3];
+                Span<float> RGB = stackalloc float[3];
+                Span<float> RGB2 = stackalloc float[3];
+
+                var maxOutside = 0f;
+
+                for (var a = -100; a < +100; a += 5)
                 {
-                    var L = (int)o!;
-
-                    Span<float> Lab = stackalloc float[3];
-                    Span<float> RGB = stackalloc float[3];
-                    Span<float> RGB2 = stackalloc float[3];
-
-                    var maxInside = 0f;
-
-                    for (var a = -30; a < +30; a++)
+                    for (var b = -100; b < +100; b += 5)
                     {
-                        for (var b = -30; b < +30; b++)
-                        {
-                            Lab[0] = L; Lab[1] = a; Lab[2] = b;
-                            cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
-                            cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
+                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
+                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
+                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
 
-                            var d = distance(RGB, RGB2);
-                            if (d > maxInside)
-                                maxInside = d;
-                        }
+                        var d = distance(RGB, RGB2);
+                        if (d > maxOutside)
+                            maxOutside = d;
                     }
+                }
 
-                    return maxInside;
-                }, i+4);
+                return maxOutside;
             }
 
             for (var i = 0; i < 20; i++)
             {
-                tasks[1][i] = Task.Factory.StartNew(o =>
-                {
-                    var L = ((int)o! * 5) + 1;
-
-                    Span<float> Lab = stackalloc float[3];
-                    Span<float> RGB = stackalloc float[3];
-                    Span<float> RGB2 = stackalloc float[3];
-
-                    var maxOutside = 0f;
-
-                    for (var a = -100; a < +100; a += 5)
-                    {
-                        for (var b = -100; b < +100; b += 5)
-                        {
-                            Lab[0] = L; Lab[1] = a; Lab[2] = b;
-                            cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
-                            cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
-
-                            var d = distance(RGB, RGB2);
-                            if (d > maxOutside)
-                                maxOutside = d;
-                        }
-                    }
-
-                    return maxOutside;
-                }, i);
+                tasks[1][i] = Task.Factory.StartNew(test2, i);
             }
 
             Task.WaitAll(tasks[0]);
@@ -1381,67 +1547,10 @@ internal static partial class Testbed
             var maxOutside = tasks[1].Select(t => t.Result).Max();
 
             trace("Max distance: Inside gamut {0:F6}, Outside gamut {1:F6}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
-        }
-
-        cmsDeleteTransform(hXformNoPlugin);
-        cmsDeleteTransform(hXformPlugin);
-
-        cmsDeleteContext(noPlugin);
-    }
-
-    public static void CheckLab2RGBNonThreaded()
-    {
-        var hLab = cmsCreateLab4Profile(null)!;
-        var hRGB = cmsOpenProfileFromMem(TestProfiles.test3)!;
-        var noPlugin = cmsCreateContext();
-
-        var hXformNoPlugin = cmsCreateTransformTHR(noPlugin, hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
-        var hXformPlugin = cmsCreateTransform(hLab, TYPE_Lab_FLT, hRGB, TYPE_RGB_FLT, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_NOCACHE)!;
-
-        Span<float> Lab = stackalloc float[3];
-        Span<float> RGB = stackalloc float[3];
-        Span<float> RGB2 = stackalloc float[3];
-
-        var maxInside = 0f;
-        var maxOutside = 0f;
-
-        using (logger.BeginScope("Checking Lab -> RGB"))
-        {
-            for (var L = 4; L <= 100; L++)
-            {
-                for (var a = -30; a < +30; a++)
-                {
-                    for (var b = -30; b < +30; b++)
-                    {
-                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
-                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
-                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
-
-                        var d = distance(RGB, RGB2);
-                        if (d > maxInside)
-                            maxInside = d;
-                    }
-                }
-            }
-
-            for (var L = 1; L <= 100; L += 5)
-            {
-                for (var a = -100; a < +100; a += 5)
-                {
-                    for (var b = -100; b < +100; b += 5)
-                    {
-                        Lab[0] = L; Lab[1] = a; Lab[2] = b;
-                        cmsDoTransform(hXformNoPlugin, Lab, RGB, 1);
-                        cmsDoTransform(hXformPlugin, Lab, RGB2, 1);
-
-                        var d = distance(RGB, RGB2);
-                        if (d > maxOutside)
-                            maxOutside = d;
-                    }
-                }
-            }
-
-            trace("Max distance: Inside gamut {0}, Outside gamut {1}", MathF.Sqrt(maxInside), MathF.Sqrt(maxOutside));
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
         }
 
         cmsDeleteTransform(hXformNoPlugin);
@@ -1454,6 +1563,9 @@ internal static partial class Testbed
     {
         using (logger.BeginScope("Check soft proofing and gamut check"))
         {
+#if DEBUG
+            var timer = Stopwatch.StartNew();
+#endif
             var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
             var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
             var noPlugin = cmsCreateContext();
@@ -1464,11 +1576,11 @@ internal static partial class Testbed
             cmsCloseProfile(hRGB1);
             cmsCloseProfile(hRGB2);
 
-            const int npixelsThreaded = 256 * 256;
-            const int Mb = npixelsThreaded * 256;
-            var In = new Scanline_rgbFloat[Mb];
-            var Out1 = new Scanline_rgbFloat[Mb];
-            var Out2 = new Scanline_rgbFloat[Mb];
+            const int npixels = 256 * 256 * 256;
+
+            var In = new Scanline_rgbFloat[npixels];
+            var Out1 = new Scanline_rgbFloat[npixels];
+            var Out2 = new Scanline_rgbFloat[npixels];
 
             var j = 0;
             for (var r = 0; r < 256; r++)
@@ -1485,120 +1597,144 @@ internal static partial class Testbed
                 }
             }
 
-            var tasks = new Task[256];
+#if NO_THREADS
+            DoTransforms(0, npixels, xformNoPlugin, xformPlugin, In, Out1, Out2);
+            var failed = CompareTransforms(0, npixels, Out1, Out2);
 
-            for (var i = 0; i < 256; i++)
+#else
+
+            var nThreads = LargestPowerOf2(Environment.ProcessorCount);
+            var nPixelsPerThread = npixels / nThreads;
+
+            var tasks = new Task<int>[nThreads];
+
+            int test(object? o)
             {
-                tasks[i] = Task.Factory.StartNew(o =>
-                {
-                    var offset = (int)o!;
+                var offset = (int)o!;
 
-                    // Different transforms, different output buffers
-                    cmsDoTransform(xformNoPlugin, In.AsSpan((offset * npixelsThreaded)..), Out1.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                    cmsDoTransform(xformPlugin, In.AsSpan((offset * npixelsThreaded)..), Out2.AsSpan((offset * npixelsThreaded)..), npixelsThreaded);
-                }, i);
+                using (logger.BeginScope("Range {RangeStart}..{RangeEnd}", offset * nPixelsPerThread, (offset + 1) * nPixelsPerThread))
+                {
+                    DoTransforms(offset, nPixelsPerThread, xformNoPlugin, xformPlugin, In, Out1, Out2);
+                    return CompareTransforms(offset, nPixelsPerThread, Out1, Out2);
+                }
+            }
+
+            for (var i = 0; i < nThreads; i++)
+            {
+                tasks[i] = Task.Factory.StartNew(test, i);
             }
 
             Task.WaitAll(tasks);
 
-            if (tasks.Select(t => t.IsCompletedSuccessfully).Contains(false))
-                Fail("Multithreading failure");
+            var threadingFailed = tasks.Select(t => t.IsCompletedSuccessfully).Contains(false);
+            var failed = tasks.Sum(s => s.Result);
 
-            var failed = 0;
-            j = 0;
-            for (var r = 0; r < 256; r++)
+            if (threadingFailed || failed > 0)
             {
-                for (var g = 0; g < 256; g++)
+                if (threadingFailed)
                 {
-                    for (var b = 0; b < 256; b++)
-                    {
-                        // Check for same values
-                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
-                            !ValidFloat(Out1[j].g, Out2[j].g) ||
-                            !ValidFloat(Out1[j].b, Out2[j].b))
-                        {
-                            failed++;
-                        }
-                        j++;
-                    }
+                    logger.LogWarning("Multithreading failure. Retrying single-threaded");
                 }
+                else
+                {
+                    logger.LogWarning("{failed} failed. Retrying single-threaded", failed);
+                }
+
+                DoTransforms(0, npixels, xformNoPlugin, xformPlugin, In, Out1, Out2);
+                failed = CompareTransforms(0, npixels, Out1, Out2);
             }
+
+#endif
+
+            cmsDeleteTransform(xformNoPlugin);
+            cmsDeleteTransform(xformPlugin);
+
+            cmsDeleteContext(noPlugin);
+
             if (failed is not 0)
                 Fail("{0} failed", failed);
 
-            cmsDeleteTransform(xformNoPlugin);
-            cmsDeleteTransform(xformPlugin);
-
-            cmsDeleteContext(noPlugin);
-
             trace("Passed");
+
+#if DEBUG
+            timer.Stop();
+            LogTimer(timer);
+#endif
+        }
+
+        static void DoTransforms(int offset, int nPixelsPerThread, Transform xformNoPlugin, Transform xformPlugin, Scanline_rgbFloat[] bufferIn, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
+        {
+            var start = offset * nPixelsPerThread;
+            var bIn = bufferIn.AsSpan(start..)[..nPixelsPerThread];
+            var bOut1 = bufferOut1.AsSpan(start..)[..nPixelsPerThread];
+            var bOut2 = bufferOut2.AsSpan(start..)[..nPixelsPerThread];
+
+            // Different transforms, different output buffers
+            cmsDoTransform(xformNoPlugin, bIn, bOut1, (uint)nPixelsPerThread);
+            cmsDoTransform(xformPlugin, bIn, bOut2, (uint)nPixelsPerThread);
+        }
+
+        static int CompareTransforms(int offset, int nPixelsPerThread, Scanline_rgbFloat[] bufferOut1, Scanline_rgbFloat[] bufferOut2)
+        {
+            // Let's compare results
+            var start = offset * nPixelsPerThread;
+            var end = (offset + 1) * nPixelsPerThread;
+
+            var failed = 0;
+            for (var j = start; j < end; j++)
+            {
+                // Check for same values
+                if (!ValidFloat(bufferOut1[j].r, bufferOut2[j].r) ||
+                    !ValidFloat(bufferOut1[j].g, bufferOut2[j].g) ||
+                    !ValidFloat(bufferOut1[j].b, bufferOut2[j].b))
+                {
+                    if (failed++ is 0)
+                    {
+                        logger.LogError("Conversion first failed at position [{j}]: ({r1} {g1} {b1}) != ({r2} {g2} {b2})",
+                            j,
+                            bufferOut1[j].r,
+                            bufferOut1[j].g,
+                            bufferOut1[j].b,
+                            bufferOut2[j].r,
+                            bufferOut2[j].g,
+                            bufferOut2[j].b);
+                    }
+                }
+            }
+
+            return failed;
         }
     }
 
-    public static void CheckSoftProofingNonThreaded()
+    public static void CheckPremultiplied()
     {
-        using (logger.BeginScope("Check soft proofing and gamut check"))
+        ReadOnlySpan<byte> BGRA8 = [255, 192, 160, 128];
+        Span<byte> bgrA8_1 = stackalloc byte[4];
+        Span<byte> bgrA8_2 = stackalloc byte[4];
+
+        var srgb1 = cmsCreate_sRGBProfile();
+        var srgb2 = cmsCreate_sRGBProfile();
+
+        var noPlugin = cmsCreateContext();
+
+        var xform1 = cmsCreateTransformTHR(noPlugin, srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+        var xform2 = cmsCreateTransform(srgb1, TYPE_BGRA_8, srgb2, TYPE_BGRA_8_PREMUL, INTENT_PERCEPTUAL, cmsFLAGS_COPY_ALPHA);
+
+        cmsCloseProfile(srgb1);
+        cmsCloseProfile(srgb2);
+
+        cmsDoTransform(xform1, BGRA8, bgrA8_1, 1);
+        cmsDoTransform(xform2, BGRA8, bgrA8_2, 1);
+
+        cmsDeleteTransform(xform1);
+        cmsDeleteTransform(xform2);
+
+        for (var i = 0; i < 4; i++)
         {
-            var hRGB1 = cmsOpenProfileFromMem(TestProfiles.test5)!;
-            var hRGB2 = cmsOpenProfileFromMem(TestProfiles.test3)!;
-            var noPlugin = cmsCreateContext();
-
-            var xformNoPlugin = cmsCreateProofingTransformTHR(noPlugin, hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
-            var xformPlugin = cmsCreateProofingTransform(hRGB1, TYPE_RGB_FLT, hRGB1, TYPE_RGB_FLT, hRGB2, INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_GAMUTCHECK | cmsFLAGS_SOFTPROOFING)!;
-
-            cmsCloseProfile(hRGB1);
-            cmsCloseProfile(hRGB2);
-
-            var Mb = 256 * 256 * 256;
-            var In = new Scanline_rgbFloat[Mb];
-            var Out1 = new Scanline_rgbFloat[Mb];
-            var Out2 = new Scanline_rgbFloat[Mb];
-
-            var j = 0;
-            for (var r = 0; r < 256; r++)
+            if (bgrA8_1[i] != bgrA8_2[i])
             {
-                for (var g = 0; g < 256; g++)
-                {
-                    for (var b = 0; b < 256; b++)
-                    {
-                        In[j].r = r / 255.0f;
-                        In[j].g = g / 255.0f;
-                        In[j].b = b / 255.0f;
-                        j++;
-                    }
-                }
+                Fail("Premultiplied failed at ({0} {1} {2}) != ({3} {4} {5})", bgrA8_1[0], bgrA8_1[1], bgrA8_1[2], bgrA8_2[0], bgrA8_2[1], bgrA8_2[2]);
             }
-
-            cmsDoTransform(xformNoPlugin, In, Out1, (uint)Mb);
-            cmsDoTransform(xformPlugin, In, Out2, (uint)Mb);
-
-            j = 0;
-            for (var r = 0; r < 256; r++)
-            {
-                for (var g = 0; g < 256; g++)
-                {
-                    for (var b = 0; b < 256; b++)
-                    {
-                        // Check for same values
-                        if (!ValidFloat(Out1[j].r, Out2[j].r) ||
-                            !ValidFloat(Out1[j].g, Out2[j].g) ||
-                            !ValidFloat(Out1[j].b, Out2[j].b))
-                        {
-                            Fail("Conversion failed at ({0} {1} {2}) != ({3} {4} {5})",
-                                Out1[j].r, Out1[j].g, Out1[j].b,
-                                Out2[j].r, Out2[j].g, Out2[j].b);
-                        }
-                        j++;
-                    }
-                }
-            }
-
-            cmsDeleteTransform(xformNoPlugin);
-            cmsDeleteTransform(xformPlugin);
-
-            cmsDeleteContext(noPlugin);
-
-            trace("Passed");
         }
     }
 }

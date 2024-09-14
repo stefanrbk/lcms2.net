@@ -54,8 +54,9 @@ public static partial class Lcms2
         if (!cmsSaveProfileToMem(Profile, null, out BytesNeeded)) goto Error;
 
         // Allocate memory
-        var pool = _cmsGetContext(ContextID).GetBufferPool<byte>();
-        Mem = pool.Rent((int)BytesNeeded);
+        //var pool = _cmsGetContext(ContextID).GetBufferPool<byte>();
+        //Mem = pool.Rent((int)BytesNeeded);
+        Mem = new byte[BytesNeeded];
         //if (Mem is null) goto Error;
 
         // Save to temporary storage
@@ -69,7 +70,7 @@ public static partial class Lcms2
         cmsMD5add(ref MD5, Mem, BytesNeeded);
 
         // Temp storage is no longer needed
-        ReturnArray(ContextID, Mem);
+        //ReturnArray(ContextID, Mem);
 
         // Restore header
         //memmove(Icc, &Keep);
@@ -82,7 +83,7 @@ public static partial class Lcms2
     Error:
         // Free resources as something went wrong
         // "MD5" cannot be other than null here, so no need to free it
-        if (Mem is not null) ReturnArray(ContextID, Mem);
+        //if (Mem is not null) ReturnArray(ContextID, Mem);
         //memmove(Icc, &Keep);
         return false;
     }

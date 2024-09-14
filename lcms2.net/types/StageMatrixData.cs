@@ -34,31 +34,36 @@ public class StageMatrixData : IDisposable
     private double[] @double;
     private double[]? offset;
     private bool disposedValue;
-    private readonly ArrayPool<double>? pool;
+    //private readonly ArrayPool<double>? pool;
 
     public double[] Double { get { ObjectDisposedException.ThrowIf(disposedValue, this); return @double; } set => @double = value; }
-    public double[]? Offset { get {
+    public double[]? Offset
+    {
+        get
+        {
             ObjectDisposedException.ThrowIf(disposedValue, this);
             return offset;
-        } set => offset = value; }
+        }
+        set => offset = value;
+    }
 
-    public StageMatrixData(ReadOnlySpan<double> @double, ReadOnlySpan<double> offset = default, ArrayPool<double>? pool = null)
+    public StageMatrixData(ReadOnlySpan<double> @double, ReadOnlySpan<double> offset = default/*, ArrayPool<double>? pool = null*/)
     {
-        this.@double = pool is null
-            ? new double[@double.Length]
-            : pool.Rent(@double.Length);
+        this.@double = /*pool is null
+            ?*/ new double[@double.Length]
+            /*: pool.Rent(@double.Length)*/;
         @double.CopyTo(Double);
 
         Offset = offset.Length > 0
-            ? pool is null
-                ? new double[offset.Length]
-                : pool.Rent(offset.Length)
+            ? /*pool is null
+                ?*/ new double[offset.Length]
+            /*: pool.Rent(offset.Length)*/
             : null;
         if (Offset is not null)
             offset.CopyTo(Offset);
 
         disposedValue = false;
-        this.pool = pool;
+        //this.pool = pool;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -67,14 +72,14 @@ public class StageMatrixData : IDisposable
         {
             if (disposing)
             {
-                if (pool is not null)
-                {
-                    ReturnArray(pool, Double);
-                    Double = null!;
-                    if (Offset is not null)
-                        ReturnArray(pool, Offset);
-                    Offset = null!;
-                }
+                //if (pool is not null)
+                //{
+                //    ReturnArray(pool, Double);
+                Double = null!;
+                //if (Offset is not null)
+                //    ReturnArray(pool, Offset);
+                Offset = null!;
+                //}
             }
             disposedValue = true;
         }

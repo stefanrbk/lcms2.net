@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -122,8 +148,8 @@ public static partial class Lcms2
     {
         _cmsAssert(p);
 
-        ReturnArray(p.ContextID, p.Cache.CacheIn);
-        ReturnArray(p.ContextID, p.Cache.CacheOut);
+        //ReturnArray(p.ContextID, p.Cache.CacheIn);
+        //ReturnArray(p.ContextID, p.Cache.CacheOut);
 
         cmsPipelineFree(p.GamutCheck);
 
@@ -386,26 +412,28 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<float>(p.ContextID);
-        float[] fIn = pool.Rent(cmsMAXCHANNELS);
-        float[] fOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<float>(p.ContextID);
+        //float[] fIn = pool.Rent(cmsMAXCHANNELS);
+        //float[] fOut = pool.Rent(cmsMAXCHANNELS);
+        var fIn = new float[cmsMAXCHANNELS];
+        var fOut = new float[cmsMAXCHANNELS];
         Span<float> OutOfGamut = stackalloc float[1];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         //memset(fIn, 0, sizeof(float) * cmsMAXCHANNELS);
         //memset(fOut, 0, sizeof(float) * cmsMAXCHANNELS);
         Array.Clear(fIn);
         Array.Clear(fOut);
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInputFloat(p, fIn, accum, Stride.BytesPerPlaneIn);
 
@@ -419,7 +447,7 @@ public static partial class Lcms2
                     if (OutOfGamut[0] > 0.0)
                     {
                         // Certainly, out of gamut
-                        for (var c = 0; c < cmsMAXCHANNELS; c++)
+                        for (nuint c = 0; c < cmsMAXCHANNELS; c++)
                             fOut[c] = -1.0f;
                     }
                     else
@@ -441,8 +469,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, fIn);
-        ReturnArray(pool, fOut);
+        //ReturnArray(pool, fIn);
+        //ReturnArray(pool, fOut);
     }
 
     private static void NullFloatXFORM(
@@ -453,21 +481,22 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<float>(p.ContextID);
-        var fIn = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<float>(p.ContextID);
+        //var fIn = pool.Rent(cmsMAXCHANNELS);
+        var fIn = new float[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
         //memset(fIn, 0, sizeof(float) * cmsMAXCHANNELS);
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInputFloat(p, fIn, accum, Stride.BytesPerPlaneIn);
                 output = p.ToOutputFloat(p, fIn, output, Stride.BytesPerPlaneOut);
@@ -477,7 +506,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, fIn);
+        //ReturnArray(pool, fIn);
     }
 
     private static void NullXFORM(
@@ -488,21 +517,21 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
         //memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
                 output = p.ToOutput(p, wIn, output, Stride.BytesPerPlaneOut);
@@ -512,7 +541,7 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
+        //ReturnArray(pool, wIn);
     }
 
     private static void PrecalculatedXFORM(
@@ -523,25 +552,25 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
         //memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
         //memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
         Array.Clear(wIn);
         Array.Clear(wOut);
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
                 p.Lut.Eval16Fn(wIn, wOut, p.Lut.Data);
@@ -552,8 +581,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
     }
 
     private static void TransformOnePixelWithGamutCheck(Transform p, ReadOnlySpan<ushort> wIn, Span<ushort> wOut)
@@ -582,23 +611,23 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
         //memset(wIn, 0, sizeof(ushort) * cmsMAXCHANNELS);
         //memset(wOut, 0, sizeof(ushort) * cmsMAXCHANNELS);
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
                 TransformOnePixelWithGamutCheck(p, wIn, wOut);
@@ -609,8 +638,8 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
     }
 
     private static void CachedXFORM(
@@ -621,13 +650,13 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
         Cache Cache = new()
         {
-            CacheIn = pool.Rent(cmsMAXCHANNELS),
-            CacheOut = pool.Rent(cmsMAXCHANNELS)
+            CacheIn = new ushort[cmsMAXCHANNELS],
+            CacheOut = new ushort[cmsMAXCHANNELS]
         };
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
@@ -640,15 +669,15 @@ public static partial class Lcms2
         //fixed (Cache* ptr = &p.Cache)
         //    memcpy(&Cache, ptr);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
@@ -671,10 +700,10 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
-        ReturnArray(pool, Cache.CacheIn);
-        ReturnArray(pool, Cache.CacheOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
+        //ReturnArray(pool, Cache.CacheIn);
+        //ReturnArray(pool, Cache.CacheOut);
     }
 
     private static void CachedXFORMGamutCheck(
@@ -685,13 +714,13 @@ public static partial class Lcms2
         uint LineCount,
         Stride Stride)
     {
-        var pool = Context.GetPool<ushort>(p.ContextID);
-        var wIn = pool.Rent(cmsMAXCHANNELS);
-        var wOut = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ushort>(p.ContextID);
+        var wIn = new ushort[cmsMAXCHANNELS];
+        var wOut = new ushort[cmsMAXCHANNELS];
         Cache Cache = new()
         {
-            CacheIn = pool.Rent(cmsMAXCHANNELS),
-            CacheOut = pool.Rent(cmsMAXCHANNELS)
+            CacheIn = new ushort[cmsMAXCHANNELS],
+            CacheOut = new ushort[cmsMAXCHANNELS]
         };
 
         _cmsHandleExtraChannels(p, @in, @out, PixelsPerLine, LineCount, Stride);
@@ -704,15 +733,15 @@ public static partial class Lcms2
         //fixed (Cache* ptr = &p.Cache)
         //    memcpy(&Cache, ptr);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = @in[(int)strideIn..];
             var output = @out[(int)strideOut..];
 
-            for (var j = 0; j < PixelsPerLine; j++)
+            for (nuint j = 0; j < PixelsPerLine; j++)
             {
                 accum = p.FromInput(p, wIn, accum, Stride.BytesPerPlaneIn);
 
@@ -735,10 +764,10 @@ public static partial class Lcms2
             strideOut += Stride.BytesPerLineOut;
         }
 
-        ReturnArray(pool, wIn);
-        ReturnArray(pool, wOut);
-        ReturnArray(pool, Cache.CacheIn);
-        ReturnArray(pool, Cache.CacheOut);
+        //ReturnArray(pool, wIn);
+        //ReturnArray(pool, wOut);
+        //ReturnArray(pool, Cache.CacheIn);
+        //ReturnArray(pool, Cache.CacheOut);
     }
 
     internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>
@@ -765,10 +794,10 @@ public static partial class Lcms2
     {
         _cmsHandleExtraChannels(CMMcargo, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, Stride);
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0u;
+        nuint strideOut = 0u;
 
-        for (var i = 0; i < LineCount; i++)
+        for (nuint i = 0; i < LineCount; i++)
         {
             var accum = InputBuffer[(int)strideIn..];
             var output = OutputBuffer[(int)strideOut..];
@@ -826,8 +855,10 @@ public static partial class Lcms2
             p.WorkerFlags = (uint)ctx.WorkerFlags;
         }
     }
+
     private static ReadOnlySpan<byte> UnrollNothing(Transform _1, Span<ushort> _2, ReadOnlySpan<byte> accum, uint _3) =>
         accum;
+
     private static Span<byte> PackNothing(Transform _1, ReadOnlySpan<ushort> _2, Span<byte> output, uint _3) =>
         output;
 
@@ -840,7 +871,7 @@ public static partial class Lcms2
         ref uint dwFlags)
     {
         var ctx = _cmsGetContext(ContextID).TransformPlugin;
-        var pool = Context.GetPool<ushort>(ContextID);
+        //var pool = Context.GetPool<ushort>(ContextID);
 
         // Allocate needed memory
         //var p = _cmsMallocZero<Transform>(ContextID);
@@ -854,8 +885,8 @@ public static partial class Lcms2
         //p.Lut = lut;
 
         var p = new Transform() { Lut = lut };
-        p.Cache.CacheIn = pool.Rent(cmsMAXCHANNELS);
-        p.Cache.CacheOut = pool.Rent(cmsMAXCHANNELS);
+        p.Cache.CacheIn = new ushort[cmsMAXCHANNELS];
+        p.Cache.CacheOut = new ushort[cmsMAXCHANNELS];
 
         // Let's see if any plug-in wants to do the transform by itself
         if (p.Lut is not null)
@@ -864,7 +895,6 @@ public static partial class Lcms2
             {
                 foreach (var Plugin in ctx.List)
                 {
-
                     p.ContextID = ContextID;
                     p.InputFormat = InputFormat;
                     p.OutputFormat = OutputFormat;
@@ -925,7 +955,7 @@ public static partial class Lcms2
         }
 
         // Check whether this is a true floating point transform
-        if (_cmsFormatterIsFloat(OutputFormat))
+        if (_cmsFormatterIsFloat(InputFormat) || _cmsFormatterIsFloat(OutputFormat))
         {
             // Get formatter function always return a valid union, but the context of this union may be null.
             p.FromInputFloat = _cmsGetFormatterIn(ContextID, InputFormat, PackFlags.Float).FmtFloat;
@@ -978,6 +1008,18 @@ public static partial class Lcms2
                 (_, _, not 0) => CachedXFORMGamutCheck,
                 _ => CachedXFORM,
             };
+        }
+
+        // Check consistency for alpha channel copy
+
+        if ((dwFlags & cmsFLAGS_COPY_ALPHA) is not 0)
+        {
+            if (T_EXTRA(InputFormat) != T_EXTRA(OutputFormat))
+            {
+                cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Mismatched alpha channels");
+                cmsDeleteTransform(p);
+                return null;
+            }
         }
 
         p.InputFormat = InputFormat;
@@ -1082,6 +1124,14 @@ public static partial class Lcms2
         uint dwFlags)
     {
         Signature EntryColorSpace, ExitColorSpace;
+
+        // Safeguard
+        if (nProfiles is 0 or >= 255)
+        {
+            cmsSignalError(ContextID, cmsERROR_RANGE, "Wrong number of profiles. 1..255 expected, {0} found.", nProfiles);
+            return null;
+        }
+
         var LastIntent = Intents[(int)nProfiles - 1];
 
         // If it is a fake transform
@@ -1218,7 +1268,7 @@ public static partial class Lcms2
         uint Intent,
         uint dwFlags)
     {
-        Span< bool> BPC = stackalloc bool[256];
+        Span<bool> BPC = stackalloc bool[256];
         Span<uint> Intents = stackalloc uint[256];
         Span<double> AdaptationStates = stackalloc double[256];
 
@@ -1283,7 +1333,7 @@ public static partial class Lcms2
     {
         var DoBPC = (dwFlags & cmsFLAGS_BLACKPOINTCOMPENSATION) is not 0;
         var hArray = new Profile[4] { InputProfile, ProofingProfile, ProofingProfile, OutputProfile };
-        Span< uint> Intents = stackalloc uint[4] { nIntent, nIntent, INTENT_RELATIVE_COLORIMETRIC, ProofingIntent };
+        Span<uint> Intents = stackalloc uint[4] { nIntent, nIntent, INTENT_RELATIVE_COLORIMETRIC, ProofingIntent };
         Span<bool> BPC = stackalloc bool[4] { DoBPC, DoBPC, false, false };
         Span<double> Adaptation = stackalloc double[4];
 

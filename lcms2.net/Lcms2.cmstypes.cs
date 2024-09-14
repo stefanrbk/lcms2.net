@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -29,7 +55,6 @@ using lcms2.io;
 using lcms2.state;
 using lcms2.types;
 
-using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -83,7 +108,8 @@ public static partial class Lcms2
         new(cmsSigProfileSequenceIdType, Type_ProfileSequenceId_Read, Type_ProfileSequenceId_Write, Sequence_Dup, Sequence_Free, null, 0),
         new(cmsSigDictType, Type_Dictionary_Read, Type_Dictionary_Write, Type_Dictionary_Dup, Type_Dictionary_Free, null, 0),
         new(cmsSigcicpType, Type_VideoSignal_Read, Type_VideoSignal_Write, Type_VideoSignal_Dup, null, null, 0),
-        new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0));
+        new(cmsSigVcgtType, Type_vcgt_Read, Type_vcgt_Write, Type_vcgt_Dup, Type_vcgt_Free, null, 0),
+        new(cmsSigMHC2Type, Type_MHC2_Read, Type_MHC2_Write, Type_MHC2_Dup, Type_MHC2_Free, null, 0));
 
     internal static readonly TagTypePluginChunkType TagTypePluginChunk = new();
 
@@ -154,7 +180,8 @@ public static partial class Lcms2
         new(cmsSigProfileSequenceIdTag, 1, new Signature[] { cmsSigProfileSequenceIdType, }, null),
         new(cmsSigProfileDescriptionMLTag, 1, new Signature[] { cmsSigMultiLocalizedUnicodeType, }, null),
         new(cmsSigcicpTag, 1, new Signature[] { cmsSigcicpType }, null),
-        new(cmsSigArgyllArtsTag, 9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null));
+        new(cmsSigArgyllArtsTag, 9, new Signature[] { cmsSigS15Fixed16ArrayType, }, null),
+        new(cmsSigMHC2Tag, 1, new Signature[] { cmsSigMHC2Type }, null));
 
     internal static readonly TagPluginChunkType TagPluginChunk = new();
 
@@ -309,7 +336,7 @@ public static partial class Lcms2
         object? Cargo,
         PositionTableEntryFn ElementFn)
     {
-        var pool = Context.GetPool<uint>(self.ContextID);
+        //var pool = Context.GetPool<uint>(self.ContextID);
         var currentPosition = io.Tell(io);
 
         // Verify there is enough space left to read at least two uint items for Count items
@@ -319,11 +346,13 @@ public static partial class Lcms2
         // Let's take the offsets to each element
         //ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
         //if (ElementOffsets is null) goto Error;
-        var ElementOffsets = pool.Rent((int)Count);
+        //var ElementOffsets = pool.Rent((int)Count);
+        var ElementOffsets = new uint[Count];
 
         //ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
         //if (ElementSizes is null) goto Error;
-        var ElementSizes = pool.Rent((int)Count);
+        //var ElementSizes = pool.Rent((int)Count);
+        var ElementSizes = new uint[Count];
 
         for (var i = 0; i < Count; i++)
         {
@@ -343,13 +372,13 @@ public static partial class Lcms2
         }
 
         //Success
-        if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
         return false;
     }
 
@@ -362,16 +391,18 @@ public static partial class Lcms2
         object? Cargo,
         PositionTableEntryFn ElementFn)
     {
-        var pool = Context.GetPool<uint>(self.ContextID);
+        //var pool = Context.GetPool<uint>(self.ContextID);
 
         // Create table
         //ElementOffsets = _cmsCalloc<uint>(io.ContextID, Count);
         //if (ElementOffsets is null) goto Error;
-        var ElementOffsets = pool.Rent((int)Count);
+        //var ElementOffsets = pool.Rent((int)Count);
+        var ElementOffsets = new uint[Count];
 
         //ElementSizes = _cmsCalloc<uint>(io.ContextID, Count);
         //if (ElementSizes is null) goto Error;
-        var ElementSizes = pool.Rent((int)Count);
+        //var ElementSizes = pool.Rent((int)Count);
+        var ElementSizes = new uint[Count];
 
         // Keep starting position of curve offsets
         var DirectoryPos = io.Tell(io);
@@ -409,13 +440,13 @@ public static partial class Lcms2
         if (!io.Seek(io, CurrentPos)) goto Error;
 
         //Success
-        if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(io.ContextID, ElementSizes);
         return false;
     }
 
@@ -556,7 +587,8 @@ public static partial class Lcms2
         if (!_cmsReadUInt32Number(io, out var Count)) return null;
         if (Count > cmsMAXCHANNELS) return null;
 
-        var ColorantOrder = GetArray<byte>(self.ContextID, cmsMAXCHANNELS);
+        //var ColorantOrder = GetArray<byte>(self.ContextID, cmsMAXCHANNELS);
+        var ColorantOrder = new byte[cmsMAXCHANNELS];
         //if (ColorantOrder is null) return null;
 
         // We use FF as end marker
@@ -565,7 +597,7 @@ public static partial class Lcms2
 
         if (io.Read(io, ColorantOrder, sizeof(byte), Count) != Count)
         {
-            ReturnArray(self.ContextID, ColorantOrder);
+            //ReturnArray(self.ContextID, ColorantOrder);
             return null;
         }
 
@@ -600,8 +632,8 @@ public static partial class Lcms2
 
     private static void Type_ColorantOrderType_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is byte[] value)
-            ReturnArray(self.ContextID, value);
+        //if (Ptr is byte[] value)
+        //    ReturnArray(self.ContextID, value);
     }
 
     #endregion ColorantOrder
@@ -614,14 +646,15 @@ public static partial class Lcms2
 
         nItems = 0;
         var n = SizeOfTag / sizeof(uint);
-        array_double = GetArray<double>(self.ContextID, n);
+        //array_double = GetArray<double>(self.ContextID, n);
+        array_double = new double[n];
         //if (array_double is null) return null;
 
         for (var i = 0; i < n; i++)
         {
             if (!_cmsRead15Fixed16Number(io, out array_double[i]))
             {
-                ReturnArray(self.ContextID, array_double);
+                //ReturnArray(self.ContextID, array_double);
                 return null;
             }
         }
@@ -648,8 +681,8 @@ public static partial class Lcms2
 
     private static void Type_S15Fixed16_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is double[] value)
-            ReturnArray(self.ContextID, value);
+        //if (Ptr is double[] value)
+        //    ReturnArray(self.ContextID, value);
     }
 
     #endregion S15Fixed16
@@ -661,14 +694,15 @@ public static partial class Lcms2
         nItems = 0;
 
         var n = SizeOfTag / sizeof(uint);
-        var array_double = GetArray<double>(self.ContextID, n);
+        //var array_double = GetArray<double>(self.ContextID, n);
+        var array_double = new double[n];
         //if (array_double is null) return null;
 
         for (var i = 0; i < n; i++)
         {
             if (!_cmsReadUInt32Number(io, out var v))
             {
-                ReturnArray(self.ContextID, array_double);
+                //ReturnArray(self.ContextID, array_double);
                 return null;
             }
 
@@ -700,8 +734,8 @@ public static partial class Lcms2
 
     private static void Type_U16Fixed16_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is double[] value)
-            ReturnArray(self.ContextID, value);
+        //if (Ptr is double[] value)
+        //    ReturnArray(self.ContextID, value);
     }
 
     #endregion U16Fixed16
@@ -754,7 +788,8 @@ public static partial class Lcms2
         if (SizeOfTag is UInt32.MaxValue) goto Error1;
 
         //Text = _cmsMalloc<byte>(self.ContextID, SizeOfTag + 1);
-        var Text = GetArray<byte>(self.ContextID, SizeOfTag);       // No trailing zero required!
+        //var Text = GetArray<byte>(self.ContextID, SizeOfTag);
+        var Text = new byte[SizeOfTag];                     // No trailing zero required!
         //if (Text is null) goto Error1;
 
         //var tmpText = stackalloc byte[(int)SizeOfTag];
@@ -770,11 +805,11 @@ public static partial class Lcms2
         // Keep the result
         if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text.AsSpan(..(int)SizeOfTag))) goto Error2;
 
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
         return mlu;
 
     Error2:
-        if (Text is not null) ReturnArray(self.ContextID, Text);
+    //if (Text is not null) ReturnArray(self.ContextID, Text);
 
     Error1:
         if (mlu is not null) cmsMLUfree(mlu);
@@ -792,7 +827,8 @@ public static partial class Lcms2
         if (size is 0) return false;    // Cannot be zero!
 
         // Create memory
-        var Text = GetArray<byte>(self.ContextID, size);
+        //var Text = GetArray<byte>(self.ContextID, size);
+        var Text = new byte[size];
         //if (Text is null) return false;
 
         cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
@@ -802,7 +838,7 @@ public static partial class Lcms2
         // Write it, including separators
         var rc = io.Write(io, size, Text);
 
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
         return rc;
     }
 
@@ -836,7 +872,8 @@ public static partial class Lcms2
         //if (BinData is null) return null;
         var BinData = new IccData
         {
-            data = Context.GetPool<byte>(self.ContextID).Rent((int)LenOfData),
+            //data = Context.GetPool<byte>(self.ContextID).Rent((int)LenOfData),
+            data = new byte[LenOfData],
             len = LenOfData
         };
         if (!_cmsReadUInt32Number(io, out BinData.flag)) goto Error;
@@ -848,8 +885,8 @@ public static partial class Lcms2
         return new(BinData);
 
     Error:
-        if (BinData.data is not null)
-            ReturnArray(self.ContextID, BinData.data);
+        //if (BinData.data is not null)
+        //ReturnArray(self.ContextID, BinData.data);
         //_cmsFree(self.ContextID, BinData);
         return null;
     }
@@ -878,8 +915,8 @@ public static partial class Lcms2
 
     private static void Type_Data_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is Box<IccData> data)
-            ReturnArray(self.ContextID, data.Value.data);
+        //if (Ptr is Box<IccData> data)
+        //    ReturnArray(self.ContextID, data.Value.data);
     }
 
     #endregion Data
@@ -904,13 +941,14 @@ public static partial class Lcms2
             return null;
 
         // All seems Ok, allocate the container
-        var mlu = cmsMLUalloc(self.ContextID, 1);
+        var mlu = cmsMLUalloc(self.ContextID, 2);
         if (mlu is null)
             return null;
 
         // As much memory as size of tag
         //Text = _cmsMalloc<byte>(self.ContextID, AsciiCount + 1);
-        var Text = GetArray<byte>(self.ContextID, AsciiCount);
+        //var Text = GetArray<byte>(self.ContextID, AsciiCount);
+        var Text = new byte[AsciiCount];
         //if (Text is null) goto Error;
 
         // Read it
@@ -926,7 +964,7 @@ public static partial class Lcms2
         // Set the MLU entry. From here we can be tolerant to wrong types
         if (!cmsMLUsetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text.AsSpan(..(int)AsciiCount)))
             goto Error;
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
         Text = null;
 
         // Skip Unicode code
@@ -938,7 +976,10 @@ public static partial class Lcms2
             goto Done;
         SizeOfTag -= 2u * sizeof(uint);
 
-        if (SizeOfTag < UnicodeCount * sizeof(ushort))
+        if (UnicodeCount == 0 || SizeOfTag < UnicodeCount * sizeof(ushort))
+            goto Done;
+
+        if (!_cmsReadWCharArray(io, UnicodeCode, out var UnicodeString))
             goto Done;
 
         Span<byte> Dummy = stackalloc byte[sizeof(ushort)];
@@ -951,7 +992,7 @@ public static partial class Lcms2
         SizeOfTag -= UnicodeCount * sizeof(ushort);
 
         // Skip ScriptCode code if present. Some buggy profiles does have less
-        // data that stricttly required. We need to skip it as this type may come
+        // data that strictly required. We need to skip it as this type may come
         // embedded in other types.
 
         if (SizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
@@ -969,7 +1010,7 @@ public static partial class Lcms2
         return mlu;
 
     Error:
-        if (Text is not null) ReturnArray(self.ContextID, Text);
+        //if (Text is not null) ReturnArray(self.ContextID, Text);
         if (mlu is not null) cmsMLUfree(mlu);
 
         return null;
@@ -1014,14 +1055,16 @@ public static partial class Lcms2
         else
         {
             // Create independent buffers
-            Text = GetArray<byte>(self.ContextID, len);
+            //Text = GetArray<byte>(self.ContextID, len);
+            Text = new byte[len];
             //if (Text is null) goto Error;
-            Wide = GetArray<char>(self.ContextID, len);
+            //Wide = GetArray<char>(self.ContextID, len);
+            Wide = new char[len];
             //if (Wide is null) goto Error;
 
             // Get both representations.
             cmsMLUgetASCII(mlu, cmsNoLanguage, cmsNoCountry, Text);
-            cmsMLUgetWide(mlu, cmsNoLanguage, cmsNoCountry, Wide);
+            cmsMLUgetWide(mlu, cmsV2Unicode, cmsV2Unicode, Wide);
         }
 
         // Tell the real text len including the null terminator and padding
@@ -1073,14 +1116,14 @@ public static partial class Lcms2
             goto Error;
 
         // possibly add pad at the end of tag
-        if (len_aligned - len_tag_requirement > 0 &&!io.Write(io, len_aligned - len_tag_requirement, Filler))
+        if (len_aligned - len_tag_requirement > 0 && !io.Write(io, len_aligned - len_tag_requirement, Filler))
             goto Error;
 
         rc = true;
 
     Error:
-        if (Text is not null) ReturnArray(self.ContextID, Text);
-        if (Wide is not null) ReturnArray(self.ContextID, Wide);
+        //if (Text is not null) ReturnArray(self.ContextID, Text);
+        //if (Wide is not null) ReturnArray(self.ContextID, Wide);
 
         return rc;
     }
@@ -1377,9 +1420,9 @@ public static partial class Lcms2
             if (!_cmsReadUInt32Number(io, out var Len)) goto Error;
             if (!_cmsReadUInt32Number(io, out var Offset)) goto Error;
 
-            // Offset MUST be even because it indexes a block of utf16 chars. 
+            // Offset MUST be even because it indexes a block of utf16 chars.
             // Tricky profiles that uses odd positions will not work anyway
-            // because the whole utf16 block is previously converted to wchar_t 
+            // because the whole utf16 block is previously converted to wchar_t
             // and sizeof this type may be of 4 bytes. On Linux systems, for example.
             if ((Offset & 1) is not 0) goto Error;
 
@@ -1414,8 +1457,9 @@ public static partial class Lcms2
             if ((SizeOfTag & 1) is not 0) goto Error;
             //Block = _cmsMalloc<char>(self.ContextID, SizeOfTag);
             NumOfWchar = SizeOfTag / sizeof(char);
-            Block = GetArray<char>(self.ContextID, NumOfWchar);
-            Array.Clear(Block);
+            //Block = GetArray<char>(self.ContextID, NumOfWchar);
+            //Array.Clear(Block);
+            Block = new char[NumOfWchar];
             //if (Block is null) goto Error;
             //var tmpBlock = stackalloc char[(int)NumOfWchar];
             if (!_cmsReadWCharArray(io, NumOfWchar, Block))
@@ -1523,8 +1567,9 @@ public static partial class Lcms2
     {
         //byte* Temp = null;
 
-        var pool = Context.GetPool<ToneCurve>(ContextID);
-        ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
+        //ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
+        var Tables = new ToneCurve[cmsMAXCHANNELS];
 
         if (nChannels is > cmsMAXCHANNELS or <= 0) goto Error2;
 
@@ -1532,7 +1577,8 @@ public static partial class Lcms2
 
         //Temp = _cmsMalloc<byte>(ContextID, 256);
         //if (Temp is null) goto Error2;
-        var Temp = Context.GetPool<byte>(ContextID).Rent(256);
+        //var Temp = Context.GetPool<byte>(ContextID).Rent(256);
+        var Temp = new byte[256];
 
         for (var i = 0; i < nChannels; i++)
         {
@@ -1548,7 +1594,7 @@ public static partial class Lcms2
                 if (Tables[i].Table16 is not null) Tables[i].Table16![j] = FROM_8_TO_16(Temp[j]);
         }
 
-        ReturnArray(ContextID, Temp);
+        //ReturnArray(ContextID, Temp);
         Temp = null;
 
         if (!cmsPipelineInsertStage(lut, StageLoc.AtEnd, cmsStageAllocToneCurves(ContextID, nChannels, Tables)))
@@ -1561,12 +1607,14 @@ public static partial class Lcms2
 
     Error:
         for (var i = 0; i < nChannels; i++)
+        {
             if (Tables[i] is not null) cmsFreeToneCurve(Tables[i]);
+        }
 
-        if (Temp is not null) ReturnArray(ContextID, Temp);
+    //if (Temp is not null) ReturnArray(ContextID, Temp);
 
     Error2:
-        ReturnArray(pool, Tables);
+        //ReturnArray(pool, Tables);
         return false;
     }
 
@@ -1671,12 +1719,13 @@ public static partial class Lcms2
         if (nTabSize == unchecked((uint)-1)) goto Error;
         if (nTabSize > 0)
         {
-            var bytePool = Context.GetPool<byte>(self.ContextID);
-            var usPool = Context.GetPool<ushort>(self.ContextID);
+            //var bytePool = Context.GetPool<byte>(self.ContextID);
+            //var usPool = Context.GetPool<ushort>(self.ContextID);
 
             //var PtrW = _cmsCalloc<ushort>(self.ContextID, nTabSize);
-            var T = usPool.Rent((int)nTabSize);
-            Array.Clear(T);
+            //var T = usPool.Rent((int)nTabSize);
+            //Array.Clear(T);
+            var T = new ushort[nTabSize];
             var PtrW = T.AsSpan();
             //if (T is null) goto Error;
 
@@ -1686,26 +1735,27 @@ public static partial class Lcms2
             //    _cmsFree(self.ContextID, T);
             //    goto Error;
             //}
-            var Temp = bytePool.Rent((int)nTabSize);
+            //var Temp = bytePool.Rent((int)nTabSize);
+            var Temp = new byte[nTabSize];
 
             if (io.Read(io, Temp, nTabSize, 1) is not 1)
             {
-                ReturnArray(self.ContextID, T);
-                ReturnArray(self.ContextID, Temp);
+                //ReturnArray(self.ContextID, T);
+                //ReturnArray(self.ContextID, Temp);
                 goto Error;
             }
 
             for (var i = 0; i < nTabSize; i++)
                 PtrW[i] = FROM_8_TO_16(Temp[i]);
-            ReturnArray(self.ContextID, Temp);
+            //ReturnArray(self.ContextID, Temp);
             Temp = null;
 
             if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, T)))
             {
-                ReturnArray(self.ContextID, T);
+                //ReturnArray(self.ContextID, T);
                 goto Error;
             }
-            ReturnArray(self.ContextID, T);
+            //ReturnArray(self.ContextID, T);
         }
 
         // Get output tables
@@ -1732,8 +1782,11 @@ public static partial class Lcms2
 
         // Disassemble the LUT into components.
         var mpe = NewLut.Elements;
-        if (mpe is null)
+        if (mpe is null)    // Should never be empty. Corrupted?
+        {
+            cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, "empty LUT8 is not supported");
             return false;
+        }
 
         if (mpe.Type == cmsSigMatrixElemType)
         {
@@ -1767,7 +1820,7 @@ public static partial class Lcms2
             return false;
         }
 
-        var clutPoints =  0u;
+        var clutPoints = 0u;
         if (clut is not null)
         {
             // Lut8 only allows same CLUT points in all dimensions
@@ -1825,7 +1878,7 @@ public static partial class Lcms2
 
     private static bool Read16bitTables(Context? ContextID, IOHandler io, Pipeline lut, uint nChannels, uint nEntries)
     {
-        var pool = Context.GetPool<ToneCurve>(ContextID);
+        //var pool = Context.GetPool<ToneCurve>(ContextID);
 
         // Maybe an empty table? (this is a lcms extension)
         if (nEntries <= 0) return true;
@@ -1834,7 +1887,8 @@ public static partial class Lcms2
 
         // Init table to zero
         //memset(Tables, 0, _sizeof<nint>() * cmsMAXCHANNELS);
-        ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
+        //ToneCurve[] Tables = pool.Rent(cmsMAXCHANNELS);
+        var Tables = new ToneCurve[cmsMAXCHANNELS];
 
         for (var i = 0; i < nChannels; i++)
         {
@@ -1851,14 +1905,14 @@ public static partial class Lcms2
         for (var i = 0; i < nChannels; i++)
             cmsFreeToneCurve(Tables[i]);
 
-        ReturnArray(pool, Tables);
+        //ReturnArray(pool, Tables);
         return true;
 
     Error:
         for (var i = 0; i < nChannels; i++)
             if (Tables[i] is not null) cmsFreeToneCurve(Tables[i]);
 
-        ReturnArray(pool, Tables);
+        //ReturnArray(pool, Tables);
         return false;
     }
 
@@ -1927,20 +1981,21 @@ public static partial class Lcms2
         {
             //var T = _cmsCalloc<ushort>(self.ContextID, nTabSize);
             //if (T is null) goto Error;
-            var T = Context.GetPool<ushort>(self.ContextID).Rent((int)nTabSize);
+            //var T = Context.GetPool<ushort>(self.ContextID).Rent((int)nTabSize);
+            var T = new ushort[nTabSize];
 
             if (!_cmsReadUInt16Array(io, nTabSize, T))
             {
-                ReturnArray(self.ContextID, T);
+                //ReturnArray(self.ContextID, T);
                 goto Error;
             }
 
             if (!cmsPipelineInsertStage(NewLUT, StageLoc.AtEnd, cmsStageAllocCLut16bit(self.ContextID, CLUTpoints, InputChannels, OutputChannels, T)))
             {
-                ReturnArray(self.ContextID, T);
+                //ReturnArray(self.ContextID, T);
                 goto Error;
             }
-            ReturnArray(self.ContextID, T);
+            //ReturnArray(self.ContextID, T);
         }
 
         // Get output tables
@@ -2193,14 +2248,15 @@ public static partial class Lcms2
 
     private static Stage? ReadSetOfCurves(TagTypeHandler self, IOHandler io, uint Offset, uint nCurves)
     {
-        var pool = Context.GetPool<ToneCurve>(self.ContextID);
+        //var pool = Context.GetPool<ToneCurve>(self.ContextID);
         Stage? Lin = null;
 
         if (nCurves > cmsMAXCHANNELS) return null;
 
         if (!io.Seek(io, Offset)) return null;
 
-        ToneCurve[] Curves = pool.Rent(cmsMAXCHANNELS);
+        //ToneCurve[] Curves = pool.Rent(cmsMAXCHANNELS);
+        var Curves = new ToneCurve[cmsMAXCHANNELS];
         for (var i = 0; i < nCurves; i++)
             Curves[i] = null!;
 
@@ -2217,12 +2273,12 @@ public static partial class Lcms2
         for (var i = 0; i < nCurves; i++)
             cmsFreeToneCurve(Curves[i]);
 
-        ReturnArray(pool, Curves);
+        //ReturnArray(pool, Curves);
         return Lin;
     }
 
     private static Pipeline? Type_LUTA2B_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _1)
-    {    
+    {
         Pipeline? NewLUT = null;
 
         nItems = 0;
@@ -2319,8 +2375,8 @@ public static partial class Lcms2
             // If this is a table-based curve, use curve type even on V4
             var CurrentType = Type;
 
-            if ((Curves[i].nSegments is 0) ||
-                ((Curves[i].nSegments is 2) && (Curves[i].Segments[1].Type is 0)) ||
+            if ((Curves[i].nSegments is 0) ||                                           // 16 bits tabulated
+                ((Curves[i].nSegments is 3) && (Curves[i].Segments[1].Type is 0)) ||    // Floating-point tabulated
                 Curves[i].Segments[0].Type < 0)
             {
                 CurrentType = cmsSigCurveType;
@@ -2771,7 +2827,7 @@ public static partial class Lcms2
 
     private static bool Type_NamedColor_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        Span< byte> prefix = stackalloc byte[33];
+        Span<byte> prefix = stackalloc byte[33];
         Span<byte> suffix = stackalloc byte[33];
         Span<byte> Root = stackalloc byte[cmsMAX_PATH];
         Span<ushort> PCS = stackalloc ushort[3];
@@ -3050,18 +3106,19 @@ public static partial class Lcms2
         n.Desc = desc;
 
         //ASCIIString = _cmsMalloc<byte>(self.ContextID, (uint)SignedSizeOfTag + 1);
-        var ASCIIString = GetArray<byte>(self.ContextID, (uint)SignedSizeOfTag);
+        //var ASCIIString = GetArray<byte>(self.ContextID, (uint)SignedSizeOfTag);
+        var ASCIIString = new byte[SignedSizeOfTag];
         //var tmpASCIIString = stackalloc byte[SignedSizeOfTag];
         if (io.Read(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
         {
-            ReturnArray(self.ContextID, ASCIIString);
+            //ReturnArray(self.ContextID, ASCIIString);
             goto Error;
         }
         //new Span<byte>(tmpASCIIString, SignedSizeOfTag).CopyTo(ASCIIString.AsSpan(..SignedSizeOfTag));
 
         //ASCIIString[SignedSizeOfTag] = 0;
         cmsMLUsetASCII(n.Desc, cmsNoLanguage, cmsNoCountry, ASCIIString);
-        ReturnArray(self.ContextID, ASCIIString);
+        //ReturnArray(self.ContextID, ASCIIString);
 
         nItems = 1;
         return new(n);
@@ -3090,13 +3147,14 @@ public static partial class Lcms2
         // Now comes the text. The length is specified by the tag size
         var TextSize = cmsMLUgetASCII(Value.Value.Desc, cmsNoLanguage, cmsNoCountry, null);
         //Text = _cmsMalloc<byte>(self.ContextID, TextSize);
-        var Text = GetArray<byte>(self.ContextID, TextSize);
+        //var Text = GetArray<byte>(self.ContextID, TextSize);
+        var Text = new byte[TextSize];
         if (cmsMLUgetASCII(Value.Value.Desc, cmsNoLanguage, cmsNoCountry, Text.AsSpan()[..(int)TextSize]) != TextSize) return false;
 
         //var tmp = stackalloc char[(int)TextSize];
         //Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
         if (!io.Write(io, TextSize, Text)) return false;
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
 
         return true;
     }
@@ -3151,13 +3209,14 @@ public static partial class Lcms2
         if (SizeOfTag < Count + sizeof(uint)) return false;
 
         //var Text = _cmsMalloc<byte>(self.ContextID, Count + 1);
-        var Text = GetArray<byte>(self.ContextID, Count);
+        //var Text = GetArray<byte>(self.ContextID, Count);
+        var Text = new byte[Count];
         if (Text is null) return false;
 
         //var tmp = stackalloc byte[(int)Count];
         if (io.Read(io, Text, sizeof(byte), Count) != Count)
         {
-            ReturnArray(self.ContextID, Text);
+            //ReturnArray(self.ContextID, Text);
             return false;
         }
         //new Span<byte>(tmp, (int)Count).CopyTo(Text.AsSpan()[..(int)Count]);
@@ -3165,7 +3224,7 @@ public static partial class Lcms2
         //Text[Count] = 0;
 
         cmsMLUsetASCII(mlu, ps, Section, Text.AsSpan(..(int)Count));
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
 
         SizeOfTag -= Count + sizeof(uint);
         return true;
@@ -3177,7 +3236,8 @@ public static partial class Lcms2
 
         var TextSize = cmsMLUgetASCII(mlu, ps, Section, null);
         //var Text = _cmsMalloc<byte>(self.ContextID, TextSize);
-        var Text = GetArray<byte>(self.ContextID, TextSize);
+        //var Text = GetArray<byte>(self.ContextID, TextSize);
+        var Text = new byte[TextSize];
         if (Text is null) return false;
 
         if (!_cmsWriteUInt32Number(io, TextSize)) goto Error;
@@ -3187,12 +3247,12 @@ public static partial class Lcms2
         //var tmp = stackalloc byte[(int)TextSize];
         //Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
         if (!io.Write(io, TextSize, Text)) goto Error;
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
 
         return true;
 
     Error:
-        ReturnArray(self.ContextID, Text);
+        //ReturnArray(self.ContextID, Text);
         return false;
     }
 
@@ -3277,7 +3337,7 @@ public static partial class Lcms2
         return new(sc);
 
     Error:
-        ReturnArray(self.ContextID, sc.channels); //_cmsFree(self.ContextID, sc);
+        //ReturnArray(self.ContextID, sc.channels); //_cmsFree(self.ContextID, sc);
 
         return null;
     }
@@ -3314,8 +3374,8 @@ public static partial class Lcms2
 
     private static void Type_Screening_Free(TagTypeHandler self, object? Ptr)
     {
-        if (Ptr is Box<Screening> s)
-            ReturnArray(self.ContextID, s.Value.channels); //_cmsFree(self.ContextID, s);
+        //if (Ptr is Box<Screening> s)
+        //ReturnArray(self.ContextID, s.Value.channels); //_cmsFree(self.ContextID, s);
     }
 
     #endregion Screening
@@ -3453,15 +3513,17 @@ public static partial class Lcms2
         var outputChan = cmsPipelineOutputChannels(Lut);
         var ElemCount = cmsPipelineStageCount(Lut);
 
-        var pool = Context.GetPool<uint>(self.ContextID);
+        //var pool = Context.GetPool<uint>(self.ContextID);
 
         //ElementOffsets = _cmsCalloc<uint>(self.ContextID, ElemCount);
         //if (ElementOffsets is null) goto Error;
-        var ElementOffsets = pool.Rent((int)ElemCount);
+        //var ElementOffsets = pool.Rent((int)ElemCount);
+        var ElementOffsets = new uint[ElemCount];
 
         //ElementSizes = _cmsCalloc<uint>(self.ContextID, ElemCount);
         //if (ElementSizes is null) goto Error;
-        var ElementSizes = pool.Rent((int)ElemCount);
+        //var ElementSizes = pool.Rent((int)ElemCount);
+        var ElementSizes = new uint[ElemCount];
 
         // Write the head
         if (!_cmsWriteUInt16Number(io, (ushort)inputChan)) goto Error;
@@ -3516,13 +3578,13 @@ public static partial class Lcms2
 
         if (!io.Seek(io, CurrentPos)) goto Error;
 
-        if (ElementOffsets is not null) ReturnArray(self.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(self.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(self.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(self.ContextID, ElementSizes);
         return true;
 
     Error:
-        if (ElementOffsets is not null) ReturnArray(self.ContextID, ElementOffsets);
-        if (ElementSizes is not null) ReturnArray(self.ContextID, ElementSizes);
+        //if (ElementOffsets is not null) ReturnArray(self.ContextID, ElementOffsets);
+        //if (ElementSizes is not null) ReturnArray(self.ContextID, ElementSizes);
         return false;
     }
 
@@ -3554,7 +3616,8 @@ public static partial class Lcms2
         // Allocate space for the array
         //Curves = (ToneCurve**)_cmsCalloc(self.ContextID, 3, _sizeof<nint>());
         //if (Curves is null) return null;
-        var Curves = Context.GetPool<ToneCurve>(self.ContextID).Rent(3);
+        //var Curves = Context.GetPool<ToneCurve>(self.ContextID).Rent(3);
+        var Curves = new ToneCurve[3];
 
         // There are two possible flavors
         switch (TagType)
@@ -3661,7 +3724,7 @@ public static partial class Lcms2
     // Regret, free all resources
     Error:
         cmsFreeToneCurveTriple(Curves);
-        ReturnArray(self.ContextID, Curves);
+        //ReturnArray(self.ContextID, Curves);
         return null;
     }
 
@@ -3720,7 +3783,8 @@ public static partial class Lcms2
         //var NewCurves = _cmsCalloc2<ToneCurve>(self.ContextID, 3);
         //if (NewCurves is null) return null;
 
-        var NewCurves = Context.GetPool<ToneCurve>(self.ContextID).Rent(3);
+        //var NewCurves = Context.GetPool<ToneCurve>(self.ContextID).Rent(3);
+        var NewCurves = new ToneCurve[3];
 
         NewCurves[0] = cmsDupToneCurve(OldCurves[0]);
         NewCurves[1] = cmsDupToneCurve(OldCurves[1]);
@@ -3734,7 +3798,7 @@ public static partial class Lcms2
         if (Ptr is ToneCurve[] curves)
         {
             cmsFreeToneCurveTriple(curves);
-            ReturnArray(self.ContextID, curves);
+            //ReturnArray(self.ContextID, curves);
         }
     }
 
@@ -3756,16 +3820,18 @@ public static partial class Lcms2
 
     private static bool AllocElem(Context? ContextID, out DICelem e, uint Count)
     {
-        var pool = _cmsGetContext(ContextID).GetBufferPool<uint>();
+        //var pool = _cmsGetContext(ContextID).GetBufferPool<uint>();
 
         e = new DICelem
         {
             ContextID = ContextID,
-            Offsets = pool.Rent((int)Count),
-            Sizes = pool.Rent((int)Count)
+            //Offsets = pool.Rent((int)Count),
+            //Sizes = pool.Rent((int)Count)
+            Offsets = new uint[Count],
+            Sizes = new uint[Count]
         };
-        Array.Clear(e.Offsets);
-        Array.Clear(e.Sizes);
+        //Array.Clear(e.Offsets);
+        //Array.Clear(e.Sizes);
 
         //e.Offsets = _cmsCalloc<uint>(ContextID, Count);
         //if (e->Offsets is null) return false;
@@ -3782,8 +3848,8 @@ public static partial class Lcms2
 
     private static void FreeElem(ref DICelem e)
     {
-        if (e.Offsets is not null) ReturnArray(e.ContextID, e.Offsets);
-        if (e.Sizes is not null) ReturnArray(e.ContextID, e.Sizes);
+        //if (e.Offsets is not null) ReturnArray(e.ContextID, e.Offsets);
+        //if (e.Sizes is not null) ReturnArray(e.ContextID, e.Sizes);
         e.Offsets = e.Sizes = null!;
     }
 
@@ -3969,11 +4035,13 @@ public static partial class Lcms2
         }
 
         var Before = io.Tell(io);
-        e.Offsets[i] = Before - BaseOffset;
+        if (e.Offsets is not null)
+            e.Offsets[i] = Before - BaseOffset;
 
         if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
-        e.Sizes[i] = io.Tell(io) - Before;
+        if (e.Sizes is not null)
+            e.Sizes[i] = io.Tell(io) - Before;
         return true;
     }
 
@@ -4178,7 +4246,205 @@ public static partial class Lcms2
             ? new(sc)
             : null;
 
-    #endregion
+    #endregion cicp VideoSignalType
+
+    #region Microsoft's MHC2
+
+    private static void SetIdentity(Span<double> XYZ2XYZmatrix)
+    {
+        XYZ2XYZmatrix[0] = 1.0; XYZ2XYZmatrix[1] = 0.0; XYZ2XYZmatrix[2] = 0.0; XYZ2XYZmatrix[3] = 0.0;
+        XYZ2XYZmatrix[4] = 0.0; XYZ2XYZmatrix[5] = 1.0; XYZ2XYZmatrix[6] = 0.0; XYZ2XYZmatrix[7] = 0.0;
+        XYZ2XYZmatrix[8] = 0.0; XYZ2XYZmatrix[9] = 0.0; XYZ2XYZmatrix[10] = 1.0; XYZ2XYZmatrix[11] = 0.0;
+    }
+
+    private static bool CloseEnough(double a, double b) =>
+        Math.Abs(b - a) < (1.0 / 65535.0);
+
+    private static bool IsIdentity(ReadOnlySpan<double> XYZ2XYZmatrix)
+    {
+        Span<double> Identity = stackalloc double[12];
+
+        SetIdentity(Identity);
+
+        for (var i = 0; i < 12; i++)
+        {
+            if (!CloseEnough(XYZ2XYZmatrix[i], Identity[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void Type_MHC2_Free(TagTypeHandler self, object? Ptr)
+    {
+        if (Ptr is not Box<MHC2> mhc2)
+            return;
+
+        //var pool = self.ContextID!.GetBufferPool<double>();
+
+        if (mhc2.Value.redCurve is not null)
+        {
+            //ReturnArray(pool, mhc2.Value.redCurve);
+            mhc2.Value.redCurve = null!;
+        }
+        if (mhc2.Value.greenCurve is not null)
+        {
+            //ReturnArray(pool, mhc2.Value.greenCurve);
+            mhc2.Value.greenCurve = null!;
+        }
+        if (mhc2.Value.blueCurve is not null)
+        {
+            //ReturnArray(pool, mhc2.Value.blueCurve);
+            mhc2.Value.blueCurve = null!;
+        }
+    }
+
+    private static Box<MHC2>? Type_MHC2_Dup(TagTypeHandler self, object? Ptr, uint _1)
+    {
+        if (Ptr is not Box<MHC2> org) return null;
+
+        var mhc2 = org.Value;
+
+        mhc2.redCurve = _cmsDupMem<double>(self.ContextID, mhc2.redCurve, mhc2.entries);
+        mhc2.greenCurve = _cmsDupMem<double>(self.ContextID, mhc2.greenCurve, mhc2.entries);
+        mhc2.blueCurve = _cmsDupMem<double>(self.ContextID, mhc2.blueCurve, mhc2.entries);
+
+        return new(mhc2);
+    }
+
+    private static bool WriteDoubles(IOHandler io, uint n, ReadOnlySpan<double> Values)
+    {
+        for (var i = 0; i < n; i++)
+        {
+            if (!_cmsWrite15Fixed16Number(io, Values[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool Type_MHC2_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2)
+    {
+        uint MatrixOffset;
+
+        if (Ptr is not Box<MHC2> mhc2)
+            return false;
+
+        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+
+        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!_cmsWriteUInt32Number(io, mhc2.Value.entries)) return false;
+
+        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.minLuminance)) return false;
+        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.peakLuminance)) return false;
+
+        var TablesOffsetPos = io.Tell(io);
+
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Matrix
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve R
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve G
+        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve B
+
+        if (IsIdentity(mhc2.Value.matrix))
+        {
+            MatrixOffset = 0;
+        }
+        else
+        {
+            MatrixOffset = io.Tell(io) - BaseOffset;
+            if (!WriteDoubles(io, 3 * 4, mhc2.Value.matrix))
+                return false;
+        }
+
+        var OffsetRedTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.redCurve)) return false;
+        var OffsetGreenTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.greenCurve)) return false;
+        var OffsetBlueTable = io.Tell(io) - BaseOffset;
+        if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.blueCurve)) return false;
+
+        if (!io.Seek(io, TablesOffsetPos)) return false;
+
+        if (!_cmsWriteUInt32Number(io, MatrixOffset)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetRedTable)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetGreenTable)) return false;
+        if (!_cmsWriteUInt32Number(io, OffsetBlueTable)) return false;
+
+        return true;
+    }
+
+    private static bool ReadDoublesAt(IOHandler io, uint At, uint n, Span<double> Values)
+    {
+        var CurrentPos = io.Tell(io);
+
+        if (!io.Seek(io, At)) return false;
+
+        for (var i = 0; i < n; i++)
+        {
+            if (!_cmsRead15Fixed16Number(io, out Values[i]))
+                return false;
+        }
+
+        if (!io.Seek(io, CurrentPos)) return false;
+
+        return true;
+    }
+
+    private static Box<MHC2>? Type_MHC2_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _1)
+    {
+        MHC2 mhc2 = new();
+
+        nItems = 0;
+
+        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+
+        if (!_cmsReadUInt32Number(io, out _)) return null;
+
+        if (!_cmsReadUInt32Number(io, out mhc2.entries)) goto Error;
+
+        if (mhc2.entries > 4096) goto Error;
+
+        //var pool = self.ContextID!.GetBufferPool<double>();
+        //mhc2.redCurve = pool.Rent((int)mhc2.entries);
+        //mhc2.greenCurve = pool.Rent((int)mhc2.entries);
+        //mhc2.blueCurve = pool.Rent((int)mhc2.entries);
+        mhc2.redCurve = new double[mhc2.entries];
+        mhc2.greenCurve = new double[mhc2.entries];
+        mhc2.blueCurve = new double[mhc2.entries];
+
+        mhc2.matrix = new double[3 * 4];
+
+        if (!_cmsRead15Fixed16Number(io, out mhc2.minLuminance)) goto Error;
+        if (!_cmsRead15Fixed16Number(io, out mhc2.peakLuminance)) goto Error;
+
+        if (!_cmsReadUInt32Number(io, out var MatrixOffset)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetRedTable)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetGreenTable)) goto Error;
+        if (!_cmsReadUInt32Number(io, out var OffsetBlueTable)) goto Error;
+
+        if (MatrixOffset is 0)
+            SetIdentity(mhc2.matrix);
+        else
+        {
+            if (!ReadDoublesAt(io, BaseOffset + MatrixOffset, 3 * 4, mhc2.matrix)) goto Error;
+        }
+
+        if (!ReadDoublesAt(io, BaseOffset + OffsetRedTable, mhc2.entries, mhc2.redCurve)) goto Error;
+        if (!ReadDoublesAt(io, BaseOffset + OffsetGreenTable, mhc2.entries, mhc2.greenCurve)) goto Error;
+        if (!ReadDoublesAt(io, BaseOffset + OffsetBlueTable, mhc2.entries, mhc2.blueCurve)) goto Error;
+
+        // Success
+        nItems = 1;
+        return new(mhc2);
+
+    Error:
+        Type_MHC2_Free(self, new Box<MHC2>(mhc2));
+        return null;
+    }
+
+    #endregion Microsoft's MHC2
 
     #region Generic
 
@@ -4251,7 +4517,8 @@ public static partial class Lcms2
         if (!_cmsReadUInt16Number(io, out _)) return null;
 
         if (nSegments < 1) return null;
-        var Segments = GetArray<CurveSegment>(self.ContextID, nSegments);
+        //var Segments = GetArray<CurveSegment>(self.ContextID, nSegments);
+        var Segments = new CurveSegment[nSegments];
         if (Segments is null) return null;
 
         // Read breakpoints
@@ -4281,7 +4548,8 @@ public static partial class Lcms2
                         Segments[i].Type = Type + 6;
                         if (Type > 2) goto Error;
 
-                        Segments[i].Params = Context.GetPool<double>(self.ContextID).Rent(10);
+                        //Segments[i].Params = Context.GetPool<double>(self.ContextID).Rent(10);
+                        Segments[i].Params = new double[10];
 
                         for (var j = 0; j < ParamsByType[Type]; j++)
                         {
@@ -4300,7 +4568,8 @@ public static partial class Lcms2
                         Segments[i].nGridPoints = Count;
                         //Segments[i].SampledPoints = _cmsCalloc<float>(self.ContextID, Count);
                         //if (Segments[i].SampledPoints is null) goto Error;
-                        Segments[i].SampledPoints = Context.GetPool<float>(self.ContextID).Rent((int)Count);
+                        //Segments[i].SampledPoints = Context.GetPool<float>(self.ContextID).Rent((int)Count);
+                        Segments[i].SampledPoints = new float[Count];
 
                         Segments[i].SampledPoints[0] = 0;
                         for (var j = 1; j < Count; j++)
@@ -4318,9 +4587,9 @@ public static partial class Lcms2
 
         var Curve = cmsBuildSegmentedToneCurve(self.ContextID, nSegments, Segments);
 
-        for (var i = 0; i < nSegments; i++)
-            if (Segments[i].SampledPoints is not null) ReturnArray(self.ContextID, Segments[i].SampledPoints);
-        ReturnArray(self.ContextID, Segments);
+        //for (var i = 0; i < nSegments; i++)
+        //    if (Segments[i].SampledPoints is not null) ReturnArray(self.ContextID, Segments[i].SampledPoints);
+        //ReturnArray(self.ContextID, Segments);
 
         // Explore for missing implicit points
         for (var i = 0; i < nSegments; i++)
@@ -4333,9 +4602,9 @@ public static partial class Lcms2
         return Curve;
 
     Error:
-        for (var i = 0; i < nSegments; i++)
-            if (Segments[i].SampledPoints is not null) ReturnArray(self.ContextID, Segments[i].SampledPoints);
-        ReturnArray(self.ContextID, Segments);
+        //for (var i = 0; i < nSegments; i++)
+        //    if (Segments[i].SampledPoints is not null) ReturnArray(self.ContextID, Segments[i].SampledPoints);
+        //ReturnArray(self.ContextID, Segments);
         return null;
     }
 
@@ -4362,8 +4631,9 @@ public static partial class Lcms2
 
         //var GammaTables = (ToneCurve**)_cmsCalloc(self.ContextID, InputChans, _sizeof<nint>());
         //if (GammaTables is null) return null;
-        var pool = Context.GetPool<ToneCurve>(self.ContextID);
-        var GammaTables = pool.Rent(InputChans);
+        //var pool = Context.GetPool<ToneCurve>(self.ContextID);
+        //var GammaTables = pool.Rent(InputChans);
+        var GammaTables = new ToneCurve[InputChans];
 
         var mpe = ReadPositionTable(self, io, InputChans, BaseOffset, GammaTables, ReadMPECurve)
             ? cmsStageAllocToneCurves(self.ContextID, InputChans, GammaTables)
@@ -4372,7 +4642,7 @@ public static partial class Lcms2
         for (var i = 0; i < InputChans; i++)
             if (GammaTables[i] is not null) cmsFreeToneCurve(GammaTables[i]);
 
-        ReturnArray(self.ContextID, GammaTables);
+        //ReturnArray(self.ContextID, GammaTables);
         nItems = mpe is not null ? 1u : 0;
         return mpe;
     }
@@ -4547,8 +4817,8 @@ public static partial class Lcms2
         if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
         if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
 
-        if (InputChans is 0) goto Error;
-        if (OutputChans is 0) goto Error;
+        if (InputChans is 0 || InputChans >= cmsMAXCHANNELS) goto Error;
+        if (OutputChans is 0 || OutputChans >= cmsMAXCHANNELS) goto Error;
 
         if (io.Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
 

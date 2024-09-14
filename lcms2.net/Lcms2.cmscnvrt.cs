@@ -286,9 +286,9 @@ public static partial class Lcms2
 
     private static bool AddConversion(Pipeline Result, Signature InPCS, Signature OutPCS, MAT3 m, VEC3 off)
     {
-        var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
-        var m_as_dbl = m.AsArray(pool);
-        var off_as_dbl = off.AsArray(pool);
+        //var pool = _cmsGetContext(Result.ContextID).GetBufferPool<double>();
+        var m_as_dbl = m.AsArray(/*pool*/);
+        var off_as_dbl = off.AsArray(/*pool*/);
 
         // Handle PCS mismatches. A specialized stage is added to the LUT in such case
         switch ((uint)InPCS)
@@ -350,13 +350,13 @@ public static partial class Lcms2
                 break;
         }
 
-        ReturnArray(pool, m_as_dbl);
-        ReturnArray(pool, off_as_dbl);
+        //ReturnArray(pool, m_as_dbl);
+        //ReturnArray(pool, off_as_dbl);
 
         return true;
     Error:
-        ReturnArray(pool, m_as_dbl);
-        ReturnArray(pool, off_as_dbl);
+        //ReturnArray(pool, m_as_dbl);
+        //ReturnArray(pool, off_as_dbl);
 
         return false;
     }
@@ -545,6 +545,10 @@ public static partial class Lcms2
         return true;
     }
 
+    private static bool is_cmyk_devicelink(Profile profile) =>
+        cmsGetDeviceClass(profile) == cmsSigLinkClass &&
+        cmsGetColorSpace(profile) == cmsSigCmykData;
+
     private static Pipeline? BlackPreservingKOnlyIntents(
         Context? ContextID,
         uint nProfiles,
@@ -572,14 +576,13 @@ public static partial class Lcms2
         lastProfilePos = nProfiles - 1;
         hLastProfile = Profiles[lastProfilePos];
 
-        while (lastProfilePos > 1)
+        // Skip CMYK->CMYK devicelinks on ending
+        while (is_cmyk_devicelink(hLastProfile))
         {
-            hLastProfile = Profiles[--lastProfilePos];
-            if ((uint)cmsGetColorSpace(hLastProfile) is not cmsSigCmykData ||
-                (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass)
-            {
+            if (lastProfilePos < 2)
                 break;
-            }
+
+            hLastProfile = Profiles[--lastProfilePos];
         }
 
         preservationProfilesCount = lastProfilePos + 1;
@@ -769,11 +772,13 @@ public static partial class Lcms2
         lastProfilePos = nProfiles - 1;
         hLastProfile = Profiles[lastProfilePos];
 
-        while (lastProfilePos > 1)
+        // Skip CMYK->CMYK devicelinks on ending
+        while (is_cmyk_devicelink(hLastProfile))
         {
+            if (lastProfilePos < 2)
+                break;
+
             hLastProfile = Profiles[--lastProfilePos];
-            if ((uint)cmsGetColorSpace(hLastProfile) is not cmsSigCmykData ||
-                (uint)cmsGetDeviceClass(hLastProfile) is not cmsSigLinkClass) break;
         }
 
         preservationProfilesCount = lastProfilePos + 1;
@@ -925,7 +930,7 @@ public static partial class Lcms2
         var ctx = _cmsGetContext(ContextID).IntentsPlugin;
 
         var i = 0;
-        foreach (var intent in ctx.Intents.Concat(defaultIntents).Take((int)nMax))
+        foreach (var intent in defaultIntents.Concat(ctx.Intents).Take((int)nMax))
         {
             if (Codes.Length > i)
                 Codes[i] = intent;

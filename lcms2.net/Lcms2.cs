@@ -45,7 +45,7 @@ public static partial class Lcms2
 
     #region lcms2.h
 
-    public const ushort LCMS_VERSION = 2150;
+    public const ushort LCMS_VERSION = 2160;
 
     public const ushort cmsMAX_PATH = 256;
 
@@ -100,6 +100,7 @@ public static partial class Lcms2
     public const uint cmsSigVcgtType = 0x76636774;
     public const uint cmsSigViewingConditionsType = 0x76696577;
     public const uint cmsSigXYZType = 0x58595A20;
+    public const uint cmsSigMHC2Type = 0x4D484332;
 
     public const uint cmsSigAToB0Tag = 0x41324230;
     public const uint cmsSigAToB1Tag = 0x41324231;
@@ -173,6 +174,7 @@ public static partial class Lcms2
     public const uint cmsSigMetaTag = 0x6D657461;
     public const uint cmsSigcicpTag = 0x63696370;
     public const uint cmsSigArgyllArtsTag = 0x61727473;
+    public const uint cmsSigMHC2Tag = 0x4D484332;
 
     public const uint cmsSigDigitalCamera = 0x6463616D;
     public const uint cmsSigFilmScanner = 0x6673636E;
@@ -623,6 +625,7 @@ public static partial class Lcms2
     public static uint TYPE_RGB_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0);
     public static uint TYPE_BGR_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(0) | DOSWAP_SH(1);
     public static uint TYPE_CMYK_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_CMYK) | CHANNELS_SH(4) | BYTES_SH(0);
+    public static uint TYPE_OKLAB_DBL => FLOAT_SH(1) | COLORSPACE_SH(PT_MCH3) | CHANNELS_SH(3) | BYTES_SH(0);
 
     // IEEE 754-2008 "half"
     public static uint TYPE_GRAY_HALF_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_GRAY) | CHANNELS_SH(1) | BYTES_SH(2);
@@ -672,6 +675,7 @@ public static partial class Lcms2
 
     public static readonly byte[] cmsNoLanguage = "\0\0"u8.ToArray();
     public static readonly byte[] cmsNoCountry = "\0\0"u8.ToArray();
+    public static readonly byte[] cmsV2Unicode = "\xff\xff"u8.ToArray();
 
     public const ushort cmsPRINTER_DEFAULT_SCREENS = 0x0001;
     public const ushort cmsFREQUENCE_UNITS_LINES_CM = 0x0000;
@@ -877,7 +881,7 @@ public static partial class Lcms2
 
     internal const int cmsGuess_MAX_WORKERS = -1;
 
-#endregion lcms2_internal.h
+    #endregion lcms2_internal.h
 
     static Lcms2()
     {
@@ -945,7 +949,7 @@ public static partial class Lcms2
         //fixed (TagTypePluginChunkType* plugin = &TagTypePluginChunk)
         //    globalTagTypePluginChunk = dup(plugin);
 
-        
+
         //fixed (TagPluginChunkType* plugin = &TagPluginChunk)
         //    globalTagPluginChunk = dup(plugin);
 
@@ -1517,7 +1521,7 @@ public static partial class Lcms2
         Span<byte> last = null;
         var i = 0;
 
-        while(i < str.Length && str[i] is not 0)
+        while (i < str.Length && str[i] is not 0)
         {
             if (str[i++] == c)
                 last = str;
@@ -1589,7 +1593,7 @@ public static partial class Lcms2
     //    for (var i = 0; i < len; i++) str[i] = (char)format[i];
     //    var formatStr = new string(str);
 
-        
+
     //    return snprintf(buffer, count, formatStr, args);
     //}
 
@@ -1771,7 +1775,7 @@ public static partial class Lcms2
 
         return 0;
     }
-    
+
     internal static FILE? fopen(string filename, string mode)
     {
         Stream stream;
@@ -1861,12 +1865,16 @@ public static partial class Lcms2
     {
         context = _cmsGetContext(context);
 
-        if (loggers.TryGetValue(context.ErrorLogger, out var logger))
-            return logger;
+        lock (loggers)
+        {
+            if (loggers.TryGetValue(context.ErrorLogger, out var logger))
+                return logger;
 
-        logger = context.ErrorLogger.Factory.CreateLogger("Lcms2");
-        loggers.Add(context.ErrorLogger, logger);
-        return logger;
+            logger = context.ErrorLogger.Factory.CreateLogger("Lcms2");
+            loggers.Add(context.ErrorLogger, logger);
+
+            return logger;
+        }
     }
 
     [DebuggerStepThrough]

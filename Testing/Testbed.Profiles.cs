@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -385,11 +411,10 @@ internal static partial class Testbed
         File.Delete("brightness.icc");
     }
 
-
     // This is a very big test that checks every single tag
     public static bool CheckProfileCreation()
     {
-        Profile h;
+        Profile? h;
         int Pass;
 
         using (logger.BeginScope("Profile setup"))
@@ -600,7 +625,6 @@ internal static partial class Testbed
 
                 using (logger.BeginScope("Tags holding date_time"))
                 {
-
                     if (!CheckDateTime(Pass, h, cmsSigCalibrationDateTimeTag))
                     {
                         logger.LogWarning("{tag} failed", "cmsSigCalibrationDateTimeTag");
@@ -615,7 +639,6 @@ internal static partial class Testbed
 
                 using (logger.BeginScope("Tags holding named color lists"))
                 {
-
                     if (!CheckNamedColor(Pass, h, cmsSigColorantTableTag, 15, false))
                     {
                         logger.LogWarning("{tag} failed", "cmsSigColorantTableTag");
@@ -635,7 +658,6 @@ internal static partial class Testbed
 
                 using (logger.BeginScope("Tags holding LUTs"))
                 {
-
                     if (!CheckLUT(Pass, h, cmsSigAToB0Tag))
                     {
                         logger.LogWarning("{tag} failed", "cmsSigAToB0Tag");
@@ -829,18 +851,21 @@ internal static partial class Testbed
                 using (logger.BeginScope("cicp Video Signal Type"))
                     if (!Check_cicp(Pass, h))
                         goto Error;
+
+                using (logger.BeginScope("Microsoft MHC2 tag"))
+                    if (!Check_MHC2(Pass, h))
+                        goto Error;
             }
 
             if (Pass == 1)
             {
-                using(logger.BeginScope("Saving file"))
+                using (logger.BeginScope("Saving file"))
                     cmsSaveProfileToFile(h, "alltags.icc");
-                using(logger.BeginScope("Closing Pass 1"))
+                using (logger.BeginScope("Closing Pass 1"))
                     cmsCloseProfile(h);
-                using(logger.BeginScope("Opening file"))
+                using (logger.BeginScope("Opening file"))
                     h = cmsOpenProfileFromFileTHR(DbgThread(), "alltags.icc", "r");
             }
-
         }
 
         /*
@@ -867,10 +892,8 @@ internal static partial class Testbed
         CIEXYZ XYZ;
         Box<CIEXYZ>? Pt;
 
-
         switch (Pass)
         {
-
             case 1:
 
                 XYZ.X = 1.0; XYZ.Y = 1.1; XYZ.Z = 1.2;
@@ -888,7 +911,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckGamma(int Pass, Profile hProfile, Signature tag)
     {
         ToneCurve g, Pt;
@@ -896,7 +918,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 g = cmsBuildGamma(DbgThread(), 1.0);
@@ -920,10 +941,8 @@ internal static partial class Testbed
         bool rc;
         Span<byte> Buffer = stackalloc byte[256];
 
-
         switch (Pass)
         {
-
             case 1:
                 m = cmsMLUalloc(DbgThread(), 0);
                 cmsMLUsetASCII(m, cmsNoLanguage, cmsNoCountry, "Test test"u8);
@@ -943,17 +962,14 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckText(int Pass, Profile hProfile, Signature tag)
     {
         Mlu? m, Pt;
         bool rc;
         Span<byte> Buffer = stackalloc byte[256];
 
-
         switch (Pass)
         {
-
             case 1:
                 m = cmsMLUalloc(DbgThread(), 0);
                 cmsMLUsetASCII(m, cmsNoLanguage, cmsNoCountry, "Test test"u8);
@@ -992,10 +1008,8 @@ internal static partial class Testbed
         d.data = new byte[] { (byte)'?' };
         //bool rc;
 
-
         switch (Pass)
         {
-
             case 1:
                 return cmsWriteTag(hProfile, tag, new Box<IccData>(d));
 
@@ -1009,7 +1023,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckSignature(int Pass, Profile hProfile, Signature tag)
     {
         Box<Signature>? Pt;
@@ -1017,7 +1030,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 Holder = (Signature)cmsSigPerceptualReferenceMediumGamut;
                 return cmsWriteTag(hProfile, tag, new Box<Signature>(Holder));
@@ -1032,14 +1044,13 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckDateTime(int Pass, Profile hProfile, Signature tag)
     {
         Box<DateTime>? Pt;
         DateTime Holder;
 
-        switch (Pass) {
-
+        switch (Pass)
+        {
             case 1:
 
                 Holder = new(2009, 5, 4, 1, 2, 3);
@@ -1059,9 +1070,7 @@ internal static partial class Testbed
             default:
                 return false;
         }
-
     }
-
 
     private static bool CheckNamedColor(int Pass, Profile hProfile, Signature tag, int max_check, bool colorant_check)
     {
@@ -1077,7 +1086,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 nc = cmsAllocNamedColorList(DbgThread(), 0, 4, "prefix"u8, "suffix"u8);
@@ -1085,7 +1093,6 @@ internal static partial class Testbed
 
                 for (i = 0; i < max_check; i++)
                 {
-
                     PCS[0] = PCS[1] = PCS[2] = (ushort)i;
                     Colorant[0] = Colorant[1] = Colorant[2] = Colorant[3] = (ushort)(max_check - i);
 
@@ -1104,13 +1111,11 @@ internal static partial class Testbed
 
                 for (i = 0; i < max_check; i++)
                 {
-
                     CheckPCS[0] = CheckPCS[1] = CheckPCS[2] = (ushort)i;
                     CheckColorant[0] = CheckColorant[1] = CheckColorant[2] = CheckColorant[3] = (ushort)(max_check - i);
 
                     sprintf(CheckName, "#{0}", i);
                     if (!cmsNamedColorInfo(nc, (uint)i, Name, null, null, PCS, Colorant)) { logger.LogWarning("Invalid string"); return false; }
-
 
                     for (j = 0; j < 3; j++)
                     {
@@ -1120,7 +1125,6 @@ internal static partial class Testbed
                     // This is only used on named color list
                     if (colorant_check)
                     {
-
                         for (j = 0; j < 4; j++)
                         {
                             if (CheckColorant[j] != Colorant[j]) { logger.LogWarning("Invalid Colorant"); return false; };
@@ -1131,21 +1135,17 @@ internal static partial class Testbed
                 }
                 return true;
 
-
             default: return false;
         }
     }
-
 
     private static bool CheckLUT(int Pass, Profile hProfile, Signature tag)
     {
         Pipeline? Lut, Pt;
         bool rc;
 
-
         switch (Pass)
         {
-
             case 1:
 
                 Lut = cmsPipelineAlloc(DbgThread(), 3, 3);
@@ -1180,10 +1180,8 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 return cmsWriteTag(hProfile, tag, CHAD);
-
 
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as double[];
@@ -1206,17 +1204,15 @@ internal static partial class Testbed
         Box<CIExyYTRIPLE>? Pt;
         var c = new CIExyYTRIPLE()
         {
-            Red = new() { x = 0, y=.1, Y=1 },
-            Green = new() { x=.3, y=.4, Y=1 },
-            Blue = new(){ x=.6, y=.7, Y=1 }
+            Red = new() { x = 0, y = .1, Y = 1 },
+            Green = new() { x = .3, y = .4, Y = 1 },
+            Blue = new() { x = .6, y = .7, Y = 1 }
         };
 
         switch (Pass)
         {
-
             case 1:
                 return cmsWriteTag(hProfile, tag, new Box<CIExyYTRIPLE>(c));
-
 
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as Box<CIExyYTRIPLE>;
@@ -1235,7 +1231,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckColorantOrder(int Pass, Profile hProfile, Signature tag)
     {
         byte[]? Pt;
@@ -1244,11 +1239,9 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 for (i = 0; i < cmsMAXCHANNELS; i++) c[i] = (byte)(cmsMAXCHANNELS - i - 1);
                 return cmsWriteTag(hProfile, tag, c);
-
 
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as byte[];
@@ -1272,7 +1265,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 m.Backing.X = 0.1;
                 m.Backing.Y = 0.2;
@@ -1282,7 +1274,6 @@ internal static partial class Testbed
                 m.IlluminantType = IlluminantType.D50;
                 m.Observer = 1;
                 return cmsWriteTag(hProfile, tag, new Box<IccMeasurementConditions>(m));
-
 
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as Box<IccMeasurementConditions>;
@@ -1303,7 +1294,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckUcrBg(int Pass, Profile hProfile, Signature tag)
     {
         Box<UcrBg>? Pt;
@@ -1313,7 +1303,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 m.Ucr = cmsBuildGamma(DbgThread(), 2.4);
                 m.Bg = cmsBuildGamma(DbgThread(), -2.2);
@@ -1324,7 +1313,6 @@ internal static partial class Testbed
                 cmsFreeToneCurve(m.Bg);
                 cmsFreeToneCurve(m.Ucr);
                 return rc;
-
 
             case 2:
                 Pt = (cmsReadTag(hProfile, tag) is Box<UcrBg> box) ? box : null;
@@ -1339,7 +1327,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckCRDinfo(int Pass, Profile hProfile, Signature tag)
     {
         Mlu? mlu;
@@ -1348,7 +1335,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 mlu = cmsMLUalloc(DbgThread(), 5);
 
@@ -1361,28 +1347,21 @@ internal static partial class Testbed
                 cmsMLUfree(mlu);
                 return rc;
 
-
             case 2:
                 mlu = cmsReadTag(hProfile, tag) as Mlu;
                 if (mlu == null) return false;
 
-
-
                 cmsMLUgetASCII(mlu, "PS"u8, "nm"u8, Buffer);
                 if (strcmp(Buffer, "test postscript"u8) != 0) return false;
-
 
                 cmsMLUgetASCII(mlu, "PS"u8, "#0"u8, Buffer);
                 if (strcmp(Buffer, "perceptual"u8) != 0) return false;
 
-
                 cmsMLUgetASCII(mlu, "PS"u8, "#1"u8, Buffer);
                 if (strcmp(Buffer, "relative_colorimetric"u8) != 0) return false;
 
-
                 cmsMLUgetASCII(mlu, "PS"u8, "#2"u8, Buffer);
                 if (strcmp(Buffer, "saturation"u8) != 0) return false;
-
 
                 cmsMLUgetASCII(mlu, "PS"u8, "#3"u8, Buffer);
                 if (strcmp(Buffer, "absolute_colorimetric"u8) != 0) return false;
@@ -1392,7 +1371,6 @@ internal static partial class Testbed
                 return false;
         }
     }
-
 
     private static ToneCurve CreateSegmentedCurve()
     {
@@ -1437,7 +1415,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 Lut = cmsPipelineAlloc(DbgThread(), 3, 3);
@@ -1464,7 +1441,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckScreening(int Pass, Profile hProfile, Signature tag)
     {
         Box<Screening>? Pt;
@@ -1473,7 +1449,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 sc.Flag = 0;
@@ -1484,7 +1459,6 @@ internal static partial class Testbed
 
                 rc = cmsWriteTag(hProfile, tag, new Box<Screening>(sc));
                 return rc;
-
 
             case 2:
                 Pt = cmsReadTag(hProfile, tag) as Box<Screening>;
@@ -1502,17 +1476,14 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckOneStr(Mlu mlu, int n)
     {
         Span<byte> Buffer = stackalloc byte[256];
         Span<byte> Buffer2 = stackalloc byte[256];
 
-
         cmsMLUgetASCII(mlu, "en"u8, "US"u8, Buffer);
         sprintf(Buffer2, "Hello, world {0}", n);
         if (strcmp(Buffer, Buffer2) != 0) return false;
-
 
         cmsMLUgetASCII(mlu, "es"u8, "ES"u8, Buffer);
         sprintf(Buffer2, "Hola, mundo {0}", n);
@@ -1521,14 +1492,12 @@ internal static partial class Testbed
         return true;
     }
 
-
     private static void SetOneStr(out Mlu mlu, string s1, string s2)
     {
         mlu = cmsMLUalloc(DbgThread(), 0);
         cmsMLUsetWide(mlu, "en"u8, "US"u8, s1);
         cmsMLUsetWide(mlu, "es"u8, "ES"u8, s2);
     }
-
 
     private static bool CheckProfileSequenceTag(int Pass, Profile hProfile)
     {
@@ -1537,7 +1506,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
@@ -1579,7 +1547,6 @@ internal static partial class Testbed
                 // Check MLU
                 for (i = 0; i < 3; i++)
                 {
-
                     if (!CheckOneStr(s.seq[i].Manufacturer, i))
                         return false;
                     if (!CheckOneStr(s.seq[i].Model, i))
@@ -1592,7 +1559,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckProfileSequenceIDTag(int Pass, Profile hProfile)
     {
         Sequence? s;
@@ -1600,7 +1566,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
 
                 s = cmsAllocProfileSequenceDescription(DbgThread(), 3);
@@ -1609,7 +1574,6 @@ internal static partial class Testbed
                 s.seq[0].ProfileID = ProfileID.Set("0123456789ABCDEF"u8);
                 s.seq[1].ProfileID = ProfileID.Set("1111111111111111"u8);
                 s.seq[2].ProfileID = ProfileID.Set("2222222222222222"u8);
-
 
                 SetOneStr(out s.seq[0].Description, "Hello, world 0", "Hola, mundo 0");
                 SetOneStr(out s.seq[1].Description, "Hello, world 1", "Hola, mundo 1");
@@ -1636,7 +1600,6 @@ internal static partial class Testbed
 
                 for (i = 0; i < 3; i++)
                 {
-
                     if (!CheckOneStr(s.seq[i].Description, i)) return false;
                 }
 
@@ -1647,7 +1610,6 @@ internal static partial class Testbed
         }
     }
 
-
     private static bool CheckICCViewingConditions(int Pass, Profile hProfile)
     {
         Box<IccViewingConditions>? v;
@@ -1655,7 +1617,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 s.IlluminantType = IlluminantType.D50;
                 s.IlluminantXYZ.X = 0.1;
@@ -1686,9 +1647,7 @@ internal static partial class Testbed
             default:
                 return false;
         }
-
     }
-
 
     private static bool CheckVCGT(int Pass, Profile hProfile)
     {
@@ -1697,7 +1656,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 Curves[0] = cmsBuildGamma(DbgThread(), 1.1);
                 Curves[1] = cmsBuildGamma(DbgThread(), 2.2);
@@ -1707,7 +1665,6 @@ internal static partial class Testbed
 
                 cmsFreeToneCurveTriple(Curves);
                 return true;
-
 
             case 2:
 
@@ -1722,7 +1679,6 @@ internal static partial class Testbed
         return false;
     }
 
-
     // Only one of the two following may be used, as they share the same tag
     //static
     //cmsInt32Number CheckDictionary16(cmsInt32Number Pass, cmsHPROFILE hProfile)
@@ -1731,7 +1687,6 @@ internal static partial class Testbed
     //    const cmsDICTentry* e;
     //    switch (Pass)
     //    {
-
     //        case 1:
     //            hDict = cmsDictAlloc(DbgThread());
     //            cmsDictAddEntry(hDict, L"Name0", null, null, null);
@@ -1741,7 +1696,6 @@ internal static partial class Testbed
     //            if (!cmsWriteTag(hProfile, cmsSigMetaTag, hDict)) return false;
     //            cmsDictFree(hDict);
     //            return true;
-
 
     //        case 2:
 
@@ -1762,14 +1716,11 @@ internal static partial class Testbed
     //            if (e->Value != null) return false;
     //            return true;
 
-
     //        default:;
     //    }
 
     //    return false;
     //}
-
-
 
     private static bool CheckDictionary24(int Pass, Profile hProfile)
     {
@@ -1781,7 +1732,6 @@ internal static partial class Testbed
 
         switch (Pass)
         {
-
             case 1:
                 hDict = cmsDictAlloc(DbgThread());
 
@@ -1801,7 +1751,6 @@ internal static partial class Testbed
 
                 return true;
 
-
             case 2:
 
                 hDict = (cmsReadTag(hProfile, cmsSigMetaTag) as Dictionary)!;
@@ -1820,14 +1769,11 @@ internal static partial class Testbed
                 cmsMLUgetASCII(e.DisplayName, "en"u8, "US"u8, Buffer);
                 if (strcmp(Buffer, "Hello, world"u8) != 0) rc = false;
 
-
                 cmsMLUgetASCII(e.DisplayName, "es"u8, "ES"u8, Buffer);
                 if (strcmp(Buffer, "Hola, mundo"u8) != 0) rc = false;
 
-
                 cmsMLUgetASCII(e.DisplayName, "fr"u8, "FR"u8, Buffer);
                 if (strcmp(Buffer, "Bonjour, le monde"u8) != 0) rc = false;
-
 
                 cmsMLUgetASCII(e.DisplayName, "ca"u8, "CA"u8, Buffer);
                 if (strcmp(Buffer, "Hola, mon"u8) != 0) rc = false;
@@ -1844,7 +1790,6 @@ internal static partial class Testbed
     {
         switch (Pass)
         {
-
             case 1:
                 return cmsWriteRawTag(hProfile, (Signature)0x31323334, "data123"u8, 7);
 
@@ -1891,6 +1836,42 @@ internal static partial class Testbed
         }
     }
 
+    private static bool Check_MHC2(int Pass, Profile hProfile)
+    {
+        double[] curve = [0.0, 0.5, 1.0];
+
+        switch (Pass)
+        {
+            case 1:
+                var s = new MHC2
+                {
+                    matrix = new double[12],
+                    entries = 3,
+                    redCurve = curve,
+                    greenCurve = curve,
+                    blueCurve = curve,
+                    minLuminance = 0.1,
+                    peakLuminance = 100.0
+                };
+
+                SetMHC2Matrix(s.matrix);
+
+                if (!cmsWriteTag(hProfile, cmsSigMHC2Tag, new Box<MHC2>(s)))
+                    return false;
+                return true;
+
+            case 2:
+                if (cmsReadTag(hProfile, cmsSigMHC2Tag) is not Box<MHC2> v) return false;
+
+                if (!IsOriginalMHC2Matrix(v.Value.matrix)) return false;
+                if (v.Value.entries is not 3) return false;
+
+                return true;
+
+            default: return false;
+        }
+    }
+
     internal static bool CheckVersionHeaderWriting()
     {
         Span<float> test_versions = stackalloc float[]
@@ -1901,7 +1882,7 @@ internal static partial class Testbed
             4.3f
         };
 
-        for (var index = 0;  index < test_versions.Length; index++)
+        for (var index = 0; index < test_versions.Length; index++)
         {
             var h = cmsCreateProfilePlaceholder(DbgThread());
             if (h is null)
@@ -1946,5 +1927,4 @@ internal static partial class Testbed
 
         return true;
     }
-
 }

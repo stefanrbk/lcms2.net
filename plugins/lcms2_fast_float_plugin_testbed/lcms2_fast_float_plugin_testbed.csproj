@@ -1,34 +1,43 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>lcms2.FastFloatPlugin.testbed</RootNamespace>
-    <LangVersion>preview</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>lcms2.FastFloatPlugin.testbed</RootNamespace>
+		<LangVersion>preview</LangVersion>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Configurations>Debug;Release;Debug (Single Threaded)</Configurations>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
-    <ProjectReference Include="..\..\Testing\Testbed.csproj" />
-    <ProjectReference Include="..\lcms2_fast_float_plugin\lcms2_fast_float_plugin.csproj" />
-  </ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Single Threaded)|AnyCPU'">
+		<DefineConstants>$(DefineConstants);NO_THREADS</DefineConstants>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Update="TestProfiles.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>TestProfiles.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="TestProfiles.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
+		<ProjectReference Include="..\..\Testing\Testbed.csproj" />
+		<ProjectReference Include="..\lcms2_fast_float_plugin\lcms2_fast_float_plugin.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="TestProfiles.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>TestProfiles.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="TestProfiles.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>TestProfiles.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
 
 </Project>

@@ -46,8 +46,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var rin = (int)(SourceStartingOrder[0] + strideIn);
@@ -112,8 +112,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var rin = (int)(SourceStartingOrder[0] + strideIn);
@@ -181,8 +181,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var kin = (int)(SourceStartingOrder[0] + strideIn);
@@ -237,8 +237,8 @@ public static partial class FastFloat
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
+        nuint strideIn = 0;
+        nuint strideOut = 0;
         for (var i = 0; i < LineCount; i++)
         {
             var kin = (int)(SourceStartingOrder[0] + strideIn);
@@ -351,26 +351,30 @@ file class CurvesFloatData : IDisposable
     public CurvesFloatData(Context? context)
     {
         ContextID = context;
-        var pool = Context.GetPool<float>(context);
-        _curveR = pool.Rent(MAX_NODES_IN_CURVE);
-        _curveG = pool.Rent(MAX_NODES_IN_CURVE);
-        _curveB = pool.Rent(MAX_NODES_IN_CURVE);
-        Array.Clear(_curveR);
-        Array.Clear(_curveG);
-        Array.Clear(_curveB);
+        //var pool = Context.GetPool<float>(context);
+        //_curveR = pool.Rent(MAX_NODES_IN_CURVE);
+        //_curveG = pool.Rent(MAX_NODES_IN_CURVE);
+        //_curveB = pool.Rent(MAX_NODES_IN_CURVE);
+        //Array.Clear(_curveR);
+        //Array.Clear(_curveG);
+        //Array.Clear(_curveB);
+        _curveR = new float[MAX_NODES_IN_CURVE];
+        _curveG = new float[MAX_NODES_IN_CURVE];
+        _curveB = new float[MAX_NODES_IN_CURVE];
+
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                var pool = Context.GetPool<float>(ContextID);
-                pool.Return(_curveR);
-                pool.Return(_curveG);
-                pool.Return(_curveB);
-            }
+            //if (disposing)
+            //{
+            //    var pool = Context.GetPool<float>(ContextID);
+            //    pool.Return(_curveR);
+            //    pool.Return(_curveG);
+            //    pool.Return(_curveB);
+            //}
 
             disposedValue = true;
         }

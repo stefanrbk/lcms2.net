@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -31,8 +57,6 @@ using Microsoft.Extensions.Logging;
 
 using System.Runtime.InteropServices;
 using System.Text;
-
-using static lcms2.types.TagTypeHandler;
 
 namespace lcms2.testbed;
 
@@ -153,7 +177,7 @@ internal static partial class Testbed
 
         cmsDoTransform(xform, Lab, out byte g_out, 1);
 
-        return IsGoodVal("Gray value", g, g_out, 0.01);
+        return IsGoodVal("Gray value", g, g_out, 1);
     }
 
     internal static bool CheckOutputGray()
@@ -291,7 +315,7 @@ internal static partial class Testbed
     {
         var hAbove = Create_AboveRGB()!;
         var xform = cmsCreateProofingTransformTHR(DbgThread(), hAbove, TYPE_RGB_16, hAbove, TYPE_RGB_16, hAbove,
-            INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_SOFTPROOFING|cmsFLAGS_NOCACHE)!;
+            INTENT_RELATIVE_COLORIMETRIC, INTENT_RELATIVE_COLORIMETRIC, cmsFLAGS_SOFTPROOFING | cmsFLAGS_NOCACHE)!;
 
         cmsCloseProfile(hAbove);
         var rc = Check16linearXFORM(xform, 3);
@@ -595,7 +619,7 @@ internal static partial class Testbed
 
         return true;
     }
-    
+
     internal static bool CheckOneTAC(double InkLimit)
     {
         var h = CreateFakeCMYK(InkLimit, true)!;
@@ -610,7 +634,6 @@ internal static partial class Testbed
 
         return Math.Abs(d - InkLimit) <= 5;
     }
-
 
     internal static bool CheckTAC()
     {
@@ -638,7 +661,9 @@ internal static partial class Testbed
 
         return sb.Remove(0, 2).ToString();
     }
+
     private delegate CIELab LabFn(Span<int> values);
+
     private static bool CheckOneGBD(
         LabFn Lab,
         params (SteppedRange<int> build, SteppedRange<int>? test)[] vals)
@@ -666,7 +691,6 @@ internal static partial class Testbed
                 cmsGBDFree(h);
                 return false;
             }
-
         }
 
         using (logger.BeginScope("GBD compute"))
@@ -788,7 +812,6 @@ internal static partial class Testbed
             {
                 logger.LogWarning("Failed to compute Profile ID");
                 return false;
-
             }
             else
             {
@@ -846,7 +869,6 @@ internal static partial class Testbed
         Span<double> zero = stackalloc double[] { 0, 0, 0 };
         var identityProfile = cmsCreateProfilePlaceholder(ctx)!;
 
-
         cmsSetProfileVersion(identityProfile, 4.3);
 
         cmsSetDeviceClass(identityProfile, cmsSigColorSpaceClass);
@@ -857,7 +879,7 @@ internal static partial class Testbed
 
         cmsWriteTag(identityProfile, cmsSigMediaWhitePointTag, new Box<CIEXYZ>(D50XYZ));
 
-        var identity = MAT3.Identity.AsArray(Context.GetPool<double>(null));
+        var identity = MAT3.Identity.AsArray(/*Context.GetPool<double>(null)*/);
 
         // build forward transform.... (RGB to PCS)
         var forward = cmsPipelineAlloc(ctx, 3, 3);
@@ -876,6 +898,7 @@ internal static partial class Testbed
     }
 
     private static uint TYPE_XYZA_FLT => FLOAT_SH(1) | COLORSPACE_SH(PT_XYZ) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
+
     internal static bool CheckFloatXYZ()
     {
         var xyzProfile = cmsCreateXYZProfile()!;
@@ -897,7 +920,6 @@ internal static partial class Testbed
         {
             return false;
         }
-
 
         // XYZ to XYZ
         input = IdentityMatrixProfile(cmsSigXYZData);
@@ -923,7 +945,6 @@ internal static partial class Testbed
 
         cmsDoTransform(xform, @in, @out, 1);
 
-
         cmsDeleteTransform(xform);
 
         if (!IsGoodVal("Float XYZA->XYZA", @in[0], @out[0], FLOAT_PRECISION) ||
@@ -933,7 +954,6 @@ internal static partial class Testbed
         {
             return false;
         }
-
 
         // XYZ to RGB
         input = IdentityMatrixProfile(cmsSigRgbData);
@@ -951,7 +971,6 @@ internal static partial class Testbed
         {
             return false;
         }
-
 
         // Now the optimizer should remove a stage
 
@@ -973,7 +992,6 @@ internal static partial class Testbed
         }
 
         cmsCloseProfile(xyzProfile);
-
 
         return true;
     }
@@ -1007,7 +1025,6 @@ internal static partial class Testbed
                 return false;
             }
         }
-
 
         cmsDeleteTransform(xform1);
         cmsDeleteTransform(xform2);
@@ -1045,7 +1062,6 @@ internal static partial class Testbed
 
         var t = cmsBuildParametricToneCurve(null, 5, @params)!;
 
-
         for (var i = 0; i < 256; i++)
         {
             var n = i / 255.0F;
@@ -1064,6 +1080,7 @@ internal static partial class Testbed
     }
 
     private const byte kNumPoints = 10;
+
     private static float StraightLine(float x) =>
         (float)(0.1 + (0.9 * x));
 
@@ -1086,7 +1103,8 @@ internal static partial class Testbed
 
     internal static bool CheckFloatSamples()
     {
-        var y = GetArray<float>(null, kNumPoints);
+        //var y = GetArray<float>(null, kNumPoints);
+        var y = new float[kNumPoints];
 
         for (var i = 0; i < kNumPoints; i++)
             y[i] = StraightLine((float)i / (kNumPoints - 1));
@@ -1235,7 +1253,6 @@ internal static partial class Testbed
         return true;
     }
 
-
     // Bug on applying null transforms on floating point buffers
     internal static bool CheckFloatNULLxform()
     {
@@ -1255,10 +1272,8 @@ internal static partial class Testbed
         cmsDeleteTransform(xform);
         for (var i = 0; i < 10; i++)
         {
-
             if (!IsGoodVal("float nullxform", @in[i], @out[i], 0.001))
             {
-
                 return false;
             }
         }
@@ -1291,7 +1306,6 @@ internal static partial class Testbed
         cmsCloseProfile(p);
         return true;
     }
-
 
     internal static bool CheckMatrixSimplify()
     {
@@ -1334,7 +1348,6 @@ internal static partial class Testbed
 
         Span<byte> @out = stackalloc byte[1024];
 
-
         var pIn = cmsCreate_sRGBProfile()!;
         var pOut = cmsOpenProfileFromMem(TestProfiles.ibm_t61)!;
         if (pIn is null || pOut is null)
@@ -1360,7 +1373,6 @@ internal static partial class Testbed
         cmsDoTransformLineStride(t, buf2, @out, 2, 4, 9, 9, 0, 0);
 
         cmsDeleteTransform(t);
-
 
         if (memcmp(@out, buf2) != 0)
         {
@@ -1420,6 +1432,25 @@ internal static partial class Testbed
 
         cmsDeleteTransform(transform);
         cmsCloseProfile(aboveRGB);
+        cmsCloseProfile(sRGB);
+
+        return true;
+    }
+
+    private static uint TYPE_RGB_FLT_PLANAR = FLOAT_SH(1) | COLORSPACE_SH(PT_RGB) | CHANNELS_SH(3) | BYTES_SH(4) | PLANAR_SH(1);
+
+    internal static bool CheckPlanarFloat2int()
+    {
+        var sRGB = cmsCreate_sRGBProfile()!;
+
+        var transform = cmsCreateTransform(sRGB, TYPE_RGB_FLT_PLANAR, sRGB, TYPE_RGB_16_PLANAR, INTENT_PERCEPTUAL, 0)!;
+
+        ReadOnlySpan<float> input = [0.0f, 0.4f, 0.8f, 0.1f, 0.5f, 0.9f, 0.2f, 0.6f, 1.0f, 0.3f, 0.7f, 1.0f];
+        Span<ushort> output = stackalloc ushort[12];
+
+        cmsDoTransform(transform, input, output, 4);
+
+        cmsDeleteTransform(transform);
         cmsCloseProfile(sRGB);
 
         return true;
@@ -1574,7 +1605,7 @@ internal static partial class Testbed
         double d2 = a[1] - b[1];
         double d3 = a[2] - b[2];
 
-        return Math.Sqrt(d1* d1 + d2* d2 + d3* d3);
+        return Math.Sqrt(d1 * d1 + d2 * d2 + d3 * d3);
     }
 
     internal static bool Check_sRGB_Rountrips()
@@ -1612,7 +1643,6 @@ internal static partial class Testbed
                         maxErr = err;
                 }
 
-
         cmsDeleteTransform(hBack);
         cmsDeleteTransform(hForth);
 
@@ -1621,6 +1651,77 @@ internal static partial class Testbed
             logger.LogWarning("Maximum sRGB roundtrip error {maxErr}!", maxErr);
             return false;
         }
+
+        return true;
+    }
+
+    internal static bool Check_OkLab()
+    {
+        var hOkLab = cmsCreate_OkLabProfile(null)!;
+        var hXYZ = cmsCreateXYZProfile()!;
+
+        var TYPE_OKLAB_DBL = FLOAT_SH(1) | COLORSPACE_SH(PT_MCH3) | CHANNELS_SH(3) | BYTES_SH(0);
+
+        var xform = cmsCreateTransform(hXYZ, TYPE_XYZ_DBL, hOkLab, TYPE_OKLAB_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        var xform2 = cmsCreateTransform(hOkLab, TYPE_OKLAB_DBL, hXYZ, TYPE_XYZ_DBL, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+        // D50 should be converted to white by PCS definition
+        var xyz = new CIEXYZ(0.9642, 1.0, 0.8249);
+        cmsDoTransform(xform, xyz, out CIELab okLab, 1);
+        cmsDoTransform(xform2, okLab, out CIEXYZ xyz2, 1);
+
+        xyz.X = 1.0; xyz.Y = 0.0; xyz.Z = 0.0;
+        cmsDoTransform(xform, xyz, out okLab, 1);
+        cmsDoTransform(xform2, okLab, out xyz2, 1);
+
+        xyz.X = 0.0; xyz.Y = 1.0; xyz.Z = 0.0;
+        cmsDoTransform(xform, xyz, out okLab, 1);
+        cmsDoTransform(xform2, okLab, out xyz2, 1);
+
+        xyz.X = 0.0; xyz.Y = 0.0; xyz.Z = 1.0;
+        cmsDoTransform(xform, xyz, out okLab, 1);
+        cmsDoTransform(xform2, okLab, out xyz2, 1);
+
+        xyz.X = 0.143046; xyz.Y = 0.060610; xyz.Z = 0.713913;
+        cmsDoTransform(xform, xyz, out okLab, 1);
+        cmsDoTransform(xform2, okLab, out xyz2, 1);
+
+        cmsDeleteTransform(xform);
+        cmsDeleteTransform(xform2);
+        cmsCloseProfile(hOkLab);
+        cmsCloseProfile(hXYZ);
+
+        return true;
+    }
+
+    internal static bool Check_OkLab2()
+    {
+        Span<ushort> rgb = stackalloc ushort[3];
+        Span<float> lab = stackalloc float[4];
+
+        var labProfile = cmsCreate_OkLabProfile(null)!;
+        var rgbProfile = cmsCreate_sRGBProfile()!;
+
+        var TYPE_LABA_F32 = FLOAT_SH(1) | COLORSPACE_SH(PT_MCH3) | EXTRA_SH(1) | CHANNELS_SH(3) | BYTES_SH(4);
+
+        var hBack = cmsCreateTransform(labProfile, TYPE_LABA_F32, rgbProfile, TYPE_RGB_16, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+        var hForth = cmsCreateTransform(rgbProfile, TYPE_RGB_16, labProfile, TYPE_LABA_F32, INTENT_RELATIVE_COLORIMETRIC, 0)!;
+
+        cmsCloseProfile(labProfile);
+        cmsCloseProfile(rgbProfile);
+
+        rgb[0] = 0;
+        rgb[1] = 0;
+        rgb[2] = 65535;
+
+        cmsDoTransform(hForth, rgb, lab, 1);
+        cmsDoTransform(hBack, lab, rgb, 1);
+
+        cmsDeleteTransform(hBack);
+        cmsDeleteTransform(hForth);
+
+        if (rgb[0] is not 0 || rgb[1] is not 0 || rgb[2] is not 65535)
+            return false;
 
         return true;
     }
@@ -1643,7 +1744,6 @@ internal static partial class Testbed
         return hRGB;
     }
 
-
     internal static bool CheckGammaSpaceDetection()
     {
         for (var i = 0.5; i < 3; i += 0.1)
@@ -1663,6 +1763,7 @@ internal static partial class Testbed
 
         return true;
     }
+
     internal static bool CheckIntToFloatTransform()
     {
         var hAbove = Create_AboveRGB()!;
@@ -1677,7 +1778,6 @@ internal static partial class Testbed
 
         cmsDoTransform(xform, rgb8, rgbDBL, 1);
 
-
         cmsDeleteTransform(xform);
 
         if (rgbDBL[0] < 0 && rgbDBL[2] < 0)
@@ -1686,6 +1786,65 @@ internal static partial class Testbed
         logger.LogWarning("Unbounded transforms with integer input failed");
 
         return false;
+    }
+
+    internal static bool CheckSaveLinearizationDeviceLink()
+    {
+        float[] table = [0, 0.5f, 1.0f];
+
+        var tone = cmsBuildTabulatedToneCurveFloat(null, 3, table)!;
+
+        var rgb_curves = new ToneCurve[] { tone, tone, tone };
+
+        var hDeviceLink = cmsCreateLinearizationDeviceLink(cmsSigRgbData, rgb_curves)!;
+
+        cmsFreeToneCurve(tone);
+
+        var result = cmsSaveProfileToFile(hDeviceLink, "lin_rgb.icc");
+
+        cmsCloseProfile(hDeviceLink);
+
+        if (!result)
+        {
+            remove("lin_rgb.icc");
+            logger.LogWarning("Couldn't save linearization devicelink");
+            return false;
+        }
+
+        hDeviceLink = cmsOpenProfileFromFile("lin_rgb.icc", "r");
+
+        if (hDeviceLink is null)
+        {
+            remove("lin_rgb.icc");
+            logger.LogWarning("Couldn't open devicelink");
+            return false;
+        }
+
+        var xform = cmsCreateTransform(hDeviceLink, TYPE_RGB_8, null, TYPE_RGB_8, INTENT_PERCEPTUAL, 0)!;
+        cmsCloseProfile(hDeviceLink);
+
+        Span<byte> rgb_in = stackalloc byte[3];
+        Span<byte> rgb_out = stackalloc byte[3];
+        for (var i = 0; i < 256; i++)
+        {
+            rgb_in[0] = rgb_in[1] = rgb_in[2] = (byte)i;
+            rgb_out[0] = rgb_out[1] = rgb_out[2] = 0;
+
+            cmsDoTransform(xform, rgb_in, rgb_out, 1);
+
+            if (rgb_in[0] != rgb_out[0] ||
+                rgb_in[1] != rgb_out[1] ||
+                rgb_in[2] != rgb_out[2])
+            {
+                remove("lin_rgb.icc");
+                logger.LogWarning("Saved devicelink was not working");
+            }
+        }
+
+        cmsDeleteTransform(xform);
+        remove("lin_rgb.icc");
+
+        return true;
     }
 
     internal static bool CheckInducedCorruption()

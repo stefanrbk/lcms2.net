@@ -1,7 +1,7 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2023 Marti Maria Saguer
+//  Copyright (c) 1998-2022 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -131,7 +131,6 @@ if (!noCheckTests)
 
     using (logger.BeginScope("Encoding of colorspaces"))
     {
-
         Check("Lab to LCh and back (float only)", CheckLab2LCh);
         Check("Lab to XYZ and back (float only)", CheckLab2XYZ);
         Check("Lab to xyY and back (float only)", CheckLab2xyY);
@@ -206,6 +205,7 @@ if (!noCheckTests)
     using (logger.BeginScope("MLU and named color lists"))
     {
         Check("Multilocalized Unicode", CheckMLU);
+        Check("Multilocalized Unicode (II)", CheckMLU_UTF8);
         Check("Named color lists", CheckNamedColorList);
         Check("Create named color profile", CreateNamedColorProfile);
     }
@@ -237,7 +237,8 @@ if (!noCheckTests)
         Check("Primaries of sRGB", CheckRGBPrimaries);
     }
 
-    using (logger.BeginScope("Known values")) {
+    using (logger.BeginScope("Known values"))
+    {
         Check("Known values across matrix-shaper", Check_sRGB_Float);
         Check("Gray input profile", CheckInputGray);
         Check("Gray Lab input profile", CheckLabInputGray);
@@ -257,7 +258,6 @@ if (!noCheckTests)
 
         Check("Black ink only preservation", CheckKOnlyBlackPreserving);
         Check("Black plane preservation", CheckKPlaneBlackPreserving);
-
 
         Check("Deciding curve types", CheckV4gamma);
 
@@ -282,15 +282,20 @@ if (!noCheckTests)
         Check("Set free a tag", CheckRemoveTag);
         Check("Matrix simplification", CheckMatrixSimplify);
         Check("Planar 8 optimization", CheckPlanar8opt);
+        Check("Planar float to int16", CheckPlanarFloat2int);
         Check("Swap endian feature", CheckSE);
         Check("Transform line stride RGB", CheckTransformLineStride);
         Check("Forged MPE profile", CheckForgedMPE);
         Check("Proofing intersection", CheckProofingIntersection);
         Check("Empty MLUC", CheckEmptyMLUC);
         Check("sRGB round-trips", Check_sRGB_Rountrips);
+        Check("OkLab color space", Check_OkLab);
+        Check("OkLab color space (2)", Check_OkLab2);
         Check("Gamma space detection", CheckGammaSpaceDetection);
         Check("Unbounded mode w/ integer output", CheckIntToFloatTransform);
         Check("Corrupted built-in by using cmsWriteRawTag", CheckInducedCorruption);
+        //Check("Bad CGATS file", CheckBadCGATS);
+        Check("Saving linearization devicelink", CheckSaveLinearizationDeviceLink);
     }
 }
 

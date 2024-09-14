@@ -38,12 +38,15 @@ public class Profile : ICloneable
 
     public DateTime Created;
 
+    public Signature CMM;
+
     public uint Version;
     public Signature DeviceClass;
     public Signature ColorSpace;
     public Signature PCS;
     public uint RenderingIntent;
 
+    public uint platform;
     public uint flags;
     public uint manufacturer, model;
     public ulong attributes;

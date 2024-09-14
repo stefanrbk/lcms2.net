@@ -68,8 +68,10 @@ public static partial class Threaded
                 };
 
                 // Create memory for the slices
-                var slices = Context.GetPool<WorkSlice>(ContextID).Rent((int)nSlices);
-                var handles = Context.GetPool<Task>(ContextID).Rent((int)nSlices);
+                //var slices = Context.GetPool<WorkSlice>(ContextID).Rent((int)nSlices);
+                //var handles = Context.GetPool<Task>(ContextID).Rent((int)nSlices);
+                var slices = new WorkSlice[nSlices];
+                var handles = new Task[nSlices];
 
                 // slices and handles cannot be null, so not implementing the failure path!
 
@@ -103,8 +105,8 @@ public static partial class Threaded
                     worker(CMMcargo, InputBuffer, OutputBuffer, PixelsPerLine, LineCount, Stride);
                 }
 
-                ReturnArray(ContextID, slices);
-                ReturnArray(ContextID, handles);
+                //ReturnArray(ContextID, slices);
+                //ReturnArray(ContextID, handles);
             }
         }
     }

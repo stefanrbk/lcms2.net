@@ -22,89 +22,96 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Runtime.InteropServices;
+
 namespace lcms2.FastFloatPlugin;
 public unsafe static partial class FastFloat
 {
     private static void MatShaperFloat(Transform CMMcargo,
-                                       ReadOnlySpan<byte> Input,
-                                       Span<byte> Output,
+                                       ReadOnlySpan<byte> In,
+                                       Span<byte> Out,
                                        uint PixelsPerLine,
                                        uint LineCount,
                                        Stride Stride)
     {
-        if (_cmsGetTransformUserData(CMMcargo) is not VXMatShaperFloatData p)
+        if (_cmsGetTransformUserData(CMMcargo) is not nuint pPtr)
             return;
 
-        Span<uint> SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-        Span<uint> SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
-        Span<uint> DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
-        Span<uint> DestIncrements = stackalloc uint[cmsMAXCHANNELS];
+        var p = (VXMatShaperFloatData*)pPtr;
 
-        _cmsComputeComponentIncrements(cmsGetTransformInputFormat(CMMcargo), Stride.BytesPerPlaneIn, out _, out var nalpha, SourceStartingOrder, SourceIncrements);
-        _cmsComputeComponentIncrements(cmsGetTransformOutputFormat(CMMcargo), Stride.BytesPerPlaneOut, out _, out nalpha, DestStartingOrder, DestIncrements);
+        var SourceStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+        var SourceIncrements = stackalloc uint[cmsMAXCHANNELS];
+        var DestStartingOrder = stackalloc uint[cmsMAXCHANNELS];
+        var DestIncrements = stackalloc uint[cmsMAXCHANNELS];
+
+        _cmsComputeComponentIncrements(cmsGetTransformInputFormat(CMMcargo), Stride.BytesPerPlaneIn, out _, out var nalpha, new(SourceStartingOrder, cmsMAXCHANNELS), new(SourceIncrements, cmsMAXCHANNELS));
+        _cmsComputeComponentIncrements(cmsGetTransformOutputFormat(CMMcargo), Stride.BytesPerPlaneOut, out _, out nalpha, new(DestStartingOrder, cmsMAXCHANNELS), new(DestIncrements, cmsMAXCHANNELS));
 
         if ((_cmsGetTransformFlags(CMMcargo) & cmsFLAGS_COPY_ALPHA) is 0)
             nalpha = 0;
 
-        var strideIn = 0u;
-        var strideOut = 0u;
-        for (var i = 0; i < LineCount; i++)
+        fixed (byte* Input = In, Output = Out)
         {
-            var rin = (int)(SourceStartingOrder[0] + strideIn);
-            var gin = (int)(SourceStartingOrder[1] + strideIn);
-            var bin = (int)(SourceStartingOrder[2] + strideIn);
-            var ain =
-                nalpha is not 0
-                    ? (int)(SourceStartingOrder[3] + strideIn)
-                    : default;
-
-            var rout = (int)(DestStartingOrder[0] + strideOut);
-            var gout = (int)(DestStartingOrder[1] + strideOut);
-            var bout = (int)(DestStartingOrder[2] + strideOut);
-            var aout =
-                nalpha is not 0
-                    ? (int)(SourceStartingOrder[3] + strideOut)
-                    : default;
-
-            for (var ii = 0; ii < PixelsPerLine; ii++)
+            nuint strideIn = 0;
+            nuint strideOut = 0;
+            for (var i = 0; i < LineCount; i++)
             {
-                var r = flerp(p.Shaper1R, BitConverter.ToSingle(Input[rin..]));
-                var g = flerp(p.Shaper1G, BitConverter.ToSingle(Input[gin..]));
-                var b = flerp(p.Shaper1B, BitConverter.ToSingle(Input[bin..]));
+                var rin = Input + SourceStartingOrder[0] + strideIn;
+                var gin = Input + SourceStartingOrder[1] + strideIn;
+                var bin = Input + SourceStartingOrder[2] + strideIn;
+                var ain =
+                    nalpha is not 0
+                        ? Input + SourceStartingOrder[3] + strideIn
+                        : default;
 
-                var l1 = (p.Mat(0, 0) * r) + (p.Mat(0, 1) * g) + (p.Mat(0, 2) * b);
-                var l2 = (p.Mat(1, 0) * r) + (p.Mat(1, 1) * g) + (p.Mat(1, 2) * b);
-                var l3 = (p.Mat(2, 0) * r) + (p.Mat(2, 1) * g) + (p.Mat(2, 2) * b);
+                var rout = Output + DestStartingOrder[0] + strideOut;
+                var gout = Output + DestStartingOrder[1] + strideOut;
+                var bout = Output + DestStartingOrder[2] + strideOut;
+                var aout =
+                    nalpha is not 0
+                        ? Output + DestStartingOrder[3] + strideOut
+                        : default;
 
-                if (p.UseOff)
+                for (var ii = 0; ii < PixelsPerLine; ii++)
                 {
-                    l1 += p.Off[0];
-                    l2 += p.Off[1];
-                    l3 += p.Off[2];
+                    var r = flerp(p->Shaper1R, *(float*)rin);
+                    var g = flerp(p->Shaper1G, *(float*)gin);
+                    var b = flerp(p->Shaper1B, *(float*)bin);
+
+                    var l1 = (p->Mat[0] * r) + (p->Mat[1] * g) + (p->Mat[2] * b);
+                    var l2 = (p->Mat[3] * r) + (p->Mat[4] * g) + (p->Mat[5] * b);
+                    var l3 = (p->Mat[6] * r) + (p->Mat[7] * g) + (p->Mat[8] * b);
+
+                    if (p->UseOff)
+                    {
+                        l1 += p->Off[0];
+                        l2 += p->Off[1];
+                        l3 += p->Off[2];
+                    }
+
+                    *(float*)rout = flerp(p->Shaper2R, l1);
+                    *(float*)gout = flerp(p->Shaper2G, l2);
+                    *(float*)bout = flerp(p->Shaper2B, l3);
+
+                    rin += SourceIncrements[0];
+                    gin += SourceIncrements[1];
+                    bin += SourceIncrements[2];
+
+                    rout += DestIncrements[0];
+                    gout += DestIncrements[1];
+                    bout += DestIncrements[2];
+
+                    if (nalpha is not 0)
+                    {
+                        *(float*)aout = *(float*)ain;
+                        ain += SourceIncrements[3];
+                        aout += DestIncrements[3];
+                    }
                 }
 
-                BitConverter.TryWriteBytes(Output[rout..], flerp(p.Shaper2R, l1));
-                BitConverter.TryWriteBytes(Output[gout..], flerp(p.Shaper2G, l2));
-                BitConverter.TryWriteBytes(Output[bout..], flerp(p.Shaper2B, l3));
-
-                rin += (int)SourceIncrements[0];
-                gin += (int)SourceIncrements[1];
-                bin += (int)SourceIncrements[2];
-
-                rout += (int)DestIncrements[0];
-                gout += (int)DestIncrements[1];
-                bout += (int)DestIncrements[2];
-
-                if (nalpha is not 0)
-                {
-                    BitConverter.TryWriteBytes(Output[aout..], BitConverter.ToSingle(Input[ain..]));
-                    ain += (int)SourceIncrements[3];
-                    aout += (int)DestIncrements[3];
-                }
+                strideIn += Stride.BytesPerLineIn;
+                strideOut += Stride.BytesPerLineOut;
             }
-
-            strideIn += Stride.BytesPerLineIn;
-            strideOut += Stride.BytesPerLineOut;
         }
     }
 
@@ -126,7 +133,7 @@ public unsafe static partial class FastFloat
 
         // Only works on RGB to RGB and gray to gray
         if (!((T_CHANNELS(InputFormat) is 3 && T_CHANNELS(OutputFormat) is 3) ||
-              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1) ))
+              (T_CHANNELS(InputFormat) is 1 && T_CHANNELS(OutputFormat) is 1)))
         {
             return false;
         }
@@ -221,7 +228,7 @@ public unsafe static partial class FastFloat
                 dwFlags |= cmsFLAGS_NOCACHE;
 
                 // Setup the optimization routines
-                UserData = VXMatShaperFloatData.SetShaper(ContextID, mpeC1.TheCurves, res, Data2.Offset is null ? null : new VEC3(Data2.Offset), mpeC2.TheCurves);
+                UserData = (nuint)VXMatShaperFloatData.SetShaper(ContextID, mpeC1.TheCurves, res, Data2.Offset is null ? null : new VEC3(Data2.Offset), mpeC2.TheCurves);
                 FreeUserData = FreeDisposable;
 
                 TransformFn = MatShaperFloat;
@@ -235,133 +242,82 @@ public unsafe static partial class FastFloat
     }
 }
 
-file class VXMatShaperFloatData : IDisposable
+file unsafe struct VXMatShaperFloatData
 {
-    private readonly float[] _mat;
-    private readonly float[] _off;
+    public fixed float Mat[9];
+    public fixed float Off[3];
 
-    private readonly float[] _shaper1R;
-    private readonly float[] _shaper1G;
-    private readonly float[] _shaper1B;
+    public fixed float Shaper1R[MAX_NODES_IN_CURVE];
+    public fixed float Shaper1G[MAX_NODES_IN_CURVE];
+    public fixed float Shaper1B[MAX_NODES_IN_CURVE];
 
-    private readonly float[] _shaper2R;
-    private readonly float[] _shaper2G;
-    private readonly float[] _shaper2B;
-
-    public readonly Context? ContextID;
-    private bool disposedValue;
-
-    public ref float Mat(int a, int b) =>
-        ref _mat[(a * 3) + b];
-
-    public Span<float> Off => _off.AsSpan(..3);
-
-    public Span<float> Shaper1R => _shaper1R.AsSpan(..MAX_NODES_IN_CURVE);
-    public Span<float> Shaper1G => _shaper1G.AsSpan(..MAX_NODES_IN_CURVE);
-    public Span<float> Shaper1B => _shaper1B.AsSpan(..MAX_NODES_IN_CURVE);
-
-    public Span<float> Shaper2R => _shaper2R.AsSpan(..MAX_NODES_IN_CURVE);
-    public Span<float> Shaper2G => _shaper2G.AsSpan(..MAX_NODES_IN_CURVE);
-    public Span<float> Shaper2B => _shaper2B.AsSpan(..MAX_NODES_IN_CURVE);
+    public fixed float Shaper2R[MAX_NODES_IN_CURVE];
+    public fixed float Shaper2G[MAX_NODES_IN_CURVE];
+    public fixed float Shaper2B[MAX_NODES_IN_CURVE];
 
     public bool UseOff;
 
-    public VXMatShaperFloatData(Context? context)
+    public static VXMatShaperFloatData* MallocAligned()
     {
-        ContextID = context;
-
-        var pool = Context.GetPool<float>(context);
-
-        _mat = pool.Rent(9);
-        _off = pool.Rent(3);
-
-        _shaper1R = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper1G = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper1B = pool.Rent(MAX_NODES_IN_CURVE);
-
-        _shaper2R = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper2G = pool.Rent(MAX_NODES_IN_CURVE);
-        _shaper2B = pool.Rent(MAX_NODES_IN_CURVE);
+        var aligned = NativeMemory.AlignedAlloc((nuint)sizeof(VXMatShaperFloatData), 16);
+        NativeMemory.Clear(aligned, (nuint)sizeof(VXMatShaperFloatData));
+        return (VXMatShaperFloatData*)aligned;
     }
 
-    protected virtual void Dispose(bool disposing)
+    public static void Free(VXMatShaperFloatData* data)
     {
-        if (!disposedValue)
-        {
-            if (disposing)
-            {
-                var pool = Context.GetPool<float>(ContextID);
-
-                pool.Return(_mat);
-                pool.Return(_off);
-
-                pool.Return(_shaper1R);
-                pool.Return(_shaper1G);
-                pool.Return(_shaper1B);
-
-                pool.Return(_shaper2R);
-                pool.Return(_shaper2G);
-                pool.Return(_shaper2B);
-            }
-            disposedValue = true;
-        }
+        NativeMemory.AlignedFree(data);
     }
 
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    public static VXMatShaperFloatData SetShaper(Context? ContextID,
-                                                 ReadOnlySpan<ToneCurve> Curve1,
-                                                 MAT3 Mat,
-                                                 VEC3? Off,
-                                                 ReadOnlySpan<ToneCurve> Curve2)
+    public static VXMatShaperFloatData* SetShaper(Context? ContextID,
+                                                  ReadOnlySpan<ToneCurve> Curve1,
+                                                  MAT3 Mat,
+                                                  VEC3? Off,
+                                                  ReadOnlySpan<ToneCurve> Curve2)
     {
         // Allocate a big chunk of memory to store precomputed tables
-        var p = new VXMatShaperFloatData(ContextID);
+        var p = MallocAligned();
 
         // Precompute tables
-        FillShaperFloatMat(p.Shaper1R, Curve1[0]);
-        FillShaperFloatMat(p.Shaper1G, Curve1[1]);
-        FillShaperFloatMat(p.Shaper1B, Curve1[2]);
+        FillShaperFloatMat(p->Shaper1R, Curve1[0]);
+        FillShaperFloatMat(p->Shaper1G, Curve1[1]);
+        FillShaperFloatMat(p->Shaper1B, Curve1[2]);
 
-        FillShaperFloatMat(p.Shaper2R, Curve2[0]);
-        FillShaperFloatMat(p.Shaper2G, Curve2[1]);
-        FillShaperFloatMat(p.Shaper2B, Curve2[2]);
+        FillShaperFloatMat(p->Shaper2R, Curve2[0]);
+        FillShaperFloatMat(p->Shaper2G, Curve2[1]);
+        FillShaperFloatMat(p->Shaper2B, Curve2[2]);
 
         // Convert matrix to nFixed14. Note that those values may take more than 16 bits
-        p.Mat(0, 0) = (float)Mat.X.X;
-        p.Mat(0, 1) = (float)Mat.X.Y;
-        p.Mat(0, 2) = (float)Mat.X.Z;
+        p->Mat[0] = (float)Mat.X.X;
+        p->Mat[1] = (float)Mat.X.Y;
+        p->Mat[2] = (float)Mat.X.Z;
 
-        p.Mat(1, 0) = (float)Mat.Y.X;
-        p.Mat(1, 1) = (float)Mat.Y.Y;
-        p.Mat(1, 2) = (float)Mat.Y.Z;
+        p->Mat[3] = (float)Mat.Y.X;
+        p->Mat[4] = (float)Mat.Y.Y;
+        p->Mat[5] = (float)Mat.Y.Z;
 
-        p.Mat(2, 0) = (float)Mat.Z.X;
-        p.Mat(2, 1) = (float)Mat.Z.Y;
-        p.Mat(2, 2) = (float)Mat.Z.Z;
+        p->Mat[6] = (float)Mat.Z.X;
+        p->Mat[7] = (float)Mat.Z.Y;
+        p->Mat[8] = (float)Mat.Z.Z;
 
         for (var i = 0; i < 3; i++)
         {
             if (Off is null)
             {
-                p.UseOff = false;
-                p.Off[i] = 0;
+                p->UseOff = false;
+                p->Off[i] = 0;
             }
             else
             {
-                p.UseOff = true;
-                p.Off[i] = (float)Off.Value[i];
+                p->UseOff = true;
+                p->Off[i] = (float)Off.Value[i];
             }
         }
 
         return p;
     }
 
-    private static void FillShaperFloatMat(Span<float> Table, ToneCurve Curve)
+    private static void FillShaperFloatMat(float* Table, ToneCurve Curve)
     {
         for (var i = 0; i < MAX_NODES_IN_CURVE; i++)
         {

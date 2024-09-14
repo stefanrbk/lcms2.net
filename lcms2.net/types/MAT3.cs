@@ -84,11 +84,11 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
     public readonly void Deconstruct(out VEC3 x, out VEC3 y, out VEC3 z) =>
         (x, y, z) = (X, Y, Z);
 
-    public readonly double[] AsArray(ArrayPool<double>? pool = null)
+    public readonly double[] AsArray(/*ArrayPool<double>? pool = null*/)
     {
-        var result = (pool is null)
-            ? new double[9]
-            : pool.Rent(9);
+        var result = /*(pool is null)
+            ?*/ new double[9]
+            /*: pool.Rent(9)*/;
 
         result[0] = X.X;
         result[1] = X.Y;

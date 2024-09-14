@@ -52,8 +52,13 @@ public static partial class Lcms2
         return FL;
     }
 
-    private static double computeD(CIECAM02 pMod) =>
-        pMod.F - (1.0 / 3.6 * Exp((-pMod.LA - 42) / 92.0));
+    private static double computeD(CIECAM02 pMod)
+    {
+        var temp = 1.0 - ((1.0 / 3.6) * Exp((-pMod.LA - 42) / 92.0));
+        var D = pMod.F * temp;
+
+        return D;
+    }
 
     private static CAM02COLOR XYZtoCAT02(CAM02COLOR clr)
     {

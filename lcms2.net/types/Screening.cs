@@ -33,6 +33,6 @@ public struct Screening(Context? context)
 {
     public uint Flag;
     public uint nChannels;
-    internal readonly ScreeningChannel[] channels = Context.GetPool<ScreeningChannel>(context).Rent(cmsMAXCHANNELS * 4);
-    public readonly Span<ScreeningChannel> Channels => channels.AsSpan(..(cmsMAXCHANNELS * 4));
+    internal readonly ScreeningChannel[] channels = new ScreeningChannel[cmsMAXCHANNELS * 4];
+    public readonly Span<ScreeningChannel> Channels => channels.AsSpan(/*..(cmsMAXCHANNELS * 4)*/);
 }

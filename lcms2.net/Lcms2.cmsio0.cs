@@ -1,6 +1,32 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
+//  Copyright (c) 1998-2022 Marti Maria Saguer
+//                2022-2023 Stefan Kewatt
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the Software
+// is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+// THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//---------------------------------------------------------------------------------
+//
+//---------------------------------------------------------------------------------
+//
+//  Little Color Management System
 //  Copyright (c) 1998-2023 Marti Maria Saguer
 //                2022-2023 Stefan Kewatt
 //
@@ -190,7 +216,7 @@ public static partial class Lcms2
         if (iohandler.stream is not FILEMEM ResData)
             return false;
 
-        if (ResData.FreeBlockOnClose && ResData.Array is not null) ReturnArray(iohandler.ContextID, ResData.Array);
+        //if (ResData.FreeBlockOnClose && ResData.Array is not null) ReturnArray(iohandler.ContextID, ResData.Array);
 
         //_cmsFree(iohandler.ContextID, ResData);
         //_cmsFree(iohandler.ContextID, iohandler);
@@ -232,7 +258,8 @@ public static partial class Lcms2
                 //fm->Size = size;
                 //fm->Pointer = 0;
 
-                fm = new FILEMEM(_cmsGetContext(ContextID).GetBufferPool<byte>().Rent((int)size), size, 0);
+                //fm = new FILEMEM(_cmsGetContext(ContextID).GetBufferPool<byte>().Rent((int)size), size, 0);
+                fm = new FILEMEM(new byte[size], size, 0);
                 (Buffer.Span[..(int)size]).CopyTo(fm.Block.Span);
                 iohandler.reportedSize = size;
 
@@ -329,7 +356,7 @@ public static partial class Lcms2
         if (size is 0) return true;     // We allow to write 0 bytes, but nothing is written
 
         iohandler.UsedSpace += size;
-        
+
         if (iohandler.stream is not FILE file)
             return false;
 
@@ -474,6 +501,25 @@ public static partial class Lcms2
         // Set default device class
         Icc.Version = 0x02100000;
 
+        // Set default CMM (that's me!)
+        Icc.CMM = lcmsSignature;
+
+        // Set default creator
+        // Created by LittleCMS (that's me!)
+        Icc.creator = lcmsSignature;
+
+        // Set default platform
+        Icc.platform = Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32S => cmsSigMicrosoft,
+            PlatformID.Win32Windows => cmsSigMicrosoft,
+            PlatformID.Win32NT => cmsSigMicrosoft,
+            PlatformID.WinCE => cmsSigMicrosoft,
+            PlatformID.Unix => cmsSigUnices,
+            PlatformID.MacOSX => cmsSigMacintosh,
+            _ => throw new NotImplementedException(),
+        };
+
         // Set creation date/time
         if (!_cmsGetTime(out Icc.Created))
             return null;
@@ -483,9 +529,9 @@ public static partial class Lcms2
 
         // Return the handle
         return Icc;
-    //Error:
-    //    _cmsFree(ContextID, Icc);
-    //    return null;
+        //Error:
+        //    _cmsFree(ContextID, Icc);
+        //    return null;
     }
 
     [DebuggerStepThrough]
@@ -690,12 +736,14 @@ public static partial class Lcms2
         }
 
         // Adjust endianness of the used parameters
+        Icc.CMM = new(_cmsAdjustEndianess32(Header.cmmId));
         Icc.DeviceClass = new(_cmsAdjustEndianess32(Header.deviceClass));
         Icc.ColorSpace = new(_cmsAdjustEndianess32(Header.colorSpace));
         Icc.PCS = new(_cmsAdjustEndianess32(Header.pcs));
 
         Icc.RenderingIntent = _cmsAdjustEndianess32(Header.renderingIntent);
-        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags)); ;
+        Icc.platform = _cmsAdjustEndianess32(Header.platform);
+        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags));
         Icc.manufacturer = _cmsAdjustEndianess32(Header.manufacturer);
         Icc.model = _cmsAdjustEndianess32(Header.model);
         Icc.creator = _cmsAdjustEndianess32(Header.creator);
@@ -813,7 +861,7 @@ public static partial class Lcms2
         TagEntry Tag = new();
 
         Header.size = _cmsAdjustEndianess32(UsedSpace);
-        Header.cmmId = new(_cmsAdjustEndianess32(lcmsSignature));
+        Header.cmmId = new(_cmsAdjustEndianess32(Icc.CMM));
         Header.version = _cmsAdjustEndianess32(Icc.Version);
 
         Header.deviceClass = new(_cmsAdjustEndianess32(Icc.DeviceClass));
@@ -824,7 +872,7 @@ public static partial class Lcms2
         _cmsEncodeDateTimeNumber(out Header.date, Icc.Created);
 
         Header.magic = new(_cmsAdjustEndianess32(cmsMagicNumber));
-        Header.manufacturer = new(_cmsAdjustEndianess32(Environment.OSVersion.Platform is PlatformID.Win32NT ? cmsSigMicrosoft : cmsSigMacintosh));
+        Header.platform = new(_cmsAdjustEndianess32(Icc.platform));
 
         Header.flags = _cmsAdjustEndianess32(Icc.flags);
         Header.manufacturer = new(_cmsAdjustEndianess32(Icc.manufacturer));
@@ -840,8 +888,7 @@ public static partial class Lcms2
         Header.illuminant.Y = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
         Header.illuminant.Z = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
 
-        // Created by LittleCMS (that's me!)
-        Header.creator = new(_cmsAdjustEndianess32(lcmsSignature));
+        Header.creator = new(_cmsAdjustEndianess32(Icc.creator));
 
         //memset(&Header.reserved, 0, 28);
 
@@ -1134,7 +1181,7 @@ public static partial class Lcms2
 
     private static bool SaveTags(Profile Icc, Profile? FileOrig)
     {
-        var pool = Context.GetPool<byte>(Icc.ContextID);
+        //var pool = Context.GetPool<byte>(Icc.ContextID);
 
         var io = Icc.IOHandler;
         if (io is null) return false;
@@ -1168,21 +1215,22 @@ public static partial class Lcms2
 
                     //Mem = _cmsMalloc(Icc.ContextID, TagSize, typeof(byte));
                     //if (Mem is null) return false;
-                    var Mem = pool.Rent((int)TagSize);
+                    //var Mem = pool.Rent((int)TagSize);
+                    var Mem = new byte[TagSize];
 
                     if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1)
                     {
-                        ReturnArray(Icc.ContextID, Mem);
+                        //ReturnArray(Icc.ContextID, Mem);
                         return false;
                     }
 
                     if (!io.Write(io, TagSize, Mem))
                     {
-                        ReturnArray(Icc.ContextID, Mem);
+                        //ReturnArray(Icc.ContextID, Mem);
                         return false;
                     }
 
-                    ReturnArray(Icc.ContextID, Mem);
+                    //ReturnArray(Icc.ContextID, Mem);
 
                     Tag.Size = io.UsedSpace - Begin;
 
@@ -1307,7 +1355,6 @@ public static partial class Lcms2
             if (!SaveTags(Icc, Keep)) goto Error;
         }
 
-
         //memmove(Icc, &Keep, _sizeof<Profile>());
         if (!cmsCloseIOhandler(PrevIO))
             UsedSpace = 0; // As an error marker
@@ -1399,16 +1446,16 @@ public static partial class Lcms2
                 LocalTypeHandler.ICCVersion = Icc.Version;
                 LocalTypeHandler.FreePtr?.Invoke(LocalTypeHandler, tag.TagObject);
             }
-            else
-            {
-                if (tag.TagObject is byte[] ptr)
-                    ReturnArray(Icc.ContextID, ptr);
-                //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
-            }
+            //else
+            //{
+            //    if (tag.TagObject is byte[] ptr)
+            //        ReturnArray(Icc.ContextID, ptr);
+            //    //_cmsFree(Icc.ContextID, Icc.TagPtrs[i]);
+            //}
         }
     }
 
-    public static bool cmsCloseProfile(Profile Profile)
+    public static bool cmsCloseProfile(Profile? Profile)
     {
         var Icc = Profile;
         var rc = true;

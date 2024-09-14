@@ -32,7 +32,7 @@ using System.Buffers;
 namespace lcms2.types;
 public class CAM02COLOR : IDisposable
 {
-    private readonly ArrayPool<double> pool;
+    //private readonly ArrayPool<double> pool;
     private readonly double[] _XYZ;
     private readonly double[] _RGB;
     private readonly double[] _RGBc;
@@ -55,33 +55,33 @@ public class CAM02COLOR : IDisposable
 
     internal CAM02COLOR(Context? context)
     {
-        pool = Context.GetPool<double>(context);
+        //pool = Context.GetPool<double>(context);
 
-        _XYZ = pool.Rent(3);
-        _RGB = pool.Rent(3);
-        _RGBc = pool.Rent(3);
-        _RGBp = pool.Rent(3);
-        _RGBpa = pool.Rent(3);
-        _AbC = pool.Rent(2);
-        _Abs = pool.Rent(2);
-        _AbM = pool.Rent(2);
+        _XYZ = new double[3];
+        _RGB = new double[3];
+        _RGBc = new double[3];
+        _RGBp = new double[3];
+        _RGBpa = new double[3];
+        _AbC = new double[2];
+        _Abs = new double[2];
+        _AbM = new double[2];
     }
 
     private void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            if (disposing)
-            {
-                ReturnArray(pool, _XYZ);
-                ReturnArray(pool, _RGB);
-                ReturnArray(pool, _RGBc);
-                ReturnArray(pool, _RGBp);
-                ReturnArray(pool, _RGBpa);
-                ReturnArray(pool, _AbC);
-                ReturnArray(pool, _Abs);
-                ReturnArray(pool, _AbM);
-            }
+            //if (disposing)
+            //{
+            //    ReturnArray(pool, _XYZ);
+            //    ReturnArray(pool, _RGB);
+            //    ReturnArray(pool, _RGBc);
+            //    ReturnArray(pool, _RGBp);
+            //    ReturnArray(pool, _RGBpa);
+            //    ReturnArray(pool, _AbC);
+            //    ReturnArray(pool, _Abs);
+            //    ReturnArray(pool, _AbM);
+            //}
 
             disposedValue = true;
         }
