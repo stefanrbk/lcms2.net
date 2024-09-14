@@ -722,8 +722,8 @@ internal static partial class Testbed
         for (var i = 0; i < npixels; i++)
         {
             bufferIn[i].r = (float)((i / 40.0) - 0.5);
-            bufferIn[i].r = (float)((i / 20.0) - 0.5);
-            bufferIn[i].r = (float)((i / 60.0) - 0.5);
+            bufferIn[i].g = (float)((i / 20.0) - 0.5);
+            bufferIn[i].b = (float)((i / 60.0) - 0.5);
         }
 
         cmsDoTransform(xformPlugin, bufferIn, bufferPluginOut, npixels);
