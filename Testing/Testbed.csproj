@@ -39,6 +39,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Include="..\lcms2.net\lcms2.net.licenseheader" Link="lcms2.net.licenseheader" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="CommandLineParser" Version="2.9.1" />
 		<PackageReference Include="coverlet.collector" Version="6.0.2">
 			<PrivateAssets>all</PrivateAssets>

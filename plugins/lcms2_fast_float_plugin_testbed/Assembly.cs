@@ -1,9 +1,8 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System, fast floating point extensions
-//  Copyright (c) 1998-2023 Marti Maria Saguer, all rights reserved
-//  Copyright (c) 2022-2023 Stefan Kewatt, all rights reserved
-//
+//  Copyright ©️ 1998-2024 Marti Maria Saguer, all rights reserved
+//              2022-2024 Stefan Kewatt, all rights reserved
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,6 +18,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //---------------------------------------------------------------------------------
+
 global using static lcms2.FastFloatPlugin.testbed.Testbed;
 global using static lcms2.FastFloatPlugin.FastFloat;
 global using static lcms2.Lcms2;

@@ -1,8 +1,8 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2023 Marti Maria Saguer
-//                2022-2023 Stefan Kewatt
+//  Copyright ©️ 1998-2024 Marti Maria Saguer
+//              2022-2024 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,6 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 //---------------------------------------------------------------------------------
-//
 
 // This file is used by Code Analysis to maintain SuppressMessage attributes that are applied to
 // this project. Project-level suppressions either have no target or are given a specific target and

@@ -27,6 +27,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Include="..\lcms2_threaded_plugin\lcms2_threaded_plugin.licenseheader" Link="lcms2_threaded_plugin.licenseheader" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\..\lcms2.net\lcms2.csproj" />
 		<ProjectReference Include="..\..\Testing\Testbed.csproj" />
 		<ProjectReference Include="..\lcms2_threaded_plugin\lcms2_threaded_plugin.csproj" />

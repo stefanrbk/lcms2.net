@@ -1,9 +1,8 @@
 ﻿//---------------------------------------------------------------------------------
 //
-//  Little Color Management System, multithreaded extensions
-//  Copyright (c) 1998-2023 Marti Maria Saguer, all rights reserved
-//                2022-2023 Stefan Kewatt, all rights reserved
-//
+//  Little Color Management System, multithread extensions
+//  Copyright ©️ 1998-2024 Marti Maria Saguer, all rights reserved
+//              2022-2024 Stefan Kewatt, all rights reserved
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

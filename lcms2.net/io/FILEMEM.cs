@@ -1,8 +1,8 @@
 ﻿//---------------------------------------------------------------------------------
 //
 //  Little Color Management System
-//  Copyright (c) 1998-2023 Marti Maria Saguer
-//                2022-2023 Stefan Kewatt
+//  Copyright ©️ 1998-2024 Marti Maria Saguer
+//              2022-2024 Stefan Kewatt
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 //---------------------------------------------------------------------------------
-//
+
 namespace lcms2.io;
 
 public class FILEMEM
