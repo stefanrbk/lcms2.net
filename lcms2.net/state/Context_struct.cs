@@ -26,6 +26,8 @@
 
 using lcms2.types;
 
+using Microsoft.Extensions.Logging;
+
 using System.Diagnostics;
 
 namespace lcms2.state;
@@ -172,6 +174,9 @@ public class Context(object? UserData = null) : ICloneable
         ParallelizationPlugin.WorkerFlags = 0;
         ParallelizationPlugin.SchedulerFn = null;
     }
+
+    public void SetLoggerFactory(ILoggerFactory factory) =>
+        ErrorLogger.Factory = factory;
 
     object ICloneable.Clone() =>
         Clone();
