@@ -152,6 +152,27 @@ public class Context(object? UserData = null) : ICloneable
             RegisterPlugin(plugin);
     }
 
+    public void ClearAllPlugins()
+    {
+        InterpPlugin.Interpolators = null;
+        TagTypePlugin.List.Clear();
+        TagPlugin.List.Clear();
+        FormattersPlugin.FactoryInList.Clear();
+        FormattersPlugin.FactoryOutList.Clear();
+        IntentsPlugin.Intents.Clear();
+        CurvesPlugin.ParametricCurves.Clear();
+        MPEPlugin.List.Clear();
+        OptimizationPlugin.List.Clear();
+        TransformPlugin.List.Clear();
+        MutexPlugin.CreateFn = null;
+        MutexPlugin.DestroyFn = null;
+        MutexPlugin.LockFn = null;
+        MutexPlugin.UnlockFn = null;
+        ParallelizationPlugin.MaxWorkers = 0;
+        ParallelizationPlugin.WorkerFlags = 0;
+        ParallelizationPlugin.SchedulerFn = null;
+    }
+
     object ICloneable.Clone() =>
         Clone();
 

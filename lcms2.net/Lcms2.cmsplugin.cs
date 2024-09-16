@@ -97,7 +97,8 @@ public static partial class Lcms2
     ///     simultaneously, then there is no way to identify which plug-in to unregister.
     /// </remarks>
     public static void cmsUnregisterPlugins() =>
-        cmsUnregisterPluginsTHR(null);
+        // See Context.ClearAllPlugins()
+        Context.Shared.ClearAllPlugins();
 
     /// <summary>
     ///     This function returns the given context its default, pristene state, as if no
@@ -108,21 +109,9 @@ public static partial class Lcms2
     ///     <see cref="cmsPluginTHR"/> may register many different plug-ins
     ///     simultaneously, then there is no way to identify which plug-in to unregister.
     /// </remarks>
-    public static void cmsUnregisterPluginsTHR(Context? context)
-    {
-        //_cmsRegisterMemHandlerPlugin(context, null);
-        _cmsRegisterInterpPlugin(context, null);
-        _cmsRegisterTagTypePlugin(context, null);
-        _cmsRegisterTagPlugin(context, null);
-        _cmsRegisterFormattersPlugin(context, null);
-        _cmsRegisterRenderingIntentPlugin(context, null);
-        _cmsRegisterParametricCurvesPlugin(context, null);
-        _cmsRegisterMultiProcessElementPlugin(context, null);
-        _cmsRegisterOptimizationPlugin(context, null);
-        _cmsRegisterTransformPlugin(context, null);
-        _cmsRegisterMutexPlugin(context, null);
-        _cmsRegisterParallelizationPlugin(context, null);
-    }
+    public static void cmsUnregisterPluginsTHR(Context? context) =>
+        // See Context.ClearAllPlugins()
+        (context ?? Context.Shared).ClearAllPlugins();
 
     /// <summary>
     ///     Creates a new context with optional associated plug-ins.
