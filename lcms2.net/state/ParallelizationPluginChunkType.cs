@@ -32,6 +32,9 @@ internal class ParallelizationPluginChunkType(int maxWorkers, int workerFlags, T
     public int WorkerFlags = workerFlags;
     public Transform2Fn? SchedulerFn = schedulerFn;
 
-    public object Clone() =>
-        new ParallelizationPluginChunkType(MaxWorkers, WorkerFlags, SchedulerFn);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public ParallelizationPluginChunkType Clone() =>
+        new(MaxWorkers, WorkerFlags, SchedulerFn);
 }

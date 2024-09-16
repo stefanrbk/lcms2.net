@@ -24,32 +24,140 @@
 //
 //---------------------------------------------------------------------------------
 
-using System.Buffers;
+using lcms2.types;
+
 using System.Diagnostics;
 
 namespace lcms2.state;
 
 [DebuggerStepThrough]
-public class Context
+public class Context(object? UserData = null) : ICloneable
 {
+    private object? userData = UserData;
+    internal LogErrorChunkType ErrorLogger = new();
+    internal AlarmCodesChunkType AlarmCodes = new();
+    internal AdaptationStateChunkType AdaptationState = new(DEFAULT_OBSERVER_ADAPTATION_STATE);
+    internal InterpPluginChunkType InterpPlugin = new();
+    internal CurvesPluginChunkType CurvesPlugin = new();
+    internal FormattersPluginChunkType FormattersPlugin = new();
+    internal TagTypePluginChunkType TagTypePlugin = new();
+    internal TagPluginChunkType TagPlugin = new();
+    internal IntentsPluginChunkType IntentsPlugin = new();
+    internal TagTypePluginChunkType MPEPlugin = new();
+    internal OptimizationPluginChunkType OptimizationPlugin = new();
+    internal TransformPluginChunkType TransformPlugin = new();
+    internal MutexPluginChunkType MutexPlugin = new();
+    internal ParallelizationPluginChunkType ParallelizationPlugin = new(0, 0, null);
+
+    public ref object? UserData => ref userData;
+
+    public static Context Default => new();
+    public static readonly Context Shared = new();
+
+    public Context(IEnumerable<PluginBase> plugins, object? UserData = null) : this(UserData)
+    {
+        foreach (var plugin in plugins)
+        {
+            cmsPluginTHR(this, plugin);
+        }
+    }
+
+    public Context Clone(object? NewUserData = null) =>
+        new()
+        {
+            UserData = NewUserData ?? UserData,
+            ErrorLogger = ErrorLogger.Clone(),
+            AlarmCodes = AlarmCodes.Clone(),
+            AdaptationState = AdaptationState.Clone(),
+            InterpPlugin = InterpPlugin.Clone(),
+            CurvesPlugin = CurvesPlugin.Clone(),
+            FormattersPlugin = FormattersPlugin.Clone(),
+            TagTypePlugin = TagTypePlugin.Clone(),
+            TagPlugin = TagPlugin.Clone(),
+            IntentsPlugin = IntentsPlugin.Clone(),
+            MPEPlugin = MPEPlugin.Clone(),
+            OptimizationPlugin = OptimizationPlugin.Clone(),
+            TransformPlugin = TransformPlugin.Clone(),
+            MutexPlugin = MutexPlugin.Clone(),
+            ParallelizationPlugin = ParallelizationPlugin.Clone(),
+        };
+
+    public void RegisterPlugin(PluginBase plugin)
+    {
+        if (plugin.Magic != cmsPluginMagicNumber)
+        {
+            cmsSignalError(this, ErrorCodes.UnknownExtension, "Unrecognized plugin");
+        }
+
+        if (plugin.ExpectedVersion > LCMS_VERSION)
+        {
+            cmsSignalError(this, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
+        }
+
+        switch ((uint)plugin.Type)
+        {
+            case cmsPluginInterpolationSig:
+                _cmsRegisterInterpPlugin(this, plugin);
+                break;
+
+            case cmsPluginTagTypeSig:
+                _cmsRegisterTagTypePlugin(this, plugin);
+                break;
+
+            case cmsPluginTagSig:
+                _cmsRegisterTagPlugin(this, plugin);
+                break;
+
+            case cmsPluginFormattersSig:
+                _cmsRegisterFormattersPlugin(this, plugin);
+                break;
+
+            case cmsPluginRenderingIntentSig:
+                _cmsRegisterRenderingIntentPlugin(this, plugin);
+                break;
+
+            case cmsPluginParametricCurveSig:
+                _cmsRegisterParametricCurvesPlugin(this, plugin);
+                break;
+
+            case cmsPluginMultiProcessElementSig:
+                _cmsRegisterMultiProcessElementPlugin(this, plugin);
+                break;
+
+            case cmsPluginOptimizationSig:
+                _cmsRegisterOptimizationPlugin(this, plugin);
+                break;
+
+            case cmsPluginTransformSig:
+                _cmsRegisterTransformPlugin(this, plugin);
+                break;
+
+            case cmsPluginMutexSig:
+                _cmsRegisterMutexPlugin(this, plugin);
+                break;
+
+            case cmsPluginParalellizationSig:
+                _cmsRegisterParallelizationPlugin(this, plugin);
+                break;
+
+            default:
+                cmsSignalError(this, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{plugin.Type}'");
+                break;
+        }
+    }
+
+    public void RegisterPlugin(IEnumerable<PluginBase> plugins)
+    {
+        foreach (var plugin in plugins)
+            RegisterPlugin(plugin);
+    }
+
+    object ICloneable.Clone() =>
+        Clone();
+
     //private readonly List<object> BufferPools = new();
     //internal MemPluginChunkType DefaultMemoryManager;
-    internal object? UserData;
-    internal LogErrorChunkType ErrorLogger;
-    internal AlarmCodesChunkType AlarmCodes;
-    internal AdaptationStateChunkType AdaptationState;
     //internal MemPluginChunkType MemPlugin;
-    internal InterpPluginChunkType InterpPlugin;
-    internal CurvesPluginChunkType CurvesPlugin;
-    internal FormattersPluginChunkType FormattersPlugin;
-    internal TagTypePluginChunkType TagTypePlugin;
-    internal TagPluginChunkType TagPlugin;
-    internal IntentsPluginChunkType IntentsPlugin;
-    internal TagTypePluginChunkType MPEPlugin;
-    internal OptimizationPluginChunkType OptimizationPlugin;
-    internal TransformPluginChunkType TransformPlugin;
-    internal MutexPluginChunkType MutexPlugin;
-    internal ParallelizationPluginChunkType ParallelizationPlugin;
 
     //public ArrayPool<T> GetBufferPool<T>()
     //{
@@ -71,4 +179,6 @@ public class Context
 
     //public static ArrayPool<T> GetPool<T>(Context? context) =>
     //    _cmsGetContext(context).GetBufferPool<T>();
+
+    private const double DEFAULT_OBSERVER_ADAPTATION_STATE = 1.0;
 }

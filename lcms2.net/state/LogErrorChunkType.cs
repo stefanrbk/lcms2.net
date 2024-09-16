@@ -30,27 +30,14 @@ namespace lcms2.state;
 
 internal class LogErrorChunkType(ILoggerFactory? factory = null) : ICloneable
 {
-    private ILoggerFactory factory = factory ?? DefaultLogErrorHandlerFunction();
+    public ILoggerFactory Factory { get; set; } = factory ?? DefaultLogErrorHandlerFunction();
 
-    public ILoggerFactory Factory
-    {
-        get => factory; set
-        {
-            factory = value;
-            FactoryChanged?.Invoke(this, new(value));
-        }
-    }
-
-    internal event EventHandler<FactoryChangedEventArgs>? FactoryChanged;
-
-    public object Clone() =>
-        new LogErrorChunkType()
+    public LogErrorChunkType Clone() =>
+        new()
         {
             Factory = Factory,
-            FactoryChanged = FactoryChanged?.Clone() as EventHandler<FactoryChangedEventArgs>
         };
-}
-internal class FactoryChangedEventArgs(ILoggerFactory factory)
-{
-    public ILoggerFactory Factory = factory;
+
+    object ICloneable.Clone() =>
+        Clone();
 }

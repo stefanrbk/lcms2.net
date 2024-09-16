@@ -28,16 +28,17 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class TagTypePluginChunkType : ICloneable
+internal class TagTypePluginChunkType(IEnumerable<TagTypeHandler> list) : ICloneable
 {
-    public readonly TagTypeLinkedList List;
+    public readonly TagTypeLinkedList List = new(list);
 
-    public TagTypePluginChunkType() =>
-        List = new();
+    public TagTypePluginChunkType() : this([]) { }
 
-    public TagTypePluginChunkType(IEnumerable<TagTypeHandler> list) =>
-        List = new(list);
+    public TagTypePluginChunkType(params TagTypeHandler[] list) : this((IEnumerable<TagTypeHandler>)list) { }
 
-    public object Clone() =>
-        new TagTypePluginChunkType(List);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public TagTypePluginChunkType Clone() =>
+        new(List);
 }

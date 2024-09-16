@@ -28,17 +28,16 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class FormattersPluginChunkType : ICloneable
+internal class FormattersPluginChunkType(IEnumerable<FormatterFactoryIn> inList, IEnumerable<FormatterFactoryOut> outList) : ICloneable
 {
-    public readonly FormattersFactoryInList FactoryInList;
-    public readonly FormattersFactoryOutList FactoryOutList;
+    public readonly FormattersFactoryInList FactoryInList = new(inList);
+    public readonly FormattersFactoryOutList FactoryOutList = new(outList);
 
-    public FormattersPluginChunkType(IEnumerable<FormatterFactoryIn> inList, IEnumerable<FormatterFactoryOut> outList) =>
-        (FactoryInList, FactoryOutList) = (new(inList), new(outList));
+    public FormattersPluginChunkType() : this([], []) { }
 
-    public FormattersPluginChunkType() =>
-        (FactoryInList, FactoryOutList) = (new(), new());
+    object ICloneable.Clone() =>
+        Clone();
 
-    public object Clone() =>
-        new FormattersPluginChunkType(FactoryInList, FactoryOutList);
+    public FormattersPluginChunkType Clone() =>
+        new(FactoryInList, FactoryOutList);
 }

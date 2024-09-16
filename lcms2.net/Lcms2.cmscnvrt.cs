@@ -51,7 +51,7 @@ public static partial class Lcms2
 
     internal static void DupPluginIntentsList(ref IntentsPluginChunkType dest, in IntentsPluginChunkType src) =>
 
-        dest = (IntentsPluginChunkType)src.Clone();
+        dest = (IntentsPluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocIntentsPluginChunk(Context ctx, Context? src)
     {

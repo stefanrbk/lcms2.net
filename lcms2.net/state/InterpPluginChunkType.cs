@@ -30,6 +30,9 @@ internal class InterpPluginChunkType(InterpFnFactory? interp = null) : ICloneabl
 {
     public InterpFnFactory? Interpolators = interp;
 
-    public object Clone() =>
-        new InterpPluginChunkType(Interpolators);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public InterpPluginChunkType Clone() =>
+        new(Interpolators);
 }

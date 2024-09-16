@@ -1837,7 +1837,7 @@ public static partial class Lcms2
     }
 
     internal static void DupPluginOptimizationList(ref OptimizationPluginChunkType dest, in OptimizationPluginChunkType src) =>
-        dest = (OptimizationPluginChunkType)src.Clone();
+        dest = (OptimizationPluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocOptimizationPluginChunk(Context ctx, in Context? src)
     {

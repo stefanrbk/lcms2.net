@@ -30,6 +30,9 @@ internal class AdaptationStateChunkType(double state) : ICloneable
 {
     public double AdaptationState = state;
 
-    public object Clone() =>
-        new AdaptationStateChunkType(AdaptationState);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public AdaptationStateChunkType Clone() =>
+        new(AdaptationState);
 }

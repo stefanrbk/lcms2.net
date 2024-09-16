@@ -4862,7 +4862,7 @@ public static partial class Lcms2
     #region Plugin
 
     internal static void DupTagTypeList(ref TagTypePluginChunkType dest, in TagTypePluginChunkType src) =>
-        dest = (TagTypePluginChunkType)src.Clone();
+        dest = (TagTypePluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocTagTypePluginChunk(Context ctx, in Context? src)
     {
@@ -4893,7 +4893,7 @@ public static partial class Lcms2
         RegisterTypesPlugin(id, Data, Chunks.MPEPlugin);
 
     internal static void DupTagList(ref TagPluginChunkType dest, in TagPluginChunkType? src) =>
-        dest = (TagPluginChunkType)src.Clone();
+        dest = (TagPluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocTagPluginChunk(Context ctx, in Context? src)
     {

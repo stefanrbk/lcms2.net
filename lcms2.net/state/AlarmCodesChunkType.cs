@@ -34,6 +34,9 @@ internal class AlarmCodesChunkType() : ICloneable
         : this() =>
         codes[..cmsMAXCHANNELS].CopyTo(AlarmCodes);
 
-    public object Clone() =>
-        new AlarmCodesChunkType(AlarmCodes);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public AlarmCodesChunkType Clone() =>
+        new(AlarmCodes);
 }

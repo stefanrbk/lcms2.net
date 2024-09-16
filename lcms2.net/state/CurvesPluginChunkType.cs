@@ -28,16 +28,17 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class CurvesPluginChunkType : ICloneable
+internal class CurvesPluginChunkType(IEnumerable<ParametricCurve> curves) : ICloneable
 {
-    public readonly ParametricCurvesCollection ParametricCurves;
+    public readonly ParametricCurvesCollection ParametricCurves = new(curves);
 
-    public CurvesPluginChunkType(IEnumerable<ParametricCurve> curves) =>
-        ParametricCurves = new(curves);
+    public CurvesPluginChunkType() : this([]) { }
 
-    public CurvesPluginChunkType() =>
-        ParametricCurves = new();
+    public CurvesPluginChunkType(params ParametricCurve[] curves) : this((IEnumerable<ParametricCurve>)curves) { }
 
-    public object Clone() =>
-        new CurvesPluginChunkType(ParametricCurves);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public CurvesPluginChunkType Clone() =>
+        new(ParametricCurves);
 }

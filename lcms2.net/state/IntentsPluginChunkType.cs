@@ -26,19 +26,17 @@
 
 namespace lcms2.state;
 
-internal class IntentsPluginChunkType : ICloneable
+internal class IntentsPluginChunkType(IEnumerable<Intent> intents) : ICloneable
 {
-    public readonly IntentsList Intents;
+    public readonly IntentsList Intents = new(intents);
 
-    public IntentsPluginChunkType(IEnumerable<Intent> intents) =>
-        Intents = new(intents);
+    public IntentsPluginChunkType() : this([]) { }
 
-    public IntentsPluginChunkType(params Intent[] args) =>
-        Intents = new(args);
+    public IntentsPluginChunkType(params Intent[] args) : this((IEnumerable<Intent>)args) { }
 
-    public IntentsPluginChunkType() =>
-        Intents = new();
+    object ICloneable.Clone() =>
+        Clone();
 
-    public object Clone() =>
-        new IntentsPluginChunkType(Intents);
+    public IntentsPluginChunkType Clone() =>
+        new(Intents);
 }

@@ -24,16 +24,21 @@
 //
 //---------------------------------------------------------------------------------
 
+using System.Diagnostics;
+
 namespace lcms2.state;
 
 internal class MutexPluginChunkType : ICloneable
 {
-    public CreateMutexFnPtrType? CreateFn;
-    public DestroyMutexFnPtrType? DestroyFn;
-    public LockMutexFnPtrType? LockFn;
-    public UnlockMutexFnPtrType? UnlockFn;
+    public CreateMutexFnPtrType? CreateFn = defMtxCreate;
+    public DestroyMutexFnPtrType? DestroyFn = defMtxDestroy;
+    public LockMutexFnPtrType? LockFn = defMtxLock;
+    public UnlockMutexFnPtrType? UnlockFn = defMtxUnlock;
 
-    public object Clone() =>
+    object ICloneable.Clone() =>
+        Clone();
+
+    public MutexPluginChunkType Clone() =>
         new MutexPluginChunkType()
         {
             CreateFn = CreateFn,
@@ -41,4 +46,20 @@ internal class MutexPluginChunkType : ICloneable
             LockFn = LockFn,
             UnlockFn = UnlockFn
         };
+
+    [DebuggerStepThrough]
+    private static object defMtxCreate(Context? id) =>
+        new Mutex(false);
+
+    [DebuggerStepThrough]
+    private static void defMtxDestroy(Context? id, object mtx) =>
+        ((Mutex)mtx).Dispose();
+
+    [DebuggerStepThrough]
+    private static bool defMtxLock(Context? _, object mtx) =>
+        ((Mutex)mtx).WaitOne();
+
+    [DebuggerStepThrough]
+    private static void defMtxUnlock(Context? id, object mtx) =>
+        ((Mutex)mtx).ReleaseMutex();
 }

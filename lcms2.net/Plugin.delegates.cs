@@ -53,7 +53,7 @@ public static partial class Plugin
     public delegate bool TransformFactory(out TransformFn xform, out object? UserData, out FreeUserDataFn? FreePrivateDataFn, ref Pipeline Lut, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags);
     public delegate bool Transform2Factory(out Transform2Fn xform, out object? UserData, out FreeUserDataFn? FreePrivateDataFn, ref Pipeline Lut, ref uint InputFormat, ref uint OutputFormat, ref uint dwFlags);
     public delegate object? CreateMutexFnPtrType(Context? ContextID);
-    public delegate void DestroyMutexFnPtrType(Context? ContextID, object? mtx);
-    public delegate bool LockMutexFnPtrType(Context? ContextID, object? mtx);
-    public delegate void UnlockMutexFnPtrType(Context? ContextID, object? mtx);
+    public delegate void DestroyMutexFnPtrType(Context? ContextID, object mtx);
+    public delegate bool LockMutexFnPtrType(Context? ContextID, object mtx);
+    public delegate void UnlockMutexFnPtrType(Context? ContextID, object mtx);
 }

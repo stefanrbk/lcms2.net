@@ -528,7 +528,7 @@ public static partial class Lcms2
             ? src.ErrorLogger
             : LogErrorChunk;
 
-        ctx.ErrorLogger = (LogErrorChunkType)from.Clone();
+        ctx.ErrorLogger = (LogErrorChunkType)((ICloneable)from).Clone();
     }
 
     internal static ILoggerFactory DefaultLogErrorHandlerFunction()
@@ -635,7 +635,7 @@ public static partial class Lcms2
             ? src.MutexPlugin
             : MutexChunk;
 
-        ctx.MutexPlugin = (MutexPluginChunkType)from.Clone();
+        ctx.MutexPlugin = (MutexPluginChunkType)((ICloneable)from).Clone();
     }
 
     internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
@@ -709,7 +709,7 @@ public static partial class Lcms2
             ? src.ParallelizationPlugin
             : ParallelizationChunk;
 
-        ctx.ParallelizationPlugin = (ParallelizationPluginChunkType)from.Clone();
+        ctx.ParallelizationPlugin = (ParallelizationPluginChunkType)((ICloneable)from).Clone();
     }
 
     internal static bool _cmsRegisterParallelizationPlugin(Context? context, PluginBase? data)

@@ -56,7 +56,7 @@ public static partial class Lcms2
             ? src.AdaptationState
             : AdaptationStateChunk;
 
-        ctx.AdaptationState = (AdaptationStateChunkType)from.Clone();
+        ctx.AdaptationState = (AdaptationStateChunkType)((ICloneable)from).Clone();
 
         //fixed (AdaptationStateChunkType* @default = &AdaptationStateChunk)
         //    AllocPluginChunk(ctx, src, Chunks.AdaptationStateContext, @default);
@@ -111,7 +111,7 @@ public static partial class Lcms2
             ? src.AlarmCodes
             : AlarmCodesChunk;
 
-        ctx.AlarmCodes = (AlarmCodesChunkType)from.Clone();
+        ctx.AlarmCodes = (AlarmCodesChunkType)((ICloneable)from).Clone();
 
         //fixed (AlarmCodesChunkType* @default = &AlarmCodesChunk)
         //    AllocPluginChunk(ctx, src, Chunks.AlarmCodesContext, @default);
@@ -744,7 +744,7 @@ public static partial class Lcms2
     }
 
     internal static void DupPluginTransformList(ref TransformPluginChunkType dest, in TransformPluginChunkType src) =>
-        dest = (TransformPluginChunkType)src.Clone();
+        dest = (TransformPluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocTransformPluginChunk(Context ctx, in Context? src)
     {

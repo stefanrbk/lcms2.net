@@ -2711,7 +2711,7 @@ public static partial class Lcms2
     }
 
     private static void DupFormatterFactoryList(ref FormattersPluginChunkType ctx, in FormattersPluginChunkType src) =>
-        ctx = (FormattersPluginChunkType)src.Clone();
+        ctx = (FormattersPluginChunkType)((ICloneable)src).Clone();
 
     internal static void _cmsAllocFormattersPluginChunk(Context ctx, in Context? src)
     {

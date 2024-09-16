@@ -28,20 +28,17 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class OptimizationPluginChunkType : ICloneable
+internal class OptimizationPluginChunkType(IEnumerable<OPToptimizeFn> list) : ICloneable
 {
-    public readonly OptimizationCollection List;
+    public readonly OptimizationCollection List = new(list);
 
-    public OptimizationPluginChunkType(IEnumerable<OPToptimizeFn> list) =>
-        List = new(list);
+    public OptimizationPluginChunkType(params OPToptimizeFn[] args) : this((IEnumerable<OPToptimizeFn>)args) { }
 
-    public OptimizationPluginChunkType(params OPToptimizeFn[] args) =>
+    public OptimizationPluginChunkType() : this([]) { }
 
-        List = new(args);
+    object ICloneable.Clone() =>
+        Clone();
 
-    public OptimizationPluginChunkType() =>
-        List = new();
-
-    public object Clone() =>
-        new OptimizationPluginChunkType(List);
+    public OptimizationPluginChunkType Clone() =>
+        new(List);
 }

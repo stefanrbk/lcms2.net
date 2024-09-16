@@ -28,16 +28,15 @@ using lcms2.types;
 
 namespace lcms2.state;
 
-internal class TransformPluginChunkType : ICloneable
+internal class TransformPluginChunkType(IEnumerable<TransformFunc> curves) : ICloneable
 {
-    public readonly TransformCollection List;
+    public readonly TransformCollection List = new(curves);
 
-    public TransformPluginChunkType(IEnumerable<TransformFunc> curves) =>
-        List = new(curves);
+    public TransformPluginChunkType() : this([]) { }
 
-    public TransformPluginChunkType() =>
-        List = new();
+    object ICloneable.Clone() =>
+        Clone();
 
-    public object Clone() =>
-        new TransformPluginChunkType(List);
+    public TransformPluginChunkType Clone() =>
+        new(List);
 }
