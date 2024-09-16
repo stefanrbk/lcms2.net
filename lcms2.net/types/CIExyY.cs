@@ -34,6 +34,9 @@ public struct CIExyY(double x, double y, double Y)
 
     public static readonly CIExyY NaN = new(double.NaN, double.NaN, double.NaN);
 
-    public bool IsNaN =>
+    public readonly bool IsNaN =>
         double.IsNaN(x) || double.IsNaN(y) || double.IsNaN(Y);
+
+    public static CIExyY D50 =>
+        cmsXYZ2xyY(CIEXYZ.D50);
 }

@@ -40,4 +40,7 @@ public struct CIEXYZ(double x, double y, double z)
 
     public readonly bool IsNaN =>
         AsVec.IsNaN;
+
+    public static CIEXYZ D50 =>
+        new(0.9642, 1.0, 0.8249);
 }

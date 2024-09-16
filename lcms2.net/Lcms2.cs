@@ -885,7 +885,7 @@ public static partial class Lcms2
     static Lcms2()
     {
         //AllocList = new();
-        globalContext = cmsCreateContext()!;
+        //globalContext = cmsCreateContext()!;
 
         #region Context and plugins
 
