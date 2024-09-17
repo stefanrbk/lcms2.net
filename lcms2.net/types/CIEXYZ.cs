@@ -43,4 +43,43 @@ public struct CIEXYZ(double x, double y, double z)
 
     public static CIEXYZ D50 =>
         new(0.9642, 1.0, 0.8249);
+
+    public readonly CIExyY As_xyY
+    {
+        get
+        {
+            var d = X + Y + Z;
+            if (d is 0)
+                return CIExyY.NaN;
+
+            var ISum = 1 / d;
+            return new(X * ISum, Y * ISum, Y);
+        }
+    }
+
+    public static explicit operator CIExyY(CIEXYZ xyz) =>
+        xyz.As_xyY;
+
+    public readonly CIELab AsLab(CIEXYZ? WhitePoint = null)
+    {
+        var wp = WhitePoint ?? D50;
+
+        if (wp.X is 0 || wp.Y is 0 || wp.Z is 0)
+            return CIELab.NaN;
+
+        var fx = f(X / wp.X);
+        var fy = f(Y / wp.Y);
+        var fz = f(Z / wp.Z);
+
+        return new((116 * fy) - 16, 500 * (fx - fy), 200 * (fy - fz));
+    }
+
+    private static double f(double t)
+    {
+        const double Limit = 24.0 / 116 * (24.0 / 116) * (24.0 / 116);
+
+        return (t <= Limit)
+            ? (841.0 / 108 * t) + (16.0 / 116)
+            : Math.Pow(t, 1.0 / 3);
+    }
 }

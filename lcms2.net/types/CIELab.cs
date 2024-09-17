@@ -31,4 +31,27 @@ public struct CIELab(double L, double a, double b)
     public double L = L;
     public double a = a;
     public double b = b;
+
+    public static CIELab NaN =>
+        new(double.NaN, double.NaN, double.NaN);
+
+    public readonly bool IsNaN =>
+        double.IsNaN(L) || double.IsNaN(a) || double.IsNaN(b);
+
+    public readonly CIELCh AsLCh =>
+        new(L, Math.Pow(Sqr(a) + Sqr(b), 0.5), atan2deg(b, a));
+
+    public static explicit operator CIELCh(CIELab lab) =>
+        lab.AsLCh;
+
+    public readonly CIEXYZ AsXYZ(CIEXYZ? WhitePoint = null)
+    {
+        var wp = WhitePoint ?? CIEXYZ.D50;
+
+        var y = (L + 16.0) / 116.0;
+        var x = y + (0.002 * a);
+        var z = y - (0.005 * b);
+
+        return new(f_1(x) * wp.X, f_1(y) * wp.Y, f_1(z) * wp.Z);
+    }
 }

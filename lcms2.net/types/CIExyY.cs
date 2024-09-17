@@ -39,4 +39,19 @@ public struct CIExyY(double x, double y, double Y)
 
     public static CIExyY D50 =>
         cmsXYZ2xyY(CIEXYZ.D50);
+
+    public readonly CIEXYZ AsXYZ
+    {
+        get
+        {
+            var d = y * Y;
+            if (d is 0)
+                return CIEXYZ.NaN;
+
+            return new(x / d, Y, (1 - x - y) / d);
+        }
+    }
+
+    public static explicit operator CIEXYZ(CIExyY xyy) =>
+        xyy.AsXYZ;
 }

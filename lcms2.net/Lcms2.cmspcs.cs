@@ -43,65 +43,21 @@ public static partial class Lcms2
     private static readonly ushort[] GrayBlack = new ushort[4];
     private static readonly ushort[] GrayWhite = new ushort[4] { 0xFFFF, 0, 0, 0 };
 
-    public static CIExyY cmsXYZ2xyY(CIEXYZ Source)
-    {
-        var ISum = 1 / (Source.X + Source.Y + Source.Z);
-
-        return new CIExyY(
-            x: Source.X * ISum,
-            y: Source.Y * ISum,
-            Y: Source.Y);
-    }
+    public static CIExyY cmsXYZ2xyY(CIEXYZ Source) =>
+        // See CIEXYZ.As_xyY
+        Source.As_xyY;
 
     public static CIEXYZ cmsxyY2XYZ(CIExyY Source) =>
-        new CIEXYZ(
-            x: Source.x / Source.y * Source.Y,
-            y: Source.Y,
-            z: (1 - Source.x - Source.y) / Source.y * Source.Y);
+        // See CIExyY.AsXYZ
+        Source.AsXYZ;
 
-    private static double f(double t)
-    {
-        const double Limit = 24.0 / 116 * (24.0 / 116) * (24.0 / 116);
+    public static void cmsXYZ2Lab(CIEXYZ? WhitePoint, out CIELab Lab, CIEXYZ xyz) =>
+        // See CIEXYZ.AsLab()
+        Lab = xyz.AsLab(WhitePoint);
 
-        return (t <= Limit)
-            ? (841.0 / 108 * t) + (16.0 / 116)
-            : Pow(t, 1.0 / 3);
-    }
-
-    private static double f_1(double t)
-    {
-        const double Limit = 24.0 / 116;
-
-        return (t <= Limit)
-            ? 108.0 / 841 * (t - (16.0 / 116))
-            : t * t * t;
-    }
-
-    public static void cmsXYZ2Lab(CIEXYZ? WhitePoint, out CIELab Lab, CIEXYZ xyz)
-    {
-        WhitePoint ??= D50XYZ;
-
-        var fx = f(xyz.X / WhitePoint.Value.X);
-        var fy = f(xyz.Y / WhitePoint.Value.Y);
-        var fz = f(xyz.Z / WhitePoint.Value.Z);
-
-        Lab.L = (116 * fy) - 16;
-        Lab.a = 500 * (fx - fy);
-        Lab.b = 200 * (fy - fz);
-    }
-
-    public static void cmsLab2XYZ(CIEXYZ? WhitePoint, out CIEXYZ xyz, CIELab Lab)
-    {
-        WhitePoint ??= D50XYZ;
-
-        var y = (Lab.L + 16.0) / 116.0;
-        var x = y + (0.002 * Lab.a);
-        var z = y - (0.005 * Lab.b);
-
-        xyz.X = f_1(x) * WhitePoint.Value.X;
-        xyz.Y = f_1(y) * WhitePoint.Value.Y;
-        xyz.Z = f_1(z) * WhitePoint.Value.Z;
-    }
+    public static void cmsLab2XYZ(CIEXYZ? WhitePoint, out CIEXYZ xyz, CIELab Lab) =>
+        // See CIELab.AsXYZ()
+        xyz = Lab.AsXYZ(WhitePoint);
 
     private static double L2float2(ushort v) =>
         v / 652.8;
@@ -180,40 +136,16 @@ public static partial class Lcms2
     private static double RADIANS(double deg) =>
         deg * M_PI / 180;
 
-    private static double atan2deg(double a, double b)
-    {
-        var h = a is 0 && b is 0
-            ? 0
-            : Atan2(a, b);
-
-        h *= 180 / M_PI;
-
-        while (h > 360)
-            h -= 360;
-        while (h < 0)
-            h += 360;
-
-        return h;
-    }
-
     private static double Sqr(double v) =>
         v * v;
 
     public static CIELCh cmsLab2LCh(CIELab Lab) =>
-        new(
-            L: Lab.L,
-            C: Pow(Sqr(Lab.a) + Sqr(Lab.b), 0.5),
-            h: atan2deg(Lab.b, Lab.a));
+        // See CIELab.AsLCh
+        Lab.AsLCh;
 
-    public static CIELab cmsLCh2Lab(CIELCh LCh)
-    {
-        var h = LCh.h * M_PI / 180;
-
-        return new(
-            L: LCh.L,
-            a: LCh.C * Cos(h),
-            b: LCh.C * Sin(h));
-    }
+    public static CIELab cmsLCh2Lab(CIELCh LCh) =>
+        // See CIELCh.AsLab
+        LCh.AsLab;
 
     private static ushort XYZ2Fix(double d) =>
         _cmsQuickSaturateWord(d * 32768);

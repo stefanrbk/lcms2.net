@@ -31,4 +31,23 @@ public struct CIELCh(double L, double C, double h)
     public double L = L;
     public double C = C;
     public double h = h;
+
+    public static CIELCh NaN =>
+        new(double.NaN, double.NaN, double.NaN);
+
+    public readonly bool IsNaN =>
+        double.IsNaN(L) || double.IsNaN(C) || double.IsNaN(h);
+
+    public readonly CIELab AsLab
+    {
+        get
+        {
+            var h = this.h * Math.PI / 180.0;
+
+            return new(L, C * Math.Cos(h), C * Math.Sin(h));
+        }
+    }
+
+    public static explicit operator CIELab(CIELCh lch) =>
+        lch.AsLab;
 }
