@@ -37,4 +37,7 @@ internal static class Helpers
             ? 108.0 / 841 * (t - (16.0 / 116))
             : t * t * t;
     }
+
+    internal static double XYZ2float(ushort v) =>
+        _cms15Fixed16toDouble(v << 1);
 }

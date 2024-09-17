@@ -60,6 +60,14 @@ public struct CIEXYZ(double x, double y, double z)
     public static explicit operator CIExyY(CIEXYZ xyz) =>
         xyz.As_xyY;
 
+    public static CIEXYZ FromXYZEncoded(ReadOnlySpan<ushort> xyz)
+    {
+        if (xyz.Length < 3)
+            return NaN;
+
+        return new(XYZ2float(xyz[0]), XYZ2float(xyz[1]), XYZ2float(xyz[2]));
+}
+
     public readonly CIELab AsLab(CIEXYZ? WhitePoint = null)
     {
         var wp = WhitePoint ?? D50;
@@ -74,12 +82,20 @@ public struct CIEXYZ(double x, double y, double z)
         return new((116 * fy) - 16, 500 * (fx - fy), 200 * (fy - fz));
     }
 
-    private static double f(double t)
+    public readonly void ToXYZEncoded(Span<ushort> xyz)
     {
-        const double Limit = 24.0 / 116 * (24.0 / 116) * (24.0 / 116);
+        if (xyz.Length < 3)
+            return;
 
-        return (t <= Limit)
-            ? (841.0 / 108 * t) + (16.0 / 116)
-            : Math.Pow(t, 1.0 / 3);
+        var x = Math.Clamp(X, 0.0, MAX_ENCODEABLE_XYZ);
+        var y = Math.Clamp(Y, 0.0, MAX_ENCODEABLE_XYZ);
+        var z = Math.Clamp(Z, 0.0, MAX_ENCODEABLE_XYZ);
+
+        xyz[0] = XYZ2Fix(x);
+        xyz[1] = XYZ2Fix(y);
+        xyz[2] = XYZ2Fix(z);
     }
+
+    private static ushort XYZ2Fix(double d) =>
+        _cmsQuickSaturateWord(d * 32768);
 }

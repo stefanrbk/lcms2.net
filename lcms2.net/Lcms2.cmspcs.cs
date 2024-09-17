@@ -59,85 +59,24 @@ public static partial class Lcms2
         // See CIELab.AsXYZ()
         xyz = Lab.AsXYZ(WhitePoint);
 
-    private static double L2float2(ushort v) =>
-        v / 652.8;
-
-    private static double ab2float2(ushort v) =>
-        (v / 256.0) - 128;
-
-    private static ushort L2Fix2(double L) =>
-        _cmsQuickSaturateWord(L * 652.8);
-
-    private static ushort ab2Fix2(double ab) =>
-        _cmsQuickSaturateWord((ab + 128) * 256);
-
-    private static double L2float4(ushort v) =>
-        v / 655.35;
-
-    private static double ab2float4(ushort v) =>
-        (v / 257.0) - 128;
-
     public static CIELab cmsLabEncoded2FloatV2(ReadOnlySpan<ushort> wLab) =>
-        new(
-            L: L2float2(wLab[0]),
-            a: ab2float2(wLab[1]),
-            b: ab2float2(wLab[2]));
+        // See CIELab.FromLabEncodedV2
+        CIELab.FromLabEncodedV2(wLab);
 
     public static CIELab cmsLabEncoded2Float(ReadOnlySpan<ushort> wLab) =>
-        new(
-            L: L2float4(wLab[0]),
-            a: ab2float4(wLab[1]),
-            b: ab2float4(wLab[2]));
+        // See CIELab.FromLabEncoded
+        CIELab.FromLabEncoded(wLab);
 
-    private static double Clamp_L_doubleV2(double L) =>
-        Max(Min(L, 0xffff * 100.0 / 0xff00), 0);
+    public static void cmsFloat2LabEncodedV2(Span<ushort> wLab, CIELab fLab) =>
+        // See CIELab.ToLabEncodedV2
+        fLab.ToLabEncodedV2(wLab);
 
-    private static double Clamp_ab_doubleV2(double ab) =>
-        Max(Min(ab, MAX_ENCODEABLE_ab2), MIN_ENCODEABLE_ab2);
-
-    public static void cmsFloat2LabEncodedV2(Span<ushort> wLab, CIELab fLab)
-    {
-        CIELab Lab;
-
-        Lab.L = Clamp_L_doubleV2(fLab.L);
-        Lab.a = Clamp_ab_doubleV2(fLab.a);
-        Lab.b = Clamp_ab_doubleV2(fLab.b);
-
-        wLab[0] = L2Fix2(Lab.L);
-        wLab[1] = ab2Fix2(Lab.a);
-        wLab[2] = ab2Fix2(Lab.b);
-    }
-
-    private static double Clamp_L_doubleV4(double L) =>
-        Max(Min(L, 100), 0);
-
-    private static double Clamp_ab_doubleV4(double ab) =>
-        Max(Min(ab, MAX_ENCODEABLE_ab4), MIN_ENCODEABLE_ab4);
-
-    private static ushort L2Fix4(double L) =>
-        _cmsQuickSaturateWord(L * 655.35);
-
-    private static ushort ab2Fix4(double ab) =>
-        _cmsQuickSaturateWord((ab + 128) * 257);
-
-    public static void cmsFloat2LabEncoded(Span<ushort> wLab, CIELab fLab)
-    {
-        CIELab Lab;
-
-        Lab.L = Clamp_L_doubleV4(fLab.L);
-        Lab.a = Clamp_ab_doubleV4(fLab.a);
-        Lab.b = Clamp_ab_doubleV4(fLab.b);
-
-        wLab[0] = L2Fix4(Lab.L);
-        wLab[1] = ab2Fix4(Lab.a);
-        wLab[2] = ab2Fix4(Lab.b);
-    }
+    public static void cmsFloat2LabEncoded(Span<ushort> wLab, CIELab fLab) =>
+        // See CIELab.ToLabEncoded
+        fLab.ToLabEncoded(wLab);
 
     private static double RADIANS(double deg) =>
         deg * M_PI / 180;
-
-    private static double Sqr(double v) =>
-        v * v;
 
     public static CIELCh cmsLab2LCh(CIELab Lab) =>
         // See CIELab.AsLCh
@@ -147,50 +86,13 @@ public static partial class Lcms2
         // See CIELCh.AsLab
         LCh.AsLab;
 
-    private static ushort XYZ2Fix(double d) =>
-        _cmsQuickSaturateWord(d * 32768);
-
-    public static void cmsFloat2XYZEncoded(Span<ushort> XYZ, CIEXYZ xyz)
-    {
-        // Clamp to encodeable values.
-        if (xyz.Y <= 0)
-        {
-            xyz.X = 0;
-            xyz.Y = 0;
-            xyz.Z = 0;
-        }
-
-        if (xyz.X > MAX_ENCODEABLE_XYZ)
-            xyz.X = MAX_ENCODEABLE_XYZ;
-
-        if (xyz.X < 0)
-            xyz.X = 0;
-
-        if (xyz.Y > MAX_ENCODEABLE_XYZ)
-            xyz.Y = MAX_ENCODEABLE_XYZ;
-
-        if (xyz.Y < 0)
-            xyz.Y = 0;
-
-        if (xyz.Z > MAX_ENCODEABLE_XYZ)
-            xyz.Z = MAX_ENCODEABLE_XYZ;
-
-        if (xyz.Z < 0)
-            xyz.Z = 0;
-
-        XYZ[0] = XYZ2Fix(xyz.X);
-        XYZ[1] = XYZ2Fix(xyz.Y);
-        XYZ[2] = XYZ2Fix(xyz.Z);
-    }
-
-    private static double XYZ2float(ushort v) =>
-        _cms15Fixed16toDouble(v << 1);
+    public static void cmsFloat2XYZEncoded(Span<ushort> XYZ, CIEXYZ xyz) =>
+        // See CIEXYZ.ToXYZEncoded()
+        xyz.ToXYZEncoded(XYZ);
 
     public static CIEXYZ cmsXYZEncoded2Float(ReadOnlySpan<ushort> XYZ) =>
-        new(
-            x: XYZ2float(XYZ[0]),
-            y: XYZ2float(XYZ[1]),
-            z: XYZ2float(XYZ[2]));
+        // See CIEXYZ.FromXYZEncoded()
+        CIEXYZ.FromXYZEncoded(XYZ);
 
     public static double cmsDeltaE(CIELab Lab1, CIELab Lab2)
     {

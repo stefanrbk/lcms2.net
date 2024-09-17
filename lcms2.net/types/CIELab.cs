@@ -54,4 +54,76 @@ public struct CIELab(double L, double a, double b)
 
         return new(f_1(x) * wp.X, f_1(y) * wp.Y, f_1(z) * wp.Z);
     }
+
+    public readonly void ToLabEncoded(Span<ushort> wLab)
+    {
+        if (wLab.Length < 3)
+            return;
+
+        wLab[0] = L2Fix4(Clamp_L_doubleV4(L));
+        wLab[1] = ab2Fix4(Clamp_ab_doubleV4(a));
+        wLab[2] = ab2Fix4(Clamp_ab_doubleV4(b));
+    }
+
+    public readonly void ToLabEncodedV2(Span<ushort> wLab)
+    {
+        if (wLab.Length < 3)
+            return;
+
+        wLab[0] = L2Fix2(Clamp_L_doubleV2(L));
+        wLab[1] = ab2Fix2(Clamp_ab_doubleV2(a));
+        wLab[2] = ab2Fix2(Clamp_ab_doubleV2(b));
+    }
+
+    public static CIELab FromLabEncoded(ReadOnlySpan<ushort> wLab)
+    {
+        if (wLab.Length < 3)
+            return NaN;
+
+        return new(L2float4(wLab[0]), ab2float4(wLab[1]), ab2float4(wLab[2]));
+    }
+
+    public static CIELab FromLabEncodedV2(ReadOnlySpan<ushort> wLab)
+    {
+        if (wLab.Length < 3)
+            return NaN;
+
+        return new(L2float2(wLab[0]), ab2float2(wLab[1]), ab2float2(wLab[2]));
+    }
+
+    private static double L2float2(ushort v) =>
+        v / 652.8;
+
+    private static double ab2float2(ushort v) =>
+        (v / 256.0) - 128;
+
+    private static ushort L2Fix2(double L) =>
+        _cmsQuickSaturateWord(L * 652.8);
+
+    private static ushort ab2Fix2(double ab) =>
+        _cmsQuickSaturateWord((ab + 128) * 256);
+
+    private static double L2float4(ushort v) =>
+        v / 655.35;
+
+    private static double ab2float4(ushort v) =>
+        (v / 257.0) - 128;
+
+    private static double Clamp_L_doubleV4(double L) =>
+        Math.Max(Math.Min(L, 100), 0);
+
+    private static double Clamp_ab_doubleV4(double ab) =>
+        Math.Max(Math.Min(ab, MAX_ENCODEABLE_ab4), MIN_ENCODEABLE_ab4);
+
+    private static ushort L2Fix4(double L) =>
+        _cmsQuickSaturateWord(L * 655.35);
+
+    private static ushort ab2Fix4(double ab) =>
+        _cmsQuickSaturateWord((ab + 128) * 257);
+
+    private static double Clamp_L_doubleV2(double L) =>
+        Math.Max(Math.Min(L, 0xffff * 100.0 / 0xff00), 0);
+
+    private static double Clamp_ab_doubleV2(double ab) =>
+        Math.Max(Math.Min(ab, MAX_ENCODEABLE_ab2), MIN_ENCODEABLE_ab2);
 }
