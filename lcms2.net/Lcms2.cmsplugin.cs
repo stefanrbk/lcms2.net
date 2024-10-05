@@ -129,9 +129,13 @@ public static partial class Lcms2
     /// <param name="UserData">
     ///     An optional pointer to user-defined data that will be forwarded to plug-ins and logger
     /// </param>
-    public static Context? cmsCreateContext(PluginBase? Plugin = null, object? UserData = null) =>
+    public static Context? cmsCreateContext(PluginBase? Plugin = null, object? UserData = null)
+    {
         // See Context new()
-        new(UserData);
+        if (Plugin is not null)
+            return new([Plugin], UserData);
+        return new(UserData);
+    }
 
     /// <summary>
     ///     Duplicates a context with all associated plug-ins.
