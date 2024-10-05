@@ -51,101 +51,15 @@ public static partial class Lcms2
         // See WhitePoint.FromTemp()
         WhitePoint.FromTemp(TempK).IfNone(CIExyY.NaN);
 
-
-    private struct ISOTEMPERATURE
-    {
-        public double mirek;
-        public double ut;
-        public double vt;
-        public double tt;
-    }
-
-    private static readonly ISOTEMPERATURE[] isotempdata = {
-            new() {mirek = 0,     ut = 0.18006,  vt = 0.26352,  tt = -0.24341},
-            new() {mirek = 10,    ut = 0.18066,  vt = 0.26589,  tt = -0.25479},
-            new() {mirek = 20,    ut = 0.18133,  vt = 0.26846,  tt = -0.26876},
-            new() {mirek = 30,    ut = 0.18208,  vt = 0.27119,  tt = -0.28539},
-            new() {mirek = 40,    ut = 0.18293,  vt = 0.27407,  tt = -0.30470},
-            new() {mirek = 50,    ut = 0.18388,  vt = 0.27709,  tt = -0.32675},
-            new() {mirek = 60,    ut = 0.18494,  vt = 0.28021,  tt = -0.35156},
-            new() {mirek = 70,    ut = 0.18611,  vt = 0.28342,  tt = -0.37915},
-            new() {mirek = 80,    ut = 0.18740,  vt = 0.28668,  tt = -0.40955},
-            new() {mirek = 90,    ut = 0.18880,  vt = 0.28997,  tt = -0.44278},
-            new() {mirek = 100,   ut = 0.19032,  vt = 0.29326,  tt = -0.47888},
-            new() {mirek = 125,   ut = 0.19462,  vt = 0.30141,  tt = -0.58204},
-            new() {mirek = 150,   ut = 0.19962,  vt = 0.30921,  tt = -0.70471},
-            new() {mirek = 175,   ut = 0.20525,  vt = 0.31647,  tt = -0.84901},
-            new() {mirek = 200,   ut = 0.21142,  vt = 0.32312,  tt = -1.0182 },
-            new() {mirek = 225,   ut = 0.21807,  vt = 0.32909,  tt = -1.2168 },
-            new() {mirek = 250,   ut = 0.22511,  vt = 0.33439,  tt = -1.4512 },
-            new() {mirek = 275,   ut = 0.23247,  vt = 0.33904,  tt = -1.7298 },
-            new() {mirek = 300,   ut = 0.24010,  vt = 0.34308,  tt = -2.0637 },
-            new() {mirek = 325,   ut = 0.24702,  vt = 0.34655,  tt = -2.4681 },
-            new() {mirek = 350,   ut = 0.25591,  vt = 0.34951,  tt = -2.9641 },
-            new() {mirek = 375,   ut = 0.26400,  vt = 0.35200,  tt = -3.5814 },
-            new() {mirek = 400,   ut = 0.27218,  vt = 0.35407,  tt = -4.3633 },
-            new() {mirek = 425,   ut = 0.28039,  vt = 0.35577,  tt = -5.3762 },
-            new() {mirek = 450,   ut = 0.28863,  vt = 0.35714,  tt = -6.7262 },
-            new() {mirek = 475,   ut = 0.29685,  vt = 0.35823,  tt = -8.5955 },
-            new() {mirek = 500,   ut = 0.30505,  vt = 0.35907,  tt = -11.324 },
-            new() {mirek = 525,   ut = 0.31320,  vt = 0.35968,  tt = -15.628 },
-            new() {mirek = 550,   ut = 0.32129,  vt = 0.36011,  tt = -23.325 },
-            new() {mirek = 575,   ut = 0.32931,  vt = 0.36038,  tt = -40.770 },
-            new() {mirek = 600,   ut = 0.33724,  vt = 0.36051,  tt = -116.45 },
-    };
-
-    private static uint NISO =>
-        (uint)isotempdata.Length;
-
     public static double cmsTempFromWhitePoint(CIExyY Whitepoint) =>
         // See WhitePoint.ToTemp()
         WhitePoint.ToTemp(Whitepoint).IfNone(double.NaN);
-
-    private static MAT3 ComputeChromaticAdaptation(CIEXYZ SourceWhitePoint, CIEXYZ DestWhitePoint, MAT3 Chad)
-    {
-        var Chad_Inv = Chad.Inverse;
-        if (Chad_Inv.IsNaN)
-            return MAT3.NaN;
-
-        var ConeSourceXYZ = new VEC3(SourceWhitePoint.X, SourceWhitePoint.Y, SourceWhitePoint.Z);
-
-        var ConeDestXYZ = new VEC3(DestWhitePoint.X, DestWhitePoint.Y, DestWhitePoint.Z);
-
-        var ConeSourceRGB = Chad.Eval(ConeSourceXYZ);
-        var ConeDestRGB = Chad.Eval(ConeDestXYZ);
-
-        if ((Math.Abs(ConeSourceRGB.X) < MATRIX_DET_TOLERANCE) ||
-            (Math.Abs(ConeSourceRGB.Y) < MATRIX_DET_TOLERANCE) ||
-            (Math.Abs(ConeSourceRGB.Z) < MATRIX_DET_TOLERANCE))
-        {
-            return MAT3.NaN;
-        }
-
-        // Build matrix
-        var Cone = new MAT3(
-            x: new(ConeDestRGB.X / ConeSourceRGB.X, 0.0, 0.0),
-            y: new(0.0, ConeDestRGB.Y / ConeSourceRGB.Y, 0.0),
-            z: new(0.0, 0.0, ConeDestRGB.Z / ConeSourceRGB.Z));
-
-        // Normalize
-        var Tmp = Cone * Chad;
-        return Chad_Inv * Tmp;
-    }
-
-    internal static MAT3 _cmsAdaptationMatrix(MAT3? ConeMatrix, CIEXYZ FromIll, CIEXYZ ToIll)
-    {
-        var LamRigg = new MAT3(0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296);
-
-        var _coneMatrix = ConeMatrix ?? LamRigg;
-
-        return ComputeChromaticAdaptation(FromIll, ToIll, _coneMatrix);
-    }
 
     internal static bool _cmsAdaptMatrixToD50(ref MAT3 r, CIExyY SourceWhitePt)
     {
         var Dn = cmsxyY2XYZ(SourceWhitePt);
 
-        var Bradford = _cmsAdaptationMatrix(null, Dn, D50XYZ);
+        var Bradford = ChAd.AdaptationMatrix(null, Dn, D50XYZ);
         if (Bradford.IsNaN)
             return false;
 
@@ -190,20 +104,7 @@ public static partial class Lcms2
         return _cmsAdaptMatrixToD50(ref r, WhitePt);
     }
 
-    public static CIEXYZ cmsAdaptToIlluminant(CIEXYZ SourceWhitePt, CIEXYZ Illuminant, CIEXYZ Value)
-    {
-        //_cmsAssert(Result);
-        //_cmsAssert(SourceWhitePt);
-        //_cmsAssert(Illuminant);
-        //_cmsAssert(Value);
-
-        var Bradford = _cmsAdaptationMatrix(null, SourceWhitePt, Illuminant);
-        if (Bradford.IsNaN)
-            return CIEXYZ.NaN;
-
-        var In = new VEC3(Value.X, Value.Y, Value.Z);
-        var Out = Bradford.Eval(In);
-
-        return Out.AsXYZ;
-    }
+    public static CIEXYZ cmsAdaptToIlluminant(CIEXYZ SourceWhitePt, CIEXYZ Illuminant, CIEXYZ Value) =>
+        // See ChAd.AdaptToIlluminant()
+        ChAd.AdaptToIlluminant(SourceWhitePt, Illuminant, Value).IfNone(CIEXYZ.NaN);
 }
