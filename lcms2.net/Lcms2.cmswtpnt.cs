@@ -47,48 +47,10 @@ public static partial class Lcms2
     //        return xyy;
     //}
 
-    public static CIExyY cmsWhitePointFromTemp(double TempK)
+    public static CIExyY cmsWhitePointFromTemp(double TempK) =>
+        // See WhitePoint.FromTemp()
+        WhitePoint.FromTemp(TempK).IfNone(CIExyY.NaN);
 
-    {
-        double x;
-        //_cmsAssert(WhitePoint);
-
-        var T = TempK;
-        var T2 = T * T;            // Square
-        var T3 = T2 * T;           // Cube
-
-        // For correlated color temperature (T) between 4000K and 7000K:
-
-        if (T is >= 4000 and <= 7000)
-        {
-            x = (-4.6070 * (1E9 / T3)) + (2.9678 * (1E6 / T2)) + (0.09911 * (1E3 / T)) + 0.244063;
-        }
-        else
-            // or for correlated color temperature (T) between 7000K and 25000K:
-
-            if (T is > 7000.0 and <= 25000.0)
-        {
-            x = (-2.0064 * (1E9 / T3)) + (1.9018 * (1E6 / T2)) + (0.24748 * (1E3 / T)) + 0.237040;
-        }
-        else
-        {
-            cmsSignalError(null, ErrorCodes.Range, "cmsWhitePointFromTemp: invalid temp");
-            return CIExyY.NaN;
-        }
-
-        // Obtain y(x)
-        var y = (-3.000 * (x * x)) + (2.870 * x) - 0.275;
-
-        // wave factors (not used, but here for futures extensions)
-
-        // M1 = (-1.3515 - 1.7703*x + 5.9114 *y)/(0.0241 + 0.2562*x - 0.7341*y);
-        // M2 = (0.0300 - 31.4424*x + 30.0717*y)/(0.0241 + 0.2562*x - 0.7341*y);
-
-        return new(
-            x: x,
-            y: y,
-            Y: 1.0);
-    }
 
     private struct ISOTEMPERATURE
     {
@@ -135,46 +97,9 @@ public static partial class Lcms2
     private static uint NISO =>
         (uint)isotempdata.Length;
 
-    public static double cmsTempFromWhitePoint(CIExyY WhitePoint)
-    {
-        //_cmsAssert(WhitePoint);
-        //_cmsAssert(TempK);
-
-        if (WhitePoint.IsNaN)
-            return double.NaN;
-
-        var di = 0.0;
-        var mi = 0.0;
-        var xs = WhitePoint.x;
-        var ys = WhitePoint.y;
-
-        // convert (x,y) to CIE 1960 (u,WhitePoint)
-
-        var us = 2 * xs / (-xs + (6 * ys) + 1.5);
-        var vs = 3 * ys / (-xs + (6 * ys) + 1.5);
-
-        for (var j = 0; j < NISO; j++)
-        {
-            var uj = isotempdata[j].ut;
-            var vj = isotempdata[j].vt;
-            var tj = isotempdata[j].tt;
-            var mj = isotempdata[j].mirek;
-
-            var dj = (vs - vj - (tj * (us - uj))) / Math.Sqrt(1.0 + (tj * tj));
-
-            if ((j != 0) && (di / dj < 0.0))
-            {
-                // Found a match
-                return 1000000.0 / (mi + (di / (di - dj) * (mj - mi)));
-            }
-
-            di = dj;
-            mi = mj;
-        }
-
-        // Not found
-        return double.NaN;
-    }
+    public static double cmsTempFromWhitePoint(CIExyY Whitepoint) =>
+        // See WhitePoint.ToTemp()
+        WhitePoint.ToTemp(Whitepoint).IfNone(double.NaN);
 
     private static MAT3 ComputeChromaticAdaptation(CIEXYZ SourceWhitePoint, CIEXYZ DestWhitePoint, MAT3 Chad)
     {
