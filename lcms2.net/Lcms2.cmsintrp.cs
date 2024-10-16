@@ -865,7 +865,7 @@ public static partial class Lcms2
 
         //var p1 = *p;
         //memcpy(&p1.Domain[0], &p.Domain[1], 3 * sizeof(uint));
-        var p1 = p.Clone() as InterpParams<float>;
+        var p1 = ((ICloneable)p).Clone() as InterpParams<float>;
         p.Domain.AsSpan(1..4).CopyTo(p1.Domain.AsSpan(0..3));
 
         var t = lutTable[k0..];
@@ -905,7 +905,7 @@ public static partial class Lcms2
 
         //var p1 = *p16;
         //Buffer.MemoryCopy(&p16.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
-        var p1 = p16.Clone() as InterpParams<ushort>;
+        var p1 = ((ICloneable)p16).Clone() as InterpParams<ushort>;
         p16.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];
@@ -945,7 +945,7 @@ public static partial class Lcms2
 
         //var p1 = *p;
         //Buffer.MemoryCopy(&p.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
-        var p1 = p.Clone() as InterpParams<float>;
+        var p1 = ((ICloneable)p).Clone() as InterpParams<float>;
         p.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];

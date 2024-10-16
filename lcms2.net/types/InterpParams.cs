@@ -60,7 +60,10 @@ public class InterpParams<T> : ICloneable, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public object Clone()
+    object ICloneable.Clone() =>
+        Clone();
+
+    public InterpParams<T> Clone()
     {
         var result = new InterpParams<T>(ContextID)
         {
