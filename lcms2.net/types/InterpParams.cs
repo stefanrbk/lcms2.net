@@ -34,9 +34,9 @@ public class InterpParams<T> : ICloneable, IDisposable
     public uint dwFlags;
     public uint nInputs;
     public uint nOutputs;
-    public uint[] nSamples;
-    public uint[] Domain;
-    public uint[] opta;
+    public uint[] nSamples = new uint[MAX_INPUT_DIMENSIONS];
+    public uint[] Domain = new uint[MAX_INPUT_DIMENSIONS];
+    public uint[] opta = new uint[MAX_INPUT_DIMENSIONS];
     public Memory<T> Table;
     public InterpFunction? Interpolation;
     private bool disposedValue;
@@ -44,34 +44,12 @@ public class InterpParams<T> : ICloneable, IDisposable
     public InterpParams(Context? context)
     {
         ContextID = context;
-
-        //var pool = Context.GetPool<uint>(context);
-
-        //nSamples = pool.Rent(MAX_INPUT_DIMENSIONS);
-        //Domain = pool.Rent(MAX_INPUT_DIMENSIONS);
-        //opta = pool.Rent(MAX_INPUT_DIMENSIONS);
-        nSamples = new uint[MAX_INPUT_DIMENSIONS];
-        Domain = new uint[MAX_INPUT_DIMENSIONS];
-        opta = new uint[MAX_INPUT_DIMENSIONS];
-
-        //Array.Clear(nSamples);
-        //Array.Clear(Domain);
-        //Array.Clear(opta);
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
         {
-            //if (disposing)
-            //{
-            //    var pool = Context.GetPool<uint>(ContextID);
-
-            //    ReturnArray(pool, nSamples); nSamples = null!;
-            //    ReturnArray(pool, Domain); Domain = null!;
-            //    ReturnArray(pool, opta); opta = null!;
-            //}
-
             disposedValue = true;
         }
     }
