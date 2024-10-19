@@ -210,7 +210,7 @@ public static partial class Lcms2
         n = Math.Min(n, (uint)Array.Length);
 
         for (var i = 0; i < n; i++)
-            if (!_cmsWriteUInt16Number(io, Array![i])) return false;
+            if (!io.Write(Array[i])) return false;
 
         return true;
     }
@@ -238,7 +238,7 @@ public static partial class Lcms2
 
     //    while (n > 0)
     //    {
-    //        if (!_cmsReadUInt16Number(io, &uc)) return false;
+    //        if (!io.ReadUshort(&uc)) return false;
     //        n--;
 
     //        if (!is_surrogate(uc))
@@ -249,7 +249,7 @@ public static partial class Lcms2
     //        {
     //            ushort low;
 
-    //            if (!_cmsReadUInt16Number(io, &low)) return false;
+    //            if (!io.ReadUshort(&low)) return false;
     //            n--;
 
     //            if (is_high_surrogate(uc) && is_low_surrogate(low))
@@ -289,13 +289,13 @@ public static partial class Lcms2
         {
             if (!Array.IsEmpty)
             {
-                if (!_cmsReadUInt16Number(io, out var tmp)) return false;
+                if (!io.ReadUshort(out var tmp)) return false;
                 if (i < Array.Length)
                     Array[i] = (char)tmp;
             }
             else
             {
-                if (!_cmsReadUInt16Number(io, out _)) return false;
+                if (!io.ReadUshort(out _)) return false;
             }
         }
         return true;
@@ -310,7 +310,7 @@ public static partial class Lcms2
         PositionTableEntryFn ElementFn)
     {
         //var pool = Context.GetPool<uint>(self.ContextID);
-        var currentPosition = io.Tell(io);
+        var currentPosition = io.TellFunc(io);
 
         // Verify there is enough space left to read at least two uint items for Count items
         if (((io.reportedSize - currentPosition) / (2 * sizeof(uint))) < Count)
@@ -329,8 +329,8 @@ public static partial class Lcms2
 
         for (var i = 0; i < Count; i++)
         {
-            if (!_cmsReadUInt32Number(io, out ElementOffsets[i])) goto Error;
-            if (!_cmsReadUInt32Number(io, out ElementSizes[i])) goto Error;
+            if (!io.ReadUint(out ElementOffsets[i])) goto Error;
+            if (!io.ReadUint(out ElementSizes[i])) goto Error;
 
             ElementOffsets[i] += BaseOffset;
         }
@@ -338,7 +338,7 @@ public static partial class Lcms2
         // Seek to each element and read it
         for (var i = 0; i < Count; i++)
         {
-            if (!io.Seek(io, ElementOffsets[i])) goto Error;
+            if (!io.SeekFunc(io, ElementOffsets[i])) goto Error;
 
             // This is the reader callback
             if (!ElementFn(self, io, Cargo, (uint)i, ElementSizes[i])) goto Error;
@@ -378,39 +378,39 @@ public static partial class Lcms2
         var ElementSizes = new uint[Count];
 
         // Keep starting position of curve offsets
-        var DirectoryPos = io.Tell(io);
+        var DirectoryPos = io.TellFunc(io);
 
         // Write a fake directory to be filled later on
         for (var i = 0; i < Count; i++)
         {
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // Offset
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // size
+            if (!io.Write((uint)0)) goto Error;  // Offset
+            if (!io.Write((uint)0)) goto Error;  // size
         }
 
         // Write each element. Keep track of the size as well.
         for (var i = 0; i < Count; i++)
         {
-            var Before = io.Tell(io);
+            var Before = io.TellFunc(io);
             ElementOffsets[i] = Before - BaseOffset;
 
             // Callback to write...
             if (!ElementFn(self, io, Cargo, (uint)i, SizeOfTag)) goto Error;
 
             // Now the size
-            ElementSizes[i] = io.Tell(io) - Before;
+            ElementSizes[i] = io.TellFunc(io) - Before;
         }
 
         // Write the directory
-        var CurrentPos = io.Tell(io);
-        if (!io.Seek(io, DirectoryPos)) goto Error;
+        var CurrentPos = io.TellFunc(io);
+        if (!io.SeekFunc(io, DirectoryPos)) goto Error;
 
         for (var i = 0; i < Count; i++)
         {
-            if (!_cmsWriteUInt32Number(io, ElementOffsets[i])) goto Error;
-            if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
+            if (!io.Write(ElementOffsets[i])) goto Error;
+            if (!io.Write(ElementSizes[i])) goto Error;
         }
 
-        if (!io.Seek(io, CurrentPos)) goto Error;
+        if (!io.SeekFunc(io, CurrentPos)) goto Error;
 
         //Success
         //if (ElementOffsets is not null) ReturnArray(io.ContextID, ElementOffsets);
@@ -435,7 +435,7 @@ public static partial class Lcms2
         //xyz = _cmsMallocZero<CIEXYZ>(self.ContextID);
         //if (xyz is null) return null;
 
-        if (!_cmsReadXYZNumber(io, out var xyz))
+        if (!io.ReadXYZ(out var xyz))
         {
             //_cmsFree(self.ContextID, xyz);
             return null;
@@ -450,7 +450,7 @@ public static partial class Lcms2
         if (Ptr is not Box<CIEXYZ> xyz)
             return false;
 
-        return _cmsWriteXYZNumber(io, xyz);
+        return io.Write(xyz);
     }
 
     private static Box<CIEXYZ>? Type_XYZ_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
@@ -479,31 +479,31 @@ public static partial class Lcms2
         //chrm = _cmsMallocZero<CIExyYTRIPLE>(self.ContextID);
         //if (chrm is null) return null;
 
-        if (!_cmsReadUInt16Number(io, out var nChans)) goto Error;
+        if (!io.ReadUshort(out var nChans)) goto Error;
 
         // Let's recover from a bug interoduced in early versions of lcms1
         if (nChans is 0 && SizeOfTag is 32)
         {
-            if (!_cmsReadUInt16Number(io, out _)) goto Error;
-            if (!_cmsReadUInt16Number(io, out nChans)) goto Error;
+            if (!io.ReadUshort(out _)) goto Error;
+            if (!io.ReadUshort(out nChans)) goto Error;
         }
 
         if (nChans is not 3) goto Error;
 
-        if (!_cmsReadUInt16Number(io, out var Table)) goto Error;
+        if (!io.ReadUshort(out var Table)) goto Error;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm.Red.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm.Red.y)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Red.x)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Red.y)) goto Error;
 
         chrm.Red.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm.Green.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm.Green.y)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Green.x)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Green.y)) goto Error;
 
         chrm.Green.Y = 1.0;
 
-        if (!_cmsRead15Fixed16Number(io, out chrm.Blue.x)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out chrm.Blue.y)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Blue.x)) goto Error;
+        if (!io.ReadFixed15_16(out chrm.Blue.y)) goto Error;
 
         chrm.Blue.Y = 1.0;
 
@@ -517,8 +517,8 @@ public static partial class Lcms2
 
     private static bool SaveOneChromaticity(double x, double y, IOHandler io)
     {
-        if (!_cmsWriteUInt32Number(io, (uint)_cmsDoubleTo15Fixed16(x))) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)_cmsDoubleTo15Fixed16(y))) return false;
+        if (!io.Write((uint)_cmsDoubleTo15Fixed16(x))) return false;
+        if (!io.Write((uint)_cmsDoubleTo15Fixed16(y))) return false;
 
         return true;
     }
@@ -528,8 +528,8 @@ public static partial class Lcms2
         var chrm = Ptr as Box<CIExyYTRIPLE>;
         if (chrm is null) return false;
 
-        if (!_cmsWriteUInt16Number(io, 3)) return false;    // nChannels
-        if (!_cmsWriteUInt16Number(io, 0)) return false;    // Table
+        if (!io.Write((ushort)3)) return false;    // nChannels
+        if (!io.Write((ushort)0)) return false;    // Table
 
         if (!SaveOneChromaticity(chrm.Value.Red.x, chrm.Value.Red.y, io)) return false;
         if (!SaveOneChromaticity(chrm.Value.Green.x, chrm.Value.Green.y, io)) return false;
@@ -557,7 +557,7 @@ public static partial class Lcms2
     {
         nItems = 0;
 
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
+        if (!io.ReadUint(out var Count)) return null;
         if (Count > cmsMAXCHANNELS) return null;
 
         //var ColorantOrder = GetArray<byte>(self.ContextID, cmsMAXCHANNELS);
@@ -568,7 +568,7 @@ public static partial class Lcms2
         //memset(ColorantOrder, 0xFF, cmsMAXCHANNELS * sizeof(byte));
         Array.Fill<byte>(ColorantOrder, 0xFF);
 
-        if (io.Read(io, ColorantOrder, sizeof(byte), Count) != Count)
+        if (io.ReadFunc(io, ColorantOrder, sizeof(byte), Count) != Count)
         {
             //ReturnArray(self.ContextID, ColorantOrder);
             return null;
@@ -588,11 +588,11 @@ public static partial class Lcms2
         for (var i = 0; i < cmsMAXCHANNELS; i++)
             if (ColorantOrder[i] is not 0xFF) Count++;
 
-        if (!_cmsWriteUInt32Number(io, Count))
+        if (!io.Write(Count))
             return false;
 
         //var sz = Count * sizeof(byte);
-        if (!io.Write(io, Count, ColorantOrder))
+        if (!io.WriteFunc(io, Count, ColorantOrder))
             return false;
 
         return true;
@@ -625,7 +625,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < n; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, out array_double[i]))
+            if (!io.ReadFixed15_16(out array_double[i]))
             {
                 //ReturnArray(self.ContextID, array_double);
                 return null;
@@ -642,7 +642,7 @@ public static partial class Lcms2
             return false;
 
         for (var i = 0; i < nItems; i++)
-            if (!_cmsWrite15Fixed16Number(io, Value[i])) return false;
+            if (!io.Write(Value[i])) return false;
 
         return true;
     }
@@ -673,7 +673,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < n; i++)
         {
-            if (!_cmsReadUInt32Number(io, out var v))
+            if (!io.ReadUint(out var v))
             {
                 //ReturnArray(self.ContextID, array_double);
                 return null;
@@ -694,7 +694,7 @@ public static partial class Lcms2
         for (var i = 0; i < nItems; i++)
         {
             var v = (uint)Math.Floor((Value[i] * 65536.0) + 0.5);
-            if (!_cmsWriteUInt32Number(io, v)) return false;
+            if (!io.Write(v)) return false;
         }
 
         return true;
@@ -722,7 +722,7 @@ public static partial class Lcms2
         //var SigPtr = new Signature();
         //if (SigPtr is null) return null;
 
-        if (!_cmsReadUInt32Number(io, out var SigPtr))
+        if (!io.ReadUint(out var SigPtr))
         {
             //_cmsFree(self.ContextID, SigPtr);
             return null;
@@ -733,7 +733,7 @@ public static partial class Lcms2
     }
 
     private static bool Type_Signature_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2) =>
-        Ptr is Box<Signature> sig && _cmsWriteUInt32Number(io, sig.Value);
+        Ptr is Box<Signature> sig && io.Write(sig.Value);
 
     private static Box<Signature>? Type_Signature_Dup(TagTypeHandler self, object? Ptr, uint _) =>
         Ptr is Box<Signature> sig
@@ -769,7 +769,7 @@ public static partial class Lcms2
         //if (io.Read(io, tmpText, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error2;
         //new ReadOnlySpan<byte>(tmpText, (int)SizeOfTag).CopyTo(Text);
 
-        if (io.Read(io, Text, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error2;
+        if (io.ReadFunc(io, Text, sizeof(byte), SizeOfTag) != SizeOfTag) goto Error2;
 
         // Make sure text is properly ended
         //Text[SizeOfTag] = 0;              // Nope!!
@@ -809,7 +809,7 @@ public static partial class Lcms2
         //Text.AsSpan()[..(int)size].CopyTo(new(tmpText, (int)size));
 
         // Write it, including separators
-        var rc = io.Write(io, size, Text);
+        var rc = io.WriteFunc(io, size, Text);
 
         //ReturnArray(self.ContextID, Text);
         return rc;
@@ -849,9 +849,9 @@ public static partial class Lcms2
             data = new byte[LenOfData],
             len = LenOfData
         };
-        if (!_cmsReadUInt32Number(io, out BinData.flag)) goto Error;
+        if (!io.ReadUint(out BinData.flag)) goto Error;
 
-        if (io.Read(io, BinData.data, sizeof(byte), LenOfData) != LenOfData) goto Error;
+        if (io.ReadFunc(io, BinData.data, sizeof(byte), LenOfData) != LenOfData) goto Error;
 
         nItems = 1;
 
@@ -869,10 +869,10 @@ public static partial class Lcms2
         if (Ptr is not Box<IccData> BinData)
             return false;
 
-        if (!_cmsWriteUInt32Number(io, BinData.Value.flag))
+        if (!io.Write(BinData.Value.flag))
             return false;
 
-        return io.Write(io, BinData.Value.len, BinData.Value.data);
+        return io.WriteFunc(io, BinData.Value.len, BinData.Value.data);
     }
 
     private static Box<IccData>? Type_Data_Dup(TagTypeHandler self, object? Ptr, uint _1)
@@ -905,7 +905,7 @@ public static partial class Lcms2
             return null;
 
         // Read len of ASCII
-        if (!_cmsReadUInt32Number(io, out var AsciiCount))
+        if (!io.ReadUint(out var AsciiCount))
             return null;
         SizeOfTag -= sizeof(uint);
 
@@ -926,7 +926,7 @@ public static partial class Lcms2
 
         // Read it
         //var tmpText = stackalloc byte[(int)AsciiCount];
-        if (io.Read(io, Text, sizeof(byte), AsciiCount) != AsciiCount)
+        if (io.ReadFunc(io, Text, sizeof(byte), AsciiCount) != AsciiCount)
             goto Error;
         //new Span<byte>(tmpText, (int)AsciiCount).CopyTo(Text);
         SizeOfTag -= AsciiCount;
@@ -943,9 +943,9 @@ public static partial class Lcms2
         // Skip Unicode code
         if (SizeOfTag < 2 * sizeof(uint))
             goto Done;
-        if (!_cmsReadUInt32Number(io, out var UnicodeCode))
+        if (!io.ReadUint(out var UnicodeCode))
             goto Done;
-        if (!_cmsReadUInt32Number(io, out var UnicodeCount))
+        if (!io.ReadUint(out var UnicodeCount))
             goto Done;
         SizeOfTag -= 2u * sizeof(uint);
 
@@ -958,7 +958,7 @@ public static partial class Lcms2
         Span<byte> Dummy = stackalloc byte[sizeof(ushort)];
         for (var i = 0; i < UnicodeCount; i++)
         {
-            if (io.Read(io, Dummy, sizeof(ushort), 1) is 0)
+            if (io.ReadFunc(io, Dummy, sizeof(ushort), 1) is 0)
                 goto Done;
         }
 
@@ -970,12 +970,12 @@ public static partial class Lcms2
 
         if (SizeOfTag >= sizeof(ushort) + sizeof(byte) + 67)
         {
-            if (!_cmsReadUInt16Number(io, out var ScriptCodeCode)) goto Done;
-            if (!_cmsReadUInt8Number(io, out var ScriptCodeCount)) goto Done;
+            if (!io.ReadUshort(out var ScriptCodeCode)) goto Done;
+            if (!io.ReadByte(out var ScriptCodeCount)) goto Done;
 
             // Skip rest of tag
             for (var i = 0; i < 67; i++)
-                if (io.Read(io, Dummy, sizeof(byte), 1) is 0) goto Error;
+                if (io.ReadFunc(io, Dummy, sizeof(byte), 1) is 0) goto Error;
         }
 
     Done:
@@ -1056,20 +1056,20 @@ public static partial class Lcms2
             + 67;               // scDesc[67]
         len_aligned = _cmsALIGNLONG(len_tag_requirement);
 
-        if (!_cmsWriteUInt32Number(io, len_text))
+        if (!io.Write(len_text))
             goto Error;
         if (len_text > 0)
         {
             //var tmpText = stackalloc byte[(int)len_text];
             //Text.AsSpan()[..(int)len_text].CopyTo(new(tmpText, (int)len_text));
-            if (!io.Write(io, len_text, Text))
+            if (!io.WriteFunc(io, len_text, Text))
                 goto Error;
         }
 
-        if (!_cmsWriteUInt32Number(io, 0))
+        if (!io.Write((uint)0))
             goto Error;  // ucLangCode
 
-        if (!_cmsWriteUInt32Number(io, len_text))
+        if (!io.Write(len_text))
             goto Error;
         if (len_text > 0)
         {
@@ -1080,16 +1080,16 @@ public static partial class Lcms2
         }
 
         // ScriptCode Code & Count (unused)
-        if (!_cmsWriteUInt16Number(io, 0))
+        if (!io.Write((ushort)0))
             goto Error;
-        if (!_cmsWriteUInt8Number(io, 0))
+        if (!io.Write((byte)0))
             goto Error;
 
-        if (!io.Write(io, 67, Filler))
+        if (!io.WriteFunc(io, 67, Filler))
             goto Error;
 
         // possibly add pad at the end of tag
-        if (len_aligned - len_tag_requirement > 0 && !io.Write(io, len_aligned - len_tag_requirement, Filler))
+        if (len_aligned - len_tag_requirement > 0 && !io.WriteFunc(io, len_aligned - len_tag_requirement, Filler))
             goto Error;
 
         rc = true;
@@ -1123,7 +1123,7 @@ public static partial class Lcms2
         Span<double> SingleGamma = stackalloc double[1];
         nItems = 0;
 
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
+        if (!io.ReadUint(out var Count)) return null;
 
         switch (Count)
         {
@@ -1139,7 +1139,7 @@ public static partial class Lcms2
                 }
             case 1:     // Specified as the exponent of gamma function
                 {
-                    if (!_cmsReadUInt16Number(io, out var SingleGammaFixed)) return null;
+                    if (!io.ReadUshort(out var SingleGammaFixed)) return null;
                     SingleGamma[0] = _cms8Fixed8toDouble(SingleGammaFixed);
 
                     nItems = 1;
@@ -1153,7 +1153,7 @@ public static partial class Lcms2
                     var NewGamma = cmsBuildTabulatedToneCurve16(self.ContextID, Count, null);
                     if (NewGamma is null) return null;
 
-                    if (!_cmsReadUInt16Array(io, Count, NewGamma.Table16))
+                    if (!io.ReadUshortArray(Count, NewGamma.Table16))
                     {
                         cmsFreeToneCurve(NewGamma);
                         return null;
@@ -1175,14 +1175,14 @@ public static partial class Lcms2
             // Single gamma, preserve number
             var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve.Segments[0].Params[0]);
 
-            if (!_cmsWriteUInt32Number(io, 1)) return false;
-            if (!_cmsWriteUInt16Number(io, SingleGammaFixed)) return false;
+            if (!io.Write((uint)1)) return false;
+            if (!io.Write(SingleGammaFixed)) return false;
             return true;
         }
 
-        if (!_cmsWriteUInt32Number(io, Curve.nEntries)) return false;
+        if (!io.Write(Curve.nEntries)) return false;
 
-        return _cmsWriteUInt16Array(io, Curve.nEntries, Curve.Table16);
+        return io.Write(Curve.nEntries, Curve.Table16);
     }
 
     #endregion Curve
@@ -1208,8 +1208,8 @@ public static partial class Lcms2
         Span<double> Params = stackalloc double[10];
 
         nItems = 0;
-        if (!_cmsReadUInt16Number(io, out var Type)) return null;
-        if (!_cmsReadUInt16Number(io, out _)) return null;   // Reserved
+        if (!io.ReadUshort(out var Type)) return null;
+        if (!io.ReadUshort(out _)) return null;   // Reserved
 
         if (Type > 4)
         {
@@ -1221,7 +1221,7 @@ public static partial class Lcms2
         var n = ParamsByType[Type];
 
         for (var i = 0; i < n; i++)
-            if (!_cmsRead15Fixed16Number(io, out Params[i])) return null;
+            if (!io.ReadFixed15_16(out Params[i])) return null;
 
         var NewGamma = cmsBuildParametricToneCurve(self.ContextID, Type + 1, Params);
 
@@ -1252,12 +1252,12 @@ public static partial class Lcms2
 
         var nParam = ParamsByType[typen];
 
-        if (!_cmsWriteUInt16Number(io, (ushort)(Curve.Segments[0].Type - 1))) return false;
-        if (!_cmsWriteUInt16Number(io, 0)) return false;    // Reserved
+        if (!io.Write((ushort)(Curve.Segments[0].Type - 1))) return false;
+        if (!io.Write((ushort)0)) return false;    // Reserved
 
         for (var i = 0; i < nParam; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, Curve.Segments[0].Params[i])) return false;
+            if (!io.Write(Curve.Segments[0].Params[i])) return false;
         }
 
         return true;
@@ -1274,7 +1274,7 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        if (io.Read(io, timestamp, (uint)timestamp.Length, 1) is not 1) return null;
+        if (io.ReadFunc(io, timestamp, (uint)timestamp.Length, 1) is not 1) return null;
 
         //NewDateTime = _cmsMalloc<DateTime>(self.ContextID);
         //if (NewDateTime is null) return null;
@@ -1294,7 +1294,7 @@ public static partial class Lcms2
 
         _cmsEncodeDateTimeNumber(out var timestamp, DateTime);
         MemoryMarshal.Write(buf, ref timestamp);
-        return io.Write(io, (uint)buf.Length, buf);
+        return io.WriteFunc(io, (uint)buf.Length, buf);
     }
 
     private static Box<DateTime>? Type_DateTime_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
@@ -1319,11 +1319,11 @@ public static partial class Lcms2
         nItems = 0;
         //memset(&mc, 0, _sizeof<IccMeasurementConditions>());
 
-        if (!_cmsReadUInt32Number(io, out mc.Observer)) return null;
-        if (!_cmsReadXYZNumber(io, out mc.Backing)) return null;
-        if (!_cmsReadUInt32Number(io, out mc.Geometry)) return null;
-        if (!_cmsRead15Fixed16Number(io, out mc.Flare)) return null;
-        if (!_cmsReadUInt32Number(io, out var illuminant)) return null;
+        if (!io.ReadUint(out mc.Observer)) return null;
+        if (!io.ReadXYZ(out mc.Backing)) return null;
+        if (!io.ReadUint(out mc.Geometry)) return null;
+        if (!io.ReadFixed15_16(out mc.Flare)) return null;
+        if (!io.ReadUint(out var illuminant)) return null;
         mc.IlluminantType = (IlluminantType)illuminant;
 
         //var result = _cmsDupMem<IccMeasurementConditions>(self.ContextID, &mc);
@@ -1337,11 +1337,11 @@ public static partial class Lcms2
     {
         if (Ptr is not Box<IccMeasurementConditions> mc) return false;
 
-        if (!_cmsWriteUInt32Number(io, mc.Value.Observer)) return false;
-        if (!_cmsWriteXYZNumber(io, mc.Value.Backing)) return false;
-        if (!_cmsWriteUInt32Number(io, mc.Value.Geometry)) return false;
-        if (!_cmsWrite15Fixed16Number(io, mc.Value.Flare)) return false;
-        if (!_cmsWriteUInt32Number(io, (uint)mc.Value.IlluminantType)) return false;
+        if (!io.Write(mc.Value.Observer)) return false;
+        if (!io.Write(mc.Value.Backing)) return false;
+        if (!io.Write(mc.Value.Geometry)) return false;
+        if (!io.Write(mc.Value.Flare)) return false;
+        if (!io.Write((uint)mc.Value.IlluminantType)) return false;
 
         return true;
     }
@@ -1367,8 +1367,8 @@ public static partial class Lcms2
         char[]? Block;
 
         nItems = 0;
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
-        if (!_cmsReadUInt32Number(io, out var RecLen)) return null;
+        if (!io.ReadUint(out var Count)) return null;
+        if (!io.ReadUint(out var RecLen)) return null;
 
         if (RecLen is not 12)
         {
@@ -1386,12 +1386,12 @@ public static partial class Lcms2
 
         for (var i = 0; i < Count; i++)
         {
-            if (!_cmsReadUInt16Number(io, out var Language)) goto Error;
-            if (!_cmsReadUInt16Number(io, out var Country)) goto Error;
+            if (!io.ReadUshort(out var Language)) goto Error;
+            if (!io.ReadUshort(out var Country)) goto Error;
 
             // Now deal with Len and offset
-            if (!_cmsReadUInt32Number(io, out var Len)) goto Error;
-            if (!_cmsReadUInt32Number(io, out var Offset)) goto Error;
+            if (!io.ReadUint(out var Len)) goto Error;
+            if (!io.ReadUint(out var Offset)) goto Error;
 
             // Offset MUST be even because it indexes a block of utf16 chars.
             // Tricky profiles that uses odd positions will not work anyway
@@ -1461,15 +1461,15 @@ public static partial class Lcms2
         if (Ptr is null)
         {
             // Empty placeholder
-            if (!_cmsWriteUInt32Number(io, 0)) return false;
-            if (!_cmsWriteUInt32Number(io, 12)) return false;
+            if (!io.Write((uint)0)) return false;
+            if (!io.Write((uint)12)) return false;
             return true;
         }
 
         if (Ptr is not Mlu mlu) return false;
 
-        if (!_cmsWriteUInt32Number(io, mlu.UsedEntries)) return false;
-        if (!_cmsWriteUInt32Number(io, 12)) return false;
+        if (!io.Write(mlu.UsedEntries)) return false;
+        if (!io.Write((uint)12)) return false;
 
         var HeaderSize = (12 * mlu.UsedEntries) + (sizeof(uint) * 2);
 
@@ -1480,10 +1480,10 @@ public static partial class Lcms2
 
             Offset += HeaderSize + 8;
 
-            if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Language)) return false;
-            if (!_cmsWriteUInt16Number(io, mlu.Entries[i].Country)) return false;
-            if (!_cmsWriteUInt32Number(io, Len)) return false;
-            if (!_cmsWriteUInt32Number(io, Offset)) return false;
+            if (!io.Write(mlu.Entries[i].Language)) return false;
+            if (!io.Write(mlu.Entries[i].Country)) return false;
+            if (!io.Write(Len)) return false;
+            if (!io.Write(Offset)) return false;
         }
 
         return _cmsWriteWCharArray(io, mlu.PoolUsedInBytes / sizeof(char), mlu.MemPool.AsSpan()[..(int)(mlu.PoolUsedInBytes / sizeof(char))]);
@@ -1561,7 +1561,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < nChannels; i++)
         {
-            if (io.Read(io, Temp, 256, 1) is not 1) goto Error;
+            if (io.ReadFunc(io, Temp, 256, 1) is not 1) goto Error;
 
             for (var j = 0; j < 256; j++)
                 if (Tables[i].Table16 is not null) Tables[i].Table16![j] = FROM_8_TO_16(Temp[j]);
@@ -1604,7 +1604,7 @@ public static partial class Lcms2
                     (Tables.TheCurves[i].Table16![1] is 65535))
                 {
                     for (var j = 0; j < 256; j++)
-                        if (!_cmsWriteUInt8Number(io, (byte)j)) return false;
+                        if (!io.Write((byte)j)) return false;
                 }
                 else
                 {
@@ -1618,7 +1618,7 @@ public static partial class Lcms2
                         for (var j = 0; j < 256; j++)
                         {
                             var val = FROM_16_TO_8(Tables.TheCurves[i].Table16[j]);
-                            if (!_cmsWriteUInt8Number(io, val)) return false;
+                            if (!io.Write(val)) return false;
                         }
                     }
                 }
@@ -1655,14 +1655,14 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        if (!_cmsReadUInt8Number(io, out var InputChannels)) goto Error;
-        if (!_cmsReadUInt8Number(io, out var OutputChannels)) goto Error;
-        if (!_cmsReadUInt8Number(io, out var CLUTpoints)) goto Error;
+        if (!io.ReadByte(out var InputChannels)) goto Error;
+        if (!io.ReadByte(out var OutputChannels)) goto Error;
+        if (!io.ReadByte(out var CLUTpoints)) goto Error;
 
         if (CLUTpoints is 1) goto Error;    // Impossible value, 0 for no CLUT and then 2 at least
 
         // Padding
-        if (!_cmsReadUInt8Number(io, out _)) goto Error;
+        if (!io.ReadByte(out _)) goto Error;
 
         // Do some checking
         if (InputChannels is 0 or > cmsMAXCHANNELS) goto Error;
@@ -1674,7 +1674,7 @@ public static partial class Lcms2
 
         // Read the Matrix
         for (var i = 0; i < 9; i++)
-            if (!_cmsRead15Fixed16Number(io, out Matrix[i])) goto Error;
+            if (!io.ReadFixed15_16(out Matrix[i])) goto Error;
 
         // Only operates if not identity...
         if ((InputChannels is 3) &&
@@ -1711,7 +1711,7 @@ public static partial class Lcms2
             //var Temp = bytePool.Rent((int)nTabSize);
             var Temp = new byte[nTabSize];
 
-            if (io.Read(io, Temp, nTabSize, 1) is not 1)
+            if (io.ReadFunc(io, Temp, nTabSize, 1) is not 1)
             {
                 //ReturnArray(self.ContextID, T);
                 //ReturnArray(self.ContextID, Temp);
@@ -1808,14 +1808,14 @@ public static partial class Lcms2
             }
         }
 
-        if (!_cmsWriteUInt8Number(io, (byte)cmsPipelineInputChannels(NewLut))) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)cmsPipelineOutputChannels(NewLut))) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
-        if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
+        if (!io.Write((byte)cmsPipelineInputChannels(NewLut))) return false;
+        if (!io.Write((byte)cmsPipelineOutputChannels(NewLut))) return false;
+        if (!io.Write((byte)clutPoints)) return false;
+        if (!io.Write((byte)0)) return false; // Padding
 
         var mat = MatMPE is not null ? MatMPE.Double : ident;
         for (var i = 0; i < 9; i++)
-            if (!_cmsWrite15Fixed16Number(io, mat[i])) return false;
+            if (!io.Write(mat[i])) return false;
 
         // The prelinearization table
         if (!Write8bitTables(self.ContextID, io, NewLut.InputChannels, PreMPE)) return false;
@@ -1830,7 +1830,7 @@ public static partial class Lcms2
                 for (var j = 0; j < nTabSize; j++)
                 {
                     var val = FROM_16_TO_8(clut.TUshort[j]);
-                    if (!_cmsWriteUInt8Number(io, val)) return false;
+                    if (!io.Write(val)) return false;
                 }
             }
         }
@@ -1868,7 +1868,7 @@ public static partial class Lcms2
             Tables[i] = cmsBuildTabulatedToneCurve16(ContextID, nEntries, null)!;
             if (Tables[i] is null) goto Error;
 
-            if (!_cmsReadUInt16Array(io, nEntries, Tables[i].Table16)) goto Error;
+            if (!io.ReadUshortArray(nEntries, Tables[i].Table16)) goto Error;
         }
 
         // Add the table (which may certainly be an identity, but this is up to the optimizer, not the reading code)
@@ -1899,7 +1899,7 @@ public static partial class Lcms2
 
             // Usual case of identity curves
             for (var j = 0; j < nEntries; j++)
-                if (!_cmsWriteUInt16Number(io, Tables.TheCurves[i].Table16[j])) return false;
+                if (!io.Write(Tables.TheCurves[i].Table16[j])) return false;
         }
         return true;
     }
@@ -1911,12 +1911,12 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        if (!_cmsReadUInt8Number(io, out var InputChannels)) goto Error;
-        if (!_cmsReadUInt8Number(io, out var OutputChannels)) goto Error;
-        if (!_cmsReadUInt8Number(io, out var CLUTpoints)) goto Error;  // 255 maximum
+        if (!io.ReadByte(out var InputChannels)) goto Error;
+        if (!io.ReadByte(out var OutputChannels)) goto Error;
+        if (!io.ReadByte(out var CLUTpoints)) goto Error;  // 255 maximum
 
         // Padding
-        if (!_cmsReadUInt8Number(io, out _)) goto Error;
+        if (!io.ReadByte(out _)) goto Error;
 
         // Do some checking
         if (InputChannels is 0 or > cmsMAXCHANNELS) goto Error;
@@ -1928,7 +1928,7 @@ public static partial class Lcms2
 
         // Read the Matrix
         for (var i = 0; i < 9; i++)
-            if (!_cmsRead15Fixed16Number(io, out Matrix[i])) goto Error;
+            if (!io.ReadFixed15_16(out Matrix[i])) goto Error;
 
         // Only operates on 3 channels
         if ((InputChannels is 3) &&
@@ -1938,8 +1938,8 @@ public static partial class Lcms2
             goto Error;
         }
 
-        if (!_cmsReadUInt16Number(io, out var InputEntries)) goto Error;
-        if (!_cmsReadUInt16Number(io, out var OutputEntries)) goto Error;
+        if (!io.ReadUshort(out var InputEntries)) goto Error;
+        if (!io.ReadUshort(out var OutputEntries)) goto Error;
 
         if (InputEntries > 0x7FFF || OutputEntries > 0x7FFF) goto Error;
         if (CLUTpoints is 1) goto Error;    // Impossible value, 0 for no CLUT and then 2 at least
@@ -1957,7 +1957,7 @@ public static partial class Lcms2
             //var T = Context.GetPool<ushort>(self.ContextID).Rent((int)nTabSize);
             var T = new ushort[nTabSize];
 
-            if (!_cmsReadUInt16Array(io, nTabSize, T))
+            if (!io.ReadUshortArray(nTabSize, T))
             {
                 //ReturnArray(self.ContextID, T);
                 goto Error;
@@ -2045,17 +2045,17 @@ public static partial class Lcms2
             }
         }
 
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.InputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)NewLut.OutputChannels)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)clutPoints)) return false;
-        if (!_cmsWriteUInt8Number(io, 0)) return false; // Padding
+        if (!io.Write((byte)NewLut.InputChannels)) return false;
+        if (!io.Write((byte)NewLut.OutputChannels)) return false;
+        if (!io.Write((byte)clutPoints)) return false;
+        if (!io.Write((byte)0)) return false; // Padding
 
         var mat = MatMPE is not null ? MatMPE.Double : ident;
         for (var i = 0; i < 9; i++)
-            if (!_cmsWrite15Fixed16Number(io, mat[i])) return false;
+            if (!io.Write(mat[i])) return false;
 
-        if (!_cmsWriteUInt16Number(io, (ushort)(PreMPE is not null ? PreMPE.TheCurves[0].nEntries : 2))) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)(PostMPE is not null ? PostMPE.TheCurves[0].nEntries : 2))) return false;
+        if (!io.Write((ushort)(PreMPE is not null ? PreMPE.TheCurves[0].nEntries : 2))) return false;
+        if (!io.Write((ushort)(PostMPE is not null ? PostMPE.TheCurves[0].nEntries : 2))) return false;
 
         // The prelinearization table
         if (PreMPE is not null)
@@ -2066,8 +2066,8 @@ public static partial class Lcms2
         {
             for (var i = 0; i < InputChannels; i++)
             {
-                if (!_cmsWriteUInt16Number(io, 0)) return false;
-                if (!_cmsWriteUInt16Number(io, 0xFFFF)) return false;
+                if (!io.Write((ushort)0)) return false;
+                if (!io.Write((ushort)0xFFFF)) return false;
             }
         }
 
@@ -2076,7 +2076,7 @@ public static partial class Lcms2
         if (nTabSize > 0)
         {
             // The 3D CLUT
-            if (clut is not null && !_cmsWriteUInt16Array(io, nTabSize, clut.TUshort)) return false;
+            if (clut is not null && !io.Write(nTabSize, clut.TUshort)) return false;
         }
 
         // The postlinearization table
@@ -2088,8 +2088,8 @@ public static partial class Lcms2
         {
             for (var i = 0; i < InputChannels; i++)
             {
-                if (!_cmsWriteUInt16Number(io, 0)) return false;
-                if (!_cmsWriteUInt16Number(io, 0xFFFF)) return false;
+                if (!io.Write((ushort)0)) return false;
+                if (!io.Write((ushort)0xFFFF)) return false;
             }
         }
 
@@ -2132,13 +2132,13 @@ public static partial class Lcms2
         Span<double> dOff = stackalloc double[3];
 
         // Go to address
-        if (!io.Seek(io, Offset)) return null;
+        if (!io.SeekFunc(io, Offset)) return null;
 
         // Read the Matrix and Offsets
         for (var i = 0; i < 3 * 3; i++)
-            if (!_cmsRead15Fixed16Number(io, out dMat[i])) return null;
+            if (!io.ReadFixed15_16(out dMat[i])) return null;
         for (var i = 0; i < 3; i++)
-            if (!_cmsRead15Fixed16Number(io, out dOff[i])) return null;
+            if (!io.ReadFixed15_16(out dOff[i])) return null;
 
         return cmsStageAllocMatrix(self.ContextID, 3, 3, dMat, dOff);
     }
@@ -2148,8 +2148,8 @@ public static partial class Lcms2
         Span<byte> gridPoints8 = stackalloc byte[cmsMAXCHANNELS];  // Number of grid points in each dimension
         Span<uint> GridPoints = stackalloc uint[cmsMAXCHANNELS];
 
-        if (!io.Seek(io, Offset)) return null;
-        if (io.Read(io, gridPoints8, cmsMAXCHANNELS, 1) is not 1) return null;
+        if (!io.SeekFunc(io, Offset)) return null;
+        if (io.ReadFunc(io, gridPoints8, cmsMAXCHANNELS, 1) is not 1) return null;
 
         for (var i = 0; i < cmsMAXCHANNELS; i++)
         {
@@ -2157,11 +2157,11 @@ public static partial class Lcms2
             GridPoints[i] = gridPoints8[i];
         }
 
-        if (!_cmsReadUInt8Number(io, out var Precision)) return null;
+        if (!io.ReadByte(out var Precision)) return null;
 
-        if (!_cmsReadUInt8Number(io, out _)) return null;
-        if (!_cmsReadUInt8Number(io, out _)) return null;
-        if (!_cmsReadUInt8Number(io, out _)) return null;
+        if (!io.ReadByte(out _)) return null;
+        if (!io.ReadByte(out _)) return null;
+        if (!io.ReadByte(out _)) return null;
 
         var CLUT = cmsStageAllocCLut16bitGranular(self.ContextID, GridPoints, InputChannels, OutputChannels, null);
         if (CLUT is null || CLUT.Data is not StageCLutData<ushort> Data)
@@ -2175,7 +2175,7 @@ public static partial class Lcms2
 
                 for (var i = 0; i < Data.nEntries; i++)
                 {
-                    if (io.Read(io, v, sizeof(byte), 1) is not 1)
+                    if (io.ReadFunc(io, v, sizeof(byte), 1) is not 1)
                     {
                         cmsStageFree(CLUT);
                         return null;
@@ -2185,7 +2185,7 @@ public static partial class Lcms2
                 break;
 
             case 2:
-                if (!_cmsReadUInt16Array(io, Data.nEntries, Data.TUshort))
+                if (!io.ReadUshortArray(Data.nEntries, Data.TUshort))
                 {
                     cmsStageFree(CLUT);
                     return null;
@@ -2226,7 +2226,7 @@ public static partial class Lcms2
 
         if (nCurves > cmsMAXCHANNELS) return null;
 
-        if (!io.Seek(io, Offset)) return null;
+        if (!io.SeekFunc(io, Offset)) return null;
 
         //ToneCurve[] Curves = pool.Rent(cmsMAXCHANNELS);
         var Curves = new ToneCurve[cmsMAXCHANNELS];
@@ -2256,18 +2256,18 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
-        if (!_cmsReadUInt8Number(io, out var inputChan)) goto Error;     // Number of input channels
-        if (!_cmsReadUInt8Number(io, out var outputChan)) goto Error;    // Number of output channels
+        if (!io.ReadByte(out var inputChan)) goto Error;     // Number of input channels
+        if (!io.ReadByte(out var outputChan)) goto Error;    // Number of output channels
 
-        if (!_cmsReadUInt16Number(io, out _)) goto Error;
+        if (!io.ReadUshort(out _)) goto Error;
 
-        if (!_cmsReadUInt32Number(io, out var offsetB)) goto Error;      // Offset to first "B" curve
-        if (!_cmsReadUInt32Number(io, out var offsetMat)) goto Error;    // Offset to matrix
-        if (!_cmsReadUInt32Number(io, out var offsetM)) goto Error;      // Offset to first "M" curve
-        if (!_cmsReadUInt32Number(io, out var offsetC)) goto Error;      // Offset to CLUT
-        if (!_cmsReadUInt32Number(io, out var offsetA)) goto Error;      // Offset to first "A" curve
+        if (!io.ReadUint(out var offsetB)) goto Error;      // Offset to first "B" curve
+        if (!io.ReadUint(out var offsetMat)) goto Error;    // Offset to matrix
+        if (!io.ReadUint(out var offsetM)) goto Error;      // Offset to first "M" curve
+        if (!io.ReadUint(out var offsetC)) goto Error;      // Offset to CLUT
+        if (!io.ReadUint(out var offsetA)) goto Error;      // Offset to first "A" curve
 
         // Do some checking
         if (inputChan is 0 or > cmsMAXCHANNELS) goto Error;
@@ -2329,11 +2329,11 @@ public static partial class Lcms2
 
         // Write the Matrix
         for (var i = 0; i < n; i++)
-            if (!_cmsWrite15Fixed16Number(io, m.Double[i])) return false;
+            if (!io.Write(m.Double[i])) return false;
 
         var offsets = m.Offset is not null ? m.Offset : zeros;
         for (var i = 0; i < mpe.OutputChannels; i++)
-            if (!_cmsWrite15Fixed16Number(io, offsets[i])) return false;
+            if (!io.Write(offsets[i])) return false;
 
         return true;
     }
@@ -2393,23 +2393,23 @@ public static partial class Lcms2
         for (var i = 0; i < CLUT.Params.nInputs; i++)
             gridPoints[i] = (byte)CLUT.Params.nSamples[i];
 
-        if (!io.Write(io, (uint)(cmsMAXCHANNELS * sizeof(byte)), gridPoints)) return false;
+        if (!io.WriteFunc(io, (uint)(cmsMAXCHANNELS * sizeof(byte)), gridPoints)) return false;
 
-        if (!_cmsWriteUInt8Number(io, Precision)) return false;
-        if (!_cmsWriteUInt8Number(io, 0)) return false;
-        if (!_cmsWriteUInt8Number(io, 0)) return false;
-        if (!_cmsWriteUInt8Number(io, 0)) return false;
+        if (!io.Write(Precision)) return false;
+        if (!io.Write((byte)0)) return false;
+        if (!io.Write((byte)0)) return false;
+        if (!io.Write((byte)0)) return false;
 
         // Precision can be 1 or 2 bytes
         switch (Precision)
         {
             case 1:
                 for (var i = 0; i < CLUT.nEntries; i++)
-                    if (!_cmsWriteUInt8Number(io, FROM_16_TO_8(CLUT.TUshort[i]))) return false;
+                    if (!io.Write(FROM_16_TO_8(CLUT.TUshort[i]))) return false;
                 break;
 
             case 2:
-                if (!_cmsWriteUInt16Array(io, CLUT.nEntries, CLUT.TUshort)) return false;
+                if (!io.Write(CLUT.nEntries, CLUT.TUshort)) return false;
                 break;
 
             default:
@@ -2429,7 +2429,7 @@ public static partial class Lcms2
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BassOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         if (Lut.Elements is not null &&
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B) &&
@@ -2447,61 +2447,61 @@ public static partial class Lcms2
         var outputChan = cmsPipelineOutputChannels(Lut);
 
         // Write channel count
-        if (!_cmsWriteUInt8Number(io, (byte)inputChan)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)outputChan)) return false;
-        if (!_cmsWriteUInt16Number(io, 0)) return false;
+        if (!io.Write((byte)inputChan)) return false;
+        if (!io.Write((byte)outputChan)) return false;
+        if (!io.Write((ushort)0)) return false;
 
         // Keep directory location to be filled later
-        var DirectoryPos = io.Tell(io);
+        var DirectoryPos = io.TellFunc(io);
 
         // Write the directory
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
 
         if (A is not null)
         {
-            offsetA = io.Tell(io) - BassOffset;
+            offsetA = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, A)) return false;
         }
 
         if (CLUT is not null)
         {
-            offsetC = io.Tell(io) - BassOffset;
+            offsetC = io.TellFunc(io) - BassOffset;
             if (!WriteCLUT(self, io, (byte)(Lut.SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
         {
-            offsetM = io.Tell(io) - BassOffset;
+            offsetM = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, M)) return false;
         }
 
         if (Matrix is not null)
         {
-            offsetMat = io.Tell(io) - BassOffset;
+            offsetMat = io.TellFunc(io) - BassOffset;
             if (!WriteMatrix(self, io, Matrix)) return false;
         }
 
         if (B is not null)
         {
-            offsetB = io.Tell(io) - BassOffset;
+            offsetB = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, B)) return false;
         }
 
-        var CurrentPos = io.Tell(io);
+        var CurrentPos = io.TellFunc(io);
 
-        if (!io.Seek(io, DirectoryPos)) return false;
+        if (!io.SeekFunc(io, DirectoryPos)) return false;
 
-        if (!_cmsWriteUInt32Number(io, offsetB)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetMat)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetM)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetC)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetA)) return false;
+        if (!io.Write(offsetB)) return false;
+        if (!io.Write(offsetMat)) return false;
+        if (!io.Write(offsetM)) return false;
+        if (!io.Write(offsetC)) return false;
+        if (!io.Write(offsetA)) return false;
 
-        return io.Seek(io, CurrentPos);
+        return io.SeekFunc(io, CurrentPos);
     }
 
     private static Pipeline? Type_LUTA2B_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
@@ -2520,18 +2520,18 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
-        if (!_cmsReadUInt8Number(io, out var inputChan)) goto Error;  // Number of input channels
-        if (!_cmsReadUInt8Number(io, out var outputChan)) goto Error; // Number of output channels
+        if (!io.ReadByte(out var inputChan)) goto Error;  // Number of input channels
+        if (!io.ReadByte(out var outputChan)) goto Error; // Number of output channels
 
-        if (!_cmsReadUInt16Number(io, out _)) goto Error;
+        if (!io.ReadUshort(out _)) goto Error;
 
-        if (!_cmsReadUInt32Number(io, out var offsetB)) goto Error;   // Offset to first "B" curve
-        if (!_cmsReadUInt32Number(io, out var offsetMat)) goto Error; // Offset to matrix
-        if (!_cmsReadUInt32Number(io, out var offsetM)) goto Error;   // Offset to first "M" curve
-        if (!_cmsReadUInt32Number(io, out var offsetC)) goto Error;   // Offset to CLUT
-        if (!_cmsReadUInt32Number(io, out var offsetA)) goto Error;   // Offset to first "A" curve
+        if (!io.ReadUint(out var offsetB)) goto Error;   // Offset to first "B" curve
+        if (!io.ReadUint(out var offsetMat)) goto Error; // Offset to matrix
+        if (!io.ReadUint(out var offsetM)) goto Error;   // Offset to first "M" curve
+        if (!io.ReadUint(out var offsetC)) goto Error;   // Offset to CLUT
+        if (!io.ReadUint(out var offsetA)) goto Error;   // Offset to first "A" curve
 
         // Do some checking
         if (inputChan is 0 or > cmsMAXCHANNELS) goto Error;
@@ -2589,7 +2589,7 @@ public static partial class Lcms2
         uint offsetB = 0, offsetMat = 0, offsetM = 0, offsetC = 0, offsetA = 0;
 
         // Get the base for all offsets
-        var BassOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BassOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         if (Lut.Elements is not null &&
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B) &&
@@ -2607,61 +2607,61 @@ public static partial class Lcms2
         var outputChan = cmsPipelineOutputChannels(Lut);
 
         // Write channel count
-        if (!_cmsWriteUInt8Number(io, (byte)inputChan)) return false;
-        if (!_cmsWriteUInt8Number(io, (byte)outputChan)) return false;
-        if (!_cmsWriteUInt16Number(io, 0)) return false;
+        if (!io.Write((byte)inputChan)) return false;
+        if (!io.Write((byte)outputChan)) return false;
+        if (!io.Write((ushort)0)) return false;
 
         // Keep directory location to be filled later
-        var DirectoryPos = io.Tell(io);
+        var DirectoryPos = io.TellFunc(io);
 
         // Write the directory
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((uint)0)) return false;
 
         if (A is not null)
         {
-            offsetA = io.Tell(io) - BassOffset;
+            offsetA = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, A)) return false;
         }
 
         if (CLUT is not null)
         {
-            offsetC = io.Tell(io) - BassOffset;
+            offsetC = io.TellFunc(io) - BassOffset;
             if (!WriteCLUT(self, io, (byte)(Lut.SaveAs8Bits ? 1 : 2), CLUT)) return false;
         }
 
         if (M is not null)
         {
-            offsetM = io.Tell(io) - BassOffset;
+            offsetM = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, M)) return false;
         }
 
         if (Matrix is not null)
         {
-            offsetMat = io.Tell(io) - BassOffset;
+            offsetMat = io.TellFunc(io) - BassOffset;
             if (!WriteMatrix(self, io, Matrix)) return false;
         }
 
         if (B is not null)
         {
-            offsetB = io.Tell(io) - BassOffset;
+            offsetB = io.TellFunc(io) - BassOffset;
             if (!WriteSetOfCurves(self, io, cmsSigParametricCurveType, B)) return false;
         }
 
-        var CurrentPos = io.Tell(io);
+        var CurrentPos = io.TellFunc(io);
 
-        if (!io.Seek(io, DirectoryPos)) return false;
+        if (!io.SeekFunc(io, DirectoryPos)) return false;
 
-        if (!_cmsWriteUInt32Number(io, offsetB)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetMat)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetM)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetC)) return false;
-        if (!_cmsWriteUInt32Number(io, offsetA)) return false;
+        if (!io.Write(offsetB)) return false;
+        if (!io.Write(offsetMat)) return false;
+        if (!io.Write(offsetM)) return false;
+        if (!io.Write(offsetC)) return false;
+        if (!io.Write(offsetA)) return false;
 
-        return io.Seek(io, CurrentPos);
+        return io.SeekFunc(io, CurrentPos);
     }
 
     private static Pipeline? Type_LUTB2A_Dup(TagTypeHandler _1, object? Ptr, uint _2) =>
@@ -2682,7 +2682,7 @@ public static partial class Lcms2
         Span<byte> preSufix = stackalloc byte[1] { 0 };
 
         nItems = 0;
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
+        if (!io.ReadUint(out var Count)) return null;
 
         if (Count > cmsMAXCHANNELS)
         {
@@ -2695,10 +2695,10 @@ public static partial class Lcms2
 
         for (var i = 0; i < Count; i++)
         {
-            if (io.Read(io, Name, 32, 1) is not 1) goto Error;
+            if (io.ReadFunc(io, Name, 32, 1) is not 1) goto Error;
             Name[32] = 0;
 
-            if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
+            if (!io.ReadUshortArray(3, PCS)) goto Error;
 
             if (!cmsAppendNamedColor(List, Name, PCS, null)) goto Error;
         }
@@ -2722,7 +2722,7 @@ public static partial class Lcms2
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
-        if (!_cmsWriteUInt32Number(io, nColors)) return false;
+        if (!io.Write(nColors)) return false;
 
         for (var i = 0u; i < nColors; i++)
         {
@@ -2731,8 +2731,8 @@ public static partial class Lcms2
             if (!cmsNamedColorInfo(NamedColorList, i, root, null, null, PCS, null)) return false;
             root[32] = 0;
 
-            if (!io.Write(io, 32, root)) return false;
-            if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
+            if (!io.WriteFunc(io, 32, root)) return false;
+            if (!io.Write(3, PCS)) return false;
         }
 
         return true;
@@ -2755,12 +2755,12 @@ public static partial class Lcms2
         Span<byte> Root = stackalloc byte[33];
 
         nItems = 0;
-        if (!_cmsReadUInt32Number(io, out vendorFlag)) return null;
-        if (!_cmsReadUInt32Number(io, out count)) return null;
-        if (!_cmsReadUInt32Number(io, out nDeviceCoords)) return null;
+        if (!io.ReadUint(out vendorFlag)) return null;
+        if (!io.ReadUint(out count)) return null;
+        if (!io.ReadUint(out nDeviceCoords)) return null;
 
-        if (io.Read(io, prefix, 32, 1) is not 1) return null;
-        if (io.Read(io, suffix, 32, 1) is not 1) return null;
+        if (io.ReadFunc(io, prefix, 32, 1) is not 1) return null;
+        if (io.ReadFunc(io, suffix, 32, 1) is not 1) return null;
 
         prefix[31] = suffix[31] = 0;
 
@@ -2780,11 +2780,11 @@ public static partial class Lcms2
         for (var i = 0; i < count; i++)
         {
             //memset(Colorant, 0, sizeof(ushort) * cmsMAXCHANNELS);
-            if (io.Read(io, Root, 32, 1) is not 1) goto Error;
+            if (io.ReadFunc(io, Root, 32, 1) is not 1) goto Error;
             Root[32] = 0;
 
-            if (!_cmsReadUInt16Array(io, 3, PCS)) goto Error;
-            if (!_cmsReadUInt16Array(io, nDeviceCoords, Colorant)) goto Error;
+            if (!io.ReadUshortArray(3, PCS)) goto Error;
+            if (!io.ReadUshortArray(nDeviceCoords, Colorant)) goto Error;
 
             if (!cmsAppendNamedColor(v, Root, PCS, Colorant)) goto Error;
         }
@@ -2811,17 +2811,17 @@ public static partial class Lcms2
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, nColors)) return false;
-        if (!_cmsWriteUInt32Number(io, NamedColorList.ColorantCount)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write(nColors)) return false;
+        if (!io.Write(NamedColorList.ColorantCount)) return false;
 
         memcpy(prefix, NamedColorList.Prefix, 33);
         memcpy(suffix, NamedColorList.Suffix, 33);
 
         suffix[32] = prefix[32] = 0;
 
-        if (!io.Write(io, 32, prefix)) return false;
-        if (!io.Write(io, 32, suffix)) return false;
+        if (!io.WriteFunc(io, 32, prefix)) return false;
+        if (!io.WriteFunc(io, 32, suffix)) return false;
 
         for (var i = 0u; i < nColors; i++)
         {
@@ -2831,9 +2831,9 @@ public static partial class Lcms2
 
             if (!cmsNamedColorInfo(NamedColorList, i, Root, null, null, PCS, Colorant)) return false;
             Root[32] = 0;
-            if (!io.Write(io, 32, Root)) return false;
-            if (!_cmsWriteUInt16Array(io, 3, PCS)) return false;
-            if (!_cmsWriteUInt16Array(io, NamedColorList.ColorantCount, Colorant)) return false;
+            if (!io.WriteFunc(io, 32, Root)) return false;
+            if (!io.Write(3, PCS)) return false;
+            if (!io.Write(NamedColorList.ColorantCount, Colorant)) return false;
         }
 
         return true;
@@ -2876,7 +2876,7 @@ public static partial class Lcms2
     {
         nItems = 0;
 
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
+        if (!io.ReadUint(out var Count)) return null;
 
         if (SizeOfTag < sizeof(uint)) return null;
         SizeOfTag -= sizeof(uint);
@@ -2900,7 +2900,7 @@ public static partial class Lcms2
             if (SizeOfTag < sizeof(uint)) goto Error;
             SizeOfTag -= sizeof(uint);
 
-            if (!_cmsReadUInt64Number(io, out sec.attributes)) goto Error;
+            if (!io.ReadUlong(out sec.attributes)) goto Error;
             if (SizeOfTag < sizeof(ulong)) goto Error;
             SizeOfTag -= sizeof(ulong);
 
@@ -2940,16 +2940,16 @@ public static partial class Lcms2
         if (Ptr is not Sequence Seq)
             return false;
 
-        if (!_cmsWriteUInt32Number(io, Seq.n)) return false;
+        if (!io.Write(Seq.n)) return false;
 
         for (var i = 0u; i < Seq.n; i++)
         {
             var sec = Seq.seq[i];
 
-            if (!_cmsWriteUInt32Number(io, sec.deviceMfg)) return false;
-            if (!_cmsWriteUInt32Number(io, sec.deviceModel)) return false;
-            if (!_cmsWriteUInt64Number(io, sec.attributes)) return false;
-            if (!_cmsWriteUInt32Number(io, sec.technology)) return false;
+            if (!io.Write(sec.deviceMfg)) return false;
+            if (!io.Write(sec.deviceModel)) return false;
+            if (!io.Write(sec.attributes)) return false;
+            if (!io.Write(sec.technology)) return false;
 
             if (!SaveDescription(self, io, sec.Manufacturer)) return false;
             if (!SaveDescription(self, io, sec.Model)) return false;
@@ -2969,7 +2969,7 @@ public static partial class Lcms2
 
         var seq = OutSeq.seq[n];
         Span<byte> buffer = stackalloc byte[16];
-        if (io.Read(io, buffer, 16, 1) is not 1) return false;
+        if (io.ReadFunc(io, buffer, 16, 1) is not 1) return false;
         seq.ProfileID = ProfileID.Set(buffer);
 
         return ReadEmbeddedText(self, io, out seq.Description, SizeOfTag);
@@ -2980,10 +2980,10 @@ public static partial class Lcms2
         nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // Get table count
-        if (!_cmsReadUInt32Number(io, out var Count)) return null;
+        if (!io.ReadUint(out var Count)) return null;
 
         // Allocate an empty structure
         var OutSeq = cmsAllocProfileSequenceDescription(self.ContextID, Count);
@@ -3008,7 +3008,7 @@ public static partial class Lcms2
 
         Span<byte> buffer = stackalloc byte[16];
         Seq.seq[n].ProfileID.Get(buffer);
-        if (!io.Write(io, 16, buffer)) return false;
+        if (!io.WriteFunc(io, 16, buffer)) return false;
 
         // Store MLU here
         if (!SaveDescription(self, io, Seq.seq[n].Description)) return false;
@@ -3021,10 +3021,10 @@ public static partial class Lcms2
         if (Ptr is not Sequence Seq) return false;
 
         // Keep the base offset
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // This is the table count
-        if (!_cmsWriteUInt32Number(io, Seq.n)) return false;
+        if (!io.Write(Seq.n)) return false;
 
         // This is the position table and content
         if (!WritePositionTable(self, io, 0, Seq.n, BaseOffset, Seq, WriteSeqID)) return false;
@@ -3047,28 +3047,28 @@ public static partial class Lcms2
         // First curve is Under color removal
 
         if (SignedSizeOfTag < sizeof(uint)) return null;
-        if (!_cmsReadUInt32Number(io, out var CountUcr)) return null;
+        if (!io.ReadUint(out var CountUcr)) return null;
         SignedSizeOfTag -= sizeof(uint);
 
         n.Ucr = cmsBuildTabulatedToneCurve16(self.ContextID, CountUcr, null)!;
         if (n.Ucr is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountUcr * sizeof(ushort))) goto Error;
-        if (!_cmsReadUInt16Array(io, CountUcr, n.Ucr.Table16)) goto Error;
+        if (!io.ReadUshortArray(CountUcr, n.Ucr.Table16)) goto Error;
 
         SignedSizeOfTag -= (int)(CountUcr * sizeof(ushort));
 
         // Secong curve is Black generation
 
         if (SignedSizeOfTag < sizeof(uint)) goto Error;
-        if (!_cmsReadUInt32Number(io, out var CountBg)) goto Error;
+        if (!io.ReadUint(out var CountBg)) goto Error;
         SignedSizeOfTag -= sizeof(uint);
 
         n.Bg = cmsBuildTabulatedToneCurve16(self.ContextID, CountBg, null)!;
         if (n.Bg is null) goto Error;
 
         if (SignedSizeOfTag < (int)(CountBg * sizeof(ushort))) goto Error;
-        if (!_cmsReadUInt16Array(io, CountBg, n.Bg.Table16)) goto Error;
+        if (!io.ReadUshortArray(CountBg, n.Bg.Table16)) goto Error;
         SignedSizeOfTag -= (int)(CountBg * sizeof(ushort));
 
         if (SignedSizeOfTag is < 0 or > 32000) goto Error;
@@ -3082,7 +3082,7 @@ public static partial class Lcms2
         //var ASCIIString = GetArray<byte>(self.ContextID, (uint)SignedSizeOfTag);
         var ASCIIString = new byte[SignedSizeOfTag];
         //var tmpASCIIString = stackalloc byte[SignedSizeOfTag];
-        if (io.Read(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
+        if (io.ReadFunc(io, ASCIIString, sizeof(byte), (uint)SignedSizeOfTag) != SignedSizeOfTag)
         {
             //ReturnArray(self.ContextID, ASCIIString);
             goto Error;
@@ -3110,12 +3110,12 @@ public static partial class Lcms2
             return false;
 
         // First curve is Under color removal
-        if (!_cmsWriteUInt32Number(io, Value.Value.Ucr.nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value.Value.Ucr.nEntries, Value.Value.Ucr.Table16)) return false;
+        if (!io.Write(Value.Value.Ucr.nEntries)) return false;
+        if (!io.Write(Value.Value.Ucr.nEntries, Value.Value.Ucr.Table16)) return false;
 
         // Then black generation
-        if (!_cmsWriteUInt32Number(io, Value.Value.Bg.nEntries)) return false;
-        if (!_cmsWriteUInt16Array(io, Value.Value.Bg.nEntries, Value.Value.Bg.Table16)) return false;
+        if (!io.Write(Value.Value.Bg.nEntries)) return false;
+        if (!io.Write(Value.Value.Bg.nEntries, Value.Value.Bg.Table16)) return false;
 
         // Now comes the text. The length is specified by the tag size
         var TextSize = cmsMLUgetASCII(Value.Value.Desc, cmsNoLanguage, cmsNoCountry, null);
@@ -3126,7 +3126,7 @@ public static partial class Lcms2
 
         //var tmp = stackalloc char[(int)TextSize];
         //Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
-        if (!io.Write(io, TextSize, Text)) return false;
+        if (!io.WriteFunc(io, TextSize, Text)) return false;
         //ReturnArray(self.ContextID, Text);
 
         return true;
@@ -3176,7 +3176,7 @@ public static partial class Lcms2
 
         if (SizeOfTag < sizeof(uint)) return false;
 
-        if (!_cmsReadUInt32Number(io, out var Count)) return false;
+        if (!io.ReadUint(out var Count)) return false;
 
         if (Count > UInt32.MaxValue - sizeof(uint)) return false;
         if (SizeOfTag < Count + sizeof(uint)) return false;
@@ -3187,7 +3187,7 @@ public static partial class Lcms2
         if (Text is null) return false;
 
         //var tmp = stackalloc byte[(int)Count];
-        if (io.Read(io, Text, sizeof(byte), Count) != Count)
+        if (io.ReadFunc(io, Text, sizeof(byte), Count) != Count)
         {
             //ReturnArray(self.ContextID, Text);
             return false;
@@ -3213,13 +3213,13 @@ public static partial class Lcms2
         var Text = new byte[TextSize];
         if (Text is null) return false;
 
-        if (!_cmsWriteUInt32Number(io, TextSize)) goto Error;
+        if (!io.Write(TextSize)) goto Error;
 
         if (cmsMLUgetASCII(mlu, ps, Section, Text.AsSpan(..(int)TextSize)) is 0) goto Error;
 
         //var tmp = stackalloc byte[(int)TextSize];
         //Text.AsSpan()[..(int)TextSize].CopyTo(new(tmp, (int)TextSize));
-        if (!io.Write(io, TextSize, Text)) goto Error;
+        if (!io.WriteFunc(io, TextSize, Text)) goto Error;
         //ReturnArray(self.ContextID, Text);
 
         return true;
@@ -3293,17 +3293,17 @@ public static partial class Lcms2
         var sc = new Screening(self.ContextID); //var sc = _cmsMallocZero<Screening>(self.ContextID);
         //if (sc is null) return null;
 
-        if (!_cmsReadUInt32Number(io, out sc.Flag)) goto Error;
-        if (!_cmsReadUInt32Number(io, out sc.nChannels)) goto Error;
+        if (!io.ReadUint(out sc.Flag)) goto Error;
+        if (!io.ReadUint(out sc.nChannels)) goto Error;
 
         if (sc.nChannels > cmsMAXCHANNELS - 1)
             sc.nChannels = cmsMAXCHANNELS - 1;
 
         for (var i = 0; i < sc.nChannels; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, out sc.Channels[i].Frequency)) goto Error;
-            if (!_cmsRead15Fixed16Number(io, out sc.Channels[i].ScreenAngle)) goto Error;
-            if (!_cmsReadUInt32Number(io, out sc.Channels[i].SpotShape)) goto Error;
+            if (!io.ReadFixed15_16(out sc.Channels[i].Frequency)) goto Error;
+            if (!io.ReadFixed15_16(out sc.Channels[i].ScreenAngle)) goto Error;
+            if (!io.ReadUint(out sc.Channels[i].SpotShape)) goto Error;
         }
 
         nItems = 1;
@@ -3319,17 +3319,17 @@ public static partial class Lcms2
     {
         if (Ptr is not Box<Screening> sc) return false;
 
-        if (!_cmsWriteUInt32Number(io, sc.Value.Flag)) return false;
-        if (!_cmsWriteUInt32Number(io, sc.Value.nChannels)) return false;
+        if (!io.Write(sc.Value.Flag)) return false;
+        if (!io.Write(sc.Value.nChannels)) return false;
 
         if (sc.Value.nChannels > cmsMAXCHANNELS - 1)
             sc.Value.nChannels = cmsMAXCHANNELS - 1;
 
         for (var i = 0; i < sc.Value.nChannels; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, sc.Value.Channels[i].Frequency)) return false;
-            if (!_cmsWrite15Fixed16Number(io, sc.Value.Channels[i].ScreenAngle)) return false;
-            if (!_cmsWriteUInt32Number(io, sc.Value.Channels[i].SpotShape)) return false;
+            if (!io.Write(sc.Value.Channels[i].Frequency)) return false;
+            if (!io.Write(sc.Value.Channels[i].ScreenAngle)) return false;
+            if (!io.Write(sc.Value.Channels[i].SpotShape)) return false;
         }
 
         return true;
@@ -3362,9 +3362,9 @@ public static partial class Lcms2
         var vc = new IccViewingConditions(); //var vc = _cmsMallocZero<IccViewingConditions>(self.ContextID);
         //if (vc is null) return null;
 
-        if (!_cmsReadXYZNumber(io, out vc.IlluminantXYZ)) goto Error;
-        if (!_cmsReadXYZNumber(io, out vc.SurroundXYZ)) goto Error;
-        if (!_cmsReadUInt32Number(io, out var illuminant)) goto Error;
+        if (!io.ReadXYZ(out vc.IlluminantXYZ)) goto Error;
+        if (!io.ReadXYZ(out vc.SurroundXYZ)) goto Error;
+        if (!io.ReadUint(out var illuminant)) goto Error;
         vc.IlluminantType = (IlluminantType)illuminant;
 
         nItems = 1;
@@ -3381,9 +3381,9 @@ public static partial class Lcms2
         if (Ptr is not Box<IccViewingConditions> sc)
             return false;
 
-        return _cmsWriteXYZNumber(io, sc.Value.IlluminantXYZ) &&
-            _cmsWriteXYZNumber(io, sc.Value.SurroundXYZ) &&
-            _cmsWriteUInt32Number(io, (uint)sc.Value.IlluminantType);
+        return io.Write(sc.Value.IlluminantXYZ) &&
+            io.Write(sc.Value.SurroundXYZ) &&
+            io.Write((uint)sc.Value.IlluminantType);
     }
 
     private static Box<IccViewingConditions>? Type_ViewingConditions_Dup(TagTypeHandler self, object? Ptr, uint _) =>
@@ -3412,7 +3412,7 @@ public static partial class Lcms2
         if (!_cmsReadSignature(io, out var ElementSig)) return false;
 
         // The reserved placeholder
-        if (!_cmsReadUInt32Number(io, out _)) return false;
+        if (!io.ReadUint(out _)) return false;
 
         // Read diverse MPE types
         var TypeHandler = GetHandler(ElementSig, MPETypePluginChunk.List, supportedMPEtypes);
@@ -3441,11 +3441,11 @@ public static partial class Lcms2
         nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // Read channels and element count
-        if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
-        if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
+        if (!io.ReadUshort(out var InputChans)) return null;
+        if (!io.ReadUshort(out var OutputChans)) return null;
 
         if (InputChans is 0 or >= cmsMAXCHANNELS) return null;
         if (OutputChans is 0 or >= cmsMAXCHANNELS) return null;
@@ -3454,7 +3454,7 @@ public static partial class Lcms2
         var NewLUT = cmsPipelineAlloc(self.ContextID, InputChans, OutputChans);
         if (NewLUT is null) return null;
 
-        if (!_cmsReadUInt32Number(io, out var ElementCount)) goto Error;
+        if (!io.ReadUint(out var ElementCount)) goto Error;
         if (!ReadPositionTable(self, io, ElementCount, BaseOffset, NewLUT, ReadMPEElem)) goto Error;
 
         // Check channel count
@@ -3480,7 +3480,7 @@ public static partial class Lcms2
         var Elem = Lut.Elements;
         var MPETypePluginChunk = Context.Get(self.ContextID).MPEPlugin;
 
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         var inputChan = cmsPipelineInputChannels(Lut);
         var outputChan = cmsPipelineOutputChannels(Lut);
@@ -3499,23 +3499,23 @@ public static partial class Lcms2
         var ElementSizes = new uint[ElemCount];
 
         // Write the head
-        if (!_cmsWriteUInt16Number(io, (ushort)inputChan)) goto Error;
-        if (!_cmsWriteUInt16Number(io, (ushort)outputChan)) goto Error;
-        if (!_cmsWriteUInt32Number(io, (ushort)ElemCount)) goto Error;
+        if (!io.Write((ushort)inputChan)) goto Error;
+        if (!io.Write((ushort)outputChan)) goto Error;
+        if (!io.Write((uint)(ushort)ElemCount)) goto Error;
 
-        var DirectoryPos = io.Tell(io);
+        var DirectoryPos = io.TellFunc(io);
 
         // Write a fake directory to be filled later on
         for (var i = 0; i < ElemCount; i++)
         {
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // Offset
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;  // Size
+            if (!io.Write((uint)0)) goto Error;  // Offset
+            if (!io.Write((uint)0)) goto Error;  // Size
         }
 
         // Write each single tag. Keep track of the size as well.
         for (var i = 0; i < ElemCount; i++)
         {
-            ElementOffsets[i] = io.Tell(io) - BaseOffset;
+            ElementOffsets[i] = io.TellFunc(io) - BaseOffset;
 
             var ElementSig = Elem.Type;
 
@@ -3527,29 +3527,29 @@ public static partial class Lcms2
                 goto Error;
             }
 
-            if (!_cmsWriteUInt32Number(io, ElementSig)) goto Error;
-            if (!_cmsWriteUInt32Number(io, 0)) goto Error;
-            var Before = io.Tell(io);
+            if (!io.Write(ElementSig)) goto Error;
+            if (!io.Write((uint)0)) goto Error;
+            var Before = io.TellFunc(io);
             if (!TypeHandler.WritePtr(self, io, Elem, 1)) goto Error;
             if (!_cmsWriteAlignment(io)) goto Error;
 
-            ElementSizes[i] = io.Tell(io) - Before;
+            ElementSizes[i] = io.TellFunc(io) - Before;
 
             Elem = Elem.Next;
         }
 
         // Write the directory
-        var CurrentPos = io.Tell(io);
+        var CurrentPos = io.TellFunc(io);
 
-        if (!io.Seek(io, DirectoryPos)) goto Error;
+        if (!io.SeekFunc(io, DirectoryPos)) goto Error;
 
         for (var i = 0; i < ElemCount; i++)
         {
-            if (!_cmsWriteUInt32Number(io, ElementOffsets[i])) goto Error;
-            if (!_cmsWriteUInt32Number(io, ElementSizes[i])) goto Error;
+            if (!io.Write(ElementOffsets[i])) goto Error;
+            if (!io.Write(ElementSizes[i])) goto Error;
         }
 
-        if (!io.Seek(io, CurrentPos)) goto Error;
+        if (!io.SeekFunc(io, CurrentPos)) goto Error;
 
         //if (ElementOffsets is not null) ReturnArray(self.ContextID, ElementOffsets);
         //if (ElementSizes is not null) ReturnArray(self.ContextID, ElementSizes);
@@ -3584,7 +3584,7 @@ public static partial class Lcms2
         nItems = 0;
 
         // Read tag type
-        if (!_cmsReadUInt32Number(io, out var TagType)) return null;
+        if (!io.ReadUint(out var TagType)) return null;
 
         // Allocate space for the array
         //Curves = (ToneCurve**)_cmsCalloc(self.ContextID, 3, _sizeof<nint>());
@@ -3599,7 +3599,7 @@ public static partial class Lcms2
             case cmsVideoCardGammaTableType:
                 {
                     // Check channel count, which should be 3 (we don't support monochrome this time)
-                    if (!_cmsReadUInt16Number(io, out var nChannels)) goto Error;
+                    if (!io.ReadUshort(out var nChannels)) goto Error;
 
                     if (nChannels is not 3)
                     {
@@ -3608,8 +3608,8 @@ public static partial class Lcms2
                     }
 
                     // Get Table element count and bytes per element
-                    if (!_cmsReadUInt16Number(io, out var nElems)) goto Error;
-                    if (!_cmsReadUInt16Number(io, out var nBytes)) goto Error;
+                    if (!io.ReadUshort(out var nElems)) goto Error;
+                    if (!io.ReadUshort(out var nBytes)) goto Error;
 
                     // Adobe's quirk fixup. Fixing broken profiles...
                     if (nElems is 256 && nBytes is 1 && SizeOfTag is 1576)
@@ -3628,14 +3628,14 @@ public static partial class Lcms2
                             case 1:
                                 for (var i = 0; i < nElems; i++)
                                 {
-                                    if (!_cmsReadUInt8Number(io, out var v)) goto Error;
+                                    if (!io.ReadByte(out var v)) goto Error;
                                     Curves[n].Table16[i] = FROM_8_TO_16(v);
                                 }
                                 break;
 
                             // One word 0..65535
                             case 2:
-                                if (!_cmsReadUInt16Array(io, nElems, Curves[n].Table16)) goto Error;
+                                if (!io.ReadUshortArray(nElems, Curves[n].Table16)) goto Error;
                                 break;
 
                             // Unsupported
@@ -3658,9 +3658,9 @@ public static partial class Lcms2
                     // Populate tone curves
                     for (var n = 0; n < 3; n++)
                     {
-                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Gamma)) goto Error;
-                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Min)) goto Error;
-                        if (!_cmsRead15Fixed16Number(io, out Colorant[n].Max)) goto Error;
+                        if (!io.ReadFixed15_16(out Colorant[n].Gamma)) goto Error;
+                        if (!io.ReadFixed15_16(out Colorant[n].Min)) goto Error;
+                        if (!io.ReadFixed15_16(out Colorant[n].Max)) goto Error;
 
                         // Parametric curve type 5 is:
                         // Y = (aX + b)^Gamma + e | X >= d
@@ -3709,7 +3709,7 @@ public static partial class Lcms2
             cmsGetToneCurveParametricType(Curves[1]) is 5 &&
             cmsGetToneCurveParametricType(Curves[2]) is 5)
         {
-            if (!_cmsWriteUInt32Number(io, cmsVideoCardGammaFormulaType)) return false;
+            if (!io.Write(cmsVideoCardGammaFormulaType)) return false;
 
             // Save parameters
             for (var i = 0; i < 3; i++)
@@ -3720,18 +3720,18 @@ public static partial class Lcms2
                 v.Min = Curves[i].Segments[0].Params[5];
                 v.Max = Math.Pow(Curves[i].Segments[0].Params[1], v.Gamma) + v.Min;
 
-                if (!_cmsWrite15Fixed16Number(io, v.Gamma)) return false;
-                if (!_cmsWrite15Fixed16Number(io, v.Min)) return false;
-                if (!_cmsWrite15Fixed16Number(io, v.Max)) return false;
+                if (!io.Write(v.Gamma)) return false;
+                if (!io.Write(v.Min)) return false;
+                if (!io.Write(v.Max)) return false;
             }
         }
         else
         {
             // Always store as a table of 256 words
-            if (!_cmsWriteUInt32Number(io, cmsVideoCardGammaTableType)) return false;
-            if (!_cmsWriteUInt16Number(io, 3)) return false;
-            if (!_cmsWriteUInt16Number(io, 256)) return false;
-            if (!_cmsWriteUInt16Number(io, 2)) return false;
+            if (!io.Write(cmsVideoCardGammaTableType)) return false;
+            if (!io.Write((ushort)3)) return false;
+            if (!io.Write((ushort)256)) return false;
+            if (!io.Write((ushort)2)) return false;
 
             for (var i = 0; i < 3; i++)
             {
@@ -3740,7 +3740,7 @@ public static partial class Lcms2
                     var v = cmsEvalToneCurveFloat(Curves[i], (float)(j / 255.0));
                     var n = _cmsQuickSaturateWord(v * 65535.0);
 
-                    if (!_cmsWriteUInt16Number(io, n)) return false;
+                    if (!io.Write(n)) return false;
                 }
             }
         }
@@ -3859,8 +3859,8 @@ public static partial class Lcms2
 
     private static bool ReadOneElem(IOHandler io, ref DICelem e, uint i, uint BaseOffset)
     {
-        if (!_cmsReadUInt32Number(io, out e.Offsets[i])) return false;
-        if (!_cmsReadUInt32Number(io, out e.Sizes[i])) return false;
+        if (!io.ReadUint(out e.Offsets[i])) return false;
+        if (!io.ReadUint(out e.Sizes[i])) return false;
 
         // An offset of zero has special meaning and shall be preserved
         if (e.Offsets[i] > 0)
@@ -3905,8 +3905,8 @@ public static partial class Lcms2
 
     private static bool WriteOneElem(IOHandler io, ref DICelem e, uint i)
     {
-        if (!_cmsWriteUInt32Number(io, e.Offsets[i])) return false;
-        if (!_cmsWriteUInt32Number(io, e.Sizes[i])) return false;
+        if (!io.Write(e.Offsets[i])) return false;
+        if (!io.Write(e.Sizes[i])) return false;
 
         return true;
     }
@@ -3937,7 +3937,7 @@ public static partial class Lcms2
         if (e.Offsets[i] is 0)
             return true;
 
-        if (!io.Seek(io, e.Offsets[i]))
+        if (!io.SeekFunc(io, e.Offsets[i]))
             return false;
 
         var nChars = e.Sizes[i] / sizeof(ushort);
@@ -3958,7 +3958,7 @@ public static partial class Lcms2
 
     private static bool WriteOneWChar(IOHandler io, ref DICelem e, uint i, in string? wcstr, uint BaseOffset)
     {
-        var Before = io.Tell(io);
+        var Before = io.TellFunc(io);
 
         e.Offsets[i] = Before - BaseOffset;
 
@@ -3973,7 +3973,7 @@ public static partial class Lcms2
         var n = (uint)wcstr.Length;
         if (!_cmsWriteWCharArray(io, n, wcstr)) return false;
 
-        e.Sizes[i] = io.Tell(io) - Before;
+        e.Sizes[i] = io.TellFunc(io) - Before;
         return true;
     }
 
@@ -3986,7 +3986,7 @@ public static partial class Lcms2
             return true;
         }
 
-        if (!io.Seek(io, e.Offsets[i]))
+        if (!io.SeekFunc(io, e.Offsets[i]))
         {
             mlu = null;
             return false;
@@ -4007,14 +4007,14 @@ public static partial class Lcms2
             return true;
         }
 
-        var Before = io.Tell(io);
+        var Before = io.TellFunc(io);
         if (e.Offsets is not null)
             e.Offsets[i] = Before - BaseOffset;
 
         if (!Type_MLU_Write(self, io, mlu, 1)) return false;
 
         if (e.Sizes is not null)
-            e.Sizes[i] = io.Tell(io) - Before;
+            e.Sizes[i] = io.TellFunc(io) - Before;
         return true;
     }
 
@@ -4030,17 +4030,17 @@ public static partial class Lcms2
         //memset(&a, 0, _sizeof<DICarray>());
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // Get name-value record count
         SignedSizeOfTag -= sizeof(uint);
         if (SignedSizeOfTag < 0) goto Error;
-        if (!_cmsReadUInt32Number(io, out var Count)) goto Error;
+        if (!io.ReadUint(out var Count)) goto Error;
 
         // Get rec length
         SignedSizeOfTag -= sizeof(uint);
         if (SignedSizeOfTag < 0) goto Error;
-        if (!_cmsReadUInt32Number(io, out var Length)) goto Error;
+        if (!io.ReadUint(out var Length)) goto Error;
 
         // Check for valid lengths
         if (Length is not 16 and not 24 and not 32)
@@ -4110,7 +4110,7 @@ public static partial class Lcms2
         if (hDict is null)
             return false;
 
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // Let's inspect the dictionary
         var Count = 0u; var AnyName = false; var AnyValue = false;
@@ -4125,11 +4125,11 @@ public static partial class Lcms2
         if (AnyName) Length += 8;
         if (AnyValue) Length += 8;
 
-        if (!_cmsWriteUInt32Number(io, Count)) return false;
-        if (!_cmsWriteUInt32Number(io, Length)) return false;
+        if (!io.Write(Count)) return false;
+        if (!io.Write(Length)) return false;
 
         // Keep starting posiotion of offsets table
-        var DirectoryPos = io.Tell(io);
+        var DirectoryPos = io.TellFunc(io);
 
         // Allocate offsets array
         if (!AllocArray(self.ContextID, out var a, Count, Length)) goto Error;
@@ -4154,12 +4154,12 @@ public static partial class Lcms2
         }
 
         // Write the directory
-        var CurrentPos = io.Tell(io);
-        if (!io.Seek(io, DirectoryPos)) goto Error;
+        var CurrentPos = io.TellFunc(io);
+        if (!io.SeekFunc(io, DirectoryPos)) goto Error;
 
         if (!WriteOffsetArray(io, ref a, Count, Length)) goto Error;
 
-        if (!io.Seek(io, CurrentPos)) goto Error;
+        if (!io.SeekFunc(io, CurrentPos)) goto Error;
 
         FreeArray(ref a);
         return true;
@@ -4186,15 +4186,15 @@ public static partial class Lcms2
         if (SizeOfTag is not 8)
             return null;
 
-        if (!_cmsReadUInt32Number(io, out _))
+        if (!io.ReadUint(out _))
             return null;
 
         var cicp = new VideoSignalType();
 
-        if (!_cmsReadUInt8Number(io, out cicp.ColourPrimaries)) return null;
-        if (!_cmsReadUInt8Number(io, out cicp.TransferCharacteristics)) return null;
-        if (!_cmsReadUInt8Number(io, out cicp.MatrixCoefficients)) return null;
-        if (!_cmsReadUInt8Number(io, out cicp.VideoFullRangeFlag)) return null;
+        if (!io.ReadByte(out cicp.ColourPrimaries)) return null;
+        if (!io.ReadByte(out cicp.TransferCharacteristics)) return null;
+        if (!io.ReadByte(out cicp.MatrixCoefficients)) return null;
+        if (!io.ReadByte(out cicp.VideoFullRangeFlag)) return null;
 
         nItems = 1;
         return new(cicp);
@@ -4205,11 +4205,11 @@ public static partial class Lcms2
         if (Ptr is not Box<VideoSignalType> cicp)
             return false;
 
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.Value.ColourPrimaries)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.Value.TransferCharacteristics)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.Value.MatrixCoefficients)) return false;
-        if (!_cmsWriteUInt8Number(io, cicp.Value.VideoFullRangeFlag)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write(cicp.Value.ColourPrimaries)) return false;
+        if (!io.Write(cicp.Value.TransferCharacteristics)) return false;
+        if (!io.Write(cicp.Value.MatrixCoefficients)) return false;
+        if (!io.Write(cicp.Value.VideoFullRangeFlag)) return false;
 
         return true;
     }
@@ -4291,7 +4291,7 @@ public static partial class Lcms2
     {
         for (var i = 0; i < n; i++)
         {
-            if (!_cmsWrite15Fixed16Number(io, Values[i]))
+            if (!io.Write(Values[i]))
                 return false;
         }
 
@@ -4305,20 +4305,20 @@ public static partial class Lcms2
         if (Ptr is not Box<MHC2> mhc2)
             return false;
 
-        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+        var BaseOffset = io.TellFunc(io) - (uint)Unsafe.SizeOf<TagBase>();
 
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt32Number(io, mhc2.Value.entries)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write(mhc2.Value.entries)) return false;
 
-        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.minLuminance)) return false;
-        if (!_cmsWrite15Fixed16Number(io, mhc2.Value.peakLuminance)) return false;
+        if (!io.Write(mhc2.Value.minLuminance)) return false;
+        if (!io.Write(mhc2.Value.peakLuminance)) return false;
 
-        var TablesOffsetPos = io.Tell(io);
+        var TablesOffsetPos = io.TellFunc(io);
 
-        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Matrix
-        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve R
-        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve G
-        if (!_cmsWriteUInt32Number(io, 0)) return false;    // Curve B
+        if (!io.Write((uint)0)) return false;    // Matrix
+        if (!io.Write((uint)0)) return false;    // Curve R
+        if (!io.Write((uint)0)) return false;    // Curve G
+        if (!io.Write((uint)0)) return false;    // Curve B
 
         if (IsIdentity(mhc2.Value.matrix))
         {
@@ -4326,41 +4326,41 @@ public static partial class Lcms2
         }
         else
         {
-            MatrixOffset = io.Tell(io) - BaseOffset;
+            MatrixOffset = io.TellFunc(io) - BaseOffset;
             if (!WriteDoubles(io, 3 * 4, mhc2.Value.matrix))
                 return false;
         }
 
-        var OffsetRedTable = io.Tell(io) - BaseOffset;
+        var OffsetRedTable = io.TellFunc(io) - BaseOffset;
         if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.redCurve)) return false;
-        var OffsetGreenTable = io.Tell(io) - BaseOffset;
+        var OffsetGreenTable = io.TellFunc(io) - BaseOffset;
         if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.greenCurve)) return false;
-        var OffsetBlueTable = io.Tell(io) - BaseOffset;
+        var OffsetBlueTable = io.TellFunc(io) - BaseOffset;
         if (!WriteDoubles(io, mhc2.Value.entries, mhc2.Value.blueCurve)) return false;
 
-        if (!io.Seek(io, TablesOffsetPos)) return false;
+        if (!io.SeekFunc(io, TablesOffsetPos)) return false;
 
-        if (!_cmsWriteUInt32Number(io, MatrixOffset)) return false;
-        if (!_cmsWriteUInt32Number(io, OffsetRedTable)) return false;
-        if (!_cmsWriteUInt32Number(io, OffsetGreenTable)) return false;
-        if (!_cmsWriteUInt32Number(io, OffsetBlueTable)) return false;
+        if (!io.Write(MatrixOffset)) return false;
+        if (!io.Write(OffsetRedTable)) return false;
+        if (!io.Write(OffsetGreenTable)) return false;
+        if (!io.Write(OffsetBlueTable)) return false;
 
         return true;
     }
 
     private static bool ReadDoublesAt(IOHandler io, uint At, uint n, Span<double> Values)
     {
-        var CurrentPos = io.Tell(io);
+        var CurrentPos = io.TellFunc(io);
 
-        if (!io.Seek(io, At)) return false;
+        if (!io.SeekFunc(io, At)) return false;
 
         for (var i = 0; i < n; i++)
         {
-            if (!_cmsRead15Fixed16Number(io, out Values[i]))
+            if (!io.ReadFixed15_16(out Values[i]))
                 return false;
         }
 
-        if (!io.Seek(io, CurrentPos)) return false;
+        if (!io.SeekFunc(io, CurrentPos)) return false;
 
         return true;
     }
@@ -4371,11 +4371,11 @@ public static partial class Lcms2
 
         nItems = 0;
 
-        var BaseOffset = io.Tell(io) - (uint)Unsafe.SizeOf<TagBase>();
+        var BaseOffset = io.TellFunc(io) - (uint)Unsafe.SizeOf<TagBase>();
 
-        if (!_cmsReadUInt32Number(io, out _)) return null;
+        if (!io.ReadUint(out _)) return null;
 
-        if (!_cmsReadUInt32Number(io, out mhc2.entries)) goto Error;
+        if (!io.ReadUint(out mhc2.entries)) goto Error;
 
         if (mhc2.entries > 4096) goto Error;
 
@@ -4389,13 +4389,13 @@ public static partial class Lcms2
 
         mhc2.matrix = new double[3 * 4];
 
-        if (!_cmsRead15Fixed16Number(io, out mhc2.minLuminance)) goto Error;
-        if (!_cmsRead15Fixed16Number(io, out mhc2.peakLuminance)) goto Error;
+        if (!io.ReadFixed15_16(out mhc2.minLuminance)) goto Error;
+        if (!io.ReadFixed15_16(out mhc2.peakLuminance)) goto Error;
 
-        if (!_cmsReadUInt32Number(io, out var MatrixOffset)) goto Error;
-        if (!_cmsReadUInt32Number(io, out var OffsetRedTable)) goto Error;
-        if (!_cmsReadUInt32Number(io, out var OffsetGreenTable)) goto Error;
-        if (!_cmsReadUInt32Number(io, out var OffsetBlueTable)) goto Error;
+        if (!io.ReadUint(out var MatrixOffset)) goto Error;
+        if (!io.ReadUint(out var OffsetRedTable)) goto Error;
+        if (!io.ReadUint(out var OffsetGreenTable)) goto Error;
+        if (!io.ReadUint(out var OffsetBlueTable)) goto Error;
 
         if (MatrixOffset is 0)
             SetIdentity(mhc2.matrix);
@@ -4485,9 +4485,9 @@ public static partial class Lcms2
         // That should be a segmented curve
         if ((uint)ElementSig is not cmsSigSegmentedCurve) return null;
 
-        if (!_cmsReadUInt32Number(io, out _)) return null;
-        if (!_cmsReadUInt16Number(io, out var nSegments)) return null;
-        if (!_cmsReadUInt16Number(io, out _)) return null;
+        if (!io.ReadUint(out _)) return null;
+        if (!io.ReadUshort(out var nSegments)) return null;
+        if (!io.ReadUshort(out _)) return null;
 
         if (nSegments < 1) return null;
         //var Segments = GetArray<CurveSegment>(self.ContextID, nSegments);
@@ -4498,7 +4498,7 @@ public static partial class Lcms2
         for (var i = 0; i < nSegments - 1; i++)
         {
             Segments[i].x0 = PrevBreak;
-            if (!_cmsReadFloat32Number(io, out Segments[i].x1)) goto Error;
+            if (!io.ReadFloat(out Segments[i].x1)) goto Error;
             PrevBreak = Segments[i].x1;
         }
 
@@ -4509,14 +4509,14 @@ public static partial class Lcms2
         for (var i = 0; i < nSegments; i++)
         {
             if (!_cmsReadSignature(io, out ElementSig)) goto Error;
-            if (!_cmsReadUInt32Number(io, out _)) goto Error;
+            if (!io.ReadUint(out _)) goto Error;
 
             switch ((uint)ElementSig)
             {
                 case cmsSigFormulaCurveSeg:
                     {
-                        if (!_cmsReadUInt16Number(io, out var Type)) goto Error;
-                        if (!_cmsReadUInt16Number(io, out _)) goto Error;
+                        if (!io.ReadUshort(out var Type)) goto Error;
+                        if (!io.ReadUshort(out _)) goto Error;
 
                         Segments[i].Type = Type + 6;
                         if (Type > 2) goto Error;
@@ -4526,7 +4526,7 @@ public static partial class Lcms2
 
                         for (var j = 0; j < ParamsByType[Type]; j++)
                         {
-                            if (!_cmsReadFloat32Number(io, out var f)) goto Error;
+                            if (!io.ReadFloat(out var f)) goto Error;
                             Segments[i].Params[j] = f;
                         }
                     }
@@ -4534,7 +4534,7 @@ public static partial class Lcms2
 
                 case cmsSigSampledCurveSeg:
                     {
-                        if (!_cmsReadUInt32Number(io, out var Count)) goto Error;
+                        if (!io.ReadUint(out var Count)) goto Error;
 
                         // This first point is implicit in the last stage, we allocate an extra note to be populated later on
                         Count++;
@@ -4546,7 +4546,7 @@ public static partial class Lcms2
 
                         Segments[i].SampledPoints[0] = 0;
                         for (var j = 1; j < Count; j++)
-                            if (!_cmsReadFloat32Number(io, out Segments[i].SampledPoints[j])) goto Error;
+                            if (!io.ReadFloat(out Segments[i].SampledPoints[j])) goto Error;
                     }
                     break;
 
@@ -4595,10 +4595,10 @@ public static partial class Lcms2
         nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
-        if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
-        if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
+        if (!io.ReadUshort(out var InputChans)) return null;
+        if (!io.ReadUshort(out var OutputChans)) return null;
 
         if (InputChans != OutputChans) return null;
 
@@ -4627,14 +4627,14 @@ public static partial class Lcms2
         var Segments = g.Segments;
         var nSegments = g.nSegments;
 
-        if (!_cmsWriteUInt32Number(io, cmsSigSegmentedCurve)) return false;
-        if (!_cmsWriteUInt32Number(io, 0)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)nSegments)) return false;
-        if (!_cmsWriteUInt16Number(io, 0)) return false;
+        if (!io.Write(cmsSigSegmentedCurve)) return false;
+        if (!io.Write((uint)0)) return false;
+        if (!io.Write((ushort)nSegments)) return false;
+        if (!io.Write((ushort)0)) return false;
 
         // Write the break points
         for (var i = 0; i < nSegments - 1; i++)
-            if (!_cmsWriteFloat32Number(io, Segments[i].x1)) return false;
+            if (!io.Write(Segments[i].x1)) return false;
 
         // Write the segments
         for (var i = 0; i < nSegments; i++)
@@ -4644,28 +4644,28 @@ public static partial class Lcms2
             if (ActualSeg.Type is 0)
             {
                 // This is a sampled curve. First point is implicit in the ICC format, but not in our representation
-                if (!_cmsWriteUInt32Number(io, cmsSigSampledCurveSeg)) return false;
-                if (!_cmsWriteUInt32Number(io, 0)) return false;
-                if (!_cmsWriteUInt32Number(io, ActualSeg.nGridPoints - 1)) return false;
+                if (!io.Write(cmsSigSampledCurveSeg)) return false;
+                if (!io.Write((uint)0)) return false;
+                if (!io.Write(ActualSeg.nGridPoints - 1)) return false;
 
                 for (var j = 1; j < g.Segments[i].nGridPoints; j++)
-                    if (!_cmsWriteFloat32Number(io, ActualSeg.SampledPoints[j])) return false;
+                    if (!io.Write(ActualSeg.SampledPoints[j])) return false;
             }
             else
             {
                 // This is a formula-based
-                if (!_cmsWriteUInt32Number(io, cmsSigFormulaCurveSeg)) return false;
-                if (!_cmsWriteUInt32Number(io, 0)) return false;
+                if (!io.Write(cmsSigFormulaCurveSeg)) return false;
+                if (!io.Write((uint)0)) return false;
 
                 // We only allow 1, 2, and 3 as types
                 var Type = ActualSeg.Type - 6;
                 if (Type is > 2 or < 0) return false;
 
-                if (!_cmsWriteUInt16Number(io, (ushort)Type)) return false;
-                if (!_cmsWriteUInt16Number(io, 0)) return false;
+                if (!io.Write((ushort)Type)) return false;
+                if (!io.Write((ushort)0)) return false;
 
                 for (var j = 0; j < ParamsByType[Type]; j++)
-                    if (!_cmsWriteFloat32Number(io, (float)ActualSeg.Params[j])) return false;
+                    if (!io.Write((float)ActualSeg.Params[j])) return false;
             }
 
             // It seems there is no need to align. Code is here, and for safety commented out
@@ -4683,11 +4683,11 @@ public static partial class Lcms2
         if (Ptr is not Stage mpe ||
             mpe.Data is not StageToneCurvesData Curves) { return false; }
 
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
         // Write the header. Since those are curves, input and output channels are the same
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
 
         if (!WritePositionTable(self, io, 0, mpe.InputChannels, BaseOffset, Curves, WriteMPECurve)) return false;
 
@@ -4702,8 +4702,8 @@ public static partial class Lcms2
     {
         nItems = 0;
 
-        if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
-        if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
+        if (!io.ReadUshort(out var InputChans)) return null;
+        if (!io.ReadUshort(out var OutputChans)) return null;
 
         if (InputChans >= cmsMAXCHANNELS) return null;
         if (OutputChans >= cmsMAXCHANNELS) return null;
@@ -4724,7 +4724,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < nElems; i++)
         {
-            if (!_cmsReadFloat32Number(io, out var v))
+            if (!io.ReadFloat(out var v))
             {
                 //_cmsFree(self.ContextID, Matrix);
                 //_cmsFree(self.ContextID, Offsets);
@@ -4735,7 +4735,7 @@ public static partial class Lcms2
 
         for (var i = 0; i < OutputChans; i++)
         {
-            if (!_cmsReadFloat32Number(io, out var v))
+            if (!io.ReadFloat(out var v))
             {
                 //_cmsFree(self.ContextID, Matrix);
                 //_cmsFree(self.ContextID, Offsets);
@@ -4756,17 +4756,17 @@ public static partial class Lcms2
         if (Ptr is not Stage mpe ||
             mpe.Data is not StageMatrixData Matrix) { return false; }
 
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.OutputChannels)) return false;
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.OutputChannels)) return false;
 
         var nElems = mpe.InputChannels * mpe.OutputChannels;
 
         for (var i = 0; i < nElems; i++)
-            if (!_cmsWriteFloat32Number(io, (float)Matrix.Double[i])) return false;
+            if (!io.Write((float)Matrix.Double[i])) return false;
 
         for (var i = 0; i < mpe.OutputChannels; i++)
         {
-            if (!_cmsWriteFloat32Number(io, Matrix.Offset is null ? 0 : (float)Matrix.Offset[i])) return false;
+            if (!io.Write(Matrix.Offset is null ? 0 : (float)Matrix.Offset[i])) return false;
         }
 
         return true;
@@ -4785,15 +4785,15 @@ public static partial class Lcms2
         nItems = 0;
 
         // Get actual position as a basis for element offsets
-        var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
+        var BaseOffset = io.TellFunc(io) - (sizeof(uint) * 2);
 
-        if (!_cmsReadUInt16Number(io, out var InputChans)) return null;
-        if (!_cmsReadUInt16Number(io, out var OutputChans)) return null;
+        if (!io.ReadUshort(out var InputChans)) return null;
+        if (!io.ReadUshort(out var OutputChans)) return null;
 
         if (InputChans is 0 || InputChans >= cmsMAXCHANNELS) goto Error;
         if (OutputChans is 0 || OutputChans >= cmsMAXCHANNELS) goto Error;
 
-        if (io.Read(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
+        if (io.ReadFunc(io, Dimensions8, sizeof(byte), 16) is not 16) goto Error;
 
         // Copy MAX_INPUT_DIMENSIONS at most. Expact to uint
         var nMaxGrids = Math.Min(InputChans, MAX_INPUT_DIMENSIONS);
@@ -4813,7 +4813,7 @@ public static partial class Lcms2
             goto Error;
 
         for (var i = 0; i < clut.nEntries; i++)
-            if (!_cmsReadFloat32Number(io, out clut.TFloat[i])) goto Error;
+            if (!io.ReadFloat(out clut.TFloat[i])) goto Error;
 
         nItems = 1;
         return mpe;
@@ -4839,18 +4839,18 @@ public static partial class Lcms2
         // We already check for HasFloatValues by making sure we are working with
         // a StageCLutData<float> from the beginning.
 
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.InputChannels)) return false;
-        if (!_cmsWriteUInt16Number(io, (ushort)mpe.OutputChannels)) return false;
+        if (!io.Write((ushort)mpe.InputChannels)) return false;
+        if (!io.Write((ushort)mpe.OutputChannels)) return false;
 
         //memset(Dimensions8, 0, sizeof(byte) * 16);
 
         for (var i = 0; i < mpe.InputChannels; i++)
             Dimensions8[i] = (byte)clut.Params.nSamples[i];
 
-        if (!io.Write(io, 16, Dimensions8)) return false;
+        if (!io.WriteFunc(io, 16, Dimensions8)) return false;
 
         for (var i = 0; i < clut.nEntries; i++)
-            if (!_cmsWriteFloat32Number(io, clut.TFloat[i])) return false;
+            if (!io.Write(clut.TFloat[i])) return false;
 
         return true;
     }

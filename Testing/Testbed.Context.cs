@@ -654,13 +654,13 @@ internal static partial class Testbed
     private static Box<uint>? Type_int_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _)
     {
         nItems = 0;
-        if (!_cmsReadUInt32Number(io, out var value)) return null;
+        if (!io.ReadUint(out var value)) return null;
         nItems = 1;
         return new(value);
     }
 
     private static bool Type_int_Write(TagTypeHandler _1, IOHandler io, object Ptr, uint _2) =>
-        _cmsWriteUInt32Number(io, ((Box<uint>)Ptr).Value);
+        io.Write(((Box<uint>)Ptr).Value);
 
     private static object? Type_int_Dup(TagTypeHandler self, object Ptr, uint n) =>
         new Box<uint>(((Box<uint>)Ptr).Value);
@@ -829,7 +829,7 @@ internal static partial class Testbed
     private static Stage? Type_negate_Read(TagTypeHandler self, IOHandler io, out uint nItems, uint _)
     {
         nItems = 0;
-        if (!_cmsReadUInt16Number(io, out var Chans)) return null;
+        if (!io.ReadUshort(out var Chans)) return null;
         if (Chans != 3) return null;
 
         nItems = 1;
@@ -838,7 +838,7 @@ internal static partial class Testbed
 
     private static bool Type_negate_Write(TagTypeHandler _1, IOHandler io, object? _2, uint _3)
     {
-        return _cmsWriteUInt16Number(io, 3);
+        return io.Write((ushort)3);
     }
 
     private readonly static PluginTagType MPEPluginSample = new(

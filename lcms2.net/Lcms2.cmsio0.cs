@@ -104,11 +104,11 @@ public static partial class Lcms2
         iohandler.reportedSize = 0;
         iohandler.physicalFile = String.Empty;
 
-        iohandler.Read = NULLRead;
-        iohandler.Seek = NULLSeek;
-        iohandler.Close = NULLClose;
-        iohandler.Tell = NULLTell;
-        iohandler.Write = NULLWrite;
+        iohandler.ReadFunc = NULLRead;
+        iohandler.SeekFunc = NULLSeek;
+        iohandler.CloseFunc = NULLClose;
+        iohandler.TellFunc = NULLTell;
+        iohandler.WriteFunc = NULLWrite;
 
         return iohandler;
     }
@@ -261,11 +261,11 @@ public static partial class Lcms2
         iohandler.stream = fm;
         iohandler.UsedSpace = 0;
 
-        iohandler.Read = MemoryRead;
-        iohandler.Seek = MemorySeek;
-        iohandler.Close = MemoryClose;
-        iohandler.Tell = MemoryTell;
-        iohandler.Write = MemoryWrite;
+        iohandler.ReadFunc = MemoryRead;
+        iohandler.SeekFunc = MemorySeek;
+        iohandler.CloseFunc = MemoryClose;
+        iohandler.TellFunc = MemoryTell;
+        iohandler.WriteFunc = MemoryWrite;
 
         return iohandler;
 
@@ -401,11 +401,11 @@ public static partial class Lcms2
         // Keep track of the original file
         iohandler.physicalFile = FileName;
 
-        iohandler.Read = FileRead;
-        iohandler.Seek = FileSeek;
-        iohandler.Close = FileClose;
-        iohandler.Tell = FileTell;
-        iohandler.Write = FileWrite;
+        iohandler.ReadFunc = FileRead;
+        iohandler.SeekFunc = FileSeek;
+        iohandler.CloseFunc = FileClose;
+        iohandler.TellFunc = FileTell;
+        iohandler.WriteFunc = FileWrite;
 
         return iohandler;
     }
@@ -434,11 +434,11 @@ public static partial class Lcms2
             reportedSize = (uint)fileSize,
             physicalFile = String.Empty,
 
-            Read = FileRead,
-            Seek = FileSeek,
-            Close = FileClose,
-            Tell = FileTell,
-            Write = FileWrite
+            ReadFunc = FileRead,
+            SeekFunc = FileSeek,
+            CloseFunc = FileClose,
+            TellFunc = FileTell,
+            WriteFunc = FileWrite
         };
         //if (iohandler is null) goto Error;
 
@@ -451,7 +451,7 @@ public static partial class Lcms2
 
     [DebuggerStepThrough]
     public static bool cmsCloseIOhandler(IOHandler io) =>
-        io.Close(io);
+        io.CloseFunc(io);
 
     [DebuggerStepThrough]
     public static IOHandler? cmsGetProfileIOhandler(Profile? Icc) =>
@@ -696,7 +696,7 @@ public static partial class Lcms2
         if (io is null) return false;
 
         // Read the header
-        if (io.Read(io, buffer, (uint)buffer.Length, 1) is not 1)
+        if (io.ReadFunc(io, buffer, (uint)buffer.Length, 1) is not 1)
             return false;
 
         Header = MemoryMarshal.Read<Profile.Header>(buffer);
@@ -750,7 +750,7 @@ public static partial class Lcms2
         Icc.ProfileID = Header.profileID;
 
         // Read tag directory
-        if (!_cmsReadUInt32Number(io, out TagCount)) return false;
+        if (!io.ReadUint(out TagCount)) return false;
         if (TagCount > MAX_TABLE_TAG)
         {
             LogError(Icc.ContextID, ErrorCodes.Range, $"Too many tags({TagCount})");
@@ -761,10 +761,10 @@ public static partial class Lcms2
         //Icc.TagCount = 0;
         for (var i = 0; i < TagCount; i++)
         {
-            if (!_cmsReadUInt32Number(io, out var sig)) return false;
+            if (!io.ReadUint(out var sig)) return false;
             Tag.sig = sig;
-            if (!_cmsReadUInt32Number(io, out Tag.offset)) return false;
-            if (!_cmsReadUInt32Number(io, out Tag.size)) return false;
+            if (!io.ReadUint(out Tag.offset)) return false;
+            if (!io.ReadUint(out Tag.size)) return false;
 
             // Perform some sanity check. Offset + size should fall inside file.
             if (Tag.size is 0 || Tag.offset is 0) continue;
@@ -869,8 +869,8 @@ public static partial class Lcms2
         Header.profileID = Icc.ProfileID;
 
         // Dump the header
-        MemoryMarshal.Write(headerBuffer, ref Header);
-        if (Icc.IOHandler?.Write(Icc.IOHandler, (uint)headerBuffer.Length, headerBuffer) != true)
+        MemoryMarshal.Write(headerBuffer, in Header);
+        if (Icc.IOHandler?.WriteFunc(Icc.IOHandler, (uint)headerBuffer.Length, headerBuffer) != true)
             return false;
 
         // Saves Tag directory
@@ -884,7 +884,7 @@ public static partial class Lcms2
         }
 
         // Store number of tags
-        if (!_cmsWriteUInt32Number(Icc.IOHandler, Count)) return false;
+        if (!Icc.IOHandler.Write(Count)) return false;
 
         for (var i = 0; i < Icc.Tags.Count; i++)
         {
@@ -895,9 +895,9 @@ public static partial class Lcms2
             Tag.offset = AdjustEndianess(t.Offset);
             Tag.size = AdjustEndianess(t.Size);
 
-            MemoryMarshal.Write(tagBuffer, ref Tag);
+            MemoryMarshal.Write(tagBuffer, in Tag);
 
-            if (!Icc.IOHandler.Write(Icc.IOHandler, (uint)tagBuffer.Length, tagBuffer)) return false;
+            if (!Icc.IOHandler.WriteFunc(Icc.IOHandler, (uint)tagBuffer.Length, tagBuffer)) return false;
         }
 
         return true;
@@ -949,7 +949,7 @@ public static partial class Lcms2
 
     [DebuggerStepThrough]
     public static void cmsGetHeaderProfileID(Profile Icc, Span<byte> ProfileID) =>
-        MemoryMarshal.Write(ProfileID, ref Icc.ProfileID);
+        MemoryMarshal.Write(ProfileID, in Icc.ProfileID);
 
     [DebuggerStepThrough]
     public static void cmsSetHeaderProfileID(Profile Icc, ReadOnlySpan<byte> ProfileID) =>
@@ -1184,20 +1184,20 @@ public static partial class Lcms2
                     var TagSize = FileOrig.Tags[i].Size;
                     var TagOffset = FileOrig.Tags[i].Offset;
 
-                    if (!FileOrig.IOHandler.Seek(FileOrig.IOHandler, TagOffset)) return false;
+                    if (!FileOrig.IOHandler.SeekFunc(FileOrig.IOHandler, TagOffset)) return false;
 
                     //Mem = _cmsMalloc(Icc.ContextID, TagSize, typeof(byte));
                     //if (Mem is null) return false;
                     //var Mem = pool.Rent((int)TagSize);
                     var Mem = new byte[TagSize];
 
-                    if (FileOrig.IOHandler.Read(FileOrig.IOHandler, Mem, TagSize, 1) is not 1)
+                    if (FileOrig.IOHandler.ReadFunc(FileOrig.IOHandler, Mem, TagSize, 1) is not 1)
                     {
                         //ReturnArray(Icc.ContextID, Mem);
                         return false;
                     }
 
-                    if (!io.Write(io, TagSize, Mem))
+                    if (!io.WriteFunc(io, TagSize, Mem))
                     {
                         //ReturnArray(Icc.ContextID, Mem);
                         return false;
@@ -1219,7 +1219,7 @@ public static partial class Lcms2
             // Should this tag be saved as RAW? If so, tagsizes should be specified in advance (no further cooking is done)
             if (Tag.SaveAsRaw && Data is byte[] buffer)
             {
-                if (!io.Write(io, Tag.Size, buffer)) return false;
+                if (!io.WriteFunc(io, Tag.Size, buffer)) return false;
             }
             else
             {
@@ -1522,7 +1522,7 @@ public static partial class Lcms2
             goto Error;
         }
         // Seek to its location
-        if (io?.Seek(io, Offset) != true)
+        if (io?.SeekFunc(io, Offset) != true)
             goto Error;
 
         // Search for support on this tag
@@ -1729,8 +1729,8 @@ public static partial class Lcms2
                 if (BufferSize < TagSize)
                     TagSize = BufferSize;
 
-                if (Icc.IOHandler?.Seek(Icc.IOHandler, Offset) != true) goto Error;
-                if (Icc.IOHandler.Read(Icc.IOHandler, data.Span, 1, TagSize) is 0) goto Error;
+                if (Icc.IOHandler?.SeekFunc(Icc.IOHandler, Offset) != true) goto Error;
+                if (Icc.IOHandler.ReadFunc(Icc.IOHandler, data.Span, 1, TagSize) is 0) goto Error;
 
                 _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);
                 return TagSize;
@@ -1806,7 +1806,7 @@ public static partial class Lcms2
         }
 
         // Get Size and close
-        var rc = MemIO.Tell(MemIO);
+        var rc = MemIO.TellFunc(MemIO);
         cmsCloseIOhandler(MemIO);       // Ignore return code this time
 
         _cmsUnlockMutex(Icc.ContextID, Icc.UserMutex);

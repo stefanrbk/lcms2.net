@@ -71,238 +71,15 @@ public static partial class Plugin
     }
 
     [DebuggerStepThrough]
-    public static bool _cmsReadUInt8Number(IOHandler io, out byte n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[1];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(byte), 1) != 1)
-            return false;
-
-        n = tmp[0];
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadUInt16Number(IOHandler io, out ushort n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[2];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(ushort), 1) != 1)
-            return false;
-
-        n = AdjustEndianess(BitConverter.ToUInt16(tmp));
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadUInt16Array(IOHandler io, uint n, Span<ushort> array)
-    {
-        _cmsAssert(io);
-
-        for (var i = 0; i < n; i++)
-        {
-            if (!_cmsReadUInt16Number(io, out array[i]))
-                return false;
-        }
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadUInt32Number(IOHandler io, out uint n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[4];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
-            return false;
-
-        n = AdjustEndianess(BitConverter.ToUInt32(tmp));
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadFloat32Number(IOHandler io, out float n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[4];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
-            return false;
-
-        n = BitConverter.UInt32BitsToSingle(AdjustEndianess(BitConverter.ToUInt32(tmp)));
-
-        // Safeguard which covers against absurd values
-        if (n is > 1E+20f or < -1E+20f)
-            return false;
-
-        // I guess we don't deal with subnormal values!
-        return Single.IsNormal(n) || n is 0;
-    }
-
-    [DebuggerStepThrough]
     public static bool _cmsReadSignature(IOHandler io, out Signature sig)
     {
         sig = 0;
 
-        if (!_cmsReadUInt32Number(io, out var value))
+        if (!io.ReadUint(out var value))
             return false;
 
         sig = value;
         return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadUInt64Number(IOHandler io, out ulong n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[8];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(ulong), 1) != 1)
-            return false;
-
-        n = AdjustEndianess(BitConverter.ToUInt64(tmp));
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsRead15Fixed16Number(IOHandler io, out double n)
-    {
-        n = 0;
-        Span<byte> tmp = stackalloc byte[4];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, tmp, sizeof(uint), 1) != 1)
-            return false;
-
-        n = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(BitConverter.ToUInt32(tmp)));
-
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsReadXYZNumber(IOHandler io, out CIEXYZ XYZ)
-    {
-        XYZ = new CIEXYZ();
-        Span<byte> xyz = stackalloc byte[(sizeof(uint) * 3)];
-
-        _cmsAssert(io);
-
-        if (io.Read(io, xyz, (sizeof(uint) * 3), 1) != 1)
-            return false;
-
-        var ints = MemoryMarshal.Cast<byte, uint>(xyz);
-
-        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[0]));
-        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[1]));
-        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[2]));
-
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteUInt8Number(IOHandler io, byte n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[1] { n };
-
-        return io.Write(io, sizeof(byte), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteUInt16Number(IOHandler io, ushort n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[2];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
-
-        return io.Write(io, sizeof(ushort), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteUInt16Array(IOHandler io, uint n, ReadOnlySpan<ushort> array)
-    {
-        _cmsAssert(io);
-        _cmsAssert(array);
-
-        for (var i = 0; i < n; i++)
-        {
-            if (!_cmsWriteUInt16Number(io, array[i])) return false;
-        }
-
-        return true;
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteUInt32Number(IOHandler io, uint n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
-
-        return io.Write(io, sizeof(uint), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteFloat32Number(IOHandler io, float n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess(BitConverter.SingleToUInt32Bits(n)));
-
-        return io.Write(io, sizeof(uint), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteUInt64Number(IOHandler io, ulong n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[8];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
-
-        return io.Write(io, sizeof(ulong), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWrite15Fixed16Number(IOHandler io, double n)
-    {
-        _cmsAssert(io);
-
-        Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess((uint)_cmsDoubleTo15Fixed16(n)));
-
-        return io.Write(io, sizeof(uint), tmp);
-    }
-
-    [DebuggerStepThrough]
-    public static bool _cmsWriteXYZNumber(IOHandler io, CIEXYZ XYZ)
-    {
-        Span<int> xyz = stackalloc int[3];
-
-        _cmsAssert(io);
-
-        xyz[0] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.X));
-        xyz[1] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
-        xyz[2] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
-
-        return io.Write(io, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
     }
 
     [DebuggerStepThrough]
@@ -312,7 +89,7 @@ public static partial class Plugin
 
         _cmsAssert(io);
 
-        if (io.Read(io, Base, (sizeof(uint) * 2), 1) != 1)
+        if (io.ReadFunc(io, Base, (sizeof(uint) * 2), 1) != 1)
             return default;
 
         return new(AdjustEndianess(BitConverter.ToUInt32(Base)));
@@ -326,7 +103,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         BitConverter.TryWriteBytes(Base, AdjustEndianess(sig));
-        return io.Write(io, (sizeof(uint) * 2), Base);
+        return io.WriteFunc(io, (sizeof(uint) * 2), Base);
     }
 
     [DebuggerStepThrough]
@@ -336,13 +113,13 @@ public static partial class Plugin
 
         _cmsAssert(io);
 
-        var At = io.Tell(io);
+        var At = io.TellFunc(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io.Read(io, Buffer, BytesToNextAlignedPos, 1) == 1;
+        return io.ReadFunc(io, Buffer, BytesToNextAlignedPos, 1) == 1;
     }
 
     [DebuggerStepThrough]
@@ -352,13 +129,13 @@ public static partial class Plugin
 
         _cmsAssert(io);
 
-        var At = io.Tell(io);
+        var At = io.TellFunc(io);
         var NextAligned = _cmsALIGNLONG(At);
         var BytesToNextAlignedPos = NextAligned - At;
         if (BytesToNextAlignedPos is 0) return true;
         if (BytesToNextAlignedPos > 4) return false;
 
-        return io.Write(io, BytesToNextAlignedPos, Buffer);
+        return io.WriteFunc(io, BytesToNextAlignedPos, Buffer);
     }
 
     [DebuggerStepThrough]
@@ -376,7 +153,7 @@ public static partial class Plugin
         if (str.Length > 2047) return false;
         var buffer = Encoding.UTF8.GetBytes(str.ToString());
 
-        return io.Write(io, (uint)str.Length, buffer);
+        return io.WriteFunc(io, (uint)str.Length, buffer);
     }
 
     [DebuggerStepThrough]
