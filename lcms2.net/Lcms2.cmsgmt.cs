@@ -272,7 +272,7 @@ public static partial class Lcms2
 
         if (nGamutPCSposition is <= 0 or > 255)
         {
-            cmsSignalError(ContextID, cmsERROR_RANGE, $"Wrong position of PCS. 1..255 expected, {nGamutPCSposition} found.");
+            LogError(ContextID, cmsERROR_RANGE, $"Wrong position of PCS. 1..255 expected, {nGamutPCSposition} found.");
             return null;
         }
 
@@ -501,7 +501,7 @@ public static partial class Lcms2
 
             if (double.IsNaN(Lab.a))
             {
-                cmsSignalError(null, cmsERROR_RANGE, "Invalid angle");
+                LogError(null, cmsERROR_RANGE, "Invalid angle");
                 return false;
             }
         }

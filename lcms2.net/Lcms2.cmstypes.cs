@@ -1213,7 +1213,7 @@ public static partial class Lcms2
 
         if (Type > 4)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown parametric curve type '{Type}'");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown parametric curve type '{Type}'");
             return null;
         }
 
@@ -1240,13 +1240,13 @@ public static partial class Lcms2
 
         if (Curve.nSegments is 1 && typen < 1)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, "Multisegment or Inverted parametric curves cannot be written");
             return false;
         }
 
         if (typen > 5)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "Unsupported parametric curve");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, "Unsupported parametric curve");
             return false;
         }
 
@@ -1372,7 +1372,7 @@ public static partial class Lcms2
 
         if (RecLen is not 12)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, "multiLocalizedUnicodeType of len != 12 is not supported");
             return null;
         }
 
@@ -1610,7 +1610,7 @@ public static partial class Lcms2
                 {
                     if (Tables.TheCurves[i].nEntries is not 256)
                     {
-                        cmsSignalError(ContextID, ErrorCodes.Range, "LUT8 needs 256 entries on prelinearization");
+                        LogError(ContextID, ErrorCodes.Range, "LUT8 needs 256 entries on prelinearization");
                         return false;
                     }
                     else
@@ -1757,7 +1757,7 @@ public static partial class Lcms2
         var mpe = NewLut.Elements;
         if (mpe is null)    // Should never be empty. Corrupted?
         {
-            cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, "empty LUT8 is not supported");
+            LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, "empty LUT8 is not supported");
             return false;
         }
 
@@ -1789,7 +1789,7 @@ public static partial class Lcms2
         // That should be all
         if (mpe is not null)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT8");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT8");
             return false;
         }
 
@@ -1802,7 +1802,7 @@ public static partial class Lcms2
             {
                 if (clut.Params.nSamples[i] != clutPoints)
                 {
-                    cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT8");
+                    LogError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT8");
                     return false;
                 }
             }
@@ -2023,7 +2023,7 @@ public static partial class Lcms2
         // That should be all
         if (mpe is not null)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT16");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, "LUT is not suitable to be saved as LUT16");
             return false;
         }
 
@@ -2039,7 +2039,7 @@ public static partial class Lcms2
             {
                 if (clut.Params.nSamples[i] != clutPoints)
                 {
-                    cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT16");
+                    LogError(self.ContextID, ErrorCodes.UnknownExtension, "LUT with different samples per dimension not suitable to be saved as LUT16");
                     return false;
                 }
             }
@@ -2194,7 +2194,7 @@ public static partial class Lcms2
 
             default:
                 cmsStageFree(CLUT);
-                cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown precision of '{Precision}'");
+                LogError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown precision of '{Precision}'");
                 return null;
         }
 
@@ -2214,7 +2214,7 @@ public static partial class Lcms2
         }
         else
         {
-            cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown curve type '{_cmsTagSignature2String(BaseType)}'");
+            LogError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown curve type '{_cmsTagSignature2String(BaseType)}'");
             return null;
         }
     }
@@ -2367,7 +2367,7 @@ public static partial class Lcms2
             }
             else
             {
-                cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown curve type '{_cmsTagSignature2String(Type)}'");
+                LogError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown curve type '{_cmsTagSignature2String(Type)}'");
                 return false;
             }
 
@@ -2382,7 +2382,7 @@ public static partial class Lcms2
 
         if (mpe.Data is StageCLutData<float>)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
+            LogError(self.ContextID, ErrorCodes.NotSuitable, "Cannot save floating point data, CLUT are 8 or 16 bit only");
             return false;
         }
 
@@ -2413,7 +2413,7 @@ public static partial class Lcms2
                 break;
 
             default:
-                cmsSignalError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown precision of '{Precision}'");
+                LogError(self.ContextID, ErrorCodes.UnknownExtension, $"Unknown precision of '{Precision}'");
                 return false;
         }
 
@@ -2438,7 +2438,7 @@ public static partial class Lcms2
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out A, cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out M,
                                                     cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out B))
         {
-            cmsSignalError(self.ContextID, ErrorCodes.NotSuitable, "LUT is not suitable to be saved as LutAToB");
+            LogError(self.ContextID, ErrorCodes.NotSuitable, "LUT is not suitable to be saved as LutAToB");
             return false;
         }
 
@@ -2598,7 +2598,7 @@ public static partial class Lcms2
             !cmsPipelineCheckAndRetrieveStages(Lut, cmsSigCurveSetElemType, out B, cmsSigMatrixElemType, out Matrix, cmsSigCurveSetElemType, out M,
                                                     cmsSigCLutElemType, out CLUT, cmsSigCurveSetElemType, out A))
         {
-            cmsSignalError(self.ContextID, ErrorCodes.NotSuitable, "LUT is not suitable to be saved as LutAToB");
+            LogError(self.ContextID, ErrorCodes.NotSuitable, "LUT is not suitable to be saved as LutAToB");
             return false;
         }
 
@@ -2686,7 +2686,7 @@ public static partial class Lcms2
 
         if (Count > cmsMAXCHANNELS)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.Range, $"Too many colorants '{Count}'");
+            LogError(self.ContextID, ErrorCodes.Range, $"Too many colorants '{Count}'");
             return null;
         }
 
@@ -2767,13 +2767,13 @@ public static partial class Lcms2
         v = cmsAllocNamedColorList(self.ContextID, count, nDeviceCoords, prefix, suffix);
         if (v is null)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.Range, $"Too many named colors '{count}'");
+            LogError(self.ContextID, ErrorCodes.Range, $"Too many named colors '{count}'");
             return null;
         }
 
         if (nDeviceCoords > cmsMAXCHANNELS)
         {
-            cmsSignalError(self.ContextID, ErrorCodes.Range, $"Too many device coordinates '{nDeviceCoords}'");
+            LogError(self.ContextID, ErrorCodes.Range, $"Too many device coordinates '{nDeviceCoords}'");
             goto Error;
         }
 
@@ -3419,7 +3419,7 @@ public static partial class Lcms2
         if (TypeHandler is null)
         {
             // An unknown element was found.
-            cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown MPE type '{_cmsTagSignature2String(ElementSig)}' found.");
+            LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown MPE type '{_cmsTagSignature2String(ElementSig)}' found.");
             return false;
         }
 
@@ -3523,7 +3523,7 @@ public static partial class Lcms2
             if (TypeHandler is null)
             {
                 // An unknown element was found.
-                cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Found unknown MPE type '{_cmsTagSignature2String(ElementSig)}'");
+                LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Found unknown MPE type '{_cmsTagSignature2String(ElementSig)}'");
                 goto Error;
             }
 
@@ -3603,7 +3603,7 @@ public static partial class Lcms2
 
                     if (nChannels is not 3)
                     {
-                        cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported number of channels for VCGT '{nChannels}'");
+                        LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported number of channels for VCGT '{nChannels}'");
                         goto Error;
                     }
 
@@ -3640,7 +3640,7 @@ public static partial class Lcms2
 
                             // Unsupported
                             default:
-                                cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported bit depth for VCGT '{nBytes * 8}'");
+                                LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported bit depth for VCGT '{nBytes * 8}'");
                                 goto Error;
                         }
                     } // For all 3 channels
@@ -3687,7 +3687,7 @@ public static partial class Lcms2
 
             // Unsupported
             default:
-                cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag type for VCGT '{TagType}'");
+                LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag type for VCGT '{TagType}'");
                 goto Error;
         }
 
@@ -4045,7 +4045,7 @@ public static partial class Lcms2
         // Check for valid lengths
         if (Length is not 16 and not 24 and not 32)
         {
-            cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown record length in dictionry '{Length}'");
+            LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown record length in dictionry '{Length}'");
             return null;
         }
 
@@ -4074,7 +4074,7 @@ public static partial class Lcms2
             bool rc;
             if (NameWCS is null || ValueWCS is null)
             {
-                cmsSignalError(self.ContextID, cmsERROR_CORRUPTION_DETECTED, "Bad dictionary Name/Value");
+                LogError(self.ContextID, cmsERROR_CORRUPTION_DETECTED, "Bad dictionary Name/Value");
                 rc = false;
             }
             else
@@ -4552,7 +4552,7 @@ public static partial class Lcms2
 
                 default:
                     {
-                        cmsSignalError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown curve element type '{_cmsTagSignature2String(ElementSig)}' found.");
+                        LogError(self.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown curve element type '{_cmsTagSignature2String(ElementSig)}' found.");
                     }
                     goto Error;
             }

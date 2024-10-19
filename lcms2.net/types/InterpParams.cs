@@ -132,7 +132,7 @@ public class InterpParams<T> : ICloneable, IDisposable
         // Check for maximum inputs
         if (InputChan > MAX_INPUT_DIMENSIONS)
         {
-            cmsSignalError(ContextID, ErrorCodes.Range, $"Too many input channels ({InputChan} channels, max={MAX_INPUT_DIMENSIONS})");
+            LogError(ContextID, ErrorCodes.Range, $"Too many input channels ({InputChan} channels, max={MAX_INPUT_DIMENSIONS})");
             return null;
         }
 
@@ -159,7 +159,7 @@ public class InterpParams<T> : ICloneable, IDisposable
 
         if (!p.SetInterpolationRoutine(ContextID))
         {
-            cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
+            LogError(ContextID, ErrorCodes.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
             //_cmsFree(ContextID, p);
             p.Dispose();
             return null;

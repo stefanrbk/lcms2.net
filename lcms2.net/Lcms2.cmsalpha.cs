@@ -174,7 +174,7 @@ public static partial class Lcms2
 
         if (in_n is < 0 or > 5 || out_n is < 0 or > 5)
         {
-            cmsSignalError(id, cmsERROR_UNKNOWN_EXTENSION, "Unrecognized alpha channel width");
+            LogError(id, cmsERROR_UNKNOWN_EXTENSION, "Unrecognized alpha channel width");
             return null;
         }
 

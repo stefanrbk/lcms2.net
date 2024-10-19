@@ -88,12 +88,12 @@ public class Context(object? UserData = null) : ICloneable
     {
         if (plugin.Magic != cmsPluginMagicNumber)
         {
-            cmsSignalError(this, ErrorCodes.UnknownExtension, "Unrecognized plugin");
+            LogError(this, ErrorCodes.UnknownExtension, "Unrecognized plugin");
         }
 
         if (plugin.ExpectedVersion > LCMS_VERSION)
         {
-            cmsSignalError(this, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
+            LogError(this, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {plugin.ExpectedVersion}, current version is {LCMS_VERSION}");
         }
 
         switch ((uint)plugin.Type)
@@ -143,7 +143,7 @@ public class Context(object? UserData = null) : ICloneable
                 break;
 
             default:
-                cmsSignalError(this, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{plugin.Type}'");
+                LogError(this, ErrorCodes.UnknownExtension, $"Unrecognized plugin type '{plugin.Type}'");
                 break;
         }
     }

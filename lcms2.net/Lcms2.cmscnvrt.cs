@@ -423,7 +423,7 @@ public static partial class Lcms2
 
             if (!ColorSpaceIsCompatible(ColorSpaceIn, CurrentColorSpace))
             {
-                cmsSignalError(ContextID, cmsERROR_COLORSPACE_CHECK, "ColorSpace mismatch");
+                LogError(ContextID, cmsERROR_COLORSPACE_CHECK, "ColorSpace mismatch");
                 goto Error;
             }
 
@@ -886,7 +886,7 @@ public static partial class Lcms2
         // Make sure a reasonable number of profiles is provided
         if (nProfiles is <= 0 or > 255)
         {
-            cmsSignalError(ContextID, cmsERROR_RANGE, $"Couldn't link '{nProfiles}' profiles");
+            LogError(ContextID, cmsERROR_RANGE, $"Couldn't link '{nProfiles}' profiles");
             return null;
         }
 
@@ -916,7 +916,7 @@ public static partial class Lcms2
         var Intent = SearchIntent(ContextID, TheIntents[0]);
         if (Intent is null)
         {
-            cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported intent '{TheIntents[0]}'");
+            LogError(ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported intent '{TheIntents[0]}'");
             return null;
         }
 

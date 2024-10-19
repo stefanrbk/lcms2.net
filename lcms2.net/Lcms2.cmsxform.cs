@@ -937,7 +937,7 @@ public static partial class Lcms2
 
             if (p.FromInputFloat is null || p.ToOutputFloat is null)
             {
-                cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
+                LogError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
                 cmsDeleteTransform(p);
                 return null;
             }
@@ -963,7 +963,7 @@ public static partial class Lcms2
 
                 if (p.FromInput is null || p.ToOutput is null)
                 {
-                    cmsSignalError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
+                    LogError(ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
                     cmsDeleteTransform(p);
                     return null;
                 }
@@ -989,7 +989,7 @@ public static partial class Lcms2
         {
             if (T_EXTRA(InputFormat) != T_EXTRA(OutputFormat))
             {
-                cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Mismatched alpha channels");
+                LogError(ContextID, cmsERROR_NOT_SUITABLE, "Mismatched alpha channels");
                 cmsDeleteTransform(p);
                 return null;
             }
@@ -1101,7 +1101,7 @@ public static partial class Lcms2
         // Safeguard
         if (nProfiles is 0 or >= 255)
         {
-            cmsSignalError(ContextID, cmsERROR_RANGE, "Wrong number of profiles. 1..255 expected, {0} found.", nProfiles);
+            LogError(ContextID, cmsERROR_RANGE, "Wrong number of profiles. 1..255 expected, {0} found.", nProfiles);
             return null;
         }
 
@@ -1122,19 +1122,19 @@ public static partial class Lcms2
         // Mark entry/exit spaces
         if (!GetXFormColorSpaces(nProfiles, Profiles, out EntryColorSpace, out ExitColorSpace))
         {
-            cmsSignalError(ContextID, cmsERROR_NULL, "NULL input profiles on transform");
+            LogError(ContextID, cmsERROR_NULL, "NULL input profiles on transform");
             return null;
         }
 
         // Check if proper colorspaces
         if (!IsProperColorSpace(EntryColorSpace, InputFormat))
         {
-            cmsSignalError(ContextID, cmsERROR_COLORSPACE_CHECK, "Wrong input color space on transform");
+            LogError(ContextID, cmsERROR_COLORSPACE_CHECK, "Wrong input color space on transform");
             return null;
         }
         if (!IsProperColorSpace(ExitColorSpace, OutputFormat))
         {
-            cmsSignalError(ContextID, cmsERROR_COLORSPACE_CHECK, "Wrong output color space on transform");
+            LogError(ContextID, cmsERROR_COLORSPACE_CHECK, "Wrong output color space on transform");
             return null;
         }
 
@@ -1151,7 +1151,7 @@ public static partial class Lcms2
         var Lut = _cmsLinkProfiles(ContextID, nProfiles, Intents, Profiles, BPC, AdaptationStates, dwFlags);
         if (Lut is null)
         {
-            cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Couldn't link the profiles");
+            LogError(ContextID, cmsERROR_NOT_SUITABLE, "Couldn't link the profiles");
             return null;
         }
 
@@ -1160,7 +1160,7 @@ public static partial class Lcms2
             ((uint)cmsChannelsOfColorSpace(ExitColorSpace) != cmsPipelineOutputChannels(Lut)))
         {
             cmsPipelineFree(Lut);
-            cmsSignalError(ContextID, cmsERROR_NOT_SUITABLE, "Channel count douesn't match. Profile is corrupted");
+            LogError(ContextID, cmsERROR_NOT_SUITABLE, "Channel count douesn't match. Profile is corrupted");
             return null;
         }
 
@@ -1247,7 +1247,7 @@ public static partial class Lcms2
 
         if (nProfiles is <= 0 or > 255)
         {
-            cmsSignalError(ContextID, cmsERROR_RANGE, $"Wrong number of profiles. 1..255 expected, {nProfiles} found.");
+            LogError(ContextID, cmsERROR_RANGE, $"Wrong number of profiles. 1..255 expected, {nProfiles} found.");
             return null;
         }
 
@@ -1343,7 +1343,7 @@ public static partial class Lcms2
         // We only can afford to change formatters if previous transform is at least 16 bits
         if ((xform.dwOriginalFlags & cmsFLAGS_CAN_CHANGE_FORMATTER) is 0)
         {
-            cmsSignalError(xform.ContextID, cmsERROR_NOT_SUITABLE, "cmsChangeBuffersFormat works only on transforms created originally with at least 16 bits of precision");
+            LogError(xform.ContextID, cmsERROR_NOT_SUITABLE, "cmsChangeBuffersFormat works only on transforms created originally with at least 16 bits of precision");
             return false;
         }
 
@@ -1352,7 +1352,7 @@ public static partial class Lcms2
 
         if (FromInput is null || ToOutput is null)
         {
-            cmsSignalError(xform.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
+            LogError(xform.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported raster format");
             return false;
         }
 

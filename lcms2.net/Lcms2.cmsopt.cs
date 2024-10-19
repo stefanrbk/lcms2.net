@@ -645,7 +645,7 @@ public static partial class Lcms2
 
         if ((uint)CLUT.Type is not cmsSigCLutElemType)
         {
-            cmsSignalError(CLUT.ContextID, cmsERROR_INTERNAL, "(internal) Attempt to PatchLUT on non-lut stage");
+            LogError(CLUT.ContextID, cmsERROR_INTERNAL, "(internal) Attempt to PatchLUT on non-lut stage");
             return false;
         }
 
@@ -717,7 +717,7 @@ public static partial class Lcms2
                 break;
 
             default:
-                cmsSignalError(CLUT.ContextID, cmsERROR_INTERNAL, $"(internal) {nChannelsIn} Channels are not supported on PatchLUT");
+                LogError(CLUT.ContextID, cmsERROR_INTERNAL, $"(internal) {nChannelsIn} Channels are not supported on PatchLUT");
                 return false;
         }
 

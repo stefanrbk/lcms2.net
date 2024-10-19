@@ -29,7 +29,7 @@ public static class WhitePoint
         }
         else
         {
-            cmsSignalError(null, ErrorCodes.Range, "cmsWhitePointFromTemp: invalid temp");
+            LogError(null, ErrorCodes.Range, "cmsWhitePointFromTemp: invalid temp");
             return Option<CIExyY>.None;
         }
 

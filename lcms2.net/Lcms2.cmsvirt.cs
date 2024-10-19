@@ -347,13 +347,13 @@ public static partial class Lcms2
     {
         if ((uint)ColorSpace is not cmsSigCmykData)
         {
-            cmsSignalError(ContextID, cmsERROR_COLORSPACE_CHECK, "InkLimiting: Only CMYK currently supported");
+            LogError(ContextID, cmsERROR_COLORSPACE_CHECK, "InkLimiting: Only CMYK currently supported");
             return null;
         }
 
         if (Limit is < 1 or > 400)
         {
-            cmsSignalError(ContextID, cmsERROR_RANGE, "InkLimiting: Limit should be between 0..400");
+            LogError(ContextID, cmsERROR_RANGE, "InkLimiting: Limit should be between 0..400");
             Limit = Math.Max(1, Math.Min(400, Limit));
         }
 

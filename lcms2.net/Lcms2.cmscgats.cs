@@ -168,7 +168,7 @@ public static partial class Lcms2
         snprintf(ErrMsg, 1023, "{0}: Line {1}, {2}"u8, SpanToString(it8.FileStack[it8.IncludeSP].FileName), it8.lineno, SpanToString(Buffer));
         ErrMsg[1023] = 0;
         it8.sy = SYMBOL.SSYNERROR;
-        cmsSignalError(it8.ContextID, cmsERROR_CORRUPTION_DETECTED, SpanToString(ErrMsg));
+        LogError(it8.ContextID, cmsERROR_CORRUPTION_DETECTED, SpanToString(ErrMsg));
         return false;
     }
 
@@ -1215,7 +1215,7 @@ public static partial class Lcms2
         {
             if (fwrite(str, 1, len, f.stream) != len)
             {
-                cmsSignalError(null, cmsERROR_WRITE, "Write to file error in CGATS parser");
+                LogError(null, cmsERROR_WRITE, "Write to file error in CGATS parser");
                 return;
             }
         }
@@ -1225,7 +1225,7 @@ public static partial class Lcms2
             {
                 if (f.Used > f.Max)
                 {
-                    cmsSignalError(null, cmsERROR_WRITE, "Write to memoty overflows in CGATS parser");
+                    LogError(null, cmsERROR_WRITE, "Write to memoty overflows in CGATS parser");
                     return;
                 }
 
@@ -1843,7 +1843,7 @@ public static partial class Lcms2
         var fp = fopen(FileName, "rt");
         if (fp is null)
         {
-            cmsSignalError(null, cmsERROR_FILE, "File '{0}' not found", FileName);
+            LogError(null, cmsERROR_FILE, "File '{0}' not found", FileName);
             return false;
         }
 

@@ -38,7 +38,7 @@ public static partial class Plugin
     /// </summary>
     /// <param name="text">English description of the error in String.Format format</param>
     [DebuggerStepThrough]
-    public static void cmsSignalError(Context? ContextID, EventId errorCode, string text, params object?[] args)
+    public static void LogError(Context? ContextID, EventId errorCode, string text, params object?[] args)  // cmsSignalError
     {
         // Check for the context, if specified go there. If not, go for the global
         var lhg = GetLogger(ContextID);

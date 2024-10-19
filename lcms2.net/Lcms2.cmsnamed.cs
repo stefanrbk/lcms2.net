@@ -958,7 +958,7 @@ public static partial class Lcms2
 
         if (index >= NamedColorList.nColors)
         {
-            cmsSignalError(NamedColorList.ContextID, ErrorCodes.Range, $"Color {index} out of range");
+            LogError(NamedColorList.ContextID, ErrorCodes.Range, $"Color {index} out of range");
             Out[0] = Out[1] = Out[2] = 0f;
         }
         else
@@ -979,7 +979,7 @@ public static partial class Lcms2
 
         if (index >= NamedColorList.nColors)
         {
-            cmsSignalError(NamedColorList.ContextID, ErrorCodes.Range, $"Color {index} out of range");
+            LogError(NamedColorList.ContextID, ErrorCodes.Range, $"Color {index} out of range");
             for (var j = 0; j < NamedColorList.ColorantCount; j++)
                 Out[j] = 0.0f;
         }

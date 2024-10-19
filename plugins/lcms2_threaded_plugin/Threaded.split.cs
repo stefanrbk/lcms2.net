@@ -85,7 +85,7 @@ public static partial class Threaded
             // We allow large number of threads, but this is not going to work well. Warn it.
             if (MaxWorkers > MaxCPUs)
             {
-                cmsSignalError(null, cmsERROR_RANGE,
+                LogError(null, cmsERROR_RANGE,
                     "Warning: too many threads for actual processor (CPUs={0}, asked={1})", MaxCPUs, MaxWorkers);
             }
         }

@@ -124,7 +124,7 @@ public static partial class Lcms2
         if (ResData.Pointer + len > ResData.Size)
         {
             len = ResData.Size - ResData.Pointer;
-            cmsSignalError(iohandler.ContextID, ErrorCodes.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
+            LogError(iohandler.ContextID, ErrorCodes.Read, $"Read from memory error. Got {len} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -144,7 +144,7 @@ public static partial class Lcms2
 
         if (offset > ResData.Size)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCodes.Seek, "Too few data; probably corrupted profile");
+            LogError(iohandler.ContextID, ErrorCodes.Seek, "Too few data; probably corrupted profile");
             return false;
         }
 
@@ -215,7 +215,7 @@ public static partial class Lcms2
 
                 if (Buffer.IsEmpty)
                 {
-                    cmsSignalError(ContextID, ErrorCodes.Read, "Couldn't read profile from NULL pointer");
+                    LogError(ContextID, ErrorCodes.Read, "Couldn't read profile from NULL pointer");
                     goto Error;
                 }
 
@@ -253,7 +253,7 @@ public static partial class Lcms2
                 break;
 
             default:
-                cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Unknown access mode '{AccessMode}'");
+                LogError(ContextID, ErrorCodes.UnknownExtension, $"Unknown access mode '{AccessMode}'");
                 return null;
         }
 
@@ -285,7 +285,7 @@ public static partial class Lcms2
 
         if (nReaded != count)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCodes.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
+            LogError(iohandler.ContextID, ErrorCodes.File, $"Read error. Got {nReaded * size} bytes, block should be of {count * size} bytes");
             return 0;
         }
 
@@ -300,7 +300,7 @@ public static partial class Lcms2
 
         if (fseek(file, offset, SEEK_SET) is not 0)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCodes.File, "Seek error; probably corrupted file");
+            LogError(iohandler.ContextID, ErrorCodes.File, "Seek error; probably corrupted file");
             return false;
         }
 
@@ -316,7 +316,7 @@ public static partial class Lcms2
         var t = ftell(file);
         if (t is -1)
         {
-            cmsSignalError(iohandler.ContextID, ErrorCodes.File, "Tell error; probably corrupted file");
+            LogError(iohandler.ContextID, ErrorCodes.File, "Tell error; probably corrupted file");
             return 0;
         }
 
@@ -362,7 +362,7 @@ public static partial class Lcms2
                 if (fm is null)
                 {
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCodes.File, $"File '{FileName}' not found");
+                    LogError(ContextID, ErrorCodes.File, $"File '{FileName}' not found");
                     return null;
                 }
                 fileLen = (int)cmsfilelength(fm);
@@ -370,7 +370,7 @@ public static partial class Lcms2
                 {
                     fclose(fm);
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCodes.File, $"Cannot get size of file '{FileName}'");
+                    LogError(ContextID, ErrorCodes.File, $"Cannot get size of file '{FileName}'");
                     return null;
                 }
 
@@ -382,7 +382,7 @@ public static partial class Lcms2
                 if (fm is null)
                 {
                     //_cmsFree(ContextID, iohandler);
-                    cmsSignalError(ContextID, ErrorCodes.File, $"Couldn't create '{FileName}'");
+                    LogError(ContextID, ErrorCodes.File, $"Couldn't create '{FileName}'");
                     return null;
                 }
 
@@ -421,7 +421,7 @@ public static partial class Lcms2
         var fileSize = cmsfilelength(file);
         if (fileSize < 0)
         {
-            cmsSignalError(ContextID, ErrorCodes.File, "Cannot get size of stream");
+            LogError(ContextID, ErrorCodes.File, "Cannot get size of stream");
             return null;
             //goto Error;
         }
@@ -613,7 +613,7 @@ public static partial class Lcms2
             // No, make a new one
             if (Icc.Tags.Count >= MAX_TABLE_TAG)
             {
-                cmsSignalError(Icc.ContextID, ErrorCodes.Range, $"Too many tags ({MAX_TABLE_TAG})");
+                LogError(Icc.ContextID, ErrorCodes.Range, $"Too many tags ({MAX_TABLE_TAG})");
                 NewPos = -1;
                 return false;
             }
@@ -704,7 +704,7 @@ public static partial class Lcms2
         // Validate file as an ICC profile
         if (_cmsAdjustEndianess32(Header.magic) != cmsMagicNumber)
         {
-            cmsSignalError(Icc.ContextID, ErrorCodes.BadSignature, "not an Icc profile, invalid signature");
+            LogError(Icc.ContextID, ErrorCodes.BadSignature, "not an Icc profile, invalid signature");
             return false;
         }
 
@@ -726,13 +726,13 @@ public static partial class Lcms2
 
         if (Icc.Version > 0x5000000)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported profile version '0x{0:x}'", Icc.Version);
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported profile version '0x{0:x}'", Icc.Version);
             return false;
         }
 
         if (!validDeviceClass(Icc.DeviceClass))
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported device class '0x{0:x}'", (uint)Icc.DeviceClass);
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, "Unsupported device class '0x{0:x}'", (uint)Icc.DeviceClass);
             return false;
         }
 
@@ -753,7 +753,7 @@ public static partial class Lcms2
         if (!_cmsReadUInt32Number(io, out TagCount)) return false;
         if (TagCount > MAX_TABLE_TAG)
         {
-            cmsSignalError(Icc.ContextID, ErrorCodes.Range, $"Too many tags({TagCount})");
+            LogError(Icc.ContextID, ErrorCodes.Range, $"Too many tags({TagCount})");
             return false;
         }
 
@@ -815,7 +815,7 @@ public static partial class Lcms2
                 // Tags cannot be duplicate
                 if ((i != j) && (Icc.Tags[i].Name == Icc.Tags[j].Name))
                 {
-                    cmsSignalError(Icc.ContextID, cmsERROR_RANGE, "Duplicate tag found");
+                    LogError(Icc.ContextID, cmsERROR_RANGE, "Duplicate tag found");
                     return false;
                 }
             }
@@ -1239,7 +1239,7 @@ public static partial class Lcms2
 
                 if (TypeHandler is null)
                 {
-                    cmsSignalError(Icc.ContextID, cmsERROR_INTERNAL, $"(Internal) no handler for tag {Tag.Name:x}");
+                    LogError(Icc.ContextID, cmsERROR_INTERNAL, $"(Internal) no handler for tag {Tag.Name:x}");
                     Icc.Tags[i] = Tag;
                     continue;
                 }
@@ -1253,7 +1253,7 @@ public static partial class Lcms2
                 LocalTypeHandler.ICCVersion = Icc.Version;
                 if (!LocalTypeHandler.WritePtr(LocalTypeHandler, io, Data, TagDescriptor.ElemCount))
                 {
-                    cmsSignalError(Icc.ContextID, cmsERROR_WRITE, $"Couldn't write type '{_cmsTagSignature2String(TypeBase)}'");
+                    LogError(Icc.ContextID, cmsERROR_WRITE, $"Couldn't write type '{_cmsTagSignature2String(TypeBase)}'");
                     return false;
                 }
             }
@@ -1518,7 +1518,7 @@ public static partial class Lcms2
 
         if (io is null)     // This is a built-in profile that has been manipulated, abort early
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, "Corrupted built-in profile");
+            LogError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, "Corrupted built-in profile");
             goto Error;
         }
         // Seek to its location
@@ -1530,7 +1530,7 @@ public static partial class Lcms2
         if (TagDescriptor is null)
         {
             // An unknown element was found.
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{_cmsTagSignature2String(sig)}' found.");
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unknown tag type '{_cmsTagSignature2String(sig)}' found.");
             goto Error;     // Unsupported
         }
 
@@ -1557,7 +1557,7 @@ public static partial class Lcms2
         // let the user know about this (although it is just a warning)
         if (tag.TagObject is null)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{_cmsTagSignature2String(sig)}'");
+            LogError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED, $"Corrupted tag '{_cmsTagSignature2String(sig)}'");
             goto Error2;
         }
 
@@ -1565,7 +1565,7 @@ public static partial class Lcms2
         // stored items is actuall less than the number of required elements.
         if (ElemCount < TagDescriptor.ElemCount)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED,
+            LogError(Icc.ContextID, cmsERROR_CORRUPTION_DETECTED,
                 $"'{_cmsTagSignature2String(sig)}' Inconsistent number of items: expected {TagDescriptor.ElemCount}, got {ElemCount}");
             goto Error2;
         }
@@ -1640,7 +1640,7 @@ public static partial class Lcms2
         var TagDescriptor = _cmsGetTagDescriptor(Icc.ContextID, sig);
         if (TagDescriptor is null)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{_cmsTagSignature2String(sig)}'");
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 
@@ -1664,7 +1664,7 @@ public static partial class Lcms2
         // Does the tag support this type?
         if (!IsTypeSupported(TagDescriptor, Type))
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 
@@ -1672,7 +1672,7 @@ public static partial class Lcms2
         var TypeHandler = _cmsGetTagTypeHandler(Icc.ContextID, Type);
         if (TypeHandler is null)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Unsupported type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;     // Should never happen
         }
 
@@ -1689,7 +1689,7 @@ public static partial class Lcms2
 
         if (tag.TagObject is null)
         {
-            cmsSignalError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
+            LogError(Icc.ContextID, cmsERROR_UNKNOWN_EXTENSION, $"Malformed struct in type '{_cmsTagSignature2String(Type)}' for tag '{_cmsTagSignature2String(sig)}'");
             goto Error;
         }
 

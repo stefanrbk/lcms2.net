@@ -264,7 +264,7 @@ public static partial class Lcms2
 
         if (sp.r < 0 || sp.alpha < 0 || sp.theta < 0)
         {
-            cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "spherical value out of range");
+            LogError(gbd.ContextID, cmsERROR_RANGE, "spherical value out of range");
             //return null;
             return ref Unsafe.NullRef<GBDPoint>();
         }
@@ -274,7 +274,7 @@ public static partial class Lcms2
 
         if (alpha is < 0 or >= SECTORS || theta is < 0 or >= SECTORS)
         {
-            cmsSignalError(gbd.ContextID, cmsERROR_RANGE, "quadrant out of range");
+            LogError(gbd.ContextID, cmsERROR_RANGE, "quadrant out of range");
             //return null;
             return ref Unsafe.NullRef<GBDPoint>();
         }

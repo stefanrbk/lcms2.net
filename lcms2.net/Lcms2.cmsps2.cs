@@ -766,7 +766,7 @@ public static partial class Lcms2
 
         if (xform is null)
         {
-            cmsSignalError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Cannot create transform Profile -> Lab");
+            LogError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Cannot create transform Profile -> Lab");
             return false;
         }
 
@@ -810,7 +810,7 @@ public static partial class Lcms2
 
             default:
                 cmsDeleteTransform(xform);
-                cmsSignalError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Only 3, 4 channels are supported for CSA. This profile has {0} channels.", nChannels);
+                LogError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Only 3, 4 channels are supported for CSA. This profile has {0} channels.", nChannels);
                 return false;
         }
 
@@ -849,7 +849,7 @@ public static partial class Lcms2
         }
         else
         {
-            cmsSignalError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Profile is not suitable for CSA. Unsupported colorspace.");
+            LogError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Profile is not suitable for CSA. Unsupported colorspace.");
             return false;
         }
 
@@ -923,7 +923,7 @@ public static partial class Lcms2
 
             if ((uint)ColorSpace is not cmsSigXYZData and not cmsSigLabData)
             {
-                cmsSignalError(ContextID, cmsERROR_COLORSPACE_CHECK, "Invalid output color space");
+                LogError(ContextID, cmsERROR_COLORSPACE_CHECK, "Invalid output color space");
                 goto Error;
             }
 
@@ -1075,7 +1075,7 @@ public static partial class Lcms2
 
         if (xform is null)
         {
-            cmsSignalError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Cannot create transform Lab -> Profile in CRD creation");
+            LogError(m.ContextID, cmsERROR_COLORSPACE_CHECK, "Cannot create transform Lab -> Profile in CRD creation");
             return false;
         }
 
@@ -1085,7 +1085,7 @@ public static partial class Lcms2
         if (DeviceLink is null)
         {
             cmsDeleteTransform(xform);
-            cmsSignalError(m.ContextID, cmsERROR_CORRUPTION_DETECTED, "Cannot access link for CRD");
+            LogError(m.ContextID, cmsERROR_CORRUPTION_DETECTED, "Cannot access link for CRD");
             return false;
         }
 
@@ -1095,7 +1095,7 @@ public static partial class Lcms2
         {
             cmsPipelineFree(DeviceLink);
             cmsDeleteTransform(xform);
-            cmsSignalError(m.ContextID, cmsERROR_CORRUPTION_DETECTED, "Cannot create CLUT table for CRD");
+            LogError(m.ContextID, cmsERROR_CORRUPTION_DETECTED, "Cannot create CLUT table for CRD");
             return false;
         }
 
