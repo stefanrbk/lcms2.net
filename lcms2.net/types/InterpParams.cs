@@ -41,9 +41,13 @@ public class InterpParams<T> : ICloneable, IDisposable
     public InterpFunction? Interpolation;
     private bool disposedValue;
 
-    public InterpParams(Context? context)
+    private InterpParams(Context? context, uint inputs, uint outputs, uint flags)
     {
         ContextID = context;
+
+        nInputs = inputs;
+        nOutputs = outputs;
+        dwFlags = flags;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -65,11 +69,8 @@ public class InterpParams<T> : ICloneable, IDisposable
 
     public InterpParams<T> Clone()
     {
-        var result = new InterpParams<T>(ContextID)
+        var result = new InterpParams<T>(ContextID, nInputs, nOutputs, dwFlags)
         {
-            dwFlags = dwFlags,
-            nInputs = nInputs,
-            nOutputs = nOutputs,
             Table = Table,
             Interpolation = Interpolation,
         };
