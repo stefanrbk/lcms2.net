@@ -1862,7 +1862,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static ILogger GetLogger(Context? context)
     {
-        context = _cmsGetContext(context);
+        context = Context.Get(context);
 
         lock (loggers)
         {

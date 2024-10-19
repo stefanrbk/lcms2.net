@@ -62,7 +62,7 @@ public static partial class Lcms2
     }
 
     private static Intent? SearchIntent(Context? ContextID, uint Intent) =>
-        _cmsGetContext(ContextID).IntentsPlugin.Intents
+        Context.Get(ContextID).IntentsPlugin.Intents
             .Concat(defaultIntents)
             .FirstOrDefault(i => i == Intent);
 
@@ -124,7 +124,7 @@ public static partial class Lcms2
     {
         var ChromaticityOfWhite = cmsWhitePointFromTemp(Temp);
         var White = cmsxyY2XYZ(ChromaticityOfWhite);
-        return _cmsAdaptationMatrix(null, White, D50XYZ);
+        return ChAd.AdaptationMatrix(null, White, D50XYZ);
     }
 
     private static MAT3 ComputeAbsoluteIntent(
@@ -926,7 +926,7 @@ public static partial class Lcms2
 
     public static uint cmsGetSupportedIntentsTHR(Context? ContextID, uint nMax, Span<uint> Codes, Span<string> Descriptions)
     {
-        var ctx = _cmsGetContext(ContextID).IntentsPlugin;
+        var ctx = Context.Get(ContextID).IntentsPlugin;
 
         var i = 0;
         foreach (var intent in defaultIntents.Concat(ctx.Intents).Take((int)nMax))
@@ -947,7 +947,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterRenderingIntentPlugin(Context? id, PluginBase? Data)
     {
-        var ctx = _cmsGetContext(id).IntentsPlugin;
+        var ctx = Context.Get(id).IntentsPlugin;
 
         // Do we have to reset the custom intents?
         if (Data is not PluginRenderingIntent Plugin)

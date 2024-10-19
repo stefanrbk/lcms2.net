@@ -81,7 +81,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterParametricCurvesPlugin(Context? ContextID, PluginBase? Data)
     {
-        var ctx = _cmsGetContext(ContextID).CurvesPlugin;
+        var ctx = Context.Get(ContextID).CurvesPlugin;
 
         if (Data is not PluginParametricCurves Plugin)
         {
@@ -108,7 +108,7 @@ public static partial class Lcms2
     private static ParametricCurve? GetParametricCurveByType(Context? ContextID, int Type, out int indices)
     {
         int Position;
-        var ctx = _cmsGetContext(ContextID).CurvesPlugin;
+        var ctx = Context.Get(ContextID).CurvesPlugin;
 
         foreach (var c in ctx.ParametricCurves)
         {
@@ -228,7 +228,7 @@ public static partial class Lcms2
             {
                 // Type 0 is a special marker for table-based curves
                 if (Segments[i].Type == 0)
-                    p.SegInterp[i] = _cmsComputeInterpParams<float>(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
+                    p.SegInterp[i] = InterpParams<float>.Create(ContextID, Segments[i].nGridPoints, 1, 1, null, LerpFlag.Float);
 
                 //memcpy(&p->Segments[i], &Segments[i], _sizeof<CurveSegment>());
                 p.Segments[i] = Segments[i];
@@ -246,7 +246,7 @@ public static partial class Lcms2
             }
         }
 
-        p.InterpParams = _cmsComputeInterpParams(ContextID, p.nEntries, 1, 1, p.Table16.AsMemory(), LerpFlag.Ushort);
+        p.InterpParams = InterpParams<ushort>.Create(ContextID, p.nEntries, 1, 1, p.Table16.AsMemory(), LerpFlag.Ushort);
         if (p.InterpParams is not null)
             return p;
 
@@ -800,7 +800,7 @@ public static partial class Lcms2
 
         var ContextID = Curve.InterpParams.ContextID;
 
-        _cmsFreeInterpParams(Curve.InterpParams);
+        Curve.InterpParams.Dispose();
 
         //if (Curve.Table16 is not null)
         //    ReturnArray(ContextID, Curve.Table16);
@@ -813,9 +813,7 @@ public static partial class Lcms2
                 //    ReturnArray(ContextID, Curve.Segments[i].SampledPoints);
 
                 //ReturnArray(ContextID, Curve.Segments[i].Params);
-
-                if (Curve.SegInterp[i] is not null)
-                    _cmsFreeInterpParams(Curve.SegInterp[i]);
+                Curve.SegInterp?[i]?.Dispose();
             }
 
             //ReturnArray(ContextID, Curve.Segments);

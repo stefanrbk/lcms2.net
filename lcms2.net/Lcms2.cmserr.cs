@@ -227,7 +227,7 @@ public static partial class Lcms2
     //        Plugin.ReallocPtr is null) return false;
 
     //    // Set replacement functions
-    //    ref var ptr = ref _cmsGetContext(ContextID).MemPlugin;
+    //    ref var ptr = ref Context.Get(ContextID).MemPlugin;
     //    if (ptr == null) return false;
 
     //    _cmsInstallAllocFunctions(Plugin, ref ptr);
@@ -237,7 +237,7 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static void* _cmsMalloc(Context? ContextID, uint size, Type type)
     //{
-    //    var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //    var ptr = Context.Get(ContextID).MemPlugin;
     //    return ptr.MallocPtr(ContextID, size, type);
     //}
     //[DebuggerStepThrough]
@@ -252,7 +252,7 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static void* _cmsMallocZero(Context? ContextID, uint size, Type type)
     //{
-    //    var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //    var ptr = Context.Get(ContextID).MemPlugin;
     //    return ptr.MallocZeroPtr(ContextID, size, type);
     //}
     //[DebuggerStepThrough]
@@ -269,7 +269,7 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static T[] GetArray<T>(Context? ContextID, uint count) where T : struct
     //{
-    //    var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+    //    var pool = Context.Get(ContextID).GetBufferPool<T>();
     //    var array = pool.Rent((int)count);
     //    Array.Clear(array);
 
@@ -278,7 +278,7 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static void* _cmsCalloc(Context? ContextID, uint num, uint size, Type type)
     //{
-    //    var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //    var ptr = Context.Get(ContextID).MemPlugin;
     //    return ptr.CallocPtr(ContextID, num, size, type);
     //}
 
@@ -294,14 +294,14 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static void* _cmsRealloc(Context? ContextID, void* Ptr, uint size)
     //{
-    //    var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //    var ptr = Context.Get(ContextID).MemPlugin;
     //    return ptr.ReallocPtr(ContextID, Ptr, size);
     //}
 
     [DebuggerStepThrough]
     internal static T[] _cmsRealloc<T>(Context? ContextID, T[] array, uint count) where T : struct
     {
-        //var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        //var pool = Context.Get(ContextID).GetBufferPool<T>();
 
         //var newBuffer = pool.Rent((int)count);
 
@@ -335,7 +335,7 @@ public static partial class Lcms2
     //[DebuggerStepThrough]
     //internal static void ReturnArray<T>(Context? ContextID, T[]? array)
     //{
-    //    var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+    //    var pool = Context.Get(ContextID).GetBufferPool<T>();
     //    ReturnArray(pool, array);
     //}
 
@@ -344,7 +344,7 @@ public static partial class Lcms2
     //{
     //    if (Ptr is not null)
     //    {
-    //        var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //        var ptr = Context.Get(ContextID).MemPlugin;
     //        ptr.FreePtr(ContextID, Ptr);
     //    }
     //}
@@ -356,14 +356,14 @@ public static partial class Lcms2
     //    if (Org is null)
     //        return null;
 
-    //    var ptr = _cmsGetContext(ContextID).MemPlugin;
+    //    var ptr = Context.Get(ContextID).MemPlugin;
     //    return ptr.DupPtr(ContextID, Org, size, type);
     //}
 
     [DebuggerStepThrough]
     internal static T[] _cmsDupMem<T>(Context? ContextID, ReadOnlySpan<T> Org, uint num) where T : struct
     {
-        //var pool = _cmsGetContext(ContextID).GetBufferPool<T>();
+        //var pool = Context.Get(ContextID).GetBufferPool<T>();
         //var array = pool.Rent((int)num);
         var array = new T[num];
 
@@ -636,7 +636,7 @@ public static partial class Lcms2
     internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
     {
         var Plugin = (PluginMutex?)data;
-        var ctx = _cmsGetContext(context).MutexPlugin;
+        var ctx = Context.Get(context).MutexPlugin;
 
         if (data is null)
         {
@@ -663,7 +663,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static object? _cmsCreateMutex(Context? context)
     {
-        var ptr = _cmsGetContext(context).MutexPlugin;
+        var ptr = Context.Get(context).MutexPlugin;
 
         return ptr?.CreateFn?.Invoke(context);
     }
@@ -671,7 +671,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static void _cmsDestroyMutex(Context? context, object? mutex)
     {
-        var ptr = _cmsGetContext(context).MutexPlugin;
+        var ptr = Context.Get(context).MutexPlugin;
 
         ptr?.DestroyFn?.Invoke(context, mutex);
     }
@@ -679,7 +679,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static bool _cmsLockMutex(Context? context, object? mutex)
     {
-        var ptr = _cmsGetContext(context).MutexPlugin;
+        var ptr = Context.Get(context).MutexPlugin;
 
         return ptr?.LockFn?.Invoke(context, mutex) ?? false;
     }
@@ -687,7 +687,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     internal static void _cmsUnlockMutex(Context? context, object? mutex)
     {
-        var ptr = _cmsGetContext(context).MutexPlugin;
+        var ptr = Context.Get(context).MutexPlugin;
 
         ptr?.UnlockFn?.Invoke(context, mutex);
     }
@@ -710,7 +710,7 @@ public static partial class Lcms2
     internal static bool _cmsRegisterParallelizationPlugin(Context? context, PluginBase? data)
     {
         var Plugin = (PluginParalellization?)data;
-        var ctx = _cmsGetContext(context).ParallelizationPlugin;
+        var ctx = Context.Get(context).ParallelizationPlugin;
 
         if (data is null)
         {

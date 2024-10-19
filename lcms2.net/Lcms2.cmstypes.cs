@@ -163,8 +163,8 @@ public static partial class Lcms2
     private static bool RegisterTypesPlugin(Context? id, PluginBase? Data, Chunks pos)
     {
         var ctx = pos is Chunks.MPEPlugin
-            ? _cmsGetContext(id).MPEPlugin
-            : _cmsGetContext(id).TagTypePlugin;
+            ? Context.Get(id).MPEPlugin
+            : Context.Get(id).TagTypePlugin;
 
         // Calling the function with NULL as plug-in would unregister the plug in
         if (Data is null)
@@ -3406,7 +3406,7 @@ public static partial class Lcms2
         if (Cargo is not Pipeline NewLUT)
             return false;
 
-        var MPETypePluginChunk = _cmsGetContext(self.ContextID).MPEPlugin;
+        var MPETypePluginChunk = Context.Get(self.ContextID).MPEPlugin;
 
         // Take signature and channels for each element.
         if (!_cmsReadSignature(io, out var ElementSig)) return false;
@@ -3478,7 +3478,7 @@ public static partial class Lcms2
             return false;
 
         var Elem = Lut.Elements;
-        var MPETypePluginChunk = _cmsGetContext(self.ContextID).MPEPlugin;
+        var MPETypePluginChunk = Context.Get(self.ContextID).MPEPlugin;
 
         var BaseOffset = io.Tell(io) - (sizeof(uint) * 2);
 
@@ -3793,7 +3793,7 @@ public static partial class Lcms2
 
     private static bool AllocElem(Context? ContextID, out DICelem e, uint Count)
     {
-        //var pool = _cmsGetContext(ContextID).GetBufferPool<uint>();
+        //var pool = Context.Get(ContextID).GetBufferPool<uint>();
 
         e = new DICelem
         {
@@ -4908,7 +4908,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterTagPlugin(Context? id, PluginBase? Data)
     {
-        var TagPluginChunk = _cmsGetContext(id).TagPlugin;
+        var TagPluginChunk = Context.Get(id).TagPlugin;
 
         if (Data is null)
         {
@@ -4935,14 +4935,14 @@ public static partial class Lcms2
 
     internal static TagTypeHandler? _cmsGetTagTypeHandler(Context? ContextID, Signature sig)
     {
-        var ctx = _cmsGetContext(ContextID).TagTypePlugin;
+        var ctx = Context.Get(ContextID).TagTypePlugin;
 
         return GetHandler(sig, ctx.List, supportedTagTypes);
     }
 
     internal static TagDescriptor? _cmsGetTagDescriptor(Context? ContextID, Signature sig)
     {
-        var TagPluginChunk = _cmsGetContext(ContextID).TagPlugin;
+        var TagPluginChunk = Context.Get(ContextID).TagPlugin;
 
         foreach (var pt in TagPluginChunk.List)
             if (sig == pt.Signature) return pt.Descriptor;

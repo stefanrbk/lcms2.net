@@ -127,7 +127,7 @@ public static partial class Lcms2
                     Dest.Value = MAT3.Identity;
                     return true;
                 }
-                return !_cmsAdaptationMatrix(null, White.Value, D50XYZ).IsNaN;
+                return !ChAd.AdaptationMatrix(null, White.Value, D50XYZ).IsNaN;
             }
         }
 
@@ -540,14 +540,14 @@ public static partial class Lcms2
                 if (Stage.Data is StageCLutData<float> CLUTf)
                 {
                     CLUTf.Params.dwFlags |= (uint)LerpFlag.Trilinear;
-                    _cmsSetInterpolationRoutine(Lut?.ContextID, CLUTf.Params);
+                    CLUTf.Params.SetInterpolationRoutine(Lut?.ContextID);
                 }
                 else
                 {
                     var CLUT = Stage.Data as StageCLutData<ushort>;
 
                     CLUT!.Params.dwFlags |= (uint)LerpFlag.Trilinear;
-                    _cmsSetInterpolationRoutine(Lut?.ContextID, CLUT.Params);
+                    CLUT.Params.SetInterpolationRoutine(Lut?.ContextID);
                 }
             }
         }

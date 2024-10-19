@@ -134,7 +134,7 @@ public static partial class Lcms2
                 goto Error;
 
             WhitePointXYZ = cmsxyY2XYZ(WhitePoint.Value);
-            CHAD = _cmsAdaptationMatrix(null, WhitePointXYZ, D50XYZ);
+            CHAD = ChAd.AdaptationMatrix(null, WhitePointXYZ, D50XYZ);
 
             // This is a V4 tag, but many CMM does read and understand it no matter which version
             chad = CHAD.AsArray(/*pool*/);

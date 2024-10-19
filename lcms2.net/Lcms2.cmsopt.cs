@@ -425,7 +425,7 @@ public static partial class Lcms2
                 if (!isFloatMatrixIdentity(res))
                 {
                     // We can not get rid of full matrix
-                    var ctx = _cmsGetContext(Lut.ContextID);
+                    var ctx = Context.Get(Lut.ContextID);
                     //var pool = ctx.GetBufferPool<double>();
                     var resArray = res.AsArray(/*pool*/);
                     var Multmat = cmsStageAllocMatrix(Lut.ContextID, 3, 3, resArray, null);
@@ -1794,7 +1794,7 @@ public static partial class Lcms2
 
         if (!IdentityMat)
         {
-            //var pool = _cmsGetContext(Src.ContextID).GetBufferPool<double>();
+            //var pool = Context.Get(Src.ContextID).GetBufferPool<double>();
             var resArray = res.AsArray(/*pool*/);
             if (!cmsPipelineInsertStage(Dest, StageLoc.AtEnd, cmsStageAllocMatrix(Dest.ContextID, 3, 3, resArray, Offset)))
             {
@@ -1852,7 +1852,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterOptimizationPlugin(Context? id, PluginBase? Data)
     {
-        var ctx = _cmsGetContext(id).OptimizationPlugin;
+        var ctx = Context.Get(id).OptimizationPlugin;
         if (Data is not PluginOptimization Plugin)
         {
             ctx.List.Clear();
@@ -1886,7 +1886,7 @@ public static partial class Lcms2
         ref uint OutputFormat,
         ref uint dwFlags)
     {
-        var ctx = _cmsGetContext(ContextID).OptimizationPlugin;
+        var ctx = Context.Get(ContextID).OptimizationPlugin;
         var AnySuccess = false;
 
         // A CLUT is being asked, so force this specific optimization

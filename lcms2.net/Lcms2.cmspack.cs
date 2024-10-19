@@ -2726,7 +2726,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterFormattersPlugin(Context? ContextID, PluginBase? Data)
     {
-        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
+        var ctx = Context.Get(ContextID).FormattersPlugin;
 
         // Reset to build-in defaults
         if (Data is not PluginFormatters Plugin)
@@ -2748,7 +2748,7 @@ public static partial class Lcms2
 
     internal static FormatterIn _cmsGetFormatterIn(Context? ContextID, uint Type, PackFlags dwFlags)
     {
-        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
+        var ctx = Context.Get(ContextID).FormattersPlugin;
 
         if (T_CHANNELS(Type) is 0)
             return default;
@@ -2765,7 +2765,7 @@ public static partial class Lcms2
 
     internal static FormatterOut _cmsGetFormatterOut(Context? ContextID, uint Type, PackFlags dwFlags)
     {
-        var ctx = _cmsGetContext(ContextID).FormattersPlugin;
+        var ctx = Context.Get(ContextID).FormattersPlugin;
 
         if (T_CHANNELS(Type) is 0)
             return default;

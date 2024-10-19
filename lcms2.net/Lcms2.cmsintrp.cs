@@ -53,7 +53,7 @@ public static partial class Lcms2
     internal static bool _cmsRegisterInterpPlugin(Context? ctx, PluginBase? Data)
     {
         var Plugin = (PluginInterpolation?)Data;
-        var ptr = _cmsGetContext(ctx).InterpPlugin;
+        var ptr = Context.Get(ctx).InterpPlugin;
 
         if (Data is not null)
         {

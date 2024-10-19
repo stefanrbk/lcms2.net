@@ -171,7 +171,7 @@ public class InterpParams<T> : ICloneable, IDisposable
 
     internal bool SetInterpolationRoutine(Context? ctx) // _cmsSetInterpolationRoutine
     {
-        var ptr = _cmsGetContext(ctx).InterpPlugin;
+        var ptr = Context.Get(ctx).InterpPlugin;
 
         Interpolation = null;
 

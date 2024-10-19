@@ -472,12 +472,12 @@ public static partial class Lcms2
                 DataF.TFloat.CopyTo(NewElem.TFloat);
             }
 
-            var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
-                                                    DataF.Params.nSamples,
-                                                    DataF.Params.nInputs,
-                                                    DataF.Params.nOutputs,
-                                                    NewElem.Tab,
-                                                    (LerpFlag)DataF.Params.dwFlags)!;
+            var @params = InterpParams<float>.Create(mpe.ContextID,
+                                                     DataF.Params.nSamples,
+                                                     DataF.Params.nInputs,
+                                                     DataF.Params.nOutputs,
+                                                     NewElem.Tab,
+                                                     (LerpFlag)DataF.Params.dwFlags)!;
             if (@params is not null)
             {
                 NewElem.Params = @params;
@@ -503,12 +503,12 @@ public static partial class Lcms2
                 Data.TUshort.CopyTo(NewElem.TUshort);
             }
 
-            var @params = _cmsComputeInterpParamsEx(mpe.ContextID,
-                                                    Data.Params.nSamples,
-                                                    Data.Params.nInputs,
-                                                    Data.Params.nOutputs,
-                                                    NewElem.Tab,
-                                                    (LerpFlag)Data.Params.dwFlags)!;
+            var @params = InterpParams<ushort>.Create(mpe.ContextID,
+                                                      Data.Params.nSamples,
+                                                      Data.Params.nInputs,
+                                                      Data.Params.nOutputs,
+                                                      NewElem.Tab,
+                                                      (LerpFlag)Data.Params.dwFlags)!;
             if (@params is not null)
             {
                 NewElem.Params = @params;
@@ -534,7 +534,7 @@ public static partial class Lcms2
             //ReturnArray(mpe.ContextID, DataF.Tab);
             DataF.Tab = null;
 
-            _cmsFreeInterpParams(DataF.Params);
+            DataF.Params.Dispose();
         }
 
         if (mpe.Data is StageCLutData<ushort> DataU)
@@ -542,7 +542,7 @@ public static partial class Lcms2
             //ReturnArray(mpe.ContextID, DataU.Tab);
             DataU.Tab = null;
 
-            _cmsFreeInterpParams(DataU.Params);
+            DataU.Params.Dispose();
         }
     }
 
@@ -601,7 +601,7 @@ public static partial class Lcms2
             }
         }
 
-        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Ushort);
+        NewElem.Params = InterpParams<ushort>.Create(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Ushort);
         if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);
@@ -704,7 +704,7 @@ public static partial class Lcms2
             }
         }
 
-        NewElem.Params = _cmsComputeInterpParamsEx(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Float);
+        NewElem.Params = InterpParams<float>.Create(ContextID, clutPoints, inputChan, outputChan, NewElem.Tab, LerpFlag.Float);
         if (NewElem.Params is null)
         {
             cmsStageFree(NewMPE);

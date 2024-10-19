@@ -65,7 +65,7 @@ public static partial class Lcms2
     [DebuggerStepThrough]
     public static double cmsSetAdaptationStateTHR(Context? context, double d)
     {
-        var ptr = _cmsGetContext(context).AdaptationState;
+        var ptr = Context.Get(context).AdaptationState;
 
         // Get previous value for return
         var prev = ptr.AdaptationState;
@@ -83,7 +83,7 @@ public static partial class Lcms2
 
     public static void cmsSetAlarmCodesTHR(Context? context, ReadOnlySpan<ushort> AlarmCodesP)
     {
-        var contextAlarmCodes = _cmsGetContext(context).AlarmCodes;
+        var contextAlarmCodes = Context.Get(context).AlarmCodes;
         _cmsAssert(contextAlarmCodes); // Can't happen
         for (var i = 0; i < cmsMAXCHANNELS; i++)
             contextAlarmCodes.AlarmCodes[i] = AlarmCodesP[i];
@@ -91,7 +91,7 @@ public static partial class Lcms2
 
     public static void cmsGetAlarmCodesTHR(Context? context, Span<ushort> AlarmCodesP)
     {
-        var contextAlarmCodes = _cmsGetContext(context).AlarmCodes;
+        var contextAlarmCodes = Context.Get(context).AlarmCodes;
         _cmsAssert(contextAlarmCodes); // Can't happen
         for (var i = 0; i < cmsMAXCHANNELS; i++)
             AlarmCodesP[i] = contextAlarmCodes.AlarmCodes[i];
@@ -565,7 +565,7 @@ public static partial class Lcms2
         p.GamutCheck.Eval16Fn(wIn, wOutOfGamut, p.GamutCheck.Data);
         if (wOutOfGamut[0] >= 1)
         {
-            var ContextAlarmCodes = _cmsGetContext(p.ContextID).AlarmCodes;
+            var ContextAlarmCodes = Context.Get(p.ContextID).AlarmCodes;
 
             for (var i = 0; i < p.Lut.OutputChannels; i++)
                 wOut[i] = ContextAlarmCodes.AlarmCodes[i];
@@ -784,7 +784,7 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterTransformPlugin(Context? id, PluginBase? Data)
     {
-        var ctx = _cmsGetContext(id).TransformPlugin;
+        var ctx = Context.Get(id).TransformPlugin;
 
         if (Data is null)
         {
@@ -817,7 +817,7 @@ public static partial class Lcms2
 
     private static void ParalellizeIfSuitable(Transform p)
     {
-        var ctx = _cmsGetContext(p.ContextID).ParallelizationPlugin;
+        var ctx = Context.Get(p.ContextID).ParallelizationPlugin;
 
         _cmsAssert(p);
         if (ctx?.SchedulerFn is not null)
@@ -843,7 +843,7 @@ public static partial class Lcms2
         ref uint OutputFormat,
         ref uint dwFlags)
     {
-        var ctx = _cmsGetContext(ContextID).TransformPlugin;
+        var ctx = Context.Get(ContextID).TransformPlugin;
         //var pool = Context.GetPool<ushort>(ContextID);
 
         // Allocate needed memory
