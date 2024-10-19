@@ -43,7 +43,10 @@ public class InterpParams<T> : ICloneable, IDisposable
     public InterpFunction? Interpolation;
     private bool disposedValue;
 
-    private InterpParams(Context? context, uint inputs, uint outputs, uint flags)
+    private InterpParams(Context? context,
+                         uint inputs,
+                         uint outputs,
+                         uint flags)
     {
         ContextID = context;
 
@@ -60,7 +63,7 @@ public class InterpParams<T> : ICloneable, IDisposable
         }
     }
 
-    public void Dispose()
+    public void Dispose()   // _cmsFreeInterpParams
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
@@ -84,7 +87,89 @@ public class InterpParams<T> : ICloneable, IDisposable
         return result;
     }
 
-    internal bool SetInterpolationRoutine(Context? ctx)
+    internal static InterpParams<T>? Create(Context? ContextID,
+                                            uint nSamples,
+                                            uint InputChan,
+                                            uint OutputChan,
+                                            T[]? Table,
+                                            LerpFlag flags) =>
+        Create(ContextID, nSamples, InputChan, OutputChan, Table?.AsMemory() ?? Memory<T>.Empty, flags);
+
+    internal static InterpParams<T>? Create(Context? ContextID,
+                                            uint nSamples,
+                                            uint InputChan,
+                                            uint OutputChan,
+                                            Memory<T> Table,
+                                            LerpFlag flags) // _cmsComputeInterpParams
+    {
+        Span<uint> Samples = stackalloc uint[MAX_INPUT_DIMENSIONS];
+
+        // Fill the auxiliary array
+        for (var i = 0; i < MAX_INPUT_DIMENSIONS; i++)
+            Samples[i] = nSamples;
+
+        // Call the extended function
+        return Create(ContextID, Samples, InputChan, OutputChan, Table, flags);
+    }
+
+    internal static InterpParams<T>? Create(Context? ContextID,
+                                            ReadOnlySpan<uint> nSamples,
+                                            uint InputChan,
+                                            uint OutputChan,
+                                            T[]? Table,
+                                            LerpFlag flags) =>
+        Create(ContextID, nSamples, InputChan, OutputChan, Table?.AsMemory() ?? Memory<T>.Empty, flags);
+
+    internal static InterpParams<T>? Create(Context? ContextID,
+                                            ReadOnlySpan<uint> nSamples,
+                                            uint InputChan,
+                                            uint OutputChan,
+                                            Memory<T> Table,
+                                            LerpFlag flags) // _cmsComputeInterpParamsEx
+    {
+        var dwFlags = (uint)flags;
+
+        // Check for maximum inputs
+        if (InputChan > MAX_INPUT_DIMENSIONS)
+        {
+            cmsSignalError(ContextID, ErrorCodes.Range, $"Too many input channels ({InputChan} channels, max={MAX_INPUT_DIMENSIONS})");
+            return null;
+        }
+
+        var p = new InterpParams<T>(ContextID, InputChan, OutputChan, dwFlags)
+        {
+            // Keep original parameters
+            nInputs = InputChan,
+            nOutputs = OutputChan,
+            Table = Table,
+            dwFlags = dwFlags
+        };
+
+        // Fill samples per input direction and domain (which is number of nodes minus one)
+        for (var i = 0; i < InputChan; i++)
+        {
+            p.nSamples[i] = nSamples[i];
+            p.Domain[i] = nSamples[i] - 1;
+        }
+
+        // Compute factors to apply to each component to index the grid array
+        p.opta[0] = p.nOutputs;
+        for (var i = 1; i < InputChan; i++)
+            p.opta[i] = p.opta[i - 1] * nSamples[(int)InputChan - i];
+
+        if (!p.SetInterpolationRoutine(ContextID))
+        {
+            cmsSignalError(ContextID, ErrorCodes.UnknownExtension, $"Unsupported interpolation ({InputChan}->{OutputChan} channels)");
+            //_cmsFree(ContextID, p);
+            p.Dispose();
+            return null;
+        }
+
+        // All seems ok
+        return p;
+    }
+
+    internal bool SetInterpolationRoutine(Context? ctx) // _cmsSetInterpolationRoutine
     {
         var ptr = _cmsGetContext(ctx).InterpPlugin;
 
@@ -797,9 +882,7 @@ public class InterpParams<T> : ICloneable, IDisposable
         k0 *= (int)p.opta[3];
         var k1 = k0 + (Fclamp(input[0]) >= 1.0 ? 0 : (int)p.opta[3]);
 
-        //var p1 = *p;
-        //memcpy(&p1.Domain[0], &p.Domain[1], 3 * sizeof(uint));
-        var p1 = ((ICloneable)p).Clone() as InterpParams<float>;
+        var p1 = p.Clone();
         p.Domain.AsSpan(1..4).CopyTo(p1.Domain.AsSpan(0..3));
 
         var t = lutTable[k0..];
@@ -839,7 +922,7 @@ public class InterpParams<T> : ICloneable, IDisposable
 
         //var p1 = *p16;
         //Buffer.MemoryCopy(&p16.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
-        var p1 = ((ICloneable)p16).Clone() as InterpParams<ushort>;
+        var p1 = p16.Clone();
         p16.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];
@@ -879,7 +962,7 @@ public class InterpParams<T> : ICloneable, IDisposable
 
         //var p1 = *p;
         //Buffer.MemoryCopy(&p.Domain[1], &p1.Domain[0], MAX_INPUT_DIMENSIONS * sizeof(uint), NM * sizeof(uint));
-        var p1 = ((ICloneable)p).Clone() as InterpParams<float>;
+        var p1 = p.Clone();
         p.Domain.AsSpan(1..N).CopyTo(p1.Domain.AsSpan(0..NM));
 
         var t = lutTable[K0..];
