@@ -24,7 +24,6 @@
 //
 //---------------------------------------------------------------------------------
 
-using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -108,7 +107,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
     public readonly bool IsNaN =>
         X.IsNaN || Y.IsNaN || Z.IsNaN;
 
-    public static MAT3 Identity =>
+    public static MAT3 Identity =>  // _cmsMAT3identity
         new(new(1, 0, 0),
             new(0, 1, 0),
             new(0, 0, 1));
@@ -116,7 +115,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
     private static bool CloseEnough(double a, double b) =>
         Math.Abs(b - a) < (1.0 / 65535.0);
 
-    public readonly bool IsIdentity =>
+    public readonly bool IsIdentity =>  // _cmsMAT3isIdentity
         CloseEnough(X.X, 1) &&
         CloseEnough(X.Y, 0) &&
         CloseEnough(X.Z, 0) &&
@@ -127,7 +126,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
         CloseEnough(Z.Y, 0) &&
         CloseEnough(Z.Z, 1);
 
-    public static MAT3 operator *(MAT3 a, MAT3 b)
+    public static MAT3 operator *(MAT3 a, MAT3 b)   // _cmsMAT3per
     {
         Span<double> av = stackalloc double[9];
         Span<double> bv = stackalloc double[9];
@@ -158,7 +157,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
             ROWCOL(av, bv, 2, 0), ROWCOL(av, bv, 2, 1), ROWCOL(av, bv, 2, 2));
     }
 
-    public readonly MAT3 Inverse
+    public readonly MAT3 Inverse    // _cmsMAT3inverse
     {
         get
         {
@@ -184,7 +183,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
         }
     }
 
-    public readonly VEC3 Solve(VEC3 vec)
+    public readonly VEC3 Solve(VEC3 vec)    // _cmsMAT3solve
     {
         var a_1 = Inverse;
         if (a_1.IsNaN) return VEC3.NaN;  // Singular matrix
@@ -192,7 +191,7 @@ public struct MAT3(VEC3 x, VEC3 y, VEC3 z)
         return a_1.Eval(vec);
     }
 
-    public readonly VEC3 Eval(VEC3 vec) =>
+    public readonly VEC3 Eval(VEC3 vec) =>  // _cmsMAT3eval
         new(
             (X.X * vec.X) + (X.Y * vec.Y) + (X.Z * vec.Z),
             (Y.X * vec.X) + (Y.Y * vec.Y) + (Y.Z * vec.Z),
