@@ -25,13 +25,9 @@
 //---------------------------------------------------------------------------------
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 
 using lcms2.io;
 using lcms2.types;
-
-using S15Fixed16Number = System.Int32;
 
 namespace lcms2;
 public static partial class Plugin
