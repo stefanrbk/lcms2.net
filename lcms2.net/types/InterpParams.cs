@@ -75,9 +75,9 @@ public class InterpParams<T> : ICloneable, IDisposable
             Interpolation = Interpolation,
         };
 
-        nSamples.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.nSamples);
-        Domain.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.Domain);
-        opta.AsSpan(..MAX_INPUT_DIMENSIONS).CopyTo(result.opta);
+        nSamples.AsSpan().CopyTo(result.nSamples);
+        Domain.AsSpan().CopyTo(result.Domain);
+        opta.AsSpan().CopyTo(result.opta);
 
         return result;
     }
