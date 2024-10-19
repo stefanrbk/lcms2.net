@@ -27,6 +27,7 @@
 global using static lcms2.Lcms2;
 global using static lcms2.Plugin;
 global using static lcms2.Helpers;
+global using static lcms2.Conversions;
 
 using System.Runtime.CompilerServices;
 
