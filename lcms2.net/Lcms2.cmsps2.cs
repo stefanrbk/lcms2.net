@@ -318,12 +318,12 @@ public static partial class Lcms2
 
     private static void WriteByte(IOHandler m, byte b)
     {
-        _cmsIOPrintf(m, "{0:x2}", b);
+        m.PrintF("{0:x2}", b);
         _cmsPSActualColumn += 2;
 
         if (_cmsPSActualColumn > MAXPSCOLS)
         {
-            _cmsIOPrintf(m, "\n");
+            m.PrintF("\n");
             _cmsPSActualColumn = 0;
         }
     }
@@ -364,24 +364,24 @@ public static partial class Lcms2
         if (Description is not null) cmsMLUgetASCII(Description, cmsNoLanguage, cmsNoCountry, DescASCII);
         if (Copyright is not null) cmsMLUgetASCII(Copyright, cmsNoLanguage, cmsNoCountry, CopyrightASCII);
 
-        _cmsIOPrintf(m, "%!PS-Adobe-3.0\n");
-        _cmsIOPrintf(m, "%\n");
-        _cmsIOPrintf(m, "% {0}\n", SpanToString(Title));
-        _cmsIOPrintf(m, "% Source: {0}\n", Encoding.ASCII.GetString(RemoveCR(DescASCII)));
-        _cmsIOPrintf(m, "%         {0}\n", Encoding.ASCII.GetString(RemoveCR(CopyrightASCII)));
-        _cmsIOPrintf(m, "% Created: {0}", ctime(timer));    // ctime appends a \n!!!
-        _cmsIOPrintf(m, "%\n");
-        _cmsIOPrintf(m, "%%BeginResource\n");
+        m.PrintF("%!PS-Adobe-3.0\n");
+        m.PrintF("%\n");
+        m.PrintF("% {0}\n", SpanToString(Title));
+        m.PrintF("% Source: {0}\n", Encoding.ASCII.GetString(RemoveCR(DescASCII)));
+        m.PrintF("%         {0}\n", Encoding.ASCII.GetString(RemoveCR(CopyrightASCII)));
+        m.PrintF("% Created: {0}", ctime(timer));    // ctime appends a \n!!!
+        m.PrintF("%\n");
+        m.PrintF("%%BeginResource\n");
     }
 
     private static void EmitWhiteBlackD50(IOHandler m, CIEXYZ BlackPoint)
     {
-        _cmsIOPrintf(m, "/BlackPoint [{0} {1} {2}]\n", BlackPoint.X, BlackPoint.Y, BlackPoint.Z);
-        _cmsIOPrintf(m, "/WhitePoint [{0} {1} {2}]\n", D50XYZ.X, D50XYZ.Y, D50XYZ.Z);
+        m.PrintF("/BlackPoint [{0} {1} {2}]\n", BlackPoint.X, BlackPoint.Y, BlackPoint.Z);
+        m.PrintF("/WhitePoint [{0} {1} {2}]\n", D50XYZ.X, D50XYZ.Y, D50XYZ.Z);
     }
 
     private static void EmitRangeCheck(IOHandler m) =>
-        _cmsIOPrintf(m, "dup 0.0 lt {{ pop 0.0 }} if dup 1.0 gt {{ pop 1.0 }} if ");
+        m.PrintF("dup 0.0 lt {{ pop 0.0 }} if dup 1.0 gt {{ pop 1.0 }} if ");
 
     private static void EmitIntent(IOHandler m, uint RenderingIntent)
     {
@@ -393,24 +393,24 @@ public static partial class Lcms2
             INTENT_SATURATION => "Saturation",
             _ => "Undefined"
         };
-        _cmsIOPrintf(m, "/RenderingIntent ({0})\n", intent);
+        m.PrintF("/RenderingIntent ({0})\n", intent);
     }
 
     private static void EmitLab2XYZ(IOHandler m)
     {
-        _cmsIOPrintf(m, "/RangeABC [ 0 1 0 1 0 1]\n");
-        _cmsIOPrintf(m, "/DecodeABC [\n");
-        _cmsIOPrintf(m, "{{100 mul  16 add 116 div }} bind\n");
-        _cmsIOPrintf(m, "{{255 mul 128 sub 500 div }} bind\n");
-        _cmsIOPrintf(m, "{{255 mul 128 sub 200 div }} bind\n");
-        _cmsIOPrintf(m, "]\n");
-        _cmsIOPrintf(m, "/MatrixABC [ 1 1 1 1 0 0 0 0 -1]\n");
-        _cmsIOPrintf(m, "/RangeLMN [ -0.236 1.254 0 1 -0.635 1.640 ]\n");
-        _cmsIOPrintf(m, "/DecodeLMN [\n");
-        _cmsIOPrintf(m, "{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse 0.964200 mul}} bind\n");
-        _cmsIOPrintf(m, "{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse }} bind\n");
-        _cmsIOPrintf(m, "{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse 0.824900 mul}} bind\n");
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("/RangeABC [ 0 1 0 1 0 1]\n");
+        m.PrintF("/DecodeABC [\n");
+        m.PrintF("{{100 mul  16 add 116 div }} bind\n");
+        m.PrintF("{{255 mul 128 sub 500 div }} bind\n");
+        m.PrintF("{{255 mul 128 sub 200 div }} bind\n");
+        m.PrintF("]\n");
+        m.PrintF("/MatrixABC [ 1 1 1 1 0 0 0 0 -1]\n");
+        m.PrintF("/RangeLMN [ -0.236 1.254 0 1 -0.635 1.640 ]\n");
+        m.PrintF("/DecodeLMN [\n");
+        m.PrintF("{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse 0.964200 mul}} bind\n");
+        m.PrintF("{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse }} bind\n");
+        m.PrintF("{{dup 6 29 div ge {{dup dup mul mul}} {{4 29 div sub 108 841 div mul}} ifelse 0.824900 mul}} bind\n");
+        m.PrintF("]\n");
     }
 
     private static void Emit1Gamma(IOHandler m, ToneCurve Table)
@@ -423,7 +423,7 @@ public static partial class Lcms2
             Table.nEntries <= 0 ||
             cmsIsToneCurveLinear(Table))
         {
-            _cmsIOPrintf(m, "{{ 1 }} bind ");
+            m.PrintF("{{ 1 }} bind ");
             return;
         }
 
@@ -431,11 +431,11 @@ public static partial class Lcms2
         var gamma = cmsEstimateGamma(Table, 0.001);
         if (gamma > 0)
         {
-            _cmsIOPrintf(m, "{{ {0:g} exp }} bind ", gamma);
+            m.PrintF("{{ {0:g} exp }} bind ", gamma);
             return;
         }
 
-        _cmsIOPrintf(m, "{{ ");
+        m.PrintF("{{ ");
 
         // Bounds check
         EmitRangeCheck(m);
@@ -446,44 +446,44 @@ public static partial class Lcms2
         // ===============                            ========================
         // v
 
-        _cmsIOPrintf(m, " [");
+        m.PrintF(" [");
 
         for (var i = 0; i < Table.nEntries; i++)
         {
             if (i % 10 is 0)
-                _cmsIOPrintf(m, "\n  ");
-            _cmsIOPrintf(m, "{0:d} ", Table.Table16[i]);
+                m.PrintF("\n  ");
+            m.PrintF("{0:d} ", Table.Table16[i]);
         }
 
-        _cmsIOPrintf(m, "] ");                        // v tab
+        m.PrintF("] ");                        // v tab
 
-        _cmsIOPrintf(m, "dup ");                      // v tab tab
-        _cmsIOPrintf(m, "length 1 sub ");             // v tab dom
-        _cmsIOPrintf(m, "3 -1 roll ");                // tab dom v
-        _cmsIOPrintf(m, "mul ");                      // tab val2
-        _cmsIOPrintf(m, "dup ");                      // tab val2 val2
-        _cmsIOPrintf(m, "dup ");                      // tab val2 val2 val2
-        _cmsIOPrintf(m, "floor cvi ");                // tab val2 val2 cell0
-        _cmsIOPrintf(m, "exch ");                     // tab val2 cell0 val2
-        _cmsIOPrintf(m, "ceiling cvi ");              // tab val2 cell0 cell1
-        _cmsIOPrintf(m, "3 index ");                  // tab val2 cell0 cell1 tab
-        _cmsIOPrintf(m, "exch ");                     // tab val2 cell0 tab cell1
-        _cmsIOPrintf(m, "get\n  ");                   // tab val2 cell0 y1
-        _cmsIOPrintf(m, "4 -1 roll ");                // val2 cell0 y1 tab
-        _cmsIOPrintf(m, "3 -1 roll ");                // val2 y1 tab cell0
-        _cmsIOPrintf(m, "get ");                      // val2 y1 y0
-        _cmsIOPrintf(m, "dup ");                      // val2 y1 y0 y0
-        _cmsIOPrintf(m, "3 1 roll ");                 // val2 y0 y1 y0
-        _cmsIOPrintf(m, "sub ");                      // val2 y0 (y1-y0)
-        _cmsIOPrintf(m, "3 -1 roll ");                // y0 (y1-y0) val2
-        _cmsIOPrintf(m, "dup ");                      // y0 (y1-y0) val2 val2
-        _cmsIOPrintf(m, "floor cvi ");                // y0 (y1-y0) val2 floor(val2)
-        _cmsIOPrintf(m, "sub ");                      // y0 (y1-y0) rest
-        _cmsIOPrintf(m, "mul ");                      // y0 t1
-        _cmsIOPrintf(m, "add ");                      // y
-        _cmsIOPrintf(m, "65535 div\n");               // result
+        m.PrintF("dup ");                      // v tab tab
+        m.PrintF("length 1 sub ");             // v tab dom
+        m.PrintF("3 -1 roll ");                // tab dom v
+        m.PrintF("mul ");                      // tab val2
+        m.PrintF("dup ");                      // tab val2 val2
+        m.PrintF("dup ");                      // tab val2 val2 val2
+        m.PrintF("floor cvi ");                // tab val2 val2 cell0
+        m.PrintF("exch ");                     // tab val2 cell0 val2
+        m.PrintF("ceiling cvi ");              // tab val2 cell0 cell1
+        m.PrintF("3 index ");                  // tab val2 cell0 cell1 tab
+        m.PrintF("exch ");                     // tab val2 cell0 tab cell1
+        m.PrintF("get\n  ");                   // tab val2 cell0 y1
+        m.PrintF("4 -1 roll ");                // val2 cell0 y1 tab
+        m.PrintF("3 -1 roll ");                // val2 y1 tab cell0
+        m.PrintF("get ");                      // val2 y1 y0
+        m.PrintF("dup ");                      // val2 y1 y0 y0
+        m.PrintF("3 1 roll ");                 // val2 y0 y1 y0
+        m.PrintF("sub ");                      // val2 y0 (y1-y0)
+        m.PrintF("3 -1 roll ");                // y0 (y1-y0) val2
+        m.PrintF("dup ");                      // y0 (y1-y0) val2 val2
+        m.PrintF("floor cvi ");                // y0 (y1-y0) val2 floor(val2)
+        m.PrintF("sub ");                      // y0 (y1-y0) rest
+        m.PrintF("mul ");                      // y0 t1
+        m.PrintF("add ");                      // y
+        m.PrintF("65535 div\n");               // result
 
-        _cmsIOPrintf(m, "}} bind ");
+        m.PrintF("}} bind ");
     }
 
     private static bool GammaTableEquals(ReadOnlySpan<ushort> g1, ReadOnlySpan<ushort> g2, uint nG1, uint nG2) =>
@@ -497,7 +497,7 @@ public static partial class Lcms2
 
             if (i > 0 && GammaTableEquals(g[i - 1].Table16, g[i].Table16, g[i - 1].nEntries, g[i].nEntries))
             {
-                _cmsIOPrintf(m, "def ");
+                m.PrintF("def ");
             }
             else
             {
@@ -533,15 +533,15 @@ public static partial class Lcms2
         {
             if (sc.FirstComponent != -1)
             {
-                _cmsIOPrintf(sc.m, sc.PostMin);
+                sc.m.PrintF(sc.PostMin);
                 sc.SecondComponent = -1;
-                _cmsIOPrintf(sc.m, sc.PostMaj);
+                sc.m.PrintF(sc.PostMaj);
             }
 
             // Begin block
             _cmsPSActualColumn = 0;
 
-            _cmsIOPrintf(sc.m, sc.PreMaj);
+            sc.m.PrintF(sc.PreMaj);
             sc.FirstComponent = In[0];
         }
 
@@ -549,10 +549,10 @@ public static partial class Lcms2
         {
             if (sc.SecondComponent != -1)
             {
-                _cmsIOPrintf(sc.m, sc.PostMin);
+                sc.m.PrintF(sc.PostMin);
             }
 
-            _cmsIOPrintf(sc.m, sc.PreMin);
+            sc.m.PrintF(sc.PreMin);
             sc.SecondComponent = In[1];
         }
 
@@ -586,74 +586,74 @@ public static partial class Lcms2
 
         var sc = new PsSamplerCargo(m, clut, -1, -1, PreMaj, PostMaj, PreMin, PostMin, FixWhite, ColorSpace);
 
-        _cmsIOPrintf(m, "[");
+        m.PrintF("[");
 
         for (var i = 0u; i < sc.Pipeline.Params.nInputs; i++)
         {
             if (i < MAX_INPUT_DIMENSIONS)
-                _cmsIOPrintf(m, " {0:d} ", sc.Pipeline.Params.nSamples[i]);
+                m.PrintF(" {0:d} ", sc.Pipeline.Params.nSamples[i]);
         }
 
-        _cmsIOPrintf(m, " [\n");
+        m.PrintF(" [\n");
 
         cmsStageSampleCLut16bit(mpe, OutputValueSampler, sc, SamplerFlag.Inspect);
 
-        _cmsIOPrintf(m, PostMin);
-        _cmsIOPrintf(m, PostMaj);
-        _cmsIOPrintf(m, "] ");
+        m.PrintF(PostMin);
+        m.PrintF(PostMaj);
+        m.PrintF("] ");
     }
 
     private static bool EmitCIEBasedA(IOHandler m, ToneCurve Curve, CIEXYZ BlackPoint)
     {
-        _cmsIOPrintf(m, "[ /CIEBasedA\n");
-        _cmsIOPrintf(m, "  <<\n");
+        m.PrintF("[ /CIEBasedA\n");
+        m.PrintF("  <<\n");
 
-        _cmsIOPrintf(m, "/DecodeA ");
+        m.PrintF("/DecodeA ");
 
         Emit1Gamma(m, Curve);
 
-        _cmsIOPrintf(m, " \n");
+        m.PrintF(" \n");
 
-        _cmsIOPrintf(m, "/MatrixA [ 0.9642 1.0000 0.8249 ]\n");
-        _cmsIOPrintf(m, "/RangeLMN [ 0.0 0.9642 0.0 1.0000 0.0 0.8249 ]\n");
+        m.PrintF("/MatrixA [ 0.9642 1.0000 0.8249 ]\n");
+        m.PrintF("/RangeLMN [ 0.0 0.9642 0.0 1.0000 0.0 0.8249 ]\n");
 
         EmitWhiteBlackD50(m, BlackPoint);
         EmitIntent(m, INTENT_PERCEPTUAL);
 
-        _cmsIOPrintf(m, ">>\n");
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF(">>\n");
+        m.PrintF("]\n");
 
         return true;
     }
 
     private static bool EmitCIEBasedABC(IOHandler m, ReadOnlySpan<double> Matrix, ReadOnlySpan<ToneCurve> CurveSet, CIEXYZ BlackPoint)
     {
-        _cmsIOPrintf(m, "[ /CIEBasedABC\n");
-        _cmsIOPrintf(m, "<<\n");
-        _cmsIOPrintf(m, "/DecodeABC [ ");
+        m.PrintF("[ /CIEBasedABC\n");
+        m.PrintF("<<\n");
+        m.PrintF("/DecodeABC [ ");
 
         EmitNGamma(m, 3, CurveSet);
 
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("]\n");
 
-        _cmsIOPrintf(m, "/MatrixABC [ ");
+        m.PrintF("/MatrixABC [ ");
 
         for (var i = 0; i < 3; i++)
         {
-            _cmsIOPrintf(m, "{0:f6} {1:f6} {2:f6} ", Matrix[i + 3 * 0],
+            m.PrintF("{0:f6} {1:f6} {2:f6} ", Matrix[i + 3 * 0],
                                                          Matrix[i + 3 * 1],
                                                          Matrix[i + 3 * 2]);
         }
 
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("]\n");
 
-        _cmsIOPrintf(m, "/RangeLMN [ 0.0 0.9642 0.0 1.0000 0.0 0.8249 ]\n");
+        m.PrintF("/RangeLMN [ 0.0 0.9642 0.0 1.0000 0.0 0.8249 ]\n");
 
         EmitWhiteBlackD50(m, BlackPoint);
         EmitIntent(m, INTENT_PERCEPTUAL);
 
-        _cmsIOPrintf(m, ">>\n");
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF(">>\n");
+        m.PrintF("]\n");
 
         return true;
     }
@@ -670,14 +670,14 @@ public static partial class Lcms2
         switch (cmsStageInputChannels(mpe))
         {
             case 3:
-                _cmsIOPrintf(m, "[ /CIEBasedDEF\n");
+                m.PrintF("[ /CIEBasedDEF\n");
                 PreMaj = "<"u8;
                 PostMaj = ">\n"u8;
                 PreMin = PostMin = ""u8;
                 break;
 
             case 4:
-                _cmsIOPrintf(m, "[ /CIEBasedDEFG\n");
+                m.PrintF("[ /CIEBasedDEFG\n");
                 PreMaj = "["u8;
                 PostMaj = "]\n"u8;
                 PreMin = "<"u8;
@@ -688,30 +688,30 @@ public static partial class Lcms2
                 return false;
         }
 
-        _cmsIOPrintf(m, "<<\n");
+        m.PrintF("<<\n");
 
         if ((uint)cmsStageType(mpe) is cmsSigCurveSetElemType)
         {
-            _cmsIOPrintf(m, "/DecodeDEF [ ");
+            m.PrintF("/DecodeDEF [ ");
             EmitNGamma(m, cmsStageOutputChannels(mpe), _cmsStageGetPtrToCurveSet(mpe));
-            _cmsIOPrintf(m, "]\n");
+            m.PrintF("]\n");
 
             mpe = mpe.Next;
         }
 
         if ((uint)cmsStageType(mpe) is cmsSigCLutElemType)
         {
-            _cmsIOPrintf(m, "/Table ");
+            m.PrintF("/Table ");
             WriteCLUT(m, mpe, PreMaj, PostMaj, PreMin, PostMin, false, default);
-            _cmsIOPrintf(m, "]\n");
+            m.PrintF("]\n");
         }
 
         EmitLab2XYZ(m);
         EmitWhiteBlackD50(m, BlackPoint);
         EmitIntent(m, Intent);
 
-        _cmsIOPrintf(m, "   >>\n");
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("   >>\n");
+        m.PrintF("]\n");
 
         return true;
     }
@@ -875,10 +875,10 @@ public static partial class Lcms2
         //var ColorName = pool.Rent(cmsMAX_PATH);
         var ColorName = new byte[cmsMAX_PATH];
 
-        _cmsIOPrintf(m, "<<\n");
-        _cmsIOPrintf(m, "(colorlistcomment) (Named color CSA)\n");
-        _cmsIOPrintf(m, "(Prefix) [ (Pantone ) (PANTONE ) ]\n");
-        _cmsIOPrintf(m, "(Suffix) [ ( CV) ( CVC) ( C) ]\n");
+        m.PrintF("<<\n");
+        m.PrintF("(colorlistcomment) (Named color CSA)\n");
+        m.PrintF("(Prefix) [ (Pantone ) (PANTONE ) ]\n");
+        m.PrintF("(Suffix) [ ( CV) ( CVC) ( C) ]\n");
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
@@ -892,10 +892,10 @@ public static partial class Lcms2
                 continue;
 
             cmsDoTransform(xform, In, Lab, 1);
-            _cmsIOPrintf(m, "  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Lab[0].L, Lab[0].a, Lab[0].b);
+            m.PrintF("  ({0}) [ {1:f3} {2:f3} {3:f3} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Lab[0].L, Lab[0].a, Lab[0].b);
         }
 
-        _cmsIOPrintf(m, ">>\n");
+        m.PrintF(">>\n");
 
         cmsDeleteTransform(xform);
         return true;
@@ -970,10 +970,10 @@ public static partial class Lcms2
 
             _cmsReadMediaWhitePoint(out var White, Profile);
 
-            _cmsIOPrintf(m, "/MatrixPQR [1 0 0 0 1 0 0 0 1 ]\n");
-            _cmsIOPrintf(m, "/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
+            m.PrintF("/MatrixPQR [1 0 0 0 1 0 0 0 1 ]\n");
+            m.PrintF("/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
 
-            _cmsIOPrintf(m, "% Absolute colorimetric -- encode to relative to maximize LUT usage\n" +
+            m.PrintF("% Absolute colorimetric -- encode to relative to maximize LUT usage\n" +
                       "/TransformPQR [\n" +
                       "{{0.9642 mul {0:g} div exch pop exch pop exch pop exch pop}} bind\n" +
                       "{{1.0000 mul {1:g} div exch pop exch pop exch pop exch pop}} bind\n" +
@@ -982,16 +982,16 @@ public static partial class Lcms2
             return;
         }
 
-        _cmsIOPrintf(m, "% Bradford Cone Space\n" +
+        m.PrintF("% Bradford Cone Space\n" +
                  "/MatrixPQR [0.8951 -0.7502 0.0389 0.2664 1.7135 -0.0685 -0.1614 0.0367 1.0296 ] \n");
 
-        _cmsIOPrintf(m, "/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
+        m.PrintF("/RangePQR [ -0.5 2 -0.5 2 -0.5 2 ]\n");
 
         // No BPC
 
         if (!DoBPC)
         {
-            _cmsIOPrintf(m, "% VonKries-like transform in Bradford Cone Space\n" +
+            m.PrintF("% VonKries-like transform in Bradford Cone Space\n" +
                       "/TransformPQR [\n" +
                       "{{exch pop exch 3 get mul exch pop exch 3 get div}} bind\n" +
                       "{{exch pop exch 4 get mul exch pop exch 4 get div}} bind\n" +
@@ -1001,22 +1001,22 @@ public static partial class Lcms2
         {
             // BPC
 
-            _cmsIOPrintf(m, "%% VonKries-like transform in Bradford Cone Space plus BPC\n" +
+            m.PrintF("%% VonKries-like transform in Bradford Cone Space plus BPC\n" +
                       "/TransformPQR [\n");
 
-            _cmsIOPrintf(m, "{{4 index 3 get div 2 index 3 get mul " +
+            m.PrintF("{{4 index 3 get div 2 index 3 get mul " +
                     "2 index 3 get 2 index 3 get sub mul " +
                     "2 index 3 get 4 index 3 get 3 index 3 get sub mul sub " +
                     "3 index 3 get 3 index 3 get exch sub div " +
                     "exch pop exch pop exch pop exch pop }} bind\n");
 
-            _cmsIOPrintf(m, "{{4 index 4 get div 2 index 4 get mul " +
+            m.PrintF("{{4 index 4 get div 2 index 4 get mul " +
                     "2 index 4 get 2 index 4 get sub mul " +
                     "2 index 4 get 4 index 4 get 3 index 4 get sub mul sub " +
                     "3 index 4 get 3 index 4 get exch sub div " +
                     "exch pop exch pop exch pop exch pop }} bind\n");
 
-            _cmsIOPrintf(m, "{{4 index 5 get div 2 index 5 get mul " +
+            m.PrintF("{{4 index 5 get div 2 index 5 get mul " +
                     "2 index 5 get 2 index 5 get sub mul " +
                     "2 index 5 get 4 index 5 get 3 index 5 get sub mul sub " +
                     "3 index 5 get 3 index 5 get exch sub div " +
@@ -1026,20 +1026,20 @@ public static partial class Lcms2
 
     private static void EmitXYZ2Lab(IOHandler m)
     {
-        _cmsIOPrintf(m, "/RangeLMN [ -0.635 2.0 0 2 -0.635 2.0 ]\n");
-        _cmsIOPrintf(m, "/EncodeLMN [\n");
-        _cmsIOPrintf(m, "{{ 0.964200  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
-        _cmsIOPrintf(m, "{{ 1.000000  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
-        _cmsIOPrintf(m, "{{ 0.824900  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
-        _cmsIOPrintf(m, "]\n");
-        _cmsIOPrintf(m, "/MatrixABC [ 0 1 0 1 -1 1 0 0 -1 ]\n");
-        _cmsIOPrintf(m, "/EncodeABC [\n");
+        m.PrintF("/RangeLMN [ -0.635 2.0 0 2 -0.635 2.0 ]\n");
+        m.PrintF("/EncodeLMN [\n");
+        m.PrintF("{{ 0.964200  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
+        m.PrintF("{{ 1.000000  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
+        m.PrintF("{{ 0.824900  div dup 0.008856 le {{7.787 mul 16 116 div add}}{{1 3 div exp}} ifelse }} bind\n");
+        m.PrintF("]\n");
+        m.PrintF("/MatrixABC [ 0 1 0 1 -1 1 0 0 -1 ]\n");
+        m.PrintF("/EncodeABC [\n");
 
-        _cmsIOPrintf(m, "{{ 116 mul  16 sub 100 div  }} bind\n");
-        _cmsIOPrintf(m, "{{ 500 mul 128 add 256 div  }} bind\n");
-        _cmsIOPrintf(m, "{{ 200 mul 128 add 256 div  }} bind\n");
+        m.PrintF("{{ 116 mul  16 sub 100 div  }} bind\n");
+        m.PrintF("{{ 500 mul 128 add 256 div  }} bind\n");
+        m.PrintF("{{ 200 mul 128 add 256 div  }} bind\n");
 
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("]\n");
     }
 
     private static bool WriteOutputLUT(IOHandler m, Profile Profile, uint Intent, uint dwFlags)
@@ -1099,8 +1099,8 @@ public static partial class Lcms2
             return false;
         }
 
-        _cmsIOPrintf(m, "<<\n");
-        _cmsIOPrintf(m, "/ColorRenderingType 1\n");
+        m.PrintF("<<\n");
+        m.PrintF("/ColorRenderingType 1\n");
 
         BlackPointAdaptedToD50 = cmsDetectBlackPoint(Profile, Intent);
 
@@ -1118,7 +1118,7 @@ public static partial class Lcms2
         if (Intent is INTENT_ABSOLUTE_COLORIMETRIC)
             lFixWhite = false;
 
-        _cmsIOPrintf(m, "/RenderTable ");
+        m.PrintF("/RenderTable ");
 
         var first = cmsPipelineGetPtrToFirstStage(DeviceLink);
         if (first is not null)
@@ -1129,19 +1129,19 @@ public static partial class Lcms2
         WriteCLUT(m, cmsPipelineGetPtrToFirstStage(DeviceLink), "<"u8, ">\n"u8, ""u8,
                   ""u8, lFixWhite, ColorSpace);
 
-        _cmsIOPrintf(m, " {0:d} {{}} bind ", nChannels);
+        m.PrintF(" {0:d} {{}} bind ", nChannels);
 
         for (var i = 1u; i < nChannels; i++)
-            _cmsIOPrintf(m, "dup ");
+            m.PrintF("dup ");
 
-        _cmsIOPrintf(m, "]\n");
+        m.PrintF("]\n");
 
         EmitIntent(m, Intent);
 
-        _cmsIOPrintf(m, ">>\n");
+        m.PrintF(">>\n");
 
         if ((dwFlags & cmsFLAGS_NODEFAULTRESOURCEDEF) is 0)
-            _cmsIOPrintf(m, "/Current exch /ColorRendering defineresource pop\n");
+            m.PrintF("/Current exch /ColorRendering defineresource pop\n");
 
         cmsPipelineFree(DeviceLink);
         cmsDeleteTransform(xform);
@@ -1186,10 +1186,10 @@ public static partial class Lcms2
             return false;
         }
 
-        _cmsIOPrintf(m, "<<\n");
-        _cmsIOPrintf(m, "(colorlistcomment) (Named profile) \n");
-        _cmsIOPrintf(m, "(Prefix) [ (Pantone ) (PANTONE ) ]\n");
-        _cmsIOPrintf(m, "(Suffix) [ ( CV) ( CVC) ( C) ]\n");
+        m.PrintF("<<\n");
+        m.PrintF("(colorlistcomment) (Named profile) \n");
+        m.PrintF("(Prefix) [ (Pantone ) (PANTONE ) ]\n");
+        m.PrintF("(Suffix) [ ( CV) ( CVC) ( C) ]\n");
 
         var nColors = cmsNamedColorCount(NamedColorList);
 
@@ -1204,14 +1204,14 @@ public static partial class Lcms2
 
             cmsDoTransform(xform, In, Out, 1);
             BuildColorantList(Colorant, nColorant, Out);
-            _cmsIOPrintf(m, "  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Encoding.ASCII.GetString(TrimBuffer(Colorant)));
+            m.PrintF("  ({0}) [ {1} ]\n", Encoding.ASCII.GetString(TrimBuffer(ColorName)), Encoding.ASCII.GetString(TrimBuffer(Colorant)));
         }
 
-        _cmsIOPrintf(m, "   >>");
+        m.PrintF("   >>");
 
         if ((dwFlags & cmsFLAGS_NODEFAULTRESOURCEDEF) is 0)
         {
-            _cmsIOPrintf(m, " /Current exch /HPSpotTable defineresource pop\n");
+            m.PrintF(" /Current exch /HPSpotTable defineresource pop\n");
         }
 
         cmsDeleteTransform(xform);
@@ -1238,8 +1238,8 @@ public static partial class Lcms2
 
         if ((dwFlags & cmsFLAGS_NODEFAULTRESOURCEDEF) is 0)
         {
-            _cmsIOPrintf(mem, "%%EndResource\n");
-            _cmsIOPrintf(mem, "\n% CRD End\n");
+            mem.PrintF("%%EndResource\n");
+            mem.PrintF("\n% CRD End\n");
         }
 
         // Return used byte count
@@ -1295,8 +1295,8 @@ public static partial class Lcms2
         Span<char> str = stackalloc char[name.Length];
         for (var i = 0; i < name.Length; i++) str[i] = (char)name[i];
         var nameStr = new string(str);
-        _cmsIOPrintf(m, "%%LCMS2: Save previous definition of {0} on the operand stack\n", nameStr);
-        _cmsIOPrintf(m, "currentdict /{0} known {{ /{0} load }} {{ null }} ifelse\n", nameStr);
+        m.PrintF("%%LCMS2: Save previous definition of {0} on the operand stack\n", nameStr);
+        m.PrintF("currentdict /{0} known {{ /{0} load }} {{ null }} ifelse\n", nameStr);
     }
 
     private static void EmitSafeGuardEnd(IOHandler m, ReadOnlySpan<byte> name, int depth)
@@ -1305,12 +1305,12 @@ public static partial class Lcms2
         for (var i = 0; i < name.Length; i++) str[i] = (char)name[i];
         var nameStr = new string(str);
 
-        _cmsIOPrintf(m, "%%LCMS2: Restore previous definition of {0}\n", nameStr);
+        m.PrintF("%%LCMS2: Restore previous definition of {0}\n", nameStr);
         if (depth > 1)
         {
             // cycle topmost items on the stack to bring the previous definition to the front
-            _cmsIOPrintf(m, "{0} -1 roll ", depth);
+            m.PrintF("{0} -1 roll ", depth);
         }
-        _cmsIOPrintf(m, "dup null eq {{ pop currentdict /{0} undef }} {{ /{0} exch def }} ifelse\n", nameStr);
+        m.PrintF("dup null eq {{ pop currentdict /{0} undef }} {{ /{0} exch def }} ifelse\n", nameStr);
     }
 }

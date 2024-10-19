@@ -1,4 +1,9 @@
-﻿namespace lcms2;
+﻿using lcms2.types;
+using System.Diagnostics;
+
+namespace lcms2;
+
+[DebuggerStepThrough]
 internal static class Helpers
 {
     internal static double atan2deg(double a, double b)
@@ -39,8 +44,9 @@ internal static class Helpers
     }
 
     internal static double XYZ2float(ushort v) =>
-        _cms15Fixed16toDouble(v << 1);
+        S15Fixed16ToDouble(v << 1);
 
     internal static double RADIANS(double deg) =>
         deg * M_PI / 180;
+
 }

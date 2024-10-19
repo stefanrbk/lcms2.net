@@ -744,7 +744,7 @@ public static partial class Lcms2
             HeaderSize = io.reportedSize;
 
         // Get creation date/time
-        _cmsDecodeDateTimeNumber(Header.date, out Icc.Created);
+        Header.date.Decode(out Icc.Created);
 
         // The profile ID are 32 raw bytes
         Icc.ProfileID = Header.profileID;
@@ -842,7 +842,7 @@ public static partial class Lcms2
         Header.pcs = new(AdjustEndianess(Icc.PCS));
 
         // NOTE: in v4 Timestamp must be in UTC rather than in local time
-        _cmsEncodeDateTimeNumber(out Header.date, Icc.Created);
+        DateTimeNumber.Encode(out Header.date, Icc.Created);
 
         Header.magic = new(AdjustEndianess(cmsMagicNumber));
         Header.platform = new(AdjustEndianess(Icc.platform));
@@ -857,9 +857,9 @@ public static partial class Lcms2
         Header.renderingIntent = AdjustEndianess(Icc.RenderingIntent);
 
         // Illuminant is always D50
-        Header.illuminant.X = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.X));
-        Header.illuminant.Y = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
-        Header.illuminant.Z = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
+        Header.illuminant.X = (int)AdjustEndianess((uint)DoubleToS15Fixed16(D50XYZ.X));
+        Header.illuminant.Y = (int)AdjustEndianess((uint)DoubleToS15Fixed16(D50XYZ.Y));
+        Header.illuminant.Z = (int)AdjustEndianess((uint)DoubleToS15Fixed16(D50XYZ.Z));
 
         Header.creator = new(AdjustEndianess(Icc.creator));
 
@@ -1208,7 +1208,7 @@ public static partial class Lcms2
                     Tag.Size = io.UsedSpace - Begin;
 
                     // Align to 32 bit boundary.
-                    if (!_cmsWriteAlignment(io))
+                    if (!io.WriteAlignment())
                         return false;
                 }
 
@@ -1245,7 +1245,7 @@ public static partial class Lcms2
                 }
 
                 var TypeBase = TypeHandler.Signature;
-                if (!_cmsWriteTypeBase(io, TypeBase))
+                if (!io.WriteTypeBase(TypeBase))
                     return false;
 
                 var LocalTypeHandler = (TagTypeHandler)TypeHandler.Clone();
@@ -1261,7 +1261,7 @@ public static partial class Lcms2
             Tag.Size = io.UsedSpace - Begin;
 
             // Align to 32 bit boundary
-            if (!_cmsWriteAlignment(io))
+            if (!io.WriteAlignment())
                 return false;
 
             Icc.Tags[i] = Tag;
@@ -1535,7 +1535,7 @@ public static partial class Lcms2
         }
 
         // if supported, get type and check if in list
-        BaseType = _cmsReadTypeBase(io);
+        BaseType = io.ReadTypeBase();
         if ((uint)BaseType is 0) goto Error;
 
         if (!IsTypeSupported(TagDescriptor, BaseType)) goto Error;
@@ -1793,7 +1793,7 @@ public static partial class Lcms2
         LocalTypeHandler.ContextID = Icc.ContextID;
         LocalTypeHandler.ICCVersion = Icc.Version;
 
-        if (!_cmsWriteTypeBase(MemIO, TypeHandler.Signature))
+        if (!MemIO.WriteTypeBase(TypeHandler.Signature))
         {
             cmsCloseIOhandler(MemIO);
             goto Error;

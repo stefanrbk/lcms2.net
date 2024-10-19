@@ -517,8 +517,8 @@ public static partial class Lcms2
 
     private static bool SaveOneChromaticity(double x, double y, IOHandler io)
     {
-        if (!io.Write((uint)_cmsDoubleTo15Fixed16(x))) return false;
-        if (!io.Write((uint)_cmsDoubleTo15Fixed16(y))) return false;
+        if (!io.Write((uint)DoubleToS15Fixed16(x))) return false;
+        if (!io.Write((uint)DoubleToS15Fixed16(y))) return false;
 
         return true;
     }
@@ -1140,7 +1140,7 @@ public static partial class Lcms2
             case 1:     // Specified as the exponent of gamma function
                 {
                     if (!io.ReadUshort(out var SingleGammaFixed)) return null;
-                    SingleGamma[0] = _cms8Fixed8toDouble(SingleGammaFixed);
+                    SingleGamma[0] = U8Fixed8ToDouble(SingleGammaFixed);
 
                     nItems = 1;
                     return cmsBuildParametricToneCurve(self.ContextID, 1, SingleGamma);
@@ -1173,7 +1173,7 @@ public static partial class Lcms2
         if (Curve.nSegments is 1 && Curve.Segments[0].Type is 1)
         {
             // Single gamma, preserve number
-            var SingleGammaFixed = _cmsDoubleTo8Fixed8(Curve.Segments[0].Params[0]);
+            var SingleGammaFixed = DoubleToU8Fixed8(Curve.Segments[0].Params[0]);
 
             if (!io.Write((uint)1)) return false;
             if (!io.Write(SingleGammaFixed)) return false;
@@ -1279,7 +1279,7 @@ public static partial class Lcms2
         //NewDateTime = _cmsMalloc<DateTime>(self.ContextID);
         //if (NewDateTime is null) return null;
 
-        _cmsDecodeDateTimeNumber(MemoryMarshal.Read<DateTimeNumber>(timestamp), out NewDateTime);
+        MemoryMarshal.Read<DateTimeNumber>(timestamp).Decode(out NewDateTime);
 
         nItems = 1;
         return new(NewDateTime);
@@ -1292,7 +1292,7 @@ public static partial class Lcms2
         if (Ptr is not Box<DateTime> DateTime)
             return false;
 
-        _cmsEncodeDateTimeNumber(out var timestamp, DateTime);
+        DateTimeNumber.Encode(out var timestamp, DateTime);
         MemoryMarshal.Write(buf, ref timestamp);
         return io.WriteFunc(io, (uint)buf.Length, buf);
     }
@@ -2203,7 +2203,7 @@ public static partial class Lcms2
 
     private static ToneCurve? ReadEmbeddedCurve(TagTypeHandler self, IOHandler io)
     {
-        var BaseType = _cmsReadTypeBase(io);
+        var BaseType = io.ReadTypeBase();
         if (BaseType == cmsSigCurveType)
         {
             return Type_Curve_Read(self, io, out _, 0);
@@ -2237,7 +2237,7 @@ public static partial class Lcms2
         {
             Curves[i] = ReadEmbeddedCurve(self, io)!;
             if (Curves[i] is null) goto Error;
-            if (!_cmsReadAlignment(io)) goto Error;
+            if (!io.ReadAlignment()) goto Error;
         }
 
         Lin = cmsStageAllocToneCurves(self.ContextID, nCurves, Curves);
@@ -2355,7 +2355,7 @@ public static partial class Lcms2
                 CurrentType = cmsSigCurveType;
             }
 
-            if (!_cmsWriteTypeBase(io, CurrentType)) return false;
+            if (!io.WriteTypeBase(CurrentType)) return false;
 
             if (CurrentType == cmsSigCurveType)
             {
@@ -2371,7 +2371,7 @@ public static partial class Lcms2
                 return false;
             }
 
-            if (!_cmsWriteAlignment(io)) return false;
+            if (!io.WriteAlignment()) return false;
         }
         return true;
     }
@@ -2417,7 +2417,7 @@ public static partial class Lcms2
                 return false;
         }
 
-        return _cmsWriteAlignment(io);
+        return io.WriteAlignment();
     }
 
     private static bool Type_LUTA2B_Write(TagTypeHandler self, IOHandler io, object? Ptr, uint _1)
@@ -2845,7 +2845,7 @@ public static partial class Lcms2
 
     private static bool ReadEmbeddedText(TagTypeHandler self, IOHandler io, out Mlu? mlu, uint SizeOfTag)
     {
-        switch ((Signature)_cmsReadTypeBase(io))
+        switch (io.ReadTypeBase())
         {
             case cmsSigTextType:
                 //if (*mlu is not null) cmsMLUfree(*mlu);
@@ -2925,12 +2925,12 @@ public static partial class Lcms2
     {
         if (self.ICCVersion < 0x04000000)
         {
-            if (!_cmsWriteTypeBase(io, cmsSigTextDescriptionType)) return false;
+            if (!io.WriteTypeBase(cmsSigTextDescriptionType)) return false;
             return Type_Text_Description_Write(self, io, Text, 1);
         }
         else
         {
-            if (!_cmsWriteTypeBase(io, cmsSigMultiLocalizedUnicodeType)) return false;
+            if (!io.WriteTypeBase(cmsSigMultiLocalizedUnicodeType)) return false;
             return Type_MLU_Write(self, io, Text, 1);
         }
     }
@@ -3531,7 +3531,7 @@ public static partial class Lcms2
             if (!io.Write((uint)0)) goto Error;
             var Before = io.TellFunc(io);
             if (!TypeHandler.WritePtr(self, io, Elem, 1)) goto Error;
-            if (!_cmsWriteAlignment(io)) goto Error;
+            if (!io.WriteAlignment()) goto Error;
 
             ElementSizes[i] = io.TellFunc(io) - Before;
 
@@ -4669,7 +4669,7 @@ public static partial class Lcms2
             }
 
             // It seems there is no need to align. Code is here, and for safety commented out
-            // if (!_cmsWriteAlignment(io)) goto Error;
+            // if (!io.WriteAlignment()) goto Error;
         }
 
         return true;
