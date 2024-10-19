@@ -568,7 +568,7 @@ public static partial class Lcms2
         Span<char> chars = stackalloc char[4];
 
         // Convert to big endian
-        var be = _cmsAdjustEndianess32((uint)sig);
+        var be = AdjustEndianess((uint)sig);
 
         // Get bytes
         BitConverter.TryWriteBytes(buf, be);

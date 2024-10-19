@@ -37,7 +37,7 @@ namespace lcms2;
 public static partial class Plugin
 {
     [DebuggerStepThrough]
-    public static ushort _cmsAdjustEndianess16(ushort Word)
+    public static ushort AdjustEndianess(ushort Word)   // _cmsAdjustEndianess16
     {
         Span<byte> pByte = stackalloc byte[2];
         BitConverter.TryWriteBytes(pByte, Word);
@@ -47,7 +47,7 @@ public static partial class Plugin
     }
 
     [DebuggerStepThrough]
-    public static uint _cmsAdjustEndianess32(uint DWord)
+    public static uint AdjustEndianess(uint DWord)  // _cmsAdjustEndianess32
     {
         Span<byte> pByte = stackalloc byte[4];
         BitConverter.TryWriteBytes(pByte, DWord);
@@ -57,7 +57,7 @@ public static partial class Plugin
     }
 
     [DebuggerStepThrough]
-    public static ulong _cmsAdjustEndianess64(ulong QWord)
+    public static ulong AdjustEndianess(ulong QWord)    // _cmsAdjustEndianess64
     {
         Span<byte> pByte = stackalloc byte[8];
         BitConverter.TryWriteBytes(pByte, QWord);
@@ -96,7 +96,7 @@ public static partial class Plugin
         if (io.Read(io, tmp, sizeof(ushort), 1) != 1)
             return false;
 
-        n = _cmsAdjustEndianess16(BitConverter.ToUInt16(tmp));
+        n = AdjustEndianess(BitConverter.ToUInt16(tmp));
         return true;
     }
 
@@ -124,7 +124,7 @@ public static partial class Plugin
         if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        n = _cmsAdjustEndianess32(BitConverter.ToUInt32(tmp));
+        n = AdjustEndianess(BitConverter.ToUInt32(tmp));
         return true;
     }
 
@@ -139,7 +139,7 @@ public static partial class Plugin
         if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        n = BitConverter.UInt32BitsToSingle(_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
+        n = BitConverter.UInt32BitsToSingle(AdjustEndianess(BitConverter.ToUInt32(tmp)));
 
         // Safeguard which covers against absurd values
         if (n is > 1E+20f or < -1E+20f)
@@ -172,7 +172,7 @@ public static partial class Plugin
         if (io.Read(io, tmp, sizeof(ulong), 1) != 1)
             return false;
 
-        n = _cmsAdjustEndianess64(BitConverter.ToUInt64(tmp));
+        n = AdjustEndianess(BitConverter.ToUInt64(tmp));
         return true;
     }
 
@@ -187,7 +187,7 @@ public static partial class Plugin
         if (io.Read(io, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        n = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(BitConverter.ToUInt32(tmp)));
+        n = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(BitConverter.ToUInt32(tmp)));
 
         return true;
     }
@@ -205,9 +205,9 @@ public static partial class Plugin
 
         var ints = MemoryMarshal.Cast<byte, uint>(xyz);
 
-        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[0]));
-        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[1]));
-        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)_cmsAdjustEndianess32(ints[2]));
+        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[0]));
+        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[1]));
+        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[2]));
 
         return true;
     }
@@ -228,7 +228,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[2];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess16(n));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
 
         return io.Write(io, sizeof(ushort), tmp);
     }
@@ -253,7 +253,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(n));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
 
         return io.Write(io, sizeof(uint), tmp);
     }
@@ -264,7 +264,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32(BitConverter.SingleToUInt32Bits(n)));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess(BitConverter.SingleToUInt32Bits(n)));
 
         return io.Write(io, sizeof(uint), tmp);
     }
@@ -275,7 +275,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[8];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess64(n));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess(n));
 
         return io.Write(io, sizeof(ulong), tmp);
     }
@@ -286,7 +286,7 @@ public static partial class Plugin
         _cmsAssert(io);
 
         Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, _cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(n)));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess((uint)_cmsDoubleTo15Fixed16(n)));
 
         return io.Write(io, sizeof(uint), tmp);
     }
@@ -298,9 +298,9 @@ public static partial class Plugin
 
         _cmsAssert(io);
 
-        xyz[0] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.X));
-        xyz[1] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
-        xyz[2] = (S15Fixed16Number)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
+        xyz[0] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.X));
+        xyz[1] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Y));
+        xyz[2] = (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Z));
 
         return io.Write(io, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
     }
@@ -315,7 +315,7 @@ public static partial class Plugin
         if (io.Read(io, Base, (sizeof(uint) * 2), 1) != 1)
             return default;
 
-        return new(_cmsAdjustEndianess32(BitConverter.ToUInt32(Base)));
+        return new(AdjustEndianess(BitConverter.ToUInt32(Base)));
     }
 
     [DebuggerStepThrough]
@@ -325,7 +325,7 @@ public static partial class Plugin
 
         _cmsAssert(io);
 
-        BitConverter.TryWriteBytes(Base, _cmsAdjustEndianess32(sig));
+        BitConverter.TryWriteBytes(Base, AdjustEndianess(sig));
         return io.Write(io, (sizeof(uint) * 2), Base);
     }
 
@@ -403,24 +403,24 @@ public static partial class Plugin
     {
         dest = new()
         {
-            Seconds = _cmsAdjustEndianess16((ushort)source.Second),
-            Minutes = _cmsAdjustEndianess16((ushort)source.Minute),
-            Hours = _cmsAdjustEndianess16((ushort)source.Hour),
-            Day = _cmsAdjustEndianess16((ushort)source.Day),
-            Month = _cmsAdjustEndianess16((ushort)source.Month),
-            Year = _cmsAdjustEndianess16((ushort)source.Year)
+            Seconds = AdjustEndianess((ushort)source.Second),
+            Minutes = AdjustEndianess((ushort)source.Minute),
+            Hours = AdjustEndianess((ushort)source.Hour),
+            Day = AdjustEndianess((ushort)source.Day),
+            Month = AdjustEndianess((ushort)source.Month),
+            Year = AdjustEndianess((ushort)source.Year)
         };
     }
 
     [DebuggerStepThrough]
     public static void _cmsDecodeDateTimeNumber(DateTimeNumber Source, out DateTime Dest)
     {
-        var sec = _cmsAdjustEndianess16(Source.Seconds);
-        var min = _cmsAdjustEndianess16(Source.Minutes);
-        var hour = _cmsAdjustEndianess16(Source.Hours);
-        var day = _cmsAdjustEndianess16(Source.Day);
-        var mon = _cmsAdjustEndianess16(Source.Month);
-        var year = _cmsAdjustEndianess16(Source.Year);
+        var sec = AdjustEndianess(Source.Seconds);
+        var min = AdjustEndianess(Source.Minutes);
+        var hour = AdjustEndianess(Source.Hours);
+        var day = AdjustEndianess(Source.Day);
+        var mon = AdjustEndianess(Source.Month);
+        var year = AdjustEndianess(Source.Year);
 
         try
         {

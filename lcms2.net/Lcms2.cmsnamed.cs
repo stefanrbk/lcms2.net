@@ -184,7 +184,7 @@ public static partial class Lcms2
 
     [DebuggerStepThrough]
     private static ushort strTo16(ReadOnlySpan<byte> str) =>
-        _cmsAdjustEndianess16(BitConverter.ToUInt16(str));
+        AdjustEndianess(BitConverter.ToUInt16(str));
 
     //[DebuggerStepThrough]
     //private static void strFrom16(byte* str, ushort n)

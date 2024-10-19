@@ -702,27 +702,27 @@ public static partial class Lcms2
         Header = MemoryMarshal.Read<Profile.Header>(buffer);
 
         // Validate file as an ICC profile
-        if (_cmsAdjustEndianess32(Header.magic) != cmsMagicNumber)
+        if (AdjustEndianess(Header.magic) != cmsMagicNumber)
         {
             LogError(Icc.ContextID, ErrorCodes.BadSignature, "not an Icc profile, invalid signature");
             return false;
         }
 
         // Adjust endianness of the used parameters
-        Icc.CMM = new(_cmsAdjustEndianess32(Header.cmmId));
-        Icc.DeviceClass = new(_cmsAdjustEndianess32(Header.deviceClass));
-        Icc.ColorSpace = new(_cmsAdjustEndianess32(Header.colorSpace));
-        Icc.PCS = new(_cmsAdjustEndianess32(Header.pcs));
+        Icc.CMM = new(AdjustEndianess(Header.cmmId));
+        Icc.DeviceClass = new(AdjustEndianess(Header.deviceClass));
+        Icc.ColorSpace = new(AdjustEndianess(Header.colorSpace));
+        Icc.PCS = new(AdjustEndianess(Header.pcs));
 
-        Icc.RenderingIntent = _cmsAdjustEndianess32(Header.renderingIntent);
-        Icc.platform = _cmsAdjustEndianess32(Header.platform);
-        Icc.flags = _cmsAdjustEndianess32(_cmsAdjustEndianess32(Header.flags));
-        Icc.manufacturer = _cmsAdjustEndianess32(Header.manufacturer);
-        Icc.model = _cmsAdjustEndianess32(Header.model);
-        Icc.creator = _cmsAdjustEndianess32(Header.creator);
+        Icc.RenderingIntent = AdjustEndianess(Header.renderingIntent);
+        Icc.platform = AdjustEndianess(Header.platform);
+        Icc.flags = AdjustEndianess(AdjustEndianess(Header.flags));
+        Icc.manufacturer = AdjustEndianess(Header.manufacturer);
+        Icc.model = AdjustEndianess(Header.model);
+        Icc.creator = AdjustEndianess(Header.creator);
 
-        Icc.attributes = _cmsAdjustEndianess64(Header.attributes);
-        Icc.Version = _cmsAdjustEndianess32(_validatedVersion(Header.version));
+        Icc.attributes = AdjustEndianess(Header.attributes);
+        Icc.Version = AdjustEndianess(_validatedVersion(Header.version));
 
         if (Icc.Version > 0x5000000)
         {
@@ -737,7 +737,7 @@ public static partial class Lcms2
         }
 
         // Get size as reported in header
-        var HeaderSize = _cmsAdjustEndianess32(Header.size);
+        var HeaderSize = AdjustEndianess(Header.size);
 
         // Make sure HeaderSize is lower than profile size
         if (HeaderSize >= io.reportedSize)
@@ -833,35 +833,35 @@ public static partial class Lcms2
         Profile.Header Header = new();
         TagEntry Tag = new();
 
-        Header.size = _cmsAdjustEndianess32(UsedSpace);
-        Header.cmmId = new(_cmsAdjustEndianess32(Icc.CMM));
-        Header.version = _cmsAdjustEndianess32(Icc.Version);
+        Header.size = AdjustEndianess(UsedSpace);
+        Header.cmmId = new(AdjustEndianess(Icc.CMM));
+        Header.version = AdjustEndianess(Icc.Version);
 
-        Header.deviceClass = new(_cmsAdjustEndianess32(Icc.DeviceClass));
-        Header.colorSpace = new(_cmsAdjustEndianess32(Icc.ColorSpace));
-        Header.pcs = new(_cmsAdjustEndianess32(Icc.PCS));
+        Header.deviceClass = new(AdjustEndianess(Icc.DeviceClass));
+        Header.colorSpace = new(AdjustEndianess(Icc.ColorSpace));
+        Header.pcs = new(AdjustEndianess(Icc.PCS));
 
         // NOTE: in v4 Timestamp must be in UTC rather than in local time
         _cmsEncodeDateTimeNumber(out Header.date, Icc.Created);
 
-        Header.magic = new(_cmsAdjustEndianess32(cmsMagicNumber));
-        Header.platform = new(_cmsAdjustEndianess32(Icc.platform));
+        Header.magic = new(AdjustEndianess(cmsMagicNumber));
+        Header.platform = new(AdjustEndianess(Icc.platform));
 
-        Header.flags = _cmsAdjustEndianess32(Icc.flags);
-        Header.manufacturer = new(_cmsAdjustEndianess32(Icc.manufacturer));
-        Header.model = _cmsAdjustEndianess32(Icc.model);
+        Header.flags = AdjustEndianess(Icc.flags);
+        Header.manufacturer = new(AdjustEndianess(Icc.manufacturer));
+        Header.model = AdjustEndianess(Icc.model);
 
-        Header.attributes = _cmsAdjustEndianess64(Icc.attributes);
+        Header.attributes = AdjustEndianess(Icc.attributes);
 
         // Rendering intent in the header (for embedded profiles)
-        Header.renderingIntent = _cmsAdjustEndianess32(Icc.RenderingIntent);
+        Header.renderingIntent = AdjustEndianess(Icc.RenderingIntent);
 
         // Illuminant is always D50
-        Header.illuminant.X = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.X));
-        Header.illuminant.Y = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
-        Header.illuminant.Z = (int)_cmsAdjustEndianess32((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
+        Header.illuminant.X = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.X));
+        Header.illuminant.Y = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.Y));
+        Header.illuminant.Z = (int)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(D50XYZ.Z));
 
-        Header.creator = new(_cmsAdjustEndianess32(Icc.creator));
+        Header.creator = new(AdjustEndianess(Icc.creator));
 
         //memset(&Header.reserved, 0, 28);
 
@@ -891,9 +891,9 @@ public static partial class Lcms2
             var t = Icc.Tags[i];
             if (t.Name == default) continue;      // It is just a placeholder
 
-            Tag.sig = new(_cmsAdjustEndianess32(t.Name));
-            Tag.offset = _cmsAdjustEndianess32(t.Offset);
-            Tag.size = _cmsAdjustEndianess32(t.Size);
+            Tag.sig = new(AdjustEndianess(t.Name));
+            Tag.offset = AdjustEndianess(t.Offset);
+            Tag.size = AdjustEndianess(t.Size);
 
             MemoryMarshal.Write(tagBuffer, ref Tag);
 
