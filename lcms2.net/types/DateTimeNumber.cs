@@ -42,4 +42,36 @@ public struct DateTimeNumber(ushort year, ushort month, ushort day, ushort hours
     [FieldOffset(10)] public ushort Seconds = seconds;
 
     [FieldOffset(0)] public ushort Year = year;
+
+    public static void Encode(out DateTimeNumber dest, DateTime source)   // _cmsEncodeDateTimeNumber
+    {
+        dest = new()
+        {
+            Seconds = AdjustEndianess((ushort)source.Second),
+            Minutes = AdjustEndianess((ushort)source.Minute),
+            Hours = AdjustEndianess((ushort)source.Hour),
+            Day = AdjustEndianess((ushort)source.Day),
+            Month = AdjustEndianess((ushort)source.Month),
+            Year = AdjustEndianess((ushort)source.Year)
+        };
+    }
+
+    public readonly void Decode(out DateTime Dest)   // _cmsDecodeDateTimeNumber
+    {
+        var sec = AdjustEndianess(Seconds);
+        var min = AdjustEndianess(Minutes);
+        var hour = AdjustEndianess(Hours);
+        var day = AdjustEndianess(Day);
+        var mon = AdjustEndianess(Month);
+        var year = AdjustEndianess(Year);
+
+        try
+        {
+            Dest = new(year, mon, day, hour, min, sec);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            Dest = default;
+        }
+    }
 }
