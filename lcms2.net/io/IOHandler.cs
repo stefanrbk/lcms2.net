@@ -29,6 +29,7 @@ using lcms2.types;
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 using S15Fixed16Number = System.Int32;
 
@@ -145,7 +146,7 @@ public class IOHandler
         if (ReadFunc(this, tmp, sizeof(uint), 1) != 1)
             return false;
 
-        n = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(BitConverter.ToUInt32(tmp)));
+        n = S15Fixed16ToDouble((S15Fixed16Number)AdjustEndianess(BitConverter.ToUInt32(tmp)));
 
         return true;
     }
@@ -161,9 +162,9 @@ public class IOHandler
 
         var ints = MemoryMarshal.Cast<byte, uint>(xyz);
 
-        XYZ.X = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[0]));
-        XYZ.Y = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[1]));
-        XYZ.Z = _cms15Fixed16toDouble((S15Fixed16Number)AdjustEndianess(ints[2]));
+        XYZ.X = S15Fixed16ToDouble((S15Fixed16Number)AdjustEndianess(ints[0]));
+        XYZ.Y = S15Fixed16ToDouble((S15Fixed16Number)AdjustEndianess(ints[1]));
+        XYZ.Z = S15Fixed16ToDouble((S15Fixed16Number)AdjustEndianess(ints[2]));
 
         return true;
     }
@@ -225,7 +226,7 @@ public class IOHandler
     public bool Write(double n)  // _cmsWrite15Fixed16Number
     {
         Span<byte> tmp = stackalloc byte[4];
-        BitConverter.TryWriteBytes(tmp, AdjustEndianess((uint)_cmsDoubleTo15Fixed16(n)));
+        BitConverter.TryWriteBytes(tmp, AdjustEndianess((uint)DoubleToS15Fixed16(n)));
 
         return WriteFunc(this, sizeof(uint), tmp);
     }
@@ -235,10 +236,75 @@ public class IOHandler
     {
         Span<int> xyz =
         [
-            (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.X)),
-            (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Y)),
-            (S15Fixed16Number)AdjustEndianess((uint)_cmsDoubleTo15Fixed16(XYZ.Z)),
+            (S15Fixed16Number)AdjustEndianess((uint)DoubleToS15Fixed16(XYZ.X)),
+            (S15Fixed16Number)AdjustEndianess((uint)DoubleToS15Fixed16(XYZ.Y)),
+            (S15Fixed16Number)AdjustEndianess((uint)DoubleToS15Fixed16(XYZ.Z)),
         ];
         return WriteFunc(this, sizeof(uint) * 3, MemoryMarshal.Cast<int, byte>(xyz));
+    }
+
+    [DebuggerStepThrough]
+    public Signature ReadTypeBase()  // _cmsReadTypeBase
+    {
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
+
+        if (ReadFunc(this, Base, sizeof(uint) * 2, 1) != 1)
+            return default;
+
+        return new(AdjustEndianess(BitConverter.ToUInt32(Base)));
+    }
+
+    [DebuggerStepThrough]
+    public bool WriteTypeBase(Signature sig)   // _cmsWriteTypeBase
+    {
+        Span<byte> Base = stackalloc byte[(sizeof(uint) * 2)];
+
+        BitConverter.TryWriteBytes(Base, AdjustEndianess(sig));
+        return WriteFunc(this, sizeof(uint) * 2, Base);
+    }
+
+    [DebuggerStepThrough]
+    public bool ReadAlignment()  // _cmsReadAlignment
+    {
+        Span<byte> Buffer = stackalloc byte[4];
+
+        var At = TellFunc(this);
+        var NextAligned = _cmsALIGNLONG(At);
+        var BytesToNextAlignedPos = NextAligned - At;
+        if (BytesToNextAlignedPos is 0) return true;
+        if (BytesToNextAlignedPos > 4) return false;
+
+        return ReadFunc(this, Buffer, BytesToNextAlignedPos, 1) == 1;
+    }
+
+    [DebuggerStepThrough]
+    public bool WriteAlignment() // _cmsWriteAlignment
+    {
+        Span<byte> Buffer = stackalloc byte[4];
+
+        var At = TellFunc(this);
+        var NextAligned = _cmsALIGNLONG(At);
+        var BytesToNextAlignedPos = NextAligned - At;
+        if (BytesToNextAlignedPos is 0) return true;
+        if (BytesToNextAlignedPos > 4) return false;
+
+        return WriteFunc(this, BytesToNextAlignedPos, Buffer);
+    }
+
+    [DebuggerStepThrough]
+    public bool PrintF(ReadOnlySpan<byte> frm, params object[] args) =>
+        PrintF(SpanToString(frm), args);
+
+    [DebuggerStepThrough]
+    public bool PrintF(string frm, params object[] args) // _cmsIOPrintf
+    {
+        _cmsAssert(frm);
+
+        var str = new StringBuilder(String.Format(frm, args));
+        str.Replace(',', '.');
+        if (str.Length > 2047) return false;
+        var buffer = Encoding.UTF8.GetBytes(str.ToString());
+
+        return WriteFunc(this, (uint)str.Length, buffer);
     }
 }
