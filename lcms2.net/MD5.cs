@@ -27,103 +27,69 @@
 using lcms2.state;
 using lcms2.types;
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace lcms2;
 
-internal readonly struct MD5 : IDisposable
+internal readonly struct MD5(Context? context) : IDisposable    // cmsMD5alloc
 {
-    private readonly uint[] _buf;
-    private readonly uint[] _bits;
-    private readonly byte[] _in;
+    private readonly uint[] _buf = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
+    private readonly uint[] _bits = new uint[2];
+    private readonly byte[] _in = new byte[64];
 
-    public readonly Span<uint> buf => _buf.AsSpan(..4);
-    public readonly Span<uint> bits => _bits.AsSpan(..2);
-    public readonly Span<byte> @in => _in.AsSpan(..64);
+    public readonly Span<uint> Buf => _buf.AsSpan();
+    public readonly Span<uint> Bits => _bits.AsSpan();
+    public readonly Span<byte> In => _in.AsSpan();
 
-    public readonly Context? ContextID;
+    public readonly Context? ContextID = context;
 
-    public MD5(Context? context)
+    public readonly void Add(Span<byte> buf, uint len)  // cmsMD5add
     {
-        //var uiPool = Context.GetPool<uint>(context);
-        //var bPool = Context.GetPool<byte>(context);
+        var t = Bits[0];
+        if ((Bits[0] = t + (len << 3)) < t)
+            Bits[1]++;
 
-        _buf = new uint[4];
-        _bits = new uint[2];
-        _in = new byte[64];
-
-        ContextID = context;
-
-        buf[0] = 0x67452301;
-        buf[1] = 0xefcdab89;
-        buf[2] = 0x98badcfe;
-        buf[3] = 0x10325476;
-
-        bits[0] = 0;
-        bits[1] = 0;
-    }
-
-    public readonly void Add(Span<byte> buf, uint len)
-    {
-        var t = bits[0];
-        if ((bits[0] = t + (len << 3)) < t)
-            bits[1]++;
-
-        bits[1] += len >> 29;
+        Bits[1] += len >> 29;
 
         t = (t >> 3) & 0x3f;
 
         if (t is not 0)
         {
-            var p = @in[(int)t..];
+            var p = In[(int)t..];
 
             t = 64 - t;
             if (len < t)
             {
-                memcpy(p, buf[..(int)len]);
+                buf[..(int)len].CopyTo(p);
                 return;
             }
 
-            memcpy(p, buf[..(int)t]);
-            // byteReverse(ctx->@in, 16);
+            buf[..(int)t].CopyTo(p);
 
-            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(@in));
+            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(In));
             buf = buf[(int)t..];
             len -= t;
         }
 
         while (len >= 64)
         {
-            memcpy(@in, buf[..64]);
-            // byteReverse(ctx->@in, 16);
+            buf[..64].CopyTo(In);
 
-            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(@in));
+            Transform(MemoryMarshal.Cast<byte, uint>(buf), MemoryMarshal.Cast<byte, uint>(In));
             buf = buf[64..];
             len -= 64;
         }
 
-        memcpy(@in, buf[..(int)len]);
+        buf[..(int)len].CopyTo(In);
     }
 
-    private static void Transform(Span<uint> buf, ReadOnlySpan<uint> @in)
+    private static void Transform(Span<uint> buf, ReadOnlySpan<uint> @in)   // cmsMD5_Transform
     {
-        void STEP(Func<uint, uint, uint, uint> f, ref uint w, uint x, uint y, uint z, uint data, byte s)
-        {
-            w += f(x, y, z) + data;
-            w = (w << s) | (w >> (32 - s));
-            w += x;
-        }
-        uint F1(uint x, uint y, uint z) => z ^ (x & (y ^ z));
-        uint F2(uint x, uint y, uint z) => F1(z, x, y);
-        uint F3(uint x, uint y, uint z) => x ^ y ^ z;
-        uint F4(uint x, uint y, uint z) => y ^ (x | ~z);
-
-        uint a, b, c, d;
-
-        a = buf[0];
-        b = buf[1];
-        c = buf[2];
-        d = buf[3];
+        var a = buf[0];
+        var b = buf[1];
+        var c = buf[2];
+        var d = buf[3];
 
         STEP(F1, ref a, b, c, d, @in[0] + 0xd76aa478, 7);
         STEP(F1, ref d, a, b, c, @in[1] + 0xe8c7b756, 12);
@@ -197,53 +163,74 @@ internal readonly struct MD5 : IDisposable
         buf[1] += b;
         buf[2] += c;
         buf[3] += d;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void STEP(Func<uint, uint, uint, uint> f, ref uint w, uint x, uint y, uint z, uint data, byte s)
+        {
+            w += f(x, y, z) + data;
+            w = (w << s) | (w >> (32 - s));
+            w += x;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        uint F1(uint x, uint y, uint z)
+        {
+            return z ^ (x & (y ^ z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        uint F2(uint x, uint y, uint z)
+        {
+            return F1(z, x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        uint F3(uint x, uint y, uint z)
+        {
+            return x ^ y ^ z;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        uint F4(uint x, uint y, uint z)
+        {
+            return y ^ (x | ~z);
+        }
     }
 
-    public ProfileID Finish()
+    public ProfileID Finish()   // cmsMD5finish
     {
-        var count = (bits[0] >> 3) & 0x3f;
+        var count = (Bits[0] >> 3) & 0x3f;
 
-        var i = 0;
-
-        var p = @in[(int)count..];
-        p[i++] = 0x80;
+        var p = In[(int)count..];
+        p[0] = 0x80;
+        p = p[1..];
 
         count = 64 - 1 - count;
 
         if (count < 8)
         {
             p[..(int)count].Clear();
-            // byteReverse(ctx->@in, 16);
-            Transform(buf, MemoryMarshal.Cast<byte, uint>(@in));
 
-            @in[..56].Clear();
+            Transform(Buf, MemoryMarshal.Cast<byte, uint>(In));
+
+            In[..56].Clear();
         }
         else
         {
             p[..((int)count - 8)].Clear();
         }
-        // byteReverse(ctx->@in, 14);
-        var _in = MemoryMarshal.Cast<byte, uint>(@in);
-        _in[14] = bits[0];
-        _in[15] = bits[1];
 
-        Transform(buf, _in);
+        var _in = MemoryMarshal.Cast<byte, uint>(In);
+        _in[14] = Bits[0];
+        _in[15] = Bits[1];
 
-        // byteReverse(ctx->buf, 4);
-        return ProfileID.Set(MemoryMarshal.Cast<uint, byte>(buf));
+        Transform(Buf, _in);
 
-        //_cmsFree(ctx->ContextID, ctx);
+        return ProfileID.Set(MemoryMarshal.Cast<uint, byte>(Buf));
     }
 
     public readonly void Dispose()
     {
-        //var uiPool = Context.GetPool<uint>(ContextID);
-        //var bPool = Context.GetPool<byte>(ContextID);
-
-        //ReturnArray(uiPool, _buf);
-        //ReturnArray(uiPool, _bits);
-        //ReturnArray(bPool, _in);
-
         GC.SuppressFinalize(this);
     }
 }
