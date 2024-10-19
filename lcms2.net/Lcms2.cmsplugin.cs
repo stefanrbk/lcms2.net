@@ -83,10 +83,6 @@ public static partial class Lcms2
         return true;
     }
 
-    [DebuggerStepThrough]
-    internal static Context _cmsGetContext(Context? ContextID) =>
-        ContextID ?? Context.Shared;
-
     /// <summary>
     ///     This function returns the given context its default, pristene state, as if no
     ///     plug-ins were declared.

@@ -181,30 +181,8 @@ public class Context(object? UserData = null) : ICloneable
     object ICloneable.Clone() =>
         Clone();
 
-    //private readonly List<object> BufferPools = new();
-    //internal MemPluginChunkType DefaultMemoryManager;
-    //internal MemPluginChunkType MemPlugin;
-
-    //public ArrayPool<T> GetBufferPool<T>()
-    //{
-    //    lock (BufferPools)
-    //    {
-    //        foreach (var pool in BufferPools)
-    //        {
-    //            if (pool is ArrayPool<T> foundPool)
-    //                return foundPool;
-    //        }
-
-    //        var newPool = ArrayPool<T>.Create();
-
-    //        BufferPools.Add(newPool);
-
-    //        return newPool;
-    //    }
-    //}
-
-    //public static ArrayPool<T> GetPool<T>(Context? context) =>
-    //    _cmsGetContext(context).GetBufferPool<T>();
+    internal static Context Get(Context? ContextID) =>   // _cmsGetContext
+        ContextID ?? Shared;
 
     private const double DEFAULT_OBSERVER_ADAPTATION_STATE = 1.0;
 }
