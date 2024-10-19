@@ -31,7 +31,7 @@ using System.Runtime.InteropServices;
 namespace lcms2.types;
 
 [DebuggerStepThrough, StructLayout(LayoutKind.Explicit)]
-public struct VEC3(double x, double y, double z)
+public struct VEC3(double x, double y, double z)    // _cmsVEC3init
 {
     [FieldOffset(0)]
     public double X = x;
@@ -90,7 +90,7 @@ public struct VEC3(double x, double y, double z)
         }
     }
 
-    public void Deconstruct(out double x, out double y, out double z) =>
+    public readonly void Deconstruct(out double x, out double y, out double z) =>
         (x, y, z) = (X, Y, Z);
 
     public static VEC3 operator *(VEC3 lhs, double rhs) =>
@@ -105,22 +105,22 @@ public struct VEC3(double x, double y, double z)
     public readonly bool IsNaN =>
         double.IsNaN(X) || double.IsNaN(Y) || double.IsNaN(Z);
 
-    public static VEC3 operator -(VEC3 left, VEC3 right) =>
+    public static VEC3 operator -(VEC3 left, VEC3 right) => // _cmsVEC3minus
         new(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
 
-    public readonly VEC3 Cross(VEC3 other) =>
+    public readonly VEC3 Cross(VEC3 other) =>   // _cmsVEC3cross
         new(
-            Y * other.Z - other.Y * Z,
-            Z * other.X - other.Z * X,
-            X * other.Y - other.X * Y);
+            (Y * other.Z) - (other.Y * Z),
+            (Z * other.X) - (other.Z * X),
+            (X * other.Y) - (other.X * Y));
 
-    public readonly double Dot(VEC3 other) =>
-        X * other.X + Y * other.Y + Z * other.Z;
+    public readonly double Dot(VEC3 other) =>   // _cmsVEC3dot
+        (X * other.X) + (Y * other.Y) + (Z * other.Z);
 
-    public readonly double Length =>
-        Math.Sqrt(X * X + Y * Y + Z * Z);
+    public readonly double Length =>    // _cmsVEC3length
+        Math.Sqrt((X * X) + (Y * Y) + (Z * Z));
 
-    public readonly double Distance(VEC3 other) =>
+    public readonly double Distance(VEC3 other) =>  // _cmsVEC3distance
         (this - other).Length;
 
     public readonly CIEXYZ AsXYZ =>
