@@ -204,10 +204,10 @@ internal static partial class Testbed
         NamedColorList? nc = null, nc2;
         int i, j;
         bool rc = true;
-        Span<byte> Name = stackalloc byte[cmsMAX_PATH];
+        Span<byte> Name = stackalloc byte[MaxPath];
         Span<ushort> PCS = stackalloc ushort[3];
         Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
-        Span<byte> CheckName = stackalloc byte[cmsMAX_PATH];
+        Span<byte> CheckName = stackalloc byte[MaxPath];
         Span<ushort> CheckPCS = stackalloc ushort[3];
         Span<ushort> CheckColorant = stackalloc ushort[cmsMAXCHANNELS];
         Profile h;

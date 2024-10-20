@@ -2714,7 +2714,7 @@ public static partial class Lcms2
 
     private static bool Type_ColorantTable_Write(TagTypeHandler _1, IOHandler io, object? Ptr, uint _2)
     {
-        Span<byte> root = stackalloc byte[cmsMAX_PATH];
+        Span<byte> root = stackalloc byte[MaxPath];
         Span<ushort> PCS = stackalloc ushort[3];
 
         if (Ptr is not NamedColorList NamedColorList)
@@ -2802,7 +2802,7 @@ public static partial class Lcms2
     {
         Span<byte> prefix = stackalloc byte[33];
         Span<byte> suffix = stackalloc byte[33];
-        Span<byte> Root = stackalloc byte[cmsMAX_PATH];
+        Span<byte> Root = stackalloc byte[MaxPath];
         Span<ushort> PCS = stackalloc ushort[3];
         Span<ushort> Colorant = stackalloc ushort[cmsMAXCHANNELS];
 

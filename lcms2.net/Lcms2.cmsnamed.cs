@@ -804,7 +804,7 @@ public static partial class Lcms2
             //var name = bPool.Rent(cmsMAX_PATH - 1);
             //var deviceColorant = uPool.Rent((int)v.ColorantCount);
             //var pcs = uPool.Rent(3);
-            var name = new byte[cmsMAX_PATH - 1];
+            var name = new byte[MaxPath - 1];
             var deviceColorant = new ushort[v.ColorantCount];
             var pcs = new ushort[3];
 
@@ -814,7 +814,7 @@ public static partial class Lcms2
             for (var j = 0; j < 3; j++)
                 pcs[j] = v.List![i].PCS[j];
 
-            v.List![i].Name.AsSpan(..(cmsMAX_PATH - 1)).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
+            v.List![i].Name.AsSpan(..(MaxPath - 1)).CopyTo(name.AsSpan(..(MaxPath - 1)));
 
             NewNC.List![i] = new()
             {
@@ -867,13 +867,13 @@ public static partial class Lcms2
             pcs[i] = PCS.IsEmpty ? (ushort)0 : PCS[i];
 
         //var name = bPool.Rent(cmsMAX_PATH - 1);
-        var name = new byte[cmsMAX_PATH];
+        var name = new byte[MaxPath];
         if (!Name.IsEmpty)
         {
             //strncpy(NamedColorList->List[idx].Name, Name, cmsMAX_PATH - 1);
             //NamedColorList->List[idx].Name[cmsMAX_PATH - 1] = 0;
-            TrimBuffer(Name).CopyTo(name.AsSpan(..(cmsMAX_PATH - 1)));
-            name[cmsMAX_PATH - 1] = 0;
+            TrimBuffer(Name).CopyTo(name.AsSpan(..(MaxPath - 1)));
+            name[MaxPath - 1] = 0;
         }
         else
         {

@@ -46,7 +46,7 @@ public static partial class Lcms2
 
     public const ushort PluginVersion = 2160;   // cmsGetEncodedCMMversion
 
-    public const ushort cmsMAX_PATH = 256;
+    public const ushort MaxPath = 256;
 
     public const double cmsD50X = 0.9642;
     public const double cmsD50Y = 1.0;

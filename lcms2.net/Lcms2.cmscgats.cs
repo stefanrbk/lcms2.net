@@ -590,11 +590,11 @@ public static partial class Lcms2
                 //FileNest = it8.FileStack[it8.IncludeSP + 1] = AllocChunk<FILECTX>(it8);
                 FileNest = it8.FileStack[it8.IncludeSP + 1] = new();
                 //FileNest.FileName = Context.GetPool<byte>(it8.ContextID).Rent(cmsMAX_PATH);
-                FileNest.FileName = new byte[cmsMAX_PATH];
+                FileNest.FileName = new byte[MaxPath];
             }
 
             //if (BuildAbsolutePath(StringPtr(it8->str), it8->FileStack[it8->IncludeSP]->FileName, FileNest->FileName, cmsMAX_PATH - 1) is false)
-            if (!BuildAbsolutePath(Encoding.ASCII.GetBytes(it8.str.ToString()), it8.FileStack[it8.IncludeSP].FileName, FileNest.FileName, cmsMAX_PATH - 1))
+            if (!BuildAbsolutePath(Encoding.ASCII.GetBytes(it8.str.ToString()), it8.FileStack[it8.IncludeSP].FileName, FileNest.FileName, MaxPath - 1))
             {
                 SynError(it8, "File path too long"u8);
                 return;
@@ -1880,7 +1880,7 @@ public static partial class Lcms2
         strncpy(it8.MemoryBlock, Ptr, len);
         it8.MemoryBlock[len] = 0;
 
-        strncpy(it8.FileStack[0].FileName, "", cmsMAX_PATH - 1);
+        strncpy(it8.FileStack[0].FileName, "", MaxPath - 1);
         it8.Source = it8.MemoryBlock;
 
         if (!ParseIT8(it8, type is not 0))
@@ -1918,8 +1918,8 @@ public static partial class Lcms2
         }
         it8.FileStack[0].Stream = (FileStream)file.Stream;
 
-        strncpy(it8.FileStack[0].FileName, cFileName, cmsMAX_PATH - 1);
-        it8.FileStack[0].FileName[cmsMAX_PATH - 1] = 0;
+        strncpy(it8.FileStack[0].FileName, cFileName, MaxPath - 1);
+        it8.FileStack[0].FileName[MaxPath - 1] = 0;
 
         if (!ParseIT8(it8, !type))
         {

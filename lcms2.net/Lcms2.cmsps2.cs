@@ -873,7 +873,7 @@ public static partial class Lcms2
 
         //var pool = Context.GetPool<byte>(NamedColorList.ContextID);
         //var ColorName = pool.Rent(cmsMAX_PATH);
-        var ColorName = new byte[cmsMAX_PATH];
+        var ColorName = new byte[MaxPath];
 
         m.PrintF("<<\n");
         m.PrintF("(colorlistcomment) (Named color CSA)\n");
@@ -1170,7 +1170,7 @@ public static partial class Lcms2
 
     private static bool WriteNamedColorCRD(IOHandler m, Profile hNamedColor, uint Intent, uint dwFlags)
     {
-        Span<byte> ColorName = stackalloc byte[cmsMAX_PATH];
+        Span<byte> ColorName = stackalloc byte[MaxPath];
         Span<byte> Colorant = stackalloc byte[512];
 
         var OutputFormat = cmsFormatterForColorspaceOfProfile(hNamedColor, 2, false);
