@@ -39,12 +39,12 @@ namespace lcms2;
 
 public static partial class Lcms2
 {
-    internal static readonly List<(FILE file, int count)> OpenFiles = new();
-    internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = new();
+    internal static readonly List<(FILE file, int count)> OpenFiles = [];
+    internal static readonly Dictionary<LogErrorChunkType, ILogger> loggers = [];
 
     #region lcms2.h
 
-    public const ushort LCMS_VERSION = 2160;
+    public const ushort PluginVersion = 2160;   // cmsGetEncodedCMMversion
 
     public const ushort cmsMAX_PATH = 256;
 
