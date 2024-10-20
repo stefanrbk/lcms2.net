@@ -64,8 +64,11 @@ public readonly partial struct Signature : ICloneable
     public static implicit operator Signature(uint v) =>
         new(v);
 
-    public object Clone() =>
-        new Signature(_value);
+    object ICloneable.Clone() =>
+        Clone();
+
+    public Signature Clone() =>
+        new(_value);
 
     public override string ToString()
     {
