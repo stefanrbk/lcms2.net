@@ -42,4 +42,17 @@ public class Pipeline(Context? contextID, uint inputChans, uint outputChans, Pip
 
     internal Context? ContextID = contextID;
     internal bool SaveAs8Bits;
+
+    // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
+    // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
+    public void SetOptimizationParameters(PipelineEval16Fn Eval16,
+                                          object? PrivateData,
+                                          FreeUserDataFn? FreePrivateDataFn,
+                                          DupUserDataFn? DupPrivateDataFn)  // _cmsPipelineSetOptimizationParameters
+    {
+        Eval16Fn = Eval16;
+        DupDataFn = DupPrivateDataFn;
+        FreeDataFn = FreePrivateDataFn;
+        Data = PrivateData;
+    }
 }

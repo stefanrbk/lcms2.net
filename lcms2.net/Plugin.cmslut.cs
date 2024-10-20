@@ -31,18 +31,4 @@ namespace lcms2;
 public static partial class Plugin
 {
 
-    // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
-    // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.
-    public static void _cmsPipelineSetOptimizationParameters(
-        Pipeline Lut,
-        PipelineEval16Fn Eval16,
-        object? PrivateData,
-        FreeUserDataFn? FreePrivateDataFn,
-        DupUserDataFn? DupPrivateDataFn)
-    {
-        Lut.Eval16Fn = Eval16;
-        Lut.DupDataFn = DupPrivateDataFn;
-        Lut.FreeDataFn = FreePrivateDataFn;
-        Lut.Data = PrivateData;
-    }
 }
