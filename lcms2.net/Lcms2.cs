@@ -44,7 +44,7 @@ public static partial class Lcms2
 
     #region lcms2.h
 
-    public const ushort PluginVersion = 2160;   // cmsGetEncodedCMMversion
+    public const ushort Version = 2160;   // cmsGetEncodedCMMversion
 
     public const ushort MaxPath = 256;
 

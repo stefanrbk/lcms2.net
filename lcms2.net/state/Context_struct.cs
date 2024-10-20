@@ -95,9 +95,9 @@ public class Context : ICloneable
             LogError(this, ErrorCodes.UnknownExtension, "Unrecognized plugin");
         }
 
-        if (plugin.ExpectedVersion > PluginVersion)
+        if (plugin.ExpectedVersion > Lcms2.Version)
         {
-            LogError(this, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {plugin.ExpectedVersion}, current version is {PluginVersion}");
+            LogError(this, ErrorCodes.UnknownExtension, $"plugin needs Little CMS {plugin.ExpectedVersion}, current version is {Lcms2.Version}");
         }
 
         switch ((uint)plugin.Type)
