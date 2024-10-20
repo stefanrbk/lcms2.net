@@ -40,7 +40,7 @@ public static partial class Lcms2
     }
 
     public static Stage? cmsStageAllocIdentity(Context? ContextID, uint nChannels) =>
-        _cmsStageAllocPlaceholder(
+        new(
             ContextID,
             cmsSigIdentityElemType,
             nChannels,
@@ -232,7 +232,7 @@ public static partial class Lcms2
 
     public static Stage? cmsStageAllocToneCurves(Context? ContextID, uint nChannels, ReadOnlySpan<ToneCurve> Curves)
     {
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, EvaluateCurves, CurveSetDup, CurveSetElemTypeFree, null);
+        var NewMPE = new Stage(ContextID, cmsSigCurveSetElemType, nChannels, nChannels, EvaluateCurves, CurveSetDup, CurveSetElemTypeFree, null);
         if (NewMPE is null) return null;
 
         var NewElem = new StageToneCurvesData(ContextID, nChannels);
@@ -368,7 +368,7 @@ public static partial class Lcms2
         if (n >= uint.MaxValue / Rows) return null;
         if (n < Rows || n < Cols) return null;
 
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigMatrixElemType, Cols, Rows, EvaluateMatrix, MatrixElemDup, MatrixElemTypeFree, null);
+        var NewMPE = new Stage(ContextID, cmsSigMatrixElemType, Cols, Rows, EvaluateMatrix, MatrixElemDup, MatrixElemTypeFree, null);
         if (NewMPE is null) return null;
 
         //var NewElem = new StageMatrixData();
@@ -562,7 +562,7 @@ public static partial class Lcms2
             return null;
         }
 
-        var NewMPE = _cmsStageAllocPlaceholder(ContextID, cmsSigCLutElemType, inputChan, outputChan, EvaluateCLUTfloatIn16, CLUTElemDup, CLutElemTypeFree, null);
+        var NewMPE = new Stage(ContextID, cmsSigCLutElemType, inputChan, outputChan, EvaluateCLUTfloatIn16, CLUTElemDup, CLutElemTypeFree, null);
 
         if (NewMPE is null) return null;
 
@@ -658,7 +658,7 @@ public static partial class Lcms2
             return null;
         }
 
-        var NewMPE = _cmsStageAllocPlaceholder(
+        var NewMPE = new Stage(
             ContextID,
             cmsSigCLutElemType,
             inputChan,
@@ -940,7 +940,7 @@ public static partial class Lcms2
     }
 
     internal static Stage? _cmsStageAllocLab2XYZ(Context? ContextID) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigLab2XYZElemType, 3, 3, EvaluateLab2XYZ, null, null, null);
+        new Stage(ContextID, cmsSigLab2XYZElemType, 3, 3, EvaluateLab2XYZ, null, null, null);
 
     internal static Stage? _cmsStageAllocLabV2ToV4curves(Context? ContextID)
     {
@@ -1092,7 +1092,7 @@ public static partial class Lcms2
     }
 
     internal static Stage? _cmsStageClipNegatives(Context? ContextID, uint nChannels) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, Clipper, null, null, null);
+        new Stage(ContextID, cmsSigClipNegativesElemType, nChannels, nChannels, Clipper, null, null, null);
 
     private static void EvaluateXYZ2Lab(ReadOnlySpan<float> In, Span<float> Out, Stage _)
     {
@@ -1114,7 +1114,7 @@ public static partial class Lcms2
     }
 
     internal static Stage? _cmsStageAllocXYZ2Lab(Context? ContextID) =>
-        _cmsStageAllocPlaceholder(ContextID, cmsSigXYZ2LabElemType, 3, 3, EvaluateXYZ2Lab, null, null, null);
+        new Stage(ContextID, cmsSigXYZ2LabElemType, 3, 3, EvaluateXYZ2Lab, null, null, null);
 
     internal static Stage? _cmsStageAllocLabPrelin(Context? ContextID)
     {
@@ -1154,7 +1154,7 @@ public static partial class Lcms2
 
     public static Stage? cmsStageDup(Stage? mpe)
     {
-        var NewMPE = _cmsStageAllocPlaceholder(
+        var NewMPE = new Stage(
             mpe.ContextID,
             mpe.Type,
             mpe.InputChannels,
@@ -1162,10 +1162,12 @@ public static partial class Lcms2
             mpe.EvalPtr,
             mpe.DupElemPtr,
             mpe.FreePtr,
-            null);
-        //if (NewMPE is null) return null;
+            null)
+        {
+            //if (NewMPE is null) return null;
 
-        NewMPE.Implements = mpe.Implements;
+            Implements = mpe.Implements
+        };
 
         if (mpe.DupElemPtr is not null)
         {

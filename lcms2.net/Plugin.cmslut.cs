@@ -30,33 +30,6 @@ using lcms2.types;
 namespace lcms2;
 public static partial class Plugin
 {
-    public static Stage _cmsStageAllocPlaceholder(
-        Context? ContextID,
-        Signature Type,
-        uint InputChannels,
-        uint OutputChannels,
-        StageEvalFn EvalPtr,
-        StageDupElemFn? DupElemPtr,
-        StageFreeElemFn? FreePtr,
-        object? Data)
-    {
-        var ph = new Stage();
-        //if (ph is null) return null;
-
-        ph.ContextID = ContextID;
-
-        ph.Type = Type;
-        ph.Implements = Type;  // By default, no clue on what is implementing
-
-        ph.InputChannels = InputChannels;
-        ph.OutputChannels = OutputChannels;
-        ph.EvalPtr = EvalPtr;
-        ph.DupElemPtr = DupElemPtr;
-        ph.FreePtr = FreePtr;
-        ph.Data = Data;
-
-        return ph;
-    }
 
     // This function may be used to set the optional evaluator and a block of private data. If private data is being used, an optional
     // duplicator and free functions should also be specified in order to duplicate the LUT construct. Use NULL to inhibit such functionality.

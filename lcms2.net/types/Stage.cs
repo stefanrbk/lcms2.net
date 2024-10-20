@@ -43,4 +43,26 @@ public class Stage
     public object? Data;
 
     public Stage? Next;
+
+    public Stage(Context? ContextID,
+                 Signature Type,
+                 uint InputChannels,
+                 uint OutputChannels,
+                 StageEvalFn EvalPtr,
+                 StageDupElemFn? DupElemPtr,
+                 StageFreeElemFn? FreePtr,
+                 object? Data)  // _cmsStageAllocPlaceholder
+    {
+        this.ContextID = ContextID;
+
+        this.Type = Type;
+        Implements = Type;  // By default, no clue on what is implementing
+
+        this.InputChannels = InputChannels;
+        this.OutputChannels = OutputChannels;
+        this.EvalPtr = EvalPtr;
+        this.DupElemPtr = DupElemPtr;
+        this.FreePtr = FreePtr;
+        this.Data = Data;
+    }
 }

@@ -991,7 +991,7 @@ public static partial class Lcms2
     }
 
     internal static Stage? _cmsStageAllocNamedColor(NamedColorList NamedColorList, bool UsePCS) =>
-        _cmsStageAllocPlaceholder(
+        new(
             NamedColorList.ContextID,
             cmsSigNamedColorElemType,
             1,

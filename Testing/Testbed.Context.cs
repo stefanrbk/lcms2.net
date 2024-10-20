@@ -821,7 +821,7 @@ internal static partial class Testbed
 
     private static Stage? StageAllocNegate(Context? ContextID)
     {
-        return _cmsStageAllocPlaceholder(ContextID,
+        return new(ContextID,
                      SigNegateType, 3, 3, EvaluateNegate,
                      null, null, null);
     }
