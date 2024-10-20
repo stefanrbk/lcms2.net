@@ -28,48 +28,119 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public class Transform
+public class Transform : IDisposable
 {
-    public uint InputFormat, OutputFormat;
+    internal uint InputFormat, OutputFormat;
 
-    public Transform2Fn xform;
+    internal Transform2Fn xform;
 
-    public Formatter16In FromInput;
-    public Formatter16Out ToOutput;
+    public Formatter16In FromInput
+    {
+        get;    // _cmsGetTransformFormatters16
+        internal set;
+    }
+    public Formatter16Out ToOutput
+    {
+        get;    // _cmsGetTransformFormatters16
+        internal set;
+    }
 
-    public FormatterFloatIn FromInputFloat;
-    public FormatterFloatOut ToOutputFloat;
+    public FormatterFloatIn FromInputFloat
+    {
+        get;    // _cmsGetTransformFormattersFloat
+        internal set;
+    }
+    public FormatterFloatOut ToOutputFloat
+    {
+        get;    // _cmsGetTransformFormattersFloat
+        internal set;
+    }
 
-    public Cache Cache;
+    internal Cache Cache;
 
-    public Pipeline? Lut;
+    internal Pipeline? Lut;
 
-    public Pipeline? GamutCheck;
+    internal Pipeline? GamutCheck;
 
-    public NamedColorList InputColorant;
-    public NamedColorList OutputColorant;
+    internal NamedColorList InputColorant;
+    internal NamedColorList OutputColorant;
 
-    public Signature EntryColorSpace;
-    public Signature ExitColorSpace;
+    internal Signature EntryColorSpace;
+    internal Signature ExitColorSpace;
 
-    public CIEXYZ EntryWhitePoint;
-    public CIEXYZ ExitWhitePoint;
+    internal CIEXYZ EntryWhitePoint;
+    internal CIEXYZ ExitWhitePoint;
 
-    public Sequence Sequence;
+    internal Sequence Sequence;
 
-    public uint dwOriginalFlags;
-    public double AdaptationState;
+    internal uint dwOriginalFlags;
+    public uint Flags =>    // _cmsGetTransformFlags
+        dwOriginalFlags;
+    internal double AdaptationState;
 
-    public uint RenderingIntent;
+    internal uint RenderingIntent;
 
-    public Context? ContextID;
+    internal Context? ContextID;
 
-    public object? UserData;
-    public FreeUserDataFn? FreeUserData;
+    public object? UserData
+    {
+        get;    // _cmsGetTransformUserData
+        internal set;
+    }
+    internal FreeUserDataFn? FreeUserData;
 
-    public TransformFn? OldXform;
+    internal TransformFn? OldXform;
 
-    public Transform2Fn? Worker;
-    public int MaxWorkers;
-    public uint WorkerFlags;
+    public Transform2Fn? Worker
+    {
+        get;    // _cmsGetTransformWorker
+        internal set;
+    }
+    public int MaxWorkers
+    {
+        get;    // _cmsGetTransformMaxWorkers
+        internal set;
+    }
+    public uint WorkerFlags
+    {
+        get;    // _cmsGetTransformWorkerFlags
+        internal set;
+    }
+    private bool disposedValue;
+
+    public void SetUserData(object? ptr, FreeUserDataFn? FreePrivateDataFn) // _cmsSetTransformUserData
+    {
+        UserData = ptr;
+        FreeUserData = FreePrivateDataFn;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+            }
+
+            FreeUserData?.Invoke(ContextID, UserData);
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            disposedValue = true;
+        }
+    }
+
+    ~Transform()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: false);
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }
