@@ -24,6 +24,8 @@
 //
 //---------------------------------------------------------------------------------
 
+using lcms2.types;
+
 namespace lcms2.state;
 
 internal class IntentsPluginChunkType(IEnumerable<Intent> intents) : ICloneable

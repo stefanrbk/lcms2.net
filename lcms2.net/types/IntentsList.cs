@@ -26,14 +26,14 @@
 
 using System.Collections;
 
-namespace lcms2.state;
+namespace lcms2.types;
 
 public class IntentsList : IList<Intent>, ICloneable
 {
     private readonly List<Intent> _list;
 
     public IntentsList() =>
-        _list = new();
+        _list = [];
 
     public IntentsList(int capacity) =>
         _list = new(capacity);
@@ -59,8 +59,10 @@ public class IntentsList : IList<Intent>, ICloneable
     public void Clear() =>
         _list.Clear();
 
-    public object Clone() =>
-        new IntentsList(_list.Select(c => (Intent)c.Clone()));
+    object ICloneable.Clone() =>
+        Clone();
+    public IntentsList Clone() =>
+        new(_list.Select(c => (Intent)((ICloneable)c).Clone()));
 
     public bool Contains(Intent item) =>
         _list.Contains(item);
@@ -85,16 +87,18 @@ public class IntentsList : IList<Intent>, ICloneable
 
     IEnumerator IEnumerable.GetEnumerator() =>
         ((IEnumerable)_list).GetEnumerator();
-}
-public class Intent(uint intent, string desc, IntentFn fn) : ICloneable
-{
-    private readonly uint _value = intent;
-    public string Description = desc;
-    public IntentFn Link = fn;
 
-    public static implicit operator uint(Intent intent) =>
-        intent._value;
-
-    public object Clone() =>
-        new Intent(_value, Description, Link);
+    internal static readonly IntentsList Default = new(
+        [
+            new(INTENT_PERCEPTUAL, "Perceptual", Intent.ICCDefault),
+            new(INTENT_RELATIVE_COLORIMETRIC, "Relative colorimetric", Intent.ICCDefault),
+            new(INTENT_SATURATION, "Saturation", Intent.ICCDefault),
+            new(INTENT_ABSOLUTE_COLORIMETRIC, "Absolute colorimetric", Intent.ICCDefault),
+            new(INTENT_PRESERVE_K_ONLY_PERCEPTUAL, "Perceptual preserving black ink", Intent.BlackPreservingKOnly),
+            new(INTENT_PRESERVE_K_ONLY_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black ink", Intent.BlackPreservingKOnly),
+            new(INTENT_PRESERVE_K_ONLY_SATURATION, "Saturation preserving black ink", Intent.BlackPreservingKOnly),
+            new(INTENT_PRESERVE_K_PLANE_PERCEPTUAL, "Perceptual preserving black plane", Intent.BlackPreservingKPlane),
+            new(INTENT_PRESERVE_K_PLANE_RELATIVE_COLORIMETRIC, "Relative colorimetric preserving black plane", Intent.BlackPreservingKPlane),
+            new(INTENT_PRESERVE_K_PLANE_SATURATION, "Saturation preserving black plane", Intent.BlackPreservingKPlane)
+        ]);
 }

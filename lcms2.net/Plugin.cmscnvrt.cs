@@ -38,5 +38,5 @@ public static partial class Plugin
         ReadOnlySpan<bool> BPC,
         ReadOnlySpan<double> AdaptationStates,
         uint dwFlags) =>
-        DefaultICCintents(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
+        Intent.ICCDefault(ContextID, nProfiles, TheIntents, Profiles, BPC, AdaptationStates, dwFlags);
 }
