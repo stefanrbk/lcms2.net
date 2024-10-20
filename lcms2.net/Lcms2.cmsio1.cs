@@ -127,7 +127,7 @@ public static partial class Lcms2
                     Dest.Value = MAT3.Identity;
                     return true;
                 }
-                return !ChAd.AdaptationMatrix(null, White.Value, D50XYZ).IsNaN;
+                return !CHAD.AdaptationMatrix(null, White.Value, D50XYZ).IsNaN;
             }
         }
 

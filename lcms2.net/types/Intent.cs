@@ -828,7 +828,7 @@ public class Intent(uint intent, string desc, IntentFn fn) : ICloneable
     {
         var ChromaticityOfWhite = cmsWhitePointFromTemp(Temp);
         var White = cmsxyY2XYZ(ChromaticityOfWhite);
-        return ChAd.AdaptationMatrix(null, White, D50XYZ);
+        return CHAD.AdaptationMatrix(null, White, D50XYZ);
     }
 
     private class PreserveKPlaneParams

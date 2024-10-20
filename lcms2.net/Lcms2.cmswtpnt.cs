@@ -59,7 +59,7 @@ public static partial class Lcms2
     {
         var Dn = cmsxyY2XYZ(SourceWhitePt);
 
-        var Bradford = ChAd.AdaptationMatrix(null, Dn, D50XYZ);
+        var Bradford = CHAD.AdaptationMatrix(null, Dn, D50XYZ);
         if (Bradford.IsNaN)
             return false;
 
@@ -106,5 +106,5 @@ public static partial class Lcms2
 
     public static CIEXYZ cmsAdaptToIlluminant(CIEXYZ SourceWhitePt, CIEXYZ Illuminant, CIEXYZ Value) =>
         // See ChAd.AdaptToIlluminant()
-        ChAd.AdaptToIlluminant(SourceWhitePt, Illuminant, Value).IfNone(CIEXYZ.NaN);
+        CHAD.AdaptToIlluminant(SourceWhitePt, Illuminant, Value).IfNone(CIEXYZ.NaN);
 }

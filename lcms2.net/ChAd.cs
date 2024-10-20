@@ -3,7 +3,7 @@
 using lcms2.types;
 
 namespace lcms2;
-public static class ChAd
+public static class CHAD
 {
     public static Option<CIEXYZ> AdaptToIlluminant(CIEXYZ SourceWhitePt, CIEXYZ Illuminant, CIEXYZ Value)
     {
