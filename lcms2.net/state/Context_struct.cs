@@ -33,9 +33,9 @@ using System.Diagnostics;
 namespace lcms2.state;
 
 [DebuggerStepThrough]
-public class Context(object? UserData = null) : ICloneable
+public class Context : ICloneable
 {
-    private object? userData = UserData;
+    private object? userData;
     internal LogErrorChunkType ErrorLogger = new();
     internal AlarmCodesChunkType AlarmCodes = new();
     internal AdaptationStateChunkType AdaptationState = new(DEFAULT_OBSERVER_ADAPTATION_STATE);
@@ -56,7 +56,11 @@ public class Context(object? UserData = null) : ICloneable
     public static Context Default => new();
     public static readonly Context Shared = new();
 
-    public Context(IEnumerable<PluginBase> plugins, object? UserData = null) : this(UserData)
+    private Context(object? userdata = null) =>
+        userData = userdata;
+
+    public Context(IEnumerable<PluginBase> plugins,
+                   object? UserData = null) : this(UserData)    // cmsCreateContext
     {
         foreach (var plugin in plugins)
         {
