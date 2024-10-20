@@ -30,6 +30,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyY")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.xyYTripple")]
+[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.CIExyY")]
+[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "ICC type name", Scope = "type", Target = "~T:lcms2.types.CIExyYTRIPLE")]
 [assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Lcms2 public static methods start with \"cms\"", Scope = "member", Target = "~T:lcms2.Lcms2")]
+[assembly: SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "Primary constructors don't work with doc comments", Scope = "module")]
