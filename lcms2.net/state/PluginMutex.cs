@@ -31,14 +31,8 @@ namespace lcms2.state;
 public class PluginMutex(Signature sig,
                          uint expectedVersion,
                          Signature type,
-                         CreateMutexFnPtrType create,
-                         DestroyMutexFnPtrType destroy,
-                         LockMutexFnPtrType @lock,
-                         UnlockMutexFnPtrType unlock)
+                         MutexFactory factory)
     : PluginBase(sig, expectedVersion, type)
 {
-    public CreateMutexFnPtrType CreateMutexPtr = create;
-    public DestroyMutexFnPtrType DestroyMutexPtr = destroy;
-    public LockMutexFnPtrType LockMutexPtr = @lock;
-    public UnlockMutexFnPtrType UnlockMutexPtr = unlock;
+    public MutexFactory Factory = factory;
 }

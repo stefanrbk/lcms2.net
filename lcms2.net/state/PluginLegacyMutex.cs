@@ -24,15 +24,21 @@
 //
 //---------------------------------------------------------------------------------
 
-using lcms2.state;
+using lcms2.types;
 
-namespace lcms2.types;
+namespace lcms2.state;
 
-public interface IMutex : IDisposable
+public class PluginLegacyMutex(Signature sig,
+                               uint expectedVersion,
+                               Signature type,
+                               CreateMutexFnPtrType create,
+                               DestroyMutexFnPtrType destroy,
+                               LockMutexFnPtrType @lock,
+                               UnlockMutexFnPtrType unlock)
+    : PluginBase(sig, expectedVersion, type)
 {
-    bool Lock(Context? context);
-
-    void Unlock(Context? context);
-
-    void Destroy(Context? context);
+    public CreateMutexFnPtrType CreateMutexPtr = create;
+    public DestroyMutexFnPtrType DestroyMutexPtr = destroy;
+    public LockMutexFnPtrType LockMutexPtr = @lock;
+    public UnlockMutexFnPtrType UnlockMutexPtr = unlock;
 }

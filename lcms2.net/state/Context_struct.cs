@@ -185,4 +185,41 @@ public class Context(object? UserData = null) : ICloneable
         ContextID ?? Shared;
 
     private const double DEFAULT_OBSERVER_ADAPTATION_STATE = 1.0;
+
+    public static object? CreateMutex(Context? context) // _cmsCreateMutex
+    {
+        var ctx = Get(context);
+        return ctx.MutexPlugin.MutexFactory?.Invoke(ctx) ?? ctx.MutexPlugin.CreateFn?.Invoke(ctx);
+    }
+
+    public static void DestroyMutex(Context? context, object? mtx)  // _cmsDestroyMutex
+    {
+        var ctx = Get(context);
+
+        if (mtx is IMutex mutex)
+            mutex.Destroy(ctx);
+        else if (mtx is not null)
+            ctx.MutexPlugin.DestroyFn?.Invoke(ctx, mtx);
+    }
+
+    public static bool LockMutex(Context? context, object? mtx) // _cmsLockMutex
+    {
+        var ctx = Get(context);
+
+        if (mtx is IMutex mutex)
+            return mutex.Lock(ctx);
+        else if (mtx is not null)
+            return ctx.MutexPlugin.LockFn?.Invoke(ctx, mtx) ?? true;
+        return true; // The user can technically not use a mutex, so locking a null shouldn't fail.
+    }
+
+    public static void UnlockMutex(Context? context, object? mtx)   // _cmsUnlockMutex
+    {
+        var ctx = Get(context);
+
+        if (mtx is IMutex mutex)
+            mutex.Unlock(ctx);
+        else if (mtx is not null)
+            ctx.MutexPlugin.UnlockFn?.Invoke(ctx, mtx);
+    }
 }

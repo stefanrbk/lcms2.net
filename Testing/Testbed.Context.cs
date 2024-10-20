@@ -1245,7 +1245,7 @@ internal static partial class Testbed
     }
 
 
-    private readonly static PluginMutex MutexPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginMutexSig, MyMtxCreate, MyMtxDestroy, MyMtxLock, MyMtxUnlock);
+    private readonly static PluginLegacyMutex MutexPluginSample = new(cmsPluginMagicNumber, 2060, cmsPluginMutexSig, MyMtxCreate, MyMtxDestroy, MyMtxLock, MyMtxUnlock);
 
 
     public static bool CheckMutexPlugin()

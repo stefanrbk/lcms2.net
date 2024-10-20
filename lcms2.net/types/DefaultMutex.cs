@@ -28,9 +28,9 @@ using lcms2.state;
 
 namespace lcms2.types;
 
-public class DefaultMutex : IMutex
+public sealed class DefaultMutex : IMutex
 {
-    private readonly Mutex mutex = new();
+    private readonly Mutex mutex = new(false);
 
     public static IMutex Create(Context? _) =>
         new DefaultMutex();

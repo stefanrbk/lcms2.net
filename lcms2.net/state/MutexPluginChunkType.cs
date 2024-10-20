@@ -24,28 +24,35 @@
 //
 //---------------------------------------------------------------------------------
 
+using lcms2.types;
+
 using System.Diagnostics;
 
 namespace lcms2.state;
 
 internal class MutexPluginChunkType : ICloneable
 {
-    public CreateMutexFnPtrType? CreateFn = defMtxCreate;
-    public DestroyMutexFnPtrType? DestroyFn = defMtxDestroy;
-    public LockMutexFnPtrType? LockFn = defMtxLock;
-    public UnlockMutexFnPtrType? UnlockFn = defMtxUnlock;
+    public CreateMutexFnPtrType? CreateFn = null;
+    public DestroyMutexFnPtrType? DestroyFn = null;
+    public LockMutexFnPtrType? LockFn = null;
+    public UnlockMutexFnPtrType? UnlockFn = null;
+    public MutexFactory? MutexFactory = DefaultMutexFactory;
 
     object ICloneable.Clone() =>
         Clone();
 
     public MutexPluginChunkType Clone() =>
-        new MutexPluginChunkType()
+        new()
         {
             CreateFn = CreateFn,
             DestroyFn = DestroyFn,
             LockFn = LockFn,
             UnlockFn = UnlockFn
         };
+
+    [DebuggerStepThrough]
+    private static IMutex DefaultMutexFactory(Context? _) =>
+        new DefaultMutex();
 
     [DebuggerStepThrough]
     private static object defMtxCreate(Context? id) =>

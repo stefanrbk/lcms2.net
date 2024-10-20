@@ -635,12 +635,11 @@ public static partial class Lcms2
 
     internal static bool _cmsRegisterMutexPlugin(Context? context, PluginBase? data)
     {
-        var Plugin = (PluginMutex?)data;
         var ctx = Context.Get(context).MutexPlugin;
 
-        if (data is null)
+        if (data is PluginMutex Plugin)
         {
-            // Mo lock routines
+            ctx.MutexFactory = Plugin.Factory;
             ctx.CreateFn = null;
             ctx.DestroyFn = null;
             ctx.LockFn = null;
@@ -648,48 +647,33 @@ public static partial class Lcms2
 
             return true;
         }
+        else
+        {
+            var LegacyPlugin = (PluginLegacyMutex?)data;
 
-        // Factory callback is required
-        if (Plugin!.CreateMutexPtr is null || Plugin.DestroyMutexPtr is null || Plugin.LockMutexPtr is null || Plugin.UnlockMutexPtr is null) return false;
+            if (data is null)
+            {
+                // Mo lock routines
+                ctx.CreateFn = null;
+                ctx.DestroyFn = null;
+                ctx.LockFn = null;
+                ctx.UnlockFn = null;
+                ctx.MutexFactory = null;
 
-        ctx.CreateFn = Plugin.CreateMutexPtr;
-        ctx.DestroyFn = Plugin.DestroyMutexPtr;
-        ctx.LockFn = Plugin.LockMutexPtr;
-        ctx.UnlockFn = Plugin.UnlockMutexPtr;
+                return true;
+            }
 
-        return true;
-    }
+            // Factory callback is required
+            if (LegacyPlugin!.CreateMutexPtr is null || LegacyPlugin.DestroyMutexPtr is null || LegacyPlugin.LockMutexPtr is null || LegacyPlugin.UnlockMutexPtr is null) return false;
 
-    [DebuggerStepThrough]
-    internal static object? _cmsCreateMutex(Context? context)
-    {
-        var ptr = Context.Get(context).MutexPlugin;
+            ctx.CreateFn = LegacyPlugin.CreateMutexPtr;
+            ctx.DestroyFn = LegacyPlugin.DestroyMutexPtr;
+            ctx.LockFn = LegacyPlugin.LockMutexPtr;
+            ctx.UnlockFn = LegacyPlugin.UnlockMutexPtr;
+            ctx.MutexFactory = null;
 
-        return ptr?.CreateFn?.Invoke(context);
-    }
-
-    [DebuggerStepThrough]
-    internal static void _cmsDestroyMutex(Context? context, object? mutex)
-    {
-        var ptr = Context.Get(context).MutexPlugin;
-
-        ptr?.DestroyFn?.Invoke(context, mutex);
-    }
-
-    [DebuggerStepThrough]
-    internal static bool _cmsLockMutex(Context? context, object? mutex)
-    {
-        var ptr = Context.Get(context).MutexPlugin;
-
-        return ptr?.LockFn?.Invoke(context, mutex) ?? false;
-    }
-
-    [DebuggerStepThrough]
-    internal static void _cmsUnlockMutex(Context? context, object? mutex)
-    {
-        var ptr = Context.Get(context).MutexPlugin;
-
-        ptr?.UnlockFn?.Invoke(context, mutex);
+            return true;
+        }
     }
 
     private static readonly ParallelizationPluginChunkType globalParallelizationPluginChunk = new(0, 0, null);

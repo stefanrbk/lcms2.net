@@ -56,4 +56,5 @@ public static partial class Plugin
     public delegate void DestroyMutexFnPtrType(Context? ContextID, object mtx);
     public delegate bool LockMutexFnPtrType(Context? ContextID, object mtx);
     public delegate void UnlockMutexFnPtrType(Context? ContextID, object mtx);
+    public delegate IMutex MutexFactory(Context? ContextID);
 }
